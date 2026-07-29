@@ -54,6 +54,8 @@ assert.doesNotMatch(companionSource, /send\(\{ type: 'Ping'/, 'redundant game Pi
 assert.doesNotMatch(companionSource, /dispatchEvent\(new MouseEvent/, 'synthetic activity event found');
 assert.match(companionSource, /event\.code === 4710/, 'version-expired WebSocket detection missing');
 assert.match(companionSource, /game update available/, 'game update dialog detection missing');
+assert.match(styleSource, /#gc-update-health\[data-status=available\] \{[^}]*color:#fecaca[^}]*border-color:rgba\(248,113,113,\.72\)/s, 'available update indicator does not use a red outline');
+assert.doesNotMatch(styleSource, /#gc-update-health\[data-status=available\] \{[^}]*52,211,153/s, 'available update indicator still uses misleading green styling');
 assert.match(companionSource, /'visibilityState'.*'visible'/s, 'background visibility mode missing');
 assert.match(companionSource, /if \(input\.checked\)[\s\S]*showSelectedShopAlarm\(key\)/, 'enabling an alarm does not inspect current stock');
 assert.match(companionSource, /if \(input\.checked\)[\s\S]*armAlarmAudio\(\)/, 'alarm audio is not armed by the settings gesture');

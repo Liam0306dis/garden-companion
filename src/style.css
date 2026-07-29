@@ -28,7 +28,7 @@
 #gc-ws-health[data-status=disconnected] i { background:var(--gc-danger);box-shadow:0 0 8px rgba(248,113,113,.45); }
 #gc-update-health { margin-left:auto;padding:4px 7px;border:1px solid rgba(255,255,255,.06);border-radius:6px;color:#64748b;background:rgba(255,255,255,.025);cursor:pointer;font:750 8px/1.2 system-ui,sans-serif; }
 #gc-update-health:hover { color:#ddd6fe;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08); }
-#gc-update-health[data-status=available] { color:#d1fae5;border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.13);box-shadow:0 0 13px rgba(52,211,153,.08); }
+#gc-update-health[data-status=available] { color:#fecaca;border-color:rgba(248,113,113,.72);background:rgba(248,113,113,.07);box-shadow:0 0 0 1px rgba(248,113,113,.16),0 0 13px rgba(248,113,113,.1); }
 #gc-update-health[data-status=failed] { color:var(--gc-danger); }
 #gc-panel { position:fixed;inset:0;z-index:999995;padding:18px;box-sizing:border-box;display:grid;place-items:center;background:transparent;pointer-events:none;color:var(--gc-text);font:12px/1.45 system-ui,sans-serif; }
 #gc-panel[hidden] { display:none; }
