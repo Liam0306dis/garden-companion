@@ -946,7 +946,7 @@ export function initGardenOverview(): void {
     });
     const saveFocusControls = () => { saveFocus(focus); applyPlantFocus(); lastSignature = ''; };
     const focusEnabled = panel.querySelector<HTMLInputElement>('[data-focus-enabled]');
-    if (focusEnabled) focusEnabled.onchange = () => { focus.enabled = focusEnabled.checked; saveFocusControls(); };
+    if (focusEnabled) focusEnabled.onchange = () => { focus.enabled = focusEnabled.checked; saveFocusControls(); focusEnabled.blur(); };
     const focusScope = panel.querySelector<HTMLSelectElement>('[data-focus-scope]');
     if (focusScope) focusScope.onchange = () => { focus.scope = focusScope.value; saveFocusControls(); };
     const focusRule = panel.querySelector<HTMLSelectElement>('[data-focus-rule]');
@@ -954,7 +954,7 @@ export function initGardenOverview(): void {
     panel.querySelectorAll<HTMLButtonElement>('[data-focus-mutation]').forEach(button => button.onclick = () => { const selected = new Set(focus.mutations); const mutation = button.dataset.focusMutation ?? ''; selected.has(mutation) ? selected.delete(mutation) : selected.add(mutation); focus.mutations = [...selected]; saveFocusControls(); render(true); });
     panel.querySelector<HTMLButtonElement>('[data-focus-clear]')?.addEventListener('click', () => { focus.mutations = []; saveFocusControls(); render(true); });
     const focusInvert = panel.querySelector<HTMLInputElement>('[data-focus-invert]');
-    if (focusInvert) focusInvert.onchange = () => { focus.invert = focusInvert.checked; saveFocusControls(); };
+    if (focusInvert) focusInvert.onchange = () => { focus.invert = focusInvert.checked; saveFocusControls(); focusInvert.blur(); };
     const focusOpacity = panel.querySelector<HTMLInputElement>('[data-focus-opacity]');
     if (focusOpacity) focusOpacity.oninput = () => { focus.opacity = Number(focusOpacity.value) / 100; const label = panel.querySelector<HTMLElement>('[data-opacity-value]'); if (label) label.textContent = `${focusOpacity.value}%`; saveFocusControls(); };
     panel.querySelectorAll<HTMLElement>('[data-collapse]').forEach(toggle => toggle.onclick = () => {

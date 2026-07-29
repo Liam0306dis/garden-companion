@@ -1556,14 +1556,20 @@ export function initCompanion(): void {
     if (deletedCard && cards.length > 1) deletedCard.remove();
     else renderPanelPreservingScroll();
   }
+  function panelRefreshBlocked(panel: HTMLElement): boolean {
+    if (abilityFilterInteracting || abilityFilterMenuOpen || panel.contains(document.activeElement)) return true;
+    if (panel.querySelector<HTMLDetailsElement>('[data-ability-filter]')?.open) return true;
+    const abilityLog = activeTab === 'abilityLog' ? panel.querySelector<HTMLElement>('.gc-log') : null;
+    return Boolean(abilityLog && (abilityLog.matches(':hover') || abilityLog.scrollTop > 0));
+  }
+
   function refreshOpenPanel() {
     const panel = document.getElementById('gc-panel');
-    if (!panel || panel.hidden || !['abilities', 'abilityLog'].includes(activeTab) || abilityFilterInteracting || panel.contains(document.activeElement)) return;
-    const abilityLog = activeTab === 'abilityLog' ? panel.querySelector<HTMLElement>('.gc-log') : null;
-    if (abilityLog && (abilityLog.matches(':hover') || abilityLog.scrollTop > 0)) return;
+    if (!panel || panel.hidden || !['abilities', 'abilityLog'].includes(activeTab) || panelRefreshBlocked(panel)) return;
     if (panelRefreshTimer) return;
     panelRefreshTimer = setTimeout(() => {
       panelRefreshTimer = null;
+      if (panel.hidden || !['abilities', 'abilityLog'].includes(activeTab) || panelRefreshBlocked(panel)) return;
       const main = panel.querySelector('main');
       const scrollTop = main?.scrollTop ?? 0;
       renderPanel();
@@ -1815,7 +1821,11 @@ export function initCompanion(): void {
     main.querySelector('[data-silence-finders]')?.addEventListener('click', () => { config.silencedAbilities = TRACKED_ABILITY_CATALOG.filter(ability => ability.includes('Finder')); saveConfig(); renderPanel(); });
     const abilityFilter = main.querySelector('[data-ability-filter]') as HTMLDetailsElement | null;
     if (abilityFilter) {
-      abilityFilter.ontoggle = () => { abilityFilterMenuOpen = abilityFilter.open; abilityFilterInteracting = abilityFilter.open; };
+      abilityFilter.ontoggle = () => {
+        abilityFilterMenuOpen = abilityFilter.open;
+        abilityFilterInteracting = abilityFilter.open;
+        if (abilityFilter.open) cancelPanelRefresh();
+      };
       abilityFilter.addEventListener('focusout', () => setTimeout(() => {
         if (!abilityFilter.contains(document.activeElement)) {
           abilityFilter.open = false;

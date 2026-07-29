@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.54
+// @version      0.6.55
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1506,14 +1506,19 @@
       if (deletedCard && cards.length > 1) deletedCard.remove();
       else renderPanelPreservingScroll();
     }
+    function panelRefreshBlocked(panel) {
+      if (abilityFilterInteracting || abilityFilterMenuOpen || panel.contains(document.activeElement)) return true;
+      if (panel.querySelector("[data-ability-filter]")?.open) return true;
+      const abilityLog = activeTab === "abilityLog" ? panel.querySelector(".gc-log") : null;
+      return Boolean(abilityLog && (abilityLog.matches(":hover") || abilityLog.scrollTop > 0));
+    }
     function refreshOpenPanel() {
       const panel = document.getElementById("gc-panel");
-      if (!panel || panel.hidden || !["abilities", "abilityLog"].includes(activeTab) || abilityFilterInteracting || panel.contains(document.activeElement)) return;
-      const abilityLog = activeTab === "abilityLog" ? panel.querySelector(".gc-log") : null;
-      if (abilityLog && (abilityLog.matches(":hover") || abilityLog.scrollTop > 0)) return;
+      if (!panel || panel.hidden || !["abilities", "abilityLog"].includes(activeTab) || panelRefreshBlocked(panel)) return;
       if (panelRefreshTimer) return;
       panelRefreshTimer = setTimeout(() => {
         panelRefreshTimer = null;
+        if (panel.hidden || !["abilities", "abilityLog"].includes(activeTab) || panelRefreshBlocked(panel)) return;
         const main = panel.querySelector("main");
         const scrollTop = main?.scrollTop ?? 0;
         renderPanel();
@@ -1806,6 +1811,7 @@
         abilityFilter.ontoggle = () => {
           abilityFilterMenuOpen = abilityFilter.open;
           abilityFilterInteracting = abilityFilter.open;
+          if (abilityFilter.open) cancelPanelRefresh();
         };
         abilityFilter.addEventListener("focusout", () => setTimeout(() => {
           if (!abilityFilter.contains(document.activeElement)) {
@@ -2849,6 +2855,7 @@
       if (focusEnabled) focusEnabled.onchange = () => {
         focus.enabled = focusEnabled.checked;
         saveFocusControls();
+        focusEnabled.blur();
       };
       const focusScope = panel.querySelector("[data-focus-scope]");
       if (focusScope) focusScope.onchange = () => {
@@ -2877,6 +2884,7 @@
       if (focusInvert) focusInvert.onchange = () => {
         focus.invert = focusInvert.checked;
         saveFocusControls();
+        focusInvert.blur();
       };
       const focusOpacity = panel.querySelector("[data-focus-opacity]");
       if (focusOpacity) focusOpacity.oninput = () => {

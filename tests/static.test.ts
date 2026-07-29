@@ -92,6 +92,8 @@ assert.match(styleSource, /#gc-lunar::before[\s\S]*linear-gradient/, 'lunar time
 assert.doesNotMatch(companionSource, /slice\(0, 500\)/, 'legacy global ability history limit found');
 assert.match(overviewSource, /structureSignature/, 'overview structural refresh guard missing');
 assert.match(overviewSource, /installPlantFocus/, 'overview plant focus missing');
+assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*focusEnabled\.blur\(\)/, 'plant focus enabled checkbox keeps keyboard focus');
+assert.match(overviewSource, /focusInvert\.onchange[\s\S]*focusInvert\.blur\(\)/, 'plant focus invert checkbox keeps keyboard focus');
 assert.match(overviewSource, /PageObject\.defineProperty\(prototype, 'tileViews'/, 'plant focus direct tile-view capture missing');
 assert.match(overviewSource, /property === 'tileViews'.*attributes\?\.value instanceof PageMap/s, 'plant focus defined-property capture missing');
 assert.match(overviewSource, /view\.draw = function.*enforce\(view\.childView\?\.plantVisual\?\.container\)/s, 'plant focus redraw enforcement missing');
@@ -165,6 +167,8 @@ assert.match(companionSource, /abilityFilterInteracting/, 'ability dropdown redr
 assert.match(companionSource, /function refreshAbilityFilterUi[\s\S]*refreshAbilityFilterUi\(main\)/, 'ability filter selections still require a full panel redraw');
 const abilityFilterEvents = companionSource.slice(companionSource.indexOf("const abilityFilter = main.querySelector('[data-ability-filter]')"), companionSource.indexOf("bindListSearch(main.querySelector('[data-shop-search]')"));
 assert.doesNotMatch(abilityFilterEvents, /renderPanel\(\)/, 'ability filter selection closes the dropdown by redrawing the panel');
+assert.match(companionSource, /panelRefreshTimer = setTimeout[\s\S]*panelRefreshBlocked\(panel\)/, 'queued panel refresh does not re-check the open ability dropdown');
+assert.match(abilityFilterEvents, /if \(abilityFilter\.open\) cancelPanelRefresh\(\)/, 'opening the ability dropdown does not cancel a queued panel refresh');
 assert.match(companionSource, /abilityLog\.matches\(':hover'\) \|\| abilityLog\.scrollTop > 0/, 'proc history does not pause redraws while browsing');
 assert.match(companionSource, /function selectPanelTab[\s\S]*cancelPanelRefresh\(\);[\s\S]*activeTab = tab/, 'tab selection does not cancel pending panel redraws');
 assert.match(companionSource, /button\.onpointerdown = event =>[\s\S]*selectPanelTab\(button\.dataset\.tab\)/, 'panel tabs still wait for a click that can be lost during redraw');
