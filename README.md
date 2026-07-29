@@ -8,7 +8,7 @@ actions. It does not perform unattended gameplay.
 
 - Detailed garden overview with growth, value, mutation progress, granter estimates, plant focus, tracked species, keybind, and completion alarms
 - Pet team creation, editing, deletion, activation, pet filtering, and global team keybinds using the games native teams
-- Active pet dashboard with game sprites, hunger bars, combined ability effects, proc chances, and estimated time until maximum strength
+- Active pet dashboard with game sprites, hunger bars, combined ability effects, proc chances, estimated time until maximum strength, and XP potions required to reach it
 - Pet ability history with selectable tracking filters which show the last 100 records per ability
 - Per-ability pet notification and sound silencing
 - Joinable public room browser for rooms with four or five players

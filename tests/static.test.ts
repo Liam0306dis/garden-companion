@@ -191,6 +191,10 @@ assert.match(companionSource.slice(companionSource.indexOf('function teamXpPerHo
 assert.match(companionSource.slice(companionSource.indexOf('function combinedAbilityRows'), companionSource.indexOf('function snapshotPayload')), /if \(pet\.hunger <= 0\) continue;/, 'hungry pets still contribute combined ability rates');
 assert.match(companionSource, /const xpRate = teamXpPerHour\(active\)/, 'active pet cards do not use the full per-pet XP rate');
 assert.match(companionSource, /XP\/hour per pet/, 'XP rate is not labelled as applying independently to every pet');
+assert.match(companionSource, /const XP_PER_POTION = 20_000/, 'XP potion value is not defined');
+assert.match(companionSource, /Math\.ceil\(metrics\.xpToMax \/ XP_PER_POTION\)/, 'XP potion estimate does not use each pet remaining XP');
+assert.match(companionSource, /XP potion\$\{potionsToMax === 1 \? '' : 's'\} to max/, 'XP potion estimate is not shown on active pet cards');
+assert.match(styleSource, /\.gc-pet-potions \{[^}]*color:#c4b5fd/s, 'XP potion estimate lacks active pet card styling');
 assert.match(companionSource, /function renderAbilityLog/, 'Pet Abilities history tab missing');
 assert.doesNotMatch(companionSource.slice(companionSource.indexOf('function renderAbilities()'), companionSource.indexOf('function renderAbilityLog()')), /Recent tracked procs/, 'proc history remains on Active Pets');
 assert.match(companionSource, /activeTab === 'abilityLog' \? 'gc-ability-log-tab' : ''/, 'Pet Abilities tab cannot use the full panel height');

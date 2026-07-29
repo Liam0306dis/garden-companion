@@ -834,6 +834,8 @@ export function initCompanion(): void {
     return { strength, maxStrength, xpPerLevel, xpToMax };
   }
 
+  const XP_PER_POTION = 20_000;
+
   const XP_ABILITY_REGISTRY: Record<string, { baseChance: number; baseXp: number }> = {
     PetXpBoost: { baseChance: 30, baseXp: 300 },
     PetXpBoostI: { baseChance: 30, baseXp: 300 },
@@ -1644,7 +1646,9 @@ export function initCompanion(): void {
     const activeCards = active.map(pet => {
       const metrics = petMetrics(pet);
       const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : 'Max STR reached' : 'Strength estimate unavailable';
-      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p></div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div></article>`;
+      const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
+      const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString()} XP potion${potionsToMax === 1 ? '' : 's'} to max` : '';
+      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p></div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionText ? `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : ''}</article>`;
     }).join('');
     const abilityRows = combinedAbilityRows(active);
     return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString()} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
