@@ -191,6 +191,10 @@ assert.match(companionSource, /const xpRate = teamXpPerHour\(active\)/, 'active 
 assert.match(companionSource, /XP\/hour per pet/, 'XP rate is not labelled as applying independently to every pet');
 assert.match(companionSource, /function renderAbilityLog/, 'Pet Abilities history tab missing');
 assert.doesNotMatch(companionSource.slice(companionSource.indexOf('function renderAbilities()'), companionSource.indexOf('function renderAbilityLog()')), /Recent tracked procs/, 'proc history remains on Active Pets');
+assert.match(companionSource, /activeTab === 'abilityLog' \? 'gc-ability-log-tab' : ''/, 'Pet Abilities tab cannot use the full panel height');
+assert.match(companionSource, /gc-card gc-ability-log-card/, 'recent proc card lacks its expanding layout class');
+assert.match(styleSource, /\.gc-ability-log-card \{[^}]*min-height:0[^}]*flex:1[^}]*display:flex[^}]*flex-direction:column/s, 'recent proc card does not expand vertically');
+assert.match(styleSource, /\.gc-ability-log-tab \.gc-log \{[^}]*max-height:none[^}]*flex:1/s, 'recent proc list remains height-limited');
 assert.match(companionSource, /\['seed', 'Seeds'\], \['dawn', 'Dawn'\], \['thunder', 'Thunder'\], \['snow', 'Snow'\], \['egg', 'Eggs'\], \['tool', 'Tools'\], \['decor', 'Decor'\]/, 'shop alarm tab order is incorrect');
 for (const seasonalItem of ['Dawnbreaker', 'DawnCelestial', 'DawnEgg', 'ThunderCelestial', 'ThunderEgg', 'SnowEgg', 'ChilledPotion', 'FrozenPotion']) assert.ok(companionSource.includes(seasonalItem), `seasonal shop item ${seasonalItem} missing`);
 assert.match(companionSource, /gc-team-abilities/, 'team creation does not show pet abilities');

@@ -95,6 +95,9 @@
 .gc-chips span { padding:3px 7px;border:1px solid rgba(96,165,250,.16);border-radius:5px;color:#93c5fd;background:rgba(96,165,250,.07);font-size:9px; }
 .gc-chips span[data-active=false] { opacity:.32;text-decoration:line-through; }
 .gc-log { max-height:280px;overflow:auto;margin-top:8px; }
+.gc-layout main.gc-ability-log-tab { min-height:0;display:flex;overflow:hidden;flex-direction:column; }
+.gc-ability-log-card { min-height:0;flex:1;display:flex;flex-direction:column; }
+.gc-ability-log-tab .gc-log { min-height:0;max-height:none;flex:1; }
 .gc-log > div { display:grid;grid-template-columns:62px 58px minmax(0,1fr);gap:8px;padding:7px 2px;border-top:1px solid var(--gc-line);font:9px ui-monospace,monospace; }
 .gc-proc-result { display:flex;min-width:0;align-items:baseline;gap:6px;color:#f4f4f5;font-size:10px;font-weight:700; }.gc-proc-result i { overflow:hidden;color:#67e8f9;font-size:10px;font-weight:700;font-style:normal;text-overflow:ellipsis;white-space:nowrap; }
 .gc-log time { color:var(--gc-muted); }
