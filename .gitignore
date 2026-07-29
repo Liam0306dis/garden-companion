@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Test and compiler output
+coverage/
+*.tsbuildinfo
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local agent metadata
+.agents/
+.codex/
