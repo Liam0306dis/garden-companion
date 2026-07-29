@@ -74,14 +74,16 @@ assert.match(companionSource, /function togglePanel\(\)[\s\S]*!panel\.hidden\) c
 assert.match(companionSource, /\[data-options\]'\)!\.onclick = togglePanel/, 'lunar cog does not toggle the panel');
 assert.match(companionSource, /data-interface-key="companionPanel"/, 'Garden Companion panel keybind field is missing');
 assert.match(companionSource, /data-overview-key/, 'Garden Overview keybind is missing from interface shortcuts');
-assert.match(companionSource, /claimKeybind\('overview', event\.key === 'Escape' \? '' : comboFromEvent\(event\)\)/, 'Garden Overview keybind does not use shared ownership');
+assert.match(companionSource, /beginKeybindCapture\(input, 'overview', 'Press keys\.\.\.'\)/, 'Garden Overview keybind does not use shared ownership');
 assert.match(styleSource, /\.gc-shortcut-row \{[^}]*grid-template-columns:minmax\(145px,1fr\) 210px/, 'interface shortcuts are not aligned in a fixed input column');
 assert.match(companionSource, /config\.interfaceKeybinds\.companionPanel === combo[\s\S]*togglePanel\(\)/, 'Garden Companion panel keybind does not toggle the panel');
 assert.match(companionSource, /querySelectorAll<HTMLInputElement>\('#gc-panel \[data-interface-key\]'\)[\s\S]*field\.value = config\.interfaceKeybinds/, 'interface keybind changes still redraw the panel');
 assert.match(companionSource, /function claimKeybind\(owner: string, combo: string\)/, 'shared keybind ownership is missing');
 assert.match(companionSource, /owner !== 'overview'[\s\S]*localStorage\.getItem\(OVERVIEW_SHORTCUT_KEY\) === combo[\s\S]*__gardenCompanionOverviewShortcutChanged\?\.\(overviewShortcutChanged\)/, 'companion keybinds do not update a duplicate overview key');
-assert.match(companionSource, /claimKeybind\(owner, event\.key === 'Escape' \? '' : comboFromEvent\(event\)\)/, 'team keybind capture does not use shared ownership');
-assert.match(companionSource, /claimKeybind\(`interface:\$\{target\}`, event\.key === 'Escape' \? '' : comboFromEvent\(event\)\)/, 'interface keybind capture does not use shared ownership');
+assert.match(companionSource, /beginKeybindCapture\(input, `team:\$\{input\.dataset\.teamKey\}`/, 'team keybind capture does not use shared ownership');
+assert.match(companionSource, /beginKeybindCapture\(input, `interface:\$\{input\.dataset\.interfaceKey\}`/, 'interface keybind capture does not use shared ownership');
+assert.match(companionSource, /function beginKeybindCapture[\s\S]*input\.addEventListener\('blur', cancel, \{ once: true \}\)/, 'abandoned keybind capture is not cancelled on blur');
+assert.match(companionSource, /function closePanel\(\)[\s\S]*cancelKeybindCapture\?\.\(\)/, 'closing the panel does not cancel keybind capture');
 assert.match(overviewSource, /__gardenCompanionOverviewShortcutChanged = nextShortcut => \{ shortcut = nextShortcut; \}/, 'overview shortcut does not react to companion keybind changes');
 assert.match(styleSource, /\.gc-lunar-mark::after/, 'lunar timer crescent mark is missing');
 assert.match(styleSource, /#gc-lunar::before[\s\S]*linear-gradient/, 'lunar timer accent line is missing');
@@ -111,6 +113,10 @@ assert.match(companionSource, /if \(alarm\) \{[\s\S]*alarmQueue\.push\(options\)
 assert.match(companionSource, /const next = alarmQueue\.shift\(\);[\s\S]*renderAlarmBanner\(next\)/, 'dismissing an alarm does not advance the queue');
 assert.match(companionSource, /data-alarm-queue/, 'queued alarm count is not shown');
 assert.match(overviewSource, /__gardenCompanionShowAlarm\?\.\(\{[\s\S]*GARDEN ALARM \| MUTATION GRANTER/, 'overview completion does not use the shop alarm presentation');
+assert.match(overviewSource, /owner: 'overview'/, 'overview alarms do not identify their owner');
+assert.match(overviewSource, /__gardenCompanionStopAlarm\?\.\('overview'\)/, 'disabling overview alarms still stops unrelated alarms');
+assert.match(companionSource, /function stopAlarm\(owner\?: string\)[\s\S]*alarmQueue\[index\]\.owner === owner/, 'shared alarms cannot be cancelled by owner');
+assert.match(overviewSource, /DawnlitGranter: \{ mutation: 'Dawnlit', chance: 4 \}/, 'Dawnlit Granter estimate uses a stale probability');
 assert.doesNotMatch(overviewSource, /gc-overview-alarm|playCompletionAlarm|createOscillator/, 'legacy overview alarm implementation remains');
 assert.doesNotMatch(overviewSource, /backdrop-filter:blur|background:#fff/, 'overview contains a light or dimming panel layer');
 assert.match(companionSource, /__gardenCompanionPetSprites\?\.\[pet\.petSpecies\]/, 'pet cards do not use loaded atlas sprites');
@@ -179,6 +185,8 @@ assert.match(companionSource, /PetXpBoostII:\s*\{ baseChance: 35, baseXp: 400 \}
 assert.doesNotMatch(companionSource.slice(companionSource.indexOf('function teamXpPerHour'), companionSource.indexOf('function formatEstimate')), /baseParameters\?\.bonusXp/, 'maximum-strength estimates still count unrelated bundle XP abilities');
 assert.match(companionSource, /xpToMax \/ xpRate \* 3600/, 'time until maximum pet strength missing');
 assert.match(companionSource, /function teamXpPerHour\(pets: Pet\[\]\)/, 'active-team XP ability calculation is missing');
+assert.match(companionSource.slice(companionSource.indexOf('function teamXpPerHour'), companionSource.indexOf('function formatEstimate')), /if \(pet\.hunger <= 0\) continue;/, 'hungry pets still contribute XP ability bonuses');
+assert.match(companionSource.slice(companionSource.indexOf('function combinedAbilityRows'), companionSource.indexOf('function snapshotPayload')), /if \(pet\.hunger <= 0\) continue;/, 'hungry pets still contribute combined ability rates');
 assert.match(companionSource, /const xpRate = teamXpPerHour\(active\)/, 'active pet cards do not use the full per-pet XP rate');
 assert.match(companionSource, /XP\/hour per pet/, 'XP rate is not labelled as applying independently to every pet');
 assert.match(companionSource, /function renderAbilityLog/, 'Pet Abilities history tab missing');
@@ -218,7 +226,9 @@ assert.doesNotMatch(companionSource, /nativeTimer\.text\}\\n/, 'native timer sti
 assert.match(companionSource, /function shiftNativeRowToCardCenter[\s\S]*for \(const peer of peers\) peer\.x \+= offset \/ worldScale/, 'crop timer and estimate row is not centred as one unit');
 assert.match(companionSource, /if \(!signature\.startsWith\('Value:'\)\) return false/, 'egg estimate is still repositioned away from the native timer row');
 assert.doesNotMatch(companionSource, /gardenCompanionEggEstimateLayout|nativeBottom|section\.height \+= extraHeight/, 'legacy egg second-row layout remains');
-assert.match(companionSource, /if \(refreshNativeGardenCard\(\)\) \{ requestAnimationFrame\(renderTurtleOverlay\); return; \}/, 'HTML estimate fallback remains active after the native hook succeeds');
+assert.match(companionSource, /if \(refreshNativeGardenCard\(\)\) return;/, 'HTML estimate fallback remains active after the native hook succeeds');
+assert.doesNotMatch(companionSource, /requestAnimationFrame\(renderTurtleOverlay\)/, 'garden card estimates still run every animation frame');
+assert.match(companionSource, /setInterval\(renderTurtleOverlay, 250\)/, 'garden card estimate refresh is not throttled');
 const featuresSource = companionSource.slice(companionSource.indexOf('function renderFeatures()'), companionSource.indexOf('function renderTeams()'));
 for (const removedToggle of ['overview', 'petTeams', 'abilities', 'rooms', 'shopAlarms', 'interfaceShortcuts', 'abilitySilencer', 'lunarTimer']) {
   assert.doesNotMatch(featuresSource, new RegExp(`\\['${removedToggle}',\\s*'`), `removed ${removedToggle} feature toggle remains`);

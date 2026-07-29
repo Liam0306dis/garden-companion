@@ -122,7 +122,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionClaimKeybind?: (owner: string, combo: string) => void;
   __gardenCompanionOverviewShortcutChanged?: (shortcut: string) => void;
   __gardenCompanionArmAlarm?: () => AudioContext | null;
-  __gardenCompanionStopAlarm?: () => void;
+  __gardenCompanionStopAlarm?: (owner?: string) => void;
   __gardenCompanionShowAlarm?: (options: CompanionAlarmOptions) => void;
   __gardenCompanionState?: unknown;
   __GARDEN_COMPANION_PIXI__?: { app: unknown; renderer: unknown };
@@ -130,6 +130,7 @@ export interface CompanionPage extends Window {
 }
 
 export interface CompanionAlarmOptions {
+  owner?: string;
   label: string;
   title: string;
   detail?: string;

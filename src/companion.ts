@@ -655,9 +655,20 @@ export function initCompanion(): void {
     if (next) renderAlarmBanner(next);
   }
 
-  function stopAlarm(): void {
-    alarmQueue.length = 0;
-    clearActiveAlarm();
+  function stopAlarm(owner?: string): void {
+    if (!owner) {
+      alarmQueue.length = 0;
+      clearActiveAlarm();
+      return;
+    }
+    for (let index = alarmQueue.length - 1; index >= 0; index--) {
+      if (alarmQueue[index].owner === owner) alarmQueue.splice(index, 1);
+    }
+    if (alarm?.options.owner === owner) {
+      clearActiveAlarm();
+      const next = alarmQueue.shift();
+      if (next) renderAlarmBanner(next);
+    } else updateAlarmQueueCount();
   }
   page.__gardenCompanionArmAlarm = armAlarmAudio;
   page.__gardenCompanionStopAlarm = stopAlarm;
@@ -838,6 +849,7 @@ export function initCompanion(): void {
   function teamXpPerHour(pets: Pet[]): number {
     let total = 3600;
     for (const pet of pets) {
+      if (pet.hunger <= 0) continue;
       const strength = petMetrics(pet)?.strength ?? 100;
       for (const ability of pet.abilities ?? []) {
         const xpAbility = XP_ABILITY_REGISTRY[ability];
@@ -890,11 +902,14 @@ export function initCompanion(): void {
 
   function combinedAbilityRows(pets: Pet[]): string {
     const groups = new Map<string, Array<{ ability: string; pet: Pet }>>();
-    for (const pet of pets) for (const ability of pet.abilities ?? []) {
-      const key = STACKED_PASSIVE_BY_ABILITY.get(ability)?.key ?? ability;
-      const group = groups.get(key) ?? [];
-      group.push({ ability, pet });
-      groups.set(key, group);
+    for (const pet of pets) {
+      if (pet.hunger <= 0) continue;
+      for (const ability of pet.abilities ?? []) {
+        const key = STACKED_PASSIVE_BY_ABILITY.get(ability)?.key ?? ability;
+        const group = groups.get(key) ?? [];
+        group.push({ ability, pet });
+        groups.set(key, group);
+      }
     }
     return [...groups].map(([, entries]) => {
       const ability = entries[0].ability;
@@ -1298,16 +1313,15 @@ export function initCompanion(): void {
   }
 
   function renderTurtleOverlay() {
-    if (refreshNativeGardenCard()) { requestAnimationFrame(renderTurtleOverlay); return; }
+    if (refreshNativeGardenCard()) return;
     let overlay = document.getElementById('gc-turtle');
     const bounds = feature('turtleTimer') ? findPixiCard() : null;
     const lines = bounds ? turtleLines() : [];
-    if (!lines.length) { overlay?.remove(); requestAnimationFrame(renderTurtleOverlay); return; }
+    if (!lines.length) { overlay?.remove(); return; }
     if (!overlay) { overlay = document.createElement('div'); overlay.id = 'gc-turtle'; document.body.appendChild(overlay); }
     overlay.replaceChildren(...lines.map(text => Object.assign(document.createElement('div'), { textContent: text })));
     overlay.style.left = `${Math.round(bounds.centerX)}px`;
     overlay.style.top = `${Math.round(bounds.top - 5)}px`;
-    requestAnimationFrame(renderTurtleOverlay);
   }
 
   function nextLunarAt(now = Date.now()) {
@@ -1455,6 +1469,7 @@ export function initCompanion(): void {
   let pendingTeamDeleteId: string | null = null;
   let shopAlarmTab = 'seed';
   let panelRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  let cancelKeybindCapture: (() => void) | null = null;
 
   function cancelPanelRefresh(): void {
     if (!panelRefreshTimer) return;
@@ -1470,6 +1485,27 @@ export function initCompanion(): void {
     renderPanel();
   }
 
+  function beginKeybindCapture(input: HTMLInputElement, owner: string, prompt: string): void {
+    cancelKeybindCapture?.();
+    input.value = prompt;
+    const capture = (event: KeyboardEvent) => {
+      if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      cancel();
+      claimKeybind(owner, event.key === 'Escape' ? '' : comboFromEvent(event));
+      input.blur();
+    };
+    const cancel = () => {
+      window.removeEventListener('keydown', capture, true);
+      input.removeEventListener('blur', cancel);
+      if (cancelKeybindCapture === cancel) cancelKeybindCapture = null;
+    };
+    cancelKeybindCapture = cancel;
+    window.addEventListener('keydown', capture, true);
+    input.addEventListener('blur', cancel, { once: true });
+  }
+
   function openPanel(tab = activeTab) {
     activeTab = tab;
     let panel = document.getElementById('gc-panel');
@@ -1482,7 +1518,13 @@ export function initCompanion(): void {
     renderPanel();
   }
 
-  function closePanel() { const panel = document.getElementById('gc-panel'); if (panel) panel.hidden = true; abilityFilterMenuOpen = false; abilityFilterInteracting = false; }
+  function closePanel() {
+    cancelKeybindCapture?.();
+    const panel = document.getElementById('gc-panel');
+    if (panel) panel.hidden = true;
+    abilityFilterMenuOpen = false;
+    abilityFilterInteracting = false;
+  }
   function togglePanel(): void {
     const panel = document.getElementById('gc-panel');
     if (panel && !panel.hidden) closePanel();
@@ -1531,6 +1573,7 @@ export function initCompanion(): void {
   const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['shops', 'Shop Alarms'], ['silence', 'Silence'], ['rooms', 'Rooms'], ['features', 'Features']];
 
   function renderPanel() {
+    cancelKeybindCapture?.();
     const panel = document.getElementById('gc-panel');
     if (!panel) return;
     panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${label}</button>`).join('')}</nav><main>${renderTab()}</main></div></div>`;
@@ -1710,40 +1753,14 @@ export function initCompanion(): void {
       send({ type: 'DeletePetTeam', teamId });
       toast('Team deletion requested.', 'success');
     });
-    main.querySelectorAll('[data-team-key]').forEach(input => input.onclick = () => {
-      input.value = 'Press keys... Esc cancels';
-      const capture = event => {
-        if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) return;
-        event.preventDefault(); event.stopImmediatePropagation();
-        window.removeEventListener('keydown', capture, true);
-        const owner = `team:${input.dataset.teamKey}`;
-        claimKeybind(owner, event.key === 'Escape' ? '' : comboFromEvent(event));
-        input.blur();
-      };
-      window.addEventListener('keydown', capture, true);
+    (main.querySelectorAll('[data-team-key]') as NodeListOf<HTMLInputElement>).forEach(input => {
+      input.onclick = () => beginKeybindCapture(input, `team:${input.dataset.teamKey}`, 'Press keys... Esc cancels');
     });
-    main.querySelectorAll('[data-interface-key]').forEach(input => input.onclick = () => {
-      input.value = 'Press keys...';
-      const capture = event => {
-        if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) return;
-        event.preventDefault(); event.stopImmediatePropagation();
-        window.removeEventListener('keydown', capture, true);
-        const target = input.dataset.interfaceKey;
-        claimKeybind(`interface:${target}`, event.key === 'Escape' ? '' : comboFromEvent(event));
-        input.blur();
-      };
-      window.addEventListener('keydown', capture, true);
+    (main.querySelectorAll('[data-interface-key]') as NodeListOf<HTMLInputElement>).forEach(input => {
+      input.onclick = () => beginKeybindCapture(input, `interface:${input.dataset.interfaceKey}`, 'Press keys...');
     });
-    main.querySelectorAll('[data-overview-key]').forEach(input => input.onclick = () => {
-      input.value = 'Press keys...';
-      const capture = event => {
-        if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) return;
-        event.preventDefault(); event.stopImmediatePropagation();
-        window.removeEventListener('keydown', capture, true);
-        claimKeybind('overview', event.key === 'Escape' ? '' : comboFromEvent(event));
-        input.blur();
-      };
-      window.addEventListener('keydown', capture, true);
+    (main.querySelectorAll('[data-overview-key]') as NodeListOf<HTMLInputElement>).forEach(input => {
+      input.onclick = () => beginKeybindCapture(input, 'overview', 'Press keys...');
     });
     main.querySelector('[data-clear-log]')?.addEventListener('click', () => { state.abilityLog = []; saveLocal(LOG_KEY, []); renderPanel(); });
     main.querySelector('[data-refresh-rooms]')?.addEventListener('click', () => { roomRows = null; roomError = ''; fetchRooms(); });
@@ -1810,7 +1827,8 @@ export function initCompanion(): void {
     setInterval(watchSocketHealth, 1000);
     setInterval(checkForUpdate, 30 * 60 * 1000);
     watchForGameUpdateDialog();
-    requestAnimationFrame(renderTurtleOverlay);
+    renderTurtleOverlay();
+    setInterval(renderTurtleOverlay, 250);
   }
 
   installGameModalAccess();

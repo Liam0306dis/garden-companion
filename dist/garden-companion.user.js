@@ -651,9 +651,20 @@
       const next = alarmQueue.shift();
       if (next) renderAlarmBanner(next);
     }
-    function stopAlarm() {
-      alarmQueue.length = 0;
-      clearActiveAlarm();
+    function stopAlarm(owner) {
+      if (!owner) {
+        alarmQueue.length = 0;
+        clearActiveAlarm();
+        return;
+      }
+      for (let index = alarmQueue.length - 1; index >= 0; index--) {
+        if (alarmQueue[index].owner === owner) alarmQueue.splice(index, 1);
+      }
+      if (alarm?.options.owner === owner) {
+        clearActiveAlarm();
+        const next = alarmQueue.shift();
+        if (next) renderAlarmBanner(next);
+      } else updateAlarmQueueCount();
     }
     page2.__gardenCompanionArmAlarm = armAlarmAudio;
     page2.__gardenCompanionStopAlarm = stopAlarm;
@@ -832,6 +843,7 @@
     function teamXpPerHour(pets) {
       let total = 3600;
       for (const pet of pets) {
+        if (pet.hunger <= 0) continue;
         const strength = petMetrics(pet)?.strength ?? 100;
         for (const ability of pet.abilities ?? []) {
           const xpAbility = XP_ABILITY_REGISTRY[ability];
@@ -886,11 +898,14 @@
     }
     function combinedAbilityRows(pets) {
       const groups = /* @__PURE__ */ new Map();
-      for (const pet of pets) for (const ability of pet.abilities ?? []) {
-        const key = STACKED_PASSIVE_BY_ABILITY.get(ability)?.key ?? ability;
-        const group = groups.get(key) ?? [];
-        group.push({ ability, pet });
-        groups.set(key, group);
+      for (const pet of pets) {
+        if (pet.hunger <= 0) continue;
+        for (const ability of pet.abilities ?? []) {
+          const key = STACKED_PASSIVE_BY_ABILITY.get(ability)?.key ?? ability;
+          const group = groups.get(key) ?? [];
+          group.push({ ability, pet });
+          groups.set(key, group);
+        }
       }
       return [...groups].map(([, entries]) => {
         const ability = entries[0].ability;
@@ -1262,16 +1277,12 @@
       return true;
     }
     function renderTurtleOverlay() {
-      if (refreshNativeGardenCard()) {
-        requestAnimationFrame(renderTurtleOverlay);
-        return;
-      }
+      if (refreshNativeGardenCard()) return;
       let overlay = document.getElementById("gc-turtle");
       const bounds = feature("turtleTimer") ? findPixiCard() : null;
       const lines = bounds ? turtleLines() : [];
       if (!lines.length) {
         overlay?.remove();
-        requestAnimationFrame(renderTurtleOverlay);
         return;
       }
       if (!overlay) {
@@ -1282,7 +1293,6 @@
       overlay.replaceChildren(...lines.map((text) => Object.assign(document.createElement("div"), { textContent: text })));
       overlay.style.left = `${Math.round(bounds.centerX)}px`;
       overlay.style.top = `${Math.round(bounds.top - 5)}px`;
-      requestAnimationFrame(renderTurtleOverlay);
     }
     function nextLunarAt(now = Date.now()) {
       const date = new Date(now);
@@ -1412,6 +1422,7 @@
     let pendingTeamDeleteId = null;
     let shopAlarmTab = "seed";
     let panelRefreshTimer = null;
+    let cancelKeybindCapture = null;
     function cancelPanelRefresh() {
       if (!panelRefreshTimer) return;
       clearTimeout(panelRefreshTimer);
@@ -1427,6 +1438,26 @@
       }
       renderPanel();
     }
+    function beginKeybindCapture(input, owner, prompt) {
+      cancelKeybindCapture?.();
+      input.value = prompt;
+      const capture = (event) => {
+        if (["Control", "Alt", "Shift", "Meta"].includes(event.key)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        cancel();
+        claimKeybind(owner, event.key === "Escape" ? "" : comboFromEvent(event));
+        input.blur();
+      };
+      const cancel = () => {
+        window.removeEventListener("keydown", capture, true);
+        input.removeEventListener("blur", cancel);
+        if (cancelKeybindCapture === cancel) cancelKeybindCapture = null;
+      };
+      cancelKeybindCapture = cancel;
+      window.addEventListener("keydown", capture, true);
+      input.addEventListener("blur", cancel, { once: true });
+    }
     function openPanel(tab = activeTab) {
       activeTab = tab;
       let panel = document.getElementById("gc-panel");
@@ -1439,6 +1470,7 @@
       renderPanel();
     }
     function closePanel() {
+      cancelKeybindCapture?.();
       const panel = document.getElementById("gc-panel");
       if (panel) panel.hidden = true;
       abilityFilterMenuOpen = false;
@@ -1490,6 +1522,7 @@
     }
     const TABS = [["abilities", "Active Pets"], ["abilityLog", "Pet Abilities"], ["teams", "Pet Teams"], ["shops", "Shop Alarms"], ["silence", "Silence"], ["rooms", "Rooms"], ["features", "Features"]];
     function renderPanel() {
+      cancelKeybindCapture?.();
       const panel = document.getElementById("gc-panel");
       if (!panel) return;
       panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION</small><h2>${escapeHtml2(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? "active" : ""}">${label}</button>`).join("")}</nav><main>${renderTab()}</main></div></div>`;
@@ -1687,43 +1720,14 @@
         send({ type: "DeletePetTeam", teamId });
         toast("Team deletion requested.", "success");
       });
-      main.querySelectorAll("[data-team-key]").forEach((input) => input.onclick = () => {
-        input.value = "Press keys... Esc cancels";
-        const capture = (event) => {
-          if (["Control", "Alt", "Shift", "Meta"].includes(event.key)) return;
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          window.removeEventListener("keydown", capture, true);
-          const owner = `team:${input.dataset.teamKey}`;
-          claimKeybind(owner, event.key === "Escape" ? "" : comboFromEvent(event));
-          input.blur();
-        };
-        window.addEventListener("keydown", capture, true);
+      main.querySelectorAll("[data-team-key]").forEach((input) => {
+        input.onclick = () => beginKeybindCapture(input, `team:${input.dataset.teamKey}`, "Press keys... Esc cancels");
       });
-      main.querySelectorAll("[data-interface-key]").forEach((input) => input.onclick = () => {
-        input.value = "Press keys...";
-        const capture = (event) => {
-          if (["Control", "Alt", "Shift", "Meta"].includes(event.key)) return;
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          window.removeEventListener("keydown", capture, true);
-          const target = input.dataset.interfaceKey;
-          claimKeybind(`interface:${target}`, event.key === "Escape" ? "" : comboFromEvent(event));
-          input.blur();
-        };
-        window.addEventListener("keydown", capture, true);
+      main.querySelectorAll("[data-interface-key]").forEach((input) => {
+        input.onclick = () => beginKeybindCapture(input, `interface:${input.dataset.interfaceKey}`, "Press keys...");
       });
-      main.querySelectorAll("[data-overview-key]").forEach((input) => input.onclick = () => {
-        input.value = "Press keys...";
-        const capture = (event) => {
-          if (["Control", "Alt", "Shift", "Meta"].includes(event.key)) return;
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          window.removeEventListener("keydown", capture, true);
-          claimKeybind("overview", event.key === "Escape" ? "" : comboFromEvent(event));
-          input.blur();
-        };
-        window.addEventListener("keydown", capture, true);
+      main.querySelectorAll("[data-overview-key]").forEach((input) => {
+        input.onclick = () => beginKeybindCapture(input, "overview", "Press keys...");
       });
       main.querySelector("[data-clear-log]")?.addEventListener("click", () => {
         state.abilityLog = [];
@@ -1837,7 +1841,8 @@
       setInterval(watchSocketHealth, 1e3);
       setInterval(checkForUpdate, 30 * 60 * 1e3);
       watchForGameUpdateDialog();
-      requestAnimationFrame(renderTurtleOverlay);
+      renderTurtleOverlay();
+      setInterval(renderTurtleOverlay, 250);
     }
     installGameModalAccess();
     subscribeToState();
@@ -1905,7 +1910,7 @@
     ThunderstruckGranter: { mutation: "Thunderstruck", chance: 5 },
     RainDance: { mutation: "Wet", chance: 10 },
     SnowGranter: { mutation: "Chilled", chance: 8 },
-    DawnlitGranter: { mutation: "Dawnlit", chance: 2 },
+    DawnlitGranter: { mutation: "Dawnlit", chance: 4 },
     AmberlitGranter: { mutation: "Ambershine", chance: 2 }
   };
   var MUTATION_DEFAULTS = {
@@ -2530,11 +2535,12 @@
       return parts.join("+");
     }
     function stopCompletionAlarm() {
-      page2.__gardenCompanionStopAlarm?.();
+      page2.__gardenCompanionStopAlarm?.("overview");
     }
     function notifyCompletedMutation(name) {
       if (!view.alarm) return;
       page2.__gardenCompanionShowAlarm?.({
+        owner: "overview",
         label: "GARDEN ALARM | MUTATION GRANTER",
         title: `${displayName(name)} target complete`,
         detail: "All selected crops have this mutation"

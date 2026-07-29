@@ -53,7 +53,7 @@ const GRANTERS: Record<string, { mutation: string; chance: number }> = {
   ThunderstruckGranter: { mutation: 'Thunderstruck', chance: 5 },
   RainDance: { mutation: 'Wet', chance: 10 },
   SnowGranter: { mutation: 'Chilled', chance: 8 },
-  DawnlitGranter: { mutation: 'Dawnlit', chance: 2 },
+  DawnlitGranter: { mutation: 'Dawnlit', chance: 4 },
   AmberlitGranter: { mutation: 'Ambershine', chance: 2 },
 };
 
@@ -717,12 +717,13 @@ export function initGardenOverview(): void {
   }
 
   function stopCompletionAlarm(): void {
-    page.__gardenCompanionStopAlarm?.();
+    page.__gardenCompanionStopAlarm?.('overview');
   }
 
   function notifyCompletedMutation(name: string): void {
     if (!view.alarm) return;
     page.__gardenCompanionShowAlarm?.({
+      owner: 'overview',
       label: 'GARDEN ALARM | MUTATION GRANTER',
       title: `${displayName(name)} target complete`,
       detail: 'All selected crops have this mutation',
