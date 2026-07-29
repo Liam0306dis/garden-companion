@@ -1654,17 +1654,47 @@ export function initCompanion(): void {
     return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString()} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
   }
 
-  function renderAbilityLog() {
+  function selectedAbilityFilters(): Set<string> {
     const saved = new Set(config.trackedAbilities || []);
     const hasGroupedKeys = ABILITY_GROUPS.some(([label]) => saved.has(label));
-    const selectedFilters = new Set(ABILITY_FILTER_OPTIONS.filter(option =>
+    return new Set(ABILITY_FILTER_OPTIONS.filter(option =>
       saved.has(option.key) || !hasGroupedKeys && option.abilities.some(ability => saved.has(ability)),
     ).map(option => option.key));
+  }
+
+  function abilityFilterSummary(selectedFilters: Set<string>): string {
+    return selectedFilters.size === ABILITY_FILTER_OPTIONS.length ? 'All abilities' : selectedFilters.size === 0 ? 'No abilities' : selectedFilters.size === 1 ? ABILITY_FILTER_OPTIONS.find(option => selectedFilters.has(option.key))?.label || 'No abilities' : `${selectedFilters.size} selections`;
+  }
+
+  function renderAbilityLogRows(selectedFilters: Set<string>): string {
     const isVisibleAbility = (ability: string) => ABILITY_SET.has(ability) && ABILITY_FILTER_OPTIONS.some(option => selectedFilters.has(option.key) && option.abilities.includes(ability));
-    const filterSummary = selectedFilters.size === ABILITY_FILTER_OPTIONS.length ? 'All abilities' : selectedFilters.size === 0 ? 'No abilities' : selectedFilters.size === 1 ? ABILITY_FILTER_OPTIONS.find(option => selectedFilters.has(option.key))?.label : `${selectedFilters.size} selections`;
-    const filterOptions = ABILITY_FILTER_OPTIONS.map(option => `<button data-ability-option="${escapeHtml(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml(option.label)}</span><i>${selectedFilters.has(option.key) ? '&#10003;' : ''}</i></button>`).join('');
     const recent = state.abilityLog.filter(log => isVisibleAbility(log.ability)).slice(0, 100);
-    return `<section class="gc-card gc-ability-filter"><span>Ability filter</span><details data-ability-filter ${abilityFilterMenuOpen ? 'open' : ''}><summary>${escapeHtml(filterSummary || 'No abilities')}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><small>Choose any combination. Proc history stores up to 100 entries per exact ability.</small></section><section class="gc-card gc-ability-log-card"><div class="gc-row"><h3>Recent tracked procs</h3><button data-clear-log>Clear</button></div><div class="gc-log">${recent.map(log => `<div><time>${new Date(log.at).toLocaleTimeString()}</time><b>${escapeHtml(log.pet)}</b><span class="gc-proc-result">${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}<i>&rarr; ${escapeHtml(procOutcome(log.ability, log.data))}</i></span></div>`).join('') || '<p>No ability procs recorded yet.</p>'}</div></section>`;
+    return recent.map(log => `<div><time>${new Date(log.at).toLocaleTimeString()}</time><b>${escapeHtml(log.pet)}</b><span class="gc-proc-result">${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}<i>&rarr; ${escapeHtml(procOutcome(log.ability, log.data))}</i></span></div>`).join('') || '<p>No ability procs recorded yet.</p>';
+  }
+
+  function refreshAbilityFilterUi(main: HTMLElement): void {
+    const selectedFilters = selectedAbilityFilters();
+    const summary = main.querySelector<HTMLElement>('[data-ability-filter] summary');
+    if (summary) summary.textContent = abilityFilterSummary(selectedFilters);
+    main.querySelectorAll<HTMLButtonElement>('[data-ability-option]').forEach(button => {
+      const active = selectedFilters.has(button.dataset.abilityOption || '');
+      button.dataset.active = String(active);
+      const marker = button.querySelector<HTMLElement>('i');
+      if (marker) marker.innerHTML = active ? '&#10003;' : '';
+    });
+    const log = main.querySelector<HTMLElement>('.gc-log');
+    if (log) {
+      const scrollTop = log.scrollTop;
+      log.innerHTML = renderAbilityLogRows(selectedFilters);
+      log.scrollTop = scrollTop;
+    }
+  }
+
+  function renderAbilityLog() {
+    const selectedFilters = selectedAbilityFilters();
+    const filterSummary = abilityFilterSummary(selectedFilters);
+    const filterOptions = ABILITY_FILTER_OPTIONS.map(option => `<button data-ability-option="${escapeHtml(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml(option.label)}</span><i>${selectedFilters.has(option.key) ? '&#10003;' : ''}</i></button>`).join('');
+    return `<section class="gc-card gc-ability-filter"><span>Ability filter</span><details data-ability-filter ${abilityFilterMenuOpen ? 'open' : ''}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><small>Choose any combination. Proc history stores up to 100 entries per exact ability.</small></section><section class="gc-card gc-ability-log-card"><div class="gc-row"><h3>Recent tracked procs</h3><button data-clear-log>Clear</button></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
   }
 
   let roomRows = null, roomError = '', roomLoading = false;
@@ -1800,10 +1830,10 @@ export function initCompanion(): void {
         const key = button.dataset.abilityOption;
         currentKeys.has(key) ? currentKeys.delete(key) : currentKeys.add(key);
         config.trackedAbilities = [...currentKeys];
-        saveConfig(); abilityFilterMenuOpen = true; abilityFilterInteracting = true; renderPanel();
+        saveConfig(); abilityFilterMenuOpen = true; abilityFilterInteracting = true; refreshAbilityFilterUi(main);
       });
-      main.querySelector('[data-ability-all]')?.addEventListener('click', event => { event.preventDefault(); config.trackedAbilities = ABILITY_FILTER_OPTIONS.map(option => option.key); saveConfig(); abilityFilterMenuOpen = true; abilityFilterInteracting = true; renderPanel(); });
-      main.querySelector('[data-ability-none]')?.addEventListener('click', event => { event.preventDefault(); config.trackedAbilities = []; saveConfig(); abilityFilterMenuOpen = true; abilityFilterInteracting = true; renderPanel(); });
+      main.querySelector('[data-ability-all]')?.addEventListener('click', event => { event.preventDefault(); config.trackedAbilities = ABILITY_FILTER_OPTIONS.map(option => option.key); saveConfig(); abilityFilterMenuOpen = true; abilityFilterInteracting = true; refreshAbilityFilterUi(main); });
+      main.querySelector('[data-ability-none]')?.addEventListener('click', event => { event.preventDefault(); config.trackedAbilities = []; saveConfig(); abilityFilterMenuOpen = true; abilityFilterInteracting = true; refreshAbilityFilterUi(main); });
     }
     bindListSearch(main.querySelector('[data-shop-search]'));
     bindListSearch(main.querySelector('[data-silence-search]'));

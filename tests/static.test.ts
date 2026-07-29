@@ -162,6 +162,9 @@ const silenceSource = companionSource.slice(companionSource.indexOf('function re
 assert.match(silenceSource, /TRACKED_ABILITY_CATALOG\.map/, 'silence list does not apply tracked ability exclusions');
 assert.doesNotMatch(silenceSource, /(?<!TRACKED_)ABILITY_CATALOG\.map/, 'silence list still includes excluded abilities');
 assert.match(companionSource, /abilityFilterInteracting/, 'ability dropdown redraw guard missing');
+assert.match(companionSource, /function refreshAbilityFilterUi[\s\S]*refreshAbilityFilterUi\(main\)/, 'ability filter selections still require a full panel redraw');
+const abilityFilterEvents = companionSource.slice(companionSource.indexOf("const abilityFilter = main.querySelector('[data-ability-filter]')"), companionSource.indexOf("bindListSearch(main.querySelector('[data-shop-search]')"));
+assert.doesNotMatch(abilityFilterEvents, /renderPanel\(\)/, 'ability filter selection closes the dropdown by redrawing the panel');
 assert.match(companionSource, /abilityLog\.matches\(':hover'\) \|\| abilityLog\.scrollTop > 0/, 'proc history does not pause redraws while browsing');
 assert.match(companionSource, /function selectPanelTab[\s\S]*cancelPanelRefresh\(\);[\s\S]*activeTab = tab/, 'tab selection does not cancel pending panel redraws');
 assert.match(companionSource, /button\.onpointerdown = event =>[\s\S]*selectPanelTab\(button\.dataset\.tab\)/, 'panel tabs still wait for a click that can be lost during redraw');
