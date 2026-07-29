@@ -6,23 +6,20 @@ actions. It does not perform unattended gameplay.
 
 ## Features
 
-- Detailed garden overview with growth, value, mutation progress, granter estimates, plant focus, tracked species, zoom, a global keybind, and completion alarms
-- Pet team creation, editing, deletion, activation, pet filtering, and global team keybinds
-- Active pet dashboard with correctly mutated game sprites, hunger bars, combined ability effects, proc chances, and estimated time until maximum strength
-- Pet ability history with selectable tracking filters and up to 100 records per ability
-- Per-ability pet notification and sound silencing, generated from the latest captured game bundle
-- Joinable public room browser for rooms with four or five players, with five-player rooms listed first
+- Detailed garden overview with growth, value, mutation progress, granter estimates, plant focus, tracked species, keybind, and completion alarms
+- Pet team creation, editing, deletion, activation, pet filtering, and global team keybinds using the games native teams
+- Active pet dashboard with game sprites, hunger bars, combined ability effects, proc chances, and estimated time until maximum strength
+- Pet ability history with selectable tracking filters which show the last 100 records per ability
+- Per-ability pet notification and sound silencing
+- Joinable public room browser for rooms with four or five players
 - Searchable shop alarms grouped into Seeds, Dawn, Thunder, Snow, Eggs, Tools, and Decor tabs
 - Shop alarm item icons, explicit Buy all and Stop buttons, persistent siren audio, and queued alerts when several items trigger together
-- Crop values and pet-adjusted crop or egg growth estimates displayed inside the game's native garden information card
-- Plant drag movement by holding, dragging, and releasing a plant, consuming planter pots
-- Spacebar instant harvest for mature Gold or Rainbow crops
-- Configurable global keybinds for Garden Companion, Garden Overview, the weather station, and the seed, egg, and tool shops
-- Duplicate keybind prevention across Garden Companion and Garden Overview
+- Crop values and pet-adjusted crop or egg growth estimates (Turtle-Timer)
+- Plant drag movement by holding, dragging, and releasing a plant, consumes planter pot on each successful move
+- Instant harvest - Spacebar triggers instant harvest for mature Gold or Rainbow crops (Default OFF)
+- Configurable global keybinds for Garden Companion, Garden Overview, weather station, seed, egg, and tool shops
 - UTC lunar-event countdown with a settings button and WebSocket health indicator
-- Clickable script update status and installer link
 - Configurable background operation and automatic game-update refresh
-- Dark, non-dimming windows that preserve scrolling during live updates
 - One options panel for feature toggles, interface shortcuts, pet tools, alerts, rooms, and tracking
 
 ## Install

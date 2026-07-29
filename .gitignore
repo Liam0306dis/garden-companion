@@ -7,6 +7,7 @@ node_modules/
 !.env.example
 
 # Test and compiler output
+tests/
 coverage/
 *.tsbuildinfo
 *.log
@@ -23,6 +24,4 @@ coverage/
 Thumbs.db
 desktop.ini
 
-# Local agent metadata
-.agents/
-.codex/
+push.bat
