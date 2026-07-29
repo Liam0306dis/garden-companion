@@ -252,6 +252,10 @@ for (const removedToggle of ['overview', 'petTeams', 'abilities', 'rooms', 'shop
 }
 assert.match(styleSource, /\.gc-pet-sprite \{[^}]*width:48px[^}]*height:48px/s, 'pet sprite frame size is incorrect');
 assert.match(styleSource, /\.gc-pet-sprite img \{[^}]*width:40px[^}]*height:40px/s, 'pet sprite artwork lacks safe scaling');
+assert.match(styleSource, /\.gc-pet-sprite img \{[^}]*image-rendering:auto/s, 'pet sprites are not smoothly scaled');
+assert.match(styleSource, /\.gc-shop-sprite img \{[^}]*image-rendering:auto/s, 'shop sprites are not smoothly scaled');
+assert.match(styleSource, /#gc-panel img,#gc-alarm img,#gc-turtle img,#gc-overview-panel img \{ image-rendering:auto!important; \}/, 'smooth scaling is not applied to every companion-owned image');
+assert.doesNotMatch(styleSource, /image-rendering:pixelated/, 'companion sprites still force pixelated scaling');
 assert.match(companionSource, /function renderMutatedPetSprite/, 'per-species pet mutation rendering is missing');
 assert.match(companionSource, /pixels\[\(y \* canvas\.width \+ x\) \* 4 \+ 3\] < 8/, 'rainbow gradient does not inspect visible pet pixels');
 assert.match(companionSource, /createLinearGradient\(minimum \/ 2, minimum \/ 2, maximum \/ 2, maximum \/ 2\)/, 'rainbow gradient is not fitted to each pet body');
