@@ -116,6 +116,8 @@ assert.match(overviewSource, /if \(view\.alarm\) ensureRefreshTimer\(\);/, 'save
 assert.match(companionSource, /function showAlarmBanner\(options: CompanionAlarmOptions\)/, 'shared alarm presentation is missing');
 assert.match(companionSource, /const alarmQueue: CompanionAlarmOptions\[\] = \[\]/, 'shared alarms do not retain a queue');
 assert.match(companionSource, /const availableKeys = new Set[\s\S]*!availableKeys\.has\(key\)[\s\S]*stopAlarm\(`shop:\$\{key\}`\)/, 'out-of-stock shop alarms are not stopped on the next inventory cycle');
+assert.match(companionSource, /for \(const row of available\) updateAlarmDetail\(`shop:\$\{row\.shop\}:\$\{row\.id\}`, `\$\{row\.remaining\} remaining`\)/, 'shop refreshes do not update alarm stock counts');
+assert.match(companionSource, /function updateAlarmDetail[\s\S]*alarmQueue[\s\S]*alarm\.options\.detail = detail[\s\S]*data-alarm-detail/, 'active and queued alarm details are not updated in place');
 assert.match(companionSource, /const owner = `shop:\$\{row\.shop\}:\$\{row\.id\}`[\s\S]*showAlarmBanner\(\{[\s\S]*owner,/, 'shop alarms do not have item-specific owners');
 assert.match(companionSource, /This item is no longer available[\s\S]*stopAlarm\(owner\)[\s\S]*Requested \$\{live\.remaining\}[\s\S]*stopAlarm\(owner\)/, 'shop purchase actions can dismiss a different queued alarm');
 assert.match(companionSource, /if \(alarm\) \{[\s\S]*alarmQueue\.push\(options\)[\s\S]*return;[\s\S]*renderAlarmBanner\(options\)/, 'a new alarm can still overwrite the active alarm');

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.57
+// @version      0.6.58
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -600,6 +600,7 @@
       if (state.initializedShops) {
         for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
       }
+      for (const row of available) updateAlarmDetail(`shop:${row.shop}:${row.id}`, `${row.remaining} remaining`);
       state.lastShopSignature = signature;
       for (const row of available) {
         const key = `${row.shop}:${row.id}`;
@@ -650,6 +651,13 @@
       count.hidden = alarmQueue.length === 0;
       count.textContent = alarmQueue.length === 1 ? "1 more alarm queued" : `${alarmQueue.length} more alarms queued`;
     }
+    function updateAlarmDetail(owner, detail) {
+      for (const options of alarmQueue) if (options.owner === owner) options.detail = detail;
+      if (alarm?.options.owner !== owner) return;
+      alarm.options.detail = detail;
+      const element = document.querySelector("#gc-alarm [data-alarm-detail]");
+      if (element) element.textContent = detail;
+    }
     function dismissCurrentAlarm() {
       clearActiveAlarm();
       const next = alarmQueue.shift();
@@ -690,7 +698,7 @@
     function renderAlarmBanner(options) {
       const banner = document.createElement("div");
       banner.id = "gc-alarm";
-      const detail = options.detail ? `<span>${escapeHtml2(options.detail)}</span>` : "";
+      const detail = options.detail ? `<span data-alarm-detail>${escapeHtml2(options.detail)}</span>` : "";
       const action = options.actionLabel ? `<button data-buy>${escapeHtml2(options.actionLabel)}</button>` : "";
       banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml2(options.label)}</small><strong>${escapeHtml2(options.title)}</strong>${detail}<em data-alarm-queue hidden></em></div>${action}<button data-stop>Stop alarm</button>`;
       document.body.appendChild(banner);

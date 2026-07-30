@@ -598,6 +598,7 @@ export function initCompanion(): void {
     const old = new Set(state.lastShopSignature.split('|').map(value => value.split(':').slice(0, 2).join(':')));
     const availableKeys = new Set(available.map(row => `${row.shop}:${row.id}`));
     if (state.initializedShops) for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
+    for (const row of available) updateAlarmDetail(`shop:${row.shop}:${row.id}`, `${row.remaining} remaining`);
     state.lastShopSignature = signature;
     for (const row of available) {
       const key = `${row.shop}:${row.id}`;
@@ -651,6 +652,14 @@ export function initCompanion(): void {
     count.textContent = alarmQueue.length === 1 ? '1 more alarm queued' : `${alarmQueue.length} more alarms queued`;
   }
 
+  function updateAlarmDetail(owner: string, detail: string): void {
+    for (const options of alarmQueue) if (options.owner === owner) options.detail = detail;
+    if (alarm?.options.owner !== owner) return;
+    alarm.options.detail = detail;
+    const element = document.querySelector<HTMLElement>('#gc-alarm [data-alarm-detail]');
+    if (element) element.textContent = detail;
+  }
+
   function dismissCurrentAlarm(): void {
     clearActiveAlarm();
     const next = alarmQueue.shift();
@@ -692,7 +701,7 @@ export function initCompanion(): void {
   function renderAlarmBanner(options: CompanionAlarmOptions): void {
     const banner = document.createElement('div');
     banner.id = 'gc-alarm';
-    const detail = options.detail ? `<span>${escapeHtml(options.detail)}</span>` : '';
+    const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : '';
     const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : '';
     banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue hidden></em></div>${action}<button data-stop>Stop alarm</button>`;
     document.body.appendChild(banner);
