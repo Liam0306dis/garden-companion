@@ -11,6 +11,7 @@ const plantDragSource = await readFile(resolve(root, 'src', 'features', 'plant-d
 const indexSource = await readFile(resolve(root, 'src', 'index.ts'), 'utf8');
 const petSpriteSource = await readFile(resolve(root, 'src', 'pet-sprites.ts'), 'utf8');
 const petSpriteInjector = await readFile(resolve(root, 'src', 'pet-sprites-injector.ts'), 'utf8');
+const buildSource = await readFile(resolve(root, 'scripts', 'build.ts'), 'utf8');
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
 
 for (const marker of [
@@ -45,6 +46,7 @@ assert.equal((built.match(/\/\/ ==UserScript==/g) ?? []).length, 1, 'nested user
 assert.ok(built.includes(`@version      ${packageJson.version}`), 'userscript and package versions differ');
 assert.ok(!built.includes('\u2014'), 'em dash found');
 assert.ok(!built.includes('@ts-nocheck'), 'unchecked TypeScript boundary found');
+assert.match(buildSource, /if \(!petMatches\.length\) continue;/, 'build can replace the pet catalog with an empty extraction');
 assert.ok(!/setInterval\([^)]*(PurchaseShopItem|HarvestCrop|ApplyPetTeam)/s.test(built), 'unattended command loop found');
 assert.ok(!built.includes('vendor/'), 'vendored source reference found');
 assert.match(companionSource, /send\(\{ type: 'QuinoaCommand', requestId, command \}\)/, 'Quinoa command envelope missing');
@@ -113,6 +115,9 @@ assert.match(overviewSource, /if \(!view\.alarm && refreshTimer\)/, 'closing Gar
 assert.match(overviewSource, /if \(view\.alarm\) ensureRefreshTimer\(\);/, 'saved overview alarm is not resumed after mounting');
 assert.match(companionSource, /function showAlarmBanner\(options: CompanionAlarmOptions\)/, 'shared alarm presentation is missing');
 assert.match(companionSource, /const alarmQueue: CompanionAlarmOptions\[\] = \[\]/, 'shared alarms do not retain a queue');
+assert.match(companionSource, /const availableKeys = new Set[\s\S]*!availableKeys\.has\(key\)[\s\S]*stopAlarm\(`shop:\$\{key\}`\)/, 'out-of-stock shop alarms are not stopped on the next inventory cycle');
+assert.match(companionSource, /const owner = `shop:\$\{row\.shop\}:\$\{row\.id\}`[\s\S]*showAlarmBanner\(\{[\s\S]*owner,/, 'shop alarms do not have item-specific owners');
+assert.match(companionSource, /This item is no longer available[\s\S]*stopAlarm\(owner\)[\s\S]*Requested \$\{live\.remaining\}[\s\S]*stopAlarm\(owner\)/, 'shop purchase actions can dismiss a different queued alarm');
 assert.match(companionSource, /if \(alarm\) \{[\s\S]*alarmQueue\.push\(options\)[\s\S]*return;[\s\S]*renderAlarmBanner\(options\)/, 'a new alarm can still overwrite the active alarm');
 assert.match(companionSource, /const next = alarmQueue\.shift\(\);[\s\S]*renderAlarmBanner\(next\)/, 'dismissing an alarm does not advance the queue');
 assert.match(companionSource, /data-alarm-queue/, 'queued alarm count is not shown');

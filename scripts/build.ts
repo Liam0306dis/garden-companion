@@ -42,6 +42,7 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
           }];
         }));
         const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:U\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+)/g)];
+        if (!petMatches.length) continue;
         const pets = Object.fromEntries(petMatches.map(match => [match[1], {
           name: match[3],
           maxHunger: Number(match[4]),

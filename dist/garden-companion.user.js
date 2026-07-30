@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.56
+// @version      0.6.57
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -596,6 +596,10 @@
       const signature = available.map((row) => `${row.shop}:${row.id}:${row.remaining}`).sort().join("|");
       if (signature === state.lastShopSignature) return;
       const old = new Set(state.lastShopSignature.split("|").map((value) => value.split(":").slice(0, 2).join(":")));
+      const availableKeys = new Set(available.map((row) => `${row.shop}:${row.id}`));
+      if (state.initializedShops) {
+        for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
+      }
       state.lastShopSignature = signature;
       for (const row of available) {
         const key = `${row.shop}:${row.id}`;
@@ -710,7 +714,9 @@
     }
     page2.__gardenCompanionShowAlarm = showAlarmBanner;
     function showShopAlarm(row) {
+      const owner = `shop:${row.shop}:${row.id}`;
       showAlarmBanner({
+        owner,
         label: `SHOP ALARM | ${SHOP_NAMES[row.shop] || humanize(row.shop)}`,
         title: `${humanize(row.id)} is available`,
         detail: `${row.remaining} remaining`,
@@ -721,7 +727,7 @@
           const live = availableShopItems().find((item) => item.shop === row.shop && item.id === row.id);
           if (!live) {
             toast("This item is no longer available.", "error");
-            dismissCurrentAlarm();
+            stopAlarm(owner);
             return;
           }
           for (let index = 0; index < live.remaining; index++) {
@@ -729,7 +735,7 @@
             if (index + 1 < live.remaining) await new Promise((resolve) => setTimeout(resolve, 180));
           }
           toast(`Requested ${live.remaining} ${humanize(live.id)}.`, "success");
-          dismissCurrentAlarm();
+          stopAlarm(owner);
         }
       });
     }
