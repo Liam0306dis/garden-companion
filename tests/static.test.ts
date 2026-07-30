@@ -119,6 +119,7 @@ assert.match(companionSource, /const availableKeys = new Set[\s\S]*!availableKey
 assert.match(companionSource, /for \(const row of available\) updateAlarmDetail\(`shop:\$\{row\.shop\}:\$\{row\.id\}`, `\$\{row\.remaining\} remaining`\)/, 'shop refreshes do not update alarm stock counts');
 assert.match(companionSource, /function updateAlarmDetail[\s\S]*alarmQueue[\s\S]*alarm\.options\.detail = detail[\s\S]*data-alarm-detail/, 'active and queued alarm details are not updated in place');
 assert.match(companionSource, /const owner = `shop:\$\{row\.shop\}:\$\{row\.id\}`[\s\S]*showAlarmBanner\(\{[\s\S]*owner,/, 'shop alarms do not have item-specific owners');
+assert.match(companionSource, /data-shop-alert[\s\S]*if \(input\.checked\)[\s\S]*showSelectedShopAlarm\(key\);[\s\S]*else stopAlarm\(`shop:\$\{key\}`\)/, 'disabling a shop item does not remove its active and queued alarms');
 assert.match(companionSource, /This item is no longer available[\s\S]*stopAlarm\(owner\)[\s\S]*Requested \$\{live\.remaining\}[\s\S]*stopAlarm\(owner\)/, 'shop purchase actions can dismiss a different queued alarm');
 assert.match(companionSource, /if \(alarm\) \{[\s\S]*alarmQueue\.push\(options\)[\s\S]*return;[\s\S]*renderAlarmBanner\(options\)/, 'a new alarm can still overwrite the active alarm');
 assert.match(companionSource, /const next = alarmQueue\.shift\(\);[\s\S]*renderAlarmBanner\(next\)/, 'dismissing an alarm does not advance the queue');

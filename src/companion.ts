@@ -1826,7 +1826,7 @@ export function initCompanion(): void {
       if (input.checked) {
         armAlarmAudio();
         showSelectedShopAlarm(key);
-      }
+      } else stopAlarm(`shop:${key}`);
     });
     main.querySelectorAll('[data-shop-tab]').forEach(button => button.onclick = () => { shopAlarmTab = button.dataset.shopTab || shopAlarmTab; renderPanel(); });
     main.querySelectorAll('[data-silence]').forEach(input => input.onchange = () => { const set = new Set(config.silencedAbilities || []); input.checked ? set.add(input.dataset.silence) : set.delete(input.dataset.silence); config.silencedAbilities = [...set].sort(); saveConfig(); });

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.58
+// @version      0.6.59
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1798,7 +1798,7 @@
         if (input.checked) {
           armAlarmAudio();
           showSelectedShopAlarm(key);
-        }
+        } else stopAlarm(`shop:${key}`);
       });
       main.querySelectorAll("[data-shop-tab]").forEach((button) => button.onclick = () => {
         shopAlarmTab = button.dataset.shopTab || shopAlarmTab;
