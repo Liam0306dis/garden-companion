@@ -2135,7 +2135,7 @@ export function initCompanion(): void {
     return allPets().map(pet => {
       const abilityText = (pet.abilities || []).flatMap(ability => [ability, ABILITY_DETAILS[ability]?.name || humanize(ability)]).join(' ');
       const filterText = `${pet.name || ''} ${pet.petSpecies} ${PET_CATALOG[pet.petSpecies]?.name || ''} ${pet.location} ${abilityText}`.toLowerCase();
-      return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small><span class="gc-team-abilities">${(pet.abilities || []).map(ability => escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))).join(' | ') || 'No abilities'}</span></span></label>`;
+      return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small>${abilityChips(pet.abilities || [])}<span class="gc-team-abilities">${(pet.abilities || []).map(ability => escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))).join(' | ') || 'No abilities'}</span></span></label>`;
     }).join('');
   }
 

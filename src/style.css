@@ -119,6 +119,7 @@
 .gc-pet-head { display:grid;grid-template-columns:auto minmax(0,1fr) minmax(130px,180px);align-items:center;gap:10px; }
 .gc-pet-head h3 { margin:0; }
 .gc-pet-head .gc-ability-chips { margin-top:5px; }
+.gc-pet-grid .gc-ability-chips { margin:3px 0 1px; }
 .gc-hunger { min-width:110px; }
 .gc-hunger > div { display:flex;justify-content:space-between;color:var(--gc-muted);font-size:8px;text-transform:uppercase;letter-spacing:.08em; }
 .gc-hunger > div b { color:#d4d4d8; }
