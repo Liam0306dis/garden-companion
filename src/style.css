@@ -119,7 +119,6 @@
 .gc-pet-head { display:grid;grid-template-columns:auto minmax(0,1fr) minmax(130px,180px);align-items:center;gap:10px; }
 .gc-pet-head h3 { margin:0; }
 .gc-pet-head .gc-ability-chips { margin-top:5px; }
-.gc-pet-grid .gc-ability-chips { margin:3px 0 1px; }
 .gc-hunger { min-width:110px; }
 .gc-hunger > div { display:flex;justify-content:space-between;color:var(--gc-muted);font-size:8px;text-transform:uppercase;letter-spacing:.08em; }
 .gc-hunger > div b { color:#d4d4d8; }
@@ -128,6 +127,9 @@
 .gc-hunger > i u[data-tone=medium] { background:linear-gradient(90deg,#d97706,#fbbf24); }
 .gc-hunger > i u[data-tone=low] { background:linear-gradient(90deg,#dc2626,#f87171); }
 .gc-team-abilities { display:block;margin-top:5px;color:#a78bfa;font-size:8px;line-height:1.35; }
+.gc-pet-grid span.gc-ability-chips { flex:0 0 auto;flex-direction:row;flex-wrap:nowrap;margin-top:5px; }
+.gc-pet-str { flex:0 0 auto;align-self:center;padding:3px 7px;border:1px solid var(--gc-line);border-radius:7px;color:#c4b5fd;background:rgba(167,139,250,.08);font-size:11px;line-height:1;white-space:nowrap; }
+.gc-pet-str i { color:var(--gc-muted);font-size:8px;font-style:normal; }
 .gc-team-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:var(--gc-muted);font-size:10px; }.gc-team-summary b { color:#e4e4e7; }.gc-active-pets { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px; }.gc-active-pets .gc-pet-head { grid-template-columns:auto minmax(0,1fr); }.gc-active-pets .gc-hunger { grid-column:1/-1;min-width:0; }.gc-pet-strength { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--gc-line);color:var(--gc-muted);font-size:9px; }.gc-pet-strength b { color:#c4b5fd; }.gc-pet-strength strong { color:#34d399;font-size:8px;text-align:right; }.gc-section-label { margin:13px 2px 7px;color:var(--gc-muted);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase; }.gc-ability-summary { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px; }.gc-ability-summary > div:first-child > small { display:block;margin-top:5px;color:#fbbf24;font-size:9px; }.gc-ability-rate { display:flex;min-width:92px;flex-direction:column;text-align:right; }.gc-ability-rate b { color:#60a5fa;font:700 12px ui-monospace,monospace; }.gc-ability-rate small { color:var(--gc-muted);font:8px ui-monospace,monospace; }
 .gc-proc-list { margin-top:9px;border-top:1px solid var(--gc-line); }
 .gc-pet-potions { margin-top:6px;padding:4px 6px;border:1px solid rgba(167,139,250,.16);border-radius:5px;color:#c4b5fd;background:rgba(167,139,250,.07);text-align:center;font-size:8px;font-weight:750; }
