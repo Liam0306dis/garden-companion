@@ -151,12 +151,17 @@ export function initGardenPlanner(): void {
     } as GardenTile;
   }
 
-  /** Push one tile's planned state (or the live one when clearing) into the game. */
-  function applyTile(localIndex: string): void {
+  /**
+   * Push one tile's planned state (or the live one when clearing) into the game. Re-pushing data a
+   * view already holds makes it rebuild, which reads as a flash on plants and eggs that are growing,
+   * so an unchanged tile is skipped.
+   */
+  function applyTile(localIndex: string, force = false): void {
     const system = tileSystem();
     const globalIndex = ownTileIndexes()[localIndex];
     if (!system || globalIndex === undefined) return;
     const data = planner.open ? planner.tiles.get(localIndex) : liveTiles()[localIndex];
+    if (!force && system.tileViews?.get?.(globalIndex)?.tileObject === (data ?? undefined)) return;
     try { system.updateTileData(globalIndex, data); } catch {}
   }
 
@@ -244,11 +249,56 @@ export function initGardenPlanner(): void {
     if (planner.open && !fromPlannerUi(event)) { event.preventDefault(); event.stopPropagation(); }
   }
 
+  // The game's crop info card and its harvest controls would still pop up while planning,
+  // so they are hidden for the duration and restored on exit.
+  const NATIVE_UI_LABELS = ['GardenInfoCardSystem', 'ActionHud', 'PetActionButtons'];
+  const hiddenNodes = new Map<Record<string, any>, boolean>();
+
+  function pixiStage(): Record<string, any> | null {
+    const capture = page.__GARDEN_COMPANION_PIXI__ as { app?: any; renderer?: any } | undefined;
+    return capture?.app?.stage ?? capture?.renderer?.lastObjectRendered ?? null;
+  }
+
+  let cinematicApplied = false;
+
+  function hideNativeCardUi(): void {
+    // The game's cinematic mode clears its whole HUD, which is exactly what planning wants.
+    if (cinematicApplied || page.__gardenCompanionSetCinematic?.(true)) {
+      cinematicApplied = true;
+      return;
+    }
+    const stage = pixiStage();
+    if (!stage) return;
+    const stack = [stage];
+    while (stack.length) {
+      const node = stack.pop() as Record<string, any>;
+      if (!node || typeof node !== 'object') continue;
+      if (typeof node.label === 'string' && NATIVE_UI_LABELS.includes(node.label)) {
+        if (!hiddenNodes.has(node)) hiddenNodes.set(node, node.visible !== false);
+        node.visible = false;
+        continue;
+      }
+      if (Array.isArray(node.children)) stack.push(...node.children);
+    }
+  }
+
+  function restoreNativeCardUi(): void {
+    if (cinematicApplied) {
+      page.__gardenCompanionSetCinematic?.(false);
+      cinematicApplied = false;
+    }
+    for (const [node, visible] of hiddenNodes) {
+      try { node.visible = visible; } catch {}
+    }
+    hiddenNodes.clear();
+  }
+
   function open(): void {
     if (planner.open || !tileSystem()) return;
     planner.open = true;
     planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === 'plant' || tile?.objectType === 'decor'));
     applyAllTiles();
+    hideNativeCardUi();
     document.body.classList.add('gc-planning');
     window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('pointermove', onPointerMove, true);
@@ -261,6 +311,7 @@ export function initGardenPlanner(): void {
     if (!planner.open) return;
     planner.open = false;
     applyAllTiles();
+    restoreNativeCardUi();
     document.body.classList.remove('gc-planning');
     window.removeEventListener('pointerdown', onPointerDown, true);
     window.removeEventListener('pointermove', onPointerMove, true);
@@ -368,7 +419,11 @@ ${decorMode
   }
 
   // Server patches redraw tiles from real state, so planned tiles are re-applied.
-  setInterval(() => { if (planner.open) applyAllTiles(); }, 1000);
+  setInterval(() => {
+    if (!planner.open) return;
+    applyAllTiles();
+    hideNativeCardUi();
+  }, 1000);
 
   page.__gardenCompanionTogglePlanner = () => (planner.open ? close() : open());
   page.__gardenCompanionPlannerOpen = () => planner.open;

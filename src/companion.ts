@@ -449,6 +449,7 @@ export function initCompanion(): void {
     { id: 'toolShop', label: 'Tool shop' },
   ];
   let activeModalAtom: JotaiAtom | null = null;
+  let cinematicAtom: JotaiAtom | null = null;
   let gameAtomSet: ((atom: JotaiAtom, value: unknown) => unknown) | null = null;
   const wrappedAtomWrites = new Map<JotaiAtom, JotaiAtom['write']>();
 
@@ -460,6 +461,7 @@ export function initCompanion(): void {
   function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
     const atomKey = String(key);
     if (atomKey.endsWith('/activeModalAtom')) activeModalAtom = atom;
+    if (atomKey.endsWith('/isCinematicModeAtom')) cinematicAtom = atom;
     if ((atomKey.endsWith('/quinoaEngineAtom') || atom.debugLabel === 'quinoaEngineAtom') && typeof atom.write === 'function' && !atom.__gardenCompanionEngineCapture) {
       const originalEngineWrite = atom.write;
       atom.write = function(get, set, ...args) {
@@ -510,6 +512,14 @@ export function initCompanion(): void {
     }
     gameAtomSet(activeModalAtom, target);
   }
+
+  page.__gardenCompanionSetCinematic = (enabled: boolean) => {
+    if (!cinematicAtom || !gameAtomSet) return false;
+    try {
+      gameAtomSet(cinematicAtom, enabled);
+      return true;
+    } catch { return false; }
+  };
 
   function hookAtom(match, key, attempt = 0) {
     const map = atomMap();

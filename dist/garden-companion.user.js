@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.74
+// @version      0.6.75
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -473,6 +473,7 @@
       { id: "toolShop", label: "Tool shop" }
     ];
     let activeModalAtom = null;
+    let cinematicAtom = null;
     let gameAtomSet = null;
     const wrappedAtomWrites = /* @__PURE__ */ new Map();
     function restoreAtomWriteCaptures() {
@@ -482,6 +483,7 @@
     function inspectGameAtom(key, atom) {
       const atomKey = String(key);
       if (atomKey.endsWith("/activeModalAtom")) activeModalAtom = atom;
+      if (atomKey.endsWith("/isCinematicModeAtom")) cinematicAtom = atom;
       if ((atomKey.endsWith("/quinoaEngineAtom") || atom.debugLabel === "quinoaEngineAtom") && typeof atom.write === "function" && !atom.__gardenCompanionEngineCapture) {
         const originalEngineWrite = atom.write;
         atom.write = function(get, set, ...args) {
@@ -532,6 +534,15 @@
       }
       gameAtomSet(activeModalAtom, target);
     }
+    page2.__gardenCompanionSetCinematic = (enabled) => {
+      if (!cinematicAtom || !gameAtomSet) return false;
+      try {
+        gameAtomSet(cinematicAtom, enabled);
+        return true;
+      } catch {
+        return false;
+      }
+    };
     function hookAtom(match, key, attempt = 0) {
       const map = atomMap2();
       if (!map || typeof map.values !== "function") {
@@ -3961,11 +3972,12 @@
         }))
       };
     }
-    function applyTile(localIndex) {
+    function applyTile(localIndex, force = false) {
       const system = tileSystem();
       const globalIndex = ownTileIndexes()[localIndex];
       if (!system || globalIndex === void 0) return;
       const data = planner.open ? planner.tiles.get(localIndex) : liveTiles()[localIndex];
+      if (!force && system.tileViews?.get?.(globalIndex)?.tileObject === (data ?? void 0)) return;
       try {
         system.updateTileData(globalIndex, data);
       } catch {
@@ -4046,11 +4058,51 @@
         event.stopPropagation();
       }
     }
+    const NATIVE_UI_LABELS = ["GardenInfoCardSystem", "ActionHud", "PetActionButtons"];
+    const hiddenNodes = /* @__PURE__ */ new Map();
+    function pixiStage() {
+      const capture = page2.__GARDEN_COMPANION_PIXI__;
+      return capture?.app?.stage ?? capture?.renderer?.lastObjectRendered ?? null;
+    }
+    let cinematicApplied = false;
+    function hideNativeCardUi() {
+      if (cinematicApplied || page2.__gardenCompanionSetCinematic?.(true)) {
+        cinematicApplied = true;
+        return;
+      }
+      const stage = pixiStage();
+      if (!stage) return;
+      const stack = [stage];
+      while (stack.length) {
+        const node = stack.pop();
+        if (!node || typeof node !== "object") continue;
+        if (typeof node.label === "string" && NATIVE_UI_LABELS.includes(node.label)) {
+          if (!hiddenNodes.has(node)) hiddenNodes.set(node, node.visible !== false);
+          node.visible = false;
+          continue;
+        }
+        if (Array.isArray(node.children)) stack.push(...node.children);
+      }
+    }
+    function restoreNativeCardUi() {
+      if (cinematicApplied) {
+        page2.__gardenCompanionSetCinematic?.(false);
+        cinematicApplied = false;
+      }
+      for (const [node, visible] of hiddenNodes) {
+        try {
+          node.visible = visible;
+        } catch {
+        }
+      }
+      hiddenNodes.clear();
+    }
     function open() {
       if (planner.open || !tileSystem()) return;
       planner.open = true;
       planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === "plant" || tile?.objectType === "decor"));
       applyAllTiles();
+      hideNativeCardUi();
       document.body.classList.add("gc-planning");
       window.addEventListener("pointerdown", onPointerDown, true);
       window.addEventListener("pointermove", onPointerMove, true);
@@ -4062,6 +4114,7 @@
       if (!planner.open) return;
       planner.open = false;
       applyAllTiles();
+      restoreNativeCardUi();
       document.body.classList.remove("gc-planning");
       window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("pointermove", onPointerMove, true);
@@ -4155,7 +4208,9 @@ ${decorMode ? `${DECOR[planner.decorId]?.rotates ? `<div class="gc-planner-row">
       });
     }
     setInterval(() => {
-      if (planner.open) applyAllTiles();
+      if (!planner.open) return;
+      applyAllTiles();
+      hideNativeCardUi();
     }, 1e3);
     page2.__gardenCompanionTogglePlanner = () => planner.open ? close() : open();
     page2.__gardenCompanionPlannerOpen = () => planner.open;
