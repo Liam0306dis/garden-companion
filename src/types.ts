@@ -24,10 +24,16 @@ export interface PetTeamMember {
   name?: string | null;
 }
 
+export type PetTeamEmblem =
+  | { type: 'number'; number: number }
+  | { type: 'pet'; petSpecies: string }
+  | { type: 'icon'; icon: string };
+
 export interface PetTeam {
   id: string;
   name: string;
   members: PetTeamMember[];
+  emblem?: PetTeamEmblem | null;
 }
 
 export interface PlantSlot {
@@ -127,6 +133,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionPetSprites?: Record<string, string>;
   __gardenCompanionShopSprites?: Record<string, string>;
   __gardenCompanionProduceSprites?: Record<string, string>;
+  __gardenCompanionEmblemSprites?: Record<string, string>;
   __gardenCompanionPetSpritesReady?: () => void;
   __gardenCompanionClaimKeybind?: (owner: string, combo: string) => void;
   __gardenCompanionOverviewShortcutChanged?: (shortcut: string) => void;

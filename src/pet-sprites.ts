@@ -61,6 +61,12 @@ function shopSpriteCandidates(group: string, itemId: string): string[] {
   return [`sprite/decor/${itemId}`];
 }
 
+const EMBLEM_ICON_SPRITES: Record<string, string> = {
+  rainbow: 'MutationRainbow', gold: 'MutationGold', thunder: 'MutationThundercharged',
+  dawn: 'MutationDawnlit', amber: 'MutationAmberlit', wet: 'MutationWet',
+  chilled: 'MutationChilled', frozen: 'MutationFrozen', coin: 'Coin', egg: 'EggsRestocked',
+};
+
 function produceSpriteCandidates(species: string): string[] {
   const cropSprite = __PLANT_CATALOG__[species]?.crop?.sprite;
   return [...(cropSprite ? [`sprite/plant/${cropSprite}`] : []), `sprite/plant/${species}`, `sprite/seed/${species}`];
@@ -204,9 +210,13 @@ export async function initPetSprites(): Promise<void> {
     ...species.map(name => normaliseKey(`sprite/pet/${name}`)),
     ...Object.values(shopCandidates).flat().map(normaliseKey),
   ]);
-  const produceWanted = new Set(Object.values(produceCandidates).flat().map(normaliseKey));
+  const emblemCandidates = Object.fromEntries(Object.entries(EMBLEM_ICON_SPRITES).map(([icon, name]) => [icon, `sprite/ui/${name}`]));
+  const trimmedWanted = new Set([
+    ...Object.values(produceCandidates).flat().map(normaliseKey),
+    ...Object.values(emblemCandidates).map(normaliseKey),
+  ]);
   try {
-    const { frames, trimmed } = await loadPetFrames(assetsBase, paths, wanted, produceWanted);
+    const { frames, trimmed } = await loadPetFrames(assetsBase, paths, wanted, trimmedWanted);
     page.__gardenCompanionPetSprites = Object.fromEntries(species.flatMap(name => {
       const image = frames.get(normaliseKey(`sprite/pet/${name}`));
       return image ? [[name, image]] : [];
@@ -218,6 +228,10 @@ export async function initPetSprites(): Promise<void> {
     page.__gardenCompanionProduceSprites = Object.fromEntries(Object.entries(produceCandidates).flatMap(([name, candidates]) => {
       const image = candidates.map(normaliseKey).map(key => trimmed.get(key)).find(Boolean);
       return image ? [[name, image]] : [];
+    }));
+    page.__gardenCompanionEmblemSprites = Object.fromEntries(Object.entries(emblemCandidates).flatMap(([icon, candidate]) => {
+      const image = trimmed.get(normaliseKey(candidate));
+      return image ? [[icon, image]] : [];
     }));
     page.__gardenCompanionPetSpritesReady?.();
   } catch (error) {
