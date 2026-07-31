@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.59
+// @version      0.6.60
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -29,6 +29,9 @@
 
   // <define:__PET_CATALOG__>
   var define_PET_CATALOG_default = { Worm: { name: "Worm", maxHunger: 500, maxScale: 2, hoursToMature: 12 }, Snail: { name: "Snail", maxHunger: 1e3, maxScale: 2, hoursToMature: 12 }, Bee: { name: "Bee", maxHunger: 1500, maxScale: 2.5, hoursToMature: 12 }, Chicken: { name: "Chicken", maxHunger: 3e3, maxScale: 2, hoursToMature: 24 }, Bunny: { name: "Bunny", maxHunger: 750, maxScale: 2, hoursToMature: 24 }, Dragonfly: { name: "Dragonfly", maxHunger: 250, maxScale: 2.5, hoursToMature: 24 }, Pig: { name: "Pig", maxHunger: 5e4, maxScale: 2.5, hoursToMature: 72 }, Cow: { name: "Cow", maxHunger: 25e3, maxScale: 2.5, hoursToMature: 72 }, Turkey: { name: "Turkey", maxHunger: 500, maxScale: 2.5, hoursToMature: 72 }, Squirrel: { name: "Squirrel", maxHunger: 15e3, maxScale: 2, hoursToMature: 100 }, Turtle: { name: "Turtle", maxHunger: 1e5, maxScale: 2.5, hoursToMature: 100 }, Goat: { name: "Goat", maxHunger: 2e4, maxScale: 2, hoursToMature: 100 }, SnowFox: { name: "Snow Fox", maxHunger: 14e3, maxScale: 2, hoursToMature: 100 }, Stoat: { name: "Stoat", maxHunger: 1e4, maxScale: 2, hoursToMature: 100 }, WhiteCaribou: { name: "Caribou", maxHunger: 3e4, maxScale: 2.5, hoursToMature: 100 }, Pony: { name: "Pony", maxHunger: 4e3, maxScale: 2, hoursToMature: 72 }, Sheep: { name: "Sheep", maxHunger: 250, maxScale: 2.5, hoursToMature: 100 }, Horse: { name: "Horse", maxHunger: 25e3, maxScale: 2.5, hoursToMature: 100 }, Ostrich: { name: "Ostrich", maxHunger: 4e4, maxScale: 2.5, hoursToMature: 144 }, FireHorse: { name: "Fire Horse", maxHunger: 2e5, maxScale: 2.5, hoursToMature: 144 }, Butterfly: { name: "Butterfly", maxHunger: 25e3, maxScale: 2.5, hoursToMature: 144 }, Peacock: { name: "Peacock", maxHunger: 1e5, maxScale: 2.5, hoursToMature: 144 }, Capybara: { name: "Capybara", maxHunger: 15e4, maxScale: 2.5, hoursToMature: 144 }, Bat: { name: "Bat", maxHunger: 300, maxScale: 2, hoursToMature: 100 }, Platypus: { name: "Platypus", maxHunger: 1e4, maxScale: 2, hoursToMature: 100 }, ThunderWolf: { name: "Thunder Wolf", maxHunger: 15e4, maxScale: 2.5, hoursToMature: 144 } };
+
+  // <define:__PLANT_CATALOG__>
+  var define_PLANT_CATALOG_default = { Carrot: { crop: { baseSellPrice: 20, maxScale: 3 } }, Cabbage: { crop: { baseSellPrice: 42, maxScale: 3 } }, Strawberry: { crop: { baseSellPrice: 14, maxScale: 2 } }, Aloe: { crop: { baseSellPrice: 310, maxScale: 2.5 } }, Beet: { crop: { baseSellPrice: 350, maxScale: 3 } }, Daisy: { crop: { baseSellPrice: 130, maxScale: 2.5 } }, PurpleDaisy: { crop: { baseSellPrice: 9999, maxScale: 2.5 } }, Clover: { crop: { baseSellPrice: 30, maxScale: 3 } }, FourLeafClover: { crop: { baseSellPrice: 7777, maxScale: 3 } }, Rose: { crop: { baseSellPrice: 300, maxScale: 4 } }, FavaBean: { crop: { baseSellPrice: 30, maxScale: 3 } }, Delphinium: { crop: { baseSellPrice: 530, maxScale: 3 } }, Snowdrop: { crop: { baseSellPrice: 250, maxScale: 1.85 } }, SnowdropDouble: { crop: { baseSellPrice: 8888, maxScale: 1.85 } }, Blueberry: { crop: { baseSellPrice: 23, maxScale: 2 } }, Apple: { crop: { baseSellPrice: 800, maxScale: 2 } }, OrangeTulip: { crop: { baseSellPrice: 767, maxScale: 3 } }, Tomato: { crop: { baseSellPrice: 27, maxScale: 2 } }, Daffodil: { crop: { baseSellPrice: 1090, maxScale: 3 } }, Corn: { crop: { baseSellPrice: 36, maxScale: 2 } }, Watermelon: { crop: { baseSellPrice: 2708, maxScale: 3 } }, Echeveria: { crop: { baseSellPrice: 3200, maxScale: 2.75 } }, Pumpkin: { crop: { baseSellPrice: 3700, maxScale: 3 } }, Cattail: { crop: { baseSellPrice: 1800, maxScale: 2.5 } }, VariegatedCattail: { crop: { baseSellPrice: 11111, maxScale: 2.5 } }, Pear: { crop: { baseSellPrice: 3e3, maxScale: 2 } }, Gentian: { crop: { baseSellPrice: 1e4, maxScale: 3 } }, Lavender: { crop: { baseSellPrice: 2e4, maxScale: 3 } }, Coconut: { crop: { baseSellPrice: 12e3, maxScale: 3 } }, PineTree: { crop: { baseSellPrice: 75e3, maxScale: 3.5 } }, Banana: { crop: { baseSellPrice: 1750, maxScale: 1.7 } }, Leek: { crop: { baseSellPrice: 35e3, maxScale: 3 } }, Lily: { crop: { baseSellPrice: 20123, maxScale: 2.75 } }, Saffron: { crop: { baseSellPrice: 5e4, maxScale: 3 } }, Cardoon: { crop: { baseSellPrice: 5e4, maxScale: 3 } }, Camellia: { crop: { baseSellPrice: 4875, maxScale: 2.5 } }, Squash: { crop: { baseSellPrice: 7e3, maxScale: 2.5 } }, Peach: { crop: { baseSellPrice: 9e3, maxScale: 3 } }, BurrosTail: { crop: { baseSellPrice: 6e3, maxScale: 2.5 } }, Mushroom: { crop: { baseSellPrice: 16e4, maxScale: 3.5 } }, Cactus: { crop: { baseSellPrice: 22e4, maxScale: 1.8 } }, Bamboo: { crop: { baseSellPrice: 5e5, maxScale: 2 } }, Eggplant: { crop: { baseSellPrice: 1e5, maxScale: 2.5 } }, PricklyPear: { crop: { baseSellPrice: 75e3, maxScale: 2.5 } }, VioletCort: { crop: { baseSellPrice: 6e5, maxScale: 3.5 } }, Chrysanthemum: { crop: { baseSellPrice: 18e3, maxScale: 2.75 } }, Date: { crop: { baseSellPrice: 15e3, maxScale: 2 } }, Grape: { crop: { baseSellPrice: 5e4, maxScale: 2 } }, Poinsettia: { crop: { baseSellPrice: 2e4, maxScale: 2 } }, Pepper: { crop: { baseSellPrice: 7e3, maxScale: 2 } }, Ube: { crop: { baseSellPrice: 2e6, maxScale: 3 } }, Milkcap: { crop: { baseSellPrice: 3e6, maxScale: 3 } }, Lemon: { crop: { baseSellPrice: 5e4, maxScale: 3 } }, PassionFruit: { crop: { baseSellPrice: 2e5, maxScale: 2 } }, DragonFruit: { crop: { baseSellPrice: 3e4, maxScale: 2 } }, Cacao: { crop: { baseSellPrice: 15e4, maxScale: 2.5 } }, Lychee: { crop: { baseSellPrice: 5e4, maxScale: 2 } }, Sunflower: { crop: { baseSellPrice: 75e4, maxScale: 2.5 } }, Dawnbreaker: { crop: { baseSellPrice: 12e6, maxScale: 3 } }, Starweaver: { crop: { baseSellPrice: 1e7, maxScale: 2 } }, ThunderCelestial: { crop: { baseSellPrice: 1e5, maxScale: 2 } }, ThunderCelestialShroomPlant: { crop: { baseSellPrice: 1e6, maxScale: 2 } }, DawnCelestial: { crop: { baseSellPrice: 11e6, maxScale: 2.5 } }, MoonCelestial: { crop: { baseSellPrice: 11e6, maxScale: 2 } } };
 
   // src/companion.ts
   function initCompanion() {
@@ -2296,10 +2299,12 @@
   function installCatalogCapture(page2) {
     const objectConstructor = page2.Object;
     const nativeKeys = objectConstructor.keys;
-    let catalog = null;
+    let catalog = define_PLANT_CATALOG_default;
+    let capturedLiveCatalog = false;
     let restoreTimer = null;
     const seen = /* @__PURE__ */ new WeakSet();
     let wrappedKeys;
+    page2.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
     function restore() {
       if (objectConstructor.keys === wrappedKeys) objectConstructor.keys = nativeKeys;
     }
@@ -2321,8 +2326,9 @@
         return;
       }
       if (looksLikeCatalog(value, keys)) {
-        if (!catalog || keys.length > nativeKeys(catalog).length) {
+        if (keys.length >= (catalog ? nativeKeys(catalog).length : 0)) {
           catalog = value;
+          capturedLiveCatalog = true;
           page2.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
         }
         if (!restoreTimer) {
@@ -2340,7 +2346,7 @@
     }
     wrappedKeys = ((value) => {
       const keys = nativeKeys(value);
-      if (!catalog) scan(value);
+      if (!capturedLiveCatalog) scan(value);
       return keys;
     });
     objectConstructor.keys = wrappedKeys;

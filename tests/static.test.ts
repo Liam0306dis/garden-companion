@@ -47,6 +47,10 @@ assert.ok(built.includes(`@version      ${packageJson.version}`), 'userscript an
 assert.ok(!built.includes('\u2014'), 'em dash found');
 assert.ok(!built.includes('@ts-nocheck'), 'unchecked TypeScript boundary found');
 assert.match(buildSource, /if \(!petMatches\.length\) continue;/, 'build can replace the pet catalog with an empty extraction');
+assert.match(buildSource, /if \(!plantMatches\.length\) continue;/, 'build can replace the plant catalog with an empty extraction');
+assert.match(buildSource, /__PLANT_CATALOG__: JSON\.stringify\(catalogs\.plants\)/, 'plant catalog is not embedded into the userscript');
+assert.match(overviewSource, /let catalog: Record<string, PlantCatalogEntry> \| null = __PLANT_CATALOG__;/, 'Garden Overview still requires runtime catalog capture for values and max scale');
+assert.match(overviewSource, /if \(!capturedLiveCatalog\) scan\(value\)/, 'embedded plant data prevents live catalog upgrades');
 assert.ok(!/setInterval\([^)]*(PurchaseShopItem|HarvestCrop|ApplyPetTeam)/s.test(built), 'unattended command loop found');
 assert.ok(!built.includes('vendor/'), 'vendored source reference found');
 assert.match(companionSource, /send\(\{ type: 'QuinoaCommand', requestId, command \}\)/, 'Quinoa command envelope missing');

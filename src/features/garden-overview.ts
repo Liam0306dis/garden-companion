@@ -419,10 +419,12 @@ function mutationMultiplier(mutations: readonly string[]): number {
 function installCatalogCapture(page: CompanionPage): () => Record<string, PlantCatalogEntry> | null {
   const objectConstructor = page.Object as ObjectConstructor;
   const nativeKeys = objectConstructor.keys;
-  let catalog: Record<string, PlantCatalogEntry> | null = null;
+  let catalog: Record<string, PlantCatalogEntry> | null = __PLANT_CATALOG__;
+  let capturedLiveCatalog = false;
   let restoreTimer: ReturnType<typeof setTimeout> | null = null;
   const seen = new WeakSet<object>();
   let wrappedKeys: typeof Object.keys;
+  page.__gardenCompanionPlantPrice = species => catalog?.[species ?? '']?.crop?.baseSellPrice;
 
   function restore(): void {
     if (objectConstructor.keys === wrappedKeys) objectConstructor.keys = nativeKeys;
@@ -443,8 +445,9 @@ function installCatalogCapture(page: CompanionPage): () => Record<string, PlantC
     let keys: string[];
     try { keys = nativeKeys(value); } catch { return; }
     if (looksLikeCatalog(value, keys)) {
-      if (!catalog || keys.length > nativeKeys(catalog).length) {
+      if (keys.length >= (catalog ? nativeKeys(catalog).length : 0)) {
         catalog = value;
+        capturedLiveCatalog = true;
         page.__gardenCompanionPlantPrice = species => catalog?.[species ?? '']?.crop?.baseSellPrice;
       }
       if (!restoreTimer) {
@@ -460,7 +463,7 @@ function installCatalogCapture(page: CompanionPage): () => Record<string, PlantC
 
   wrappedKeys = ((value: object) => {
     const keys = nativeKeys(value);
-    if (!catalog) scan(value);
+    if (!capturedLiveCatalog) scan(value);
     return keys;
   }) as typeof Object.keys;
   objectConstructor.keys = wrappedKeys;

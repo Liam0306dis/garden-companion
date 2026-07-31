@@ -13,6 +13,7 @@ interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number }>;
+  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number } }>;
 }
 
 async function catalogsFromBundle(): Promise<BundleCatalogs> {
@@ -43,13 +44,18 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
         }));
         const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:U\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+)/g)];
         if (!petMatches.length) continue;
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{.*?\},plant:\{.*?\},crop:\{.*?baseSellPrice:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
+        if (!plantMatches.length) continue;
         const pets = Object.fromEntries(petMatches.map(match => [match[1], {
           name: match[3],
           maxHunger: Number(match[4]),
           maxScale: Number(match[5]),
           hoursToMature: Number(match[6]),
         }]));
-        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets };
+        const plants = Object.fromEntries(plantMatches.map(match => [match[1], {
+          crop: { baseSellPrice: Number(match[2]), maxScale: Number(match[3]) },
+        }]));
+        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants };
       }
     }
   }
@@ -114,6 +120,7 @@ await build({
     __ABILITY_CATALOG__: JSON.stringify(catalogs.abilities),
     __ABILITY_DETAILS__: JSON.stringify(catalogs.abilityDetails),
     __PET_CATALOG__: JSON.stringify(catalogs.pets),
+    __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
     __PET_SPRITE_LOADER__: JSON.stringify(petSpriteLoader),
     __GARDEN_COMPANION_CSS__: JSON.stringify(css),
   },
@@ -121,4 +128,4 @@ await build({
 
 const output = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
 if (output.includes('\u2014')) throw new Error('The generated userscript contains an em dash.');
-console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets)`);
+console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants)`);
