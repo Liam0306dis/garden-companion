@@ -8,6 +8,7 @@ import type {
   Pet,
   PlantSlot,
   PlayerSlot,
+  ProduceItem,
   RoomState,
   ShopItem,
 } from './types.js';
@@ -97,6 +98,7 @@ export function initCompanion(): void {
     rooms: true,
     shopAlarms: true,
     turtleTimer: true,
+    petFood: false,
     instantHarvest: false,
     interfaceShortcuts: true,
     backgroundMode: true,
@@ -106,6 +108,7 @@ export function initCompanion(): void {
     silencedAbilities: [],
     trackedAbilities: [...ABILITY_CATALOG],
     shopAlerts: {},
+    petFoodChoices: {},
     teamKeybinds: {},
     interfaceKeybinds: {},
   };
@@ -128,6 +131,8 @@ export function initCompanion(): void {
     const [shop, itemId] = key.split(':');
     return shop !== 'tool' || !EXCLUDED_TOOL_ALERTS.has(itemId);
   }));
+  const savedFoodChoices = config.petFoodChoices && typeof config.petFoodChoices === 'object' ? config.petFoodChoices : {};
+  config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices).filter(([species, crop]) => PET_CATALOG[species]?.diet?.includes(crop)));
   function saveConfig() {
     try { GM_setValue(STORE_KEY, config); }
     catch { localStorage.setItem(STORE_KEY, JSON.stringify(config)); }
@@ -423,6 +428,7 @@ export function initCompanion(): void {
       refreshCompletedTeamDelete();
       processActivities();
       processShops();
+      renderPetFood();
       refreshOpenPanel();
     });
   }
@@ -1095,39 +1101,64 @@ export function initCompanion(): void {
     }
   }
 
-  function findPixiCard() {
+  interface PixiSurface {
+    stage: Record<string, any>;
+    scaleX: number;
+    scaleY: number;
+    toScreenX(value: number): number;
+    toScreenY(value: number): number;
+  }
+
+  function pixiSurface(): PixiSurface | null {
     const capture = page.__GARDEN_COMPANION_PIXI__;
     const app = capture?.app as { stage?: Record<string, any>; renderer?: Record<string, any> } | undefined;
     const renderer = capture?.renderer as Record<string, any> | undefined || app?.renderer;
     const stage = app?.stage || renderer?.lastObjectRendered;
     const canvas = document.querySelector('.QuinoaCanvas canvas') || renderer?.canvas || renderer?.view;
     if (!stage || !renderer || !(canvas instanceof HTMLCanvasElement)) return null;
-    const stack = [stage];
+    const rect = canvas.getBoundingClientRect();
+    const screen = renderer.screen || { width: canvas.width, height: canvas.height };
+    if (![rect.width, rect.height, screen.width, screen.height].every(value => Number.isFinite(value) && value > 0)) return null;
+    const scaleX = rect.width / screen.width;
+    const scaleY = rect.height / screen.height;
+    return { stage, scaleX, scaleY, toScreenX: value => rect.left + value * scaleX, toScreenY: value => rect.top + value * scaleY };
+  }
+
+  function pixiNodeVisible(node: Record<string, any>): boolean {
+    return node.visible !== false && node.renderable !== false && node.worldVisible !== false &&
+      !(typeof node.alpha === 'number' && node.alpha <= .001) && !(typeof node.worldAlpha === 'number' && node.worldAlpha <= .001);
+  }
+
+  function findVisiblePixiNodes(surface: PixiSurface, labels: string[]): Map<string, Record<string, any>> {
+    const found = new Map<string, Record<string, any>>();
+    const wanted = new Set(labels);
+    const stack = [surface.stage];
     const seen = new WeakSet();
     while (stack.length) {
       const node = stack.pop();
-      if (!node || typeof node !== 'object' || seen.has(node)) continue;
+      if (!node || typeof node !== 'object' || seen.has(node) || !pixiNodeVisible(node)) continue;
       seen.add(node);
-      const visible = node.visible !== false && node.renderable !== false && node.worldVisible !== false &&
-        !(typeof node.alpha === 'number' && node.alpha <= .001) && !(typeof node.worldAlpha === 'number' && node.worldAlpha <= .001);
-      if (!visible) continue;
-      if (node.label === 'GardenInfoCardSystem' && typeof node.getBounds === 'function') {
-        try {
-          const bounds = node.getBounds();
-          const card = typeof node.getChildByLabel === 'function' ? node.getChildByLabel('GardenInfoObjectCard', true) : null;
-          const cardBounds = typeof card?.getBounds === 'function' ? card.getBounds() : null;
-          const position = typeof node.getGlobalPosition === 'function' ? node.getGlobalPosition() : null;
-          const rect = canvas.getBoundingClientRect();
-          const screen = renderer.screen || { width: canvas.width, height: canvas.height };
-          if (![bounds.x, bounds.y, bounds.width, bounds.height, rect.width, rect.height, screen.width, screen.height].every(Number.isFinite) || bounds.width <= 0 || bounds.height <= 0 || rect.width <= 0 || rect.height <= 0) continue;
-          const centerX = Number.isFinite(position?.x) ? position.x : bounds.x + bounds.width / 2;
-          const cardTop = Number.isFinite(cardBounds?.y) ? cardBounds.y : bounds.y;
-          return { centerX: rect.left + centerX * rect.width / screen.width, top: rect.top + cardTop * rect.height / screen.height };
-        } catch { return null; }
-      }
+      if (typeof node.label === 'string' && wanted.has(node.label) && !found.has(node.label)) found.set(node.label, node);
+      if (found.size === wanted.size) break;
       if (Array.isArray(node.children)) stack.push(...node.children);
     }
-    return null;
+    return found;
+  }
+
+  function findPixiCard() {
+    const surface = pixiSurface();
+    const node = surface ? findVisiblePixiNodes(surface, ['GardenInfoCardSystem']).get('GardenInfoCardSystem') : null;
+    if (!surface || !node || typeof node.getBounds !== 'function') return null;
+    try {
+      const bounds = node.getBounds();
+      const card = typeof node.getChildByLabel === 'function' ? node.getChildByLabel('GardenInfoObjectCard', true) : null;
+      const cardBounds = typeof card?.getBounds === 'function' ? card.getBounds() : null;
+      const position = typeof node.getGlobalPosition === 'function' ? node.getGlobalPosition() : null;
+      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0 || bounds.height <= 0) return null;
+      const centerX = Number.isFinite(position?.x) ? position.x : bounds.x + bounds.width / 2;
+      const cardTop = Number.isFinite(cardBounds?.y) ? cardBounds.y : bounds.y;
+      return { centerX: surface.toScreenX(centerX), top: surface.toScreenY(cardTop) };
+    } catch { return null; }
   }
 
   const COLOR_MULT = { Gold: 25, Rainbow: 50 };
@@ -1171,6 +1202,9 @@ export function initCompanion(): void {
     return total;
   }
 
+  const VALUE_PREFIX = '🪙 ';
+  const GROWTH_PREFIX = '🐢 ';
+
   function turtleLines() {
     const pets = state.slot?.data?.petSlots || [];
     const crops = Array.isArray(state.currentCrop) ? state.currentCrop : [];
@@ -1179,14 +1213,14 @@ export function initCompanion(): void {
     if (egg) {
       const end = Number(egg.maturedAt || egg.endTime || 0);
       const rate = eggRate(pets);
-      return end > Date.now() && rate > 0 ? [`Growth estimate: ${formatDuration((end - Date.now()) / (rate + 1))}`] : [];
+      return end > Date.now() && rate > 0 ? [`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`] : [];
     }
     if (!crop) return [];
     const lines = [];
     const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-    if (base) lines.push(`Value: ${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString()}`);
+    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString()}`);
     const end = Number(crop.endTime || 0), rate = turtleRate(pets);
-    if (end > Date.now() && rate > 0) lines.push(`Growth estimate: ${formatDuration((end - Date.now()) / (rate + 1))}`);
+    if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
     return lines;
   }
 
@@ -1203,6 +1237,7 @@ export function initCompanion(): void {
   }
 
   let nativeGardenCardHook: NativeGardenCardHook | null = null;
+  let quinoaEngine: { getSystem?: (name: string) => Record<string, any> | undefined } | null = null;
 
   function cleanGardenCardState(nextState: GardenCardState): GardenCardState {
     if (!nextState.card || !Array.isArray(nextState.card.attributes)) return nextState;
@@ -1234,7 +1269,7 @@ export function initCompanion(): void {
     const estimateAttributes = lines.map((text, index) => ({
       key: 'time',
       text,
-      color: index === 0 && text.startsWith('Value:') ? 0xffd84d : 0xa9efff,
+      color: index === 0 && text.startsWith(VALUE_PREFIX) ? 0xffd84d : 0xa9efff,
       gardenCompanionEstimate: true,
     }));
     return {
@@ -1280,13 +1315,14 @@ export function initCompanion(): void {
       if (Array.isArray(node.children)) stack.push(...node.children);
     }
     if (!estimateChips.length) return false;
-    if (!signature.startsWith('Value:')) return false;
+    if (!signature.startsWith(VALUE_PREFIX)) return false;
     for (const chip of estimateChips) shiftNativeRowToCardCenter(card, chip.parent, chip);
     return false;
   }
 
   function captureQuinoaEngine(value: unknown): void {
     const engine = value as { getSystem?: (name: string) => Record<string, any> | undefined } | null;
+    quinoaEngine = engine && typeof engine.getSystem === 'function' ? engine : null;
     if (!engine || typeof engine.getSystem !== 'function') {
       nativeGardenCardHook = null;
       return;
@@ -1337,6 +1373,180 @@ export function initCompanion(): void {
     overlay.replaceChildren(...lines.map(text => Object.assign(document.createElement('div'), { textContent: text })));
     overlay.style.left = `${Math.round(bounds.centerX)}px`;
     overlay.style.top = `${Math.round(bounds.top - 5)}px`;
+  }
+
+  let petFoodSignature = '';
+
+  interface PetDockRow { left: number; right: number; centerY: number; height: number }
+
+  function screenRow(surface: PixiSurface, container: Record<string, any>): PetDockRow | null {
+    if (!container || typeof container.getBounds !== 'function' || !pixiNodeVisible(container)) return null;
+    try {
+      const bounds = container.getBounds();
+      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0 || bounds.height <= 0) return null;
+      return {
+        left: surface.toScreenX(bounds.x),
+        right: surface.toScreenX(bounds.x + bounds.width),
+        centerY: surface.toScreenY(bounds.y + bounds.height / 2),
+        height: bounds.height * surface.scaleY,
+      };
+    } catch { return null; }
+  }
+
+  function petSlotsView(): Record<string, any> | null {
+    const view = quinoaEngine?.getSystem?.('petSlots')?.view;
+    return view?.itemViews instanceof Map ? view : null;
+  }
+
+  function findPetSlotDock(): { byPet: Map<string, PetDockRow> | null; rows: PetDockRow[]; blocked: boolean } | null {
+    const surface = pixiSurface();
+    if (!surface) return null;
+    const view = petSlotsView();
+    if (view) {
+      if (view.isVisible === false) return null;
+      const byPet = new Map<string, PetDockRow>();
+      for (const [petId, itemView] of view.itemViews as Map<string, Record<string, any>>) {
+        const row = screenRow(surface, itemView?.container);
+        if (row) byPet.set(String(petId), row);
+      }
+      const rows = [...byPet.values()].sort((left, right) => left.centerY - right.centerY);
+      return { byPet, rows, blocked: Boolean(view.actionButtonGroup) || view.selectedPetSlotId != null };
+    }
+    const found = findVisiblePixiNodes(surface, ['PetSlots', 'PetActionButtons']);
+    const slots = found.get('PetSlots');
+    if (!slots || !Array.isArray(slots.children)) return null;
+    const rows = slots.children
+      .flatMap((child: Record<string, any>) => { const row = screenRow(surface, child); return row ? [row] : []; })
+      .sort((left: PetDockRow, right: PetDockRow) => left.centerY - right.centerY);
+    const shortest = Math.min(...rows.map((row: PetDockRow) => row.height));
+    return { byPet: null, rows: rows.filter((row: PetDockRow) => row.height <= shortest * 1.5), blocked: found.has('PetActionButtons') };
+  }
+
+  function activePets(): Pet[] {
+    return state.slot?.data?.petSlots || [];
+  }
+
+  function heldProduce(): ProduceItem[] {
+    const items = (state.slot?.data?.inventory?.items || []) as unknown as ProduceItem[];
+    return items.filter(item => item?.itemType === 'Produce' && item.species && item.id);
+  }
+
+  function produceValue(item: ProduceItem): number {
+    const base = Number(page.__gardenCompanionPlantPrice?.(item.species) || 0) || 1;
+    return base * Number(item.scale || 1) * mutationMultiplier([...(item.mutations || [])]);
+  }
+
+  function petDiet(species: string): string[] {
+    return PET_CATALOG[species]?.diet || [];
+  }
+
+  function produceSprite(species: string): string {
+    return page.__gardenCompanionProduceSprites?.[species] || page.__gardenCompanionShopSprites?.[species] || '';
+  }
+
+  interface PetFoodRow {
+    pet: Pet;
+    choice: string;
+    count: number;
+    cropItemId: string;
+  }
+
+  function petFoodRows(): PetFoodRow[] {
+    const produce = heldProduce();
+    return activePets().filter(pet => pet?.id).map(pet => {
+      const choice = petDiet(pet.petSpecies).includes(config.petFoodChoices?.[pet.petSpecies] || '') ? config.petFoodChoices[pet.petSpecies] : '';
+      const matching = choice ? produce.filter(item => item.species === choice) : [];
+      const best = matching.reduce<ProduceItem | null>((chosen, item) => !chosen || produceValue(item) > produceValue(chosen) ? item : chosen, null);
+      return { pet, choice, count: matching.length, cropItemId: best?.id || '' };
+    });
+  }
+
+  function feedPet(petItemId: string, cropItemId: string): void {
+    try {
+      send({ type: 'FeedPet', petItemId, cropItemId });
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    }
+  }
+
+  function createPetFoodPanel(): HTMLElement {
+    const panel = document.createElement('div');
+    panel.id = 'gc-petfood';
+    panel.innerHTML = '<div class="gc-petfood-list"></div><button class="gc-petfood-options" data-food-options title="Choose preferred foods">Foods</button>';
+    document.body.appendChild(panel);
+    panel.querySelector<HTMLButtonElement>('[data-food-options]')!.onclick = () => openPanel('petFood');
+    panel.querySelector('.gc-petfood-list')!.addEventListener('click', event => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-feed-pet]');
+      if (!button || button.disabled) return;
+      feedPet(button.dataset.feedPet!, button.dataset.cropItem!);
+    });
+    return panel;
+  }
+
+  function renderPetFood(): void {
+    if (!document.body) return;
+    const existing = document.getElementById('gc-petfood');
+    const rows = feature('petFood') ? petFoodRows() : [];
+    if (!rows.length) {
+      existing?.remove();
+      petFoodSignature = '';
+      return;
+    }
+    const signature = JSON.stringify(rows.map(row => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice))]));
+    const panel = existing || createPetFoodPanel();
+    if (!existing || signature !== petFoodSignature) {
+      petFoodSignature = signature;
+      panel.querySelector('.gc-petfood-list')!.innerHTML = rows.map(row => {
+        const name = row.pet.name || PET_CATALOG[row.pet.petSpecies]?.name || humanize(row.pet.petSpecies);
+        const sprite = produceSprite(row.choice);
+        const ready = Boolean(row.choice) && row.count > 0;
+        const label = !row.choice
+          ? `Pick a food for ${humanize(row.pet.petSpecies)} in the Pet Food tab`
+          : row.count > 0 ? `Feed ${humanize(row.choice)} to ${name}` : `No ${humanize(row.choice)} in your inventory`;
+        const icon = row.choice
+          ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>`
+          : '<i>?</i>';
+        return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" title="${escapeHtml(label)}" ${ready ? '' : 'disabled'}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ''}</button>`;
+      }).join('');
+    }
+    positionPetFood();
+  }
+
+  function positionPetFood(): void {
+    const panel = document.getElementById('gc-petfood');
+    if (!panel) return;
+    const buttons = [...panel.querySelectorAll<HTMLElement>('[data-food-row]')];
+    const options = panel.querySelector<HTMLElement>('.gc-petfood-options')!;
+    const dock = findPetSlotDock();
+    const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || '') ?? null : dock.rows[index] ?? null) : [];
+    const anchors = paired.filter((anchor): anchor is PetDockRow => Boolean(anchor));
+    if (!dock || dock.blocked || !anchors.length) {
+      panel.hidden = true;
+      return;
+    }
+    const dockRight = anchors.reduce((total, row) => total + row.right, 0) / anchors.length < innerWidth / 2;
+    const size = Math.round(Math.max(28, Math.min(52, anchors[0].height * .55)));
+    const iconSize = Math.round(size * .78);
+    const gap = 8;
+    panel.hidden = false;
+    buttons.forEach((button, index) => {
+      const anchor = paired[index];
+      if (!anchor) { button.style.display = 'none'; return; }
+      button.style.display = '';
+      button.style.width = `${size}px`;
+      button.style.height = `${size}px`;
+      button.style.left = `${Math.round(dockRight ? anchor.right + gap : anchor.left - gap - size)}px`;
+      button.style.top = `${Math.round(anchor.centerY - size / 2)}px`;
+      const icon = button.querySelector('img');
+      if (icon) {
+        icon.style.width = `${iconSize}px`;
+        icon.style.height = `${iconSize}px`;
+      }
+    });
+    const last = anchors.reduce((lowest, row) => row.centerY > lowest.centerY ? row : lowest, anchors[0]);
+    options.style.left = `${Math.round(dockRight ? last.right + gap : last.left - gap - size)}px`;
+    options.style.top = `${Math.round(last.centerY + last.height / 2 + gap)}px`;
+    options.style.minWidth = `${size}px`;
   }
 
   function nextLunarAt(now = Date.now()) {
@@ -1576,13 +1786,15 @@ export function initCompanion(): void {
     return Boolean(abilityLog && (abilityLog.matches(':hover') || abilityLog.scrollTop > 0));
   }
 
+  const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood'];
+
   function refreshOpenPanel() {
     const panel = document.getElementById('gc-panel');
-    if (!panel || panel.hidden || !['abilities', 'abilityLog'].includes(activeTab) || panelRefreshBlocked(panel)) return;
+    if (!panel || panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab) || panelRefreshBlocked(panel)) return;
     if (panelRefreshTimer) return;
     panelRefreshTimer = setTimeout(() => {
       panelRefreshTimer = null;
-      if (panel.hidden || !['abilities', 'abilityLog'].includes(activeTab) || panelRefreshBlocked(panel)) return;
+      if (panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab) || panelRefreshBlocked(panel)) return;
       const main = panel.querySelector('main');
       const scrollTop = main?.scrollTop ?? 0;
       renderPanel();
@@ -1591,7 +1803,7 @@ export function initCompanion(): void {
     }, 1000);
   }
 
-  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['shops', 'Shop Alarms'], ['silence', 'Silence'], ['rooms', 'Rooms'], ['features', 'Features']];
+  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['shops', 'Shop Alarms'], ['silence', 'Silence'], ['rooms', 'Rooms'], ['features', 'Features']];
 
   function renderPanel() {
     cancelKeybindCapture?.();
@@ -1621,6 +1833,7 @@ export function initCompanion(): void {
   function renderTab() {
     if (activeTab === 'features') return renderFeatures();
     if (activeTab === 'teams') return renderTeams();
+    if (activeTab === 'petFood') return renderPetFoodTab();
     if (activeTab === 'abilities') return renderAbilities();
     if (activeTab === 'abilityLog') return renderAbilityLog();
     if (activeTab === 'rooms') return renderRooms();
@@ -1633,6 +1846,7 @@ export function initCompanion(): void {
     const rows = [
       ['dragMove', 'Plant drag move', 'Hold, drag and release a plant - consumes planter pots'],
       ['turtleTimer', 'Crop and egg estimates', 'Values and pet-adjusted timing'],
+      ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
@@ -1657,6 +1871,26 @@ export function initCompanion(): void {
       return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small><span class="gc-team-abilities">${(pet.abilities || []).map(ability => escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))).join(' | ') || 'No abilities'}</span></span></label>`;
     }).join('');
     return `<section class="gc-card"><h3>${editing ? 'Edit team' : 'Create team'}</h3><input data-team-name placeholder="Team name" maxlength="32" value="${escapeHtml(editing?.name || '')}"><input class="gc-search" data-team-search placeholder="Filter by pet name, species, or ability" value="${escapeHtml(teamSearchQuery)}"><div class="gc-pet-grid gc-filter-list">${petRows || '<p>No pet data yet.</p>'}</div>${formActions}</section><section class="gc-stack">${teams().map(team => `<article class="gc-card" data-team-card="${escapeHtml(team.id)}"><div class="gc-row"><div><h3>${escapeHtml(team.name)}</h3><p>${team.members.map(member => escapeHtml(member.name || humanize(member.petSpecies))).join(', ')}</p></div><div class="gc-row"><button data-edit-team="${escapeHtml(team.id)}">Edit</button><button data-apply-team="${escapeHtml(team.id)}">Activate</button></div></div><div class="gc-row"><label class="gc-key"><span>Keybind</span><input readonly data-team-key="${escapeHtml(team.id)}" value="${escapeHtml(config.teamKeybinds[team.id] || '')}" placeholder="Click, then press keys"><small>Press Esc to cancel or clear</small></label>${confirmDeleteTeamId === team.id ? `<span class="gc-team-delete-confirm"><b>Delete this team?</b><button data-cancel-delete-team>Cancel</button><button class="gc-danger" data-confirm-delete-team="${escapeHtml(team.id)}">Delete team</button></span>` : `<button class="gc-danger" data-delete-team="${escapeHtml(team.id)}">Delete</button>`}</div></article>`).join('') || '<p class="gc-empty">No saved teams yet.</p>'}</section>`;
+  }
+
+  function renderPetFoodTab() {
+    const produce = heldProduce();
+    const counts = new Map<string, number>();
+    for (const item of produce) counts.set(item.species, (counts.get(item.species) || 0) + 1);
+    const activeSpecies = new Set(activePets().map(pet => pet.petSpecies));
+    const species = [...new Set(allPets().map(pet => pet.petSpecies))]
+      .filter(name => petDiet(name).length)
+      .sort((left, right) => Number(activeSpecies.has(right)) - Number(activeSpecies.has(left)) || humanize(left).localeCompare(humanize(right)));
+    const cards = species.map(name => {
+      const chosen = config.petFoodChoices?.[name] || '';
+      const options = petDiet(name).map(crop => {
+        const sprite = produceSprite(crop);
+        const held = counts.get(crop) || 0;
+        return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(crop)}" data-active="${crop === chosen}"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(crop))}</b><small>${held} held</small></span></button>`;
+      }).join('');
+      return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? 'Active' : 'Owned'}</span></div><div class="gc-food-options">${options}</div></article>`;
+    }).join('');
+    return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
   }
 
   function renderAbilities() {
@@ -1776,7 +2010,18 @@ export function initCompanion(): void {
   }
 
   function bindTabEvents(main) {
-    main.querySelectorAll('[data-feature]').forEach(input => input.onchange = () => { config[input.dataset.feature] = input.checked; saveConfig(); updateLunarTimer(); });
+    main.querySelectorAll('[data-feature]').forEach(input => input.onchange = () => { config[input.dataset.feature] = input.checked; saveConfig(); updateLunarTimer(); renderPetFood(); });
+    main.querySelectorAll('[data-food-choice]').forEach(button => button.onclick = () => {
+      const species = button.dataset.foodChoice;
+      const crop = button.dataset.foodCrop;
+      const choices = { ...config.petFoodChoices };
+      if (choices[species] === crop) delete choices[species];
+      else choices[species] = crop;
+      config.petFoodChoices = choices;
+      saveConfig();
+      renderPanelPreservingScroll();
+      renderPetFood();
+    });
     main.querySelector('[data-save-team]')?.addEventListener('click', () => {
       try {
         const name = (main.querySelector('[data-team-name]') as HTMLInputElement).value.trim();
@@ -1875,7 +2120,9 @@ export function initCompanion(): void {
     document.body.appendChild(lunar);
     page.__gardenCompanionPetSpritesReady = () => {
       const panel = document.getElementById('gc-panel');
-      if (panel && !panel.hidden && ['teams', 'abilities', 'shops'].includes(activeTab)) renderPanel();
+      if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood'].includes(activeTab)) renderPanel();
+      petFoodSignature = '';
+      renderPetFood();
     };
     updateLunarTimer();
     watchSocketHealth();
@@ -1886,6 +2133,9 @@ export function initCompanion(): void {
     watchForGameUpdateDialog();
     renderTurtleOverlay();
     setInterval(renderTurtleOverlay, 250);
+    renderPetFood();
+    setInterval(positionPetFood, 250);
+    page.addEventListener('pointerup', () => requestAnimationFrame(positionPetFood), true);
   }
 
   installGameModalAccess();

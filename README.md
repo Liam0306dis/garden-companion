@@ -15,6 +15,7 @@ actions. It does not perform unattended gameplay.
 - Searchable shop alarms grouped into Seeds, Dawn, Thunder, Snow, Eggs, Tools, and Decor tabs
 - Shop alarm item icons, explicit Buy all and Stop buttons, persistent siren audio, and queued alerts when several items trigger together
 - Crop values and pet-adjusted crop or egg growth estimates (Turtle-Timer)
+- Pet food buttons docked beside the games own pet panel, one per active pet, with per-species preferred foods, held produce counts on each food icon, one-click feeding, and automatic hiding while the games Feed or Pick up buttons are open (Default OFF)
 - Plant drag movement by holding, dragging, and releasing a plant, consumes planter pot on each successful move
 - Instant harvest - Spacebar triggers instant harvest for mature Gold or Rainbow crops (Default OFF)
 - Configurable global keybinds for Garden Companion, Garden Overview, weather station, seed, egg, and tool shops

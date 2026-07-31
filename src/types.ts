@@ -10,6 +10,14 @@ export interface Pet {
   itemType?: string;
 }
 
+export interface ProduceItem {
+  id: string;
+  species: string;
+  itemType?: string;
+  scale?: number;
+  mutations?: string[];
+}
+
 export interface PetTeamMember {
   petId: string;
   petSpecies: string;
@@ -118,6 +126,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionPlantPrice?: (species?: string) => number | undefined;
   __gardenCompanionPetSprites?: Record<string, string>;
   __gardenCompanionShopSprites?: Record<string, string>;
+  __gardenCompanionProduceSprites?: Record<string, string>;
   __gardenCompanionPetSpritesReady?: () => void;
   __gardenCompanionClaimKeybind?: (owner: string, combo: string) => void;
   __gardenCompanionOverviewShortcutChanged?: (shortcut: string) => void;
@@ -153,6 +162,7 @@ export interface CompanionConfig {
   rooms: boolean;
   shopAlarms: boolean;
   turtleTimer: boolean;
+  petFood: boolean;
   instantHarvest: boolean;
   interfaceShortcuts: boolean;
   backgroundMode: boolean;
@@ -162,6 +172,7 @@ export interface CompanionConfig {
   silencedAbilities: string[];
   trackedAbilities: string[];
   shopAlerts: Record<string, boolean>;
+  petFoodChoices: Record<string, string>;
   teamKeybinds: Record<string, string>;
   interfaceKeybinds: Record<string, string>;
   [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string>;

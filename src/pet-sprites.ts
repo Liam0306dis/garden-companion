@@ -61,6 +61,11 @@ function shopSpriteCandidates(group: string, itemId: string): string[] {
   return [`sprite/decor/${itemId}`];
 }
 
+function produceSpriteCandidates(species: string): string[] {
+  const cropSprite = __PLANT_CATALOG__[species]?.crop?.sprite;
+  return [...(cropSprite ? [`sprite/plant/${cropSprite}`] : []), `sprite/plant/${species}`, `sprite/seed/${species}`];
+}
+
 function normaliseKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9/]/g, '');
 }
@@ -126,13 +131,14 @@ async function decodeSheet(url: string, basis: BasisInstance, rgbaFormat: number
   }
 }
 
-function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Set<string>, output: Map<string, string>): void {
+function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Set<string>, output: Map<string, string>, trimmed = false): void {
   for (const [name, descriptor] of Object.entries(atlas.frames ?? {})) {
     const key = normaliseKey(name);
     if (!wanted.has(key) || output.has(key)) continue;
     const frame = descriptor.frame;
-    const placement = descriptor.spriteSourceSize ?? { x: 0, y: 0, w: frame.w, h: frame.h };
-    const source = descriptor.sourceSize ?? { w: placement.x + frame.w, h: placement.y + frame.h };
+    const trim = trimmed ? { x: 0, y: 0, w: frame.w, h: frame.h } : null;
+    const placement = trim ?? descriptor.spriteSourceSize ?? { x: 0, y: 0, w: frame.w, h: frame.h };
+    const source = trim ?? descriptor.sourceSize ?? { w: placement.x + frame.w, h: placement.y + frame.h };
     const canvas = document.createElement('canvas');
     canvas.width = source.w;
     canvas.height = source.h;
@@ -152,12 +158,13 @@ function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Set<stri
   }
 }
 
-async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted: Set<string>): Promise<Map<string, string>> {
+async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted: Set<string>, trimmedWanted: Set<string>): Promise<{ frames: Map<string, string>; trimmed: Map<string, string> }> {
   const output = new Map<string, string>();
+  const trimmedOutput = new Map<string, string>();
   const pending = new Set(initialPaths);
   const seen = new Set<string>();
   const { basis, rgbaFormat } = await basisDecoder();
-  while (pending.size && output.size < wanted.size) {
+  while (pending.size && (output.size < wanted.size || trimmedOutput.size < trimmedWanted.size)) {
     const jsonPath = pending.values().next().value as string;
     pending.delete(jsonPath);
     if (seen.has(jsonPath)) continue;
@@ -169,14 +176,17 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
       const atlas = await response.json() as AtlasJson;
       const imageUrl = atlas.meta?.image ? new URL(atlas.meta.image, jsonUrl).href : jsonUrl.replace(/\.json$/, '.ktx2');
       const sheet = await decodeSheet(imageUrl, basis, rgbaFormat);
-      if (sheet) cropFrames(atlas, sheet, wanted, output);
+      if (sheet) {
+        cropFrames(atlas, sheet, wanted, output);
+        cropFrames(atlas, sheet, trimmedWanted, trimmedOutput, true);
+      }
       for (const related of atlas.meta?.related_multi_packs ?? []) {
         const relatedPath = jsonPath.replace(/[^/]+$/, '') + related.replace(/\.json$/, '') + '.json';
         if (!seen.has(relatedPath)) pending.add(relatedPath);
       }
     } catch {}
   }
-  return output;
+  return { frames: output, trimmed: trimmedOutput };
 }
 
 export async function initPetSprites(): Promise<void> {
@@ -189,12 +199,14 @@ export async function initPetSprites(): Promise<void> {
   const shopCandidates = Object.fromEntries(Object.entries(SHOP_SPRITE_GROUPS).flatMap(([group, itemIds]) =>
     itemIds.map(itemId => [itemId, shopSpriteCandidates(group, itemId)]),
   ));
+  const produceCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, produceSpriteCandidates(name)]));
   const wanted = new Set([
     ...species.map(name => normaliseKey(`sprite/pet/${name}`)),
     ...Object.values(shopCandidates).flat().map(normaliseKey),
   ]);
+  const produceWanted = new Set(Object.values(produceCandidates).flat().map(normaliseKey));
   try {
-    const frames = await loadPetFrames(assetsBase, paths, wanted);
+    const { frames, trimmed } = await loadPetFrames(assetsBase, paths, wanted, produceWanted);
     page.__gardenCompanionPetSprites = Object.fromEntries(species.flatMap(name => {
       const image = frames.get(normaliseKey(`sprite/pet/${name}`));
       return image ? [[name, image]] : [];
@@ -202,6 +214,10 @@ export async function initPetSprites(): Promise<void> {
     page.__gardenCompanionShopSprites = Object.fromEntries(Object.entries(shopCandidates).flatMap(([itemId, candidates]) => {
       const image = candidates.map(normaliseKey).map(key => frames.get(key)).find(Boolean);
       return image ? [[itemId, image]] : [];
+    }));
+    page.__gardenCompanionProduceSprites = Object.fromEntries(Object.entries(produceCandidates).flatMap(([name, candidates]) => {
+      const image = candidates.map(normaliseKey).map(key => trimmed.get(key)).find(Boolean);
+      return image ? [[name, image]] : [];
     }));
     page.__gardenCompanionPetSpritesReady?.();
   } catch (error) {

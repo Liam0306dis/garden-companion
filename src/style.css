@@ -139,6 +139,24 @@
 #gc-alarm [data-alarm-queue] { margin-top:3px;color:#fbbf24;font-size:10px;font-style:normal;font-weight:800; }
 @keyframes gc-alarm-pulse { from { transform:translateX(-50%) scale(1);filter:brightness(1); } to { transform:translateX(-50%) scale(1.015);filter:brightness(1.2); } }
 #gc-turtle { position:fixed;z-index:99989;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 9px;color:#f4f4f5;background:rgba(12,12,17,.96);border:1px solid rgba(167,139,250,.35);border-radius:6px;pointer-events:none;white-space:nowrap;text-align:center;font:700 11px/1.45 system-ui,sans-serif; }
+#gc-petfood { position:fixed;left:0;top:0;z-index:99991;width:0;height:0;pointer-events:none;font:11px/1.3 system-ui,sans-serif;user-select:none; }
+#gc-petfood[hidden] { display:none; }
+#gc-petfood img { image-rendering:auto!important; }
+#gc-petfood [data-food-row] { position:fixed;box-sizing:border-box;display:grid;place-items:center;padding:2px;overflow:hidden;color:var(--gc-text);border:1px solid rgba(167,139,250,.35);border-radius:9px;background:linear-gradient(145deg,rgba(24,20,40,.95),rgba(12,12,17,.95));box-shadow:0 6px 18px rgba(0,0,0,.55);pointer-events:auto;cursor:pointer;transition:border-color .12s,background .12s; }
+#gc-petfood [data-food-row]:hover:not(:disabled) { border-color:rgba(167,139,250,.75);background:linear-gradient(145deg,rgba(56,42,94,.95),rgba(22,20,34,.95)); }
+#gc-petfood [data-food-row]:disabled { opacity:.45;cursor:not-allowed; }
+#gc-petfood [data-food-row] img { flex:0 0 auto;object-fit:contain; }
+#gc-petfood [data-food-row] i { color:rgba(255,255,255,.4);font:700 15px system-ui,sans-serif;font-style:normal; }
+.gc-petfood-count { position:absolute;right:1px;bottom:1px;min-width:14px;padding:0 3px;color:#0c0c11;background:#fbbf24;border-radius:6px;text-align:center;font:800 9px/14px system-ui,sans-serif; }
+.gc-petfood-options { position:fixed;padding:3px 6px;color:#c4b5fd;border:1px solid rgba(167,139,250,.3);border-radius:7px;background:rgba(16,14,26,.92);box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;font:700 9px system-ui,sans-serif; }
+.gc-petfood-options:hover { color:#ede9fe;border-color:rgba(167,139,250,.6); }
+.gc-food-card .gc-food-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+.gc-food-card .gc-food-head span { color:var(--gc-muted);font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+.gc-food-options { display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px;margin-top:8px; }
+.gc-food-options button { display:flex!important;align-items:center;gap:7px;padding:5px 7px!important;text-align:left!important; }
+.gc-food-options button > span:last-child { min-width:0;display:flex;flex-direction:column; }
+.gc-food-options button small { color:var(--gc-muted);font-size:8px; }
+.gc-food-options button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.4)!important;background:rgba(167,139,250,.15)!important; }
 #gc-toast { position:fixed;left:50%;top:20px;z-index:1000000;transform:translate(-50%,-12px);padding:9px 14px;color:#fff;background:#17171f;border:1px solid rgba(52,211,153,.35);border-radius:7px;opacity:0;pointer-events:none;transition:.2s;font:11px system-ui,sans-serif; }
 #gc-toast.is-visible { opacity:1;transform:translate(-50%,0); } #gc-toast[data-tone=error] { border-color:rgba(248,113,113,.5); }
 @media(max-width:650px) { #gc-panel{padding:6px}.gc-shell{width:100%;height:100%;border-radius:9px}.gc-layout{grid-template-columns:104px minmax(0,1fr)}.gc-layout main{padding:9px}.gc-check-grid,.gc-pet-grid,.gc-active-pets{grid-template-columns:1fr}.gc-shortcut-row{grid-template-columns:1fr;gap:5px}#gc-alarm{min-width:0;width:calc(100vw - 24px)} }

@@ -12,8 +12,8 @@ if (!wasmBase64) throw new Error('Pet sprite decoder data was not found.');
 interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
-  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number }>;
-  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number } }>;
+  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[] }>;
+  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string } }>;
 }
 
 async function catalogsFromBundle(): Promise<BundleCatalogs> {
@@ -42,18 +42,19 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
             ...(Object.keys(baseParameters).length ? { baseParameters } : {}),
           }];
         }));
-        const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:U\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+)/g)];
+        const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+).{0,300}?diet:\[([^\]]*)\]/g)];
         if (!petMatches.length) continue;
-        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{.*?\},plant:\{.*?\},crop:\{.*?baseSellPrice:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{.*?\},plant:\{.*?\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),.*?baseSellPrice:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
         const pets = Object.fromEntries(petMatches.map(match => [match[1], {
           name: match[3],
           maxHunger: Number(match[4]),
           maxScale: Number(match[5]),
           hoursToMature: Number(match[6]),
+          diet: [...match[7].matchAll(/`([^`]+)`/g)].map(entry => entry[1]),
         }]));
         const plants = Object.fromEntries(plantMatches.map(match => [match[1], {
-          crop: { baseSellPrice: Number(match[2]), maxScale: Number(match[3]) },
+          crop: { baseSellPrice: Number(match[3]), maxScale: Number(match[4]), sprite: match[2] },
         }]));
         return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants };
       }
@@ -100,6 +101,7 @@ const petSpriteBuild = await build({
   write: false,
   define: {
     __PET_CATALOG__: JSON.stringify(catalogs.pets),
+    __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
     __PET_WASM_B64__: JSON.stringify(wasmBase64),
   },
 });
