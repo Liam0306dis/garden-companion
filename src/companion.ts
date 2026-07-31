@@ -1525,7 +1525,7 @@ export function initCompanion(): void {
       return;
     }
     const dockRight = anchors.reduce((total, row) => total + row.right, 0) / anchors.length < innerWidth / 2;
-    const size = Math.round(Math.max(28, Math.min(52, anchors[0].height * .55)));
+    const size = Math.round(Math.max(32, Math.min(72, anchors[0].height * .78)));
     const iconSize = Math.round(size * .78);
     const gap = 8;
     panel.hidden = false;
