@@ -29,7 +29,10 @@ interface BasisModule {
 
 const TRANSCODER_URL = 'https://unpkg.com/@h00w/basis-universal-transcoder?module';
 
+const DECOR_IDS = Object.keys(__DECOR_CATALOG__);
+
 const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
+  decor: DECOR_IDS,
   seed: [
     'Carrot', 'Cabbage', 'Strawberry', 'Aloe', 'Beet', 'FavaBean', 'Blueberry', 'Apple', 'OrangeTulip', 'Tomato',
     'Daffodil', 'Corn', 'Watermelon', 'Pumpkin', 'Echeveria', 'Pear', 'Gentian', 'Coconut', 'Banana', 'Lily', 'Camellia',
@@ -40,15 +43,6 @@ const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
   ],
   egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'ThunderEgg'],
   tool: ['PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion'],
-  decor: [
-    'SmallRock', 'MediumRock', 'LargeRock', 'HayBale', 'StringLights', 'WoodBench', 'WoodArch', 'WoodPergola', 'WoodBridge',
-    'WoodLampPost', 'WoodOwl', 'WoodFrog', 'WoodBirdhouse', 'WoodWindmill', 'StoneBench', 'StoneArch', 'StoneBridge',
-    'StoneLampPost', 'StoneGnome', 'StoneGnomess', 'StoneBirdbath', 'MarbleBench', 'MarbleArch', 'MarbleBridge',
-    'MarbleLampPost', 'MarbleBlobling', 'MarbleKnight', 'MarbleFountain', 'MiniFairyCottage', 'StrawScarecrow',
-    'MiniFairyForge', 'MiniFairyKeep', 'MiniWizardTower', 'MiniFairyCastle', 'ColoredStringLights', 'WoodCaribou',
-    'StoneCaribou', 'MarbleCaribou', 'SmallGravestone', 'MediumGravestone', 'LargeGravestone', 'Cauldron',
-    'WindchimeMoon', 'WindchimeStar', 'WindSpinner', 'WindTurner',
-  ],
 };
 
 function shopSpriteCandidates(group: string, itemId: string): string[] {
@@ -58,7 +52,8 @@ function shopSpriteCandidates(group: string, itemId: string): string[] {
   if (group === 'seed') return [`sprite/seed/${itemId}`, `sprite/plant/${itemId}`];
   if (group === 'egg') return [`sprite/pet/${itemId}`];
   if (group === 'tool') return [`sprite/item/${itemId}`, `sprite/tool/${itemId}`];
-  return [`sprite/decor/${itemId}`];
+  const decorSprite = __DECOR_CATALOG__[itemId]?.sprite;
+  return [...(decorSprite ? [`sprite/decor/${decorSprite}`] : []), `sprite/decor/${itemId}`];
 }
 
 const EMBLEM_ICON_SPRITES: Record<string, string> = {

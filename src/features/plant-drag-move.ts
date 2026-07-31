@@ -146,6 +146,8 @@ export function initPlantDragMove(): void {
     }
 
     armPrivateSystemCapture();
+    // The layout planner reuses these captured farm systems instead of hooking them a second time.
+    pageWindow.__gardenCompanionFarmSystems = live;
 
     function installSystemRegistryCapture() {
         const mapProto = pageWindow.Map?.prototype;

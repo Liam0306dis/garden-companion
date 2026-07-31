@@ -40,6 +40,10 @@ export interface PetTeam {
 
 export interface PlantSlot {
   slotId?: string | number;
+  startTime?: number;
+  x?: number;
+  y?: number;
+  rotation?: number;
   species?: string;
   endTime?: number;
   maturedAt?: number;
@@ -51,7 +55,11 @@ export interface PlantSlot {
 export interface GardenTile {
   objectType?: string;
   species?: string;
+  decorId?: string;
+  rotation?: number;
   slots?: PlantSlot[];
+  plantedAt?: number;
+  maturedAt?: number;
 }
 
 export interface ShopItem {
@@ -136,6 +144,9 @@ export interface CompanionPage extends Window {
   __gardenCompanionShopSprites?: Record<string, string>;
   __gardenCompanionProduceSprites?: Record<string, string>;
   __gardenCompanionEmblemSprites?: Record<string, string>;
+  __gardenCompanionFarmSystems?: FarmSystems;
+  __gardenCompanionTogglePlanner?: () => void;
+  __gardenCompanionPlannerOpen?: () => boolean;
   __gardenCompanionPetSpritesReady?: () => void;
   __gardenCompanionClaimKeybind?: (owner: string, combo: string) => void;
   __gardenCompanionOverviewShortcutChanged?: (shortcut: string) => void;
@@ -144,6 +155,14 @@ export interface CompanionPage extends Window {
   __gardenCompanionShowAlarm?: (options: CompanionAlarmOptions) => void;
   __gardenCompanionState?: unknown;
   __GARDEN_COMPANION_PIXI__?: { app: unknown; renderer: unknown };
+  [key: string]: unknown;
+}
+
+export interface FarmSystems {
+  tapToMove: Record<string, any> | null;
+  tileSystem: Record<string, any> | null;
+  worldTapRouter: Record<string, any> | null;
+  ownUserSlotIdx: number | null;
   [key: string]: unknown;
 }
 

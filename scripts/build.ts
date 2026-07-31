@@ -13,9 +13,11 @@ interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
-  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string }; slots: number; regrows: boolean }>;
+  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number> }>;
   abilityColours: Record<string, string>;
+  mutations: Record<string, { name: string; group: string; coinMultiplier: number }>;
+  decor: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string }>;
 }
 
 async function catalogsFromBundle(): Promise<BundleCatalogs> {
@@ -46,7 +48,7 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
         }));
         const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+),rarity:[A-Za-z_$]+\.([A-Za-z]+).{0,300}?diet:\[([^\]]*)\]/g)];
         if (!petMatches.length) continue;
-        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{.*?\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),.*?baseSellPrice:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),.*?baseSellPrice:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
         const eggMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.[A-Za-z0-9_]+,name:`([^`]+)`,.*?faunaSpawnWeights:\{([^}]*)\}/g)];
         if (!eggMatches.length) continue;
@@ -58,17 +60,56 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
           rarity: match[7],
           diet: [...match[8].matchAll(/`([^`]+)`/g)].map(entry => entry[1]),
         }]));
-        const plants = Object.fromEntries(plantMatches.map(match => [match[1], {
-          crop: { baseSellPrice: Number(match[4]), maxScale: Number(match[5]), sprite: match[3] },
-          slots: Math.max(1, (match[2].match(/\{x:/g) || []).length),
-          regrows: /harvestType:[A-Za-z_$]+\.Multiple/.test(match[2]),
-        }]));
+        const plantRows = plantMatches.map(match => {
+          const plantBlock = match[3];
+          // Patch plants (clover, snowdrop, daisies, cattail) hold slotCapacity plants on one tile.
+          const capacity = Number(plantBlock.match(/slotCapacity:([0-9]+)/)?.[1] || 0);
+          return {
+            species: match[1],
+            seedSprite: match[2].match(/sprite:[A-Za-z_$]+\.Seed\.([A-Za-z0-9_]+)/)?.[1] || '',
+            capacity,
+            // A slot can override its species (Thunderspire grows stormcaps in four of its slots).
+            slotSpecies: [...plantBlock.matchAll(/\{x:[^{}]*?\}/g)]
+              .map(offset => offset[0].match(/speciesOverride:`([A-Za-z0-9_]+)`/)?.[1] || ''),
+            entry: {
+              crop: { baseSellPrice: Number(match[5]), maxScale: Number(match[6]), sprite: match[4] },
+              slots: Math.max(1, capacity || (plantBlock.match(/\{x:/g) || []).length),
+              regrows: /harvestType:[A-Za-z_$]+\.Multiple/.test(plantBlock),
+              rarity: match[2].match(/rarity:[A-Za-z_$]+\.([A-Za-z]+)/)?.[1] || 'Common',
+            } as BundleCatalogs['plants'][string],
+          };
+        });
+        // Rare patch variants (four-leaf clover, purple daisy) grow inside their parent patch and
+        // carry no capacity of their own, so they inherit it from the plant sharing their seed.
+        const capacityBySeed = new Map(plantRows.filter(row => row.capacity).map(row => [row.seedSprite, row.capacity]));
+        for (const row of plantRows) {
+          if (!row.capacity && row.seedSprite && capacityBySeed.has(row.seedSprite)) {
+            row.entry.slots = capacityBySeed.get(row.seedSprite)!;
+          }
+        }
+        // Species that only exist inside another plant's slots are not separately plantable.
+        const componentSpecies = new Set(plantRows.flatMap(row => row.slotSpecies.filter(Boolean)));
+        for (const row of plantRows) {
+          if (row.slotSpecies.some(Boolean)) row.entry.slotSpecies = row.slotSpecies;
+          if (componentSpecies.has(row.species)) row.entry.component = true;
+        }
+        const plants = Object.fromEntries(plantRows.map(row => [row.species, row.entry]));
         const eggs = Object.fromEntries(eggMatches.map(match => [match[1], {
           name: match[2],
           spawnWeights: Object.fromEntries([...match[3].matchAll(/([A-Za-z][A-Za-z0-9_]*):([0-9.e+-]+)/g)].map(entry => [entry[1], Number(entry[2])])),
         }]));
+        // Mutations carry a display name that differs from their id (Dawncharged shows as Dawnbound)
+        // and a group; only one mutation from each group can be on a crop at a time.
+        const mutations = Object.fromEntries([...bundle.matchAll(
+          /([A-Za-z][A-Za-z0-9_]*):\{name:`([^`]+)`,baseChance:[0-9.e+-]+,coinMultiplier:([0-9.]+),group:`([A-Za-z]+)`/g)]
+          .map(match => [match[1], { name: match[2], group: match[4], coinMultiplier: Number(match[3]) }]));
+        if (Object.keys(mutations).length < 8) continue;
+        const decor = Object.fromEntries([...bundle.matchAll(
+          /([A-Za-z][A-Za-z0-9_]*):\{sprite:[A-Za-z_$]+\.Decor\.([A-Za-z0-9_]+),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`,eligibleShops:\[[^\]]*\][^{}]*?rarity:[A-Za-z_$]+\.([A-Za-z]+)/g)]
+          .map(match => [match[1], { name: match[4], rarity: match[5], rotates: Boolean(match[3]), sprite: match[2] }]));
+        if (Object.keys(decor).length < 10) continue;
         const abilityColours = await abilityColoursFromBundle(resolve(bundleRoot, directory));
-        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours };
+        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours, mutations, decor };
       }
     }
   }
@@ -136,6 +177,7 @@ const petSpriteBuild = await build({
   define: {
     __PET_CATALOG__: JSON.stringify(catalogs.pets),
     __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
+    __DECOR_CATALOG__: JSON.stringify(catalogs.decor),
     __PET_WASM_B64__: JSON.stringify(wasmBase64),
   },
 });
@@ -158,6 +200,8 @@ await build({
     __PET_CATALOG__: JSON.stringify(catalogs.pets),
     __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
     __EGG_CATALOG__: JSON.stringify(catalogs.eggs),
+    __MUTATION_CATALOG__: JSON.stringify(catalogs.mutations),
+    __DECOR_CATALOG__: JSON.stringify(catalogs.decor),
     __ABILITY_COLOURS__: JSON.stringify(catalogs.abilityColours),
     __PET_SPRITE_LOADER__: JSON.stringify(petSpriteLoader),
     __GARDEN_COMPANION_CSS__: JSON.stringify(css),
@@ -166,4 +210,4 @@ await build({
 
 const output = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
 if (output.includes('\u2014')) throw new Error('The generated userscript contains an em dash.');
-console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs, ${Object.keys(catalogs.abilityColours).length} ability colours)`);
+console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs, ${Object.keys(catalogs.abilityColours).length} ability colours, ${Object.keys(catalogs.mutations).length} mutations, ${Object.keys(catalogs.decor).length} decor)`);

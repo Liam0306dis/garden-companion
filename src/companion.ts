@@ -1060,6 +1060,11 @@ export function initCompanion(): void {
       return;
     }
     if (!feature('petTeams')) return;
+    if (config.interfaceKeybinds[PLANNER_KEY.id] === combo) {
+      event.preventDefault(); event.stopPropagation();
+      page.__gardenCompanionTogglePlanner?.();
+      return;
+    }
     const cycle = TEAM_CYCLE_KEYS.find(item => config.interfaceKeybinds[item.id] === combo);
     if (cycle) {
       event.preventDefault(); event.stopPropagation();
@@ -1072,6 +1077,8 @@ export function initCompanion(): void {
     send({ type: 'ApplyPetTeam', teamId: team.id });
     toast(`Switching to ${team.name}.`, 'success');
   }, true);
+
+  const PLANNER_KEY = { id: 'layoutPlanner', label: 'Layout planner' };
 
   const TEAM_CYCLE_KEYS = [
     { id: 'teamCycleNext', label: 'Next pet team', step: 1 },
@@ -1543,6 +1550,19 @@ export function initCompanion(): void {
     positionPetFood();
   }
 
+  /**
+   * True when a page overlay (the game menu, a modal) covers the pet panel. The docked
+   * buttons are plain DOM above the canvas, so they would otherwise float over it.
+   */
+  function petPanelCovered(anchor: PetDockRow): boolean {
+    const sampleX = Math.round((anchor.left + anchor.right) / 2);
+    const sampleY = Math.round(anchor.centerY);
+    if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return false;
+    const top = document.elementFromPoint(sampleX, sampleY);
+    if (!top) return false;
+    return !top.closest('.QuinoaCanvas') && !top.closest('#gc-petfood');
+  }
+
   function positionPetFood(): void {
     const panel = document.getElementById('gc-petfood');
     if (!panel) return;
@@ -1551,7 +1571,7 @@ export function initCompanion(): void {
     const dock = findPetSlotDock();
     const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || '') ?? null : dock.rows[index] ?? null) : [];
     const anchors = paired.filter((anchor): anchor is PetDockRow => Boolean(anchor));
-    if (!dock || dock.blocked || !anchors.length) {
+    if (!dock || dock.blocked || !anchors.length || petPanelCovered(anchors[0])) {
       panel.hidden = true;
       return;
     }
@@ -1930,7 +1950,7 @@ export function initCompanion(): void {
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
     ];
-    return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`).join('')}</div><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+    return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`).join('')}</div><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
   }
 
   const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'dawn', 'amber', 'wet', 'chilled', 'frozen', 'coin', 'egg'];
@@ -2204,9 +2224,10 @@ export function initCompanion(): void {
       ...GAME_INTERFACES.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')),
     ].join('');
     const teamCycling = TEAM_CYCLE_KEYS.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')).join('');
+    const planner = shortcutRow(PLANNER_KEY.label, `data-interface-key="${PLANNER_KEY.id}"`, config.interfaceKeybinds[PLANNER_KEY.id] || '');
     const teamRows = teams().map(team => shortcutRow(team.name, `data-team-key="${escapeHtml(team.id)}"`, config.teamKeybinds[team.id] || '')).join('');
     return `<p class="gc-note">Click a field, then press the keys you want. Press Escape while recording to clear it. A combination can only belong to one action, so reusing one releases it from the other.</p>
-<section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}</div></section>
+<section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}${planner}</div></section>
 <section class="gc-card gc-shortcuts"><h3>Pet team cycling</h3><p>Step through your saved teams in order, wrapping at both ends.</p><div class="gc-shortcut-grid">${teamCycling}</div></section>
 <section class="gc-card gc-shortcuts"><h3>Pet teams</h3><p>Activate a saved team directly.</p>${teamRows ? `<div class="gc-shortcut-grid">${teamRows}</div>` : '<p class="gc-empty">No saved teams yet.</p>'}</section>`;
   }
@@ -2647,6 +2668,7 @@ export function initCompanion(): void {
       renderPanelPreservingScroll();
       renderPetFood();
     });
+    main.querySelector('[data-open-planner]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionTogglePlanner?.(); });
     main.querySelectorAll('[data-calc-tab]').forEach(button => button.onclick = () => { calculatorTab = button.dataset.calcTab || calculatorTab; renderPanel(); });
     main.querySelectorAll('[data-dust-pet]').forEach(input => input.onchange = () => {
       const petId = input.dataset.dustPet;
