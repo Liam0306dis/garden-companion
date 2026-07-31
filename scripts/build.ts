@@ -83,8 +83,14 @@ async function abilityColoursFromBundle(directory: string): Promise<Record<strin
   for (const file of files) {
     const chunk = await readFile(resolve(directory, file), 'utf8');
     const colours: Record<string, string> = {};
-    for (const match of chunk.matchAll(/((?:case`[A-Za-z0-9_]+`:)+)return`(#[0-9A-Fa-f]{6})`/g)) {
-      for (const name of match[1].matchAll(/case`([A-Za-z0-9_]+)`/g)) colours[name[1]] = match[2];
+    // Most abilities return a hex colour, but a few (Rainbow and Gold granters) return a CSS gradient.
+    // The game keeps only the hex stops and always paints them corner to corner, from the top left
+    // to the bottom right, so the declared angle and stop positions are rewritten to match.
+    for (const match of chunk.matchAll(/((?:case`[A-Za-z0-9_]+`:)+)return`(#[0-9A-Fa-f]{6}|linear-gradient\([^`]+\))`/g)) {
+      const stops = match[2].startsWith('linear-gradient')
+        ? `linear-gradient(135deg, ${(match[2].match(/#[0-9A-Fa-f]{6}/g) || []).join(', ')})`
+        : match[2];
+      for (const name of match[1].matchAll(/case`([A-Za-z0-9_]+)`/g)) colours[name[1]] = stops;
     }
     if (Object.keys(colours).length >= 40) return colours;
   }
