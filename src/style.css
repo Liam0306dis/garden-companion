@@ -215,6 +215,8 @@
 .gc-granter-list { display:flex;flex-direction:column;gap:7px;margin-top:8px; }
 .gc-granter-row { display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,180px);align-items:center;gap:10px;padding:7px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }
 .gc-granter-row[data-active=false] { opacity:.45; }
+.gc-granter-row[data-owned=false] .gc-pet-sprite { border-style:dashed; }
+.gc-granter-row[data-owned=false] .gc-granter-head small { color:#fbbf24; }
 .gc-granter-head { min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer; }
 .gc-granter-head .gc-pet-sprite { width:32px;height:32px;border-radius:7px; }
 .gc-granter-head .gc-pet-sprite img { width:28px;height:28px; }
