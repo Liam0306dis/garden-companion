@@ -105,7 +105,7 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
           .map(match => [match[1], { name: match[2], group: match[4], coinMultiplier: Number(match[3]) }]));
         if (Object.keys(mutations).length < 8) continue;
         const decor = Object.fromEntries([...bundle.matchAll(
-          /([A-Za-z][A-Za-z0-9_]*):\{sprite:[A-Za-z_$]+\.Decor\.([A-Za-z0-9_]+),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`,eligibleShops:\[[^\]]*\][^{}]*?rarity:[A-Za-z_$]+\.([A-Za-z]+)/g)]
+          /([A-Za-z][A-Za-z0-9_]*):\{sprite:[A-Za-z_$]+\.Decor\.([A-Za-z0-9_]+),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`[^{}]*?rarity:[A-Za-z_$]+\.([A-Za-z]+)/g)]
           .map(match => [match[1], { name: match[4], rarity: match[5], rotates: Boolean(match[3]), sprite: match[2] }]));
         if (Object.keys(decor).length < 10) continue;
         const abilityColours = await abilityColoursFromBundle(resolve(bundleRoot, directory));
