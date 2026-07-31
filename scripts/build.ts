@@ -12,8 +12,9 @@ if (!wasmBase64) throw new Error('Pet sprite decoder data was not found.');
 interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
-  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[] }>;
-  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string } }>;
+  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
+  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string }; slots: number; regrows: boolean }>;
+  eggs: Record<string, { name: string; spawnWeights: Record<string, number> }>;
 }
 
 async function catalogsFromBundle(): Promise<BundleCatalogs> {
@@ -42,21 +43,30 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
             ...(Object.keys(baseParameters).length ? { baseParameters } : {}),
           }];
         }));
-        const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+).{0,300}?diet:\[([^\]]*)\]/g)];
+        const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+),rarity:[A-Za-z_$]+\.([A-Za-z]+).{0,300}?diet:\[([^\]]*)\]/g)];
         if (!petMatches.length) continue;
-        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{.*?\},plant:\{.*?\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),.*?baseSellPrice:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{.*?\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),.*?baseSellPrice:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
+        const eggMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.[A-Za-z0-9_]+,name:`([^`]+)`,.*?faunaSpawnWeights:\{([^}]*)\}/g)];
+        if (!eggMatches.length) continue;
         const pets = Object.fromEntries(petMatches.map(match => [match[1], {
           name: match[3],
           maxHunger: Number(match[4]),
           maxScale: Number(match[5]),
           hoursToMature: Number(match[6]),
-          diet: [...match[7].matchAll(/`([^`]+)`/g)].map(entry => entry[1]),
+          rarity: match[7],
+          diet: [...match[8].matchAll(/`([^`]+)`/g)].map(entry => entry[1]),
         }]));
         const plants = Object.fromEntries(plantMatches.map(match => [match[1], {
-          crop: { baseSellPrice: Number(match[3]), maxScale: Number(match[4]), sprite: match[2] },
+          crop: { baseSellPrice: Number(match[4]), maxScale: Number(match[5]), sprite: match[3] },
+          slots: Math.max(1, (match[2].match(/\{x:/g) || []).length),
+          regrows: /harvestType:[A-Za-z_$]+\.Multiple/.test(match[2]),
         }]));
-        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants };
+        const eggs = Object.fromEntries(eggMatches.map(match => [match[1], {
+          name: match[2],
+          spawnWeights: Object.fromEntries([...match[3].matchAll(/([A-Za-z][A-Za-z0-9_]*):([0-9.e+-]+)/g)].map(entry => [entry[1], Number(entry[2])])),
+        }]));
+        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs };
       }
     }
   }
@@ -123,6 +133,7 @@ await build({
     __ABILITY_DETAILS__: JSON.stringify(catalogs.abilityDetails),
     __PET_CATALOG__: JSON.stringify(catalogs.pets),
     __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
+    __EGG_CATALOG__: JSON.stringify(catalogs.eggs),
     __PET_SPRITE_LOADER__: JSON.stringify(petSpriteLoader),
     __GARDEN_COMPANION_CSS__: JSON.stringify(css),
   },
@@ -130,4 +141,4 @@ await build({
 
 const output = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
 if (output.includes('\u2014')) throw new Error('The generated userscript contains an em dash.');
-console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants)`);
+console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs)`);

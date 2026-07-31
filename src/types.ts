@@ -8,6 +8,8 @@ export interface Pet {
   abilities?: string[];
   mutations?: string[];
   itemType?: string;
+  /** Added by the companion when listing owned pets: Active, Inventory, or the storage name. */
+  location?: string;
 }
 
 export interface ProduceItem {
