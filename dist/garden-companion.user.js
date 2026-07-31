@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.67
+// @version      0.6.68
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -845,7 +845,8 @@
       return `<div class="gc-hunger" title="${value.toLocaleString()} / ${maximum.toLocaleString()}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
     }
     function petMetrics(pet) {
-      const info = PET_CATALOG[pet.petSpecies];
+      const info = PET_CATALOG[pet?.petSpecies || ""];
+      if (!pet) return null;
       if (!info?.maxScale || info.maxScale <= 1 || !info.hoursToMature || !pet.targetScale) return null;
       const xpPerLevel = Math.floor(3600 * info.hoursToMature / 30);
       const maxStrength = Math.floor((pet.targetScale - 1) / (info.maxScale - 1) * 20 + 80);
@@ -2252,7 +2253,8 @@
       return allPets().filter((pet) => (pet.abilities || []).includes(ability)).sort((left, right) => (petMetrics(right)?.maxStrength ?? 0) - (petMetrics(left)?.maxStrength ?? 0)).slice(0, 3);
     }
     function granterStrengthFor(index, pets) {
-      return granterStrengths[index] ?? petMetrics(pets[index])?.maxStrength ?? 100;
+      const pet = pets[index];
+      return granterStrengths[index] ?? (pet ? petMetrics(pet)?.maxStrength : void 0) ?? 100;
     }
     function granterRows() {
       const pets = granterPets(granterAbility);

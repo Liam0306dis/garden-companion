@@ -842,8 +842,9 @@ export function initCompanion(): void {
     return `<div class="gc-hunger" title="${value.toLocaleString()} / ${maximum.toLocaleString()}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
   }
 
-  function petMetrics(pet: Pet): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null {
-    const info = PET_CATALOG[pet.petSpecies];
+  function petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null {
+    const info = PET_CATALOG[pet?.petSpecies || ''];
+    if (!pet) return null;
     if (!info?.maxScale || info.maxScale <= 1 || !info.hoursToMature || !pet.targetScale) return null;
     const xpPerLevel = Math.floor(3600 * info.hoursToMature / 30);
     const maxStrength = Math.floor(((pet.targetScale - 1) / (info.maxScale - 1)) * 20 + 80);
@@ -2325,7 +2326,8 @@ export function initCompanion(): void {
   }
 
   function granterStrengthFor(index: number, pets: Pet[]): number {
-    return granterStrengths[index] ?? petMetrics(pets[index])?.maxStrength ?? 100;
+    const pet = pets[index] as Pet | undefined;
+    return granterStrengths[index] ?? (pet ? petMetrics(pet)?.maxStrength : undefined) ?? 100;
   }
 
   function granterRows(): string {
