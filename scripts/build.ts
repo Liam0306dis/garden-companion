@@ -15,6 +15,7 @@ interface BundleCatalogs {
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
   plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string }; slots: number; regrows: boolean }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number> }>;
+  abilityColours: Record<string, string>;
 }
 
 async function catalogsFromBundle(): Promise<BundleCatalogs> {
@@ -66,11 +67,28 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
           name: match[2],
           spawnWeights: Object.fromEntries([...match[3].matchAll(/([A-Za-z][A-Za-z0-9_]*):([0-9.e+-]+)/g)].map(entry => [entry[1], Number(entry[2])])),
         }]));
-        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs };
+        const abilityColours = await abilityColoursFromBundle(resolve(bundleRoot, directory));
+        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours };
       }
     }
   }
   throw new Error('No ability catalog was found in the captured game bundles.');
+}
+
+
+// The game colours each ability chip through a switch in its store chunk.
+// Read it from the captured bundle so our chips match the game exactly.
+async function abilityColoursFromBundle(directory: string): Promise<Record<string, string>> {
+  const files = (await readdir(directory)).filter(name => /^store-.*\.js$/.test(name));
+  for (const file of files) {
+    const chunk = await readFile(resolve(directory, file), 'utf8');
+    const colours: Record<string, string> = {};
+    for (const match of chunk.matchAll(/((?:case`[A-Za-z0-9_]+`:)+)return`(#[0-9A-Fa-f]{6})`/g)) {
+      for (const name of match[1].matchAll(/case`([A-Za-z0-9_]+)`/g)) colours[name[1]] = match[2];
+    }
+    if (Object.keys(colours).length >= 40) return colours;
+  }
+  return {};
 }
 
 const header = `// ==UserScript==
@@ -134,6 +152,7 @@ await build({
     __PET_CATALOG__: JSON.stringify(catalogs.pets),
     __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
     __EGG_CATALOG__: JSON.stringify(catalogs.eggs),
+    __ABILITY_COLOURS__: JSON.stringify(catalogs.abilityColours),
     __PET_SPRITE_LOADER__: JSON.stringify(petSpriteLoader),
     __GARDEN_COMPANION_CSS__: JSON.stringify(css),
   },
@@ -141,4 +160,4 @@ await build({
 
 const output = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
 if (output.includes('\u2014')) throw new Error('The generated userscript contains an em dash.');
-console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs)`);
+console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs, ${Object.keys(catalogs.abilityColours).length} ability colours)`);

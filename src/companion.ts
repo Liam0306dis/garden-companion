@@ -1879,7 +1879,7 @@ export function initCompanion(): void {
     }, 1000);
   }
 
-  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Silence'], ['rooms', 'Rooms'], ['features', 'Features']];
+  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Silence'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['features', 'Features']];
 
   function renderPanel() {
     cancelKeybindCapture?.();
@@ -1912,6 +1912,7 @@ export function initCompanion(): void {
     if (activeTab === 'teams') return renderTeams();
     if (activeTab === 'petFood') return renderPetFoodTab();
     if (activeTab === 'calculators') return renderCalculators();
+    if (activeTab === 'keybinds') return renderKeybinds();
     if (activeTab === 'abilities') return renderAbilities();
     if (activeTab === 'abilityLog') return renderAbilityLog();
     if (activeTab === 'rooms') return renderRooms();
@@ -1929,14 +1930,7 @@ export function initCompanion(): void {
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
     ];
-    const shortcutRow = (label: string, attribute: string, value: string) => `<label class="gc-shortcut-row"><b>${label}</b><input readonly ${attribute} value="${escapeHtml(value)}" placeholder="Click, then press keys"></label>`;
-    const shortcuts = [
-      shortcutRow('Garden Companion', 'data-interface-key="companionPanel"', config.interfaceKeybinds.companionPanel || ''),
-      shortcutRow('Garden Overview', 'data-overview-key', localStorage.getItem(OVERVIEW_SHORTCUT_KEY) || ''),
-      ...GAME_INTERFACES.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')),
-      ...TEAM_CYCLE_KEYS.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')),
-    ].join('');
-    return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`).join('')}</div><section class="gc-card gc-shortcuts"><h3>Interface shortcuts</h3><p>Open interfaces and step through your saved pet teams from anywhere in a loaded room. Press Escape while recording to clear a keybind.</p><div class="gc-shortcut-grid">${shortcuts}</div></section>`;
+    return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`).join('')}</div><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
   }
 
   const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'dawn', 'amber', 'wet', 'chilled', 'frozen', 'coin', 'egg'];
@@ -2153,12 +2147,29 @@ export function initCompanion(): void {
     return match?.id ?? null;
   }
 
+  // The game colours each ability chip from a switch in its own bundle, which the
+  // build extracts verbatim, so these match the in-game pet card exactly.
+  const ABILITY_COLOURS = __ABILITY_COLOURS__;
+  const ABILITY_COLOUR_FALLBACK = '#969696';
+
+  function abilityChips(abilities: string[]): string {
+    if (!abilities.length) return '';
+    const chips = abilities.map(ability => {
+      const colour = ABILITY_COLOURS[ability] || ABILITY_COLOUR_FALLBACK;
+      const name = ABILITY_DETAILS[ability]?.name || humanize(ability);
+      return `<i class="gc-ability-chip" style="background:${escapeHtml(colour)}" title="${escapeHtml(name)}"></i>`;
+    }).join('');
+    return `<span class="gc-ability-chips" title="${escapeHtml(abilities.map(ability => ABILITY_DETAILS[ability]?.name || humanize(ability)).join(', '))}">${chips}</span>`;
+  }
+
   function teamMemberTile(member: { petId: string; petSpecies: string; name?: string | null }, owned?: Pet): string {
     const sprite = petSprite(owned ?? { id: member.petId, petSpecies: member.petSpecies, hunger: 0 } as Pet);
     const label = member.name || PET_CATALOG[member.petSpecies]?.name || humanize(member.petSpecies);
     const abilities = (owned?.abilities || []).map(ability => ABILITY_DETAILS[ability]?.name || humanize(ability));
     const detail = owned ? abilities.join(' | ') || 'No abilities' : 'Pet not found in your inventory';
-    return `<span class="gc-team-pet${owned ? '' : ' is-missing'}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(humanize(member.petSpecies))}</small></span></span>`;
+    const strength = petMetrics(owned)?.maxStrength;
+    const meta = owned ? `${humanize(member.petSpecies)}${strength ? ` | STR ${strength}` : ''}` : 'Missing pet';
+    return `<span class="gc-team-pet${owned ? '' : ' is-missing'}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
   }
 
   function renderTeams() {
@@ -2167,13 +2178,35 @@ export function initCompanion(): void {
     const owned = new Map(allPets().map(pet => [pet.id, pet]));
     const cards = teams().map(team => {
       const isActive = team.id === active;
-      const tiles = team.members.map(member => teamMemberTile(member, owned.get(member.petId))).join('') || '<span class="gc-team-pet is-missing"><span><b>No pets</b></span></span>';
+      const filled = team.members.map(member => teamMemberTile(member, owned.get(member.petId))).join('');
+      const empty = Array.from({ length: Math.max(0, MAX_TEAM_PETS - team.members.length) },
+        () => '<span class="gc-team-pet is-empty"><i>+</i><span><b>Empty slot</b></span></span>').join('');
       const deleteControls = confirmDeleteTeamId === team.id
         ? `<span class="gc-team-delete-confirm"><b>Delete this team?</b><button data-cancel-delete-team>Cancel</button><button class="gc-danger" data-confirm-delete-team="${escapeHtml(team.id)}">Delete team</button></span>`
         : `<button class="gc-danger" data-delete-team="${escapeHtml(team.id)}">Delete</button>`;
-      return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : ''}<h3>${escapeHtml(team.name)}</h3>${isActive ? '<span class="gc-team-active">Active</span>' : ''}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-row"><button data-edit-team="${escapeHtml(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml(team.id)}" ${isActive ? 'disabled' : ''}>${isActive ? 'Activated' : 'Activate'}</button></div></div><div class="gc-team-pets">${tiles}</div><div class="gc-team-foot"><label class="gc-key"><span>Keybind</span><input readonly data-team-key="${escapeHtml(team.id)}" value="${escapeHtml(config.teamKeybinds[team.id] || '')}" placeholder="Click, then press keys"><small>Press Esc to cancel or clear</small></label>${deleteControls}</div></article>`;
+      const keybind = config.teamKeybinds[team.id];
+      return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : '<span class="gc-team-emblem is-empty">--</span>'}<span class="gc-team-title"><h3>${escapeHtml(team.name)}</h3><small>${team.members.length} pet${team.members.length === 1 ? '' : 's'}${keybind ? ` | key ${escapeHtml(keybind)}` : ''}</small></span>${isActive ? '<span class="gc-team-active">Active</span>' : ''}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-team-actions"><button data-edit-team="${escapeHtml(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml(team.id)}" ${isActive ? 'disabled' : ''}>${isActive ? 'Activated' : 'Activate'}</button></div></div><div class="gc-team-pets">${filled}${empty}</div><div class="gc-team-foot">${deleteControls}</div></article>`;
     }).join('');
-    return `<div class="gc-row"><p class="gc-note">${full ? `The game allows ${MAX_PET_TEAMS} teams. Delete one to create another.` : 'Teams activate through the games own pet teams. Create or edit a team to pick pets in a larger window.'}</p><button class="gc-primary" data-open-team-picker ${full ? 'disabled' : ''}>Create team</button></div><section class="gc-stack">${cards || '<p class="gc-empty">No saved teams yet. Create one to swap your active pets in a single click.</p>'}</section>`;
+    const activeName = teams().find(team => team.id === active)?.name;
+    const summary = teams().length
+      ? `<span class="gc-team-summary-line"><b>${teams().length}</b> of ${MAX_PET_TEAMS} teams${activeName ? ` | running <b>${escapeHtml(activeName)}</b>` : ' | no saved team is active'}</span>`
+      : '<span class="gc-team-summary-line">Save a team to swap your active pets in one click.</span>';
+    return `<div class="gc-team-bar">${summary}<button class="gc-primary" data-open-team-picker ${full ? 'disabled' : ''}>Create team</button></div>${full ? `<p class="gc-note">The game allows ${MAX_PET_TEAMS} teams. Delete one to create another.</p>` : ''}<section class="gc-stack">${cards || '<p class="gc-empty">No saved teams yet. Create one to swap your active pets in a single click.</p>'}</section>`;
+  }
+
+  function renderKeybinds() {
+    const shortcutRow = (label: string, attribute: string, value: string) => `<label class="gc-shortcut-row"><b>${escapeHtml(label)}</b><input readonly ${attribute} value="${escapeHtml(value)}" placeholder="Click, then press keys"></label>`;
+    const interfaces = [
+      shortcutRow('Garden Companion', 'data-interface-key="companionPanel"', config.interfaceKeybinds.companionPanel || ''),
+      shortcutRow('Garden Overview', 'data-overview-key', localStorage.getItem(OVERVIEW_SHORTCUT_KEY) || ''),
+      ...GAME_INTERFACES.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')),
+    ].join('');
+    const teamCycling = TEAM_CYCLE_KEYS.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')).join('');
+    const teamRows = teams().map(team => shortcutRow(team.name, `data-team-key="${escapeHtml(team.id)}"`, config.teamKeybinds[team.id] || '')).join('');
+    return `<p class="gc-note">Click a field, then press the keys you want. Press Escape while recording to clear it. A combination can only belong to one action, so reusing one releases it from the other.</p>
+<section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}</div></section>
+<section class="gc-card gc-shortcuts"><h3>Pet team cycling</h3><p>Step through your saved teams in order, wrapping at both ends.</p><div class="gc-shortcut-grid">${teamCycling}</div></section>
+<section class="gc-card gc-shortcuts"><h3>Pet teams</h3><p>Activate a saved team directly.</p>${teamRows ? `<div class="gc-shortcut-grid">${teamRows}</div>` : '<p class="gc-empty">No saved teams yet.</p>'}</section>`;
   }
 
   function renderPetFoodTab() {
@@ -2467,7 +2500,7 @@ export function initCompanion(): void {
       const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : 'Max STR reached' : 'Strength estimate unavailable';
       const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
       const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString()} XP potion${potionsToMax === 1 ? '' : 's'} to max` : '';
-      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p></div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionText ? `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : ''}</article>`;
+      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionText ? `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : ''}</article>`;
     }).join('');
     const abilityRows = combinedAbilityRows(active);
     return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString()} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
