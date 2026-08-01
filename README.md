@@ -11,6 +11,7 @@ actions. It does not perform unattended gameplay.
 - Active pet dashboard with game sprites, hunger bars, combined ability effects, proc chances, estimated time until maximum strength, and XP potions required to reach it
 - Pet ability history with selectable tracking filters which show the last 100 records per ability
 - Per-ability pet notification and sound silencing
+- Journal tab showing every plant and pet on one screen with the variants you have logged, plants grouped by rarity and pets grouped by the egg they hatch from, with first-found dates, search, and a filter for what is still missing
 - Joinable public room browser for rooms with four or five players, showing each players Discord profile picture
 - Calculators tab with dust, granter, and food estimates driven by your own pets, eggs, and garden data
 - Searchable shop alarms grouped into Seeds, Dawn, Thunder, Snow, Eggs, Tools, and Decor tabs

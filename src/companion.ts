@@ -10,6 +10,7 @@ import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
 import {
   ABILITY_DETAILS,
   GRANTER_CHANCES,
+  LUNAR_POSITION_KEY,
   PASSIVE_REQUIRED_WEATHER,
   PET_CATALOG,
   PROC_RULES,
@@ -36,6 +37,7 @@ import { bindJournalEvents, renderJournal } from './features/journal.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
+import { makeDraggable } from './draggable.js';
 import { bindListSearch } from './list-search.js';
 import { page } from './page.js';
 import { setPanelActions } from './panel-actions.js';
@@ -625,6 +627,7 @@ export function initCompanion(): void {
     lunar.querySelector<HTMLButtonElement>('[data-options]')!.onclick = togglePanel;
     lunar.querySelector<HTMLButtonElement>('#gc-update-health')!.onclick = handleUpdateClick;
     document.body.appendChild(lunar);
+    makeDraggable(lunar, LUNAR_POSITION_KEY);
     page.__gardenCompanionPetSpritesReady = () => {
       const panel = document.getElementById('gc-panel');
       if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood'].includes(activeTab)) renderPanel();
