@@ -196,7 +196,7 @@ export function renderJournal(): string {
   const percent = total ? Math.round(have / total * 100) : 0;
   const tabs = [['plants', 'Plants'], ['pets', 'Pets']]
     .map(([id, label]) => `<button data-journal-tab="${id}" class="${id === journalTab ? 'active' : ''}">${label}</button>`).join('');
-  return `<p class="gc-note">Every variant the game has logged for you, laid out at once. Hover a chip for its name and the date it was first logged. The game records first sightings only, so these are not counts.</p>
+  return `<p class="gc-note">Every variant the game has logged for you, laid out at once. Hover a chip for its name and the date it was found.</p>
 <div class="gc-shop-tabs">${tabs}</div>
 <section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString()}</b> of ${total.toLocaleString()} logged</span><span class="gc-pill">${percent}%</span></section>
 <div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === 'pets' ? 'pets' : 'plants'}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? 'Show every species again' : 'Hide species you have already completed'}">${incompleteOnly ? 'All' : 'Missing'}</button></div>
