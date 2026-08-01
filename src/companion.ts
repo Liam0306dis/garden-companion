@@ -468,10 +468,7 @@ export function initCompanion(): void {
       panel = document.createElement('div');
       panel.id = 'gc-panel';
       document.body.appendChild(panel);
-      // Whatever was blocking a refresh has just stopped: the pointer left, or focus moved away.
-      for (const type of ['pointerleave', 'focusout'] as const) {
-        panel.addEventListener(type, () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
-      }
+      panel.addEventListener('focusout', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     }
     panel.hidden = false;
     renderPanel();
@@ -547,6 +544,8 @@ export function initCompanion(): void {
     const panel = document.getElementById('gc-panel');
     if (!panel) return;
     panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${label}</button>`).join('')}</nav><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></div></div>`;
+    const main = panel.querySelector<HTMLElement>('main')!;
+    main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = closePanel;
     panel.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
       button.onpointerdown = event => {
@@ -556,7 +555,7 @@ export function initCompanion(): void {
       };
       button.onclick = () => selectPanelTab(button.dataset.tab);
     });
-    bindTabEvents(panel.querySelector('main'));
+    bindTabEvents(main);
     lastTabSignature = tabRefreshSignature();
   }
 

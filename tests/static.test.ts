@@ -522,6 +522,7 @@ for (const [file, source] of [
   assert.doesNotMatch(source, /__(?:PLANT|PET|EGG|MUTATION|DECOR)_CATALOG__/, `${file} inlines its own catalog copy instead of sharing constants.ts`);
 }
 assert.match(companionSource, /if \(panelRefreshBlocked\(panel\)\) \{ refreshPending = true; return; \}/, 'a blocked live refresh is dropped instead of retried');
-assert.match(companionSource, /for \(const type of \['pointerleave', 'focusout'\] as const\)/, 'nothing retries a pending refresh when the block clears');
+assert.match(companionSource, /panel\.addEventListener\('focusout'.*refreshPending/, 'a pending refresh is not retried when focus leaves the panel');
+assert.match(companionSource, /main\.addEventListener\('pointerleave'.*refreshPending/, 'a pending refresh is not retried when the pointer leaves the blocked tab content');
 
 console.log('Static checks passed');
