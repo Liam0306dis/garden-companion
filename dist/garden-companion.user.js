@@ -1929,7 +1929,7 @@ ${rows}</div>`;
     const species = Object.keys(PLANT_CATALOG).filter((name) => !PLANT_CATALOG[name]?.component);
     let have = 0;
     const rows = RARITY_ORDER.map((rarity) => {
-      const inRarity = species.filter((name) => (PLANT_CATALOG[name]?.rarity || "Common") === rarity).sort((left, right) => humanize(left).localeCompare(humanize(right)));
+      const inRarity = species.filter((name) => (PLANT_CATALOG[name]?.rarity || "Common") === rarity);
       const markup = inRarity.map((name) => {
         const logged = loggedAt(journal[name]);
         have += PRODUCE_VARIANTS.filter((variant) => logged.has(variant)).length;

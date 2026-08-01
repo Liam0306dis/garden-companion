@@ -125,9 +125,8 @@ function plantRows(): { rows: string; have: number; total: number } {
   let have = 0;
 
   const rows = RARITY_ORDER.map(rarity => {
-    const inRarity = species
-      .filter(name => (PLANT_CATALOG[name]?.rarity || 'Common') === rarity)
-      .sort((left, right) => humanize(left).localeCompare(humanize(right)));
+    // Catalog order inside a rarity, which is the order the game itself lists crops in.
+    const inRarity = species.filter(name => (PLANT_CATALOG[name]?.rarity || 'Common') === rarity);
     const markup = inRarity.map(name => {
       const logged = loggedAt(journal[name]);
       have += PRODUCE_VARIANTS.filter(variant => logged.has(variant)).length;
