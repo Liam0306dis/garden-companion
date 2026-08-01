@@ -45,11 +45,32 @@ function availableShopItems() {
   return output;
 }
 
+const restockClocks = new Map<string, number>();
+
+/**
+ * Each shop counts down to its next restock, so the countdown jumping back up is the cycle turning
+ * over. Stock alone cannot tell us: an item that never sells out looks identical either side of a
+ * restock, and one the player bought from looks like a restock every purchase.
+ */
+function restockedShops(): Set<string> {
+  const restocked = new Set<string>();
+  for (const [shop, data] of Object.entries(state.game?.shops || {})) {
+    const seconds = Number((data as { secondsUntilRestock?: number })?.secondsUntilRestock);
+    if (!Number.isFinite(seconds)) continue;
+    const previous = restockClocks.get(shop);
+    if (previous !== undefined && seconds > previous) restocked.add(shop);
+    restockClocks.set(shop, seconds);
+  }
+  return restocked;
+}
+
 export function processShops(): void {
   if (!feature('shopAlarms')) return;
+  // Read the clocks first: a restock that changes nothing about stock still has to be noticed.
+  const restocked = restockedShops();
   const available = availableShopItems();
   const signature = available.map(row => `${row.shop}:${row.id}:${row.remaining}`).sort().join('|');
-  if (signature === state.lastShopSignature) return;
+  if (signature === state.lastShopSignature && !restocked.size) return;
   const old = new Set(state.lastShopSignature.split('|').map(value => value.split(':').slice(0, 2).join(':')));
   const availableKeys = new Set(available.map(row => `${row.shop}:${row.id}`));
   if (state.initializedShops) for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
@@ -57,7 +78,8 @@ export function processShops(): void {
   state.lastShopSignature = signature;
   for (const row of available) {
     const key = `${row.shop}:${row.id}`;
-    if (config.shopAlerts[key] && (!state.initializedShops || !old.has(key))) showShopAlarm(row);
+    if (!config.shopAlerts[key]) continue;
+    if (!state.initializedShops || !old.has(key) || restocked.has(row.shop)) showShopAlarm(row);
   }
   state.initializedShops = true;
 }

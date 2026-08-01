@@ -15,6 +15,8 @@ export const ABILITY_CATALOG = __ABILITY_CATALOG__;
 export const ABILITY_DETAILS = __ABILITY_DETAILS__;
 export const PET_CATALOG = __PET_CATALOG__;
 export const EGG_CATALOG = __EGG_CATALOG__;
+export const PLANT_CATALOG = __PLANT_CATALOG__;
+export const MUTATION_CATALOG = __MUTATION_CATALOG__;
 export const ABILITY_COLOURS = __ABILITY_COLOURS__;
 export const ABILITY_COLOUR_FALLBACK = '#969696';
 
@@ -52,6 +54,13 @@ export const ABILITY_FILTER_OPTIONS: Array<{ key: string; label: string; abiliti
   ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
   ...UNGROUPED_TRACKED_ABILITIES.map(ability => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] })),
 ];
+
+export const RARITY_ORDER = ['Common', 'Uncommon', 'Rare', 'Legendary', 'Mythic', 'Divine', 'Celestial'];
+
+export function rarityRank(rarity: string | undefined): number {
+  const rank = RARITY_ORDER.indexOf(rarity || 'Common');
+  return rank < 0 ? RARITY_ORDER.length : rank;
+}
 
 export const EXCLUDED_TOOL_ALERTS = new Set(['Shovel', 'FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo']);
 

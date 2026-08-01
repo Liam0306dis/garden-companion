@@ -32,6 +32,7 @@ import {
   setAbilityFilterInteracting,
   setAbilityFilterMenuOpen,
 } from './features/ability-log.js';
+import { bindJournalEvents, renderJournal } from './features/journal.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
@@ -523,7 +524,7 @@ export function initCompanion(): void {
     }, 1000);
   }
 
-  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Silence'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['features', 'Features']];
+  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts'], ['journal', 'Journal'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['features', 'Features']];
 
   function renderPanel() {
     cancelKeybindCapture?.();
@@ -562,6 +563,7 @@ export function initCompanion(): void {
     if (activeTab === 'rooms') return renderRooms();
     if (activeTab === 'shops') return renderShops();
     if (activeTab === 'silence') return renderSilence();
+    if (activeTab === 'journal') return renderJournal();
     return '';
   }
 
@@ -608,6 +610,7 @@ export function initCompanion(): void {
     bindPetFoodEvents(main);
     bindAbilityLogEvents(main);
     bindShopEvents(main);
+    bindJournalEvents(main);
     bindRoomEvents(main);
     bindKeybindEvents(main);
   }

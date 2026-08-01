@@ -96,6 +96,11 @@ export interface PlayerData {
   petTeams?: PetTeam[];
   activityLogs?: ActivityLogEntry[];
   shopPurchases?: Record<string, { purchases?: Record<string, number> }>;
+  /** The game logs the first sighting of each variant, with no counts. */
+  journal?: {
+    produce?: Record<string, { variantsLogged?: Array<{ variant?: string; createdAt?: number }> }>;
+    pets?: Record<string, { variantsLogged?: Array<{ variant?: string; createdAt?: number }>; abilitiesLogged?: Array<{ ability?: string; createdAt?: number }> }>;
+  };
   inventory?: { items?: Pet[]; storages?: InventoryStorage[] };
   garden?: { tileObjects?: Record<string, GardenTile> };
 }
