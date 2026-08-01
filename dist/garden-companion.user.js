@@ -444,7 +444,7 @@
   // src/list-search.ts
   function bindListSearch(input) {
     if (!input) return;
-    const list = input.parentElement?.querySelector(".gc-filter-list") ?? input.closest("section, #gc-team-picker")?.querySelector(".gc-filter-list");
+    const list = input.parentElement?.querySelector(".gc-filter-list") ?? input.closest("section, #gc-team-picker, main")?.querySelector(".gc-filter-list");
     const apply = () => {
       const query = input.value.trim().toLowerCase();
       list?.querySelectorAll("[data-filter-text]").forEach((row) => {

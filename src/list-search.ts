@@ -4,7 +4,10 @@
  */
 export function bindListSearch(input: HTMLInputElement | null): void {
   if (!input) return;
-  const list = input.parentElement?.querySelector('.gc-filter-list') ?? input.closest('section, #gc-team-picker')?.querySelector('.gc-filter-list');
+  // The list is a sibling of the input, of its row, or of an enclosing card, depending on the tab.
+  // `main` is the last resort so a search box wrapped in a row still finds the list below it.
+  const list = input.parentElement?.querySelector('.gc-filter-list')
+    ?? input.closest('section, #gc-team-picker, main')?.querySelector('.gc-filter-list');
   const apply = () => {
     const query = input.value.trim().toLowerCase();
     list?.querySelectorAll<HTMLElement>('[data-filter-text]').forEach(row => { row.hidden = Boolean(query && !row.dataset.filterText?.includes(query)); });

@@ -42,6 +42,7 @@ const companionSource = (await Promise.all([
 const petTeamsSource = await readFile(resolve(root, 'src', 'features', 'pet-teams.ts'), 'utf8');
 const shopAlarmsSource = await readFile(resolve(root, 'src', 'features', 'shop-alarms.ts'), 'utf8');
 const journalSource = await readFile(resolve(root, 'src', 'features', 'journal.ts'), 'utf8');
+const searchSource = await readFile(resolve(root, 'src', 'list-search.ts'), 'utf8');
 const catalogSource = await readFile(resolve(root, 'src', 'game-catalogs.ts'), 'utf8');
 const calculatorsSource = await readFile(resolve(root, 'src', 'features', 'calculators.ts'), 'utf8');
 const abilityLogSource = await readFile(resolve(root, 'src', 'features', 'ability-log.ts'), 'utf8');
@@ -524,5 +525,7 @@ for (const [file, source] of [
 assert.match(companionSource, /if \(panelRefreshBlocked\(panel\)\) \{ refreshPending = true; return; \}/, 'a blocked live refresh is dropped instead of retried');
 assert.match(companionSource, /panel\.addEventListener\('focusout'.*refreshPending/, 'a pending refresh is not retried when focus leaves the panel');
 assert.match(companionSource, /main\.addEventListener\('pointerleave'.*refreshPending/, 'a pending refresh is not retried when the pointer leaves the blocked tab content');
+
+assert.match(searchSource, /input\.closest\('section, #gc-team-picker, main'\)/, 'a search box wrapped in a row cannot find its list');
 
 console.log('Static checks passed');
