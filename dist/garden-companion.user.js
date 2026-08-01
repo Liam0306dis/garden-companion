@@ -3273,7 +3273,7 @@ ${rows}</div>`;
       if (panel.querySelector("[data-ability-filter]")?.open) return true;
       const abilityLog = activeTab === "abilityLog" ? panel.querySelector(".gc-log") : null;
       if (abilityLog && (abilityLog.matches(":hover") || abilityLog.scrollTop > 0)) return true;
-      const scrollable = ["teams", "petFood"].includes(activeTab) ? panel.querySelector("main") : null;
+      const scrollable = ["teams", "petFood", "calculators", "journal"].includes(activeTab) ? panel.querySelector("main") : null;
       return Boolean(scrollable?.matches(":hover"));
     }
     const LIVE_REFRESH_TABS = ["abilities", "abilityLog", "petFood", "teams", "calculators", "journal"];

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsx scripts/build.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx tests/static.test.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

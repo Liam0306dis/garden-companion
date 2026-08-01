@@ -492,7 +492,7 @@ export function initCompanion(): void {
     if (panel.querySelector<HTMLDetailsElement>('[data-ability-filter]')?.open) return true;
     const abilityLog = activeTab === 'abilityLog' ? panel.querySelector<HTMLElement>('.gc-log') : null;
     if (abilityLog && (abilityLog.matches(':hover') || abilityLog.scrollTop > 0)) return true;
-    const scrollable = ['teams', 'petFood'].includes(activeTab) ? panel.querySelector<HTMLElement>('main') : null;
+    const scrollable = ['teams', 'petFood', 'calculators', 'journal'].includes(activeTab) ? panel.querySelector<HTMLElement>('main') : null;
     return Boolean(scrollable?.matches(':hover'));
   }
 

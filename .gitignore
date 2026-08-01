@@ -7,7 +7,9 @@ node_modules/
 !.env.example
 
 # Test and compiler output
-tests/
+# The static checks are tracked; the scratch screenshots beside them are not.
+tests/*
+!tests/static.test.ts
 coverage/
 *.tsbuildinfo
 *.log
