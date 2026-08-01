@@ -3,7 +3,10 @@ import { abilityChips } from '../ability-chips.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, MAX_PET_TEAMS, MAX_TEAM_PETS, PET_CATALOG } from '../constants.js';
 import { send } from '../game-connection.js';
+import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
+import { panelActions } from '../panel-actions.js';
+import { activePets, allPets, petMetrics, petSprite } from '../pets.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize } from '../utils.js';
@@ -13,23 +16,6 @@ import { escapeHtml, humanize } from '../utils.js';
  * the game, so nothing here is authoritative: a request is sent and the panel catches up when the
  * server reports the change back.
  */
-export interface PetTeamServices {
-  allPets(): Pet[];
-  activePets(): Pet[];
-  petSprite(pet: Pet): string;
-  petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null;
-  renderPanel(): void;
-  renderPanelPreservingScroll(): void;
-  bindListSearch(input: HTMLInputElement | null): void;
-  isTeamsTabActive(): boolean;
-}
-
-let services: PetTeamServices;
-
-export function initPetTeams(petTeamServices: PetTeamServices): void {
-  services = petTeamServices;
-}
-
 export function teams() { return state.slot?.data?.petTeams || []; }
 
 const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'dawn', 'amber', 'wet', 'chilled', 'frozen', 'coin', 'egg'];
@@ -119,7 +105,7 @@ function emblemChip(emblem: PetTeamEmblem): string {
 
 function selectedTeamSpecies(): string[] {
   const chosen = teamPickerSelection ?? new Set<string>();
-  const species = services.allPets().filter(pet => chosen.has(pet.id)).map(pet => pet.petSpecies);
+  const species = allPets().filter(pet => chosen.has(pet.id)).map(pet => pet.petSpecies);
   return [...new Set(species)];
 }
 
@@ -213,7 +199,7 @@ function bindTeamPickerEvents(picker: HTMLElement): void {
     updateTeamPickerCount(picker);
     refreshEmblemUi(picker);
   });
-  services.bindListSearch(picker.querySelector('[data-team-search]'));
+  bindListSearch(picker.querySelector('[data-team-search]'));
   picker.querySelectorAll<HTMLButtonElement>('[data-emblem-kind]').forEach(button => button.onclick = () => {
     teamPickerEmblemKind = button.dataset.emblemKind as typeof teamPickerEmblemKind;
     refreshEmblemUi(picker);
@@ -235,23 +221,23 @@ function bindTeamPickerEvents(picker: HTMLElement): void {
       pendingTeamSave = { teamId, name, petIds, emblem: teamId ? null : emblem };
       toast(teamId ? 'Team update requested.' : 'Team save requested.', 'success');
       closeTeamPicker();
-      services.renderPanel();
+      panelActions.renderPanel();
     } catch (error) { toast((error as Error).message, 'error'); }
   };
 }
 
 function petPickerRows(selectedIds: Set<string>): string {
-  return services.allPets().map(pet => {
+  return allPets().map(pet => {
     const abilityText = (pet.abilities || []).flatMap(ability => [ability, ABILITY_DETAILS[ability]?.name || humanize(ability)]).join(' ');
     const filterText = `${pet.name || ''} ${pet.petSpecies} ${PET_CATALOG[pet.petSpecies]?.name || ''} ${pet.location} ${abilityText}`.toLowerCase();
-    const metrics = services.petMetrics(pet);
+    const metrics = petMetrics(pet);
     const strength = metrics ? `<b class="gc-pet-str">${metrics.strength}<i>/${metrics.maxStrength}</i></b>` : '';
-    return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? 'checked' : ''}>${services.petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small>${(pet.abilities || []).length ? abilityChips(pet.abilities || []) : '<span class="gc-team-abilities">No abilities</span>'}</span>${strength}</label>`;
+    return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small>${(pet.abilities || []).length ? abilityChips(pet.abilities || []) : '<span class="gc-team-abilities">No abilities</span>'}</span>${strength}</label>`;
   }).join('');
 }
 
 export function activeTeamId(): string | null {
-  const activeIds = new Set(services.activePets().map(pet => pet.id));
+  const activeIds = new Set(activePets().map(pet => pet.id));
   if (!activeIds.size) return null;
   const match = teams().find(team =>
     team.members.length === activeIds.size && team.members.every(member => activeIds.has(member.petId)));
@@ -259,11 +245,11 @@ export function activeTeamId(): string | null {
 }
 
 function teamMemberTile(member: { petId: string; petSpecies: string; name?: string | null }, owned?: Pet): string {
-  const sprite = services.petSprite(owned ?? { id: member.petId, petSpecies: member.petSpecies, hunger: 0 } as Pet);
+  const sprite = petSprite(owned ?? { id: member.petId, petSpecies: member.petSpecies, hunger: 0 } as Pet);
   const label = member.name || PET_CATALOG[member.petSpecies]?.name || humanize(member.petSpecies);
   const abilities = (owned?.abilities || []).map(ability => ABILITY_DETAILS[ability]?.name || humanize(ability));
   const detail = owned ? abilities.join(' | ') || 'No abilities' : 'Pet not found in your inventory';
-  const strength = services.petMetrics(owned)?.maxStrength;
+  const strength = petMetrics(owned)?.maxStrength;
   const meta = owned ? `${humanize(member.petSpecies)}${strength ? ` | STR ${strength}` : ''}` : 'Missing pet';
   return `<span class="gc-team-pet${owned ? '' : ' is-missing'}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
 }
@@ -271,7 +257,7 @@ function teamMemberTile(member: { petId: string; petSpecies: string; name?: stri
 export function renderTeams(): string {
   const full = teams().length >= MAX_PET_TEAMS;
   const active = activeTeamId();
-  const owned = new Map(services.allPets().map(pet => [pet.id, pet]));
+  const owned = new Map(allPets().map(pet => [pet.id, pet]));
   const cards = teams().map(team => {
     const isActive = team.id === active;
     const filled = team.members.map(member => teamMemberTile(member, owned.get(member.petId))).join('');
@@ -304,7 +290,7 @@ export function requestTeamDelete(teamId: string): void {
 
 export function askDeleteConfirmation(teamId: string | null): void {
   confirmDeleteTeamId = teamId;
-  services.renderPanelPreservingScroll();
+  panelActions.renderPanelPreservingScroll();
 }
 
 /** The save is only confirmed once the server reports a team matching what we asked for. */
@@ -320,7 +306,7 @@ export function refreshCompletedTeamSave(): void {
   if (expected.emblem && emblemKey(expected.emblem) !== emblemKey(saved.emblem)) setPetTeamEmblem(saved.id, expected.emblem);
   pendingTeamSave = null;
   const panel = document.getElementById('gc-panel');
-  if (panel && !panel.hidden && services.isTeamsTabActive()) services.renderPanel();
+  if (panel && !panel.hidden && panelActions.activeTab() === 'teams') panelActions.renderPanel();
 }
 
 export function refreshCompletedTeamDelete(): void {
@@ -328,17 +314,17 @@ export function refreshCompletedTeamDelete(): void {
   const deletedTeamId = pendingTeamDeleteId;
   pendingTeamDeleteId = null;
   const panel = document.getElementById('gc-panel');
-  if (!panel || panel.hidden || !services.isTeamsTabActive()) return;
+  if (!panel || panel.hidden || panelActions.activeTab() !== 'teams') return;
   const cards = [...panel.querySelectorAll<HTMLElement>('[data-team-card]')];
   const deletedCard = cards.find(card => card.dataset.teamCard === deletedTeamId);
   if (deletedCard && cards.length > 1) deletedCard.remove();
-  else services.renderPanelPreservingScroll();
+  else panelActions.renderPanelPreservingScroll();
 }
 
 /** Activating a team only changes which card is marked, so the tab is patched instead of rebuilt. */
 export function refreshTeamActiveMarkers(): void {
   const panel = document.getElementById('gc-panel');
-  if (!panel || panel.hidden || !services.isTeamsTabActive()) return;
+  if (!panel || panel.hidden || panelActions.activeTab() !== 'teams') return;
   const active = activeTeamId();
   panel.querySelectorAll<HTMLElement>('[data-team-card]').forEach(card => {
     const isActive = card.dataset.teamCard === active;
@@ -356,5 +342,27 @@ export function refreshTeamActiveMarkers(): void {
       badge.textContent = 'Active';
       head.insertBefore(badge, head.querySelector('.gc-team-size'));
     } else if (!isActive && pill) pill.remove();
+  });
+}
+
+export function bindPetTeamEvents(main: HTMLElement): void {
+  main.querySelector('[data-open-team-picker]')?.addEventListener('click', () => openTeamPicker(null));
+  main.querySelectorAll<HTMLButtonElement>('[data-edit-team]').forEach(button => button.onclick = () => openTeamPicker(button.dataset.editTeam));
+  main.querySelectorAll<HTMLButtonElement>('[data-apply-team]').forEach(button => button.onclick = () => {
+    send({ type: 'ApplyPetTeam', teamId: button.dataset.applyTeam });
+    toast('Team activation requested.', 'success');
+    button.disabled = true;
+    button.textContent = 'Activating...';
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-delete-team]').forEach(button => button.onclick = () => askDeleteConfirmation(button.dataset.deleteTeam ?? null));
+  main.querySelector('[data-cancel-delete-team]')?.addEventListener('click', () => askDeleteConfirmation(null));
+  main.querySelector('[data-confirm-delete-team]')?.addEventListener('click', event => {
+    const button = event.currentTarget as HTMLButtonElement;
+    const teamId = button.dataset.confirmDeleteTeam;
+    if (!teamId) return;
+    button.disabled = true;
+    button.textContent = 'Deleting...';
+    requestTeamDelete(teamId);
+    toast('Team deletion requested.', 'success');
   });
 }

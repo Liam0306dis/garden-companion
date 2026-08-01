@@ -1,9 +1,11 @@
 import type { ShopItem } from '../types.js';
 import { armAlarmAudio, showAlarmBanner, stopAlarm, updateAlarmDetail } from '../alarms.js';
-import { config, feature } from '../config.js';
+import { config, feature, saveConfig } from '../config.js';
 import { EXCLUDED_TOOL_ALERTS, ITEM_KEYS, SEASONAL_SHOP_ITEMS, SHOP_NAMES, SHOP_TABS } from '../constants.js';
 import { sendQuinoaCommand } from '../game-connection.js';
+import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
+import { panelActions } from '../panel-actions.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize } from '../utils.js';
@@ -119,4 +121,14 @@ export function renderShops(): string {
   });
   const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? 'active' : ''}">${label}</button>`).join('');
   return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join('') || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;
+}
+
+export function bindShopEvents(main: HTMLElement): void {
+  main.querySelectorAll('[data-shop-alert]').forEach(element => (element as HTMLInputElement).onchange = () => {
+    const input = element as HTMLInputElement;
+    toggleShopAlert(input.dataset.shopAlert!, input.checked);
+    saveConfig();
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-shop-tab]').forEach(button => button.onclick = () => { setShopAlarmTab(button.dataset.shopTab || ''); panelActions.renderPanel(); });
+  bindListSearch(main.querySelector('[data-shop-search]'));
 }

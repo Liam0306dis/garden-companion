@@ -1,29 +1,14 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, PET_CATALOG } from '../constants.js';
+import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
+import { panelActions } from '../panel-actions.js';
+import { activePets, allPets, petDiet, petMetrics, petSprite, produceSprite } from '../pets.js';
 import { state } from '../state.js';
 import { escapeHtml, formatDuration, humanize } from '../utils.js';
 
-/**
- * The Dust, Food and Granter calculators. Pet lookups that need the panel's sprite cache and
- * strength maths are passed in once at start-up rather than reached for through the panel, so this
- * file only owns the calculators themselves.
- */
-export interface CalculatorPetHelpers {
-  allPets(): Pet[];
-  activePets(): Pet[];
-  petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null;
-  petSprite(pet: Pet): string;
-  petDiet(species: string): string[];
-  produceSprite(species: string): string;
-}
-
-let petHelpers: CalculatorPetHelpers;
-
-export function initCalculators(helpers: CalculatorPetHelpers): void {
-  petHelpers = helpers;
-}
+/** The Dust, Food and Granter calculators. */
 
 const DUST_RARITY: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
 const DUST_HATCH_MUTATION = (1 - .01 - .001) + .01 * 25 + .001 * 50;
@@ -131,7 +116,7 @@ export function setFoodSlot(index: number, slot: { species: string; food: string
 }
 
 export function updateDustTotal(main: HTMLElement): void {
-  const total = petHelpers.allPets().filter(pet => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
+  const total = allPets().filter(pet => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
   const label = main.querySelector<HTMLElement>('[data-dust-total]');
   if (label) label.textContent = `${total.toLocaleString()} dust`;
 }
@@ -151,13 +136,13 @@ function renderDustCalculator(): string {
     return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString()}</td><td>${Math.round(range.average).toLocaleString()}</td><td><b>${Math.round(range.average * quantity).toLocaleString()}</b><small>${Math.round(range.low * quantity).toLocaleString()} to ${Math.round(range.high * quantity).toLocaleString()}</small></td></tr>`;
   }).join('');
   const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
-  const pets = petHelpers.allPets().map(pet => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
+  const pets = allPets().map(pet => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
   const selectedTotal = pets.filter(row => dustSelection.has(row.pet.id)).reduce((sum, row) => sum + row.dust, 0);
   const petRows = pets.map(({ pet, dust }) => {
     const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
-    const metrics = petHelpers.petMetrics(pet);
+    const metrics = petMetrics(pet);
     const mutations = (pet.mutations || []).filter(mutation => mutation === 'Gold' || mutation === 'Rainbow');
-    return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? 'checked' : ''}>${petHelpers.petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(' '))}` : ''}${metrics ? ` | max STR ${metrics.maxStrength}` : ''}</small></span><b class="gc-dust-value">${dust.toLocaleString()}</b></label>`;
+    return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(' '))}` : ''}${metrics ? ` | max STR ${metrics.maxStrength}` : ''}</small></span><b class="gc-dust-value">${dust.toLocaleString()}</b></label>`;
   }).join('');
   return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
 <section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
@@ -172,15 +157,15 @@ function granterOptions(): Array<{ id: string; label: string; probability: numbe
 }
 
 function granterPets(ability: string): Pet[] {
-  return petHelpers.allPets()
+  return allPets()
     .filter(pet => (pet.abilities || []).includes(ability))
-    .sort((left, right) => (petHelpers.petMetrics(right)?.maxStrength ?? 0) - (petHelpers.petMetrics(left)?.maxStrength ?? 0))
+    .sort((left, right) => (petMetrics(right)?.maxStrength ?? 0) - (petMetrics(left)?.maxStrength ?? 0))
     .slice(0, 3);
 }
 
 function granterStrengthFor(index: number, pets: Pet[]): number {
   const pet = pets[index] as Pet | undefined;
-  return granterStrengths[index] ?? (pet ? petHelpers.petMetrics(pet)?.maxStrength : undefined) ?? 100;
+  return granterStrengths[index] ?? (pet ? petMetrics(pet)?.maxStrength : undefined) ?? 100;
 }
 
 function granterRows(): string {
@@ -190,7 +175,7 @@ function granterRows(): string {
     const name = pet ? pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies) : `Pet ${index + 1}`;
     const strength = granterStrengthFor(index, pets);
     const source = pet ? `${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location || '')}` : 'Not owned - set a Strength to plan ahead';
-    const sprite = pet ? petHelpers.petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
+    const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
     return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div></div>`;
   }).join('');
 }
@@ -260,9 +245,9 @@ export function bindGranterRows(main: HTMLElement): void {
 export function foodSlotValue(index: number): { species: string; food: string } {
   const saved = foodSlots[index];
   if (saved) return saved;
-  const pet = petHelpers.activePets()[index];
+  const pet = activePets()[index];
   const species = pet?.petSpecies || Object.keys(PET_CATALOG)[index] || 'Worm';
-  const diet = petHelpers.petDiet(species);
+  const diet = petDiet(species);
   const choice = config.petFoodChoices?.[species] || '';
   return { species, food: diet.includes(choice) ? choice : diet[0] || '' };
 }
@@ -281,7 +266,7 @@ function renderFoodCalculator(): string {
   const rows = [...demand].sort((left, right) => right[1] - left[1]).map(([crop, need]) => {
     const plant = __PLANT_CATALOG__[crop];
     const slotCount = Math.max(1, Number(plant?.slots || 1));
-    const sprite = petHelpers.produceSprite(crop);
+    const sprite = produceSprite(crop);
     let cover = 'Timing unknown';
     let output = '';
     if (plant?.regrows && CROP_REGROW[crop]) {
@@ -299,15 +284,46 @@ function renderFoodCalculator(): string {
     }
     return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(humanize(crop))}</td><td><b>${need.toFixed(1)}</b>/hr</td><td>${escapeHtml(cover)}<small>${escapeHtml(output)}</small></td></tr>`;
   }).join('');
-  const petOptions = Object.keys(PET_CATALOG).filter(species => petHelpers.petDiet(species).length)
+  const petOptions = Object.keys(PET_CATALOG).filter(species => petDiet(species).length)
     .sort((left, right) => (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));
   const slotCards = slots.map((slot, index) => {
     const species = petOptions.map(name => `<option value="${escapeHtml(name)}" ${name === slot.species ? 'selected' : ''}>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</option>`).join('');
-    const foods = petHelpers.petDiet(slot.species).map(crop => `<option value="${escapeHtml(crop)}" ${crop === slot.food ? 'selected' : ''}>${escapeHtml(humanize(crop))}</option>`).join('');
+    const foods = petDiet(slot.species).map(crop => `<option value="${escapeHtml(crop)}" ${crop === slot.food ? 'selected' : ''}>${escapeHtml(humanize(crop))}</option>`).join('');
     const minutes = HUNGER_MINUTES[slot.species];
     return `<div class="gc-food-slot"><select data-food-pet="${index}">${species}</select><select data-food-crop="${index}">${foods}</select><small>${minutes ? `Full hunger lasts ${minutes} min` : 'Hunger timing unknown'}</small></div>`;
   }).join('');
   return `<p class="gc-note">Pick three pets and what you feed them to see the produce needed each hour, and how many plants or seeds cover it. Crop values use base sell prices, so mutated fruit feeds for longer than shown.</p>
 <section class="gc-card"><h3>Team</h3><div class="gc-food-slots">${slotCards}</div></section>
 <section class="gc-card"><h3>Produce needed each hour</h3>${rows ? `<table class="gc-calc-table"><thead><tr><th>Produce</th><th>Need</th><th>Covered by</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="gc-empty">Choose pets with a food to see the demand.</p>'}</section>`;
+}
+
+export function bindCalculatorEvents(main: HTMLElement): void {
+  main.querySelectorAll<HTMLButtonElement>('[data-calc-tab]').forEach(button => button.onclick = () => { setCalculatorTab(button.dataset.calcTab || ''); panelActions.renderPanel(); });
+  main.querySelectorAll<HTMLInputElement>('[data-dust-pet]').forEach(input => input.onchange = () => {
+    toggleDustPet(input.dataset.dustPet!, input.checked);
+    updateDustTotal(main);
+  });
+  main.querySelector('[data-dust-all]')?.addEventListener('click', () => {
+    setDustSelection(allPets().map(pet => pet.id));
+    panelActions.renderPanelPreservingScroll();
+  });
+  main.querySelector('[data-dust-none]')?.addEventListener('click', () => { setDustSelection([]); panelActions.renderPanelPreservingScroll(); });
+  bindListSearch(main.querySelector('[data-dust-search]'));
+  main.querySelector('[data-granter-ability]')?.addEventListener('change', event => {
+    selectGranterAbility((event.target as HTMLSelectElement).value);
+    updateGranterSection(main);
+  });
+  if (main.querySelector('.gc-granter-list')) bindGranterRows(main);
+  main.querySelectorAll<HTMLSelectElement>('[data-food-pet]').forEach(select => select.onchange = () => {
+    const species = select.value;
+    const diet = petDiet(species);
+    const choice = config.petFoodChoices?.[species] || '';
+    setFoodSlot(Number(select.dataset.foodPet), { species, food: diet.includes(choice) ? choice : diet[0] || '' });
+    panelActions.renderPanelPreservingScroll();
+  });
+  main.querySelectorAll<HTMLSelectElement>('[data-food-crop]').forEach(select => select.onchange = () => {
+    const index = Number(select.dataset.foodCrop);
+    setFoodSlot(index, { species: foodSlotValue(index).species, food: select.value });
+    panelActions.renderPanelPreservingScroll();
+  });
 }
