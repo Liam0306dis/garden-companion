@@ -521,4 +521,7 @@ for (const [file, source] of [
 ] as const) {
   assert.doesNotMatch(source, /__(?:PLANT|PET|EGG|MUTATION|DECOR)_CATALOG__/, `${file} inlines its own catalog copy instead of sharing constants.ts`);
 }
+assert.match(companionSource, /if \(panelRefreshBlocked\(panel\)\) \{ refreshPending = true; return; \}/, 'a blocked live refresh is dropped instead of retried');
+assert.match(companionSource, /for \(const type of \['pointerleave', 'focusout'\] as const\)/, 'nothing retries a pending refresh when the block clears');
+
 console.log('Static checks passed');

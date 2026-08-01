@@ -468,6 +468,10 @@ export function initCompanion(): void {
       panel = document.createElement('div');
       panel.id = 'gc-panel';
       document.body.appendChild(panel);
+      // Whatever was blocking a refresh has just stopped: the pointer left, or focus moved away.
+      for (const type of ['pointerleave', 'focusout'] as const) {
+        panel.addEventListener(type, () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
+      }
     }
     panel.hidden = false;
     renderPanel();
@@ -498,6 +502,7 @@ export function initCompanion(): void {
 
   const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal'];
   let lastTabSignature = '';
+  let refreshPending = false;
 
   function tabRefreshSignature(): string {
     if (activeTab === 'teams') return teamsSignature();
@@ -513,13 +518,18 @@ export function initCompanion(): void {
 
   function refreshOpenPanel() {
     const panel = document.getElementById('gc-panel');
-    if (!panel || panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab) || panelRefreshBlocked(panel)) return;
+    if (!panel || panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
+    // A blocked refresh is remembered rather than dropped, otherwise a change made while the
+    // pointer rests on the tab stays invisible until the next game patch happens to arrive.
+    if (panelRefreshBlocked(panel)) { refreshPending = true; return; }
+    refreshPending = false;
     if (panelRefreshTimer) return;
     const signature = tabRefreshSignature();
     if (signature && signature === lastTabSignature) return;
     panelRefreshTimer = setTimeout(() => {
       panelRefreshTimer = null;
-      if (panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab) || panelRefreshBlocked(panel)) return;
+      if (panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
+      if (panelRefreshBlocked(panel)) { refreshPending = true; return; }
       const current = tabRefreshSignature();
       if (current && current === lastTabSignature) return;
       const main = panel.querySelector('main');

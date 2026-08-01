@@ -3250,6 +3250,11 @@ ${rows}</div>`;
         panel = document.createElement("div");
         panel.id = "gc-panel";
         document.body.appendChild(panel);
+        for (const type of ["pointerleave", "focusout"]) {
+          panel.addEventListener(type, () => {
+            if (refreshPending) setTimeout(refreshOpenPanel, 0);
+          });
+        }
       }
       panel.hidden = false;
       renderPanel();
@@ -3278,6 +3283,7 @@ ${rows}</div>`;
     }
     const LIVE_REFRESH_TABS = ["abilities", "abilityLog", "petFood", "teams", "calculators", "journal"];
     let lastTabSignature = "";
+    let refreshPending = false;
     function tabRefreshSignature() {
       if (activeTab === "teams") return teamsSignature();
       if (activeTab === "calculators") return calculatorsSignature();
@@ -3291,13 +3297,22 @@ ${rows}</div>`;
     }
     function refreshOpenPanel() {
       const panel = document.getElementById("gc-panel");
-      if (!panel || panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab) || panelRefreshBlocked(panel)) return;
+      if (!panel || panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
+      if (panelRefreshBlocked(panel)) {
+        refreshPending = true;
+        return;
+      }
+      refreshPending = false;
       if (panelRefreshTimer) return;
       const signature = tabRefreshSignature();
       if (signature && signature === lastTabSignature) return;
       panelRefreshTimer = setTimeout(() => {
         panelRefreshTimer = null;
-        if (panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab) || panelRefreshBlocked(panel)) return;
+        if (panel.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
+        if (panelRefreshBlocked(panel)) {
+          refreshPending = true;
+          return;
+        }
         const current = tabRefreshSignature();
         if (current && current === lastTabSignature) return;
         const main = panel.querySelector("main");
