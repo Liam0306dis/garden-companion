@@ -94,6 +94,7 @@
   var EGG_CATALOG = define_EGG_CATALOG_default;
   var PLANT_CATALOG = define_PLANT_CATALOG_default;
   var MUTATION_CATALOG = define_MUTATION_CATALOG_default;
+  var DECOR_CATALOG = define_DECOR_CATALOG_default;
   var ABILITY_COLOURS = define_ABILITY_COLOURS_default;
   var ABILITY_COLOUR_FALLBACK = "#969696";
   var ABILITY_GROUPS = [
@@ -226,6 +227,159 @@
   var MAX_TEAM_PETS = 3;
   var XP_PER_POTION = 2e4;
 
+  // src/page.ts
+  var page = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+
+  // src/game-catalogs.ts
+  function isObject(value) {
+    return Boolean(value) && typeof value === "object";
+  }
+  function looksLike(keys, sample, members, probe) {
+    if (members.filter((member) => keys.includes(member)).length < Math.min(3, members.length)) return false;
+    if (!isObject(sample)) return false;
+    try {
+      return probe(sample);
+    } catch {
+      return false;
+    }
+  }
+  function plantProbe(row) {
+    return isObject(row.crop) && typeof row.crop.baseSellPrice === "number";
+  }
+  function petProbe(row) {
+    return "coinsToFullyReplenishHunger" in row && Array.isArray(row.diet);
+  }
+  function eggProbe(row) {
+    return isObject(row.faunaSpawnWeights);
+  }
+  function mutationProbe(row) {
+    return typeof row.coinMultiplier === "number" && typeof row.group === "string";
+  }
+  function firstMember(keys, members) {
+    return members.find((member) => keys.includes(member)) || "";
+  }
+  function addMissing(baked, live, convert) {
+    const added = [];
+    for (const [id, row] of Object.entries(live)) {
+      if (baked[id] || !isObject(row)) continue;
+      let entry = null;
+      try {
+        entry = convert(row);
+      } catch {
+        entry = null;
+      }
+      if (!entry) continue;
+      baked[id] = entry;
+      added.push(id);
+    }
+    return added;
+  }
+  function rarityOf(value) {
+    return typeof value === "string" && value ? value : "Common";
+  }
+  function absorb(candidate, keys) {
+    if (looksLike(keys, candidate[firstMember(keys, PLANT_MEMBERS)], PLANT_MEMBERS, plantProbe)) {
+      const added = addMissing(PLANT_CATALOG, candidate, (row) => {
+        const crop = row.crop;
+        const plant = isObject(row.plant) ? row.plant : {};
+        const seed = isObject(row.seed) ? row.seed : {};
+        const offsets = Array.isArray(plant.slotOffsets) ? plant.slotOffsets.length : 0;
+        return {
+          crop: { baseSellPrice: Number(crop.baseSellPrice) || 0, maxScale: Number(crop.maxScale) || 1 },
+          slots: Math.max(1, Number(plant.slotCapacity) || offsets || 1),
+          regrows: String(plant.harvestType || "").toLowerCase().includes("multiple"),
+          rarity: rarityOf(seed.rarity)
+        };
+      });
+      report("plants", added);
+      return;
+    }
+    if (looksLike(keys, candidate[firstMember(keys, PET_MEMBERS)], PET_MEMBERS, petProbe)) {
+      report("pets", addMissing(PET_CATALOG, candidate, (row) => ({
+        name: String(row.name || ""),
+        maxHunger: Number(row.coinsToFullyReplenishHunger) || 0,
+        maxScale: Number(row.maxScale) || 1,
+        hoursToMature: Number(row.hoursToMature) || 0,
+        diet: row.diet.filter((item) => typeof item === "string"),
+        rarity: rarityOf(row.rarity)
+      })));
+      return;
+    }
+    if (looksLike(keys, candidate[firstMember(keys, EGG_MEMBERS)], EGG_MEMBERS, eggProbe)) {
+      report("eggs", addMissing(EGG_CATALOG, candidate, (row) => ({
+        name: String(row.name || ""),
+        spawnWeights: { ...row.faunaSpawnWeights }
+      })));
+      return;
+    }
+    if (looksLike(keys, candidate[firstMember(keys, MUTATION_MEMBERS)], MUTATION_MEMBERS, mutationProbe)) {
+      report("mutations", addMissing(MUTATION_CATALOG, candidate, (row) => ({
+        name: String(row.name || ""),
+        group: String(row.group || ""),
+        coinMultiplier: Number(row.coinMultiplier) || 1,
+        sprite: String(row.sprite || row.name || "")
+      })));
+    }
+  }
+  var PLANT_MEMBERS = ["Carrot", "Cabbage", "Strawberry", "Aloe", "Beet", "Clover"];
+  var PET_MEMBERS = ["Worm", "Snail", "Bee", "Chicken", "Bunny", "Turkey", "Goat"];
+  var EGG_MEMBERS = ["CommonEgg", "UncommonEgg", "RareEgg", "LegendaryEgg"];
+  var MUTATION_MEMBERS = ["Gold", "Rainbow", "Wet", "Chilled", "Frozen"];
+  function report(kind, added) {
+    if (added.length) console.info(`[Garden Companion] Added ${added.length} ${kind} from the running game: ${added.join(", ")}`);
+  }
+  var watching = false;
+  var scanning = false;
+  function initCatalogCapture() {
+    const objectConstructor = page.Object || Object;
+    const target = objectConstructor;
+    if (target.__gardenCompanionCatalogHook) return;
+    const previous = objectConstructor.keys;
+    const seen = /* @__PURE__ */ new WeakSet();
+    function scan(value, depth) {
+      if (!isObject(value) || seen.has(value)) return;
+      seen.add(value);
+      let keys;
+      try {
+        keys = previous(value);
+      } catch {
+        return;
+      }
+      if (!keys.length) return;
+      absorb(value, keys);
+      if (depth >= 3) return;
+      for (const key of keys) {
+        let child;
+        try {
+          child = value[key];
+        } catch {
+          continue;
+        }
+        if (isObject(child)) scan(child, depth + 1);
+      }
+    }
+    const hook = function(value) {
+      if (watching && !scanning) {
+        scanning = true;
+        try {
+          scan(value, 0);
+        } catch {
+        } finally {
+          scanning = false;
+        }
+      }
+      return previous.call(this, value);
+    };
+    target.__gardenCompanionCatalogHook = true;
+    watching = true;
+    objectConstructor.keys = hook;
+    page.__gardenCompanionPlantPrice = (species) => PLANT_CATALOG[species ?? ""]?.crop?.baseSellPrice;
+    setTimeout(() => {
+      watching = false;
+      if (objectConstructor.keys === hook) objectConstructor.keys = previous;
+    }, 3e4);
+  }
+
   // src/config.ts
   var ALWAYS_ENABLED = /* @__PURE__ */ new Set(["overview", "petTeams", "abilities", "rooms", "shopAlarms", "interfaceShortcuts", "abilitySilencer", "lunarTimer"]);
   var DEFAULTS = {
@@ -299,9 +453,6 @@
     input.oninput = apply;
     apply();
   }
-
-  // src/page.ts
-  var page = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
 
   // src/panel-actions.ts
   var notReady = () => {
@@ -510,9 +661,12 @@
   // src/features/calculators.ts
   var DUST_RARITY = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
   var DUST_HATCH_MUTATION = 1 - 0.01 - 1e-3 + 0.01 * 25 + 1e-3 * 50;
-  var HATCH_WEIGHT = /* @__PURE__ */ new Map();
-  for (const egg of Object.values(EGG_CATALOG)) {
-    for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!HATCH_WEIGHT.has(species)) HATCH_WEIGHT.set(species, weight);
+  function hatchWeights() {
+    const weights = /* @__PURE__ */ new Map();
+    for (const egg of Object.values(EGG_CATALOG)) {
+      for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!weights.has(species)) weights.set(species, weight);
+    }
+    return weights;
   }
   var HUNGER_MINUTES = {
     Worm: 30,
@@ -592,7 +746,7 @@
   };
   function dustMultiplier(species, mutations = []) {
     const rarity = DUST_RARITY[PET_CATALOG[species]?.rarity || ""] || 1;
-    const hatch = HATCH_WEIGHT.get(species) ?? 100;
+    const hatch = hatchWeights().get(species) ?? 100;
     const hatchMultiplier = hatch >= 50 ? 1 : hatch > 10 ? 2 : 5;
     const colour = mutations.includes("Rainbow") ? 50 : mutations.includes("Gold") ? 25 : 1;
     return 100 * rarity * hatchMultiplier * colour;
@@ -782,7 +936,7 @@
       demand.set(slot.food, (demand.get(slot.food) || 0) + perHour);
     }
     const rows = [...demand].sort((left, right) => right[1] - left[1]).map(([crop, need]) => {
-      const plant = define_PLANT_CATALOG_default[crop];
+      const plant = PLANT_CATALOG[crop];
       const slotCount = Math.max(1, Number(plant?.slots || 1));
       const sprite = produceSprite(crop);
       let cover = "Timing unknown";
@@ -1643,7 +1797,7 @@
   }
 
   // src/features/journal.ts
-  var PRODUCE_VARIANTS = [
+  var KNOWN_PRODUCE_VARIANTS = [
     "Normal",
     "Wet",
     "Chilled",
@@ -1659,6 +1813,12 @@
     "Max Weight"
   ];
   var PET_VARIANTS = ["Normal", "Gold", "Rainbow", "Max Weight"];
+  function produceVariants() {
+    const known = new Set(KNOWN_PRODUCE_VARIANTS);
+    const extra = Object.keys(MUTATION_CATALOG).filter((id) => !known.has(id));
+    if (!extra.length) return KNOWN_PRODUCE_VARIANTS;
+    return [...KNOWN_PRODUCE_VARIANTS.slice(0, -1), ...extra, "Max Weight"];
+  }
   var journalTab = "plants";
   var incompleteOnly = false;
   function setJournalTab(tab) {
@@ -1706,6 +1866,7 @@ ${rows}</div>`;
   }
   function plantRows() {
     const journal = journalSection("produce");
+    const PRODUCE_VARIANTS = produceVariants();
     const species = Object.keys(PLANT_CATALOG).filter((name) => !PLANT_CATALOG[name]?.component);
     let have = 0;
     const rows = RARITY_ORDER.map((rarity) => {
@@ -2173,11 +2334,13 @@ ${rows}</div>`;
       return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small>${(pet.abilities || []).length ? abilityChips(pet.abilities || []) : '<span class="gc-team-abilities">No abilities</span>'}</span>${strength}</label>`;
     }).join("");
   }
-  function activeTeamId() {
+  function activeTeamIds() {
     const activeIds = new Set(activePets().map((pet) => pet.id));
-    if (!activeIds.size) return null;
-    const match = teams().find((team) => team.members.length === activeIds.size && team.members.every((member) => activeIds.has(member.petId)));
-    return match?.id ?? null;
+    if (!activeIds.size) return [];
+    return teams().filter((team) => team.members.length === activeIds.size && team.members.every((member) => activeIds.has(member.petId))).map((team) => team.id);
+  }
+  function activeTeamId() {
+    return activeTeamIds()[0] ?? null;
   }
   function teamMemberTile(member, owned) {
     const sprite = petSprite(owned ?? { id: member.petId, petSpecies: member.petSpecies, hunger: 0 });
@@ -2391,15 +2554,19 @@ ${rows}</div>`;
       toast(`Switching to ${team.name}.`, "success");
     }, true);
   }
+  var lastCycledTeamId = null;
   function cyclePetTeam(step) {
     const list = teams();
     if (!list.length) {
       toast("No saved pet teams to cycle.", "error");
       return;
     }
-    const current = list.findIndex((team) => team.id === activeTeamId());
+    const active = activeTeamIds();
+    const from = lastCycledTeamId && (active.includes(lastCycledTeamId) || !active.length) ? lastCycledTeamId : active[0] ?? lastCycledTeamId;
+    const current = from ? list.findIndex((team) => team.id === from) : -1;
     const next = list[((current < 0 ? -step : current + step) % list.length + list.length) % list.length];
     if (!next) return;
+    lastCycledTeamId = next.id;
     send({ type: "ApplyPetTeam", teamId: next.id });
     toast(`Switching to ${next.name}.`, "success");
   }
@@ -3552,63 +3719,6 @@ ${rows}</div>`;
     const condition = weather && time ? COMBINED_MULTIPLIERS[`${weather}+${time}`] ?? Math.max(WEATHER_MULTIPLIERS[weather], TIME_MULTIPLIERS[time]) : weather ? WEATHER_MULTIPLIERS[weather] : time ? TIME_MULTIPLIERS[time] : 1;
     return color * condition;
   }
-  function installCatalogCapture(page3) {
-    const objectConstructor = page3.Object;
-    const nativeKeys = objectConstructor.keys;
-    let catalog = define_PLANT_CATALOG_default;
-    let capturedLiveCatalog = false;
-    let restoreTimer = null;
-    const seen = /* @__PURE__ */ new WeakSet();
-    let wrappedKeys;
-    page3.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
-    function restore() {
-      if (objectConstructor.keys === wrappedKeys) objectConstructor.keys = nativeKeys;
-    }
-    function looksLikeCatalog(value, keys) {
-      const familiar = ["Carrot", "Cabbage", "Strawberry", "Aloe", "Beet"];
-      if (familiar.filter((name) => keys.includes(name)).length < 3) return false;
-      return familiar.some((name) => {
-        const entry = value[name];
-        return typeof entry?.crop?.baseSellPrice === "number";
-      });
-    }
-    function scan(value, depth = 0) {
-      if (!value || typeof value !== "object" || seen.has(value)) return;
-      seen.add(value);
-      let keys;
-      try {
-        keys = nativeKeys(value);
-      } catch {
-        return;
-      }
-      if (looksLikeCatalog(value, keys)) {
-        if (keys.length >= (catalog ? nativeKeys(catalog).length : 0)) {
-          catalog = value;
-          capturedLiveCatalog = true;
-          page3.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
-        }
-        if (!restoreTimer) {
-          restoreTimer = setTimeout(restore, 5e3);
-        }
-        return;
-      }
-      if (depth >= 2) return;
-      for (const key of keys) {
-        try {
-          scan(value[key], depth + 1);
-        } catch {
-        }
-      }
-    }
-    wrappedKeys = ((value) => {
-      const keys = nativeKeys(value);
-      if (!capturedLiveCatalog) scan(value);
-      return keys;
-    });
-    objectConstructor.keys = wrappedKeys;
-    setTimeout(restore, 3e4);
-    return () => catalog;
-  }
   function countMutation(target, mutation) {
     target.set(mutation, (target.get(mutation) ?? 0) + 1);
   }
@@ -3697,7 +3807,7 @@ ${rows}</div>`;
     const storedPets = runtime.slot?.data?.inventory?.storages?.flatMap((storage) => storage.items?.filter((item) => item.itemType === "Pet") ?? []) ?? [];
     const availablePets = [...activePets2, ...inventoryPets, ...storedPets];
     function petStrength2(pet) {
-      const info = define_PET_CATALOG_default[pet.petSpecies];
+      const info = PET_CATALOG[pet.petSpecies];
       if (!info?.maxScale || !info.hoursToMature) return 87;
       const xpPerLevel = Math.floor(3600 * info.hoursToMature / 30);
       const xp = Math.min(Math.floor(Number(pet.xp ?? 0) / xpPerLevel), 30);
@@ -3816,7 +3926,7 @@ ${rows}</div>`;
   }
   function initGardenOverview() {
     const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
-    const getCatalog = installCatalogCapture(page3);
+    const getCatalog = () => PLANT_CATALOG;
     let filter = loadFilter();
     let mutationConfig = loadMutationConfig();
     let trackedMutations = selectedMutations(mutationConfig);
@@ -4239,9 +4349,9 @@ ${rows}</div>`;
   function initGardenPlanner() {
     "use strict";
     const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
-    const PLANTS = define_PLANT_CATALOG_default;
-    const MUTATIONS = define_MUTATION_CATALOG_default;
-    const DECOR = define_DECOR_CATALOG_default;
+    const PLANTS = PLANT_CATALOG;
+    const MUTATIONS = MUTATION_CATALOG;
+    const DECOR = DECOR_CATALOG;
     const LAYOUT_KEY = "gardenCompanion.layouts.v1";
     const MUTATION_GROUPS = [...new Set(Object.values(MUTATIONS).map((mutation) => mutation.group))];
     const RARITY_ORDER2 = ["Common", "Uncommon", "Rare", "Legendary", "Mythic", "Divine", "Celestial"];
@@ -5474,6 +5584,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/index.ts
+  initCatalogCapture();
   initCompanion();
   initAbilitySilencer();
   installPetSpriteLoader();

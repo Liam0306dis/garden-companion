@@ -17,6 +17,7 @@ export const PET_CATALOG = __PET_CATALOG__;
 export const EGG_CATALOG = __EGG_CATALOG__;
 export const PLANT_CATALOG = __PLANT_CATALOG__;
 export const MUTATION_CATALOG = __MUTATION_CATALOG__;
+export const DECOR_CATALOG = __DECOR_CATALOG__;
 export const ABILITY_COLOURS = __ABILITY_COLOURS__;
 export const ABILITY_COLOUR_FALLBACK = '#969696';
 

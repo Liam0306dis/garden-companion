@@ -16,11 +16,22 @@ import { escapeHtml, humanize } from '../utils.js';
  */
 
 /** Variant ids as the game stores them. Normal and Max Weight are not mutations, so they have no sprite. */
-const PRODUCE_VARIANTS = [
+const KNOWN_PRODUCE_VARIANTS = [
   'Normal', 'Wet', 'Chilled', 'Frozen', 'Dawnlit', 'Ambershine', 'Thunderstruck',
   'Gold', 'Rainbow', 'Dawncharged', 'Ambercharged', 'Thundercharged', 'Max Weight',
 ];
 const PET_VARIANTS = ['Normal', 'Gold', 'Rainbow', 'Max Weight'];
+
+/**
+ * Read fresh each render: a mutation the game adds arrives in the catalog while we are running, and
+ * it should get a column rather than being silently absent. Max Weight stays last.
+ */
+function produceVariants(): string[] {
+  const known = new Set(KNOWN_PRODUCE_VARIANTS);
+  const extra = Object.keys(MUTATION_CATALOG).filter(id => !known.has(id));
+  if (!extra.length) return KNOWN_PRODUCE_VARIANTS;
+  return [...KNOWN_PRODUCE_VARIANTS.slice(0, -1), ...extra, 'Max Weight'];
+}
 
 let journalTab: 'plants' | 'pets' = 'plants';
 let incompleteOnly = false;
@@ -95,6 +106,7 @@ ${rows}</div>`;
 
 function plantRows(): { rows: string; have: number; total: number } {
   const journal = journalSection('produce');
+  const PRODUCE_VARIANTS = produceVariants();
   // Component species (stormcaps) only grow inside another plant, so they get no journal entry.
   const species = Object.keys(PLANT_CATALOG).filter(name => !PLANT_CATALOG[name]?.component);
   let have = 0;

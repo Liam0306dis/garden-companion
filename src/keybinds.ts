@@ -1,6 +1,6 @@
 import { config, feature, saveConfig } from './config.js';
 import { OVERVIEW_SHORTCUT_KEY } from './constants.js';
-import { activeTeamId, teams } from './features/pet-teams.js';
+import { activeTeamIds, teams } from './features/pet-teams.js';
 import { GAME_INTERFACES, openGameInterface } from './game-atoms.js';
 import { send } from './game-connection.js';
 import { page } from './page.js';
@@ -120,15 +120,28 @@ function installShortcutListener(): void {
   }, true);
 }
 
+let lastCycledTeamId: string | null = null;
+
+/**
+ * Teams are identified by which pets are out, so cycling cannot rely on that alone. Two teams with
+ * the same pets are indistinguishable, and immediately after a swap the server has yet to apply,
+ * the pets still describe the previous team. The team we last moved to therefore wins whenever it
+ * is still a valid reading of the pets out, and stands in when they match no team at all.
+ */
 export function cyclePetTeam(step: number): void {
   const list = teams();
   if (!list.length) {
     toast('No saved pet teams to cycle.', 'error');
     return;
   }
-  const current = list.findIndex(team => team.id === activeTeamId());
+  const active = activeTeamIds();
+  const from = lastCycledTeamId && (active.includes(lastCycledTeamId) || !active.length)
+    ? lastCycledTeamId
+    : active[0] ?? lastCycledTeamId;
+  const current = from ? list.findIndex(team => team.id === from) : -1;
   const next = list[(((current < 0 ? -step : current + step) % list.length) + list.length) % list.length];
   if (!next) return;
+  lastCycledTeamId = next.id;
   send({ type: 'ApplyPetTeam', teamId: next.id });
   toast(`Switching to ${next.name}.`, 'success');
 }

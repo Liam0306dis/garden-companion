@@ -236,12 +236,20 @@ function petPickerRows(selectedIds: Set<string>): string {
   }).join('');
 }
 
-export function activeTeamId(): string | null {
+/**
+ * Every team whose members are exactly the pets currently out. Teams are matched on their pets, so
+ * two teams holding the same pets under different names are both "active" and cannot be told apart.
+ */
+export function activeTeamIds(): string[] {
   const activeIds = new Set(activePets().map(pet => pet.id));
-  if (!activeIds.size) return null;
-  const match = teams().find(team =>
-    team.members.length === activeIds.size && team.members.every(member => activeIds.has(member.petId)));
-  return match?.id ?? null;
+  if (!activeIds.size) return [];
+  return teams()
+    .filter(team => team.members.length === activeIds.size && team.members.every(member => activeIds.has(member.petId)))
+    .map(team => team.id);
+}
+
+export function activeTeamId(): string | null {
+  return activeTeamIds()[0] ?? null;
 }
 
 function teamMemberTile(member: { petId: string; petSpecies: string; name?: string | null }, owned?: Pet): string {

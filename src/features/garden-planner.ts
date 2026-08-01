@@ -1,4 +1,5 @@
 import type { CompanionPage, GardenTile } from '../types.js';
+import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG } from '../constants.js';
 
 /**
  * Layout planner. Nothing is sent to the game server: planned plants are fed to the
@@ -10,9 +11,9 @@ export function initGardenPlanner(): void {
   'use strict';
 
   const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
-  const PLANTS = __PLANT_CATALOG__;
-  const MUTATIONS = __MUTATION_CATALOG__;
-  const DECOR = __DECOR_CATALOG__;
+  const PLANTS = PLANT_CATALOG;
+  const MUTATIONS = MUTATION_CATALOG;
+  const DECOR = DECOR_CATALOG;
   const LAYOUT_KEY = 'gardenCompanion.layouts.v1';
   // One mutation per group can be on a crop, so picking one replaces the group's current choice.
   const MUTATION_GROUPS = [...new Set(Object.values(MUTATIONS).map(mutation => mutation.group))];

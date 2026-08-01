@@ -1,4 +1,5 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
+import { PET_CATALOG, PLANT_CATALOG } from '../constants.js';
 
 interface PlantCatalogEntry {
   crop?: { baseSellPrice?: number; maxScale?: number };
@@ -416,62 +417,6 @@ function mutationMultiplier(mutations: readonly string[]): number {
   return color * condition;
 }
 
-function installCatalogCapture(page: CompanionPage): () => Record<string, PlantCatalogEntry> | null {
-  const objectConstructor = page.Object as ObjectConstructor;
-  const nativeKeys = objectConstructor.keys;
-  let catalog: Record<string, PlantCatalogEntry> | null = __PLANT_CATALOG__;
-  let capturedLiveCatalog = false;
-  let restoreTimer: ReturnType<typeof setTimeout> | null = null;
-  const seen = new WeakSet<object>();
-  let wrappedKeys: typeof Object.keys;
-  page.__gardenCompanionPlantPrice = species => catalog?.[species ?? '']?.crop?.baseSellPrice;
-
-  function restore(): void {
-    if (objectConstructor.keys === wrappedKeys) objectConstructor.keys = nativeKeys;
-  }
-
-  function looksLikeCatalog(value: object, keys: string[]): value is Record<string, PlantCatalogEntry> {
-    const familiar = ['Carrot', 'Cabbage', 'Strawberry', 'Aloe', 'Beet'];
-    if (familiar.filter(name => keys.includes(name)).length < 3) return false;
-    return familiar.some(name => {
-      const entry = (value as Record<string, PlantCatalogEntry>)[name];
-      return typeof entry?.crop?.baseSellPrice === 'number';
-    });
-  }
-
-  function scan(value: unknown, depth = 0): void {
-    if (!value || typeof value !== 'object' || seen.has(value)) return;
-    seen.add(value);
-    let keys: string[];
-    try { keys = nativeKeys(value); } catch { return; }
-    if (looksLikeCatalog(value, keys)) {
-      if (keys.length >= (catalog ? nativeKeys(catalog).length : 0)) {
-        catalog = value;
-        capturedLiveCatalog = true;
-        page.__gardenCompanionPlantPrice = species => catalog?.[species ?? '']?.crop?.baseSellPrice;
-      }
-      if (!restoreTimer) {
-        restoreTimer = setTimeout(restore, 5000);
-      }
-      return;
-    }
-    if (depth >= 2) return;
-    for (const key of keys) {
-      try { scan((value as Record<string, unknown>)[key], depth + 1); } catch {}
-    }
-  }
-
-  wrappedKeys = ((value: object) => {
-    const keys = nativeKeys(value);
-    if (!capturedLiveCatalog) scan(value);
-    return keys;
-  }) as typeof Object.keys;
-  objectConstructor.keys = wrappedKeys;
-
-  setTimeout(restore, 30_000);
-  return () => catalog;
-}
-
 function countMutation(target: Map<string, number>, mutation: string): void {
   target.set(mutation, (target.get(mutation) ?? 0) + 1);
 }
@@ -569,7 +514,7 @@ function calculateStats(
   const availablePets = [...activePets, ...inventoryPets, ...storedPets];
 
   function petStrength(pet: (typeof activePets)[number]): number {
-    const info = __PET_CATALOG__[pet.petSpecies];
+    const info = PET_CATALOG[pet.petSpecies];
     if (!info?.maxScale || !info.hoursToMature) return 87;
     const xpPerLevel = Math.floor(3600 * info.hoursToMature / 30);
     const xp = Math.min(Math.floor(Number(pet.xp ?? 0) / xpPerLevel), 30);
@@ -693,7 +638,8 @@ function durationUntil(timestamp: number | null): string {
 
 export function initGardenOverview(): void {
   const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
-  const getCatalog = installCatalogCapture(page);
+  // Catalogs are captured once at start-up and shared, so this is simply the live view.
+  const getCatalog = () => PLANT_CATALOG;
   let filter = loadFilter();
   let mutationConfig = loadMutationConfig();
   let trackedMutations = selectedMutations(mutationConfig);

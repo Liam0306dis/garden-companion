@@ -1,6 +1,6 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, PET_CATALOG } from '../constants.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, PET_CATALOG, PLANT_CATALOG } from '../constants.js';
 import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
@@ -12,9 +12,13 @@ import { escapeHtml, formatDuration, humanize } from '../utils.js';
 
 const DUST_RARITY: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
 const DUST_HATCH_MUTATION = (1 - .01 - .001) + .01 * 25 + .001 * 50;
-const HATCH_WEIGHT = new Map<string, number>();
-for (const egg of Object.values(EGG_CATALOG)) {
-  for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!HATCH_WEIGHT.has(species)) HATCH_WEIGHT.set(species, weight);
+/** Rebuilt on demand so an egg the game adds while we are running is counted. */
+function hatchWeights(): Map<string, number> {
+  const weights = new Map<string, number>();
+  for (const egg of Object.values(EGG_CATALOG)) {
+    for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!weights.has(species)) weights.set(species, weight);
+  }
+  return weights;
 }
 
 // Minutes a full hunger bar lasts per species, and crop regrow or grow minutes.
@@ -39,7 +43,7 @@ const CROP_GROW: Record<string, number> = {
 
 export function dustMultiplier(species: string, mutations: string[] = []): number {
   const rarity = DUST_RARITY[PET_CATALOG[species]?.rarity || ''] || 1;
-  const hatch = HATCH_WEIGHT.get(species) ?? 100;
+  const hatch = hatchWeights().get(species) ?? 100;
   const hatchMultiplier = hatch >= 50 ? 1 : hatch > 10 ? 2 : 5;
   const colour = mutations.includes('Rainbow') ? 50 : mutations.includes('Gold') ? 25 : 1;
   return 100 * rarity * hatchMultiplier * colour;
@@ -264,7 +268,7 @@ function renderFoodCalculator(): string {
     demand.set(slot.food, (demand.get(slot.food) || 0) + perHour);
   }
   const rows = [...demand].sort((left, right) => right[1] - left[1]).map(([crop, need]) => {
-    const plant = __PLANT_CATALOG__[crop];
+    const plant = PLANT_CATALOG[crop];
     const slotCount = Math.max(1, Number(plant?.slots || 1));
     const sprite = produceSprite(crop);
     let cover = 'Timing unknown';
