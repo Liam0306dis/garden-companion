@@ -106,6 +106,9 @@
 .gc-log > div { display:grid;grid-template-columns:62px 58px minmax(0,1fr);gap:8px;padding:7px 2px;border-top:1px solid var(--gc-line);font:10px ui-monospace,monospace; }
 .gc-proc-result { display:flex;min-width:0;align-items:baseline;gap:6px;color:#f4f4f5;font-size:11px;font-weight:700; }.gc-proc-result i { overflow:hidden;color:#67e8f9;font-size:11px;font-weight:700;font-style:normal;text-overflow:ellipsis;white-space:nowrap; }
 .gc-log time { color:var(--gc-muted); }
+.gc-log > p { padding:9px 2px;color:var(--gc-muted);font-size:10px; }
+.gc-ability-log-card .gc-row h3 { white-space:nowrap; }
+.gc-ability-log-card .gc-row .gc-log-search { flex:1;min-width:0;max-width:230px;height:28px;font-size:11px; }
 .gc-room { display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px; }
 .gc-room h3 { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }
 .gc-room-faces { display:flex;align-items:center;margin:5px 0 2px; }

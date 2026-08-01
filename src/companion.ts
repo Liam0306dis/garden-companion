@@ -44,6 +44,9 @@ export function initCompanion(): void {
   const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
   const STORE_KEY = 'gardenCompanion.config.v1';
   const LOG_KEY = 'gardenCompanion.abilityLog.v1';
+  // History is kept per exact ability rather than overall so a chatty ability cannot crowd out a rare one.
+  const LOG_PER_ABILITY = 400;
+  const LOG_VISIBLE_ROWS = 400;
   const OVERVIEW_SHORTCUT_KEY = 'gardenCompanion.overviewShortcut.v1';
   const UPDATE_URL = 'https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js';
   const ABILITY_CATALOG = __ABILITY_CATALOG__;
@@ -340,11 +343,28 @@ export function initCompanion(): void {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
   }
 
-  function trimAbilityLogs(logs: AbilityLogRow[]): AbilityLogRow[] {
+  function saveLocalOrFail(key: string, value: unknown): boolean {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+    catch { return false; }
+  }
+
+  /**
+   * Each row carries the ability's raw payload, so a long history can outgrow the storage quota.
+   * Halve the retained history until it fits rather than silently giving up on persistence.
+   */
+  function saveAbilityLog(): void {
+    if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
+    for (let perAbility = LOG_PER_ABILITY >> 1; perAbility >= 25; perAbility >>= 1) {
+      state.abilityLog = trimAbilityLogs(state.abilityLog, perAbility);
+      if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
+    }
+  }
+
+  function trimAbilityLogs(logs: AbilityLogRow[], perAbility = LOG_PER_ABILITY): AbilityLogRow[] {
     const retained = new Map<string, number>();
     return logs.filter(log => {
       const count = retained.get(log.ability) ?? 0;
-      if (count >= 100) return false;
+      if (count >= perAbility) return false;
       retained.set(log.ability, count + 1);
       return true;
     });
@@ -572,7 +592,7 @@ export function initCompanion(): void {
     state.abilityLog = trimAbilityLogs(state.abilityLog);
     state.activityCursor = Math.max(state.activityCursor, ...fresh.map(entry => Number(entry.timestamp) || 0));
     localStorage.setItem('gardenCompanion.activityCursor', String(state.activityCursor));
-    saveLocal(LOG_KEY, state.abilityLog);
+    saveAbilityLog();
   }
 
   function itemId(item) {
@@ -1748,6 +1768,7 @@ export function initCompanion(): void {
   let activeTab = 'abilities';
   let abilityFilterInteracting = false;
   let abilityFilterMenuOpen = false;
+  let abilityLogSearch = '';
   let editingTeamId: string | null = null;
   let teamSearchQuery = '';
   let pendingTeamSave: { teamId: string | null; name: string; petIds: string[]; emblem?: PetTeamEmblem | null } | null = null;
@@ -2553,8 +2574,18 @@ export function initCompanion(): void {
 
   function renderAbilityLogRows(selectedFilters: Set<string>): string {
     const isVisibleAbility = (ability: string) => ABILITY_SET.has(ability) && ABILITY_FILTER_OPTIONS.some(option => selectedFilters.has(option.key) && option.abilities.includes(ability));
-    const recent = state.abilityLog.filter(log => isVisibleAbility(log.ability)).slice(0, 100);
-    return recent.map(log => `<div><time>${new Date(log.at).toLocaleTimeString()}</time><b>${escapeHtml(log.pet)}</b><span class="gc-proc-result">${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}<i>&rarr; ${escapeHtml(procOutcome(log.ability, log.data))}</i></span></div>`).join('') || '<p>No ability procs recorded yet.</p>';
+    const search = abilityLogSearch.trim().toLowerCase();
+    const matched = state.abilityLog.filter(log => {
+      if (!isVisibleAbility(log.ability)) return false;
+      if (!search) return true;
+      // Searching covers what the row actually shows: the pet, the ability name and the outcome.
+      const name = ABILITY_DETAILS[log.ability]?.name || humanize(log.ability);
+      return `${log.pet} ${name} ${procOutcome(log.ability, log.data)}`.toLowerCase().includes(search);
+    });
+    const recent = matched.slice(0, LOG_VISIBLE_ROWS);
+    if (!recent.length) return search ? '<p>Nothing matches that search.</p>' : '<p>No ability procs recorded yet.</p>';
+    const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : '';
+    return recent.map(log => `<div><time>${new Date(log.at).toLocaleTimeString()}</time><b>${escapeHtml(log.pet)}</b><span class="gc-proc-result">${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}<i>&rarr; ${escapeHtml(procOutcome(log.ability, log.data))}</i></span></div>`).join('') + more;
   }
 
   function refreshAbilityFilterUi(main: HTMLElement): void {
@@ -2579,7 +2610,7 @@ export function initCompanion(): void {
     const selectedFilters = selectedAbilityFilters();
     const filterSummary = abilityFilterSummary(selectedFilters);
     const filterOptions = ABILITY_FILTER_OPTIONS.map(option => `<button data-ability-option="${escapeHtml(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml(option.label)}</span><i>${selectedFilters.has(option.key) ? '&#10003;' : ''}</i></button>`).join('');
-    return `<section class="gc-card gc-ability-filter"><span>Ability filter</span><details data-ability-filter ${abilityFilterMenuOpen ? 'open' : ''}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><small>Choose any combination. Proc history stores up to 100 entries per exact ability.</small></section><section class="gc-card gc-ability-log-card"><div class="gc-row"><h3>Recent tracked procs</h3><button data-clear-log>Clear</button></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
+    return `<section class="gc-card gc-ability-filter"><span>Ability filter</span><details data-ability-filter ${abilityFilterMenuOpen ? 'open' : ''}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><small>Choose any combination. Proc history stores up to ${LOG_PER_ABILITY} entries per exact ability.</small></section><section class="gc-card gc-ability-log-card"><div class="gc-row"><h3>Recent tracked procs</h3><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search pet, ability or result" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><button data-clear-log>Clear</button></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
   }
 
   let roomRows = null, roomError = '', roomLoading = false;
@@ -2742,6 +2773,13 @@ export function initCompanion(): void {
       input.onclick = () => beginKeybindCapture(input, 'overview', 'Press keys...');
     });
     main.querySelector('[data-clear-log]')?.addEventListener('click', () => { state.abilityLog = []; saveLocal(LOG_KEY, []); renderPanel(); });
+    // Only the rows are redrawn, so the field keeps its focus and caret while typing.
+    main.querySelector('[data-log-search]')?.addEventListener('input', event => {
+      abilityLogSearch = (event.target as HTMLInputElement).value;
+      refreshAbilityFilterUi(main);
+      const log = main.querySelector('.gc-log') as HTMLElement | null;
+      if (log) log.scrollTop = 0;
+    });
     main.querySelector('[data-refresh-rooms]')?.addEventListener('click', () => { roomRows = null; roomError = ''; fetchRooms(); });
     main.querySelectorAll('[data-join-room]').forEach(button => button.onclick = () => { if (/^[a-zA-Z0-9_-]{1,64}$/.test(button.dataset.joinRoom)) location.href = `/r/${button.dataset.joinRoom}`; });
     main.querySelectorAll('[data-shop-alert]').forEach(element => element.onchange = () => {
