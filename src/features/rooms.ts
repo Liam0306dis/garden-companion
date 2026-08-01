@@ -1,12 +1,6 @@
 import { panelActions } from '../panel-actions.js';
 import { escapeHtml } from '../utils.js';
 
-let services: { refreshOpenPanel(): void; renderPanel(): void; isRoomsTabActive(): boolean };
-
-export function initRooms(roomServices: typeof services): void {
-  services = roomServices;
-}
-
 /** The Rooms tab: a list of public rooms fetched from the community API, with Discord avatars. */
 
 let roomRows = null, roomError = '', roomLoading = false;
@@ -45,7 +39,7 @@ function requestJson(url) {
 }
 
 export async function reloadRooms() {
-  roomRows = null; roomLoading = true; roomError = ''; services.refreshOpenPanel();
+  roomRows = null; roomLoading = true; roomError = ''; panelActions.refreshOpenPanel();
   try {
     const rows = await requestJson('https://ariesmod-api.ariedam.fr/rooms?limit=200');
     roomRows = Array.isArray(rows) ? rows
@@ -54,7 +48,7 @@ export async function reloadRooms() {
   } catch (error) { roomError = error.message; roomRows = []; }
   roomLoading = false;
   const panel = document.getElementById('gc-panel');
-  if (panel && !panel.hidden && services.isRoomsTabActive()) services.renderPanel();
+  if (panel && !panel.hidden && panelActions.activeTab() === 'rooms') panelActions.renderPanel();
 }
 
 export function bindRoomEvents(main: HTMLElement): void {

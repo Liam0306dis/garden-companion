@@ -8,8 +8,13 @@ export function quinoaEngine(): QuinoaEngine {
   return engine;
 }
 
+/**
+ * Listeners are replayed the current engine on registration, so a feature that starts up after the
+ * game handed us one still hooks it rather than waiting for an engine it will never see again.
+ */
 export function onQuinoaEngine(listener: (value: QuinoaEngine) => void): void {
   listeners.add(listener);
+  if (engine) listener(engine);
 }
 
 export function setQuinoaEngine(value: unknown): void {

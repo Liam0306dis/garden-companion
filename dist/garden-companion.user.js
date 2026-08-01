@@ -1055,6 +1055,7 @@
   }
   function onQuinoaEngine(listener) {
     listeners.add(listener);
+    if (engine) listener(engine);
   }
   function setQuinoaEngine(value) {
     const candidate = value;
@@ -1635,7 +1636,6 @@
   }
 
   // src/features/rooms.ts
-  var services;
   var roomRows = null;
   var roomError = "";
   var roomLoading = false;
@@ -1680,7 +1680,7 @@
     roomRows = null;
     roomLoading = true;
     roomError = "";
-    services.refreshOpenPanel();
+    panelActions.refreshOpenPanel();
     try {
       const rows = await requestJson("https://ariesmod-api.ariedam.fr/rooms?limit=200");
       roomRows = Array.isArray(rows) ? rows.filter((room) => !room.is_private && [4, 5].includes(Number(room.players_count))).sort((left, right) => Number(right.players_count) - Number(left.players_count)) : [];
@@ -1690,7 +1690,7 @@
     }
     roomLoading = false;
     const panel = document.getElementById("gc-panel");
-    if (panel && !panel.hidden && services.isRoomsTabActive()) services.renderPanel();
+    if (panel && !panel.hidden && panelActions.activeTab() === "rooms") panelActions.renderPanel();
   }
   function bindRoomEvents(main) {
     main.querySelector("[data-refresh-rooms]")?.addEventListener("click", () => void reloadRooms());
