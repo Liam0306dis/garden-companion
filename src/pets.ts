@@ -207,6 +207,7 @@ export function petTile(petItemId: string): Tile | null {
  */
 export function useXpPotion(petItemId: string): void {
   const tile = petTile(petItemId);
-  if (tile) send({ type: 'PlayerPosition', position: tile });
+  if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
+  send({ type: 'PlayerPosition', position: tile });
   send({ type: 'XPPotion', petItemId });
 }

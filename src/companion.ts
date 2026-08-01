@@ -19,7 +19,7 @@ import {
   UPDATE_URL,
   XP_PER_POTION,
 } from './constants.js';
-import { bindCalculatorEvents, renderCalculators } from './features/calculators.js';
+import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms } from './alarms.js';
 import { send } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
@@ -33,7 +33,7 @@ import {
   setAbilityFilterInteracting,
   setAbilityFilterMenuOpen,
 } from './features/ability-log.js';
-import { bindJournalEvents, renderJournal } from './features/journal.js';
+import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
@@ -496,11 +496,13 @@ export function initCompanion(): void {
     return Boolean(scrollable?.matches(':hover'));
   }
 
-  const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams'];
+  const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal'];
   let lastTabSignature = '';
 
   function tabRefreshSignature(): string {
     if (activeTab === 'teams') return teamsSignature();
+    if (activeTab === 'calculators') return calculatorsSignature();
+    if (activeTab === 'journal') return journalSignature();
     if (activeTab === 'petFood') {
       const counts = new Map<string, number>();
       for (const item of heldProduce()) counts.set(item.species, (counts.get(item.species) || 0) + 1);

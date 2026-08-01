@@ -87,6 +87,7 @@ function heldEggs(): Array<{ eggId: string; quantity: number }> {
 
 let calculatorTab = 'dust';
 const dustSelection = new Set<string>();
+let dustSearch = '';
 let granterAbility = 'RainbowGranter';
 const granterStrengths: Array<number | null> = [null, null, null];
 const granterEnabled = [true, true, true];
@@ -125,6 +126,14 @@ export function updateDustTotal(main: HTMLElement): void {
   if (label) label.textContent = `${total.toLocaleString()} dust`;
 }
 
+/** Redraw only when data used by the visible calculator has changed. */
+export function calculatorsSignature(): string {
+  const pets = allPets().map(pet => [
+    pet.id, pet.petSpecies, pet.name, pet.location, pet.targetScale, pet.mutations, pet.abilities,
+  ]);
+  return JSON.stringify([calculatorTab, pets, heldEggs()]);
+}
+
 export function renderCalculators(): string {
   const tabs = CALCULATOR_TABS.map(([id, label]) =>
     `<button data-calc-tab="${id}" class="${id === calculatorTab ? 'active' : ''}">${label}</button>`).join('');
@@ -150,7 +159,7 @@ function renderDustCalculator(): string {
   }).join('');
   return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
 <section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
 }
 
 function granterOptions(): Array<{ id: string; label: string; probability: number }> {
@@ -312,7 +321,9 @@ export function bindCalculatorEvents(main: HTMLElement): void {
     panelActions.renderPanelPreservingScroll();
   });
   main.querySelector('[data-dust-none]')?.addEventListener('click', () => { setDustSelection([]); panelActions.renderPanelPreservingScroll(); });
-  bindListSearch(main.querySelector('[data-dust-search]'));
+  const dustSearchInput = main.querySelector<HTMLInputElement>('[data-dust-search]');
+  bindListSearch(dustSearchInput);
+  dustSearchInput?.addEventListener('input', () => { dustSearch = dustSearchInput.value; });
   main.querySelector('[data-granter-ability]')?.addEventListener('change', event => {
     selectGranterAbility((event.target as HTMLSelectElement).value);
     updateGranterSection(main);

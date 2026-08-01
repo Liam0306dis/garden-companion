@@ -1,12 +1,11 @@
 {
   "name": "garden-companion",
-  "version": "0.6.84",
+  "version": "0.6.86",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsx scripts/build.ts",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx tests/static.test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

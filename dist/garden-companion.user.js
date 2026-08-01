@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.84
+// @version      0.6.86
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -702,7 +702,8 @@
   }
   function useXpPotion(petItemId) {
     const tile = petTile(petItemId);
-    if (tile) send({ type: "PlayerPosition", position: tile });
+    if (!tile) throw new Error("The pet position is not available yet. Try again in a moment.");
+    send({ type: "PlayerPosition", position: tile });
     send({ type: "XPPotion", petItemId });
   }
 
@@ -834,6 +835,7 @@
   }
   var calculatorTab = "dust";
   var dustSelection = /* @__PURE__ */ new Set();
+  var dustSearch = "";
   var granterAbility = "RainbowGranter";
   var granterStrengths = [null, null, null];
   var granterEnabled = [true, true, true];
@@ -863,6 +865,18 @@
     const label = main.querySelector("[data-dust-total]");
     if (label) label.textContent = `${total.toLocaleString()} dust`;
   }
+  function calculatorsSignature() {
+    const pets = allPets().map((pet) => [
+      pet.id,
+      pet.petSpecies,
+      pet.name,
+      pet.location,
+      pet.targetScale,
+      pet.mutations,
+      pet.abilities
+    ]);
+    return JSON.stringify([calculatorTab, pets, heldEggs()]);
+  }
   function renderCalculators() {
     const tabs = CALCULATOR_TABS.map(([id, label]) => `<button data-calc-tab="${id}" class="${id === calculatorTab ? "active" : ""}">${label}</button>`).join("");
     const body = calculatorTab === "granter" ? renderGranterCalculator() : calculatorTab === "food" ? renderFoodCalculator() : renderDustCalculator();
@@ -886,7 +900,7 @@
     }).join("");
     return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
 <section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
   }
   function granterOptions() {
     return Object.entries(ABILITY_DETAILS).filter(([id, details]) => typeof details.baseProbability === "number" && !EXCLUDED_TRACKED_ABILITIES.has(id)).map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability })).sort((left, right) => left.label.localeCompare(right.label));
@@ -1032,7 +1046,11 @@
       setDustSelection([]);
       panelActions.renderPanelPreservingScroll();
     });
-    bindListSearch(main.querySelector("[data-dust-search]"));
+    const dustSearchInput = main.querySelector("[data-dust-search]");
+    bindListSearch(dustSearchInput);
+    dustSearchInput?.addEventListener("input", () => {
+      dustSearch = dustSearchInput.value;
+    });
     main.querySelector("[data-granter-ability]")?.addEventListener("change", (event) => {
       selectGranterAbility(event.target.value);
       updateGranterSection(main);
@@ -1857,11 +1875,15 @@
   }
   var journalTab = "plants";
   var incompleteOnly = false;
+  var journalSearch = "";
   function setJournalTab(tab) {
     if (tab === "plants" || tab === "pets") journalTab = tab;
   }
   function toggleIncompleteOnly() {
     incompleteOnly = !incompleteOnly;
+  }
+  function journalSignature() {
+    return JSON.stringify([journalTab, state.slot?.data?.journal ?? null]);
   }
   function variantLabel(variant, kind) {
     if (variant === "Max Weight") return kind === "pets" ? "Max Strength" : "Max Size";
@@ -1972,7 +1994,7 @@ ${rows}</div>`;
     return `<p class="gc-note">Every variant the game has logged for you, laid out at once. Hover a chip for its name and the date it was found.</p>
 <div class="gc-shop-tabs">${tabs}</div>
 <section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString()}</b> of ${total.toLocaleString()} logged</span><span class="gc-pill">${percent}%</span></section>
-<div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === "pets" ? "pets" : "plants"}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? "Show every species again" : "Hide species you have already completed"}">${incompleteOnly ? "All" : "Missing"}</button></div>
+<div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === "pets" ? "pets" : "plants"}" value="${escapeHtml(journalSearch)}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? "Show every species again" : "Hide species you have already completed"}">${incompleteOnly ? "All" : "Missing"}</button></div>
 <div class="gc-journal-list gc-filter-list" data-incomplete-only="${incompleteOnly}">${rows || '<p class="gc-empty">No journal data yet.</p>'}</div>`;
   }
   function bindJournalEvents(main) {
@@ -1984,7 +2006,11 @@ ${rows}</div>`;
       toggleIncompleteOnly();
       panelActions.renderPanelPreservingScroll();
     });
-    bindListSearch(main.querySelector("[data-journal-search]"));
+    const search = main.querySelector("[data-journal-search]");
+    bindListSearch(search);
+    search?.addEventListener("input", () => {
+      journalSearch = search.value;
+    });
   }
 
   // src/features/rooms.ts
@@ -2286,7 +2312,7 @@ ${rows}</div>`;
       }).join("") : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
       petGroup.querySelectorAll("[data-emblem-option]").forEach((button) => button.onclick = () => {
         const key = button.dataset.emblemOption;
-        teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
+        teamPickerEmblem = emblemFromKey(key);
         refreshEmblemUi(picker);
       });
     }
@@ -2343,7 +2369,7 @@ ${rows}</div>`;
     });
     picker.querySelectorAll("[data-emblem-option]").forEach((button) => button.onclick = () => {
       const key = button.dataset.emblemOption;
-      teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
+      teamPickerEmblem = emblemFromKey(key);
       refreshEmblemUi(picker);
     });
     picker.querySelector("[data-save-team]").onclick = () => {
@@ -3250,10 +3276,12 @@ ${rows}</div>`;
       const scrollable = ["teams", "petFood"].includes(activeTab) ? panel.querySelector("main") : null;
       return Boolean(scrollable?.matches(":hover"));
     }
-    const LIVE_REFRESH_TABS = ["abilities", "abilityLog", "petFood", "teams"];
+    const LIVE_REFRESH_TABS = ["abilities", "abilityLog", "petFood", "teams", "calculators", "journal"];
     let lastTabSignature = "";
     function tabRefreshSignature() {
       if (activeTab === "teams") return teamsSignature();
+      if (activeTab === "calculators") return calculatorsSignature();
+      if (activeTab === "journal") return journalSignature();
       if (activeTab === "petFood") {
         const counts = /* @__PURE__ */ new Map();
         for (const item of heldProduce()) counts.set(item.species, (counts.get(item.species) || 0) + 1);

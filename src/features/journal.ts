@@ -37,6 +37,7 @@ type Kind = 'plants' | 'pets';
 
 let journalTab: Kind = 'plants';
 let incompleteOnly = false;
+let journalSearch = '';
 
 export function setJournalTab(tab: string): void {
   if (tab === 'plants' || tab === 'pets') journalTab = tab;
@@ -44,6 +45,11 @@ export function setJournalTab(tab: string): void {
 
 export function toggleIncompleteOnly(): void {
   incompleteOnly = !incompleteOnly;
+}
+
+/** Redraw only when the visible journal source changes. */
+export function journalSignature(): string {
+  return JSON.stringify([journalTab, state.slot?.data?.journal ?? null]);
 }
 
 /**
@@ -208,7 +214,7 @@ export function renderJournal(): string {
   return `<p class="gc-note">Every variant the game has logged for you, laid out at once. Hover a chip for its name and the date it was found.</p>
 <div class="gc-shop-tabs">${tabs}</div>
 <section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString()}</b> of ${total.toLocaleString()} logged</span><span class="gc-pill">${percent}%</span></section>
-<div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === 'pets' ? 'pets' : 'plants'}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? 'Show every species again' : 'Hide species you have already completed'}">${incompleteOnly ? 'All' : 'Missing'}</button></div>
+<div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === 'pets' ? 'pets' : 'plants'}" value="${escapeHtml(journalSearch)}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? 'Show every species again' : 'Hide species you have already completed'}">${incompleteOnly ? 'All' : 'Missing'}</button></div>
 <div class="gc-journal-list gc-filter-list" data-incomplete-only="${incompleteOnly}">${rows || '<p class="gc-empty">No journal data yet.</p>'}</div>`;
 }
 
@@ -221,5 +227,7 @@ export function bindJournalEvents(main: HTMLElement): void {
     toggleIncompleteOnly();
     panelActions.renderPanelPreservingScroll();
   });
-  bindListSearch(main.querySelector('[data-journal-search]'));
+  const search = main.querySelector<HTMLInputElement>('[data-journal-search]');
+  bindListSearch(search);
+  search?.addEventListener('input', () => { journalSearch = search.value; });
 }

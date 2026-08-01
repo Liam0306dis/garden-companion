@@ -154,7 +154,7 @@ function refreshEmblemUi(picker: HTMLElement): void {
     }).join('') : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
     petGroup.querySelectorAll<HTMLButtonElement>('[data-emblem-option]').forEach(button => button.onclick = () => {
       const key = button.dataset.emblemOption!;
-      teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
+      teamPickerEmblem = emblemFromKey(key);
       refreshEmblemUi(picker);
     });
   }
@@ -206,7 +206,7 @@ function bindTeamPickerEvents(picker: HTMLElement): void {
   });
   picker.querySelectorAll<HTMLButtonElement>('[data-emblem-option]').forEach(button => button.onclick = () => {
     const key = button.dataset.emblemOption!;
-    teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
+    teamPickerEmblem = emblemFromKey(key);
     refreshEmblemUi(picker);
   });
   picker.querySelector<HTMLButtonElement>('[data-save-team]')!.onclick = () => {
