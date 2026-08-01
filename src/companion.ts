@@ -46,10 +46,12 @@ import {
   allPets,
   formatEstimate,
   heldProduce,
+  heldToolCount,
   hungerDisplay,
   petMetrics,
   petSprite,
   teamXpPerHour,
+  useXpPotion,
 } from './pets.js';
 import {
   closeTeamPicker,
@@ -583,13 +585,20 @@ export function initCompanion(): void {
 
   function renderAbilities() {
     const active = state.slot?.data?.petSlots || [];
+    const held = heldToolCount('XPPotion');
     const xpRate = teamXpPerHour(active);
     const activeCards = active.map(pet => {
       const metrics = petMetrics(pet);
       const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : 'Max STR reached' : 'Strength estimate unavailable';
       const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
       const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString()} XP potion${potionsToMax === 1 ? '' : 's'} to max` : '';
-      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionText ? `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : ''}</article>`;
+      // The button only appears when a potion is actually held, so it can never send a doomed request.
+      const potionRow = potionText
+        ? held > 0
+          ? `<button class="gc-pet-potions" data-xp-potion="${escapeHtml(pet.id)}" title="Spend one XP Potion on this pet. ${held} held.">${escapeHtml(potionText)}<i>Use one</i></button>`
+          : `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>`
+        : '';
+      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
     }).join('');
     const abilityRows = combinedAbilityRows(active);
     return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString()} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
@@ -603,6 +612,13 @@ export function initCompanion(): void {
   function bindTabEvents(main: HTMLElement): void {
     main.querySelectorAll<HTMLInputElement>('[data-feature]').forEach(input => input.onchange = () => { config[input.dataset.feature!] = input.checked; saveConfig(); updateLunarTimer(); renderPetFood(); });
     main.querySelector('[data-open-planner]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionTogglePlanner?.(); });
+    main.querySelectorAll<HTMLButtonElement>('[data-xp-potion]').forEach(button => button.onclick = () => {
+      try {
+        useXpPotion(button.dataset.xpPotion!);
+        button.disabled = true;
+        toast('XP potion requested.', 'success');
+      } catch (error) { toast((error as Error).message, 'error'); }
+    });
     main.querySelector('[data-open-overview]')?.addEventListener('click', () => page.__gardenCompanionToggleOverview?.());
     main.querySelectorAll<HTMLInputElement>('[data-silence]').forEach(input => input.onchange = () => { const set = new Set(config.silencedAbilities || []); input.checked ? set.add(input.dataset.silence!) : set.delete(input.dataset.silence!); config.silencedAbilities = [...set].sort(); saveConfig(); });
     main.querySelector('[data-silence-clear]')?.addEventListener('click', () => { config.silencedAbilities = []; saveConfig(); renderPanel(); });

@@ -1,6 +1,7 @@
 import type { Pet, ProduceItem } from './types.js';
 import { PET_CATALOG } from './constants.js';
 import { mutationMultiplier } from './mutation-value.js';
+import { send } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
 import { escapeHtml, humanize } from './utils.js';
@@ -159,4 +160,53 @@ export function formatEstimate(seconds: number): string {
   const hours = Math.floor(minutes % 1440 / 60);
   const remainder = minutes % 60;
   return days ? `${days}d ${hours}h` : hours ? `${hours}h ${remainder}m` : `${minutes}m`;
+}
+
+/** How many of a tool the player is holding, across the inventory and its storages. */
+export function heldToolCount(toolId: string): number {
+  const data = state.slot?.data;
+  const rows = [
+    ...(data?.inventory?.items || []),
+    ...((data?.inventory?.storages || []).flatMap(storage => storage.items || [])),
+  ] as unknown as Array<{ itemType?: string; toolId?: string; quantity?: number }>;
+  return rows
+    .filter(item => item?.itemType === 'Tool' && item.toolId === toolId)
+    .reduce((total, item) => total + Number(item.quantity || 0), 0);
+}
+
+interface Tile { x: number; y: number }
+
+/** Where a pet currently stands. Walking pets interpolate along their path by elapsed time. */
+function petTileFromMotion(motion: unknown): Tile | null {
+  if (!motion || typeof motion !== 'object') return null;
+  const value = motion as Record<string, unknown>;
+  const round = (tile: unknown): Tile | null => {
+    const point = tile as Record<string, unknown> | undefined;
+    const x = Number(point?.x), y = Number(point?.y);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x: Math.round(x), y: Math.round(y) } : null;
+  };
+  if (value.kind === 'idle') return round(value.at);
+  if (value.kind === 'walking' && Array.isArray(value.path) && value.path.length) {
+    const step = Number(value.stepDurationMs) || 0;
+    const started = Number(value.startedAtMs) || 0;
+    const elapsed = Math.max(0, Date.now() - started);
+    const index = step > 0 ? Math.min(value.path.length - 1, Math.floor(elapsed / step)) : 0;
+    return round(value.path[index]);
+  }
+  return null;
+}
+
+export function petTile(petItemId: string): Tile | null {
+  const infos = (state.slot as unknown as { petSlotInfos?: Record<string, { motion?: unknown }> })?.petSlotInfos;
+  return petTileFromMotion(infos?.[petItemId]?.motion);
+}
+
+/**
+ * Spends one XP Potion on a pet. The server only accepts it while the player stands on the pet, so
+ * the player is moved onto its tile first. The game applies the catalog xpAmount, so no value is sent.
+ */
+export function useXpPotion(petItemId: string): void {
+  const tile = petTile(petItemId);
+  if (tile) send({ type: 'PlayerPosition', position: tile });
+  send({ type: 'XPPotion', petItemId });
 }

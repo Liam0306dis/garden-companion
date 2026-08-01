@@ -362,3 +362,7 @@ body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
 .gc-journal-list[data-incomplete-only=true] .gc-journal-group:not(:has(.gc-journal-row[data-complete=false])) { display:none; }
 #gc-lunar[data-dragging=true] { opacity:.9; }
 #gc-lunar button { cursor:pointer; }
+button.gc-pet-potions { width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left; }
+button.gc-pet-potions i { flex:0 0 auto;padding:2px 7px;border:1px solid rgba(167,139,250,.4);border-radius:5px;color:#ddd6fe;background:rgba(167,139,250,.14);font-size:9px;font-weight:700;font-style:normal; }
+button.gc-pet-potions:hover { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.09); }
+button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
