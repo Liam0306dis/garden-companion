@@ -153,6 +153,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionMutationSprites?: Record<string, string>;
   __gardenCompanionFarmSystems?: FarmSystems;
   __gardenCompanionTogglePlanner?: () => void;
+  __gardenCompanionToggleOverview?: () => void;
   __gardenCompanionSetCinematic?: (enabled: boolean) => boolean;
   __gardenCompanionPlannerOpen?: () => boolean;
   __gardenCompanionPetSpritesReady?: () => void;

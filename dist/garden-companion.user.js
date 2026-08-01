@@ -3292,7 +3292,7 @@ ${rows}</div>`;
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderAbilities() {
       const active = state.slot?.data?.petSlots || [];
@@ -3322,6 +3322,7 @@ ${rows}</div>`;
         closePanel();
         page.__gardenCompanionTogglePlanner?.();
       });
+      main.querySelector("[data-open-overview]")?.addEventListener("click", () => page.__gardenCompanionToggleOverview?.());
       main.querySelectorAll("[data-silence]").forEach((input) => input.onchange = () => {
         const set = new Set(config.silencedAbilities || []);
         input.checked ? set.add(input.dataset.silence) : set.delete(input.dataset.silence);
@@ -3955,7 +3956,17 @@ ${rows}</div>`;
     #${PANEL_ID} .go-progress>i u{display:block;height:100%;border-radius:3px;text-decoration:none}
     #${PANEL_ID} .go-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}#${PANEL_ID} .go-section-head .go-section-title{flex:1;margin:0}
     #${PANEL_ID} .go-section-head button{width:26px;height:26px;padding:0;font-size:13px}
-    #${PANEL_ID} .go-eta-detail{padding:8px 0;color:var(--gc-text,#e4e4e7)}#${PANEL_ID} .go-eta-detail>div,#${PANEL_ID} .go-eta-done{display:flex;align-items:center;justify-content:space-between}#${PANEL_ID} .go-eta-detail span,#${PANEL_ID} .go-eta-done span{display:flex;align-items:center;gap:7px;font-size:12px}#${PANEL_ID} .go-eta-detail span i,#${PANEL_ID} .go-eta-done span i{width:6px;height:6px;flex:0 0 auto;border-radius:50%}#${PANEL_ID} .go-eta-detail b{font-size:12px}#${PANEL_ID} .go-eta-detail em{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:400;font-style:normal;opacity:.7}#${PANEL_ID} .go-eta-detail>u{display:block;height:5px;margin-top:6px;overflow:hidden;border-radius:3px;background:rgba(255,255,255,.07);text-decoration:none}#${PANEL_ID} .go-eta-detail>u i{display:block;height:100%;border-radius:3px}#${PANEL_ID} .go-eta-detail>small{display:block;margin-top:5px;color:var(--gc-muted,rgba(255,255,255,.72));text-align:right;font-size:10px;opacity:.7}#${PANEL_ID} .go-eta-done{padding:6px 0;color:var(--gc-text,#e4e4e7)}#${PANEL_ID} .go-eta-done span i{background:var(--gc-green,#34d399)}#${PANEL_ID} .go-eta-done b{color:var(--gc-green,#34d399);font-size:12px}
+    #${PANEL_ID} .go-eta-detail,#${PANEL_ID} .go-eta-done{padding:8px 10px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-text,#e4e4e7)}
+    #${PANEL_ID} .go-eta-detail+.go-eta-detail,#${PANEL_ID} .go-eta-detail+.go-eta-done,#${PANEL_ID} .go-eta-done+.go-eta-detail,#${PANEL_ID} .go-eta-done+.go-eta-done{margin-top:5px}
+    #${PANEL_ID} .go-eta-detail>div,#${PANEL_ID} .go-eta-done{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    #${PANEL_ID} .go-eta-detail span,#${PANEL_ID} .go-eta-done span{display:flex;min-width:0;align-items:center;gap:7px;font-size:12px}
+    #${PANEL_ID} .go-eta-detail span i,#${PANEL_ID} .go-eta-done span i{width:7px;height:7px;flex:0 0 auto;border-radius:50%}
+    #${PANEL_ID} .go-eta-detail b{flex:0 0 auto;font:700 12px system-ui,sans-serif}
+    #${PANEL_ID} .go-eta-detail em{margin-left:1px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:11px;font-weight:400;font-style:normal;opacity:.65}
+    #${PANEL_ID} .go-eta-detail>u{display:block;height:4px;margin-top:7px;overflow:hidden;border-radius:2px;background:rgba(255,255,255,.07);text-decoration:none}
+    #${PANEL_ID} .go-eta-detail>u i{display:block;height:100%;border-radius:2px}
+    #${PANEL_ID} .go-eta-detail>small{display:block;margin-top:6px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;opacity:.62}
+    #${PANEL_ID} .go-eta-done{border-color:rgba(52,211,153,.28);background:rgba(52,211,153,.07)}#${PANEL_ID} .go-eta-done span i{background:var(--gc-green,#34d399)}#${PANEL_ID} .go-eta-done b{color:var(--gc-green,#34d399);font:700 11px system-ui,sans-serif}
     #${PANEL_ID} .go-plants{padding-left:10px}#${PANEL_ID} .go-plant-row{display:flex;justify-content:space-between;padding:3px 0;color:var(--gc-text,#e4e4e7);font-size:12px}
     #${PANEL_ID} .go-plant-row b{font-weight:700}
     #${PANEL_ID} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,0,0,.18);border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72))}
@@ -4157,10 +4168,10 @@ ${rows}</div>`;
         const color = mutationColors[colorKey] || "#a78bfa";
         if (row.missing === 0) return `<div class="go-eta-done"><span><i></i>${label}</span><b>&#10003; done</b></div>`;
         const summary = `<small>avg ${averageDuration(row.meanSeconds)} &middot; ~${etaDuration(row.totalSeconds)} total</small>`;
-        if (row.countOnly) return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b style="color:${color}">${row.missing} <em>remaining</em></b></div>${summary}</div>`;
+        if (row.countOnly) return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b>${row.missing} <em>remaining</em></b></div>${summary}</div>`;
         const have = Math.max(0, (row.total ?? 0) - row.missing);
         const percent = row.total ? have / row.total * 100 : 0;
-        return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b style="color:${color}">${have}<em>/${row.total}</em></b></div><u><i style="width:${percent.toFixed(1)}%;background:${color}"></i></u>${summary}</div>`;
+        return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b>${have}<em>/${row.total}</em></b></div><u><i style="width:${percent.toFixed(1)}%;background:${color}"></i></u>${summary}</div>`;
       }).join("");
       const plantCount = (plants, crops) => plants > 0 && plants !== crops ? `${plants} <small>(${crops})</small>` : `${crops}`;
       const plantRows2 = stats.species.map((row) => `<div class="go-plant-row"><span>${escapeHtml2(row.species)}</span><b>${plantCount(row.plants, row.crops)}</b></div>`).join("");
@@ -4385,6 +4396,7 @@ ${rows}</div>`;
     }
     function mount() {
       injectStyles();
+      page3.__gardenCompanionToggleOverview = toggle;
       const button = document.createElement("button");
       button.id = BUTTON_ID;
       button.innerHTML = "&#x1F33F;";
