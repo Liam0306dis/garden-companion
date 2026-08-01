@@ -16,8 +16,8 @@ interface BundleCatalogs {
   plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number> }>;
   abilityColours: Record<string, string>;
-  mutations: Record<string, { name: string; group: string; coinMultiplier: number }>;
-  decor: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string }>;
+  mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
+  decor: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean }>;
 }
 
 async function catalogsFromBundle(): Promise<BundleCatalogs> {
@@ -28,7 +28,10 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
     .sort((left, right) => right.localeCompare(left, undefined, { numeric: true }));
 
   for (const directory of directories) {
-    const files = (await readdir(resolve(bundleRoot, directory))).filter(name => /^main-.*\.js$/.test(name));
+    // The game moves its catalogs between chunks between releases, so every script is searched
+    // with the main bundle first rather than assuming a filename.
+    const scripts = (await readdir(resolve(bundleRoot, directory))).filter(name => name.endsWith('.js'));
+    const files = scripts.sort((left, right) => Number(right.startsWith('main-')) - Number(left.startsWith('main-')));
     for (const file of files) {
       const bundle = await readFile(resolve(bundleRoot, directory, file), 'utf8');
       if (!bundle.includes('innateAbilityWeights')) continue;
@@ -101,12 +104,19 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
         // Mutations carry a display name that differs from their id (Dawncharged shows as Dawnbound)
         // and a group; only one mutation from each group can be on a crop at a time.
         const mutations = Object.fromEntries([...bundle.matchAll(
-          /([A-Za-z][A-Za-z0-9_]*):\{name:`([^`]+)`,baseChance:[0-9.e+-]+,coinMultiplier:([0-9.]+),group:`([A-Za-z]+)`/g)]
-          .map(match => [match[1], { name: match[2], group: match[4], coinMultiplier: Number(match[3]) }]));
+          /([A-Za-z][A-Za-z0-9_]*):\{name:`([^`]+)`,baseChance:[0-9.e+-]+,coinMultiplier:([0-9.]+),group:`([A-Za-z]+)`(?:,sprite:[A-Za-z_$]+\.Mutation\.([A-Za-z0-9_]+))?/g)]
+          .map(match => [match[1], { name: match[2], group: match[4], coinMultiplier: Number(match[3]), sprite: match[5] || match[1] }]));
         if (Object.keys(mutations).length < 8) continue;
+        // canDisplayCrop marks decor that can show a harvested crop on top (pedestals, stools).
         const decor = Object.fromEntries([...bundle.matchAll(
-          /([A-Za-z][A-Za-z0-9_]*):\{sprite:[A-Za-z_$]+\.Decor\.([A-Za-z0-9_]+),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`[^{}]*?rarity:[A-Za-z_$]+\.([A-Za-z]+)/g)]
-          .map(match => [match[1], { name: match[4], rarity: match[5], rotates: Boolean(match[3]), sprite: match[2] }]));
+          /([A-Za-z][A-Za-z0-9_]*):\{sprite:[A-Za-z_$]+\.Decor\.([A-Za-z0-9_]+),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`([^{}]*?)rarity:[A-Za-z_$]+\.([A-Za-z]+)([^{}]*)/g)]
+          .map(match => [match[1], {
+            name: match[4],
+            rarity: match[6],
+            rotates: Boolean(match[3]),
+            sprite: match[2],
+            ...(/canDisplayCrop:!0/.test(match[5] + match[7]) ? { mountable: true } : {}),
+          }]));
         if (Object.keys(decor).length < 10) continue;
         const abilityColours = await abilityColoursFromBundle(resolve(bundleRoot, directory));
         return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours, mutations, decor };
@@ -120,7 +130,7 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
 // The game colours each ability chip through a switch in its store chunk.
 // Read it from the captured bundle so our chips match the game exactly.
 async function abilityColoursFromBundle(directory: string): Promise<Record<string, string>> {
-  const files = (await readdir(directory)).filter(name => /^store-.*\.js$/.test(name));
+  const files = (await readdir(directory)).filter(name => name.endsWith('.js'));
   for (const file of files) {
     const chunk = await readFile(resolve(directory, file), 'utf8');
     const colours: Record<string, string> = {};
@@ -178,6 +188,7 @@ const petSpriteBuild = await build({
     __PET_CATALOG__: JSON.stringify(catalogs.pets),
     __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
     __DECOR_CATALOG__: JSON.stringify(catalogs.decor),
+    __MUTATION_CATALOG__: JSON.stringify(catalogs.mutations),
     __PET_WASM_B64__: JSON.stringify(wasmBase64),
   },
 });

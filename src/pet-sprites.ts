@@ -56,6 +56,10 @@ function shopSpriteCandidates(group: string, itemId: string): string[] {
   return [...(decorSprite ? [`sprite/decor/${decorSprite}`] : []), `sprite/decor/${itemId}`];
 }
 
+// Mutation badge icons, the same art the game shows on a crop card.
+const MUTATION_ICON_CANDIDATES = Object.fromEntries(Object.entries(__MUTATION_CATALOG__)
+  .map(([id, mutation]) => [id, `sprite/ui/Mutation${mutation.sprite}`]));
+
 const EMBLEM_ICON_SPRITES: Record<string, string> = {
   rainbow: 'MutationRainbow', gold: 'MutationGold', thunder: 'MutationThundercharged',
   dawn: 'MutationDawnlit', amber: 'MutationAmberlit', wet: 'MutationWet',
@@ -201,14 +205,17 @@ export async function initPetSprites(): Promise<void> {
     itemIds.map(itemId => [itemId, shopSpriteCandidates(group, itemId)]),
   ));
   const produceCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, produceSpriteCandidates(name)]));
+  const decorIds = new Set(SHOP_SPRITE_GROUPS.decor);
   const wanted = new Set([
     ...species.map(name => normaliseKey(`sprite/pet/${name}`)),
-    ...Object.values(shopCandidates).flat().map(normaliseKey),
+    ...Object.entries(shopCandidates).filter(([itemId]) => !decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
   ]);
   const emblemCandidates = Object.fromEntries(Object.entries(EMBLEM_ICON_SPRITES).map(([icon, name]) => [icon, `sprite/ui/${name}`]));
   const trimmedWanted = new Set([
     ...Object.values(produceCandidates).flat().map(normaliseKey),
     ...Object.values(emblemCandidates).map(normaliseKey),
+    ...Object.values(MUTATION_ICON_CANDIDATES).map(normaliseKey),
+    ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
   ]);
   try {
     const { frames, trimmed } = await loadPetFrames(assetsBase, paths, wanted, trimmedWanted);
@@ -217,7 +224,8 @@ export async function initPetSprites(): Promise<void> {
       return image ? [[name, image]] : [];
     }));
     page.__gardenCompanionShopSprites = Object.fromEntries(Object.entries(shopCandidates).flatMap(([itemId, candidates]) => {
-      const image = candidates.map(normaliseKey).map(key => frames.get(key)).find(Boolean);
+      const source = decorIds.has(itemId) ? trimmed : frames;
+      const image = candidates.map(normaliseKey).map(key => source.get(key)).find(Boolean);
       return image ? [[itemId, image]] : [];
     }));
     page.__gardenCompanionProduceSprites = Object.fromEntries(Object.entries(produceCandidates).flatMap(([name, candidates]) => {
@@ -227,6 +235,10 @@ export async function initPetSprites(): Promise<void> {
     page.__gardenCompanionEmblemSprites = Object.fromEntries(Object.entries(emblemCandidates).flatMap(([icon, candidate]) => {
       const image = trimmed.get(normaliseKey(candidate));
       return image ? [[icon, image]] : [];
+    }));
+    page.__gardenCompanionMutationSprites = Object.fromEntries(Object.entries(MUTATION_ICON_CANDIDATES).flatMap(([id, candidate]) => {
+      const image = trimmed.get(normaliseKey(candidate));
+      return image ? [[id, image]] : [];
     }));
     page.__gardenCompanionPetSpritesReady?.();
   } catch (error) {

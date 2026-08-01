@@ -57,6 +57,7 @@ export interface GardenTile {
   species?: string;
   decorId?: string;
   rotation?: number;
+  mountedCrop?: { id: string; species: string; itemType: string; scale: number; mutations: string[] };
   slots?: PlantSlot[];
   plantedAt?: number;
   maturedAt?: number;
@@ -144,6 +145,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionShopSprites?: Record<string, string>;
   __gardenCompanionProduceSprites?: Record<string, string>;
   __gardenCompanionEmblemSprites?: Record<string, string>;
+  __gardenCompanionMutationSprites?: Record<string, string>;
   __gardenCompanionFarmSystems?: FarmSystems;
   __gardenCompanionTogglePlanner?: () => void;
   __gardenCompanionSetCinematic?: (enabled: boolean) => boolean;

@@ -13,6 +13,7 @@ export function initGardenPlanner(): void {
   const PLANTS = __PLANT_CATALOG__;
   const MUTATIONS = __MUTATION_CATALOG__;
   const DECOR = __DECOR_CATALOG__;
+  const LAYOUT_KEY = 'gardenCompanion.layouts.v1';
   // One mutation per group can be on a crop, so picking one replaces the group's current choice.
   const MUTATION_GROUPS = [...new Set(Object.values(MUTATIONS).map(mutation => mutation.group))];
   const RARITY_ORDER = ['Common', 'Uncommon', 'Rare', 'Legendary', 'Mythic', 'Divine', 'Celestial'];
@@ -42,8 +43,35 @@ export function initGardenPlanner(): void {
     return planner.rotation === 0 ? -360 : -planner.rotation;
   }
 
+  /**
+   * Pedestals and stools can display a harvested crop, which the game stores on the tile as a
+   * mountedCrop carrying its own species, size and mutations.
+   */
   function plannedDecor(): GardenTile {
-    return { objectType: 'decor', decorId: planner.decorId, rotation: decorRotation() } as GardenTile;
+    const tile = { objectType: 'decor', decorId: planner.decorId, rotation: decorRotation() } as GardenTile;
+    if (DECOR[planner.decorId]?.mountable && planner.mountedSpecies) {
+      tile.mountedCrop = {
+        id: crypto.randomUUID(),
+        species: planner.mountedSpecies,
+        itemType: 'Produce',
+        scale: scaleFor(planner.mountedSpecies),
+        mutations: [...planner.mutations],
+      };
+    }
+    return tile;
+  }
+
+  /** Planned size for a species, defaulting to its maximum and clamped to the legal range. */
+  function scaleFor(species: string): number {
+    const max = Number(PLANTS[species]?.crop?.maxScale || 1);
+    if (planner.scale === null) return max;
+    return Math.min(max, Math.max(1, planner.scale));
+  }
+
+  function mutationIcon(id: string): string {
+    const sprite = page.__gardenCompanionMutationSprites?.[id];
+    const name = MUTATIONS[id]?.name || id;
+    return sprite ? `<img src="${sprite}" alt="${name}">` : `<b>${name.slice(0, 2)}</b>`;
   }
 
   function sortedSpecies(): string[] {
@@ -60,6 +88,8 @@ export function initGardenPlanner(): void {
     decorId: string;
     rotation: number;
     flipped: boolean;
+    mountedSpecies: string;
+    scale: number | null;
     mutations: Set<string>;
     tiles: Map<string, GardenTile>;
     painting: boolean;
@@ -73,6 +103,8 @@ export function initGardenPlanner(): void {
     decorId: Object.keys(DECOR)[0] || '',
     rotation: 0,
     flipped: false,
+    mountedSpecies: '',
+    scale: null,
     mutations: new Set(),
     tiles: new Map(),
     painting: false,
@@ -99,16 +131,30 @@ export function initGardenPlanner(): void {
     return typeof index === 'number' ? index : null;
   }
 
-  /** Local dirt tile index -> global tile index for the player's own garden. */
+  /**
+   * Planned tiles are keyed "dirt:3" or "board:3" because dirt and boardwalk tiles number
+   * separately, and decor can sit on either.
+   */
   function ownTileIndexes(): Record<string, number> {
     const slot = ownSlotIndex();
     const map = tileSystem()?.map;
-    if (slot === null || !map?.userSlotIdxAndDirtTileIdxToGlobalTileIdx) return {};
-    return map.userSlotIdxAndDirtTileIdxToGlobalTileIdx[slot] ?? {};
+    if (slot === null || !map) return {};
+    const indexes: Record<string, number> = {};
+    for (const [local, global] of Object.entries(map.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slot] ?? {})) {
+      indexes[`dirt:${local}`] = global as number;
+    }
+    for (const [local, global] of Object.entries(map.userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx?.[slot] ?? {})) {
+      indexes[`board:${local}`] = global as number;
+    }
+    return indexes;
   }
 
   function liveTiles(): Record<string, GardenTile> {
-    return (companionState()?.slot?.data?.garden?.tileObjects as Record<string, GardenTile>) ?? {};
+    const garden = companionState()?.slot?.data?.garden ?? {};
+    const tiles: Record<string, GardenTile> = {};
+    for (const [local, tile] of Object.entries((garden.tileObjects ?? {}) as Record<string, GardenTile>)) tiles[`dirt:${local}`] = tile;
+    for (const [local, tile] of Object.entries((garden.boardwalkTileObjects ?? {}) as Record<string, GardenTile>)) tiles[`board:${local}`] = tile;
+    return tiles;
   }
 
   /**
@@ -143,7 +189,7 @@ export function initGardenPlanner(): void {
         species: PLANTS[species]?.slotSpecies?.[slotId] || species,
         startTime: started,
         endTime: matured,
-        targetScale: Number(PLANTS[PLANTS[species]?.slotSpecies?.[slotId] || species]?.crop?.maxScale || 1),
+        targetScale: scaleFor(PLANTS[species]?.slotSpecies?.[slotId] || species),
         mutations: [...mutations],
         slotId,
         ...(isPatch ? patchSlotOffset(slotId, slots) : {}),
@@ -185,9 +231,15 @@ export function initGardenPlanner(): void {
     const y = Math.floor(world.y / 256);
     const map = system.map;
     if (x < 0 || y < 0 || x >= map.cols || y >= map.rows) return null;
-    const dirt = map.globalTileIdxToDirtTile?.[x + y * map.cols];
-    if (!dirt || dirt.userSlotIdx !== ownSlotIndex()) return null;
-    return String(dirt.dirtTileIdx);
+    const globalIndex = x + y * map.cols;
+    const dirt = map.globalTileIdxToDirtTile?.[globalIndex];
+    if (dirt && dirt.userSlotIdx === ownSlotIndex()) return `dirt:${dirt.dirtTileIdx}`;
+    // Boardwalk tiles hold decor only, so plants are not offered there.
+    const boardwalk = map.globalTileIdxToBoardwalk?.[globalIndex];
+    if (boardwalk && boardwalk.userSlotIdx === ownSlotIndex() && planner.mode === 'decor') {
+      return `board:${boardwalk.boardwalkTileIdx}`;
+    }
+    return null;
   }
 
   function updateCount(): void {
@@ -320,6 +372,33 @@ export function initGardenPlanner(): void {
     document.getElementById('gc-planner')?.remove();
   }
 
+  /** Keeps the size slider in step with the selected crop, whose maximum differs per species. */
+  function refreshScaleControl(panel: HTMLElement): void {
+    const species = planner.mode === 'decor' ? planner.mountedSpecies || planner.species : planner.species;
+    const slider = panel.querySelector<HTMLInputElement>('[data-plan-scale]');
+    if (!slider) return;
+    const max = Number(PLANTS[species]?.crop?.maxScale || 1);
+    const value = scaleFor(species);
+    slider.max = max.toFixed(2);
+    slider.value = value.toFixed(2);
+    slider.disabled = max <= 1;
+    const label = panel.querySelector<HTMLElement>('[data-plan-scale-value]');
+    if (label) label.textContent = max <= 1 ? 'fixed' : `${value.toFixed(2)}x`;
+    const maxButton = panel.querySelector<HTMLButtonElement>('[data-plan-scale-max]');
+    if (maxButton) maxButton.dataset.active = String(planner.scale === null);
+  }
+
+  function savedLayouts(): Record<string, Record<string, GardenTile>> {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch { return {}; }
+  }
+
+  function storeLayouts(layouts: Record<string, Record<string, GardenTile>>): void {
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layouts)); } catch {}
+  }
+
   function renderPanel(): void {
     if (!planner.open) return;
     let panel = document.getElementById('gc-planner');
@@ -340,7 +419,7 @@ export function initGardenPlanner(): void {
         .filter(([, mutation]) => mutation.group === group)
         .sort((left, right) => left[1].coinMultiplier - right[1].coinMultiplier)
         .map(([id, mutation]) =>
-          `<button data-plan-mutation="${id}" data-group="${group}" data-active="${planner.mutations.has(id)}" title="${mutation.name} x${mutation.coinMultiplier}">${mutation.name}</button>`)
+          `<button class="gc-planner-mutation" data-plan-mutation="${id}" data-group="${group}" data-active="${planner.mutations.has(id)}" title="${mutation.name} x${mutation.coinMultiplier}">${mutationIcon(id)}</button>`)
         .join('');
       return `<div class="gc-planner-mutation-group">${buttons}</div>`;
     }).join('');
@@ -350,17 +429,35 @@ export function initGardenPlanner(): void {
       return `<button data-plan-decor="${id}" data-rarity="${details?.rarity || 'Common'}" data-active="${id === planner.decorId}" title="${details?.name || id}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${(details?.name || id).slice(0, 1)}</i>`}</button>`;
     }).join('');
     const decorMode = planner.mode === 'decor';
+    const layoutNames = Object.keys(savedLayouts()).sort();
+    const scaleSpecies = decorMode ? planner.mountedSpecies || planner.species : planner.species;
+    const scaleMax = Number(PLANTS[scaleSpecies]?.crop?.maxScale || 1);
+    const scaleValue = scaleFor(scaleSpecies);
+    const previousScroll = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)')?.scrollTop ?? 0;
     panel.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size} planned</span><button data-plan-close>Exit</button></header>
 <div class="gc-planner-body"><small>Left click places, right click removes. Drag to fill. Nothing here is sent to the game.</small>
 <div class="gc-planner-modes"><button data-plan-mode="plants" class="${decorMode ? '' : 'active'}">Plants</button><button data-plan-mode="decor" class="${decorMode ? 'active' : ''}">Decor</button></div>
 <div class="gc-planner-grid">${decorMode ? decorOptions : options}</div>
+${decorMode && DECOR[planner.decorId]?.mountable
+  ? `<div class="gc-planner-row"><b>Display crop</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-mount="" data-active="${!planner.mountedSpecies}">None</button></div></div></div>
+<div class="gc-planner-grid gc-planner-mount">${sortedSpecies().map(name => {
+  const sprite = page.__gardenCompanionProduceSprites?.[name] || page.__gardenCompanionShopSprites?.[name] || '';
+  return `<button data-plan-mount="${name}" data-rarity="${PLANTS[name]?.rarity || 'Common'}" data-active="${name === planner.mountedSpecies}" title="${name}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${name.slice(0, 1)}</i>`}</button>`;
+}).join('')}</div>
+<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`
+  : ''}
 ${decorMode
   ? `${DECOR[planner.decorId]?.rotates
       ? `<div class="gc-planner-row"><b>Facing</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${[0, 90, 180, 270].map(angle => `<button data-plan-rotation="${angle}" data-active="${planner.rotation === angle}">${angle}</button>`).join('')}</div></div></div>`
       : ''}<div class="gc-planner-row"><b>Flip</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-flip="false" data-active="${!planner.flipped}">Normal</button><button data-plan-flip="true" data-active="${planner.flipped}">Flipped</button></div></div></div>`
   : `<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`}
-<div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div></div>`;
+${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${scaleValue.toFixed(2)}x</span><button data-plan-scale-max data-active="${planner.scale === null}">Max</button></div>`}
+<div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
+<div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
+${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select><button data-plan-delete>Delete</button></div>` : ''}</div>`;
 
+    const grid = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)');
+    if (grid) grid.scrollTop = previousScroll;
     panel.querySelector<HTMLButtonElement>('[data-plan-close]')!.onclick = close;
     // Selections update in place so the plant list keeps its scroll position.
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-species]').forEach(button => button.onclick = () => {
@@ -368,6 +465,7 @@ ${decorMode
       panel!.querySelectorAll<HTMLButtonElement>('[data-plan-species]').forEach(other => {
         other.dataset.active = String(other.dataset.planSpecies === planner.species);
       });
+      refreshScaleControl(panel!);
     });
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-mutation]').forEach(button => button.onclick = () => {
       const mutation = button.dataset.planMutation!;
@@ -401,8 +499,58 @@ ${decorMode
       panel!.querySelectorAll<HTMLButtonElement>('[data-plan-decor]').forEach(other => {
         other.dataset.active = String(other.dataset.planDecor === planner.decorId);
       });
-      // Only redraw when the facing row needs to appear or disappear.
-      if (Boolean(DECOR[previous]?.rotates) !== Boolean(DECOR[planner.decorId]?.rotates)) renderPanel();
+      // Redraw when the facing or display-crop rows need to appear or disappear.
+      if (Boolean(DECOR[previous]?.rotates) !== Boolean(DECOR[planner.decorId]?.rotates)
+        || Boolean(DECOR[previous]?.mountable) !== Boolean(DECOR[planner.decorId]?.mountable)) renderPanel();
+    });
+    // The game reads movement and hotkeys from window in the bubble phase, so stopping the event
+    // at the field keeps typed names out of the game while still typing normally.
+    const nameInput = panel.querySelector<HTMLInputElement>('[data-plan-name]');
+    if (nameInput) {
+      for (const type of ['keydown', 'keyup', 'keypress'] as const) {
+        nameInput.addEventListener(type, event => event.stopPropagation());
+      }
+    }
+    panel.querySelector<HTMLButtonElement>('[data-plan-save]')?.addEventListener('click', () => {
+      const name = nameInput?.value.trim();
+      if (!name) return;
+      storeLayouts({ ...savedLayouts(), [name]: Object.fromEntries(planner.tiles) });
+      renderPanel();
+    });
+    panel.querySelector<HTMLSelectElement>('[data-plan-load]')?.addEventListener('change', event => {
+      const layout = savedLayouts()[(event.target as HTMLSelectElement).value];
+      if (!layout) return;
+      planner.tiles = new Map(Object.entries(layout));
+      applyAllTiles();
+      updateCount();
+    });
+    panel.querySelector<HTMLButtonElement>('[data-plan-delete]')?.addEventListener('click', () => {
+      const name = panel!.querySelector<HTMLSelectElement>('[data-plan-load]')?.value;
+      if (!name) return;
+      const layouts = savedLayouts();
+      delete layouts[name];
+      storeLayouts(layouts);
+      renderPanel();
+    });
+    refreshScaleControl(panel);
+    const scaleInput = panel.querySelector<HTMLInputElement>('[data-plan-scale]');
+    if (scaleInput) scaleInput.oninput = () => {
+      planner.scale = Number(scaleInput.value);
+      const label = panel!.querySelector<HTMLElement>('[data-plan-scale-value]');
+      if (label) label.textContent = `${Number(scaleInput.value).toFixed(2)}x`;
+      const maxButton = panel!.querySelector<HTMLButtonElement>('[data-plan-scale-max]');
+      if (maxButton) maxButton.dataset.active = 'false';
+    };
+    panel.querySelector<HTMLButtonElement>('[data-plan-scale-max]')?.addEventListener('click', () => {
+      planner.scale = null;
+      renderPanel();
+    });
+    panel.querySelectorAll<HTMLButtonElement>('[data-plan-mount]').forEach(button => button.onclick = () => {
+      planner.mountedSpecies = button.dataset.planMount || '';
+      panel!.querySelectorAll<HTMLButtonElement>('[data-plan-mount]').forEach(other => {
+        other.dataset.active = String((other.dataset.planMount || '') === planner.mountedSpecies);
+      });
+      refreshScaleControl(panel!);
     });
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-flip]').forEach(button => button.onclick = () => {
       planner.flipped = button.dataset.planFlip === 'true';
