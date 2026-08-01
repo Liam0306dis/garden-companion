@@ -388,15 +388,77 @@ export function initGardenPlanner(): void {
     if (maxButton) maxButton.dataset.active = String(planner.scale === null);
   }
 
-  function savedLayouts(): Record<string, Record<string, GardenTile>> {
+  /**
+   * Layouts are stored as a recipe per tile rather than the expanded payload: a full garden of
+   * patch plants is about 210KB expanded but a few KB as recipes, and rebuilding on load keeps
+   * saved layouts working when the game changes its slot layouts.
+   */
+  interface TileRecipe {
+    p?: string;
+    d?: string;
+    r?: number;
+    m?: string[];
+    s?: number;
+    c?: string;
+  }
+
+  const MAX_LAYOUTS = 25;
+
+  function toRecipe(tile: GardenTile): TileRecipe {
+    if (tile.objectType === 'decor') {
+      return {
+        d: tile.decorId,
+        r: tile.rotation,
+        ...(tile.mountedCrop ? { c: tile.mountedCrop.species, m: tile.mountedCrop.mutations, s: tile.mountedCrop.scale } : {}),
+      };
+    }
+    const slot = tile.slots?.[0];
+    return { p: tile.species, m: slot?.mutations ?? [], s: slot?.targetScale };
+  }
+
+  function fromRecipe(recipe: TileRecipe): GardenTile | null {
+    const previousScale = planner.scale;
+    try {
+      planner.scale = recipe.s ?? null;
+      if (recipe.d) {
+        const tile = { objectType: 'decor', decorId: recipe.d, rotation: recipe.r ?? 0 } as GardenTile;
+        if (recipe.c) {
+          tile.mountedCrop = {
+            id: crypto.randomUUID(),
+            species: recipe.c,
+            itemType: 'Produce',
+            scale: recipe.s ?? scaleFor(recipe.c),
+            mutations: recipe.m ?? [],
+          };
+        }
+        return tile;
+      }
+      return recipe.p ? plannedTile(recipe.p, recipe.m ?? []) : null;
+    } finally {
+      planner.scale = previousScale;
+    }
+  }
+
+  function savedLayouts(): Record<string, Record<string, TileRecipe>> {
     try {
       const parsed = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
       return parsed && typeof parsed === 'object' ? parsed : {};
     } catch { return {}; }
   }
 
-  function storeLayouts(layouts: Record<string, Record<string, GardenTile>>): void {
-    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layouts)); } catch {}
+  /** Returns a problem to show the user, or an empty string when the layout was stored. */
+  function storeLayouts(layouts: Record<string, Record<string, TileRecipe>>): string {
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(layouts));
+      return '';
+    } catch {
+      return 'Layout could not be saved: browser storage is full.';
+    }
+  }
+
+  function showPlannerNotice(message: string): void {
+    const notice = document.querySelector<HTMLElement>('#gc-planner [data-plan-notice]');
+    if (notice) notice.textContent = message;
   }
 
   function renderPanel(): void {
@@ -435,7 +497,7 @@ export function initGardenPlanner(): void {
     const scaleValue = scaleFor(scaleSpecies);
     const previousScroll = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)')?.scrollTop ?? 0;
     panel.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size} planned</span><button data-plan-close>Exit</button></header>
-<div class="gc-planner-body"><small>Left click places, right click removes. Drag to fill. Nothing here is sent to the game.</small>
+<div class="gc-planner-body"><small data-plan-notice>Left click places, right click removes. Drag to fill. Nothing here is sent to the game.</small>
 <div class="gc-planner-modes"><button data-plan-mode="plants" class="${decorMode ? '' : 'active'}">Plants</button><button data-plan-mode="decor" class="${decorMode ? 'active' : ''}">Decor</button></div>
 <div class="gc-planner-grid">${decorMode ? decorOptions : options}</div>
 ${decorMode && DECOR[planner.decorId]?.mountable
@@ -514,13 +576,26 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     panel.querySelector<HTMLButtonElement>('[data-plan-save]')?.addEventListener('click', () => {
       const name = nameInput?.value.trim();
       if (!name) return;
-      storeLayouts({ ...savedLayouts(), [name]: Object.fromEntries(planner.tiles) });
+      const layouts = savedLayouts();
+      if (!layouts[name] && Object.keys(layouts).length >= MAX_LAYOUTS) {
+        showPlannerNotice(`You can keep ${MAX_LAYOUTS} layouts. Delete one first.`);
+        return;
+      }
+      const recipes = Object.fromEntries([...planner.tiles].map(([key, tile]) => [key, toRecipe(tile)]));
+      const problem = storeLayouts({ ...layouts, [name]: recipes });
+      if (problem) {
+        showPlannerNotice(problem);
+        return;
+      }
       renderPanel();
     });
     panel.querySelector<HTMLSelectElement>('[data-plan-load]')?.addEventListener('change', event => {
       const layout = savedLayouts()[(event.target as HTMLSelectElement).value];
       if (!layout) return;
-      planner.tiles = new Map(Object.entries(layout));
+      planner.tiles = new Map(Object.entries(layout).flatMap(([key, recipe]) => {
+        const tile = fromRecipe(recipe);
+        return tile ? [[key, tile] as [string, GardenTile]] : [];
+      }));
       applyAllTiles();
       updateCount();
     });
