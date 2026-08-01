@@ -33,7 +33,9 @@ function produceVariants(): string[] {
   return [...KNOWN_PRODUCE_VARIANTS.slice(0, -1), ...extra, 'Max Weight'];
 }
 
-let journalTab: 'plants' | 'pets' = 'plants';
+type Kind = 'plants' | 'pets';
+
+let journalTab: Kind = 'plants';
 let incompleteOnly = false;
 
 export function setJournalTab(tab: string): void {
@@ -44,13 +46,17 @@ export function toggleIncompleteOnly(): void {
   incompleteOnly = !incompleteOnly;
 }
 
-/** The game shows a mutation's display name, which differs from the id it stores it under. */
-function variantLabel(variant: string): string {
+/**
+ * The game shows a mutation's display name, which differs from the id it stores it under. The two
+ * non-mutation variants read differently per tab: a plant is measured by size, a pet by strength.
+ */
+function variantLabel(variant: string, kind: Kind): string {
+  if (variant === 'Max Weight') return kind === 'pets' ? 'Max Strength' : 'Max Size';
   return MUTATION_CATALOG[variant]?.name || variant;
 }
 
-function variantChip(variant: string, logged: boolean, at?: number): string {
-  const label = variantLabel(variant);
+function variantChip(variant: string, kind: Kind, logged: boolean, at?: number): string {
+  const label = variantLabel(variant, kind);
   const sprite = page.__gardenCompanionMutationSprites?.[variant];
   const seen = logged && at ? `\nFound at ${new Date(at).toLocaleDateString()}` : '';
   const title = `${label}${logged ? '' : ' - not logged'}${seen}`;
@@ -82,12 +88,13 @@ function speciesRow(options: {
   variants: string[];
   logged: Map<string, number>;
   rarity: string;
+  kind: Kind;
   extra?: string;
 }): string {
-  const { id, name, sprite, variants, logged, rarity, extra = '' } = options;
+  const { id, name, sprite, variants, logged, rarity, kind, extra = '' } = options;
   const have = variants.filter(variant => logged.has(variant)).length;
   const complete = have === variants.length;
-  const chips = variants.map(variant => variantChip(variant, logged.has(variant), logged.get(variant))).join('');
+  const chips = variants.map(variant => variantChip(variant, kind, logged.has(variant), logged.get(variant))).join('');
   return `<article class="gc-journal-row" data-complete="${complete}" data-rarity="${escapeHtml(rarity)}" data-filter-text="${escapeHtml(`${name} ${id} ${rarity}`.toLowerCase())}">
 <span class="gc-journal-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(name)}</b><small>${have}/${variants.length}${complete ? ' complete' : ''}</small></span></span>
 <span class="gc-journal-chips">${chips}</span>${extra}</article>`;
@@ -125,6 +132,7 @@ function plantRows(): { rows: string; have: number; total: number } {
         variants: PRODUCE_VARIANTS,
         logged,
         rarity,
+        kind: 'plants',
       });
     }).join('');
     return speciesGroup(rarity, '', inRarity.map(name => humanize(name)).concat(inRarity), markup);
@@ -162,6 +170,7 @@ function petRows(): { rows: string; have: number; total: number } {
       variants: PET_VARIANTS,
       logged,
       rarity: PET_CATALOG[name]?.rarity || 'Common',
+      kind: 'pets',
       extra,
     });
   };

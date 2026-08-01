@@ -1827,11 +1827,12 @@
   function toggleIncompleteOnly() {
     incompleteOnly = !incompleteOnly;
   }
-  function variantLabel(variant) {
+  function variantLabel(variant, kind) {
+    if (variant === "Max Weight") return kind === "pets" ? "Max Strength" : "Max Size";
     return MUTATION_CATALOG[variant]?.name || variant;
   }
-  function variantChip(variant, logged, at) {
-    const label = variantLabel(variant);
+  function variantChip(variant, kind, logged, at) {
+    const label = variantLabel(variant, kind);
     const sprite = page.__gardenCompanionMutationSprites?.[variant];
     const seen = logged && at ? `
 Found at ${new Date(at).toLocaleDateString()}` : "";
@@ -1850,10 +1851,10 @@ Found at ${new Date(at).toLocaleDateString()}` : "";
     return found;
   }
   function speciesRow(options) {
-    const { id, name, sprite, variants, logged, rarity, extra = "" } = options;
+    const { id, name, sprite, variants, logged, rarity, kind, extra = "" } = options;
     const have = variants.filter((variant) => logged.has(variant)).length;
     const complete = have === variants.length;
-    const chips = variants.map((variant) => variantChip(variant, logged.has(variant), logged.get(variant))).join("");
+    const chips = variants.map((variant) => variantChip(variant, kind, logged.has(variant), logged.get(variant))).join("");
     return `<article class="gc-journal-row" data-complete="${complete}" data-rarity="${escapeHtml(rarity)}" data-filter-text="${escapeHtml(`${name} ${id} ${rarity}`.toLowerCase())}">
 <span class="gc-journal-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(name)}</b><small>${have}/${variants.length}${complete ? " complete" : ""}</small></span></span>
 <span class="gc-journal-chips">${chips}</span>${extra}</article>`;
@@ -1880,7 +1881,8 @@ ${rows}</div>`;
           sprite: produceSprite(name),
           variants: PRODUCE_VARIANTS,
           logged,
-          rarity
+          rarity,
+          kind: "plants"
         });
       }).join("");
       return speciesGroup(rarity, "", inRarity.map((name) => humanize(name)).concat(inRarity), markup);
@@ -1907,6 +1909,7 @@ ${rows}</div>`;
         variants: PET_VARIANTS,
         logged,
         rarity: PET_CATALOG[name]?.rarity || "Common",
+        kind: "pets",
         extra
       });
     };
