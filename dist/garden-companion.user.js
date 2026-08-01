@@ -4176,16 +4176,19 @@
       if (maxButton) maxButton.dataset.active = String(planner.scale === null);
     }
     const MAX_LAYOUTS = 25;
+    function round2(value) {
+      return typeof value === "number" ? Math.round(value * 100) / 100 : void 0;
+    }
     function toRecipe(tile) {
       if (tile.objectType === "decor") {
         return {
           d: tile.decorId,
           r: tile.rotation,
-          ...tile.mountedCrop ? { c: tile.mountedCrop.species, m: tile.mountedCrop.mutations, s: tile.mountedCrop.scale } : {}
+          ...tile.mountedCrop ? { c: tile.mountedCrop.species, m: tile.mountedCrop.mutations, s: round2(tile.mountedCrop.scale) } : {}
         };
       }
       const slot = tile.slots?.[0];
-      return { p: tile.species, m: slot?.mutations ?? [], s: slot?.targetScale };
+      return { p: tile.species, m: slot?.mutations ?? [], s: round2(slot?.targetScale) };
     }
     function fromRecipe(recipe) {
       const previousScale = planner.scale;

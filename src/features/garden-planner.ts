@@ -404,16 +404,22 @@ export function initGardenPlanner(): void {
 
   const MAX_LAYOUTS = 25;
 
+  function round2(value?: number): number | undefined {
+    return typeof value === 'number' ? Math.round(value * 100) / 100 : undefined;
+  }
+
   function toRecipe(tile: GardenTile): TileRecipe {
     if (tile.objectType === 'decor') {
       return {
         d: tile.decorId,
         r: tile.rotation,
-        ...(tile.mountedCrop ? { c: tile.mountedCrop.species, m: tile.mountedCrop.mutations, s: tile.mountedCrop.scale } : {}),
+        ...(tile.mountedCrop ? { c: tile.mountedCrop.species, m: tile.mountedCrop.mutations, s: round2(tile.mountedCrop.scale) } : {}),
       };
     }
     const slot = tile.slots?.[0];
-    return { p: tile.species, m: slot?.mutations ?? [], s: slot?.targetScale };
+    // Sizes are rounded: the game rolls scales like 1.0000916889895834, and keeping every digit
+    // bloats saved layouts for no visible difference.
+    return { p: tile.species, m: slot?.mutations ?? [], s: round2(slot?.targetScale) };
   }
 
   function fromRecipe(recipe: TileRecipe): GardenTile | null {
