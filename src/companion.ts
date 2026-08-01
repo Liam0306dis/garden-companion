@@ -1,146 +1,67 @@
 import type {
   CompanionAlarmOptions,
-  CompanionConfig,
   CompanionPage,
   FullState,
   GameState,
   JotaiAtom,
   Pet,
-  PlantSlot,
   PetTeamEmblem,
   PlayerSlot,
   ProduceItem,
   RoomState,
   ShopItem,
 } from './types.js';
-
-interface AbilityLogRow {
-  at: number;
-  ability: string;
-  pet: string;
-  data: Record<string, unknown>;
-}
-
-interface CompanionState {
-  room: RoomState | null;
-  game: GameState | null;
-  slot: PlayerSlot | null;
-  slotIndex: number | null;
-  playerId: string | null;
-  currentCrop: PlantSlot[] | null;
-  currentEgg: PlantSlot | null;
-  dirtTileIndex: string | number | null;
-  selectedSlotId: string | number | null;
-  currentAction: string | null;
-  lastShopSignature: string;
-  initializedShops: boolean;
-  activityCursor: number;
-  abilityLog: AbilityLogRow[];
-}
+import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
+import {
+  ABILITY_COLOURS,
+  ABILITY_COLOUR_FALLBACK,
+  ABILITY_DETAILS,
+  ABILITY_FILTER_OPTIONS,
+  ABILITY_GROUPS,
+  ABILITY_SET,
+  EXCLUDED_TOOL_ALERTS,
+  GRANTER_CHANCES,
+  ITEM_KEYS,
+  LOG_KEY,
+  LOG_PER_ABILITY,
+  LOG_VISIBLE_ROWS,
+  MAX_PET_TEAMS,
+  MAX_TEAM_PETS,
+  OVERVIEW_SHORTCUT_KEY,
+  PASSIVE_REQUIRED_WEATHER,
+  PET_CATALOG,
+  PROC_RULES,
+  SEASONAL_SHOP_ITEMS,
+  SHOP_NAMES,
+  SHOP_TABS,
+  STACKED_PASSIVE_BY_ABILITY,
+  TRACKED_ABILITY_CATALOG,
+  UPDATE_URL,
+  XP_PER_POTION,
+} from './constants.js';
+import {
+  bindGranterRows,
+  foodSlotValue,
+  initCalculators,
+  renderCalculators,
+  selectGranterAbility,
+  setCalculatorTab,
+  setDustSelection,
+  setFoodSlot,
+  toggleDustPet,
+  updateDustTotal,
+  updateGranterSection,
+} from './features/calculators.js';
+import { page } from './page.js';
+import { saveAbilityLog, state, trimAbilityLogs } from './state.js';
+import { escapeHtml, formatDuration, humanize, saveLocal } from './utils.js';
 
 export function initCompanion(): void {
   'use strict';
 
-  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
-  const STORE_KEY = 'gardenCompanion.config.v1';
-  const LOG_KEY = 'gardenCompanion.abilityLog.v1';
-  // History is kept per exact ability rather than overall so a chatty ability cannot crowd out a rare one.
-  const LOG_PER_ABILITY = 400;
-  const LOG_VISIBLE_ROWS = 400;
-  const OVERVIEW_SHORTCUT_KEY = 'gardenCompanion.overviewShortcut.v1';
-  const UPDATE_URL = 'https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js';
-  const ABILITY_CATALOG = __ABILITY_CATALOG__;
-  const ABILITY_DETAILS = __ABILITY_DETAILS__;
-  const PET_CATALOG = __PET_CATALOG__;
-  const ABILITY_GROUPS = [
-    ['Coin Finder', ['CoinFinderI', 'CoinFinderII', 'CoinFinderIII', 'SnowyCoinFinder', 'DawnCoinFinder', 'ThunderCoinFinder']],
-    ['Plant Growth Boost', ['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost']],
-    ['Crop Size Boost', ['ProduceScaleBoost', 'ProduceScaleBoostII', 'ProduceScaleBoostIII', 'SnowyCropSizeBoost']],
-    ['Egg Growth Boost', ['EggGrowthBoost', 'EggGrowthBoostII_NEW', 'EggGrowthBoostII', 'SnowyEggGrowthBoost', 'ThunderEggGrowthBoost']],
-    ['XP Boost', ['PetXpBoost', 'PetXpBoostII', 'PetXpBoostIII', 'SnowyPetXpBoost', 'DawnXpBoost', 'ThunderXpBoost']],
-    ['Hunger Restore', ['HungerRestore', 'HungerRestoreII', 'HungerRestoreIII', 'SnowyHungerRestore']],
-    ['Hatch XP Boost', ['PetAgeBoost', 'PetAgeBoostII', 'PetAgeBoostIII']],
-    ['Max Strength Boost', ['PetHatchSizeBoost', 'PetHatchSizeBoostII', 'PetHatchSizeBoostIII']],
-    ['Pet Refund', ['PetRefund', 'PetRefundII']],
-    ['Seed Finder', ['SeedFinderI', 'SeedFinderII', 'SeedFinderIII', 'SeedFinderIV']],
-    ['Sell Boost', ['SellBoostI', 'SellBoostII', 'SellBoostIII', 'SellBoostIV']],
-    ['Mutation Granter', ['RainDance', 'SnowGranter', 'FrostGranter', 'DawnlitGranter', 'AmberlitGranter', 'GoldGranter', 'RainbowGranter', 'ThunderstruckGranter']],
-  ] as const;
-  const UNGROUPED_TRACKED_ABILITIES = ['ProduceEater', 'ProduceRefund', 'DoubleHarvest', 'DoubleHatch'];
-  const EXCLUDED_TRACKED_ABILITIES = new Set([
-    'HungerBoost', 'HungerBoostII', 'HungerBoostIII', 'SnowyHungerBoost',
-    'PetMutationBoost', 'PetMutationBoostII', 'PetMutationBoostIII',
-    'ProduceMutationBoost', 'ProduceMutationBoostII', 'ProduceMutationBoostIII', 'SnowyCropMutationBoost', 'DawnBoost', 'AmberMoonBoost', 'ThunderBoost',
-    'MoonKisser', 'DawnKisser', 'Thunderbloom', 'Copycat', 'DawnCapture', 'Thundercharger', 'DawnbinderBoost',
-  ]);
-  const TRACKED_ABILITY_CATALOG = ABILITY_CATALOG.filter(ability => !EXCLUDED_TRACKED_ABILITIES.has(ability));
-  const ABILITY_SET = new Set(TRACKED_ABILITY_CATALOG);
-  const ABILITY_GROUP_BY_ID = new Map<string, string>();
-  for (const [label, abilities] of ABILITY_GROUPS) for (const ability of abilities) ABILITY_GROUP_BY_ID.set(ability, label);
-  const ABILITY_FILTER_OPTIONS: Array<{ key: string; label: string; abilities: readonly string[] }> = [
-    ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
-    ...UNGROUPED_TRACKED_ABILITIES.map(ability => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] })),
-  ];
-  const EXCLUDED_TOOL_ALERTS = new Set(['Shovel', 'FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo']);
-  const STACKED_PASSIVE_GROUPS = [
-    { key: 'HungerBoost', label: 'Hunger Boost', parameter: 'hungerRefundPercentage', abilities: ['HungerBoost', 'HungerBoostII', 'HungerBoostIII', 'SnowyHungerBoost'] },
-    { key: 'WeatherMutationBoost', label: 'Weather Mutation Boost', parameter: 'mutationChanceIncreasePercentage', abilities: ['ProduceMutationBoost', 'ProduceMutationBoostII', 'ProduceMutationBoostIII', 'SnowyCropMutationBoost', 'DawnBoost', 'AmberMoonBoost', 'ThunderBoost'] },
-    { key: 'PetMutationBoost', label: 'Pet Mutation Boost', parameter: 'mutationChanceIncreasePercentage', abilities: ['PetMutationBoost', 'PetMutationBoostII', 'PetMutationBoostIII'] },
-    { key: 'DawnbinderBoost', label: 'Dawnbinder Boost', parameter: 'plantAbilityChanceBoostPercentage', abilities: ['DawnbinderBoost'] },
-  ] as const;
-  const STACKED_PASSIVE_BY_ABILITY = new Map(STACKED_PASSIVE_GROUPS.flatMap(group => group.abilities.map(ability => [ability, group] as const)));
-  const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
-    ['SnowyHungerBoost', 'Frost'], ['SnowyCropMutationBoost', 'Frost'], ['DawnBoost', 'Dawn'],
-    ['AmberMoonBoost', 'AmberMoon'], ['ThunderBoost', 'Thunderstorm'],
-  ]);
-  const ALWAYS_ENABLED = new Set(['overview', 'petTeams', 'abilities', 'rooms', 'shopAlarms', 'interfaceShortcuts', 'abilitySilencer', 'lunarTimer']);
-  const DEFAULTS: CompanionConfig = {
-    overview: true,
-    dragMove: true,
-    petTeams: true,
-    abilities: true,
-    rooms: true,
-    shopAlarms: true,
-    turtleTimer: true,
-    petFood: true,
-    instantHarvest: false,
-    interfaceShortcuts: true,
-    backgroundMode: true,
-    autoRefreshGameUpdates: true,
-    lunarTimer: true,
-    abilitySilencer: true,
-    silencedAbilities: [],
-    trackedAbilities: [...ABILITY_CATALOG],
-    shopAlerts: {},
-    petFoodChoices: {},
-    teamKeybinds: {},
-    interfaceKeybinds: {},
-  };
+  pruneStaleConfig();
+  initCalculators({ allPets, activePets, petMetrics, petSprite, petDiet, produceSprite });
 
-  function readConfig(): CompanionConfig {
-    try {
-      const saved = GM_getValue(STORE_KEY, {});
-      return { ...DEFAULTS, ...(saved && typeof saved === 'object' ? saved : {}) } as CompanionConfig;
-    } catch {
-      try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE_KEY) || '{}') } as CompanionConfig; }
-      catch { return { ...DEFAULTS }; }
-    }
-  }
-
-  let config = readConfig();
-  const savedSilencedAbilities = Array.isArray(config.silencedAbilities) ? config.silencedAbilities : [];
-  config.silencedAbilities = savedSilencedAbilities.filter(ability => !EXCLUDED_TRACKED_ABILITIES.has(ability));
-  const savedShopAlerts = config.shopAlerts && typeof config.shopAlerts === 'object' ? config.shopAlerts : {};
-  config.shopAlerts = Object.fromEntries(Object.entries(savedShopAlerts).filter(([key]) => {
-    const [shop, itemId] = key.split(':');
-    return shop !== 'tool' || !EXCLUDED_TOOL_ALERTS.has(itemId);
-  }));
-  const savedFoodChoices = config.petFoodChoices && typeof config.petFoodChoices === 'object' ? config.petFoodChoices : {};
-  config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices).filter(([species, crop]) => PET_CATALOG[species]?.diet?.includes(crop)));
-  function saveConfig() {
-    try { GM_setValue(STORE_KEY, config); }
-    catch { localStorage.setItem(STORE_KEY, JSON.stringify(config)); }
-  }
   function refreshVisibleKeybindInputs(): void {
     document.querySelectorAll<HTMLInputElement>('#gc-panel [data-team-key]').forEach(field => {
       field.value = config.teamKeybinds[field.dataset.teamKey!] || '';
@@ -186,9 +107,7 @@ export function initCompanion(): void {
     if (overviewShortcutChanged !== null) page.__gardenCompanionOverviewShortcutChanged?.(overviewShortcutChanged);
   }
   page.__gardenCompanionClaimKeybind = claimKeybind;
-  if (config.silencedAbilities.length !== savedSilencedAbilities.length || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length) saveConfig();
 
-  function feature(name: string): boolean { return ALWAYS_ENABLED.has(name) || config[name] !== false; }
   (window as unknown as CompanionPage).__gardenCompanionFeature = feature;
   page.__gardenCompanionFeature = feature;
   page.__gardenCompanionConfig = () => config;
@@ -265,126 +184,6 @@ export function initCompanion(): void {
   }
 
   installBackgroundMode();
-
-  const state: CompanionState = {
-    room: null,
-    game: null,
-    slot: null,
-    slotIndex: null,
-    playerId: null,
-    currentCrop: null,
-    currentEgg: null,
-    dirtTileIndex: null,
-    selectedSlotId: null,
-    currentAction: null,
-    lastShopSignature: '',
-    initializedShops: false,
-    activityCursor: Number(localStorage.getItem('gardenCompanion.activityCursor') || 0),
-    abilityLog: trimAbilityLogs(loadLocal<AbilityLogRow[]>(LOG_KEY, [])),
-  };
-
-  const SHOP_NAMES = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder' };
-  const SHOP_TABS = [['seed', 'Seeds'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
-  const SEASONAL_SHOP_ITEMS: Record<string, string[]> = {
-    dawn: ['Daisy', 'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'DawnCelestial', 'DawnEgg'],
-    thunder: ['Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial', 'ThunderEgg', 'SmallGravestone', 'MediumGravestone', 'LargeGravestone', 'Cauldron', 'WindchimeMoon', 'WindchimeStar', 'WindSpinner', 'WindTurner'],
-    snow: ['Snowdrop', 'PineTree', 'Leek', 'Squash', 'Poinsettia', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'ColoredStringLights', 'WoodCaribou', 'StoneCaribou', 'MarbleCaribou'],
-  };
-  const ITEM_KEYS = ['species', 'eggId', 'toolId', 'decorId'];
-
-  const GRANTER_CHANCES: Record<string, number> = {
-    RainbowGranter: .72, GoldGranter: .72, AmberlitGranter: 2, DawnlitGranter: 4, FrostGranter: 6,
-    ThunderstruckGranter: 5, SnowGranter: 8, RainGranter: 10, RainDance: 10, ProduceScaleBoost: .3, ProduceScaleBoostI: .3, ProduceScaleBoostII: .4,
-  };
-  const PROC_RULES: Record<string, { chance: number; tick: boolean; effect: (strength: number) => string }> = {
-    PlantGrowthBoost: { chance: 24, tick: true, effect: strength => `Growth reduction: ${(3 * strength / 100).toFixed(1)}m per proc` },
-    PlantGrowthBoostII: { chance: 27, tick: true, effect: strength => `Growth reduction: ${(5 * strength / 100).toFixed(1)}m per proc` },
-    PlantGrowthBoostIII: { chance: 30, tick: true, effect: strength => `Growth reduction: ${(7 * strength / 100).toFixed(1)}m per proc` },
-    SnowyPlantGrowthBoost: { chance: 40, tick: true, effect: strength => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-    DawnPlantGrowthBoost: { chance: 60, tick: true, effect: strength => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-    AmberPlantGrowthBoost: { chance: 80, tick: true, effect: strength => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-    ThunderPlantGrowthBoost: { chance: 50, tick: true, effect: strength => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-    EggGrowthBoost: { chance: 21, tick: true, effect: strength => `Hatch reduction: ${(7 * strength / 100).toFixed(1)}m per proc` },
-    EggGrowthBoostII_NEW: { chance: 24, tick: true, effect: strength => `Hatch reduction: ${(9 * strength / 100).toFixed(1)}m per proc` },
-    EggGrowthBoostII: { chance: 27, tick: true, effect: strength => `Hatch reduction: ${(11 * strength / 100).toFixed(1)}m per proc` },
-    SnowyEggGrowthBoost: { chance: 35, tick: true, effect: strength => `Hatch reduction: ${(10 * strength / 100).toFixed(1)}m per proc` },
-    ThunderEggGrowthBoost: { chance: 50, tick: true, effect: strength => `Hatch reduction: ${(10 * strength / 100).toFixed(1)}m per proc` },
-    ProduceEater: { chance: 60, tick: true, effect: strength => `Sell bonus: ${(150 * strength / 100).toFixed(0)}% price` },
-    DoubleHarvest: { chance: 5, tick: false, effect: () => 'Effect: double harvest' },
-    DoubleHatch: { chance: 3, tick: false, effect: () => 'Effect: extra pet' },
-    ProduceRefund: { chance: 20, tick: false, effect: () => 'Effect: crop refund' },
-    SellBoostI: { chance: 10, tick: false, effect: strength => `Sell bonus: +${(20 * strength / 100).toFixed(0)}% coins` },
-    SellBoostII: { chance: 12, tick: false, effect: strength => `Sell bonus: +${(30 * strength / 100).toFixed(0)}% coins` },
-    SellBoostIII: { chance: 14, tick: false, effect: strength => `Sell bonus: +${(40 * strength / 100).toFixed(0)}% coins` },
-    SellBoostIV: { chance: 16, tick: false, effect: strength => `Sell bonus: +${(50 * strength / 100).toFixed(0)}% coins` },
-    PetRefund: { chance: 5, tick: false, effect: () => 'Effect: egg refund' },
-    PetRefundII: { chance: 7, tick: false, effect: () => 'Effect: egg refund' },
-    PetHatchSizeBoost: { chance: 12, tick: false, effect: strength => `Max STR boost: +${(2.4 * strength / 100).toFixed(2)}%` },
-    PetHatchSizeBoostII: { chance: 14, tick: false, effect: strength => `Max STR boost: +${(3.5 * strength / 100).toFixed(2)}%` },
-    PetHatchSizeBoostIII: { chance: 16, tick: false, effect: strength => `Max STR boost: +${(4.6 * strength / 100).toFixed(2)}%` },
-    PetAgeBoost: { chance: 50, tick: false, effect: strength => `Bonus XP: +${Math.floor(8000 * strength / 100).toLocaleString()}` },
-    PetAgeBoostII: { chance: 60, tick: false, effect: strength => `Bonus XP: +${Math.floor(12000 * strength / 100).toLocaleString()}` },
-    PetAgeBoostIII: { chance: 70, tick: false, effect: strength => `Bonus XP: +${Math.floor(16000 * strength / 100).toLocaleString()}` },
-    SeedFinderI: { chance: 40, tick: true, effect: () => 'Finds Common or Uncommon seeds' },
-    SeedFinderII: { chance: 20, tick: true, effect: () => 'Finds Rare or Legendary seeds' },
-    SeedFinderIII: { chance: 10, tick: true, effect: () => 'Finds Mythical seeds' },
-    SeedFinderIV: { chance: .01, tick: true, effect: () => 'Finds an event seed' },
-    HungerRestore: { chance: 12, tick: true, effect: strength => `Restores ${(30 * strength / 100).toFixed(1)}% hunger` },
-    HungerRestoreII: { chance: 14, tick: true, effect: strength => `Restores ${(35 * strength / 100).toFixed(1)}% hunger` },
-    HungerRestoreIII: { chance: 16, tick: true, effect: strength => `Restores ${(40 * strength / 100).toFixed(1)}% hunger` },
-    SnowyHungerRestore: { chance: 20, tick: true, effect: strength => `Restores ${(38 * strength / 100).toFixed(1)}% hunger` },
-  };
-  function loadLocal<T>(key: string, fallback: T): T {
-    try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
-    catch { return fallback; }
-  }
-
-  function saveLocal(key: string, value: unknown): void {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-  }
-
-  function saveLocalOrFail(key: string, value: unknown): boolean {
-    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
-    catch { return false; }
-  }
-
-  /**
-   * Each row carries the ability's raw payload, so a long history can outgrow the storage quota.
-   * Halve the retained history until it fits rather than silently giving up on persistence.
-   */
-  function saveAbilityLog(): void {
-    if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
-    for (let perAbility = LOG_PER_ABILITY >> 1; perAbility >= 25; perAbility >>= 1) {
-      state.abilityLog = trimAbilityLogs(state.abilityLog, perAbility);
-      if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
-    }
-  }
-
-  function trimAbilityLogs(logs: AbilityLogRow[], perAbility = LOG_PER_ABILITY): AbilityLogRow[] {
-    const retained = new Map<string, number>();
-    return logs.filter(log => {
-      const count = retained.get(log.ability) ?? 0;
-      if (count >= perAbility) return false;
-      retained.set(log.ability, count + 1);
-      return true;
-    });
-  }
-
-  function escapeHtml(value: unknown): string {
-    return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
-  }
-
-  function humanize(value: unknown): string {
-    return String(value || '').replace(/_NEW$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Za-z])([IVX]+)$/g, '$1 $2');
-  }
-
-  function formatDuration(ms: number): string {
-    const total = Math.max(0, Math.ceil(ms / 1000));
-    const hours = Math.floor(total / 3600);
-    const minutes = Math.floor((total % 3600) / 60);
-    const seconds = total % 60;
-    return hours ? `${hours}h ${String(minutes).padStart(2, '0')}m` : `${minutes}m ${String(seconds).padStart(2, '0')}s`;
-  }
 
   function send(command: Record<string, unknown>): void {
     const connection = page.MagicCircle_RoomConnection;
@@ -886,7 +685,6 @@ export function initCompanion(): void {
     return { strength, maxStrength, xpPerLevel, xpToMax };
   }
 
-  const XP_PER_POTION = 20_000;
 
   const XP_ABILITY_REGISTRY: Record<string, { baseChance: number; baseXp: number }> = {
     PetXpBoost: { baseChance: 30, baseXp: 300 },
@@ -1128,8 +926,6 @@ export function initCompanion(): void {
     toast(`Switching to ${next.name}.`, 'success');
   }
 
-  const MAX_PET_TEAMS = 25;
-  const MAX_TEAM_PETS = 3;
 
   function saveTeam(name, petIds, teamId = null) {
     if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
@@ -2202,8 +1998,6 @@ export function initCompanion(): void {
 
   // The game colours each ability chip from a switch in its own bundle, which the
   // build extracts verbatim, so these match the in-game pet card exactly.
-  const ABILITY_COLOURS = __ABILITY_COLOURS__;
-  const ABILITY_COLOUR_FALLBACK = '#969696';
 
   function abilityChips(abilities: string[]): string {
     if (!abilities.length) return '';
@@ -2281,269 +2075,6 @@ export function initCompanion(): void {
       return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? 'Active' : 'Owned'}</span></div><div class="gc-food-options">${options}</div></article>`;
     }).join('');
     return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
-  }
-
-  const EGG_CATALOG = __EGG_CATALOG__;
-  const DUST_RARITY: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
-  const DUST_HATCH_MUTATION = (1 - .01 - .001) + .01 * 25 + .001 * 50;
-  const HATCH_WEIGHT = new Map<string, number>();
-  for (const egg of Object.values(EGG_CATALOG)) {
-    for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!HATCH_WEIGHT.has(species)) HATCH_WEIGHT.set(species, weight);
-  }
-
-  // Minutes a full hunger bar lasts per species, and crop regrow or grow minutes.
-  // Neither is present in the game bundle, so both come from the standalone calculators.
-  const HUNGER_MINUTES: Record<string, number> = {
-    Worm: 30, Snail: 60, Bee: 15, Chicken: 60, Bunny: 45, Dragonfly: 15, Pig: 60, Cow: 75, Turkey: 60,
-    SnowFox: 45, Stoat: 60, WhiteCaribou: 75, Squirrel: 30, Turtle: 90, Goat: 60, Sheep: 60, Ostrich: 45,
-    Pony: 60, Horse: 75, FireHorse: 90, Bat: 30, Platypus: 60, ThunderWolf: 60, Butterfly: 30, Peacock: 60, Capybara: 60,
-  };
-  const CROP_REGROW: Record<string, [number, number]> = {
-    Cacao: [90, 30], Squash: [15, 5], Date: [180, 60], DragonFruit: [7.5, 2.5], Pepper: [5, 2], Lychee: [15, 5],
-    Coconut: [90, 30], Apple: [30, 10], Banana: [112.5, 37.5], Camellia: [135, 45], Chrysanthemum: [270, 90],
-    Eggplant: [180, 60], Lemon: [90, 30], Peach: [135, 45], Pear: [135, 45], Poinsettia: [9, 3], PricklyPear: [90, 30],
-    Strawberry: [15 / 60, 5 / 60], Tomato: [1, 20 / 60], BurrosTail: [4.5, 1.5], FavaBean: [12, 2], PassionFruit: [90, 30],
-    Blueberry: [33 / 60, 11 / 60], Cabbage: [52 / 60, 0], Corn: [45 / 60, 0], Grape: [22.5, 0], Sunflower: [1320, 0],
-  };
-  const CROP_GROW: Record<string, number> = {
-    Daffodil: 50 / 60, Lily: 4, Carrot: 4 / 60, Aloe: 45 / 60, Bamboo: 1320, Cactus: 180, Beet: 1, Clover: 6,
-    Delphinium: 25 / 60, FourLeafClover: 6, Gentian: 1.5, Leek: 1.5, Mushroom: 1320, OrangeTulip: 8 / 60,
-    Pumpkin: 35, VioletCort: 1320, Watermelon: 12,
-  };
-
-  function dustMultiplier(species: string, mutations: string[] = []): number {
-    const rarity = DUST_RARITY[PET_CATALOG[species]?.rarity || ''] || 1;
-    const hatch = HATCH_WEIGHT.get(species) ?? 100;
-    const hatchMultiplier = hatch >= 50 ? 1 : hatch > 10 ? 2 : 5;
-    const colour = mutations.includes('Rainbow') ? 50 : mutations.includes('Gold') ? 25 : 1;
-    return 100 * rarity * hatchMultiplier * colour;
-  }
-
-  function petMaxDust(pet: Pet): number {
-    return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || []) * Number(pet.targetScale || 1));
-  }
-
-  function eggDustRange(eggId: string): { low: number; average: number; high: number } {
-    const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
-    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0) || 1;
-    let low = 0, average = 0, high = 0;
-    for (const [species, weight] of Object.entries(weights)) {
-      const share = weight / total;
-      const multiplier = dustMultiplier(species);
-      const maxScale = PET_CATALOG[species]?.maxScale || 1;
-      low += share * Math.floor(multiplier);
-      average += share * Math.floor(multiplier * (1 + maxScale) / 2);
-      high += share * Math.floor(multiplier * maxScale);
-    }
-    return { low: low * DUST_HATCH_MUTATION, average: average * DUST_HATCH_MUTATION, high: high * DUST_HATCH_MUTATION };
-  }
-
-  function heldEggs(): Array<{ eggId: string; quantity: number }> {
-    const counts = new Map<string, number>();
-    const items = (state.slot?.data?.inventory?.items || []) as unknown as Array<{ itemType?: string; eggId?: string; quantity?: number }>;
-    const stored = (state.slot?.data?.inventory?.storages || []).flatMap(storage => (storage.items || []) as unknown as Array<{ itemType?: string; eggId?: string; quantity?: number }>);
-    for (const item of [...items, ...stored]) {
-      if (item?.itemType !== 'Egg' || !item.eggId) continue;
-      counts.set(item.eggId, (counts.get(item.eggId) || 0) + Number(item.quantity || 1));
-    }
-    for (const tile of Object.values(state.slot?.data?.garden?.tileObjects || {})) {
-      for (const slot of tile?.slots || []) {
-        const species = String(slot?.species || '');
-        if (EGG_CATALOG[species]) counts.set(species, (counts.get(species) || 0) + 1);
-      }
-    }
-    return [...counts].map(([eggId, quantity]) => ({ eggId, quantity })).sort((left, right) => right.quantity - left.quantity);
-  }
-
-  let calculatorTab = 'dust';
-  const dustSelection = new Set<string>();
-  let granterAbility = 'RainbowGranter';
-  const granterStrengths: Array<number | null> = [null, null, null];
-  const granterEnabled = [true, true, true];
-  const foodSlots: Array<{ species: string; food: string } | null> = [null, null, null];
-
-  const CALCULATOR_TABS = [['dust', 'Dust'], ['food', 'Food'], ['granter', 'Granters']];
-
-  function updateDustTotal(main: HTMLElement): void {
-    const total = allPets().filter(pet => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
-    const label = main.querySelector<HTMLElement>('[data-dust-total]');
-    if (label) label.textContent = `${total.toLocaleString()} dust`;
-  }
-
-  function renderCalculators() {
-    const tabs = CALCULATOR_TABS.map(([id, label]) =>
-      `<button data-calc-tab="${id}" class="${id === calculatorTab ? 'active' : ''}">${label}</button>`).join('');
-    const body = calculatorTab === 'granter' ? renderGranterCalculator() : calculatorTab === 'food' ? renderFoodCalculator() : renderDustCalculator();
-    return `<div class="gc-calc-tabs">${tabs}</div>${body}`;
-  }
-
-  function renderDustCalculator() {
-    const eggs = heldEggs();
-    const eggRows = eggs.map(({ eggId, quantity }) => {
-      const range = eggDustRange(eggId);
-      const sprite = page.__gardenCompanionShopSprites?.[eggId];
-      return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString()}</td><td>${Math.round(range.average).toLocaleString()}</td><td><b>${Math.round(range.average * quantity).toLocaleString()}</b><small>${Math.round(range.low * quantity).toLocaleString()} to ${Math.round(range.high * quantity).toLocaleString()}</small></td></tr>`;
-    }).join('');
-    const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
-    const pets = allPets().map(pet => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
-    const selectedTotal = pets.filter(row => dustSelection.has(row.pet.id)).reduce((sum, row) => sum + row.dust, 0);
-    const petRows = pets.map(({ pet, dust }) => {
-      const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
-      const metrics = petMetrics(pet);
-      const mutations = (pet.mutations || []).filter(mutation => mutation === 'Gold' || mutation === 'Rainbow');
-      return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(' '))}` : ''}${metrics ? ` | max STR ${metrics.maxStrength}` : ''}</small></span><b class="gc-dust-value">${dust.toLocaleString()}</b></label>`;
-    }).join('');
-    return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
-<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
-  }
-
-  function granterOptions(): Array<{ id: string; label: string; probability: number }> {
-    return Object.entries(ABILITY_DETAILS)
-      .filter(([id, details]) => typeof details.baseProbability === 'number' && !EXCLUDED_TRACKED_ABILITIES.has(id))
-      .map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability as number }))
-      .sort((left, right) => left.label.localeCompare(right.label));
-  }
-
-  function granterPets(ability: string): Pet[] {
-    return allPets()
-      .filter(pet => (pet.abilities || []).includes(ability))
-      .sort((left, right) => (petMetrics(right)?.maxStrength ?? 0) - (petMetrics(left)?.maxStrength ?? 0))
-      .slice(0, 3);
-  }
-
-  function granterStrengthFor(index: number, pets: Pet[]): number {
-    const pet = pets[index] as Pet | undefined;
-    return granterStrengths[index] ?? (pet ? petMetrics(pet)?.maxStrength : undefined) ?? 100;
-  }
-
-  function granterRows(): string {
-    const pets = granterPets(granterAbility);
-    return [0, 1, 2].map(index => {
-      const pet = pets[index];
-      const name = pet ? pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies) : `Pet ${index + 1}`;
-      const strength = granterStrengthFor(index, pets);
-      const source = pet ? `${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location || '')}` : 'Not owned - set a Strength to plan ahead';
-      const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
-      return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div></div>`;
-    }).join('');
-  }
-
-  function renderGranterCalculator() {
-    const options = granterOptions();
-    const ability = options.find(option => option.id === granterAbility) || options[0];
-    if (ability) granterAbility = ability.id;
-    const select = options.map(option => `<option value="${escapeHtml(option.id)}" ${option.id === granterAbility ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('');
-    return `<p class="gc-note">The three strongest pets you own with this ability are filled in automatically. Any ability can be planned without owning a pet for it by setting the Strength sliders yourself.</p>
-<section class="gc-card"><h3>Ability</h3><select class="gc-calc-select" data-granter-ability>${select}</select><p class="gc-calc-hint" data-granter-hint>${granterHint()}</p></section>
-<section class="gc-card"><h3>Pets</h3><div class="gc-granter-list">${granterRows()}</div></section>
-<section class="gc-card"><h3>Combined</h3><div data-granter-results>${granterResults()}</div></section>`;
-  }
-
-  function granterHint(): string {
-    const ability = granterOptions().find(option => option.id === granterAbility);
-    if (!ability) return 'No chance-based abilities found.';
-    const owned = granterPets(granterAbility).length;
-    const source = owned ? `${owned} owned pet${owned === 1 ? '' : 's'} filled in` : 'You own no pet with this ability, so the sliders are yours to set';
-    return `${ability.probability}% per minute at STR 100, rolled every second - ${source}`;
-  }
-
-  function granterResults(): string {
-    const ability = granterOptions().find(option => option.id === granterAbility);
-    const pets = granterPets(granterAbility);
-    const perSecond = [0, 1, 2]
-      .filter(index => granterEnabled[index])
-      .map(index => 1 - Math.pow(1 - (ability ? ability.probability * granterStrengthFor(index, pets) / 100 : 0) / 100, 1 / 60));
-    const combined = 1 - perSecond.reduce((total, chance) => total * (1 - chance), 1);
-    if (!(combined > 0)) return '<p class="gc-empty">Enable at least one pet to see proc estimates.</p>';
-    const perMinute = (1 - Math.pow(1 - combined, 60)) * 100;
-    return `<div class="gc-calc-grid"><div><small>Chance per minute</small><b>${perMinute.toFixed(2)}%</b></div><div><small>Average wait</small><b>${formatDuration(1000 / combined)}</b></div><div><small>95% within</small><b>${formatDuration(-Math.log(1 - .95) / combined * 1000)}</b></div><div><small>99% within</small><b>${formatDuration(-Math.log(1 - .99) / combined * 1000)}</b></div></div>`;
-  }
-
-  function updateGranterResults(main: HTMLElement): void {
-    const container = main.querySelector<HTMLElement>('[data-granter-results]');
-    if (container) container.innerHTML = granterResults();
-  }
-
-  function updateGranterSection(main: HTMLElement): void {
-    const list = main.querySelector<HTMLElement>('.gc-granter-list');
-    if (list) {
-      list.innerHTML = granterRows();
-      bindGranterRows(main);
-    }
-    const hint = main.querySelector<HTMLElement>('[data-granter-hint]');
-    if (hint) hint.textContent = granterHint();
-    updateGranterResults(main);
-  }
-
-  function bindGranterRows(main: HTMLElement): void {
-    main.querySelectorAll<HTMLInputElement>('[data-granter-on]').forEach(input => input.onchange = () => {
-      granterEnabled[Number(input.dataset.granterOn)] = input.checked;
-      input.closest('.gc-granter-row')?.setAttribute('data-active', String(input.checked));
-      updateGranterResults(main);
-    });
-    main.querySelectorAll<HTMLInputElement>('[data-granter-str]').forEach(input => input.oninput = () => {
-      const index = Number(input.dataset.granterStr);
-      granterStrengths[index] = Number(input.value);
-      const label = main.querySelector(`[data-granter-value="${index}"]`);
-      if (label) label.textContent = input.value;
-      updateGranterResults(main);
-    });
-  }
-
-  function foodSlotValue(index: number): { species: string; food: string } {
-    const saved = foodSlots[index];
-    if (saved) return saved;
-    const pet = activePets()[index];
-    const species = pet?.petSpecies || Object.keys(PET_CATALOG)[index] || 'Worm';
-    const diet = petDiet(species);
-    const choice = config.petFoodChoices?.[species] || '';
-    return { species, food: diet.includes(choice) ? choice : diet[0] || '' };
-  }
-
-  function renderFoodCalculator() {
-    const slots = [0, 1, 2].map(foodSlotValue);
-    const demand = new Map<string, number>();
-    for (const slot of slots) {
-      const maxHunger = Number(PET_CATALOG[slot.species]?.maxHunger || 0);
-      const minutes = HUNGER_MINUTES[slot.species];
-      const value = Number(page.__gardenCompanionPlantPrice?.(slot.food) || 0);
-      if (!maxHunger || !minutes || !value || !slot.food) continue;
-      const perHour = maxHunger / minutes * 60 / Math.min(value, maxHunger);
-      demand.set(slot.food, (demand.get(slot.food) || 0) + perHour);
-    }
-    const rows = [...demand].sort((left, right) => right[1] - left[1]).map(([crop, need]) => {
-      const plant = __PLANT_CATALOG__[crop];
-      const slotCount = Math.max(1, Number(plant?.slots || 1));
-      const sprite = produceSprite(crop);
-      let cover = 'Timing unknown';
-      let output = '';
-      if (plant?.regrows && CROP_REGROW[crop]) {
-        const [first, step] = CROP_REGROW[crop];
-        const cycle = first + step * (slotCount - 1);
-        const perPlant = slotCount * (60 / cycle);
-        const plants = Math.max(1, Math.ceil(need / perPlant));
-        cover = `${plants} plant${plants === 1 ? '' : 's'}`;
-        output = `${(plants * perPlant).toFixed(1)} fruit/hr from ${plants} plant${plants === 1 ? '' : 's'} (${perPlant.toFixed(1)} each)`;
-      } else if (!plant?.regrows && CROP_GROW[crop]) {
-        const perTile = 60 / CROP_GROW[crop];
-        const tiles = Math.max(1, Math.ceil(need / perTile));
-        cover = `${Math.ceil(need)} seeds/hr`;
-        output = `${tiles} tile${tiles === 1 ? '' : 's'} replanted continuously`;
-      }
-      return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(humanize(crop))}</td><td><b>${need.toFixed(1)}</b>/hr</td><td>${escapeHtml(cover)}<small>${escapeHtml(output)}</small></td></tr>`;
-    }).join('');
-    const petOptions = Object.keys(PET_CATALOG).filter(species => petDiet(species).length)
-      .sort((left, right) => (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));
-    const slotCards = slots.map((slot, index) => {
-      const species = petOptions.map(name => `<option value="${escapeHtml(name)}" ${name === slot.species ? 'selected' : ''}>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</option>`).join('');
-      const foods = petDiet(slot.species).map(crop => `<option value="${escapeHtml(crop)}" ${crop === slot.food ? 'selected' : ''}>${escapeHtml(humanize(crop))}</option>`).join('');
-      const minutes = HUNGER_MINUTES[slot.species];
-      return `<div class="gc-food-slot"><select data-food-pet="${index}">${species}</select><select data-food-crop="${index}">${foods}</select><small>${minutes ? `Full hunger lasts ${minutes} min` : 'Hunger timing unknown'}</small></div>`;
-    }).join('');
-    return `<p class="gc-note">Pick three pets and what you feed them to see the produce needed each hour, and how many plants or seeds cover it. Crop values use base sell prices, so mutated fruit feeds for longer than shown.</p>
-<section class="gc-card"><h3>Team</h3><div class="gc-food-slots">${slotCards}</div></section>
-<section class="gc-card"><h3>Produce needed each hour</h3>${rows ? `<table class="gc-calc-table"><thead><tr><th>Produce</th><th>Need</th><th>Covered by</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="gc-empty">Choose pets with a food to see the demand.</p>'}</section>`;
   }
 
   function renderAbilities() {
@@ -2710,36 +2241,32 @@ export function initCompanion(): void {
       renderPetFood();
     });
     main.querySelector('[data-open-planner]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionTogglePlanner?.(); });
-    main.querySelectorAll('[data-calc-tab]').forEach(button => button.onclick = () => { calculatorTab = button.dataset.calcTab || calculatorTab; renderPanel(); });
+    main.querySelectorAll('[data-calc-tab]').forEach(button => button.onclick = () => { setCalculatorTab(button.dataset.calcTab || ''); renderPanel(); });
     main.querySelectorAll('[data-dust-pet]').forEach(input => input.onchange = () => {
-      const petId = input.dataset.dustPet;
-      input.checked ? dustSelection.add(petId) : dustSelection.delete(petId);
+      toggleDustPet(input.dataset.dustPet, input.checked);
       updateDustTotal(main);
     });
     main.querySelector('[data-dust-all]')?.addEventListener('click', () => {
-      for (const pet of allPets()) dustSelection.add(pet.id);
+      setDustSelection(allPets().map(pet => pet.id));
       renderPanelPreservingScroll();
     });
-    main.querySelector('[data-dust-none]')?.addEventListener('click', () => { dustSelection.clear(); renderPanelPreservingScroll(); });
+    main.querySelector('[data-dust-none]')?.addEventListener('click', () => { setDustSelection([]); renderPanelPreservingScroll(); });
     bindListSearch(main.querySelector('[data-dust-search]'));
     main.querySelector('[data-granter-ability]')?.addEventListener('change', event => {
-      granterAbility = (event.target as HTMLSelectElement).value;
-      granterStrengths[0] = granterStrengths[1] = granterStrengths[2] = null;
-      granterEnabled[0] = granterEnabled[1] = granterEnabled[2] = true;
+      selectGranterAbility((event.target as HTMLSelectElement).value);
       updateGranterSection(main);
     });
     if (main.querySelector('.gc-granter-list')) bindGranterRows(main);
     main.querySelectorAll('[data-food-pet]').forEach(select => select.onchange = () => {
-      const index = Number(select.dataset.foodPet);
       const species = select.value;
       const diet = petDiet(species);
       const choice = config.petFoodChoices?.[species] || '';
-      foodSlots[index] = { species, food: diet.includes(choice) ? choice : diet[0] || '' };
+      setFoodSlot(Number(select.dataset.foodPet), { species, food: diet.includes(choice) ? choice : diet[0] || '' });
       renderPanelPreservingScroll();
     });
     main.querySelectorAll('[data-food-crop]').forEach(select => select.onchange = () => {
       const index = Number(select.dataset.foodCrop);
-      foodSlots[index] = { species: foodSlotValue(index).species, food: select.value };
+      setFoodSlot(index, { species: foodSlotValue(index).species, food: select.value });
       renderPanelPreservingScroll();
     });
     main.querySelector('[data-open-team-picker]')?.addEventListener('click', () => openTeamPicker(null));

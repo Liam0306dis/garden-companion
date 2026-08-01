@@ -45,132 +45,593 @@
   // <define:__PLANT_CATALOG__>
   var define_PLANT_CATALOG_default = { Carrot: { crop: { baseSellPrice: 20, maxScale: 3, sprite: "Carrot" }, slots: 1, regrows: false, rarity: "Common" }, Cabbage: { crop: { baseSellPrice: 42, maxScale: 3, sprite: "Cabbage" }, slots: 1, regrows: true, rarity: "Common" }, Strawberry: { crop: { baseSellPrice: 14, maxScale: 2, sprite: "Strawberry" }, slots: 5, regrows: true, rarity: "Common" }, Aloe: { crop: { baseSellPrice: 310, maxScale: 2.5, sprite: "Aloe" }, slots: 1, regrows: false, rarity: "Common" }, Beet: { crop: { baseSellPrice: 350, maxScale: 3, sprite: "Beet" }, slots: 1, regrows: false, rarity: "Common" }, Daisy: { crop: { baseSellPrice: 130, maxScale: 2.5, sprite: "Daisy" }, slots: 9, regrows: false, rarity: "Uncommon" }, PurpleDaisy: { crop: { baseSellPrice: 9999, maxScale: 2.5, sprite: "DaisyPurple" }, slots: 9, regrows: false, rarity: "Legendary" }, Clover: { crop: { baseSellPrice: 30, maxScale: 3, sprite: "CloverThreeLeaf" }, slots: 15, regrows: false, rarity: "Uncommon" }, FourLeafClover: { crop: { baseSellPrice: 7777, maxScale: 3, sprite: "CloverFourLeaf" }, slots: 15, regrows: false, rarity: "Legendary" }, Rose: { crop: { baseSellPrice: 300, maxScale: 4, sprite: "RoseRed" }, slots: 1, regrows: false, rarity: "Uncommon" }, FavaBean: { crop: { baseSellPrice: 30, maxScale: 3, sprite: "FavaBean" }, slots: 8, regrows: true, rarity: "Uncommon" }, Delphinium: { crop: { baseSellPrice: 530, maxScale: 3, sprite: "Delphinium" }, slots: 1, regrows: false, rarity: "Uncommon" }, Snowdrop: { crop: { baseSellPrice: 250, maxScale: 1.85, sprite: "Snowdrop" }, slots: 12, regrows: false, rarity: "Uncommon" }, SnowdropDouble: { crop: { baseSellPrice: 8888, maxScale: 1.85, sprite: "SnowdropDouble" }, slots: 12, regrows: false, rarity: "Legendary" }, Blueberry: { crop: { baseSellPrice: 23, maxScale: 2, sprite: "Blueberry" }, slots: 5, regrows: true, rarity: "Uncommon" }, Apple: { crop: { baseSellPrice: 800, maxScale: 2, sprite: "Apple" }, slots: 7, regrows: true, rarity: "Uncommon" }, OrangeTulip: { crop: { baseSellPrice: 767, maxScale: 3, sprite: "Tulip" }, slots: 1, regrows: false, rarity: "Uncommon" }, Tomato: { crop: { baseSellPrice: 27, maxScale: 2, sprite: "Tomato" }, slots: 2, regrows: true, rarity: "Uncommon" }, Daffodil: { crop: { baseSellPrice: 1090, maxScale: 3, sprite: "Daffodil" }, slots: 1, regrows: false, rarity: "Rare" }, Corn: { crop: { baseSellPrice: 36, maxScale: 2, sprite: "Corn" }, slots: 1, regrows: true, rarity: "Rare" }, Watermelon: { crop: { baseSellPrice: 2708, maxScale: 3, sprite: "Watermelon" }, slots: 1, regrows: false, rarity: "Rare" }, Echeveria: { crop: { baseSellPrice: 3200, maxScale: 2.75, sprite: "Echeveria" }, slots: 1, regrows: false, rarity: "Rare" }, Pumpkin: { crop: { baseSellPrice: 3700, maxScale: 3, sprite: "Pumpkin" }, slots: 1, regrows: false, rarity: "Rare" }, Cattail: { crop: { baseSellPrice: 1800, maxScale: 2.5, sprite: "Cattail" }, slots: 14, regrows: false, rarity: "Rare" }, VariegatedCattail: { crop: { baseSellPrice: 11111, maxScale: 2.5, sprite: "VariegatedCattail" }, slots: 14, regrows: false, rarity: "Legendary" }, Pear: { crop: { baseSellPrice: 3e3, maxScale: 2, sprite: "Pear" }, slots: 7, regrows: true, rarity: "Rare" }, Gentian: { crop: { baseSellPrice: 1e4, maxScale: 3, sprite: "Gentian" }, slots: 1, regrows: false, rarity: "Rare" }, Lavender: { crop: { baseSellPrice: 2e4, maxScale: 3, sprite: "Lavender" }, slots: 1, regrows: false, rarity: "Rare" }, Coconut: { crop: { baseSellPrice: 12e3, maxScale: 3, sprite: "Coconut" }, slots: 7, regrows: true, rarity: "Legendary" }, PineTree: { crop: { baseSellPrice: 75e3, maxScale: 3.5, sprite: "PineTree" }, slots: 1, regrows: false, rarity: "Legendary" }, Banana: { crop: { baseSellPrice: 1750, maxScale: 1.7, sprite: "Banana" }, slots: 5, regrows: true, rarity: "Legendary" }, Leek: { crop: { baseSellPrice: 35e3, maxScale: 3, sprite: "Leek" }, slots: 1, regrows: false, rarity: "Legendary" }, Lily: { crop: { baseSellPrice: 20123, maxScale: 2.75, sprite: "Lily" }, slots: 1, regrows: false, rarity: "Legendary" }, Saffron: { crop: { baseSellPrice: 5e4, maxScale: 3, sprite: "Saffron" }, slots: 1, regrows: false, rarity: "Legendary" }, Cardoon: { crop: { baseSellPrice: 5e4, maxScale: 3, sprite: "Cardoon" }, slots: 1, regrows: false, rarity: "Legendary" }, Camellia: { crop: { baseSellPrice: 4875, maxScale: 2.5, sprite: "Camellia" }, slots: 8, regrows: true, rarity: "Legendary" }, Squash: { crop: { baseSellPrice: 7e3, maxScale: 2.5, sprite: "Squash" }, slots: 3, regrows: true, rarity: "Legendary" }, Peach: { crop: { baseSellPrice: 9e3, maxScale: 3, sprite: "Peach" }, slots: 7, regrows: true, rarity: "Legendary" }, BurrosTail: { crop: { baseSellPrice: 6e3, maxScale: 2.5, sprite: "BurrosTail" }, slots: 2, regrows: true, rarity: "Legendary" }, Mushroom: { crop: { baseSellPrice: 16e4, maxScale: 3.5, sprite: "Mushroom" }, slots: 1, regrows: false, rarity: "Mythic" }, Cactus: { crop: { baseSellPrice: 22e4, maxScale: 1.8, sprite: "Cactus" }, slots: 1, regrows: false, rarity: "Mythic" }, Bamboo: { crop: { baseSellPrice: 5e5, maxScale: 2, sprite: "Bamboo" }, slots: 1, regrows: false, rarity: "Mythic" }, Eggplant: { crop: { baseSellPrice: 1e5, maxScale: 2.5, sprite: "Eggplant" }, slots: 3, regrows: true, rarity: "Mythic" }, PricklyPear: { crop: { baseSellPrice: 75e3, maxScale: 2.5, sprite: "PricklyPear" }, slots: 5, regrows: true, rarity: "Mythic" }, VioletCort: { crop: { baseSellPrice: 6e5, maxScale: 3.5, sprite: "VioletCort" }, slots: 1, regrows: false, rarity: "Mythic" }, Chrysanthemum: { crop: { baseSellPrice: 18e3, maxScale: 2.75, sprite: "Chrysanthemum" }, slots: 7, regrows: true, rarity: "Mythic" }, Date: { crop: { baseSellPrice: 15e3, maxScale: 2, sprite: "Date" }, slots: 11, regrows: true, rarity: "Mythic" }, Grape: { crop: { baseSellPrice: 5e4, maxScale: 2, sprite: "Grape" }, slots: 1, regrows: true, rarity: "Mythic" }, Poinsettia: { crop: { baseSellPrice: 2e4, maxScale: 2, sprite: "Poinsettia" }, slots: 4, regrows: true, rarity: "Mythic" }, Pepper: { crop: { baseSellPrice: 7e3, maxScale: 2, sprite: "Pepper" }, slots: 9, regrows: true, rarity: "Divine" }, Ube: { crop: { baseSellPrice: 2e6, maxScale: 3, sprite: "Ube" }, slots: 1, regrows: false, rarity: "Divine" }, Milkcap: { crop: { baseSellPrice: 3e6, maxScale: 3, sprite: "Milkcap" }, slots: 1, regrows: false, rarity: "Divine" }, Lemon: { crop: { baseSellPrice: 5e4, maxScale: 3, sprite: "Lemon" }, slots: 6, regrows: true, rarity: "Divine" }, PassionFruit: { crop: { baseSellPrice: 2e5, maxScale: 2, sprite: "PassionFruit" }, slots: 2, regrows: true, rarity: "Divine" }, DragonFruit: { crop: { baseSellPrice: 3e4, maxScale: 2, sprite: "DragonFruit" }, slots: 7, regrows: true, rarity: "Divine" }, Cacao: { crop: { baseSellPrice: 15e4, maxScale: 2.5, sprite: "Cacao" }, slots: 6, regrows: true, rarity: "Divine" }, Lychee: { crop: { baseSellPrice: 5e4, maxScale: 2, sprite: "Lychee" }, slots: 6, regrows: true, rarity: "Divine" }, Sunflower: { crop: { baseSellPrice: 75e4, maxScale: 2.5, sprite: "Sunflower" }, slots: 1, regrows: true, rarity: "Divine" }, Dawnbreaker: { crop: { baseSellPrice: 12e6, maxScale: 3, sprite: "Dawnbreaker" }, slots: 1, regrows: false, rarity: "Celestial" }, Starweaver: { crop: { baseSellPrice: 1e7, maxScale: 2, sprite: "Starweaver" }, slots: 1, regrows: true, rarity: "Celestial" }, ThunderCelestial: { crop: { baseSellPrice: 1e5, maxScale: 2, sprite: "ThunderCelestialFruit" }, slots: 16, regrows: true, rarity: "Celestial", slotSpecies: ["ThunderCelestialShroomPlant", "ThunderCelestialShroomPlant", "ThunderCelestialShroomPlant", "ThunderCelestialShroomPlant", "", "", "", "", "", "", "", "", "", "", "", ""] }, ThunderCelestialShroomPlant: { crop: { baseSellPrice: 1e6, maxScale: 2, sprite: "ThunderCelestialShroom" }, slots: 16, regrows: true, rarity: "Celestial", component: true }, DawnCelestial: { crop: { baseSellPrice: 11e6, maxScale: 2.5, sprite: "DawnCelestialCrop" }, slots: 1, regrows: true, rarity: "Celestial" }, MoonCelestial: { crop: { baseSellPrice: 11e6, maxScale: 2, sprite: "MoonCelestialCrop" }, slots: 3, regrows: true, rarity: "Celestial" } };
 
-  // src/companion.ts
-  function initCompanion() {
-    "use strict";
-    const page2 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
-    const STORE_KEY = "gardenCompanion.config.v1";
-    const LOG_KEY = "gardenCompanion.abilityLog.v1";
-    const LOG_PER_ABILITY = 400;
-    const LOG_VISIBLE_ROWS = 400;
-    const OVERVIEW_SHORTCUT_KEY = "gardenCompanion.overviewShortcut.v1";
-    const UPDATE_URL = "https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js";
-    const ABILITY_CATALOG = define_ABILITY_CATALOG_default;
-    const ABILITY_DETAILS = define_ABILITY_DETAILS_default;
-    const PET_CATALOG = define_PET_CATALOG_default;
-    const ABILITY_GROUPS = [
-      ["Coin Finder", ["CoinFinderI", "CoinFinderII", "CoinFinderIII", "SnowyCoinFinder", "DawnCoinFinder", "ThunderCoinFinder"]],
-      ["Plant Growth Boost", ["PlantGrowthBoost", "PlantGrowthBoostII", "PlantGrowthBoostIII", "SnowyPlantGrowthBoost", "DawnPlantGrowthBoost", "AmberPlantGrowthBoost", "ThunderPlantGrowthBoost"]],
-      ["Crop Size Boost", ["ProduceScaleBoost", "ProduceScaleBoostII", "ProduceScaleBoostIII", "SnowyCropSizeBoost"]],
-      ["Egg Growth Boost", ["EggGrowthBoost", "EggGrowthBoostII_NEW", "EggGrowthBoostII", "SnowyEggGrowthBoost", "ThunderEggGrowthBoost"]],
-      ["XP Boost", ["PetXpBoost", "PetXpBoostII", "PetXpBoostIII", "SnowyPetXpBoost", "DawnXpBoost", "ThunderXpBoost"]],
-      ["Hunger Restore", ["HungerRestore", "HungerRestoreII", "HungerRestoreIII", "SnowyHungerRestore"]],
-      ["Hatch XP Boost", ["PetAgeBoost", "PetAgeBoostII", "PetAgeBoostIII"]],
-      ["Max Strength Boost", ["PetHatchSizeBoost", "PetHatchSizeBoostII", "PetHatchSizeBoostIII"]],
-      ["Pet Refund", ["PetRefund", "PetRefundII"]],
-      ["Seed Finder", ["SeedFinderI", "SeedFinderII", "SeedFinderIII", "SeedFinderIV"]],
-      ["Sell Boost", ["SellBoostI", "SellBoostII", "SellBoostIII", "SellBoostIV"]],
-      ["Mutation Granter", ["RainDance", "SnowGranter", "FrostGranter", "DawnlitGranter", "AmberlitGranter", "GoldGranter", "RainbowGranter", "ThunderstruckGranter"]]
-    ];
-    const UNGROUPED_TRACKED_ABILITIES = ["ProduceEater", "ProduceRefund", "DoubleHarvest", "DoubleHatch"];
-    const EXCLUDED_TRACKED_ABILITIES = /* @__PURE__ */ new Set([
-      "HungerBoost",
-      "HungerBoostII",
-      "HungerBoostIII",
-      "SnowyHungerBoost",
-      "PetMutationBoost",
-      "PetMutationBoostII",
-      "PetMutationBoostIII",
-      "ProduceMutationBoost",
-      "ProduceMutationBoostII",
-      "ProduceMutationBoostIII",
-      "SnowyCropMutationBoost",
-      "DawnBoost",
-      "AmberMoonBoost",
-      "ThunderBoost",
-      "MoonKisser",
-      "DawnKisser",
-      "Thunderbloom",
-      "Copycat",
-      "DawnCapture",
-      "Thundercharger",
-      "DawnbinderBoost"
-    ]);
-    const TRACKED_ABILITY_CATALOG = ABILITY_CATALOG.filter((ability) => !EXCLUDED_TRACKED_ABILITIES.has(ability));
-    const ABILITY_SET = new Set(TRACKED_ABILITY_CATALOG);
-    const ABILITY_GROUP_BY_ID = /* @__PURE__ */ new Map();
-    for (const [label, abilities] of ABILITY_GROUPS) for (const ability of abilities) ABILITY_GROUP_BY_ID.set(ability, label);
-    const ABILITY_FILTER_OPTIONS = [
-      ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
-      ...UNGROUPED_TRACKED_ABILITIES.map((ability) => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] }))
-    ];
-    const EXCLUDED_TOOL_ALERTS = /* @__PURE__ */ new Set(["Shovel", "FeedingTrough", "DecorShed", "PetHutch", "SeedSilo"]);
-    const STACKED_PASSIVE_GROUPS = [
-      { key: "HungerBoost", label: "Hunger Boost", parameter: "hungerRefundPercentage", abilities: ["HungerBoost", "HungerBoostII", "HungerBoostIII", "SnowyHungerBoost"] },
-      { key: "WeatherMutationBoost", label: "Weather Mutation Boost", parameter: "mutationChanceIncreasePercentage", abilities: ["ProduceMutationBoost", "ProduceMutationBoostII", "ProduceMutationBoostIII", "SnowyCropMutationBoost", "DawnBoost", "AmberMoonBoost", "ThunderBoost"] },
-      { key: "PetMutationBoost", label: "Pet Mutation Boost", parameter: "mutationChanceIncreasePercentage", abilities: ["PetMutationBoost", "PetMutationBoostII", "PetMutationBoostIII"] },
-      { key: "DawnbinderBoost", label: "Dawnbinder Boost", parameter: "plantAbilityChanceBoostPercentage", abilities: ["DawnbinderBoost"] }
-    ];
-    const STACKED_PASSIVE_BY_ABILITY = new Map(STACKED_PASSIVE_GROUPS.flatMap((group) => group.abilities.map((ability) => [ability, group])));
-    const PASSIVE_REQUIRED_WEATHER = /* @__PURE__ */ new Map([
-      ["SnowyHungerBoost", "Frost"],
-      ["SnowyCropMutationBoost", "Frost"],
-      ["DawnBoost", "Dawn"],
-      ["AmberMoonBoost", "AmberMoon"],
-      ["ThunderBoost", "Thunderstorm"]
-    ]);
-    const ALWAYS_ENABLED = /* @__PURE__ */ new Set(["overview", "petTeams", "abilities", "rooms", "shopAlarms", "interfaceShortcuts", "abilitySilencer", "lunarTimer"]);
-    const DEFAULTS = {
-      overview: true,
-      dragMove: true,
-      petTeams: true,
-      abilities: true,
-      rooms: true,
-      shopAlarms: true,
-      turtleTimer: true,
-      petFood: true,
-      instantHarvest: false,
-      interfaceShortcuts: true,
-      backgroundMode: true,
-      autoRefreshGameUpdates: true,
-      lunarTimer: true,
-      abilitySilencer: true,
-      silencedAbilities: [],
-      trackedAbilities: [...ABILITY_CATALOG],
-      shopAlerts: {},
-      petFoodChoices: {},
-      teamKeybinds: {},
-      interfaceKeybinds: {}
-    };
-    function readConfig() {
+  // src/utils.ts
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+  }
+  function humanize(value) {
+    return String(value || "").replace(/_NEW$/, "").replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Za-z])([IVX]+)$/g, "$1 $2");
+  }
+  function formatDuration(ms) {
+    const total = Math.max(0, Math.ceil(ms / 1e3));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor(total % 3600 / 60);
+    const seconds = total % 60;
+    return hours ? `${hours}h ${String(minutes).padStart(2, "0")}m` : `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  }
+  function loadLocal(key, fallback) {
+    try {
+      return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  function saveLocal(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+    }
+  }
+  function saveLocalOrFail(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // src/constants.ts
+  var STORE_KEY = "gardenCompanion.config.v1";
+  var LOG_KEY = "gardenCompanion.abilityLog.v1";
+  var OVERVIEW_SHORTCUT_KEY = "gardenCompanion.overviewShortcut.v1";
+  var UPDATE_URL = "https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js";
+  var LOG_PER_ABILITY = 400;
+  var LOG_VISIBLE_ROWS = 400;
+  var ABILITY_CATALOG = define_ABILITY_CATALOG_default;
+  var ABILITY_DETAILS = define_ABILITY_DETAILS_default;
+  var PET_CATALOG = define_PET_CATALOG_default;
+  var EGG_CATALOG = define_EGG_CATALOG_default;
+  var ABILITY_COLOURS = define_ABILITY_COLOURS_default;
+  var ABILITY_COLOUR_FALLBACK = "#969696";
+  var ABILITY_GROUPS = [
+    ["Coin Finder", ["CoinFinderI", "CoinFinderII", "CoinFinderIII", "SnowyCoinFinder", "DawnCoinFinder", "ThunderCoinFinder"]],
+    ["Plant Growth Boost", ["PlantGrowthBoost", "PlantGrowthBoostII", "PlantGrowthBoostIII", "SnowyPlantGrowthBoost", "DawnPlantGrowthBoost", "AmberPlantGrowthBoost", "ThunderPlantGrowthBoost"]],
+    ["Crop Size Boost", ["ProduceScaleBoost", "ProduceScaleBoostII", "ProduceScaleBoostIII", "SnowyCropSizeBoost"]],
+    ["Egg Growth Boost", ["EggGrowthBoost", "EggGrowthBoostII_NEW", "EggGrowthBoostII", "SnowyEggGrowthBoost", "ThunderEggGrowthBoost"]],
+    ["XP Boost", ["PetXpBoost", "PetXpBoostII", "PetXpBoostIII", "SnowyPetXpBoost", "DawnXpBoost", "ThunderXpBoost"]],
+    ["Hunger Restore", ["HungerRestore", "HungerRestoreII", "HungerRestoreIII", "SnowyHungerRestore"]],
+    ["Hatch XP Boost", ["PetAgeBoost", "PetAgeBoostII", "PetAgeBoostIII"]],
+    ["Max Strength Boost", ["PetHatchSizeBoost", "PetHatchSizeBoostII", "PetHatchSizeBoostIII"]],
+    ["Pet Refund", ["PetRefund", "PetRefundII"]],
+    ["Seed Finder", ["SeedFinderI", "SeedFinderII", "SeedFinderIII", "SeedFinderIV"]],
+    ["Sell Boost", ["SellBoostI", "SellBoostII", "SellBoostIII", "SellBoostIV"]],
+    ["Mutation Granter", ["RainDance", "SnowGranter", "FrostGranter", "DawnlitGranter", "AmberlitGranter", "GoldGranter", "RainbowGranter", "ThunderstruckGranter"]]
+  ];
+  var UNGROUPED_TRACKED_ABILITIES = ["ProduceEater", "ProduceRefund", "DoubleHarvest", "DoubleHatch"];
+  var EXCLUDED_TRACKED_ABILITIES = /* @__PURE__ */ new Set([
+    "HungerBoost",
+    "HungerBoostII",
+    "HungerBoostIII",
+    "SnowyHungerBoost",
+    "PetMutationBoost",
+    "PetMutationBoostII",
+    "PetMutationBoostIII",
+    "ProduceMutationBoost",
+    "ProduceMutationBoostII",
+    "ProduceMutationBoostIII",
+    "SnowyCropMutationBoost",
+    "DawnBoost",
+    "AmberMoonBoost",
+    "ThunderBoost",
+    "MoonKisser",
+    "DawnKisser",
+    "Thunderbloom",
+    "Copycat",
+    "DawnCapture",
+    "Thundercharger",
+    "DawnbinderBoost"
+  ]);
+  var TRACKED_ABILITY_CATALOG = ABILITY_CATALOG.filter((ability) => !EXCLUDED_TRACKED_ABILITIES.has(ability));
+  var ABILITY_SET = new Set(TRACKED_ABILITY_CATALOG);
+  var ABILITY_GROUP_BY_ID = /* @__PURE__ */ new Map();
+  for (const [label, abilities] of ABILITY_GROUPS) for (const ability of abilities) ABILITY_GROUP_BY_ID.set(ability, label);
+  var ABILITY_FILTER_OPTIONS = [
+    ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
+    ...UNGROUPED_TRACKED_ABILITIES.map((ability) => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] }))
+  ];
+  var EXCLUDED_TOOL_ALERTS = /* @__PURE__ */ new Set(["Shovel", "FeedingTrough", "DecorShed", "PetHutch", "SeedSilo"]);
+  var STACKED_PASSIVE_GROUPS = [
+    { key: "HungerBoost", label: "Hunger Boost", parameter: "hungerRefundPercentage", abilities: ["HungerBoost", "HungerBoostII", "HungerBoostIII", "SnowyHungerBoost"] },
+    { key: "WeatherMutationBoost", label: "Weather Mutation Boost", parameter: "mutationChanceIncreasePercentage", abilities: ["ProduceMutationBoost", "ProduceMutationBoostII", "ProduceMutationBoostIII", "SnowyCropMutationBoost", "DawnBoost", "AmberMoonBoost", "ThunderBoost"] },
+    { key: "PetMutationBoost", label: "Pet Mutation Boost", parameter: "mutationChanceIncreasePercentage", abilities: ["PetMutationBoost", "PetMutationBoostII", "PetMutationBoostIII"] },
+    { key: "DawnbinderBoost", label: "Dawnbinder Boost", parameter: "plantAbilityChanceBoostPercentage", abilities: ["DawnbinderBoost"] }
+  ];
+  var STACKED_PASSIVE_BY_ABILITY = new Map(STACKED_PASSIVE_GROUPS.flatMap((group) => group.abilities.map((ability) => [ability, group])));
+  var PASSIVE_REQUIRED_WEATHER = /* @__PURE__ */ new Map([
+    ["SnowyHungerBoost", "Frost"],
+    ["SnowyCropMutationBoost", "Frost"],
+    ["DawnBoost", "Dawn"],
+    ["AmberMoonBoost", "AmberMoon"],
+    ["ThunderBoost", "Thunderstorm"]
+  ]);
+  var SHOP_NAMES = { seed: "Seed", egg: "Egg", decor: "Decor", tool: "Tool", dawn: "Dawn", snow: "Snow", thunder: "Thunder" };
+  var SHOP_TABS = [["seed", "Seeds"], ["dawn", "Dawn"], ["thunder", "Thunder"], ["snow", "Snow"], ["egg", "Eggs"], ["tool", "Tools"], ["decor", "Decor"]];
+  var SEASONAL_SHOP_ITEMS = {
+    dawn: ["Daisy", "Lavender", "Saffron", "Eggplant", "Ube", "Dawnbreaker", "DawnCelestial", "DawnEgg"],
+    thunder: ["Cattail", "Cardoon", "PricklyPear", "Milkcap", "ThunderCelestial", "ThunderEgg", "SmallGravestone", "MediumGravestone", "LargeGravestone", "Cauldron", "WindchimeMoon", "WindchimeStar", "WindSpinner", "WindTurner"],
+    snow: ["Snowdrop", "PineTree", "Leek", "Squash", "Poinsettia", "SnowEgg", "ChilledPotion", "FrozenPotion", "ColoredStringLights", "WoodCaribou", "StoneCaribou", "MarbleCaribou"]
+  };
+  var ITEM_KEYS = ["species", "eggId", "toolId", "decorId"];
+  var GRANTER_CHANCES = {
+    RainbowGranter: 0.72,
+    GoldGranter: 0.72,
+    AmberlitGranter: 2,
+    DawnlitGranter: 4,
+    FrostGranter: 6,
+    ThunderstruckGranter: 5,
+    SnowGranter: 8,
+    RainGranter: 10,
+    RainDance: 10,
+    ProduceScaleBoost: 0.3,
+    ProduceScaleBoostI: 0.3,
+    ProduceScaleBoostII: 0.4
+  };
+  var PROC_RULES = {
+    PlantGrowthBoost: { chance: 24, tick: true, effect: (strength) => `Growth reduction: ${(3 * strength / 100).toFixed(1)}m per proc` },
+    PlantGrowthBoostII: { chance: 27, tick: true, effect: (strength) => `Growth reduction: ${(5 * strength / 100).toFixed(1)}m per proc` },
+    PlantGrowthBoostIII: { chance: 30, tick: true, effect: (strength) => `Growth reduction: ${(7 * strength / 100).toFixed(1)}m per proc` },
+    SnowyPlantGrowthBoost: { chance: 40, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
+    DawnPlantGrowthBoost: { chance: 60, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
+    AmberPlantGrowthBoost: { chance: 80, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
+    ThunderPlantGrowthBoost: { chance: 50, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
+    EggGrowthBoost: { chance: 21, tick: true, effect: (strength) => `Hatch reduction: ${(7 * strength / 100).toFixed(1)}m per proc` },
+    EggGrowthBoostII_NEW: { chance: 24, tick: true, effect: (strength) => `Hatch reduction: ${(9 * strength / 100).toFixed(1)}m per proc` },
+    EggGrowthBoostII: { chance: 27, tick: true, effect: (strength) => `Hatch reduction: ${(11 * strength / 100).toFixed(1)}m per proc` },
+    SnowyEggGrowthBoost: { chance: 35, tick: true, effect: (strength) => `Hatch reduction: ${(10 * strength / 100).toFixed(1)}m per proc` },
+    ThunderEggGrowthBoost: { chance: 50, tick: true, effect: (strength) => `Hatch reduction: ${(10 * strength / 100).toFixed(1)}m per proc` },
+    ProduceEater: { chance: 60, tick: true, effect: (strength) => `Sell bonus: ${(150 * strength / 100).toFixed(0)}% price` },
+    DoubleHarvest: { chance: 5, tick: false, effect: () => "Effect: double harvest" },
+    DoubleHatch: { chance: 3, tick: false, effect: () => "Effect: extra pet" },
+    ProduceRefund: { chance: 20, tick: false, effect: () => "Effect: crop refund" },
+    SellBoostI: { chance: 10, tick: false, effect: (strength) => `Sell bonus: +${(20 * strength / 100).toFixed(0)}% coins` },
+    SellBoostII: { chance: 12, tick: false, effect: (strength) => `Sell bonus: +${(30 * strength / 100).toFixed(0)}% coins` },
+    SellBoostIII: { chance: 14, tick: false, effect: (strength) => `Sell bonus: +${(40 * strength / 100).toFixed(0)}% coins` },
+    SellBoostIV: { chance: 16, tick: false, effect: (strength) => `Sell bonus: +${(50 * strength / 100).toFixed(0)}% coins` },
+    PetRefund: { chance: 5, tick: false, effect: () => "Effect: egg refund" },
+    PetRefundII: { chance: 7, tick: false, effect: () => "Effect: egg refund" },
+    PetHatchSizeBoost: { chance: 12, tick: false, effect: (strength) => `Max STR boost: +${(2.4 * strength / 100).toFixed(2)}%` },
+    PetHatchSizeBoostII: { chance: 14, tick: false, effect: (strength) => `Max STR boost: +${(3.5 * strength / 100).toFixed(2)}%` },
+    PetHatchSizeBoostIII: { chance: 16, tick: false, effect: (strength) => `Max STR boost: +${(4.6 * strength / 100).toFixed(2)}%` },
+    PetAgeBoost: { chance: 50, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(8e3 * strength / 100).toLocaleString()}` },
+    PetAgeBoostII: { chance: 60, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(12e3 * strength / 100).toLocaleString()}` },
+    PetAgeBoostIII: { chance: 70, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(16e3 * strength / 100).toLocaleString()}` },
+    SeedFinderI: { chance: 40, tick: true, effect: () => "Finds Common or Uncommon seeds" },
+    SeedFinderII: { chance: 20, tick: true, effect: () => "Finds Rare or Legendary seeds" },
+    SeedFinderIII: { chance: 10, tick: true, effect: () => "Finds Mythical seeds" },
+    SeedFinderIV: { chance: 0.01, tick: true, effect: () => "Finds an event seed" },
+    HungerRestore: { chance: 12, tick: true, effect: (strength) => `Restores ${(30 * strength / 100).toFixed(1)}% hunger` },
+    HungerRestoreII: { chance: 14, tick: true, effect: (strength) => `Restores ${(35 * strength / 100).toFixed(1)}% hunger` },
+    HungerRestoreIII: { chance: 16, tick: true, effect: (strength) => `Restores ${(40 * strength / 100).toFixed(1)}% hunger` },
+    SnowyHungerRestore: { chance: 20, tick: true, effect: (strength) => `Restores ${(38 * strength / 100).toFixed(1)}% hunger` }
+  };
+  var MAX_PET_TEAMS = 25;
+  var MAX_TEAM_PETS = 3;
+  var XP_PER_POTION = 2e4;
+
+  // src/config.ts
+  var ALWAYS_ENABLED = /* @__PURE__ */ new Set(["overview", "petTeams", "abilities", "rooms", "shopAlarms", "interfaceShortcuts", "abilitySilencer", "lunarTimer"]);
+  var DEFAULTS = {
+    overview: true,
+    dragMove: true,
+    petTeams: true,
+    abilities: true,
+    rooms: true,
+    shopAlarms: true,
+    turtleTimer: true,
+    petFood: true,
+    instantHarvest: false,
+    interfaceShortcuts: true,
+    backgroundMode: true,
+    autoRefreshGameUpdates: true,
+    lunarTimer: true,
+    abilitySilencer: true,
+    silencedAbilities: [],
+    trackedAbilities: [...ABILITY_CATALOG],
+    shopAlerts: {},
+    petFoodChoices: {},
+    teamKeybinds: {},
+    interfaceKeybinds: {}
+  };
+  function readConfig() {
+    try {
+      const saved = GM_getValue(STORE_KEY, {});
+      return { ...DEFAULTS, ...saved && typeof saved === "object" ? saved : {} };
+    } catch {
       try {
-        const saved = GM_getValue(STORE_KEY, {});
-        return { ...DEFAULTS, ...saved && typeof saved === "object" ? saved : {} };
+        return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE_KEY) || "{}") };
       } catch {
-        try {
-          return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE_KEY) || "{}") };
-        } catch {
-          return { ...DEFAULTS };
-        }
+        return { ...DEFAULTS };
       }
     }
-    let config = readConfig();
+  }
+  var config = readConfig();
+  function saveConfig() {
+    try {
+      GM_setValue(STORE_KEY, config);
+    } catch {
+      localStorage.setItem(STORE_KEY, JSON.stringify(config));
+    }
+  }
+  function feature(name) {
+    return ALWAYS_ENABLED.has(name) || config[name] !== false;
+  }
+  function pruneStaleConfig() {
     const savedSilencedAbilities = Array.isArray(config.silencedAbilities) ? config.silencedAbilities : [];
     config.silencedAbilities = savedSilencedAbilities.filter((ability) => !EXCLUDED_TRACKED_ABILITIES.has(ability));
     const savedShopAlerts = config.shopAlerts && typeof config.shopAlerts === "object" ? config.shopAlerts : {};
     config.shopAlerts = Object.fromEntries(Object.entries(savedShopAlerts).filter(([key]) => {
-      const [shop, itemId2] = key.split(":");
-      return shop !== "tool" || !EXCLUDED_TOOL_ALERTS.has(itemId2);
+      const [shop, itemId] = key.split(":");
+      return shop !== "tool" || !EXCLUDED_TOOL_ALERTS.has(itemId);
     }));
     const savedFoodChoices = config.petFoodChoices && typeof config.petFoodChoices === "object" ? config.petFoodChoices : {};
     config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices).filter(([species, crop]) => PET_CATALOG[species]?.diet?.includes(crop)));
-    function saveConfig() {
-      try {
-        GM_setValue(STORE_KEY, config);
-      } catch {
-        localStorage.setItem(STORE_KEY, JSON.stringify(config));
+    if (config.silencedAbilities.length !== savedSilencedAbilities.length || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length) saveConfig();
+  }
+
+  // src/page.ts
+  var page = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+
+  // src/state.ts
+  function trimAbilityLogs(logs, perAbility = LOG_PER_ABILITY) {
+    const retained = /* @__PURE__ */ new Map();
+    return logs.filter((log) => {
+      const count = retained.get(log.ability) ?? 0;
+      if (count >= perAbility) return false;
+      retained.set(log.ability, count + 1);
+      return true;
+    });
+  }
+  var state = {
+    room: null,
+    game: null,
+    slot: null,
+    slotIndex: null,
+    playerId: null,
+    currentCrop: null,
+    currentEgg: null,
+    dirtTileIndex: null,
+    selectedSlotId: null,
+    currentAction: null,
+    lastShopSignature: "",
+    initializedShops: false,
+    activityCursor: Number(localStorage.getItem("gardenCompanion.activityCursor") || 0),
+    abilityLog: trimAbilityLogs(loadLocal(LOG_KEY, []))
+  };
+  function saveAbilityLog() {
+    if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
+    for (let perAbility = LOG_PER_ABILITY >> 1; perAbility >= 25; perAbility >>= 1) {
+      state.abilityLog = trimAbilityLogs(state.abilityLog, perAbility);
+      if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
+    }
+  }
+
+  // src/features/calculators.ts
+  var petHelpers;
+  function initCalculators(helpers) {
+    petHelpers = helpers;
+  }
+  var DUST_RARITY = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
+  var DUST_HATCH_MUTATION = 1 - 0.01 - 1e-3 + 0.01 * 25 + 1e-3 * 50;
+  var HATCH_WEIGHT = /* @__PURE__ */ new Map();
+  for (const egg of Object.values(EGG_CATALOG)) {
+    for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!HATCH_WEIGHT.has(species)) HATCH_WEIGHT.set(species, weight);
+  }
+  var HUNGER_MINUTES = {
+    Worm: 30,
+    Snail: 60,
+    Bee: 15,
+    Chicken: 60,
+    Bunny: 45,
+    Dragonfly: 15,
+    Pig: 60,
+    Cow: 75,
+    Turkey: 60,
+    SnowFox: 45,
+    Stoat: 60,
+    WhiteCaribou: 75,
+    Squirrel: 30,
+    Turtle: 90,
+    Goat: 60,
+    Sheep: 60,
+    Ostrich: 45,
+    Pony: 60,
+    Horse: 75,
+    FireHorse: 90,
+    Bat: 30,
+    Platypus: 60,
+    ThunderWolf: 60,
+    Butterfly: 30,
+    Peacock: 60,
+    Capybara: 60
+  };
+  var CROP_REGROW = {
+    Cacao: [90, 30],
+    Squash: [15, 5],
+    Date: [180, 60],
+    DragonFruit: [7.5, 2.5],
+    Pepper: [5, 2],
+    Lychee: [15, 5],
+    Coconut: [90, 30],
+    Apple: [30, 10],
+    Banana: [112.5, 37.5],
+    Camellia: [135, 45],
+    Chrysanthemum: [270, 90],
+    Eggplant: [180, 60],
+    Lemon: [90, 30],
+    Peach: [135, 45],
+    Pear: [135, 45],
+    Poinsettia: [9, 3],
+    PricklyPear: [90, 30],
+    Strawberry: [15 / 60, 5 / 60],
+    Tomato: [1, 20 / 60],
+    BurrosTail: [4.5, 1.5],
+    FavaBean: [12, 2],
+    PassionFruit: [90, 30],
+    Blueberry: [33 / 60, 11 / 60],
+    Cabbage: [52 / 60, 0],
+    Corn: [45 / 60, 0],
+    Grape: [22.5, 0],
+    Sunflower: [1320, 0]
+  };
+  var CROP_GROW = {
+    Daffodil: 50 / 60,
+    Lily: 4,
+    Carrot: 4 / 60,
+    Aloe: 45 / 60,
+    Bamboo: 1320,
+    Cactus: 180,
+    Beet: 1,
+    Clover: 6,
+    Delphinium: 25 / 60,
+    FourLeafClover: 6,
+    Gentian: 1.5,
+    Leek: 1.5,
+    Mushroom: 1320,
+    OrangeTulip: 8 / 60,
+    Pumpkin: 35,
+    VioletCort: 1320,
+    Watermelon: 12
+  };
+  function dustMultiplier(species, mutations = []) {
+    const rarity = DUST_RARITY[PET_CATALOG[species]?.rarity || ""] || 1;
+    const hatch = HATCH_WEIGHT.get(species) ?? 100;
+    const hatchMultiplier = hatch >= 50 ? 1 : hatch > 10 ? 2 : 5;
+    const colour = mutations.includes("Rainbow") ? 50 : mutations.includes("Gold") ? 25 : 1;
+    return 100 * rarity * hatchMultiplier * colour;
+  }
+  function petMaxDust(pet) {
+    return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || []) * Number(pet.targetScale || 1));
+  }
+  function eggDustRange(eggId) {
+    const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
+    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0) || 1;
+    let low = 0, average = 0, high = 0;
+    for (const [species, weight] of Object.entries(weights)) {
+      const share = weight / total;
+      const multiplier = dustMultiplier(species);
+      const maxScale = PET_CATALOG[species]?.maxScale || 1;
+      low += share * Math.floor(multiplier);
+      average += share * Math.floor(multiplier * (1 + maxScale) / 2);
+      high += share * Math.floor(multiplier * maxScale);
+    }
+    return { low: low * DUST_HATCH_MUTATION, average: average * DUST_HATCH_MUTATION, high: high * DUST_HATCH_MUTATION };
+  }
+  function heldEggs() {
+    const counts = /* @__PURE__ */ new Map();
+    const items = state.slot?.data?.inventory?.items || [];
+    const stored = (state.slot?.data?.inventory?.storages || []).flatMap((storage) => storage.items || []);
+    for (const item of [...items, ...stored]) {
+      if (item?.itemType !== "Egg" || !item.eggId) continue;
+      counts.set(item.eggId, (counts.get(item.eggId) || 0) + Number(item.quantity || 1));
+    }
+    for (const tile of Object.values(state.slot?.data?.garden?.tileObjects || {})) {
+      for (const slot of tile?.slots || []) {
+        const species = String(slot?.species || "");
+        if (EGG_CATALOG[species]) counts.set(species, (counts.get(species) || 0) + 1);
       }
     }
+    return [...counts].map(([eggId, quantity]) => ({ eggId, quantity })).sort((left, right) => right.quantity - left.quantity);
+  }
+  var calculatorTab = "dust";
+  var dustSelection = /* @__PURE__ */ new Set();
+  var granterAbility = "RainbowGranter";
+  var granterStrengths = [null, null, null];
+  var granterEnabled = [true, true, true];
+  var foodSlots = [null, null, null];
+  var CALCULATOR_TABS = [["dust", "Dust"], ["food", "Food"], ["granter", "Granters"]];
+  function setCalculatorTab(tab) {
+    calculatorTab = tab;
+  }
+  function toggleDustPet(petId, selected) {
+    if (selected) dustSelection.add(petId);
+    else dustSelection.delete(petId);
+  }
+  function setDustSelection(petIds) {
+    dustSelection.clear();
+    for (const petId of petIds) dustSelection.add(petId);
+  }
+  function selectGranterAbility(ability) {
+    granterAbility = ability;
+    granterStrengths[0] = granterStrengths[1] = granterStrengths[2] = null;
+    granterEnabled[0] = granterEnabled[1] = granterEnabled[2] = true;
+  }
+  function setFoodSlot(index, slot) {
+    foodSlots[index] = slot;
+  }
+  function updateDustTotal(main) {
+    const total = petHelpers.allPets().filter((pet) => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
+    const label = main.querySelector("[data-dust-total]");
+    if (label) label.textContent = `${total.toLocaleString()} dust`;
+  }
+  function renderCalculators() {
+    const tabs = CALCULATOR_TABS.map(([id, label]) => `<button data-calc-tab="${id}" class="${id === calculatorTab ? "active" : ""}">${label}</button>`).join("");
+    const body = calculatorTab === "granter" ? renderGranterCalculator() : calculatorTab === "food" ? renderFoodCalculator() : renderDustCalculator();
+    return `<div class="gc-calc-tabs">${tabs}</div>${body}`;
+  }
+  function renderDustCalculator() {
+    const eggs = heldEggs();
+    const eggRows = eggs.map(({ eggId, quantity }) => {
+      const range = eggDustRange(eggId);
+      const sprite = page.__gardenCompanionShopSprites?.[eggId];
+      return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span>${escapeHtml(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString()}</td><td>${Math.round(range.average).toLocaleString()}</td><td><b>${Math.round(range.average * quantity).toLocaleString()}</b><small>${Math.round(range.low * quantity).toLocaleString()} to ${Math.round(range.high * quantity).toLocaleString()}</small></td></tr>`;
+    }).join("");
+    const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
+    const pets = petHelpers.allPets().map((pet) => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
+    const selectedTotal = pets.filter((row) => dustSelection.has(row.pet.id)).reduce((sum, row) => sum + row.dust, 0);
+    const petRows = pets.map(({ pet, dust }) => {
+      const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
+      const metrics = petHelpers.petMetrics(pet);
+      const mutations = (pet.mutations || []).filter((mutation) => mutation === "Gold" || mutation === "Rainbow");
+      return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? "checked" : ""}>${petHelpers.petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(" "))}` : ""}${metrics ? ` | max STR ${metrics.maxStrength}` : ""}</small></span><b class="gc-dust-value">${dust.toLocaleString()}</b></label>`;
+    }).join("");
+    return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
+<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+  }
+  function granterOptions() {
+    return Object.entries(ABILITY_DETAILS).filter(([id, details]) => typeof details.baseProbability === "number" && !EXCLUDED_TRACKED_ABILITIES.has(id)).map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability })).sort((left, right) => left.label.localeCompare(right.label));
+  }
+  function granterPets(ability) {
+    return petHelpers.allPets().filter((pet) => (pet.abilities || []).includes(ability)).sort((left, right) => (petHelpers.petMetrics(right)?.maxStrength ?? 0) - (petHelpers.petMetrics(left)?.maxStrength ?? 0)).slice(0, 3);
+  }
+  function granterStrengthFor(index, pets) {
+    const pet = pets[index];
+    return granterStrengths[index] ?? (pet ? petHelpers.petMetrics(pet)?.maxStrength : void 0) ?? 100;
+  }
+  function granterRows() {
+    const pets = granterPets(granterAbility);
+    return [0, 1, 2].map((index) => {
+      const pet = pets[index];
+      const name = pet ? pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies) : `Pet ${index + 1}`;
+      const strength = granterStrengthFor(index, pets);
+      const source = pet ? `${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location || "")}` : "Not owned - set a Strength to plan ahead";
+      const sprite = pet ? petHelpers.petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
+      return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? "checked" : ""}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div></div>`;
+    }).join("");
+  }
+  function renderGranterCalculator() {
+    const options = granterOptions();
+    const ability = options.find((option) => option.id === granterAbility) || options[0];
+    if (ability) granterAbility = ability.id;
+    const select = options.map((option) => `<option value="${escapeHtml(option.id)}" ${option.id === granterAbility ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
+    return `<p class="gc-note">The three strongest pets you own with this ability are filled in automatically. Any ability can be planned without owning a pet for it by setting the Strength sliders yourself.</p>
+<section class="gc-card"><h3>Ability</h3><select class="gc-calc-select" data-granter-ability>${select}</select><p class="gc-calc-hint" data-granter-hint>${granterHint()}</p></section>
+<section class="gc-card"><h3>Pets</h3><div class="gc-granter-list">${granterRows()}</div></section>
+<section class="gc-card"><h3>Combined</h3><div data-granter-results>${granterResults()}</div></section>`;
+  }
+  function granterHint() {
+    const ability = granterOptions().find((option) => option.id === granterAbility);
+    if (!ability) return "No chance-based abilities found.";
+    const owned = granterPets(granterAbility).length;
+    const source = owned ? `${owned} owned pet${owned === 1 ? "" : "s"} filled in` : "You own no pet with this ability, so the sliders are yours to set";
+    return `${ability.probability}% per minute at STR 100, rolled every second - ${source}`;
+  }
+  function granterResults() {
+    const ability = granterOptions().find((option) => option.id === granterAbility);
+    const pets = granterPets(granterAbility);
+    const perSecond = [0, 1, 2].filter((index) => granterEnabled[index]).map((index) => 1 - Math.pow(1 - (ability ? ability.probability * granterStrengthFor(index, pets) / 100 : 0) / 100, 1 / 60));
+    const combined = 1 - perSecond.reduce((total, chance) => total * (1 - chance), 1);
+    if (!(combined > 0)) return '<p class="gc-empty">Enable at least one pet to see proc estimates.</p>';
+    const perMinute = (1 - Math.pow(1 - combined, 60)) * 100;
+    return `<div class="gc-calc-grid"><div><small>Chance per minute</small><b>${perMinute.toFixed(2)}%</b></div><div><small>Average wait</small><b>${formatDuration(1e3 / combined)}</b></div><div><small>95% within</small><b>${formatDuration(-Math.log(1 - 0.95) / combined * 1e3)}</b></div><div><small>99% within</small><b>${formatDuration(-Math.log(1 - 0.99) / combined * 1e3)}</b></div></div>`;
+  }
+  function updateGranterResults(main) {
+    const container = main.querySelector("[data-granter-results]");
+    if (container) container.innerHTML = granterResults();
+  }
+  function updateGranterSection(main) {
+    const list = main.querySelector(".gc-granter-list");
+    if (list) {
+      list.innerHTML = granterRows();
+      bindGranterRows(main);
+    }
+    const hint = main.querySelector("[data-granter-hint]");
+    if (hint) hint.textContent = granterHint();
+    updateGranterResults(main);
+  }
+  function bindGranterRows(main) {
+    main.querySelectorAll("[data-granter-on]").forEach((input) => input.onchange = () => {
+      granterEnabled[Number(input.dataset.granterOn)] = input.checked;
+      input.closest(".gc-granter-row")?.setAttribute("data-active", String(input.checked));
+      updateGranterResults(main);
+    });
+    main.querySelectorAll("[data-granter-str]").forEach((input) => input.oninput = () => {
+      const index = Number(input.dataset.granterStr);
+      granterStrengths[index] = Number(input.value);
+      const label = main.querySelector(`[data-granter-value="${index}"]`);
+      if (label) label.textContent = input.value;
+      updateGranterResults(main);
+    });
+  }
+  function foodSlotValue(index) {
+    const saved = foodSlots[index];
+    if (saved) return saved;
+    const pet = petHelpers.activePets()[index];
+    const species = pet?.petSpecies || Object.keys(PET_CATALOG)[index] || "Worm";
+    const diet = petHelpers.petDiet(species);
+    const choice = config.petFoodChoices?.[species] || "";
+    return { species, food: diet.includes(choice) ? choice : diet[0] || "" };
+  }
+  function renderFoodCalculator() {
+    const slots = [0, 1, 2].map(foodSlotValue);
+    const demand = /* @__PURE__ */ new Map();
+    for (const slot of slots) {
+      const maxHunger = Number(PET_CATALOG[slot.species]?.maxHunger || 0);
+      const minutes = HUNGER_MINUTES[slot.species];
+      const value = Number(page.__gardenCompanionPlantPrice?.(slot.food) || 0);
+      if (!maxHunger || !minutes || !value || !slot.food) continue;
+      const perHour = maxHunger / minutes * 60 / Math.min(value, maxHunger);
+      demand.set(slot.food, (demand.get(slot.food) || 0) + perHour);
+    }
+    const rows = [...demand].sort((left, right) => right[1] - left[1]).map(([crop, need]) => {
+      const plant = define_PLANT_CATALOG_default[crop];
+      const slotCount = Math.max(1, Number(plant?.slots || 1));
+      const sprite = petHelpers.produceSprite(crop);
+      let cover = "Timing unknown";
+      let output = "";
+      if (plant?.regrows && CROP_REGROW[crop]) {
+        const [first, step] = CROP_REGROW[crop];
+        const cycle = first + step * (slotCount - 1);
+        const perPlant = slotCount * (60 / cycle);
+        const plants = Math.max(1, Math.ceil(need / perPlant));
+        cover = `${plants} plant${plants === 1 ? "" : "s"}`;
+        output = `${(plants * perPlant).toFixed(1)} fruit/hr from ${plants} plant${plants === 1 ? "" : "s"} (${perPlant.toFixed(1)} each)`;
+      } else if (!plant?.regrows && CROP_GROW[crop]) {
+        const perTile = 60 / CROP_GROW[crop];
+        const tiles = Math.max(1, Math.ceil(need / perTile));
+        cover = `${Math.ceil(need)} seeds/hr`;
+        output = `${tiles} tile${tiles === 1 ? "" : "s"} replanted continuously`;
+      }
+      return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span>${escapeHtml(humanize(crop))}</td><td><b>${need.toFixed(1)}</b>/hr</td><td>${escapeHtml(cover)}<small>${escapeHtml(output)}</small></td></tr>`;
+    }).join("");
+    const petOptions = Object.keys(PET_CATALOG).filter((species) => petHelpers.petDiet(species).length).sort((left, right) => (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));
+    const slotCards = slots.map((slot, index) => {
+      const species = petOptions.map((name) => `<option value="${escapeHtml(name)}" ${name === slot.species ? "selected" : ""}>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</option>`).join("");
+      const foods = petHelpers.petDiet(slot.species).map((crop) => `<option value="${escapeHtml(crop)}" ${crop === slot.food ? "selected" : ""}>${escapeHtml(humanize(crop))}</option>`).join("");
+      const minutes = HUNGER_MINUTES[slot.species];
+      return `<div class="gc-food-slot"><select data-food-pet="${index}">${species}</select><select data-food-crop="${index}">${foods}</select><small>${minutes ? `Full hunger lasts ${minutes} min` : "Hunger timing unknown"}</small></div>`;
+    }).join("");
+    return `<p class="gc-note">Pick three pets and what you feed them to see the produce needed each hour, and how many plants or seeds cover it. Crop values use base sell prices, so mutated fruit feeds for longer than shown.</p>
+<section class="gc-card"><h3>Team</h3><div class="gc-food-slots">${slotCards}</div></section>
+<section class="gc-card"><h3>Produce needed each hour</h3>${rows ? `<table class="gc-calc-table"><thead><tr><th>Produce</th><th>Need</th><th>Covered by</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="gc-empty">Choose pets with a food to see the demand.</p>'}</section>`;
+  }
+
+  // src/companion.ts
+  function initCompanion() {
+    "use strict";
+    pruneStaleConfig();
+    initCalculators({ allPets, activePets, petMetrics, petSprite, petDiet, produceSprite });
     function refreshVisibleKeybindInputs() {
       document.querySelectorAll("#gc-panel [data-team-key]").forEach((field) => {
         field.value = config.teamKeybinds[field.dataset.teamKey] || "";
@@ -211,16 +672,12 @@
       }
       saveConfig();
       refreshVisibleKeybindInputs();
-      if (overviewShortcutChanged !== null) page2.__gardenCompanionOverviewShortcutChanged?.(overviewShortcutChanged);
+      if (overviewShortcutChanged !== null) page.__gardenCompanionOverviewShortcutChanged?.(overviewShortcutChanged);
     }
-    page2.__gardenCompanionClaimKeybind = claimKeybind;
-    if (config.silencedAbilities.length !== savedSilencedAbilities.length || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length) saveConfig();
-    function feature(name) {
-      return ALWAYS_ENABLED.has(name) || config[name] !== false;
-    }
+    page.__gardenCompanionClaimKeybind = claimKeybind;
     window.__gardenCompanionFeature = feature;
-    page2.__gardenCompanionFeature = feature;
-    page2.__gardenCompanionConfig = () => config;
+    page.__gardenCompanionFeature = feature;
+    page.__gardenCompanionConfig = () => config;
     let gameUpdateDetected = false;
     function handleGameUpdateDetected(source) {
       if (gameUpdateDetected) return;
@@ -231,13 +688,13 @@
         return;
       }
       toast("Game update detected. Refreshing in 5 seconds.", "success");
-      setTimeout(() => page2.location.reload(), 5e3);
+      setTimeout(() => page.location.reload(), 5e3);
     }
     function handleGameSocketClose(event) {
       if (event.code === 4710 || event.reason.toLowerCase() === "version expired") handleGameUpdateDetected("WebSocket");
     }
     function installGameUpdateSocketDetector() {
-      const OriginalWebSocket = page2.WebSocket;
+      const OriginalWebSocket = page.WebSocket;
       const GardenCompanionWebSocket = function(...args) {
         const socket = new OriginalWebSocket(...args);
         socket.addEventListener("close", handleGameSocketClose);
@@ -245,23 +702,23 @@
       };
       Object.setPrototypeOf(GardenCompanionWebSocket, OriginalWebSocket);
       GardenCompanionWebSocket.prototype = OriginalWebSocket.prototype;
-      page2.WebSocket = GardenCompanionWebSocket;
+      page.WebSocket = GardenCompanionWebSocket;
     }
     installGameUpdateSocketDetector();
     function installBackgroundMode() {
       if (!feature("backgroundMode")) return;
       try {
-        const documentPrototype = Object.getPrototypeOf(page2.document);
+        const documentPrototype = Object.getPrototypeOf(page.document);
         Object.defineProperty(documentPrototype, "hidden", { configurable: true, get: () => false });
         Object.defineProperty(documentPrototype, "visibilityState", { configurable: true, get: () => "visible" });
-        page2.document.hasFocus = () => true;
+        page.document.hasFocus = () => true;
       } catch (error) {
         console.warn("[Garden Companion] Could not install background visibility mode.", error);
       }
       const keepVisible = (event) => event.stopImmediatePropagation();
-      page2.document.addEventListener("visibilitychange", keepVisible, true);
-      page2.addEventListener("blur", keepVisible, true);
-      page2.addEventListener("focus", keepVisible, true);
+      page.document.addEventListener("visibilitychange", keepVisible, true);
+      page.addEventListener("blur", keepVisible, true);
+      page.addEventListener("focus", keepVisible, true);
       let audioContext = null;
       const startSilentAudio = () => {
         if (!feature("backgroundMode")) return;
@@ -270,7 +727,7 @@
           return;
         }
         try {
-          const AudioConstructor = page2.AudioContext || page2.webkitAudioContext;
+          const AudioConstructor = page.AudioContext || page.webkitAudioContext;
           if (!AudioConstructor) return;
           audioContext = new AudioConstructor({ latencyHint: "interactive" });
           const oscillator = audioContext.createOscillator();
@@ -283,138 +740,12 @@
           console.warn("[Garden Companion] Could not start background audio context.", error);
         }
       };
-      page2.addEventListener("pointerdown", startSilentAudio, true);
-      page2.addEventListener("keydown", startSilentAudio, true);
+      page.addEventListener("pointerdown", startSilentAudio, true);
+      page.addEventListener("keydown", startSilentAudio, true);
     }
     installBackgroundMode();
-    const state = {
-      room: null,
-      game: null,
-      slot: null,
-      slotIndex: null,
-      playerId: null,
-      currentCrop: null,
-      currentEgg: null,
-      dirtTileIndex: null,
-      selectedSlotId: null,
-      currentAction: null,
-      lastShopSignature: "",
-      initializedShops: false,
-      activityCursor: Number(localStorage.getItem("gardenCompanion.activityCursor") || 0),
-      abilityLog: trimAbilityLogs(loadLocal(LOG_KEY, []))
-    };
-    const SHOP_NAMES = { seed: "Seed", egg: "Egg", decor: "Decor", tool: "Tool", dawn: "Dawn", snow: "Snow", thunder: "Thunder" };
-    const SHOP_TABS = [["seed", "Seeds"], ["dawn", "Dawn"], ["thunder", "Thunder"], ["snow", "Snow"], ["egg", "Eggs"], ["tool", "Tools"], ["decor", "Decor"]];
-    const SEASONAL_SHOP_ITEMS = {
-      dawn: ["Daisy", "Lavender", "Saffron", "Eggplant", "Ube", "Dawnbreaker", "DawnCelestial", "DawnEgg"],
-      thunder: ["Cattail", "Cardoon", "PricklyPear", "Milkcap", "ThunderCelestial", "ThunderEgg", "SmallGravestone", "MediumGravestone", "LargeGravestone", "Cauldron", "WindchimeMoon", "WindchimeStar", "WindSpinner", "WindTurner"],
-      snow: ["Snowdrop", "PineTree", "Leek", "Squash", "Poinsettia", "SnowEgg", "ChilledPotion", "FrozenPotion", "ColoredStringLights", "WoodCaribou", "StoneCaribou", "MarbleCaribou"]
-    };
-    const ITEM_KEYS = ["species", "eggId", "toolId", "decorId"];
-    const GRANTER_CHANCES = {
-      RainbowGranter: 0.72,
-      GoldGranter: 0.72,
-      AmberlitGranter: 2,
-      DawnlitGranter: 4,
-      FrostGranter: 6,
-      ThunderstruckGranter: 5,
-      SnowGranter: 8,
-      RainGranter: 10,
-      RainDance: 10,
-      ProduceScaleBoost: 0.3,
-      ProduceScaleBoostI: 0.3,
-      ProduceScaleBoostII: 0.4
-    };
-    const PROC_RULES = {
-      PlantGrowthBoost: { chance: 24, tick: true, effect: (strength) => `Growth reduction: ${(3 * strength / 100).toFixed(1)}m per proc` },
-      PlantGrowthBoostII: { chance: 27, tick: true, effect: (strength) => `Growth reduction: ${(5 * strength / 100).toFixed(1)}m per proc` },
-      PlantGrowthBoostIII: { chance: 30, tick: true, effect: (strength) => `Growth reduction: ${(7 * strength / 100).toFixed(1)}m per proc` },
-      SnowyPlantGrowthBoost: { chance: 40, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-      DawnPlantGrowthBoost: { chance: 60, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-      AmberPlantGrowthBoost: { chance: 80, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-      ThunderPlantGrowthBoost: { chance: 50, tick: true, effect: (strength) => `Growth reduction: ${(6 * strength / 100).toFixed(1)}m per proc` },
-      EggGrowthBoost: { chance: 21, tick: true, effect: (strength) => `Hatch reduction: ${(7 * strength / 100).toFixed(1)}m per proc` },
-      EggGrowthBoostII_NEW: { chance: 24, tick: true, effect: (strength) => `Hatch reduction: ${(9 * strength / 100).toFixed(1)}m per proc` },
-      EggGrowthBoostII: { chance: 27, tick: true, effect: (strength) => `Hatch reduction: ${(11 * strength / 100).toFixed(1)}m per proc` },
-      SnowyEggGrowthBoost: { chance: 35, tick: true, effect: (strength) => `Hatch reduction: ${(10 * strength / 100).toFixed(1)}m per proc` },
-      ThunderEggGrowthBoost: { chance: 50, tick: true, effect: (strength) => `Hatch reduction: ${(10 * strength / 100).toFixed(1)}m per proc` },
-      ProduceEater: { chance: 60, tick: true, effect: (strength) => `Sell bonus: ${(150 * strength / 100).toFixed(0)}% price` },
-      DoubleHarvest: { chance: 5, tick: false, effect: () => "Effect: double harvest" },
-      DoubleHatch: { chance: 3, tick: false, effect: () => "Effect: extra pet" },
-      ProduceRefund: { chance: 20, tick: false, effect: () => "Effect: crop refund" },
-      SellBoostI: { chance: 10, tick: false, effect: (strength) => `Sell bonus: +${(20 * strength / 100).toFixed(0)}% coins` },
-      SellBoostII: { chance: 12, tick: false, effect: (strength) => `Sell bonus: +${(30 * strength / 100).toFixed(0)}% coins` },
-      SellBoostIII: { chance: 14, tick: false, effect: (strength) => `Sell bonus: +${(40 * strength / 100).toFixed(0)}% coins` },
-      SellBoostIV: { chance: 16, tick: false, effect: (strength) => `Sell bonus: +${(50 * strength / 100).toFixed(0)}% coins` },
-      PetRefund: { chance: 5, tick: false, effect: () => "Effect: egg refund" },
-      PetRefundII: { chance: 7, tick: false, effect: () => "Effect: egg refund" },
-      PetHatchSizeBoost: { chance: 12, tick: false, effect: (strength) => `Max STR boost: +${(2.4 * strength / 100).toFixed(2)}%` },
-      PetHatchSizeBoostII: { chance: 14, tick: false, effect: (strength) => `Max STR boost: +${(3.5 * strength / 100).toFixed(2)}%` },
-      PetHatchSizeBoostIII: { chance: 16, tick: false, effect: (strength) => `Max STR boost: +${(4.6 * strength / 100).toFixed(2)}%` },
-      PetAgeBoost: { chance: 50, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(8e3 * strength / 100).toLocaleString()}` },
-      PetAgeBoostII: { chance: 60, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(12e3 * strength / 100).toLocaleString()}` },
-      PetAgeBoostIII: { chance: 70, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(16e3 * strength / 100).toLocaleString()}` },
-      SeedFinderI: { chance: 40, tick: true, effect: () => "Finds Common or Uncommon seeds" },
-      SeedFinderII: { chance: 20, tick: true, effect: () => "Finds Rare or Legendary seeds" },
-      SeedFinderIII: { chance: 10, tick: true, effect: () => "Finds Mythical seeds" },
-      SeedFinderIV: { chance: 0.01, tick: true, effect: () => "Finds an event seed" },
-      HungerRestore: { chance: 12, tick: true, effect: (strength) => `Restores ${(30 * strength / 100).toFixed(1)}% hunger` },
-      HungerRestoreII: { chance: 14, tick: true, effect: (strength) => `Restores ${(35 * strength / 100).toFixed(1)}% hunger` },
-      HungerRestoreIII: { chance: 16, tick: true, effect: (strength) => `Restores ${(40 * strength / 100).toFixed(1)}% hunger` },
-      SnowyHungerRestore: { chance: 20, tick: true, effect: (strength) => `Restores ${(38 * strength / 100).toFixed(1)}% hunger` }
-    };
-    function loadLocal(key, fallback) {
-      try {
-        return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
-      } catch {
-        return fallback;
-      }
-    }
-    function saveLocal(key, value) {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-      } catch {
-      }
-    }
-    function saveLocalOrFail(key, value) {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    function saveAbilityLog() {
-      if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
-      for (let perAbility = LOG_PER_ABILITY >> 1; perAbility >= 25; perAbility >>= 1) {
-        state.abilityLog = trimAbilityLogs(state.abilityLog, perAbility);
-        if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
-      }
-    }
-    function trimAbilityLogs(logs, perAbility = LOG_PER_ABILITY) {
-      const retained = /* @__PURE__ */ new Map();
-      return logs.filter((log) => {
-        const count = retained.get(log.ability) ?? 0;
-        if (count >= perAbility) return false;
-        retained.set(log.ability, count + 1);
-        return true;
-      });
-    }
-    function escapeHtml2(value) {
-      return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
-    }
-    function humanize(value) {
-      return String(value || "").replace(/_NEW$/, "").replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Za-z])([IVX]+)$/g, "$1 $2");
-    }
-    function formatDuration(ms) {
-      const total = Math.max(0, Math.ceil(ms / 1e3));
-      const hours = Math.floor(total / 3600);
-      const minutes = Math.floor(total % 3600 / 60);
-      const seconds = total % 60;
-      return hours ? `${hours}h ${String(minutes).padStart(2, "0")}m` : `${minutes}m ${String(seconds).padStart(2, "0")}s`;
-    }
     function send(command) {
-      const connection = page2.MagicCircle_RoomConnection;
+      const connection = page.MagicCircle_RoomConnection;
       if (!connection || typeof connection.sendMessage !== "function") throw new Error("The game connection is not ready.");
       connection.sendMessage({ scopePath: ["Room", "Quinoa"], ...command });
     }
@@ -439,7 +770,7 @@
     }
     function readPlayerId() {
       try {
-        let value = new URL(page2.MagicCircle_RoomConnection?.currentWebSocket?.url || "").searchParams.get("playerId");
+        let value = new URL(page.MagicCircle_RoomConnection?.currentWebSocket?.url || "").searchParams.get("playerId");
         if (value?.startsWith('"')) value = JSON.parse(value);
         return value || null;
       } catch {
@@ -456,7 +787,7 @@
       return { slot: slot || null, index: slot ? slots.indexOf(slot) : null };
     }
     function subscribeToState(attempt = 0) {
-      const connection = page2.MagicCircle_RoomConnection;
+      const connection = page.MagicCircle_RoomConnection;
       if (typeof connection?.subscribeToPatches !== "function") {
         if (attempt < 180) setTimeout(() => subscribeToState(attempt + 1), 500);
         return;
@@ -468,7 +799,7 @@
         const picked = pickSlot(state.game, state.room, state.playerId);
         state.slot = picked.slot;
         state.slotIndex = picked.index;
-        page2.__gardenCompanionState = state;
+        page.__gardenCompanionState = state;
         refreshCompletedTeamSave();
         refreshCompletedTeamDelete();
         processActivities();
@@ -479,7 +810,7 @@
       });
     }
     function atomMap2() {
-      const cache = page2.jotaiAtomCache;
+      const cache = page.jotaiAtomCache;
       if (cache instanceof Map) return cache;
       return cache?.cache ?? null;
     }
@@ -521,10 +852,10 @@
       return atom;
     }
     function installGameModalAccess() {
-      const existing = page2.jotaiAtomCache;
+      const existing = page.jotaiAtomCache;
       if (!existing) {
         const cache2 = /* @__PURE__ */ new Map();
-        page2.jotaiAtomCache = {
+        page.jotaiAtomCache = {
           cache: cache2,
           get(key, initial) {
             const atom = cache2.get(key) ?? initial;
@@ -551,7 +882,7 @@
       }
       gameAtomSet(activeModalAtom, target);
     }
-    page2.__gardenCompanionSetCinematic = (enabled) => {
+    page.__gardenCompanionSetCinematic = (enabled) => {
       if (!cinematicAtom || !gameAtomSet) return false;
       try {
         gameAtomSet(cinematicAtom, enabled);
@@ -664,7 +995,7 @@
     function armAlarmAudio() {
       try {
         if (!alarmAudioContext) {
-          const AudioConstructor = page2.AudioContext || page2.webkitAudioContext;
+          const AudioConstructor = page.AudioContext || page.webkitAudioContext;
           if (!AudioConstructor) return null;
           alarmAudioContext = new AudioConstructor({ latencyHint: "interactive" });
         }
@@ -683,10 +1014,10 @@
       if (context.state === "running") play();
       else void context.resume().then(play).catch(() => void 0);
     }
-    page2.addEventListener("pointerdown", () => {
+    page.addEventListener("pointerdown", () => {
       if (feature("shopAlarms")) armAlarmAudio();
     }, true);
-    page2.addEventListener("keydown", () => {
+    page.addEventListener("keydown", () => {
       if (feature("shopAlarms")) armAlarmAudio();
     }, true);
     function clearActiveAlarm() {
@@ -727,8 +1058,8 @@
         if (next) renderAlarmBanner(next);
       } else updateAlarmQueueCount();
     }
-    page2.__gardenCompanionArmAlarm = armAlarmAudio;
-    page2.__gardenCompanionStopAlarm = stopAlarm;
+    page.__gardenCompanionArmAlarm = armAlarmAudio;
+    page.__gardenCompanionStopAlarm = stopAlarm;
     function alarmTone(context) {
       const now = context.currentTime;
       const frequency = [880, 660, 880, 660, 0][alarmPhase++ % 5];
@@ -747,9 +1078,9 @@
     function renderAlarmBanner(options) {
       const banner = document.createElement("div");
       banner.id = "gc-alarm";
-      const detail = options.detail ? `<span data-alarm-detail>${escapeHtml2(options.detail)}</span>` : "";
-      const action = options.actionLabel ? `<button data-buy>${escapeHtml2(options.actionLabel)}</button>` : "";
-      banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml2(options.label)}</small><strong>${escapeHtml2(options.title)}</strong>${detail}<em data-alarm-queue hidden></em></div>${action}<button data-stop>Stop alarm</button>`;
+      const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : "";
+      const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : "";
+      banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue hidden></em></div>${action}<button data-stop>Stop alarm</button>`;
       document.body.appendChild(banner);
       banner.querySelector("[data-stop]").onclick = dismissCurrentAlarm;
       const actionButton = banner.querySelector("[data-buy]");
@@ -769,7 +1100,7 @@
       }
       renderAlarmBanner(options);
     }
-    page2.__gardenCompanionShowAlarm = showAlarmBanner;
+    page.__gardenCompanionShowAlarm = showAlarmBanner;
     function showShopAlarm(row) {
       const owner = `shop:${row.shop}:${row.id}`;
       showAlarmBanner({
@@ -866,13 +1197,13 @@
       image.src = source;
     }
     function petSprite(pet) {
-      const source = page2.__gardenCompanionPetSprites?.[pet.petSpecies];
+      const source = page.__gardenCompanionPetSprites?.[pet.petSpecies];
       const mutations = pet.mutations || [];
       const overlay = mutations.includes("Rainbow") ? "rainbow" : mutations.includes("Gold") ? "gold" : "";
       const mutationKey = source && overlay ? `${pet.petSpecies}:${overlay}` : "";
       if (source && overlay) renderMutatedPetSprite(mutationKey, source, overlay);
       const displayedSource = mutationKey ? mutatedPetSprites.get(mutationKey) || source : source;
-      return `<span class="gc-pet-sprite">${displayedSource ? `<img src="${escapeHtml2(displayedSource)}" alt="${escapeHtml2(pet.petSpecies)}"${mutationKey ? ` data-pet-mutation-key="${escapeHtml2(mutationKey)}"` : ""}>` : `<i>${escapeHtml2((PET_CATALOG[pet.petSpecies]?.name || pet.petSpecies || "?").slice(0, 1))}</i>`}</span>`;
+      return `<span class="gc-pet-sprite">${displayedSource ? `<img src="${escapeHtml(displayedSource)}" alt="${escapeHtml(pet.petSpecies)}"${mutationKey ? ` data-pet-mutation-key="${escapeHtml(mutationKey)}"` : ""}>` : `<i>${escapeHtml((PET_CATALOG[pet.petSpecies]?.name || pet.petSpecies || "?").slice(0, 1))}</i>`}</span>`;
     }
     function hungerDisplay(pet) {
       const maximum = Number(PET_CATALOG[pet.petSpecies]?.maxHunger || 0);
@@ -894,7 +1225,6 @@
       const xpToMax = strength >= maxStrength ? 0 : xpPerLevel - xpIntoLevel + xpPerLevel * (maxStrength - strength - 1);
       return { strength, maxStrength, xpPerLevel, xpToMax };
     }
-    const XP_PER_POTION = 2e4;
     const XP_ABILITY_REGISTRY = {
       PetXpBoost: { baseChance: 30, baseXp: 300 },
       PetXpBoostI: { baseChance: 30, baseXp: 300 },
@@ -1011,7 +1341,7 @@
         } else effect = abilityEffectText(ability, averageStrength, details?.trigger, details?.baseParameters);
         const names = owners.map((pet) => pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies)).join(", ");
         const label = passiveGroup?.label ?? ABILITY_DETAILS[ability]?.name ?? humanize(ability);
-        return `<article class="gc-card gc-ability-summary"><div><h3>${escapeHtml2(label)}</h3><p>${escapeHtml2(names)}</p><small>${escapeHtml2(effect)}</small></div>${chance}</article>`;
+        return `<article class="gc-card gc-ability-summary"><div><h3>${escapeHtml(label)}</h3><p>${escapeHtml(names)}</p><small>${escapeHtml(effect)}</small></div>${chance}</article>`;
       }).join("");
     }
     function snapshotPayload(data) {
@@ -1095,7 +1425,7 @@
       if (config.interfaceKeybinds[PLANNER_KEY.id] === combo) {
         event.preventDefault();
         event.stopPropagation();
-        page2.__gardenCompanionTogglePlanner?.();
+        page.__gardenCompanionTogglePlanner?.();
         return;
       }
       const cycle = TEAM_CYCLE_KEYS.find((item) => config.interfaceKeybinds[item.id] === combo);
@@ -1129,8 +1459,6 @@
       send({ type: "ApplyPetTeam", teamId: next.id });
       toast(`Switching to ${next.name}.`, "success");
     }
-    const MAX_PET_TEAMS = 25;
-    const MAX_TEAM_PETS = 3;
     function saveTeam(name, petIds, teamId = null) {
       if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
       if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
@@ -1157,10 +1485,10 @@
     }
     installPixiCapture();
     function installPixiCapture() {
-      const store = page2.__GARDEN_COMPANION_PIXI__ ||= { app: null, renderer: null };
+      const store = page.__GARDEN_COMPANION_PIXI__ ||= { app: null, renderer: null };
       for (const name of ["__PIXI_APP_INIT__", "__PIXI_RENDERER_INIT__"]) {
-        const previous = page2[name];
-        page2[name] = function(value, ...args) {
+        const previous = page[name];
+        page[name] = function(value, ...args) {
           if (name.includes("APP") && value) {
             store.app = value;
             store.renderer = value.renderer || store.renderer;
@@ -1170,7 +1498,7 @@
       }
     }
     function pixiSurface() {
-      const capture = page2.__GARDEN_COMPANION_PIXI__;
+      const capture = page.__GARDEN_COMPANION_PIXI__;
       const app = capture?.app;
       const renderer = capture?.renderer || app?.renderer;
       const stage = app?.stage || renderer?.lastObjectRendered;
@@ -1268,7 +1596,7 @@
       }
       if (!crop) return [];
       const lines = [];
-      const base = Number(page2.__gardenCompanionPlantPrice?.(crop.species) || 0);
+      const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
       if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier2([...crop.mutations || []]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * 0.1)).toLocaleString()}`);
       const end = Number(crop.endTime || 0), rate = turtleRate(pets);
       if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
@@ -1462,14 +1790,14 @@
       return items.filter((item) => item?.itemType === "Produce" && item.species && item.id);
     }
     function produceValue(item) {
-      const base = Number(page2.__gardenCompanionPlantPrice?.(item.species) || 0) || 1;
+      const base = Number(page.__gardenCompanionPlantPrice?.(item.species) || 0) || 1;
       return base * Number(item.scale || 1) * mutationMultiplier2([...item.mutations || []]);
     }
     function petDiet(species) {
       return PET_CATALOG[species]?.diet || [];
     }
     function produceSprite(species) {
-      return page2.__gardenCompanionProduceSprites?.[species] || page2.__gardenCompanionShopSprites?.[species] || "";
+      return page.__gardenCompanionProduceSprites?.[species] || page.__gardenCompanionShopSprites?.[species] || "";
     }
     function petFoodRows() {
       const produce = heldProduce();
@@ -1518,8 +1846,8 @@
           const sprite = produceSprite(row.choice);
           const ready = Boolean(row.choice) && row.count > 0;
           const label = !row.choice ? `Pick a food for ${humanize(row.pet.petSpecies)} in the Pet Food tab` : row.count > 0 ? `Feed ${humanize(row.choice)} to ${name}` : `No ${humanize(row.choice)} in your inventory`;
-          const icon = row.choice ? sprite ? `<img src="${escapeHtml2(sprite)}" alt="${escapeHtml2(row.choice)}">` : `<i>${escapeHtml2(humanize(row.choice).slice(0, 1))}</i>` : "<i>?</i>";
-          return `<button data-food-row data-feed-pet="${escapeHtml2(row.pet.id)}" data-crop-item="${escapeHtml2(row.cropItemId)}" title="${escapeHtml2(label)}" ${ready ? "" : "disabled"}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
+          const icon = row.choice ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>` : "<i>?</i>";
+          return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" title="${escapeHtml(label)}" ${ready ? "" : "disabled"}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
         }).join("");
       }
       positionPetFood();
@@ -1597,7 +1925,7 @@
       if (label) label.textContent = socketStatus === "connected" ? "Connected" : socketStatus === "connecting" ? "Connecting" : "Disconnected";
     }
     function watchSocketHealth() {
-      const socket = page2.MagicCircle_RoomConnection?.currentWebSocket ?? null;
+      const socket = page.MagicCircle_RoomConnection?.currentWebSocket ?? null;
       if (socket !== watchedSocket) {
         watchedSocket = socket;
         if (socket) {
@@ -1851,7 +2179,7 @@
       cancelKeybindCapture?.();
       const panel = document.getElementById("gc-panel");
       if (!panel) return;
-      panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION</small><h2>${escapeHtml2(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? "active" : ""}">${label}</button>`).join("")}</nav><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></div></div>`;
+      panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? "active" : ""}">${label}</button>`).join("")}</nav><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></div></div>`;
       panel.querySelector("[data-close]").onclick = closePanel;
       panel.querySelectorAll("[data-tab]").forEach((button) => {
         button.onpointerdown = (event) => {
@@ -1944,19 +2272,19 @@
       if (save) save.disabled = count < 1 || count > MAX_TEAM_PETS;
     }
     function emblemIconMarkup(icon) {
-      const sprite = page2.__gardenCompanionEmblemSprites?.[icon];
-      return sprite ? `<img src="${escapeHtml2(sprite)}" alt=""><small>${escapeHtml2(humanize(icon))}</small>` : `<i data-emblem-icon="${escapeHtml2(icon)}"></i><small>${escapeHtml2(humanize(icon))}</small>`;
+      const sprite = page.__gardenCompanionEmblemSprites?.[icon];
+      return sprite ? `<img src="${escapeHtml(sprite)}" alt=""><small>${escapeHtml(humanize(icon))}</small>` : `<i data-emblem-icon="${escapeHtml(icon)}"></i><small>${escapeHtml(humanize(icon))}</small>`;
     }
     function emblemChip(emblem) {
       if (emblem.type === "icon") {
-        const sprite = page2.__gardenCompanionEmblemSprites?.[emblem.icon];
-        if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml2(sprite)}" alt="${escapeHtml2(humanize(emblem.icon))}" title="${escapeHtml2(humanize(emblem.icon))}"></span>`;
+        const sprite = page.__gardenCompanionEmblemSprites?.[emblem.icon];
+        if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(humanize(emblem.icon))}" title="${escapeHtml(humanize(emblem.icon))}"></span>`;
       }
       if (emblem.type === "pet") {
-        const sprite = page2.__gardenCompanionPetSprites?.[emblem.petSpecies];
-        if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml2(sprite)}" alt="${escapeHtml2(emblemLabel(emblem))}" title="${escapeHtml2(emblemLabel(emblem))}"></span>`;
+        const sprite = page.__gardenCompanionPetSprites?.[emblem.petSpecies];
+        if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(emblemLabel(emblem))}" title="${escapeHtml(emblemLabel(emblem))}"></span>`;
       }
-      return `<span class="gc-team-emblem">${escapeHtml2(emblemLabel(emblem))}</span>`;
+      return `<span class="gc-team-emblem">${escapeHtml(emblemLabel(emblem))}</span>`;
     }
     function selectedTeamSpecies() {
       const chosen = teamPickerSelection ?? /* @__PURE__ */ new Set();
@@ -1968,7 +2296,7 @@
     }
     function renderEmblemOptions() {
       const selected = emblemKey(teamPickerEmblem);
-      const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml2(key)}" data-active="${key === selected}" title="${escapeHtml2(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
+      const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml(key)}" data-active="${key === selected}" title="${escapeHtml(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
       const taken = takenEmblemNumbers();
       const letters = EMBLEM_LETTERS.map((letter, index) => option(
         `number:${index + 1}`,
@@ -1979,15 +2307,15 @@
       const icons = EMBLEM_ICONS.map((icon) => option(`icon:${icon}`, emblemIconMarkup(icon), humanize(icon))).join("");
       const species = selectedTeamSpecies();
       const pets = species.length ? species.map((name) => {
-        const sprite = page2.__gardenCompanionPetSprites?.[name];
+        const sprite = page.__gardenCompanionPetSprites?.[name];
         const label = PET_CATALOG[name]?.name || humanize(name);
-        const inner = sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : `<b>${escapeHtml2(label.slice(0, 1))}</b>`;
+        const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
         return option(`pet:${name}`, inner, label);
       }).join("") : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
       const groups = [["number", letters], ["icon", icons], ["pet", pets]];
       const tabs = groups.map(([kind]) => `<button data-emblem-kind="${kind}" class="${kind === teamPickerEmblemKind ? "active" : ""}">${kind === "number" ? "Letters" : kind === "icon" ? "Icons" : "Pets"}</button>`).join("");
       const strips = groups.map(([kind, markup]) => `<div class="gc-emblem-strip" data-emblem-group="${kind}" ${kind === teamPickerEmblemKind ? "" : "hidden"}>${markup}</div>`).join("");
-      const current = teamPickerEmblem ? `Emblem: ${escapeHtml2(emblemLabel(teamPickerEmblem))}` : "No emblem selected";
+      const current = teamPickerEmblem ? `Emblem: ${escapeHtml(emblemLabel(teamPickerEmblem))}` : "No emblem selected";
       return `<div class="gc-emblem-head"><span>Team emblem</span><div class="gc-emblem-tabs">${tabs}</div><small data-emblem-current>${current}</small></div>${strips}`;
     }
     function refreshEmblemUi(picker) {
@@ -1996,10 +2324,10 @@
       const petGroup = picker.querySelector("[data-emblem-group=pet]");
       if (petGroup) {
         petGroup.innerHTML = species.size ? [...species].map((name) => {
-          const sprite = page2.__gardenCompanionPetSprites?.[name];
+          const sprite = page.__gardenCompanionPetSprites?.[name];
           const label = PET_CATALOG[name]?.name || humanize(name);
-          const inner = sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : `<b>${escapeHtml2(label.slice(0, 1))}</b>`;
-          return `<button data-emblem-option="pet:${escapeHtml2(name)}" title="${escapeHtml2(label)}">${inner}</button>`;
+          const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
+          return `<button data-emblem-option="pet:${escapeHtml(name)}" title="${escapeHtml(label)}">${inner}</button>`;
         }).join("") : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
         petGroup.querySelectorAll("[data-emblem-option]").forEach((button) => button.onclick = () => {
           const key = button.dataset.emblemOption;
@@ -2030,7 +2358,7 @@
       document.getElementById("gc-team-picker")?.remove();
       const picker = document.createElement("div");
       picker.id = "gc-team-picker";
-      picker.innerHTML = `<div class="gc-team-picker-shell"><header><div><small>PET TEAM</small><h2>${team ? "Edit team" : "Create team"}</h2></div><button data-picker-close aria-label="Close">x</button></header><div class="gc-team-picker-controls"><input data-team-name placeholder="Team name" maxlength="32" value="${escapeHtml2(team?.name || "")}"><input class="gc-search" data-team-search placeholder="Filter by pet name, species, location, or ability"><span class="gc-team-picker-count" data-picker-count></span></div><section class="gc-emblem-picker">${renderEmblemOptions()}</section><div class="gc-pet-grid gc-filter-list gc-team-picker-grid">${petPickerRows(teamPickerSelection) || '<p class="gc-empty">No pet data yet.</p>'}</div><footer><button data-picker-cancel>Cancel</button><button class="gc-primary" data-save-team>${team ? "Save changes" : "Save team"}</button></footer></div>`;
+      picker.innerHTML = `<div class="gc-team-picker-shell"><header><div><small>PET TEAM</small><h2>${team ? "Edit team" : "Create team"}</h2></div><button data-picker-close aria-label="Close">x</button></header><div class="gc-team-picker-controls"><input data-team-name placeholder="Team name" maxlength="32" value="${escapeHtml(team?.name || "")}"><input class="gc-search" data-team-search placeholder="Filter by pet name, species, location, or ability"><span class="gc-team-picker-count" data-picker-count></span></div><section class="gc-emblem-picker">${renderEmblemOptions()}</section><div class="gc-pet-grid gc-filter-list gc-team-picker-grid">${petPickerRows(teamPickerSelection) || '<p class="gc-empty">No pet data yet.</p>'}</div><footer><button data-picker-cancel>Cancel</button><button class="gc-primary" data-save-team>${team ? "Save changes" : "Save team"}</button></footer></div>`;
       document.body.appendChild(picker);
       bindTeamPickerEvents(picker);
       updateTeamPickerCount(picker);
@@ -2090,7 +2418,7 @@
         const filterText = `${pet.name || ""} ${pet.petSpecies} ${PET_CATALOG[pet.petSpecies]?.name || ""} ${pet.location} ${abilityText}`.toLowerCase();
         const metrics = petMetrics(pet);
         const strength = metrics ? `<b class="gc-pet-str">${metrics.strength}<i>/${metrics.maxStrength}</i></b>` : "";
-        return `<label data-filter-text="${escapeHtml2(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml2(pet.id)}" ${selectedIds.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml2(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml2(humanize(pet.petSpecies))} | ${escapeHtml2(pet.location)}</small>${(pet.abilities || []).length ? abilityChips(pet.abilities || []) : '<span class="gc-team-abilities">No abilities</span>'}</span>${strength}</label>`;
+        return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small>${(pet.abilities || []).length ? abilityChips(pet.abilities || []) : '<span class="gc-team-abilities">No abilities</span>'}</span>${strength}</label>`;
       }).join("");
     }
     function activeTeamId() {
@@ -2099,16 +2427,14 @@
       const match = teams().find((team) => team.members.length === activeIds.size && team.members.every((member) => activeIds.has(member.petId)));
       return match?.id ?? null;
     }
-    const ABILITY_COLOURS = define_ABILITY_COLOURS_default;
-    const ABILITY_COLOUR_FALLBACK = "#969696";
     function abilityChips(abilities) {
       if (!abilities.length) return "";
       const chips = abilities.map((ability) => {
         const colour = ABILITY_COLOURS[ability] || ABILITY_COLOUR_FALLBACK;
         const name = ABILITY_DETAILS[ability]?.name || humanize(ability);
-        return `<i class="gc-ability-chip" style="background:${escapeHtml2(colour)}" title="${escapeHtml2(name)}"></i>`;
+        return `<i class="gc-ability-chip" style="background:${escapeHtml(colour)}" title="${escapeHtml(name)}"></i>`;
       }).join("");
-      return `<span class="gc-ability-chips" title="${escapeHtml2(abilities.map((ability) => ABILITY_DETAILS[ability]?.name || humanize(ability)).join(", "))}">${chips}</span>`;
+      return `<span class="gc-ability-chips" title="${escapeHtml(abilities.map((ability) => ABILITY_DETAILS[ability]?.name || humanize(ability)).join(", "))}">${chips}</span>`;
     }
     function teamMemberTile(member, owned) {
       const sprite = petSprite(owned ?? { id: member.petId, petSpecies: member.petSpecies, hunger: 0 });
@@ -2117,7 +2443,7 @@
       const detail = owned ? abilities.join(" | ") || "No abilities" : "Pet not found in your inventory";
       const strength = petMetrics(owned)?.maxStrength;
       const meta = owned ? `${humanize(member.petSpecies)}${strength ? ` | STR ${strength}` : ""}` : "Missing pet";
-      return `<span class="gc-team-pet${owned ? "" : " is-missing"}" title="${escapeHtml2(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml2(label)}</b><small>${escapeHtml2(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
+      return `<span class="gc-team-pet${owned ? "" : " is-missing"}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
     }
     function renderTeams() {
       const full = teams().length >= MAX_PET_TEAMS;
@@ -2130,16 +2456,16 @@
           { length: Math.max(0, MAX_TEAM_PETS - team.members.length) },
           () => '<span class="gc-team-pet is-empty"><i>+</i><span><b>Empty slot</b></span></span>'
         ).join("");
-        const deleteControls = confirmDeleteTeamId === team.id ? `<span class="gc-team-delete-confirm"><b>Delete this team?</b><button data-cancel-delete-team>Cancel</button><button class="gc-danger" data-confirm-delete-team="${escapeHtml2(team.id)}">Delete team</button></span>` : `<button class="gc-danger" data-delete-team="${escapeHtml2(team.id)}">Delete</button>`;
+        const deleteControls = confirmDeleteTeamId === team.id ? `<span class="gc-team-delete-confirm"><b>Delete this team?</b><button data-cancel-delete-team>Cancel</button><button class="gc-danger" data-confirm-delete-team="${escapeHtml(team.id)}">Delete team</button></span>` : `<button class="gc-danger" data-delete-team="${escapeHtml(team.id)}">Delete</button>`;
         const keybind = config.teamKeybinds[team.id];
-        return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml2(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : '<span class="gc-team-emblem is-empty">--</span>'}<span class="gc-team-title"><h3>${escapeHtml2(team.name)}</h3><small>${team.members.length} pet${team.members.length === 1 ? "" : "s"}${keybind ? ` | key ${escapeHtml2(keybind)}` : ""}</small></span>${isActive ? '<span class="gc-team-active">Active</span>' : ""}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-team-actions"><button data-edit-team="${escapeHtml2(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml2(team.id)}" ${isActive ? "disabled" : ""}>${isActive ? "Activated" : "Activate"}</button></div></div><div class="gc-team-pets">${filled}${empty}</div><div class="gc-team-foot">${deleteControls}</div></article>`;
+        return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : '<span class="gc-team-emblem is-empty">--</span>'}<span class="gc-team-title"><h3>${escapeHtml(team.name)}</h3><small>${team.members.length} pet${team.members.length === 1 ? "" : "s"}${keybind ? ` | key ${escapeHtml(keybind)}` : ""}</small></span>${isActive ? '<span class="gc-team-active">Active</span>' : ""}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-team-actions"><button data-edit-team="${escapeHtml(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml(team.id)}" ${isActive ? "disabled" : ""}>${isActive ? "Activated" : "Activate"}</button></div></div><div class="gc-team-pets">${filled}${empty}</div><div class="gc-team-foot">${deleteControls}</div></article>`;
       }).join("");
       const activeName = teams().find((team) => team.id === active)?.name;
-      const summary = teams().length ? `<span class="gc-team-summary-line"><b>${teams().length}</b> of ${MAX_PET_TEAMS} teams${activeName ? ` | running <b>${escapeHtml2(activeName)}</b>` : " | no saved team is active"}</span>` : '<span class="gc-team-summary-line">Save a team to swap your active pets in one click.</span>';
+      const summary = teams().length ? `<span class="gc-team-summary-line"><b>${teams().length}</b> of ${MAX_PET_TEAMS} teams${activeName ? ` | running <b>${escapeHtml(activeName)}</b>` : " | no saved team is active"}</span>` : '<span class="gc-team-summary-line">Save a team to swap your active pets in one click.</span>';
       return `<div class="gc-team-bar">${summary}<button class="gc-primary" data-open-team-picker ${full ? "disabled" : ""}>Create team</button></div>${full ? `<p class="gc-note">The game allows ${MAX_PET_TEAMS} teams. Delete one to create another.</p>` : ""}<section class="gc-stack">${cards || '<p class="gc-empty">No saved teams yet. Create one to swap your active pets in a single click.</p>'}</section>`;
     }
     function renderKeybinds() {
-      const shortcutRow = (label, attribute, value) => `<label class="gc-shortcut-row"><b>${escapeHtml2(label)}</b><input readonly ${attribute} value="${escapeHtml2(value)}" placeholder="Click, then press keys"></label>`;
+      const shortcutRow = (label, attribute, value) => `<label class="gc-shortcut-row"><b>${escapeHtml(label)}</b><input readonly ${attribute} value="${escapeHtml(value)}" placeholder="Click, then press keys"></label>`;
       const interfaces = [
         shortcutRow("Garden Companion", 'data-interface-key="companionPanel"', config.interfaceKeybinds.companionPanel || ""),
         shortcutRow("Garden Overview", "data-overview-key", localStorage.getItem(OVERVIEW_SHORTCUT_KEY) || ""),
@@ -2147,7 +2473,7 @@
       ].join("");
       const teamCycling = TEAM_CYCLE_KEYS.map((item) => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || "")).join("");
       const planner = shortcutRow(PLANNER_KEY.label, `data-interface-key="${PLANNER_KEY.id}"`, config.interfaceKeybinds[PLANNER_KEY.id] || "");
-      const teamRows = teams().map((team) => shortcutRow(team.name, `data-team-key="${escapeHtml2(team.id)}"`, config.teamKeybinds[team.id] || "")).join("");
+      const teamRows = teams().map((team) => shortcutRow(team.name, `data-team-key="${escapeHtml(team.id)}"`, config.teamKeybinds[team.id] || "")).join("");
       return `<p class="gc-note">Click a field, then press the keys you want. Press Escape while recording to clear it. A combination can only belong to one action, so reusing one releases it from the other.</p>
 <section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}${planner}</div></section>
 <section class="gc-card gc-shortcuts"><h3>Pet team cycling</h3><p>Step through your saved teams in order, wrapping at both ends.</p><div class="gc-shortcut-grid">${teamCycling}</div></section>
@@ -2164,298 +2490,11 @@
         const options = petDiet(name).map((crop) => {
           const sprite = produceSprite(crop);
           const held = counts.get(crop) || 0;
-          return `<button data-food-choice="${escapeHtml2(name)}" data-food-crop="${escapeHtml2(crop)}" data-active="${crop === chosen}"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml2(humanize(crop))}</b><small>${held} held</small></span></button>`;
+          return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(crop)}" data-active="${crop === chosen}"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(crop))}</b><small>${held} held</small></span></button>`;
         }).join("");
-        return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml2(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? "Active" : "Owned"}</span></div><div class="gc-food-options">${options}</div></article>`;
+        return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? "Active" : "Owned"}</span></div><div class="gc-food-options">${options}</div></article>`;
       }).join("");
       return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
-    }
-    const EGG_CATALOG = define_EGG_CATALOG_default;
-    const DUST_RARITY = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
-    const DUST_HATCH_MUTATION = 1 - 0.01 - 1e-3 + 0.01 * 25 + 1e-3 * 50;
-    const HATCH_WEIGHT = /* @__PURE__ */ new Map();
-    for (const egg of Object.values(EGG_CATALOG)) {
-      for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!HATCH_WEIGHT.has(species)) HATCH_WEIGHT.set(species, weight);
-    }
-    const HUNGER_MINUTES = {
-      Worm: 30,
-      Snail: 60,
-      Bee: 15,
-      Chicken: 60,
-      Bunny: 45,
-      Dragonfly: 15,
-      Pig: 60,
-      Cow: 75,
-      Turkey: 60,
-      SnowFox: 45,
-      Stoat: 60,
-      WhiteCaribou: 75,
-      Squirrel: 30,
-      Turtle: 90,
-      Goat: 60,
-      Sheep: 60,
-      Ostrich: 45,
-      Pony: 60,
-      Horse: 75,
-      FireHorse: 90,
-      Bat: 30,
-      Platypus: 60,
-      ThunderWolf: 60,
-      Butterfly: 30,
-      Peacock: 60,
-      Capybara: 60
-    };
-    const CROP_REGROW = {
-      Cacao: [90, 30],
-      Squash: [15, 5],
-      Date: [180, 60],
-      DragonFruit: [7.5, 2.5],
-      Pepper: [5, 2],
-      Lychee: [15, 5],
-      Coconut: [90, 30],
-      Apple: [30, 10],
-      Banana: [112.5, 37.5],
-      Camellia: [135, 45],
-      Chrysanthemum: [270, 90],
-      Eggplant: [180, 60],
-      Lemon: [90, 30],
-      Peach: [135, 45],
-      Pear: [135, 45],
-      Poinsettia: [9, 3],
-      PricklyPear: [90, 30],
-      Strawberry: [15 / 60, 5 / 60],
-      Tomato: [1, 20 / 60],
-      BurrosTail: [4.5, 1.5],
-      FavaBean: [12, 2],
-      PassionFruit: [90, 30],
-      Blueberry: [33 / 60, 11 / 60],
-      Cabbage: [52 / 60, 0],
-      Corn: [45 / 60, 0],
-      Grape: [22.5, 0],
-      Sunflower: [1320, 0]
-    };
-    const CROP_GROW = {
-      Daffodil: 50 / 60,
-      Lily: 4,
-      Carrot: 4 / 60,
-      Aloe: 45 / 60,
-      Bamboo: 1320,
-      Cactus: 180,
-      Beet: 1,
-      Clover: 6,
-      Delphinium: 25 / 60,
-      FourLeafClover: 6,
-      Gentian: 1.5,
-      Leek: 1.5,
-      Mushroom: 1320,
-      OrangeTulip: 8 / 60,
-      Pumpkin: 35,
-      VioletCort: 1320,
-      Watermelon: 12
-    };
-    function dustMultiplier(species, mutations = []) {
-      const rarity = DUST_RARITY[PET_CATALOG[species]?.rarity || ""] || 1;
-      const hatch = HATCH_WEIGHT.get(species) ?? 100;
-      const hatchMultiplier = hatch >= 50 ? 1 : hatch > 10 ? 2 : 5;
-      const colour = mutations.includes("Rainbow") ? 50 : mutations.includes("Gold") ? 25 : 1;
-      return 100 * rarity * hatchMultiplier * colour;
-    }
-    function petMaxDust(pet) {
-      return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || []) * Number(pet.targetScale || 1));
-    }
-    function eggDustRange(eggId) {
-      const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
-      const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0) || 1;
-      let low = 0, average = 0, high = 0;
-      for (const [species, weight] of Object.entries(weights)) {
-        const share = weight / total;
-        const multiplier = dustMultiplier(species);
-        const maxScale = PET_CATALOG[species]?.maxScale || 1;
-        low += share * Math.floor(multiplier);
-        average += share * Math.floor(multiplier * (1 + maxScale) / 2);
-        high += share * Math.floor(multiplier * maxScale);
-      }
-      return { low: low * DUST_HATCH_MUTATION, average: average * DUST_HATCH_MUTATION, high: high * DUST_HATCH_MUTATION };
-    }
-    function heldEggs() {
-      const counts = /* @__PURE__ */ new Map();
-      const items = state.slot?.data?.inventory?.items || [];
-      const stored = (state.slot?.data?.inventory?.storages || []).flatMap((storage) => storage.items || []);
-      for (const item of [...items, ...stored]) {
-        if (item?.itemType !== "Egg" || !item.eggId) continue;
-        counts.set(item.eggId, (counts.get(item.eggId) || 0) + Number(item.quantity || 1));
-      }
-      for (const tile of Object.values(state.slot?.data?.garden?.tileObjects || {})) {
-        for (const slot of tile?.slots || []) {
-          const species = String(slot?.species || "");
-          if (EGG_CATALOG[species]) counts.set(species, (counts.get(species) || 0) + 1);
-        }
-      }
-      return [...counts].map(([eggId, quantity]) => ({ eggId, quantity })).sort((left, right) => right.quantity - left.quantity);
-    }
-    let calculatorTab = "dust";
-    const dustSelection = /* @__PURE__ */ new Set();
-    let granterAbility = "RainbowGranter";
-    const granterStrengths = [null, null, null];
-    const granterEnabled = [true, true, true];
-    const foodSlots = [null, null, null];
-    const CALCULATOR_TABS = [["dust", "Dust"], ["food", "Food"], ["granter", "Granters"]];
-    function updateDustTotal(main) {
-      const total = allPets().filter((pet) => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
-      const label = main.querySelector("[data-dust-total]");
-      if (label) label.textContent = `${total.toLocaleString()} dust`;
-    }
-    function renderCalculators() {
-      const tabs = CALCULATOR_TABS.map(([id, label]) => `<button data-calc-tab="${id}" class="${id === calculatorTab ? "active" : ""}">${label}</button>`).join("");
-      const body = calculatorTab === "granter" ? renderGranterCalculator() : calculatorTab === "food" ? renderFoodCalculator() : renderDustCalculator();
-      return `<div class="gc-calc-tabs">${tabs}</div>${body}`;
-    }
-    function renderDustCalculator() {
-      const eggs = heldEggs();
-      const eggRows = eggs.map(({ eggId, quantity }) => {
-        const range = eggDustRange(eggId);
-        const sprite = page2.__gardenCompanionShopSprites?.[eggId];
-        return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : ""}</span>${escapeHtml2(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString()}</td><td>${Math.round(range.average).toLocaleString()}</td><td><b>${Math.round(range.average * quantity).toLocaleString()}</b><small>${Math.round(range.low * quantity).toLocaleString()} to ${Math.round(range.high * quantity).toLocaleString()}</small></td></tr>`;
-      }).join("");
-      const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
-      const pets = allPets().map((pet) => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
-      const selectedTotal = pets.filter((row) => dustSelection.has(row.pet.id)).reduce((sum, row) => sum + row.dust, 0);
-      const petRows = pets.map(({ pet, dust }) => {
-        const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
-        const metrics = petMetrics(pet);
-        const mutations = (pet.mutations || []).filter((mutation) => mutation === "Gold" || mutation === "Rainbow");
-        return `<label class="gc-dust-row" data-filter-text="${escapeHtml2(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml2(pet.id)}" ${dustSelection.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml2(name)}</b><small>${escapeHtml2(pet.location)}${mutations.length ? ` | ${escapeHtml2(mutations.join(" "))}` : ""}${metrics ? ` | max STR ${metrics.maxStrength}` : ""}</small></span><b class="gc-dust-value">${dust.toLocaleString()}</b></label>`;
-      }).join("");
-      return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
-<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
-    }
-    function granterOptions() {
-      return Object.entries(ABILITY_DETAILS).filter(([id, details]) => typeof details.baseProbability === "number" && !EXCLUDED_TRACKED_ABILITIES.has(id)).map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability })).sort((left, right) => left.label.localeCompare(right.label));
-    }
-    function granterPets(ability) {
-      return allPets().filter((pet) => (pet.abilities || []).includes(ability)).sort((left, right) => (petMetrics(right)?.maxStrength ?? 0) - (petMetrics(left)?.maxStrength ?? 0)).slice(0, 3);
-    }
-    function granterStrengthFor(index, pets) {
-      const pet = pets[index];
-      return granterStrengths[index] ?? (pet ? petMetrics(pet)?.maxStrength : void 0) ?? 100;
-    }
-    function granterRows() {
-      const pets = granterPets(granterAbility);
-      return [0, 1, 2].map((index) => {
-        const pet = pets[index];
-        const name = pet ? pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies) : `Pet ${index + 1}`;
-        const strength = granterStrengthFor(index, pets);
-        const source = pet ? `${escapeHtml2(humanize(pet.petSpecies))} | ${escapeHtml2(pet.location || "")}` : "Not owned - set a Strength to plan ahead";
-        const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
-        return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? "checked" : ""}>${sprite}<span><b>${escapeHtml2(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div></div>`;
-      }).join("");
-    }
-    function renderGranterCalculator() {
-      const options = granterOptions();
-      const ability = options.find((option) => option.id === granterAbility) || options[0];
-      if (ability) granterAbility = ability.id;
-      const select = options.map((option) => `<option value="${escapeHtml2(option.id)}" ${option.id === granterAbility ? "selected" : ""}>${escapeHtml2(option.label)}</option>`).join("");
-      return `<p class="gc-note">The three strongest pets you own with this ability are filled in automatically. Any ability can be planned without owning a pet for it by setting the Strength sliders yourself.</p>
-<section class="gc-card"><h3>Ability</h3><select class="gc-calc-select" data-granter-ability>${select}</select><p class="gc-calc-hint" data-granter-hint>${granterHint()}</p></section>
-<section class="gc-card"><h3>Pets</h3><div class="gc-granter-list">${granterRows()}</div></section>
-<section class="gc-card"><h3>Combined</h3><div data-granter-results>${granterResults()}</div></section>`;
-    }
-    function granterHint() {
-      const ability = granterOptions().find((option) => option.id === granterAbility);
-      if (!ability) return "No chance-based abilities found.";
-      const owned = granterPets(granterAbility).length;
-      const source = owned ? `${owned} owned pet${owned === 1 ? "" : "s"} filled in` : "You own no pet with this ability, so the sliders are yours to set";
-      return `${ability.probability}% per minute at STR 100, rolled every second - ${source}`;
-    }
-    function granterResults() {
-      const ability = granterOptions().find((option) => option.id === granterAbility);
-      const pets = granterPets(granterAbility);
-      const perSecond = [0, 1, 2].filter((index) => granterEnabled[index]).map((index) => 1 - Math.pow(1 - (ability ? ability.probability * granterStrengthFor(index, pets) / 100 : 0) / 100, 1 / 60));
-      const combined = 1 - perSecond.reduce((total, chance) => total * (1 - chance), 1);
-      if (!(combined > 0)) return '<p class="gc-empty">Enable at least one pet to see proc estimates.</p>';
-      const perMinute = (1 - Math.pow(1 - combined, 60)) * 100;
-      return `<div class="gc-calc-grid"><div><small>Chance per minute</small><b>${perMinute.toFixed(2)}%</b></div><div><small>Average wait</small><b>${formatDuration(1e3 / combined)}</b></div><div><small>95% within</small><b>${formatDuration(-Math.log(1 - 0.95) / combined * 1e3)}</b></div><div><small>99% within</small><b>${formatDuration(-Math.log(1 - 0.99) / combined * 1e3)}</b></div></div>`;
-    }
-    function updateGranterResults(main) {
-      const container = main.querySelector("[data-granter-results]");
-      if (container) container.innerHTML = granterResults();
-    }
-    function updateGranterSection(main) {
-      const list = main.querySelector(".gc-granter-list");
-      if (list) {
-        list.innerHTML = granterRows();
-        bindGranterRows(main);
-      }
-      const hint = main.querySelector("[data-granter-hint]");
-      if (hint) hint.textContent = granterHint();
-      updateGranterResults(main);
-    }
-    function bindGranterRows(main) {
-      main.querySelectorAll("[data-granter-on]").forEach((input) => input.onchange = () => {
-        granterEnabled[Number(input.dataset.granterOn)] = input.checked;
-        input.closest(".gc-granter-row")?.setAttribute("data-active", String(input.checked));
-        updateGranterResults(main);
-      });
-      main.querySelectorAll("[data-granter-str]").forEach((input) => input.oninput = () => {
-        const index = Number(input.dataset.granterStr);
-        granterStrengths[index] = Number(input.value);
-        const label = main.querySelector(`[data-granter-value="${index}"]`);
-        if (label) label.textContent = input.value;
-        updateGranterResults(main);
-      });
-    }
-    function foodSlotValue(index) {
-      const saved = foodSlots[index];
-      if (saved) return saved;
-      const pet = activePets()[index];
-      const species = pet?.petSpecies || Object.keys(PET_CATALOG)[index] || "Worm";
-      const diet = petDiet(species);
-      const choice = config.petFoodChoices?.[species] || "";
-      return { species, food: diet.includes(choice) ? choice : diet[0] || "" };
-    }
-    function renderFoodCalculator() {
-      const slots = [0, 1, 2].map(foodSlotValue);
-      const demand = /* @__PURE__ */ new Map();
-      for (const slot of slots) {
-        const maxHunger = Number(PET_CATALOG[slot.species]?.maxHunger || 0);
-        const minutes = HUNGER_MINUTES[slot.species];
-        const value = Number(page2.__gardenCompanionPlantPrice?.(slot.food) || 0);
-        if (!maxHunger || !minutes || !value || !slot.food) continue;
-        const perHour = maxHunger / minutes * 60 / Math.min(value, maxHunger);
-        demand.set(slot.food, (demand.get(slot.food) || 0) + perHour);
-      }
-      const rows = [...demand].sort((left, right) => right[1] - left[1]).map(([crop, need]) => {
-        const plant = define_PLANT_CATALOG_default[crop];
-        const slotCount = Math.max(1, Number(plant?.slots || 1));
-        const sprite = produceSprite(crop);
-        let cover = "Timing unknown";
-        let output = "";
-        if (plant?.regrows && CROP_REGROW[crop]) {
-          const [first, step] = CROP_REGROW[crop];
-          const cycle = first + step * (slotCount - 1);
-          const perPlant = slotCount * (60 / cycle);
-          const plants = Math.max(1, Math.ceil(need / perPlant));
-          cover = `${plants} plant${plants === 1 ? "" : "s"}`;
-          output = `${(plants * perPlant).toFixed(1)} fruit/hr from ${plants} plant${plants === 1 ? "" : "s"} (${perPlant.toFixed(1)} each)`;
-        } else if (!plant?.regrows && CROP_GROW[crop]) {
-          const perTile = 60 / CROP_GROW[crop];
-          const tiles = Math.max(1, Math.ceil(need / perTile));
-          cover = `${Math.ceil(need)} seeds/hr`;
-          output = `${tiles} tile${tiles === 1 ? "" : "s"} replanted continuously`;
-        }
-        return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : ""}</span>${escapeHtml2(humanize(crop))}</td><td><b>${need.toFixed(1)}</b>/hr</td><td>${escapeHtml2(cover)}<small>${escapeHtml2(output)}</small></td></tr>`;
-      }).join("");
-      const petOptions = Object.keys(PET_CATALOG).filter((species) => petDiet(species).length).sort((left, right) => (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));
-      const slotCards = slots.map((slot, index) => {
-        const species = petOptions.map((name) => `<option value="${escapeHtml2(name)}" ${name === slot.species ? "selected" : ""}>${escapeHtml2(PET_CATALOG[name]?.name || humanize(name))}</option>`).join("");
-        const foods = petDiet(slot.species).map((crop) => `<option value="${escapeHtml2(crop)}" ${crop === slot.food ? "selected" : ""}>${escapeHtml2(humanize(crop))}</option>`).join("");
-        const minutes = HUNGER_MINUTES[slot.species];
-        return `<div class="gc-food-slot"><select data-food-pet="${index}">${species}</select><select data-food-crop="${index}">${foods}</select><small>${minutes ? `Full hunger lasts ${minutes} min` : "Hunger timing unknown"}</small></div>`;
-      }).join("");
-      return `<p class="gc-note">Pick three pets and what you feed them to see the produce needed each hour, and how many plants or seeds cover it. Crop values use base sell prices, so mutated fruit feeds for longer than shown.</p>
-<section class="gc-card"><h3>Team</h3><div class="gc-food-slots">${slotCards}</div></section>
-<section class="gc-card"><h3>Produce needed each hour</h3>${rows ? `<table class="gc-calc-table"><thead><tr><th>Produce</th><th>Need</th><th>Covered by</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="gc-empty">Choose pets with a food to see the demand.</p>'}</section>`;
     }
     function renderAbilities() {
       const active = state.slot?.data?.petSlots || [];
@@ -2465,7 +2504,7 @@
         const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : "Max STR reached" : "Strength estimate unavailable";
         const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
         const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString()} XP potion${potionsToMax === 1 ? "" : "s"} to max` : "";
-        return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml2(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml2(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : "STR unavailable"}</span><strong>${escapeHtml2(maxText)}</strong></div>${potionText ? `<div class="gc-pet-potions">${escapeHtml2(potionText)}</div>` : ""}</article>`;
+        return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : "STR unavailable"}</span><strong>${escapeHtml(maxText)}</strong></div>${potionText ? `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : ""}</article>`;
       }).join("");
       const abilityRows = combinedAbilityRows(active);
       return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? "" : "s"}</b><span>${Math.round(xpRate).toLocaleString()} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
@@ -2492,7 +2531,7 @@
       const recent = matched.slice(0, LOG_VISIBLE_ROWS);
       if (!recent.length) return search ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
       const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : "";
-      return recent.map((log) => `<div><time>${new Date(log.at).toLocaleTimeString()}</time><b>${escapeHtml2(log.pet)}</b><span class="gc-proc-result">${escapeHtml2(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}<i>&rarr; ${escapeHtml2(procOutcome(log.ability, log.data))}</i></span></div>`).join("") + more;
+      return recent.map((log) => `<div><time>${new Date(log.at).toLocaleTimeString()}</time><b>${escapeHtml(log.pet)}</b><span class="gc-proc-result">${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}<i>&rarr; ${escapeHtml(procOutcome(log.ability, log.data))}</i></span></div>`).join("") + more;
     }
     function refreshAbilityFilterUi(main) {
       const selectedFilters = selectedAbilityFilters();
@@ -2514,8 +2553,8 @@
     function renderAbilityLog() {
       const selectedFilters = selectedAbilityFilters();
       const filterSummary = abilityFilterSummary(selectedFilters);
-      const filterOptions = ABILITY_FILTER_OPTIONS.map((option) => `<button data-ability-option="${escapeHtml2(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml2(option.label)}</span><i>${selectedFilters.has(option.key) ? "&#10003;" : ""}</i></button>`).join("");
-      return `<section class="gc-card gc-ability-filter"><span>Ability filter</span><details data-ability-filter ${abilityFilterMenuOpen ? "open" : ""}><summary>${escapeHtml2(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><small>Choose any combination. Proc history stores up to ${LOG_PER_ABILITY} entries per exact ability.</small></section><section class="gc-card gc-ability-log-card"><div class="gc-row"><h3>Recent tracked procs</h3><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search pet, ability or result" spellcheck="false" value="${escapeHtml2(abilityLogSearch)}"><button data-clear-log>Clear</button></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
+      const filterOptions = ABILITY_FILTER_OPTIONS.map((option) => `<button data-ability-option="${escapeHtml(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml(option.label)}</span><i>${selectedFilters.has(option.key) ? "&#10003;" : ""}</i></button>`).join("");
+      return `<section class="gc-card gc-ability-filter"><span>Ability filter</span><details data-ability-filter ${abilityFilterMenuOpen ? "open" : ""}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><small>Choose any combination. Proc history stores up to ${LOG_PER_ABILITY} entries per exact ability.</small></section><section class="gc-card gc-ability-log-card"><div class="gc-row"><h3>Recent tracked procs</h3><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search pet, ability or result" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><button data-clear-log>Clear</button></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
     }
     let roomRows = null, roomError = "", roomLoading = false;
     function safeImageUrl(value) {
@@ -2532,17 +2571,17 @@
         const url = safeImageUrl(slot?.avatar_url);
         const name = String(slot?.name || "").trim();
         const initial = name.slice(0, 1).toUpperCase() || "?";
-        const inner = url ? `<img src="${escapeHtml2(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml2(initial);
-        return `<span class="gc-room-face" title="${escapeHtml2(name || "Unknown player")}">${inner}</span>`;
+        const inner = url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initial);
+        return `<span class="gc-room-face" title="${escapeHtml(name || "Unknown player")}">${inner}</span>`;
       }).join("");
       return faces ? `<div class="gc-room-faces">${faces}</div>` : "";
     }
     function renderRooms() {
       if (!roomRows && !roomLoading && !roomError) fetchRooms();
-      const body = roomLoading ? '<p class="gc-empty">Loading rooms...</p>' : roomError ? `<p class="gc-empty">${escapeHtml2(roomError)}</p>` : (roomRows || []).map((room) => {
+      const body = roomLoading ? '<p class="gc-empty">Loading rooms...</p>' : roomError ? `<p class="gc-empty">${escapeHtml(roomError)}</p>` : (roomRows || []).map((room) => {
         const slots = Array.isArray(room.user_slots) ? room.user_slots : [];
-        const names = slots.map((slot) => escapeHtml2(slot.name)).filter(Boolean).join(", ") || "No visible players";
-        return `<article class="gc-card gc-room"><div><h3>${escapeHtml2(room.id)}</h3>${roomAvatars(slots)}<p>${names}</p></div><span class="gc-pill">${Number(room.players_count || 0)}/6</span><button data-join-room="${escapeHtml2(room.id)}">Join</button></article>`;
+        const names = slots.map((slot) => escapeHtml(slot.name)).filter(Boolean).join(", ") || "No visible players";
+        return `<article class="gc-card gc-room"><div><h3>${escapeHtml(room.id)}</h3>${roomAvatars(slots)}<p>${names}</p></div><span class="gc-pill">${Number(room.players_count || 0)}/6</span><button data-join-room="${escapeHtml(room.id)}">Join</button></article>`;
       }).join("") || '<p class="gc-empty">No joinable rooms found.</p>';
       return `<div class="gc-row"><p class="gc-note">Public rooms with one or two open slots.</p><button data-refresh-rooms>Refresh</button></div><section class="gc-stack">${body}</section>`;
     }
@@ -2581,15 +2620,15 @@
       const available = new Set(availableShopItems().filter((row) => row.shop === shopAlarmTab).map((row) => row.id));
       const rows = itemIds.map((id) => {
         const key = `${shopAlarmTab}:${id}`;
-        const sprite = page2.__gardenCompanionShopSprites?.[id];
-        return `<label class="gc-check" data-filter-text="${escapeHtml2(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml2(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml2(humanize(id))}</b><small>${available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span></label>`;
+        const sprite = page.__gardenCompanionShopSprites?.[id];
+        return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span></label>`;
       });
       const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? "active" : ""}">${label}</button>`).join("");
-      return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml2(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join("") || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;
+      return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join("") || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;
     }
     function renderSilence() {
       const selected = new Set(config.silencedAbilities || []);
-      return `<p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml2(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml2(ability)}" ${selected.has(ability) ? "checked" : ""}><span><b>${escapeHtml2(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml2(ability)}</small></span></label>`).join("")}</div>`;
+      return `<p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
     }
     function bindListSearch(input, onQuery) {
       if (!input) return;
@@ -2624,44 +2663,40 @@
       });
       main.querySelector("[data-open-planner]")?.addEventListener("click", () => {
         closePanel();
-        page2.__gardenCompanionTogglePlanner?.();
+        page.__gardenCompanionTogglePlanner?.();
       });
       main.querySelectorAll("[data-calc-tab]").forEach((button) => button.onclick = () => {
-        calculatorTab = button.dataset.calcTab || calculatorTab;
+        setCalculatorTab(button.dataset.calcTab || "");
         renderPanel();
       });
       main.querySelectorAll("[data-dust-pet]").forEach((input) => input.onchange = () => {
-        const petId = input.dataset.dustPet;
-        input.checked ? dustSelection.add(petId) : dustSelection.delete(petId);
+        toggleDustPet(input.dataset.dustPet, input.checked);
         updateDustTotal(main);
       });
       main.querySelector("[data-dust-all]")?.addEventListener("click", () => {
-        for (const pet of allPets()) dustSelection.add(pet.id);
+        setDustSelection(allPets().map((pet) => pet.id));
         renderPanelPreservingScroll();
       });
       main.querySelector("[data-dust-none]")?.addEventListener("click", () => {
-        dustSelection.clear();
+        setDustSelection([]);
         renderPanelPreservingScroll();
       });
       bindListSearch(main.querySelector("[data-dust-search]"));
       main.querySelector("[data-granter-ability]")?.addEventListener("change", (event) => {
-        granterAbility = event.target.value;
-        granterStrengths[0] = granterStrengths[1] = granterStrengths[2] = null;
-        granterEnabled[0] = granterEnabled[1] = granterEnabled[2] = true;
+        selectGranterAbility(event.target.value);
         updateGranterSection(main);
       });
       if (main.querySelector(".gc-granter-list")) bindGranterRows(main);
       main.querySelectorAll("[data-food-pet]").forEach((select) => select.onchange = () => {
-        const index = Number(select.dataset.foodPet);
         const species = select.value;
         const diet = petDiet(species);
         const choice = config.petFoodChoices?.[species] || "";
-        foodSlots[index] = { species, food: diet.includes(choice) ? choice : diet[0] || "" };
+        setFoodSlot(Number(select.dataset.foodPet), { species, food: diet.includes(choice) ? choice : diet[0] || "" });
         renderPanelPreservingScroll();
       });
       main.querySelectorAll("[data-food-crop]").forEach((select) => select.onchange = () => {
         const index = Number(select.dataset.foodCrop);
-        foodSlots[index] = { species: foodSlotValue(index).species, food: select.value };
+        setFoodSlot(index, { species: foodSlotValue(index).species, food: select.value });
         renderPanelPreservingScroll();
       });
       main.querySelector("[data-open-team-picker]")?.addEventListener("click", () => openTeamPicker(null));
@@ -2805,7 +2840,7 @@
       lunar.querySelector("[data-options]").onclick = togglePanel;
       lunar.querySelector("#gc-update-health").onclick = handleUpdateClick;
       document.body.appendChild(lunar);
-      page2.__gardenCompanionPetSpritesReady = () => {
+      page.__gardenCompanionPetSpritesReady = () => {
         const panel = document.getElementById("gc-panel");
         if (panel && !panel.hidden && ["teams", "abilities", "shops", "petFood"].includes(activeTab)) renderPanel();
         petFoodSignature = "";
@@ -2822,7 +2857,7 @@
       setInterval(renderTurtleOverlay, 250);
       renderPetFood();
       setInterval(positionPetFood, 250);
-      page2.addEventListener("pointerup", () => requestAnimationFrame(positionPetFood), true);
+      page.addEventListener("pointerup", () => requestAnimationFrame(positionPetFood), true);
     }
     installGameModalAccess();
     subscribeToState();
@@ -2833,14 +2868,14 @@
   }
 
   // src/features/ability-silencer.ts
-  function atomMap(page2) {
-    const cache = page2.jotaiAtomCache;
+  function atomMap(page3) {
+    const cache = page3.jotaiAtomCache;
     if (cache instanceof Map) return cache;
     return cache?.cache ?? null;
   }
   function initAbilitySilencer(attempt = 0) {
-    const page2 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
-    const map = atomMap(page2);
+    const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+    const map = atomMap(page3);
     if (!map) {
       if (attempt < 240) setTimeout(() => initAbilitySilencer(attempt + 1), 500);
       return;
@@ -2854,9 +2889,9 @@
     const originalRead = atom.read;
     atom.read = function(get, ...args) {
       const value = originalRead.call(this, get, ...args);
-      const config = page2.__gardenCompanionConfig?.();
-      if (!config?.abilitySilencer || !value || typeof value !== "object" || Array.isArray(value)) return value;
-      const silenced = new Set(config.silencedAbilities);
+      const config2 = page3.__gardenCompanionConfig?.();
+      if (!config2?.abilitySilencer || !value || typeof value !== "object" || Array.isArray(value)) return value;
+      const silenced = new Set(config2.silencedAbilities);
       let filtered = null;
       for (const [petId, rawInfo] of Object.entries(value)) {
         if (!rawInfo || typeof rawInfo !== "object" || Array.isArray(rawInfo)) continue;
@@ -2938,14 +2973,14 @@
       return { ...MUTATION_DEFAULTS };
     }
   }
-  function saveMutationConfig(config) {
+  function saveMutationConfig(config2) {
     try {
-      localStorage.setItem(MUTATION_KEY, JSON.stringify(config));
+      localStorage.setItem(MUTATION_KEY, JSON.stringify(config2));
     } catch {
     }
   }
-  function selectedMutations(config) {
-    return new Set(Object.entries(MUTATION_IDS).filter(([key]) => config[key]).map(([, id]) => id));
+  function selectedMutations(config2) {
+    return new Set(Object.entries(MUTATION_IDS).filter(([key]) => config2[key]).map(([, id]) => id));
   }
   function loadFocus() {
     try {
@@ -2954,13 +2989,13 @@
       return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", invert: false, opacity: 0.2 };
     }
   }
-  function saveFocus(config) {
+  function saveFocus(config2) {
     try {
-      localStorage.setItem(FOCUS_KEY, JSON.stringify(config));
+      localStorage.setItem(FOCUS_KEY, JSON.stringify(config2));
     } catch {
     }
   }
-  function installPlantFocus(page2, runtime, selectedSpecies, focusConfig, ignorePreserved) {
+  function installPlantFocus(page3, runtime, selectedSpecies, focusConfig, ignorePreserved) {
     let tileSystem = null;
     const originalAlpha = /* @__PURE__ */ new WeakMap();
     const desiredAlpha = /* @__PURE__ */ new WeakMap();
@@ -3011,14 +3046,14 @@
         return result;
       };
     }
-    function matches(tile, slot, config) {
+    function matches(tile, slot, config2) {
       if (ignorePreserved() && slot.preserved) return false;
       const selected = selectedSpecies();
-      const scopeMatches = config.scope === "all" || config.scope === "tracked" && (!selected || selected.has(tile.species)) || config.scope === tile.species;
+      const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected || selected.has(tile.species)) || config2.scope === tile.species;
       const mutations = slot.mutations || [];
-      const mutationMatches = config.mutationRule === "none" ? config.mutations.every((name) => !mutations.includes(name)) : config.mutationRule === "any" ? config.mutations.some((name) => mutations.includes(name)) : config.mutations.length ? config.mutations.every((name) => mutations.includes(name)) : mutations.length === 0;
+      const mutationMatches = config2.mutationRule === "none" ? config2.mutations.every((name) => !mutations.includes(name)) : config2.mutationRule === "any" ? config2.mutations.some((name) => mutations.includes(name)) : config2.mutations.length ? config2.mutations.every((name) => mutations.includes(name)) : mutations.length === 0;
       const result = scopeMatches && mutationMatches;
-      return config.invert ? !result : result;
+      return config2.invert ? !result : result;
     }
     function capture(system) {
       if (!system?.tileViews || !system?.map?.globalTileIdxToDirtTile || system === tileSystem) return;
@@ -3038,8 +3073,8 @@
       }
       setTimeout(apply, 0);
     }
-    const PageMap = page2.Map;
-    const PageObject = page2.Object;
+    const PageMap = page3.Map;
+    const PageObject = page3.Object;
     function armTileViewsCapture() {
       if (tileSystem) return;
       const prototype = PageObject.prototype;
@@ -3098,11 +3133,11 @@
     }
     armTileViewsCapture();
     function apply() {
-      const config = focusConfig();
+      const config2 = focusConfig();
       const slotIndex = runtime().slotIndex;
       const views = tileSystem?.tileViews;
       const dirtMap = tileSystem?.map?.globalTileIdxToDirtTile;
-      if (!config.enabled || slotIndex == null || !(views instanceof PageMap) || !dirtMap) {
+      if (!config2.enabled || slotIndex == null || !(views instanceof PageMap) || !dirtMap) {
         restoreAll();
         return;
       }
@@ -3112,16 +3147,16 @@
         const tile = view?.tileObject;
         if (!dirt || dirt.userSlotIdx !== slotIndex || tile?.objectType !== "plant") return;
         const slots = tile.slots || [];
-        const visible = new Map(slots.map((slot) => [slot.slotId, matches(tile, slot, config)]));
+        const visible = new Map(slots.map((slot) => [slot.slotId, matches(tile, slot, config2)]));
         const plantVisual = view.childView?.plantVisual;
         const crops = plantVisual?.getCropVisuals?.() || [];
         armView(view);
         if (![...visible.values()].some(Boolean)) {
-          fade(plantVisual?.container, config.opacity, seen);
+          fade(plantVisual?.container, config2.opacity, seen);
           crops.forEach((crop) => restore(cropContainer(crop)));
         } else {
           restore(plantVisual?.container);
-          crops.forEach((crop) => visible.get(crop?.slotId) === false ? fade(cropContainer(crop), config.opacity, seen) : restore(cropContainer(crop)));
+          crops.forEach((crop) => visible.get(crop?.slotId) === false ? fade(cropContainer(crop), config2.opacity, seen) : restore(cropContainer(crop)));
         }
       });
       [...managed].forEach((display) => {
@@ -3200,7 +3235,7 @@
     } catch {
     }
   }
-  function escapeHtml(value) {
+  function escapeHtml2(value) {
     return String(value ?? "").replace(/[&<>'"]/g, (character) => ({
       "&": "&amp;",
       "<": "&lt;",
@@ -3224,15 +3259,15 @@
     const condition = weather && time ? COMBINED_MULTIPLIERS[`${weather}+${time}`] ?? Math.max(WEATHER_MULTIPLIERS[weather], TIME_MULTIPLIERS[time]) : weather ? WEATHER_MULTIPLIERS[weather] : time ? TIME_MULTIPLIERS[time] : 1;
     return color * condition;
   }
-  function installCatalogCapture(page2) {
-    const objectConstructor = page2.Object;
+  function installCatalogCapture(page3) {
+    const objectConstructor = page3.Object;
     const nativeKeys = objectConstructor.keys;
     let catalog = define_PLANT_CATALOG_default;
     let capturedLiveCatalog = false;
     let restoreTimer = null;
     const seen = /* @__PURE__ */ new WeakSet();
     let wrappedKeys;
-    page2.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
+    page3.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
     function restore() {
       if (objectConstructor.keys === wrappedKeys) objectConstructor.keys = nativeKeys;
     }
@@ -3257,7 +3292,7 @@
         if (keys.length >= (catalog ? nativeKeys(catalog).length : 0)) {
           catalog = value;
           capturedLiveCatalog = true;
-          page2.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
+          page3.__gardenCompanionPlantPrice = (species) => catalog?.[species ?? ""]?.crop?.baseSellPrice;
         }
         if (!restoreTimer) {
           restoreTimer = setTimeout(restore, 5e3);
@@ -3487,8 +3522,8 @@
     return hours ? `${hours}h ${minutes}m` : `${minutes}m ${seconds % 60}s`;
   }
   function initGardenOverview() {
-    const page2 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
-    const getCatalog = installCatalogCapture(page2);
+    const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+    const getCatalog = installCatalogCapture(page3);
     let filter = loadFilter();
     let mutationConfig = loadMutationConfig();
     let trackedMutations = selectedMutations(mutationConfig);
@@ -3496,7 +3531,7 @@
     view.ignorePreserved = mutationConfig.ignorePreserved;
     let focus = loadFocus();
     let shortcut = localStorage.getItem(SHORTCUT_KEY) || "";
-    page2.__gardenCompanionOverviewShortcutChanged = (nextShortcut) => {
+    page3.__gardenCompanionOverviewShortcutChanged = (nextShortcut) => {
       shortcut = nextShortcut;
     };
     let position = null;
@@ -3518,11 +3553,11 @@
       return parts.join("+");
     }
     function stopCompletionAlarm() {
-      page2.__gardenCompanionStopAlarm?.("overview");
+      page3.__gardenCompanionStopAlarm?.("overview");
     }
     function notifyCompletedMutation(name) {
       if (!view.alarm) return;
-      page2.__gardenCompanionShowAlarm?.({
+      page3.__gardenCompanionShowAlarm?.({
         owner: "overview",
         label: "GARDEN ALARM | MUTATION GRANTER",
         title: `${displayName(name)} target complete`,
@@ -3537,9 +3572,9 @@
       }
     }
     function runtime() {
-      return page2.__gardenCompanionState ?? {};
+      return page3.__gardenCompanionState ?? {};
     }
-    const applyPlantFocus = installPlantFocus(page2, runtime, () => filter, () => focus, () => view.ignorePreserved);
+    const applyPlantFocus = installPlantFocus(page3, runtime, () => filter, () => focus, () => view.ignorePreserved);
     function knownSpecies() {
       const catalog = getCatalog();
       if (catalog) return Object.keys(catalog).sort();
@@ -3575,7 +3610,7 @@
         const selected = filter ?? new Set(species);
         const counts = /* @__PURE__ */ new Map();
         for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === "plant" && tile.species) counts.set(tile.species, (counts.get(tile.species) ?? 0) + 1);
-        const section = (label, names) => names.length ? `<div class="go-pill-section"><b>${label} (${names.length})</b><div>${names.map((name) => `<button class="go-pill ${selected.has(name) ? "on" : ""}" data-species-toggle="${escapeHtml(name)}" data-filter-text="${escapeHtml(displayName(name).toLowerCase())}">${selected.has(name) ? "<i>&#10003;</i>" : ""}<span>${escapeHtml(displayName(name))}</span>${counts.has(name) ? `<small>&middot;${counts.get(name)}</small>` : ""}</button>`).join("")}</div></div>` : "";
+        const section = (label, names) => names.length ? `<div class="go-pill-section"><b>${label} (${names.length})</b><div>${names.map((name) => `<button class="go-pill ${selected.has(name) ? "on" : ""}" data-species-toggle="${escapeHtml2(name)}" data-filter-text="${escapeHtml2(displayName(name).toLowerCase())}">${selected.has(name) ? "<i>&#10003;</i>" : ""}<span>${escapeHtml2(displayName(name))}</span>${counts.has(name) ? `<small>&middot;${counts.get(name)}</small>` : ""}</button>`).join("")}</div></div>` : "";
         const tracked = species.filter((name) => selected.has(name));
         const owned = species.filter((name) => !selected.has(name) && counts.has(name));
         const rest = species.filter((name) => !selected.has(name) && !counts.has(name));
@@ -3590,7 +3625,7 @@
         const foundMutations = new Set(DEFAULT_TARGETS);
         for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) for (const slot of tile.slots ?? []) for (const mutation of slot.mutations ?? []) foundMutations.add(mutation);
         for (const mutation of focus.mutations) foundMutations.add(mutation);
-        return `<section class="go-section"><div class="go-section-title"><span>Plant focus</span><span>Fade non-matching crops</span></div><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? "checked" : ""}></label><label class="go-config-row"><span>Show</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select></label><label class="go-config-row"><span>Mutation rule</span><select data-focus-rule>${[["all", "All selected"], ["any", "Any selected"], ["none", "None selected"]].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><div class="go-pill-section"><b>Mutations (${focus.mutations.length}) <button data-focus-clear>Clear</button></b><div>${[...foundMutations].map((name) => `<button class="go-pill ${focus.mutations.includes(name) ? "on" : ""}" data-focus-mutation="${escapeHtml(name)}">${focus.mutations.includes(name) ? "<i>&#10003;</i>" : ""}<span>${escapeHtml(displayName(name))}</span></button>`).join("")}</div></div><label class="go-config-row"><span>Invert match</span><input type="checkbox" data-focus-invert ${focus.invert ? "checked" : ""}></label><label class="go-config-row"><span>Faded opacity <b data-opacity-value>${Math.round(focus.opacity * 100)}%</b></span><input type="range" min="5" max="60" step="5" value="${Math.round(focus.opacity * 100)}" data-focus-opacity></label></section>`;
+        return `<section class="go-section"><div class="go-section-title"><span>Plant focus</span><span>Fade non-matching crops</span></div><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? "checked" : ""}></label><label class="go-config-row"><span>Show</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label><label class="go-config-row"><span>Mutation rule</span><select data-focus-rule>${[["all", "All selected"], ["any", "Any selected"], ["none", "None selected"]].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><div class="go-pill-section"><b>Mutations (${focus.mutations.length}) <button data-focus-clear>Clear</button></b><div>${[...foundMutations].map((name) => `<button class="go-pill ${focus.mutations.includes(name) ? "on" : ""}" data-focus-mutation="${escapeHtml2(name)}">${focus.mutations.includes(name) ? "<i>&#10003;</i>" : ""}<span>${escapeHtml2(displayName(name))}</span></button>`).join("")}</div></div><label class="go-config-row"><span>Invert match</span><input type="checkbox" data-focus-invert ${focus.invert ? "checked" : ""}></label><label class="go-config-row"><span>Faded opacity <b data-opacity-value>${Math.round(focus.opacity * 100)}%</b></span><input type="range" min="5" max="60" step="5" value="${Math.round(focus.opacity * 100)}" data-focus-opacity></label></section>`;
       }
       return "";
     }
@@ -3624,7 +3659,7 @@
       const mutationRows = rows.filter(([, , count]) => count > 0).map(([label, colorKey, count]) => {
         const percent = stats.crops ? Math.min(100, count / stats.crops * 100) : 0;
         const color = mutationColors[colorKey] || "#4fc3f7";
-        return `<div class="go-progress"><div><span><i style="background:${color}"></i>${escapeHtml(label)}</span><b style="color:${color}">${count}<small style="color:#444;font-weight:normal">/${stats.crops}</small></b></div><i><u style="width:${percent.toFixed(2)}%;background:${color}"></u></i></div>`;
+        return `<div class="go-progress"><div><span><i style="background:${color}"></i>${escapeHtml2(label)}</span><b style="color:${color}">${count}<small style="color:#444;font-weight:normal">/${stats.crops}</small></b></div><i><u style="width:${percent.toFixed(2)}%;background:${color}"></u></i></div>`;
       }).join("");
       function etaDuration(seconds) {
         const minutes = Math.round(seconds / 60);
@@ -3653,7 +3688,7 @@
         "Bee Size": ["&#128029; Bee Size", "Dawncharged"]
       };
       const etaRows = stats.granterEtas.map((row) => {
-        const [label, colorKey] = etaLabels[row.mutation] ?? [escapeHtml(displayName(row.mutation)), row.mutation];
+        const [label, colorKey] = etaLabels[row.mutation] ?? [escapeHtml2(displayName(row.mutation)), row.mutation];
         const color = mutationColors[colorKey] || "#a78bfa";
         if (row.missing === 0) return `<div class="go-eta-done"><span><i></i>${label}</span><b>&#10003; done</b></div>`;
         const summary = `<small>avg ${averageDuration(row.meanSeconds)} &middot; ~${etaDuration(row.totalSeconds)} total</small>`;
@@ -3663,7 +3698,7 @@
         return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b style="color:${color}">${have}<em>/${row.total}</em></b></div><u><i style="width:${percent.toFixed(1)}%;background:${color}"></i></u>${summary}</div>`;
       }).join("");
       const plantCount = (plants, crops) => plants > 0 && plants !== crops ? `${plants} <small>(${crops})</small>` : `${crops}`;
-      const plantRows = stats.species.map((row) => `<div class="go-plant-row"><span>${escapeHtml(row.species)}</span><b>${plantCount(row.plants, row.crops)}</b></div>`).join("");
+      const plantRows = stats.species.map((row) => `<div class="go-plant-row"><span>${escapeHtml2(row.species)}</span><b>${plantCount(row.plants, row.crops)}</b></div>`).join("");
       const totalPlants = plantCount(stats.plants, stats.crops);
       const growing = Math.max(0, stats.crops - stats.mature);
       const growth = growing === 0 && stats.notMaxSize === 0 ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>' : growing === 0 ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString()}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ""}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString()}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
@@ -3724,7 +3759,7 @@
       const placement = position ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position.top))}px;` : "";
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
       const configTitle = configMode === "species" ? "Tracked Plants" : configMode === "mutations" ? "Mutation Config" : "Plant Focus";
-      const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configHtml(species)}</div></div>` : "";
+      const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml2(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configHtml(species)}</div></div>` : "";
       panel.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-species-config title="Configure tracked plants">&#x1F33F;</button><button data-focus-config data-active="${focus.enabled}" title="Configure plant focus">&#9680;</button><button data-mutation-config title="Configure tracked mutations">&#128295;</button><button data-zoom title="Cycle zoom">${view.zoom}x</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
       const nextBody = panel.querySelector(".go-body");
       if (nextBody) nextBody.scrollTop = scrollTop;
@@ -3749,7 +3784,7 @@
       if (alarmButton) alarmButton.onclick = () => {
         view.alarm = !view.alarm;
         if (view.alarm) {
-          page2.__gardenCompanionArmAlarm?.();
+          page3.__gardenCompanionArmAlarm?.();
           ensureRefreshTimer();
         } else stopCompletionAlarm();
         saveView(view);
@@ -3910,7 +3945,7 @@
   // src/features/garden-planner.ts
   function initGardenPlanner() {
     "use strict";
-    const page2 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+    const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
     const PLANTS = define_PLANT_CATALOG_default;
     const MUTATIONS = define_MUTATION_CATALOG_default;
     const DECOR = define_DECOR_CATALOG_default;
@@ -3951,7 +3986,7 @@
       return Math.min(max, Math.max(1, planner.scale));
     }
     function mutationIcon(id) {
-      const sprite = page2.__gardenCompanionMutationSprites?.[id];
+      const sprite = page3.__gardenCompanionMutationSprites?.[id];
       const name = MUTATIONS[id]?.name || id;
       return sprite ? `<img src="${sprite}" alt="${name}">` : `<b>${name.slice(0, 2)}</b>`;
     }
@@ -3973,14 +4008,14 @@
       erasing: false
     };
     function systems() {
-      return page2.__gardenCompanionFarmSystems ?? null;
+      return page3.__gardenCompanionFarmSystems ?? null;
     }
     function tileSystem() {
       const system = systems()?.tileSystem;
       return system?.map && typeof system.updateTileData === "function" ? system : null;
     }
     function companionState() {
-      return page2.__gardenCompanionState ?? null;
+      return page3.__gardenCompanionState ?? null;
     }
     function ownSlotIndex() {
       const captured = systems()?.ownUserSlotIdx;
@@ -4133,12 +4168,12 @@
     const NATIVE_UI_LABELS = ["GardenInfoCardSystem", "ActionHud", "PetActionButtons"];
     const hiddenNodes = /* @__PURE__ */ new Map();
     function pixiStage() {
-      const capture = page2.__GARDEN_COMPANION_PIXI__;
+      const capture = page3.__GARDEN_COMPANION_PIXI__;
       return capture?.app?.stage ?? capture?.renderer?.lastObjectRendered ?? null;
     }
     let cinematicApplied = false;
     function hideNativeCardUi() {
-      if (cinematicApplied || page2.__gardenCompanionSetCinematic?.(true)) {
+      if (cinematicApplied || page3.__gardenCompanionSetCinematic?.(true)) {
         cinematicApplied = true;
         return;
       }
@@ -4158,7 +4193,7 @@
     }
     function restoreNativeCardUi() {
       if (cinematicApplied) {
-        page2.__gardenCompanionSetCinematic?.(false);
+        page3.__gardenCompanionSetCinematic?.(false);
         cinematicApplied = false;
       }
       for (const [node, visible] of hiddenNodes) {
@@ -4275,7 +4310,7 @@
         panel.addEventListener("pointerdown", (event) => event.stopPropagation(), true);
       }
       const options = sortedSpecies().map((name) => {
-        const sprite = page2.__gardenCompanionProduceSprites?.[name] || page2.__gardenCompanionShopSprites?.[name] || "";
+        const sprite = page3.__gardenCompanionProduceSprites?.[name] || page3.__gardenCompanionShopSprites?.[name] || "";
         const slots = Math.max(1, Number(PLANTS[name]?.slots || 1));
         const label = `${name} (${PLANTS[name]?.rarity || "Common"}${slots > 1 ? `, ${slots} per tile` : ""})`;
         return `<button data-plan-species="${name}" data-rarity="${PLANTS[name]?.rarity || "Common"}" data-active="${name === planner.species}" title="${label}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${name.slice(0, 1)}</i>`}</button>`;
@@ -4285,7 +4320,7 @@
         return `<div class="gc-planner-mutation-group">${buttons}</div>`;
       }).join("");
       const decorOptions = sortedDecor().map((id) => {
-        const sprite = page2.__gardenCompanionShopSprites?.[id] || "";
+        const sprite = page3.__gardenCompanionShopSprites?.[id] || "";
         const details = DECOR[id];
         return `<button data-plan-decor="${id}" data-rarity="${details?.rarity || "Common"}" data-active="${id === planner.decorId}" title="${details?.name || id}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${(details?.name || id).slice(0, 1)}</i>`}</button>`;
       }).join("");
@@ -4301,7 +4336,7 @@
 <div class="gc-planner-grid">${decorMode ? decorOptions : options}</div>
 ${decorMode && DECOR[planner.decorId]?.mountable ? `<div class="gc-planner-row"><b>Display crop</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-mount="" data-active="${!planner.mountedSpecies}">None</button></div></div></div>
 <div class="gc-planner-grid gc-planner-mount">${sortedSpecies().map((name) => {
-        const sprite = page2.__gardenCompanionProduceSprites?.[name] || page2.__gardenCompanionShopSprites?.[name] || "";
+        const sprite = page3.__gardenCompanionProduceSprites?.[name] || page3.__gardenCompanionShopSprites?.[name] || "";
         return `<button data-plan-mount="${name}" data-rarity="${PLANTS[name]?.rarity || "Common"}" data-active="${name === planner.mountedSpecies}" title="${name}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${name.slice(0, 1)}</i>`}</button>`;
       }).join("")}</div>
 <div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>` : ""}
@@ -4432,8 +4467,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       applyAllTiles();
       hideNativeCardUi();
     }, 1e3);
-    page2.__gardenCompanionTogglePlanner = () => planner.open ? close() : open();
-    page2.__gardenCompanionPlannerOpen = () => planner.open;
+    page3.__gardenCompanionTogglePlanner = () => planner.open ? close() : open();
+    page3.__gardenCompanionPlannerOpen = () => planner.open;
   }
 
   // src/features/plant-drag-move.ts
@@ -5149,8 +5184,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   initCompanion();
   initAbilitySilencer();
   installPetSpriteLoader();
-  var page = window;
-  if (page.__gardenCompanionFeature?.("overview")) initGardenOverview();
+  var page2 = window;
+  if (page2.__gardenCompanionFeature?.("overview")) initGardenOverview();
   initPlantDragMove();
   initGardenPlanner();
 })();
