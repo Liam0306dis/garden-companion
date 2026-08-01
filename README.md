@@ -7,22 +7,24 @@ actions. It does not perform unattended gameplay.
 ## Features
 
 - Detailed garden overview with growth, value, mutation progress, granter estimates, plant focus, tracked species, keybind, and completion alarms
-- Pet team creation, editing, deletion, activation, and global team keybinds using the games native teams, with a full-window pet chooser showing sprites, abilities, and locations, plus letter, icon, and pet emblems saved to the games own team UI
+- Pet team creation, editing, deletion, activation, per-team keybinds, and next or previous team cycling using the games native teams, with a full-window pet chooser showing sprites, abilities, and locations, plus letter, icon, and pet emblems saved to the games own team UI
 - Active pet dashboard with game sprites, hunger bars, combined ability effects, proc chances, estimated time until maximum strength, and XP potions required to reach it
-- Pet ability history with selectable tracking filters which show the last 100 records per ability
+- Pet ability history with selectable tracking filters and a search box, keeping up to 400 records per ability
 - Per-ability pet notification and sound silencing
 - Journal tab showing every plant and pet on one screen with the variants you have logged, plants grouped by rarity and pets grouped by the egg they hatch from, with first-found dates, search, and a filter for what is still missing
 - Joinable public room browser for rooms with four or five players, showing each players Discord profile picture
 - Calculators tab with dust, granter, and food estimates driven by your own pets, eggs, and garden data
 - Searchable shop alarms grouped into Seeds, Dawn, Thunder, Snow, Eggs, Tools, and Decor tabs
-- Shop alarm item icons, explicit Buy all and Stop buttons, persistent siren audio, and queued alerts when several items trigger together
+- Shop alarm item icons, explicit Buy all and Stop buttons, persistent siren audio, and queued alerts when several items trigger together, firing whenever a shop restocks rather than only when an item reappears
 - Crop values and pet-adjusted crop or egg growth estimates (Turtle-Timer)
 - Pet food buttons docked beside the games own pet panel, one per active pet, with per-species preferred foods, held produce counts on each food icon, one-click feeding, and automatic hiding while a pet card is open
+- Layout planner for arranging plants and decor on your own tiles, with mutations, crop sizes, saved layouts, and nothing sent to the game
 - Plant drag movement by holding, dragging, and releasing a plant, consumes planter pot on each successful move
 - Instant harvest - Spacebar triggers instant harvest for mature Gold or Rainbow crops (Default OFF)
-- Configurable global keybinds for Garden Companion, Garden Overview, weather station, seed, egg, and tool shops
-- UTC lunar-event countdown with a settings button and WebSocket health indicator
+- Configurable global keybinds for Garden Companion, Garden Overview, the layout planner, weather station, seed, egg, and tool shops
+- Draggable UTC lunar-event countdown that remembers its position, with a settings button and WebSocket health indicator
 - Configurable background operation and automatic game-update refresh
+- Species, pets, eggs, and mutations added by the game are picked up from the running client, so new content appears without waiting for a script update
 - One options panel for feature toggles, interface shortcuts, pet tools, alerts, rooms, and tracking
 
 ## Install
