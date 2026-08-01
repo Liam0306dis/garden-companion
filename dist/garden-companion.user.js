@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.79
+// @version      0.6.80
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -271,8 +271,8 @@
     config.silencedAbilities = savedSilencedAbilities.filter((ability) => !EXCLUDED_TRACKED_ABILITIES.has(ability));
     const savedShopAlerts = config.shopAlerts && typeof config.shopAlerts === "object" ? config.shopAlerts : {};
     config.shopAlerts = Object.fromEntries(Object.entries(savedShopAlerts).filter(([key]) => {
-      const [shop, itemId] = key.split(":");
-      return shop !== "tool" || !EXCLUDED_TOOL_ALERTS.has(itemId);
+      const [shop, itemId2] = key.split(":");
+      return shop !== "tool" || !EXCLUDED_TOOL_ALERTS.has(itemId2);
     }));
     const savedFoodChoices = config.petFoodChoices && typeof config.petFoodChoices === "object" ? config.petFoodChoices : {};
     config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices).filter(([species, crop]) => PET_CATALOG[species]?.diet?.includes(crop)));
@@ -627,10 +627,589 @@
 <section class="gc-card"><h3>Produce needed each hour</h3>${rows ? `<table class="gc-calc-table"><thead><tr><th>Produce</th><th>Need</th><th>Covered by</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="gc-empty">Choose pets with a food to see the demand.</p>'}</section>`;
   }
 
+  // src/alarms.ts
+  var alarm = null;
+  var alarmQueue = [];
+  var alarmAudioContext = null;
+  var alarmPhase = 0;
+  function armAlarmAudio() {
+    try {
+      if (!alarmAudioContext) {
+        const AudioConstructor = page.AudioContext || page.webkitAudioContext;
+        if (!AudioConstructor) return null;
+        alarmAudioContext = new AudioConstructor({ latencyHint: "interactive" });
+      }
+      if (alarmAudioContext.state !== "running") void alarmAudioContext.resume().catch(() => void 0);
+      return alarmAudioContext;
+    } catch {
+      return null;
+    }
+  }
+  function playAlarmTone() {
+    const context = armAlarmAudio();
+    if (!context) return;
+    const play = () => {
+      if (context.state === "running") alarmTone(context);
+    };
+    if (context.state === "running") play();
+    else void context.resume().then(play).catch(() => void 0);
+  }
+  function alarmTone(context) {
+    const now = context.currentTime;
+    const frequency = [880, 660, 880, 660, 0][alarmPhase++ % 5];
+    if (!frequency) return;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.frequency.setValueAtTime(frequency, now);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(1e-3, now + 0.38);
+    oscillator.start(now);
+    oscillator.stop(now + 0.4);
+  }
+  function clearActiveAlarm() {
+    if (alarm?.timer) clearInterval(alarm.timer);
+    document.getElementById("gc-alarm")?.remove();
+    alarm = null;
+  }
+  function updateAlarmQueueCount() {
+    const count = document.querySelector("#gc-alarm [data-alarm-queue]");
+    if (!count) return;
+    count.hidden = alarmQueue.length === 0;
+    count.textContent = alarmQueue.length === 1 ? "1 more alarm queued" : `${alarmQueue.length} more alarms queued`;
+  }
+  function updateAlarmDetail(owner, detail) {
+    for (const options of alarmQueue) if (options.owner === owner) options.detail = detail;
+    if (alarm?.options.owner !== owner) return;
+    alarm.options.detail = detail;
+    const element = document.querySelector("#gc-alarm [data-alarm-detail]");
+    if (element) element.textContent = detail;
+  }
+  function dismissCurrentAlarm() {
+    clearActiveAlarm();
+    const next = alarmQueue.shift();
+    if (next) renderAlarmBanner(next);
+  }
+  function stopAlarm(owner) {
+    if (!owner) {
+      alarmQueue.length = 0;
+      clearActiveAlarm();
+      return;
+    }
+    for (let index = alarmQueue.length - 1; index >= 0; index--) {
+      if (alarmQueue[index].owner === owner) alarmQueue.splice(index, 1);
+    }
+    if (alarm?.options.owner === owner) {
+      clearActiveAlarm();
+      const next = alarmQueue.shift();
+      if (next) renderAlarmBanner(next);
+    } else updateAlarmQueueCount();
+  }
+  function renderAlarmBanner(options) {
+    const banner = document.createElement("div");
+    banner.id = "gc-alarm";
+    const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : "";
+    const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : "";
+    banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue hidden></em></div>${action}<button data-stop>Stop alarm</button>`;
+    document.body.appendChild(banner);
+    banner.querySelector("[data-stop]").onclick = dismissCurrentAlarm;
+    const actionButton = banner.querySelector("[data-buy]");
+    if (actionButton && options.onAction) actionButton.onclick = (event) => {
+      void options.onAction?.(event.currentTarget);
+    };
+    alarmPhase = 0;
+    playAlarmTone();
+    alarm = { timer: setInterval(playAlarmTone, 420), options };
+    updateAlarmQueueCount();
+  }
+  function showAlarmBanner(options) {
+    if (alarm) {
+      alarmQueue.push(options);
+      updateAlarmQueueCount();
+      return;
+    }
+    renderAlarmBanner(options);
+  }
+  function installAlarms() {
+    page.addEventListener("pointerdown", () => {
+      if (feature("shopAlarms")) armAlarmAudio();
+    }, true);
+    page.addEventListener("keydown", () => {
+      if (feature("shopAlarms")) armAlarmAudio();
+    }, true);
+    page.__gardenCompanionArmAlarm = armAlarmAudio;
+    page.__gardenCompanionStopAlarm = stopAlarm;
+    page.__gardenCompanionShowAlarm = showAlarmBanner;
+  }
+
+  // src/game-connection.ts
+  function send(command) {
+    const connection = page.MagicCircle_RoomConnection;
+    if (!connection || typeof connection.sendMessage !== "function") throw new Error("The game connection is not ready.");
+    connection.sendMessage({ scopePath: ["Room", "Quinoa"], ...command });
+  }
+  function sendQuinoaCommand(command) {
+    const requestId = crypto.randomUUID();
+    send({ type: "QuinoaCommand", requestId, command });
+    return requestId;
+  }
+
+  // src/ability-chips.ts
+  function abilityChips(abilities) {
+    if (!abilities.length) return "";
+    const chips = abilities.map((ability) => {
+      const colour = ABILITY_COLOURS[ability] || ABILITY_COLOUR_FALLBACK;
+      const name = ABILITY_DETAILS[ability]?.name || humanize(ability);
+      return `<i class="gc-ability-chip" style="background:${escapeHtml(colour)}" title="${escapeHtml(name)}"></i>`;
+    }).join("");
+    return `<span class="gc-ability-chips" title="${escapeHtml(abilities.map((ability) => ABILITY_DETAILS[ability]?.name || humanize(ability)).join(", "))}">${chips}</span>`;
+  }
+
+  // src/toast.ts
+  var toastTimer;
+  function toast(message, tone = "") {
+    let element = document.getElementById("gc-toast");
+    if (!element) {
+      element = document.createElement("div");
+      element.id = "gc-toast";
+      document.documentElement.appendChild(element);
+    }
+    element.textContent = message;
+    element.dataset.tone = tone;
+    element.classList.add("is-visible");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => element.classList.remove("is-visible"), 2600);
+  }
+
+  // src/features/pet-teams.ts
+  var services;
+  function initPetTeams(petTeamServices) {
+    services = petTeamServices;
+  }
+  function teams() {
+    return state.slot?.data?.petTeams || [];
+  }
+  var EMBLEM_ICONS = ["rainbow", "gold", "thunder", "dawn", "amber", "wet", "chilled", "frozen", "coin", "egg"];
+  var EMBLEM_LETTERS = Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index));
+  var teamPickerSelection = null;
+  var teamPickerEmblem = null;
+  var teamPickerEmblemKind = "number";
+  var editingTeamId = null;
+  var pendingTeamSave = null;
+  var confirmDeleteTeamId = null;
+  var pendingTeamDeleteId = null;
+  function emblemKey(emblem) {
+    if (!emblem) return "";
+    if (emblem.type === "number") return `number:${emblem.number}`;
+    if (emblem.type === "pet") return `pet:${emblem.petSpecies}`;
+    return `icon:${emblem.icon}`;
+  }
+  function emblemFromKey(key) {
+    const [kind, value] = key.split(":", 2);
+    if (kind === "number") return { type: "number", number: Number(value) };
+    if (kind === "pet") return { type: "pet", petSpecies: value };
+    if (kind === "icon") return { type: "icon", icon: value };
+    return null;
+  }
+  function emblemLabel(emblem) {
+    if (!emblem) return "";
+    if (emblem.type === "number") return EMBLEM_LETTERS[emblem.number - 1] || String(emblem.number);
+    if (emblem.type === "pet") return PET_CATALOG[emblem.petSpecies]?.name || humanize(emblem.petSpecies);
+    return humanize(emblem.icon);
+  }
+  function setPetTeamEmblem(teamId, emblem) {
+    send({ type: "SetPetTeamEmblem", teamId, emblem });
+  }
+  function saveTeam(name, petIds, teamId = null) {
+    if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
+    if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
+    send({ type: "SavePetTeam", teamId, name: name.trim(), petIds });
+  }
+  function closeTeamPicker() {
+    teamPickerSelection = null;
+    teamPickerEmblem = null;
+    editingTeamId = null;
+    document.getElementById("gc-team-picker")?.remove();
+  }
+  function updateTeamPickerCount(picker) {
+    const count = teamPickerSelection?.size ?? 0;
+    const counter = picker.querySelector("[data-picker-count]");
+    if (counter) {
+      counter.textContent = count >= MAX_TEAM_PETS ? `${count} of ${MAX_TEAM_PETS} selected - team full` : `${count} of ${MAX_TEAM_PETS} selected`;
+      counter.dataset.tone = count ? "good" : "";
+    }
+    picker.querySelectorAll("[data-pet-id]").forEach((input) => {
+      const full = count >= MAX_TEAM_PETS && !input.checked;
+      input.disabled = full;
+      input.closest("label")?.classList.toggle("gc-pet-locked", full);
+    });
+    const save = picker.querySelector("[data-save-team]");
+    if (save) save.disabled = count < 1 || count > MAX_TEAM_PETS;
+  }
+  function emblemIconMarkup(icon) {
+    const sprite = page.__gardenCompanionEmblemSprites?.[icon];
+    return sprite ? `<img src="${escapeHtml(sprite)}" alt=""><small>${escapeHtml(humanize(icon))}</small>` : `<i data-emblem-icon="${escapeHtml(icon)}"></i><small>${escapeHtml(humanize(icon))}</small>`;
+  }
+  function emblemChip(emblem) {
+    if (emblem.type === "icon") {
+      const sprite = page.__gardenCompanionEmblemSprites?.[emblem.icon];
+      if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(humanize(emblem.icon))}" title="${escapeHtml(humanize(emblem.icon))}"></span>`;
+    }
+    if (emblem.type === "pet") {
+      const sprite = page.__gardenCompanionPetSprites?.[emblem.petSpecies];
+      if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(emblemLabel(emblem))}" title="${escapeHtml(emblemLabel(emblem))}"></span>`;
+    }
+    return `<span class="gc-team-emblem">${escapeHtml(emblemLabel(emblem))}</span>`;
+  }
+  function selectedTeamSpecies() {
+    const chosen = teamPickerSelection ?? /* @__PURE__ */ new Set();
+    const species = services.allPets().filter((pet) => chosen.has(pet.id)).map((pet) => pet.petSpecies);
+    return [...new Set(species)];
+  }
+  function takenEmblemNumbers() {
+    return new Set(teams().filter((team) => team.id !== editingTeamId && team.emblem?.type === "number").map((team) => team.emblem.number));
+  }
+  function renderEmblemOptions() {
+    const selected = emblemKey(teamPickerEmblem);
+    const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml(key)}" data-active="${key === selected}" title="${escapeHtml(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
+    const taken = takenEmblemNumbers();
+    const letters = EMBLEM_LETTERS.map((letter, index) => option(
+      `number:${index + 1}`,
+      `<b>${letter}</b>`,
+      taken.has(index + 1) ? `${letter} is used by another team` : `Letter ${letter}`,
+      taken.has(index + 1)
+    )).join("");
+    const icons = EMBLEM_ICONS.map((icon) => option(`icon:${icon}`, emblemIconMarkup(icon), humanize(icon))).join("");
+    const species = selectedTeamSpecies();
+    const pets = species.length ? species.map((name) => {
+      const sprite = page.__gardenCompanionPetSprites?.[name];
+      const label = PET_CATALOG[name]?.name || humanize(name);
+      const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
+      return option(`pet:${name}`, inner, label);
+    }).join("") : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
+    const groups = [["number", letters], ["icon", icons], ["pet", pets]];
+    const tabs = groups.map(([kind]) => `<button data-emblem-kind="${kind}" class="${kind === teamPickerEmblemKind ? "active" : ""}">${kind === "number" ? "Letters" : kind === "icon" ? "Icons" : "Pets"}</button>`).join("");
+    const strips = groups.map(([kind, markup]) => `<div class="gc-emblem-strip" data-emblem-group="${kind}" ${kind === teamPickerEmblemKind ? "" : "hidden"}>${markup}</div>`).join("");
+    const current = teamPickerEmblem ? `Emblem: ${escapeHtml(emblemLabel(teamPickerEmblem))}` : "No emblem selected";
+    return `<div class="gc-emblem-head"><span>Team emblem</span><div class="gc-emblem-tabs">${tabs}</div><small data-emblem-current>${current}</small></div>${strips}`;
+  }
+  function refreshEmblemUi(picker) {
+    const species = new Set(selectedTeamSpecies());
+    if (teamPickerEmblem?.type === "pet" && !species.has(teamPickerEmblem.petSpecies)) teamPickerEmblem = null;
+    const petGroup = picker.querySelector("[data-emblem-group=pet]");
+    if (petGroup) {
+      petGroup.innerHTML = species.size ? [...species].map((name) => {
+        const sprite = page.__gardenCompanionPetSprites?.[name];
+        const label = PET_CATALOG[name]?.name || humanize(name);
+        const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
+        return `<button data-emblem-option="pet:${escapeHtml(name)}" title="${escapeHtml(label)}">${inner}</button>`;
+      }).join("") : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
+      petGroup.querySelectorAll("[data-emblem-option]").forEach((button) => button.onclick = () => {
+        const key = button.dataset.emblemOption;
+        teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
+        refreshEmblemUi(picker);
+      });
+    }
+    const selected = emblemKey(teamPickerEmblem);
+    picker.querySelectorAll("[data-emblem-option]").forEach((button) => {
+      button.dataset.active = String(button.dataset.emblemOption === selected);
+    });
+    picker.querySelectorAll("[data-emblem-kind]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.emblemKind === teamPickerEmblemKind);
+    });
+    picker.querySelectorAll("[data-emblem-group]").forEach((group) => {
+      group.hidden = group.dataset.emblemGroup !== teamPickerEmblemKind;
+    });
+    const current = picker.querySelector("[data-emblem-current]");
+    if (current) current.textContent = teamPickerEmblem ? `Emblem: ${emblemLabel(teamPickerEmblem)}` : "No emblem selected";
+  }
+  function openTeamPicker(teamId) {
+    const team = teamId ? teams().find((entry) => entry.id === teamId) ?? null : null;
+    editingTeamId = team?.id ?? null;
+    teamPickerSelection = new Set(team?.members.map((member) => member.petId) ?? []);
+    teamPickerEmblem = team?.emblem ?? null;
+    teamPickerEmblemKind = teamPickerEmblem?.type ?? "number";
+    document.getElementById("gc-team-picker")?.remove();
+    const picker = document.createElement("div");
+    picker.id = "gc-team-picker";
+    picker.innerHTML = `<div class="gc-team-picker-shell"><header><div><small>PET TEAM</small><h2>${team ? "Edit team" : "Create team"}</h2></div><button data-picker-close aria-label="Close">x</button></header><div class="gc-team-picker-controls"><input data-team-name placeholder="Team name" maxlength="32" value="${escapeHtml(team?.name || "")}"><input class="gc-search" data-team-search placeholder="Filter by pet name, species, location, or ability"><span class="gc-team-picker-count" data-picker-count></span></div><section class="gc-emblem-picker">${renderEmblemOptions()}</section><div class="gc-pet-grid gc-filter-list gc-team-picker-grid">${petPickerRows(teamPickerSelection) || '<p class="gc-empty">No pet data yet.</p>'}</div><footer><button data-picker-cancel>Cancel</button><button class="gc-primary" data-save-team>${team ? "Save changes" : "Save team"}</button></footer></div>`;
+    document.body.appendChild(picker);
+    bindTeamPickerEvents(picker);
+    updateTeamPickerCount(picker);
+    picker.querySelector("[data-team-name]")?.focus();
+  }
+  function bindTeamPickerEvents(picker) {
+    picker.querySelector("[data-picker-close]").onclick = closeTeamPicker;
+    picker.querySelector("[data-picker-cancel]").onclick = closeTeamPicker;
+    picker.onpointerdown = (event) => {
+      if (event.target === picker) closeTeamPicker();
+    };
+    picker.onkeydown = (event) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        closeTeamPicker();
+      }
+    };
+    picker.querySelectorAll("[data-pet-id]").forEach((input) => input.onchange = () => {
+      const petId = input.dataset.petId;
+      input.checked ? teamPickerSelection?.add(petId) : teamPickerSelection?.delete(petId);
+      updateTeamPickerCount(picker);
+      refreshEmblemUi(picker);
+    });
+    services.bindListSearch(picker.querySelector("[data-team-search]"));
+    picker.querySelectorAll("[data-emblem-kind]").forEach((button) => button.onclick = () => {
+      teamPickerEmblemKind = button.dataset.emblemKind;
+      refreshEmblemUi(picker);
+    });
+    picker.querySelectorAll("[data-emblem-option]").forEach((button) => button.onclick = () => {
+      const key = button.dataset.emblemOption;
+      teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
+      refreshEmblemUi(picker);
+    });
+    picker.querySelector("[data-save-team]").onclick = () => {
+      try {
+        const name = picker.querySelector("[data-team-name]").value.trim();
+        const petIds = [...teamPickerSelection ?? []].sort();
+        const teamId = editingTeamId;
+        const emblem = teamPickerEmblem;
+        const team = teamId ? teams().find((entry) => entry.id === teamId) ?? null : null;
+        saveTeam(name, petIds, teamId);
+        if (teamId && emblem && emblemKey(emblem) !== emblemKey(team?.emblem)) setPetTeamEmblem(teamId, emblem);
+        pendingTeamSave = { teamId, name, petIds, emblem: teamId ? null : emblem };
+        toast(teamId ? "Team update requested." : "Team save requested.", "success");
+        closeTeamPicker();
+        services.renderPanel();
+      } catch (error) {
+        toast(error.message, "error");
+      }
+    };
+  }
+  function petPickerRows(selectedIds) {
+    return services.allPets().map((pet) => {
+      const abilityText = (pet.abilities || []).flatMap((ability) => [ability, ABILITY_DETAILS[ability]?.name || humanize(ability)]).join(" ");
+      const filterText = `${pet.name || ""} ${pet.petSpecies} ${PET_CATALOG[pet.petSpecies]?.name || ""} ${pet.location} ${abilityText}`.toLowerCase();
+      const metrics = services.petMetrics(pet);
+      const strength = metrics ? `<b class="gc-pet-str">${metrics.strength}<i>/${metrics.maxStrength}</i></b>` : "";
+      return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? "checked" : ""}>${services.petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small>${(pet.abilities || []).length ? abilityChips(pet.abilities || []) : '<span class="gc-team-abilities">No abilities</span>'}</span>${strength}</label>`;
+    }).join("");
+  }
+  function activeTeamId() {
+    const activeIds = new Set(services.activePets().map((pet) => pet.id));
+    if (!activeIds.size) return null;
+    const match = teams().find((team) => team.members.length === activeIds.size && team.members.every((member) => activeIds.has(member.petId)));
+    return match?.id ?? null;
+  }
+  function teamMemberTile(member, owned) {
+    const sprite = services.petSprite(owned ?? { id: member.petId, petSpecies: member.petSpecies, hunger: 0 });
+    const label = member.name || PET_CATALOG[member.petSpecies]?.name || humanize(member.petSpecies);
+    const abilities = (owned?.abilities || []).map((ability) => ABILITY_DETAILS[ability]?.name || humanize(ability));
+    const detail = owned ? abilities.join(" | ") || "No abilities" : "Pet not found in your inventory";
+    const strength = services.petMetrics(owned)?.maxStrength;
+    const meta = owned ? `${humanize(member.petSpecies)}${strength ? ` | STR ${strength}` : ""}` : "Missing pet";
+    return `<span class="gc-team-pet${owned ? "" : " is-missing"}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
+  }
+  function renderTeams() {
+    const full = teams().length >= MAX_PET_TEAMS;
+    const active = activeTeamId();
+    const owned = new Map(services.allPets().map((pet) => [pet.id, pet]));
+    const cards = teams().map((team) => {
+      const isActive = team.id === active;
+      const filled = team.members.map((member) => teamMemberTile(member, owned.get(member.petId))).join("");
+      const empty = Array.from(
+        { length: Math.max(0, MAX_TEAM_PETS - team.members.length) },
+        () => '<span class="gc-team-pet is-empty"><i>+</i><span><b>Empty slot</b></span></span>'
+      ).join("");
+      const deleteControls = confirmDeleteTeamId === team.id ? `<span class="gc-team-delete-confirm"><b>Delete this team?</b><button data-cancel-delete-team>Cancel</button><button class="gc-danger" data-confirm-delete-team="${escapeHtml(team.id)}">Delete team</button></span>` : `<button class="gc-danger" data-delete-team="${escapeHtml(team.id)}">Delete</button>`;
+      const keybind = config.teamKeybinds[team.id];
+      return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : '<span class="gc-team-emblem is-empty">--</span>'}<span class="gc-team-title"><h3>${escapeHtml(team.name)}</h3><small>${team.members.length} pet${team.members.length === 1 ? "" : "s"}${keybind ? ` | key ${escapeHtml(keybind)}` : ""}</small></span>${isActive ? '<span class="gc-team-active">Active</span>' : ""}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-team-actions"><button data-edit-team="${escapeHtml(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml(team.id)}" ${isActive ? "disabled" : ""}>${isActive ? "Activated" : "Activate"}</button></div></div><div class="gc-team-pets">${filled}${empty}</div><div class="gc-team-foot">${deleteControls}</div></article>`;
+    }).join("");
+    const activeName = teams().find((team) => team.id === active)?.name;
+    const summary = teams().length ? `<span class="gc-team-summary-line"><b>${teams().length}</b> of ${MAX_PET_TEAMS} teams${activeName ? ` | running <b>${escapeHtml(activeName)}</b>` : " | no saved team is active"}</span>` : '<span class="gc-team-summary-line">Save a team to swap your active pets in one click.</span>';
+    return `<div class="gc-team-bar">${summary}<button class="gc-primary" data-open-team-picker ${full ? "disabled" : ""}>Create team</button></div>${full ? `<p class="gc-note">The game allows ${MAX_PET_TEAMS} teams. Delete one to create another.</p>` : ""}<section class="gc-stack">${cards || '<p class="gc-empty">No saved teams yet. Create one to swap your active pets in a single click.</p>'}</section>`;
+  }
+  function teamsSignature() {
+    return JSON.stringify([confirmDeleteTeamId, teams().map((team) => [team.id, team.name, emblemKey(team.emblem), team.members.map((member) => `${member.petId}:${member.name || ""}`)])]);
+  }
+  function requestTeamDelete(teamId) {
+    pendingTeamDeleteId = teamId;
+    confirmDeleteTeamId = null;
+    send({ type: "DeletePetTeam", teamId });
+  }
+  function askDeleteConfirmation(teamId) {
+    confirmDeleteTeamId = teamId;
+    services.renderPanelPreservingScroll();
+  }
+  function refreshCompletedTeamSave() {
+    if (!pendingTeamSave) return;
+    const expected = pendingTeamSave;
+    const saved = teams().find((team) => {
+      if (expected.teamId ? team.id !== expected.teamId : team.name !== expected.name) return false;
+      const members = team.members.map((member) => member.petId).sort();
+      return members.length === expected.petIds.length && members.every((petId, index) => petId === expected.petIds[index]);
+    });
+    if (!saved) return;
+    if (expected.emblem && emblemKey(expected.emblem) !== emblemKey(saved.emblem)) setPetTeamEmblem(saved.id, expected.emblem);
+    pendingTeamSave = null;
+    const panel = document.getElementById("gc-panel");
+    if (panel && !panel.hidden && services.isTeamsTabActive()) services.renderPanel();
+  }
+  function refreshCompletedTeamDelete() {
+    if (!pendingTeamDeleteId || teams().some((team) => team.id === pendingTeamDeleteId)) return;
+    const deletedTeamId = pendingTeamDeleteId;
+    pendingTeamDeleteId = null;
+    const panel = document.getElementById("gc-panel");
+    if (!panel || panel.hidden || !services.isTeamsTabActive()) return;
+    const cards = [...panel.querySelectorAll("[data-team-card]")];
+    const deletedCard = cards.find((card) => card.dataset.teamCard === deletedTeamId);
+    if (deletedCard && cards.length > 1) deletedCard.remove();
+    else services.renderPanelPreservingScroll();
+  }
+  function refreshTeamActiveMarkers() {
+    const panel = document.getElementById("gc-panel");
+    if (!panel || panel.hidden || !services.isTeamsTabActive()) return;
+    const active = activeTeamId();
+    panel.querySelectorAll("[data-team-card]").forEach((card) => {
+      const isActive = card.dataset.teamCard === active;
+      const apply = card.querySelector("[data-apply-team]");
+      const label = isActive ? "Activated" : "Activate";
+      if (apply && apply.textContent !== label) apply.textContent = label;
+      if (apply && apply.disabled !== isActive) apply.disabled = isActive;
+      if (card.dataset.active === String(isActive)) return;
+      card.dataset.active = String(isActive);
+      const head = card.querySelector(".gc-team-head");
+      const pill = card.querySelector(".gc-team-active");
+      if (isActive && !pill && head) {
+        const badge = document.createElement("span");
+        badge.className = "gc-team-active";
+        badge.textContent = "Active";
+        head.insertBefore(badge, head.querySelector(".gc-team-size"));
+      } else if (!isActive && pill) pill.remove();
+    });
+  }
+
+  // src/features/shop-alarms.ts
+  function itemId(item) {
+    for (const key of ITEM_KEYS) if (item?.[key]) return String(item[key]);
+    return "";
+  }
+  function itemType(item, shop) {
+    if (item?.itemType) return item.itemType;
+    return { seed: "Seed", egg: "Egg", decor: "Decor", tool: "Tool" }[shop] || (item?.eggId ? "Egg" : item?.decorId ? "Decor" : item?.toolId ? "Tool" : "Seed");
+  }
+  function itemPayload(item, shop) {
+    const payload = { itemType: itemType(item, shop) };
+    for (const key of ITEM_KEYS) if (item?.[key]) payload[key] = item[key];
+    return payload;
+  }
+  function purchasedCount(shop, id) {
+    const purchases = state.slot?.data?.shopPurchases?.[shop]?.purchases || {};
+    return Number(purchases[id] || 0);
+  }
+  function availableShopItems() {
+    const output = [];
+    for (const [shop, data] of Object.entries(state.game?.shops || {})) {
+      for (const item of Array.isArray(data?.inventory) ? data.inventory : []) {
+        const id = itemId(item);
+        const remaining = Math.max(0, Number(item.initialStock || 0) - purchasedCount(shop, id));
+        if (id && remaining > 0 && !(shop === "tool" && EXCLUDED_TOOL_ALERTS.has(id))) output.push({ shop, id, item, remaining });
+      }
+    }
+    return output;
+  }
+  function processShops() {
+    if (!feature("shopAlarms")) return;
+    const available = availableShopItems();
+    const signature = available.map((row) => `${row.shop}:${row.id}:${row.remaining}`).sort().join("|");
+    if (signature === state.lastShopSignature) return;
+    const old = new Set(state.lastShopSignature.split("|").map((value) => value.split(":").slice(0, 2).join(":")));
+    const availableKeys = new Set(available.map((row) => `${row.shop}:${row.id}`));
+    if (state.initializedShops) {
+      for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
+    }
+    for (const row of available) updateAlarmDetail(`shop:${row.shop}:${row.id}`, `${row.remaining} remaining`);
+    state.lastShopSignature = signature;
+    for (const row of available) {
+      const key = `${row.shop}:${row.id}`;
+      if (config.shopAlerts[key] && (!state.initializedShops || !old.has(key))) showShopAlarm(row);
+    }
+    state.initializedShops = true;
+  }
+  function showShopAlarm(row) {
+    const owner = `shop:${row.shop}:${row.id}`;
+    showAlarmBanner({
+      owner,
+      label: `SHOP ALARM | ${SHOP_NAMES[row.shop] || humanize(row.shop)}`,
+      title: `${humanize(row.id)} is available`,
+      detail: `${row.remaining} remaining`,
+      actionLabel: "Buy all",
+      onAction: async (button) => {
+        button.disabled = true;
+        button.textContent = "Buying...";
+        const live = availableShopItems().find((item) => item.shop === row.shop && item.id === row.id);
+        if (!live) {
+          toast("This item is no longer available.", "error");
+          stopAlarm(owner);
+          return;
+        }
+        for (let index = 0; index < live.remaining; index++) {
+          sendQuinoaCommand({ type: "PurchaseShopItem", shop: live.shop, item: itemPayload(live.item, live.shop) });
+          if (index + 1 < live.remaining) await new Promise((resolve) => setTimeout(resolve, 180));
+        }
+        toast(`Requested ${live.remaining} ${humanize(live.id)}.`, "success");
+        stopAlarm(owner);
+      }
+    });
+  }
+  function showSelectedShopAlarm(key) {
+    const row = availableShopItems().find((item) => `${item.shop}:${item.id}` === key);
+    if (row) showShopAlarm(row);
+  }
+  var shopAlarmTab = "seed";
+  function setShopAlarmTab(tab) {
+    if (tab) shopAlarmTab = tab;
+  }
+  function toggleShopAlert(key, enabled) {
+    config.shopAlerts[key] = enabled;
+    if (enabled) {
+      armAlarmAudio();
+      showSelectedShopAlarm(key);
+    } else stopAlarm(`shop:${key}`);
+  }
+  function renderShops() {
+    const shops = state.game?.shops || {};
+    const liveItems = /* @__PURE__ */ new Map();
+    for (const item of shops[shopAlarmTab]?.inventory || []) {
+      const id = itemId(item);
+      if (id) liveItems.set(id, item);
+    }
+    const itemIds = [.../* @__PURE__ */ new Set([...SEASONAL_SHOP_ITEMS[shopAlarmTab] || [], ...liveItems.keys()])].filter((id) => shopAlarmTab !== "tool" || !EXCLUDED_TOOL_ALERTS.has(id));
+    const available = new Set(availableShopItems().filter((row) => row.shop === shopAlarmTab).map((row) => row.id));
+    const rows = itemIds.map((id) => {
+      const key = `${shopAlarmTab}:${id}`;
+      const sprite = page.__gardenCompanionShopSprites?.[id];
+      return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span></label>`;
+    });
+    const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? "active" : ""}">${label}</button>`).join("");
+    return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join("") || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;
+  }
+
   // src/companion.ts
   function initCompanion() {
     "use strict";
     pruneStaleConfig();
+    initPetTeams({
+      allPets,
+      activePets,
+      petSprite,
+      petMetrics,
+      renderPanel,
+      renderPanelPreservingScroll,
+      bindListSearch,
+      isTeamsTabActive: () => activeTab === "teams"
+    });
+    installAlarms();
     initCalculators({ allPets, activePets, petMetrics, petSprite, petDiet, produceSprite });
     function refreshVisibleKeybindInputs() {
       document.querySelectorAll("#gc-panel [data-team-key]").forEach((field) => {
@@ -744,30 +1323,6 @@
       page.addEventListener("keydown", startSilentAudio, true);
     }
     installBackgroundMode();
-    function send(command) {
-      const connection = page.MagicCircle_RoomConnection;
-      if (!connection || typeof connection.sendMessage !== "function") throw new Error("The game connection is not ready.");
-      connection.sendMessage({ scopePath: ["Room", "Quinoa"], ...command });
-    }
-    function sendQuinoaCommand(command) {
-      const requestId = crypto.randomUUID();
-      send({ type: "QuinoaCommand", requestId, command });
-      return requestId;
-    }
-    let toastTimer;
-    function toast(message, tone = "") {
-      let element = document.getElementById("gc-toast");
-      if (!element) {
-        element = document.createElement("div");
-        element.id = "gc-toast";
-        document.documentElement.appendChild(element);
-      }
-      element.textContent = message;
-      element.dataset.tone = tone;
-      element.classList.add("is-visible");
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => element.classList.remove("is-visible"), 2600);
-    }
     function readPlayerId() {
       try {
         let value = new URL(page.MagicCircle_RoomConnection?.currentWebSocket?.url || "").searchParams.get("playerId");
@@ -942,195 +1497,6 @@
       localStorage.setItem("gardenCompanion.activityCursor", String(state.activityCursor));
       saveAbilityLog();
     }
-    function itemId(item) {
-      for (const key of ITEM_KEYS) if (item?.[key]) return String(item[key]);
-      return "";
-    }
-    function itemType(item, shop) {
-      if (item?.itemType) return item.itemType;
-      return { seed: "Seed", egg: "Egg", decor: "Decor", tool: "Tool" }[shop] || (item?.eggId ? "Egg" : item?.decorId ? "Decor" : item?.toolId ? "Tool" : "Seed");
-    }
-    function itemPayload(item, shop) {
-      const payload = { itemType: itemType(item, shop) };
-      for (const key of ITEM_KEYS) if (item?.[key]) payload[key] = item[key];
-      return payload;
-    }
-    function purchasedCount(shop, id) {
-      const purchases = state.slot?.data?.shopPurchases?.[shop]?.purchases || {};
-      return Number(purchases[id] || 0);
-    }
-    function availableShopItems() {
-      const output = [];
-      for (const [shop, data] of Object.entries(state.game?.shops || {})) {
-        for (const item of Array.isArray(data?.inventory) ? data.inventory : []) {
-          const id = itemId(item);
-          const remaining = Math.max(0, Number(item.initialStock || 0) - purchasedCount(shop, id));
-          if (id && remaining > 0 && !(shop === "tool" && EXCLUDED_TOOL_ALERTS.has(id))) output.push({ shop, id, item, remaining });
-        }
-      }
-      return output;
-    }
-    function processShops() {
-      if (!feature("shopAlarms")) return;
-      const available = availableShopItems();
-      const signature = available.map((row) => `${row.shop}:${row.id}:${row.remaining}`).sort().join("|");
-      if (signature === state.lastShopSignature) return;
-      const old = new Set(state.lastShopSignature.split("|").map((value) => value.split(":").slice(0, 2).join(":")));
-      const availableKeys = new Set(available.map((row) => `${row.shop}:${row.id}`));
-      if (state.initializedShops) {
-        for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
-      }
-      for (const row of available) updateAlarmDetail(`shop:${row.shop}:${row.id}`, `${row.remaining} remaining`);
-      state.lastShopSignature = signature;
-      for (const row of available) {
-        const key = `${row.shop}:${row.id}`;
-        if (config.shopAlerts[key] && (!state.initializedShops || !old.has(key))) showShopAlarm(row);
-      }
-      state.initializedShops = true;
-    }
-    let alarm = null;
-    const alarmQueue = [];
-    let alarmAudioContext = null;
-    let alarmPhase = 0;
-    function armAlarmAudio() {
-      try {
-        if (!alarmAudioContext) {
-          const AudioConstructor = page.AudioContext || page.webkitAudioContext;
-          if (!AudioConstructor) return null;
-          alarmAudioContext = new AudioConstructor({ latencyHint: "interactive" });
-        }
-        if (alarmAudioContext.state !== "running") void alarmAudioContext.resume().catch(() => void 0);
-        return alarmAudioContext;
-      } catch {
-        return null;
-      }
-    }
-    function playAlarmTone() {
-      const context = armAlarmAudio();
-      if (!context) return;
-      const play = () => {
-        if (context.state === "running") alarmTone(context);
-      };
-      if (context.state === "running") play();
-      else void context.resume().then(play).catch(() => void 0);
-    }
-    page.addEventListener("pointerdown", () => {
-      if (feature("shopAlarms")) armAlarmAudio();
-    }, true);
-    page.addEventListener("keydown", () => {
-      if (feature("shopAlarms")) armAlarmAudio();
-    }, true);
-    function clearActiveAlarm() {
-      if (alarm?.timer) clearInterval(alarm.timer);
-      document.getElementById("gc-alarm")?.remove();
-      alarm = null;
-    }
-    function updateAlarmQueueCount() {
-      const count = document.querySelector("#gc-alarm [data-alarm-queue]");
-      if (!count) return;
-      count.hidden = alarmQueue.length === 0;
-      count.textContent = alarmQueue.length === 1 ? "1 more alarm queued" : `${alarmQueue.length} more alarms queued`;
-    }
-    function updateAlarmDetail(owner, detail) {
-      for (const options of alarmQueue) if (options.owner === owner) options.detail = detail;
-      if (alarm?.options.owner !== owner) return;
-      alarm.options.detail = detail;
-      const element = document.querySelector("#gc-alarm [data-alarm-detail]");
-      if (element) element.textContent = detail;
-    }
-    function dismissCurrentAlarm() {
-      clearActiveAlarm();
-      const next = alarmQueue.shift();
-      if (next) renderAlarmBanner(next);
-    }
-    function stopAlarm(owner) {
-      if (!owner) {
-        alarmQueue.length = 0;
-        clearActiveAlarm();
-        return;
-      }
-      for (let index = alarmQueue.length - 1; index >= 0; index--) {
-        if (alarmQueue[index].owner === owner) alarmQueue.splice(index, 1);
-      }
-      if (alarm?.options.owner === owner) {
-        clearActiveAlarm();
-        const next = alarmQueue.shift();
-        if (next) renderAlarmBanner(next);
-      } else updateAlarmQueueCount();
-    }
-    page.__gardenCompanionArmAlarm = armAlarmAudio;
-    page.__gardenCompanionStopAlarm = stopAlarm;
-    function alarmTone(context) {
-      const now = context.currentTime;
-      const frequency = [880, 660, 880, 660, 0][alarmPhase++ % 5];
-      if (!frequency) return;
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.type = "sine";
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.frequency.setValueAtTime(frequency, now);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(1e-3, now + 0.38);
-      oscillator.start(now);
-      oscillator.stop(now + 0.4);
-    }
-    function renderAlarmBanner(options) {
-      const banner = document.createElement("div");
-      banner.id = "gc-alarm";
-      const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : "";
-      const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : "";
-      banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue hidden></em></div>${action}<button data-stop>Stop alarm</button>`;
-      document.body.appendChild(banner);
-      banner.querySelector("[data-stop]").onclick = dismissCurrentAlarm;
-      const actionButton = banner.querySelector("[data-buy]");
-      if (actionButton && options.onAction) actionButton.onclick = (event) => {
-        void options.onAction?.(event.currentTarget);
-      };
-      alarmPhase = 0;
-      playAlarmTone();
-      alarm = { timer: setInterval(playAlarmTone, 420), options };
-      updateAlarmQueueCount();
-    }
-    function showAlarmBanner(options) {
-      if (alarm) {
-        alarmQueue.push(options);
-        updateAlarmQueueCount();
-        return;
-      }
-      renderAlarmBanner(options);
-    }
-    page.__gardenCompanionShowAlarm = showAlarmBanner;
-    function showShopAlarm(row) {
-      const owner = `shop:${row.shop}:${row.id}`;
-      showAlarmBanner({
-        owner,
-        label: `SHOP ALARM | ${SHOP_NAMES[row.shop] || humanize(row.shop)}`,
-        title: `${humanize(row.id)} is available`,
-        detail: `${row.remaining} remaining`,
-        actionLabel: "Buy all",
-        onAction: async (button) => {
-          button.disabled = true;
-          button.textContent = "Buying...";
-          const live = availableShopItems().find((item) => item.shop === row.shop && item.id === row.id);
-          if (!live) {
-            toast("This item is no longer available.", "error");
-            stopAlarm(owner);
-            return;
-          }
-          for (let index = 0; index < live.remaining; index++) {
-            sendQuinoaCommand({ type: "PurchaseShopItem", shop: live.shop, item: itemPayload(live.item, live.shop) });
-            if (index + 1 < live.remaining) await new Promise((resolve) => setTimeout(resolve, 180));
-          }
-          toast(`Requested ${live.remaining} ${humanize(live.id)}.`, "success");
-          stopAlarm(owner);
-        }
-      });
-    }
-    function showSelectedShopAlarm(key) {
-      const row = availableShopItems().find((item) => `${item.shop}:${item.id}` === key);
-      if (row) showShopAlarm(row);
-    }
     function allPets() {
       const data = state.slot?.data || {};
       const active = (data.petSlots || []).map((pet) => ({ ...pet, location: "Active" }));
@@ -1138,9 +1504,6 @@
       const stored = (data.inventory?.storages || []).flatMap((storage) => (storage.items || []).filter((item) => item.itemType === "Pet").map((pet) => ({ ...pet, location: humanize(storage.decorId || "Storage") })));
       const seen = /* @__PURE__ */ new Set();
       return [...active, ...inventory, ...stored].filter((pet) => pet.id && !seen.has(pet.id) && seen.add(pet.id));
-    }
-    function teams() {
-      return state.slot?.data?.petTeams || [];
     }
     const mutatedPetSprites = /* @__PURE__ */ new Map();
     const pendingPetSprites = /* @__PURE__ */ new Set();
@@ -1458,11 +1821,6 @@
       if (!next) return;
       send({ type: "ApplyPetTeam", teamId: next.id });
       toast(`Switching to ${next.name}.`, "success");
-    }
-    function saveTeam(name, petIds, teamId = null) {
-      if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
-      if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
-      send({ type: "SavePetTeam", teamId, name: name.trim(), petIds });
     }
     function installInstantHarvest() {
       window.addEventListener("keydown", (event) => {
@@ -2021,12 +2379,6 @@
     let abilityFilterInteracting = false;
     let abilityFilterMenuOpen = false;
     let abilityLogSearch = "";
-    let editingTeamId = null;
-    let teamSearchQuery = "";
-    let pendingTeamSave = null;
-    let confirmDeleteTeamId = null;
-    let pendingTeamDeleteId = null;
-    let shopAlarmTab = "seed";
     let panelRefreshTimer = null;
     let cancelKeybindCapture = null;
     function cancelPanelRefresh() {
@@ -2088,31 +2440,6 @@
       if (panel && !panel.hidden) closePanel();
       else openPanel();
     }
-    function refreshCompletedTeamSave() {
-      if (!pendingTeamSave) return;
-      const expected = pendingTeamSave;
-      const saved = teams().find((team) => {
-        if (expected.teamId ? team.id !== expected.teamId : team.name !== expected.name) return false;
-        const members = team.members.map((member) => member.petId).sort();
-        return members.length === expected.petIds.length && members.every((petId, index) => petId === expected.petIds[index]);
-      });
-      if (!saved) return;
-      if (expected.emblem && emblemKey(expected.emblem) !== emblemKey(saved.emblem)) setPetTeamEmblem(saved.id, expected.emblem);
-      pendingTeamSave = null;
-      const panel = document.getElementById("gc-panel");
-      if (panel && !panel.hidden && activeTab === "teams") renderPanel();
-    }
-    function refreshCompletedTeamDelete() {
-      if (!pendingTeamDeleteId || teams().some((team) => team.id === pendingTeamDeleteId)) return;
-      const deletedTeamId = pendingTeamDeleteId;
-      pendingTeamDeleteId = null;
-      const panel = document.getElementById("gc-panel");
-      if (!panel || panel.hidden || activeTab !== "teams") return;
-      const cards = [...panel.querySelectorAll("[data-team-card]")];
-      const deletedCard = cards.find((card) => card.dataset.teamCard === deletedTeamId);
-      if (deletedCard && cards.length > 1) deletedCard.remove();
-      else renderPanelPreservingScroll();
-    }
     function panelRefreshBlocked(panel) {
       if (abilityFilterInteracting || abilityFilterMenuOpen || panel.contains(document.activeElement)) return true;
       if (panel.querySelector("[data-ability-filter]")?.open) return true;
@@ -2124,37 +2451,13 @@
     const LIVE_REFRESH_TABS = ["abilities", "abilityLog", "petFood", "teams"];
     let lastTabSignature = "";
     function tabRefreshSignature() {
-      if (activeTab === "teams") {
-        return JSON.stringify([confirmDeleteTeamId, teams().map((team) => [team.id, team.name, emblemKey(team.emblem), team.members.map((member) => `${member.petId}:${member.name || ""}`)])]);
-      }
+      if (activeTab === "teams") return teamsSignature();
       if (activeTab === "petFood") {
         const counts = /* @__PURE__ */ new Map();
         for (const item of heldProduce()) counts.set(item.species, (counts.get(item.species) || 0) + 1);
         return JSON.stringify([[...new Set(allPets().map((pet) => pet.petSpecies))].sort(), [...counts].sort(), config.petFoodChoices]);
       }
       return "";
-    }
-    function refreshTeamActiveMarkers() {
-      const panel = document.getElementById("gc-panel");
-      if (!panel || panel.hidden || activeTab !== "teams") return;
-      const active = activeTeamId();
-      panel.querySelectorAll("[data-team-card]").forEach((card) => {
-        const isActive = card.dataset.teamCard === active;
-        const apply = card.querySelector("[data-apply-team]");
-        const label = isActive ? "Activated" : "Activate";
-        if (apply && apply.textContent !== label) apply.textContent = label;
-        if (apply && apply.disabled !== isActive) apply.disabled = isActive;
-        if (card.dataset.active === String(isActive)) return;
-        card.dataset.active = String(isActive);
-        const head = card.querySelector(".gc-team-head");
-        const pill = card.querySelector(".gc-team-active");
-        if (isActive && !pill && head) {
-          const badge = document.createElement("span");
-          badge.className = "gc-team-active";
-          badge.textContent = "Active";
-          head.insertBefore(badge, head.querySelector(".gc-team-size"));
-        } else if (!isActive && pill) pill.remove();
-      });
     }
     function refreshOpenPanel() {
       const panel = document.getElementById("gc-panel");
@@ -2222,247 +2525,6 @@
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
       return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
-    }
-    const EMBLEM_ICONS = ["rainbow", "gold", "thunder", "dawn", "amber", "wet", "chilled", "frozen", "coin", "egg"];
-    const EMBLEM_LETTERS = Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index));
-    let teamPickerSelection = null;
-    let teamPickerEmblem = null;
-    let teamPickerEmblemKind = "number";
-    function emblemKey(emblem) {
-      if (!emblem) return "";
-      if (emblem.type === "number") return `number:${emblem.number}`;
-      if (emblem.type === "pet") return `pet:${emblem.petSpecies}`;
-      return `icon:${emblem.icon}`;
-    }
-    function emblemFromKey(key) {
-      const [kind, value] = key.split(":", 2);
-      if (kind === "number") return { type: "number", number: Number(value) };
-      if (kind === "pet") return { type: "pet", petSpecies: value };
-      if (kind === "icon") return { type: "icon", icon: value };
-      return null;
-    }
-    function emblemLabel(emblem) {
-      if (!emblem) return "";
-      if (emblem.type === "number") return EMBLEM_LETTERS[emblem.number - 1] || String(emblem.number);
-      if (emblem.type === "pet") return PET_CATALOG[emblem.petSpecies]?.name || humanize(emblem.petSpecies);
-      return humanize(emblem.icon);
-    }
-    function setPetTeamEmblem(teamId, emblem) {
-      send({ type: "SetPetTeamEmblem", teamId, emblem });
-    }
-    function closeTeamPicker() {
-      teamPickerSelection = null;
-      teamPickerEmblem = null;
-      editingTeamId = null;
-      document.getElementById("gc-team-picker")?.remove();
-    }
-    function updateTeamPickerCount(picker) {
-      const count = teamPickerSelection?.size ?? 0;
-      const counter = picker.querySelector("[data-picker-count]");
-      if (counter) {
-        counter.textContent = count >= MAX_TEAM_PETS ? `${count} of ${MAX_TEAM_PETS} selected - team full` : `${count} of ${MAX_TEAM_PETS} selected`;
-        counter.dataset.tone = count ? "good" : "";
-      }
-      picker.querySelectorAll("[data-pet-id]").forEach((input) => {
-        const full = count >= MAX_TEAM_PETS && !input.checked;
-        input.disabled = full;
-        input.closest("label")?.classList.toggle("gc-pet-locked", full);
-      });
-      const save = picker.querySelector("[data-save-team]");
-      if (save) save.disabled = count < 1 || count > MAX_TEAM_PETS;
-    }
-    function emblemIconMarkup(icon) {
-      const sprite = page.__gardenCompanionEmblemSprites?.[icon];
-      return sprite ? `<img src="${escapeHtml(sprite)}" alt=""><small>${escapeHtml(humanize(icon))}</small>` : `<i data-emblem-icon="${escapeHtml(icon)}"></i><small>${escapeHtml(humanize(icon))}</small>`;
-    }
-    function emblemChip(emblem) {
-      if (emblem.type === "icon") {
-        const sprite = page.__gardenCompanionEmblemSprites?.[emblem.icon];
-        if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(humanize(emblem.icon))}" title="${escapeHtml(humanize(emblem.icon))}"></span>`;
-      }
-      if (emblem.type === "pet") {
-        const sprite = page.__gardenCompanionPetSprites?.[emblem.petSpecies];
-        if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(emblemLabel(emblem))}" title="${escapeHtml(emblemLabel(emblem))}"></span>`;
-      }
-      return `<span class="gc-team-emblem">${escapeHtml(emblemLabel(emblem))}</span>`;
-    }
-    function selectedTeamSpecies() {
-      const chosen = teamPickerSelection ?? /* @__PURE__ */ new Set();
-      const species = allPets().filter((pet) => chosen.has(pet.id)).map((pet) => pet.petSpecies);
-      return [...new Set(species)];
-    }
-    function takenEmblemNumbers() {
-      return new Set(teams().filter((team) => team.id !== editingTeamId && team.emblem?.type === "number").map((team) => team.emblem.number));
-    }
-    function renderEmblemOptions() {
-      const selected = emblemKey(teamPickerEmblem);
-      const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml(key)}" data-active="${key === selected}" title="${escapeHtml(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
-      const taken = takenEmblemNumbers();
-      const letters = EMBLEM_LETTERS.map((letter, index) => option(
-        `number:${index + 1}`,
-        `<b>${letter}</b>`,
-        taken.has(index + 1) ? `${letter} is used by another team` : `Letter ${letter}`,
-        taken.has(index + 1)
-      )).join("");
-      const icons = EMBLEM_ICONS.map((icon) => option(`icon:${icon}`, emblemIconMarkup(icon), humanize(icon))).join("");
-      const species = selectedTeamSpecies();
-      const pets = species.length ? species.map((name) => {
-        const sprite = page.__gardenCompanionPetSprites?.[name];
-        const label = PET_CATALOG[name]?.name || humanize(name);
-        const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
-        return option(`pet:${name}`, inner, label);
-      }).join("") : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
-      const groups = [["number", letters], ["icon", icons], ["pet", pets]];
-      const tabs = groups.map(([kind]) => `<button data-emblem-kind="${kind}" class="${kind === teamPickerEmblemKind ? "active" : ""}">${kind === "number" ? "Letters" : kind === "icon" ? "Icons" : "Pets"}</button>`).join("");
-      const strips = groups.map(([kind, markup]) => `<div class="gc-emblem-strip" data-emblem-group="${kind}" ${kind === teamPickerEmblemKind ? "" : "hidden"}>${markup}</div>`).join("");
-      const current = teamPickerEmblem ? `Emblem: ${escapeHtml(emblemLabel(teamPickerEmblem))}` : "No emblem selected";
-      return `<div class="gc-emblem-head"><span>Team emblem</span><div class="gc-emblem-tabs">${tabs}</div><small data-emblem-current>${current}</small></div>${strips}`;
-    }
-    function refreshEmblemUi(picker) {
-      const species = new Set(selectedTeamSpecies());
-      if (teamPickerEmblem?.type === "pet" && !species.has(teamPickerEmblem.petSpecies)) teamPickerEmblem = null;
-      const petGroup = picker.querySelector("[data-emblem-group=pet]");
-      if (petGroup) {
-        petGroup.innerHTML = species.size ? [...species].map((name) => {
-          const sprite = page.__gardenCompanionPetSprites?.[name];
-          const label = PET_CATALOG[name]?.name || humanize(name);
-          const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
-          return `<button data-emblem-option="pet:${escapeHtml(name)}" title="${escapeHtml(label)}">${inner}</button>`;
-        }).join("") : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
-        petGroup.querySelectorAll("[data-emblem-option]").forEach((button) => button.onclick = () => {
-          const key = button.dataset.emblemOption;
-          teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
-          refreshEmblemUi(picker);
-        });
-      }
-      const selected = emblemKey(teamPickerEmblem);
-      picker.querySelectorAll("[data-emblem-option]").forEach((button) => {
-        button.dataset.active = String(button.dataset.emblemOption === selected);
-      });
-      picker.querySelectorAll("[data-emblem-kind]").forEach((button) => {
-        button.classList.toggle("active", button.dataset.emblemKind === teamPickerEmblemKind);
-      });
-      picker.querySelectorAll("[data-emblem-group]").forEach((group) => {
-        group.hidden = group.dataset.emblemGroup !== teamPickerEmblemKind;
-      });
-      const current = picker.querySelector("[data-emblem-current]");
-      if (current) current.textContent = teamPickerEmblem ? `Emblem: ${emblemLabel(teamPickerEmblem)}` : "No emblem selected";
-    }
-    function openTeamPicker(teamId) {
-      const team = teamId ? teams().find((entry) => entry.id === teamId) ?? null : null;
-      editingTeamId = team?.id ?? null;
-      teamPickerSelection = new Set(team?.members.map((member) => member.petId) ?? []);
-      teamPickerEmblem = team?.emblem ?? null;
-      teamPickerEmblemKind = teamPickerEmblem?.type ?? "number";
-      teamSearchQuery = "";
-      document.getElementById("gc-team-picker")?.remove();
-      const picker = document.createElement("div");
-      picker.id = "gc-team-picker";
-      picker.innerHTML = `<div class="gc-team-picker-shell"><header><div><small>PET TEAM</small><h2>${team ? "Edit team" : "Create team"}</h2></div><button data-picker-close aria-label="Close">x</button></header><div class="gc-team-picker-controls"><input data-team-name placeholder="Team name" maxlength="32" value="${escapeHtml(team?.name || "")}"><input class="gc-search" data-team-search placeholder="Filter by pet name, species, location, or ability"><span class="gc-team-picker-count" data-picker-count></span></div><section class="gc-emblem-picker">${renderEmblemOptions()}</section><div class="gc-pet-grid gc-filter-list gc-team-picker-grid">${petPickerRows(teamPickerSelection) || '<p class="gc-empty">No pet data yet.</p>'}</div><footer><button data-picker-cancel>Cancel</button><button class="gc-primary" data-save-team>${team ? "Save changes" : "Save team"}</button></footer></div>`;
-      document.body.appendChild(picker);
-      bindTeamPickerEvents(picker);
-      updateTeamPickerCount(picker);
-      picker.querySelector("[data-team-name]")?.focus();
-    }
-    function bindTeamPickerEvents(picker) {
-      picker.querySelector("[data-picker-close]").onclick = closeTeamPicker;
-      picker.querySelector("[data-picker-cancel]").onclick = closeTeamPicker;
-      picker.onpointerdown = (event) => {
-        if (event.target === picker) closeTeamPicker();
-      };
-      picker.onkeydown = (event) => {
-        if (event.key === "Escape") {
-          event.stopPropagation();
-          closeTeamPicker();
-        }
-      };
-      picker.querySelectorAll("[data-pet-id]").forEach((input) => input.onchange = () => {
-        const petId = input.dataset.petId;
-        input.checked ? teamPickerSelection?.add(petId) : teamPickerSelection?.delete(petId);
-        updateTeamPickerCount(picker);
-        refreshEmblemUi(picker);
-      });
-      bindListSearch(picker.querySelector("[data-team-search]"), (query) => {
-        teamSearchQuery = query;
-      });
-      picker.querySelectorAll("[data-emblem-kind]").forEach((button) => button.onclick = () => {
-        teamPickerEmblemKind = button.dataset.emblemKind;
-        refreshEmblemUi(picker);
-      });
-      picker.querySelectorAll("[data-emblem-option]").forEach((button) => button.onclick = () => {
-        const key = button.dataset.emblemOption;
-        teamPickerEmblem = emblemKey(teamPickerEmblem) === key ? null : emblemFromKey(key);
-        refreshEmblemUi(picker);
-      });
-      picker.querySelector("[data-save-team]").onclick = () => {
-        try {
-          const name = picker.querySelector("[data-team-name]").value.trim();
-          const petIds = [...teamPickerSelection ?? []].sort();
-          const teamId = editingTeamId;
-          const emblem = teamPickerEmblem;
-          const team = teamId ? teams().find((entry) => entry.id === teamId) ?? null : null;
-          saveTeam(name, petIds, teamId);
-          if (teamId && emblem && emblemKey(emblem) !== emblemKey(team?.emblem)) setPetTeamEmblem(teamId, emblem);
-          pendingTeamSave = { teamId, name, petIds, emblem: teamId ? null : emblem };
-          toast(teamId ? "Team update requested." : "Team save requested.", "success");
-          closeTeamPicker();
-          renderPanel();
-        } catch (error) {
-          toast(error.message, "error");
-        }
-      };
-    }
-    function petPickerRows(selectedIds) {
-      return allPets().map((pet) => {
-        const abilityText = (pet.abilities || []).flatMap((ability) => [ability, ABILITY_DETAILS[ability]?.name || humanize(ability)]).join(" ");
-        const filterText = `${pet.name || ""} ${pet.petSpecies} ${PET_CATALOG[pet.petSpecies]?.name || ""} ${pet.location} ${abilityText}`.toLowerCase();
-        const metrics = petMetrics(pet);
-        const strength = metrics ? `<b class="gc-pet-str">${metrics.strength}<i>/${metrics.maxStrength}</i></b>` : "";
-        return `<label data-filter-text="${escapeHtml(filterText)}"><input type="checkbox" data-pet-id="${escapeHtml(pet.id)}" ${selectedIds.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</b><small>${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location)}</small>${(pet.abilities || []).length ? abilityChips(pet.abilities || []) : '<span class="gc-team-abilities">No abilities</span>'}</span>${strength}</label>`;
-      }).join("");
-    }
-    function activeTeamId() {
-      const activeIds = new Set(activePets().map((pet) => pet.id));
-      if (!activeIds.size) return null;
-      const match = teams().find((team) => team.members.length === activeIds.size && team.members.every((member) => activeIds.has(member.petId)));
-      return match?.id ?? null;
-    }
-    function abilityChips(abilities) {
-      if (!abilities.length) return "";
-      const chips = abilities.map((ability) => {
-        const colour = ABILITY_COLOURS[ability] || ABILITY_COLOUR_FALLBACK;
-        const name = ABILITY_DETAILS[ability]?.name || humanize(ability);
-        return `<i class="gc-ability-chip" style="background:${escapeHtml(colour)}" title="${escapeHtml(name)}"></i>`;
-      }).join("");
-      return `<span class="gc-ability-chips" title="${escapeHtml(abilities.map((ability) => ABILITY_DETAILS[ability]?.name || humanize(ability)).join(", "))}">${chips}</span>`;
-    }
-    function teamMemberTile(member, owned) {
-      const sprite = petSprite(owned ?? { id: member.petId, petSpecies: member.petSpecies, hunger: 0 });
-      const label = member.name || PET_CATALOG[member.petSpecies]?.name || humanize(member.petSpecies);
-      const abilities = (owned?.abilities || []).map((ability) => ABILITY_DETAILS[ability]?.name || humanize(ability));
-      const detail = owned ? abilities.join(" | ") || "No abilities" : "Pet not found in your inventory";
-      const strength = petMetrics(owned)?.maxStrength;
-      const meta = owned ? `${humanize(member.petSpecies)}${strength ? ` | STR ${strength}` : ""}` : "Missing pet";
-      return `<span class="gc-team-pet${owned ? "" : " is-missing"}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
-    }
-    function renderTeams() {
-      const full = teams().length >= MAX_PET_TEAMS;
-      const active = activeTeamId();
-      const owned = new Map(allPets().map((pet) => [pet.id, pet]));
-      const cards = teams().map((team) => {
-        const isActive = team.id === active;
-        const filled = team.members.map((member) => teamMemberTile(member, owned.get(member.petId))).join("");
-        const empty = Array.from(
-          { length: Math.max(0, MAX_TEAM_PETS - team.members.length) },
-          () => '<span class="gc-team-pet is-empty"><i>+</i><span><b>Empty slot</b></span></span>'
-        ).join("");
-        const deleteControls = confirmDeleteTeamId === team.id ? `<span class="gc-team-delete-confirm"><b>Delete this team?</b><button data-cancel-delete-team>Cancel</button><button class="gc-danger" data-confirm-delete-team="${escapeHtml(team.id)}">Delete team</button></span>` : `<button class="gc-danger" data-delete-team="${escapeHtml(team.id)}">Delete</button>`;
-        const keybind = config.teamKeybinds[team.id];
-        return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : '<span class="gc-team-emblem is-empty">--</span>'}<span class="gc-team-title"><h3>${escapeHtml(team.name)}</h3><small>${team.members.length} pet${team.members.length === 1 ? "" : "s"}${keybind ? ` | key ${escapeHtml(keybind)}` : ""}</small></span>${isActive ? '<span class="gc-team-active">Active</span>' : ""}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-team-actions"><button data-edit-team="${escapeHtml(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml(team.id)}" ${isActive ? "disabled" : ""}>${isActive ? "Activated" : "Activate"}</button></div></div><div class="gc-team-pets">${filled}${empty}</div><div class="gc-team-foot">${deleteControls}</div></article>`;
-      }).join("");
-      const activeName = teams().find((team) => team.id === active)?.name;
-      const summary = teams().length ? `<span class="gc-team-summary-line"><b>${teams().length}</b> of ${MAX_PET_TEAMS} teams${activeName ? ` | running <b>${escapeHtml(activeName)}</b>` : " | no saved team is active"}</span>` : '<span class="gc-team-summary-line">Save a team to swap your active pets in one click.</span>';
-      return `<div class="gc-team-bar">${summary}<button class="gc-primary" data-open-team-picker ${full ? "disabled" : ""}>Create team</button></div>${full ? `<p class="gc-note">The game allows ${MAX_PET_TEAMS} teams. Delete one to create another.</p>` : ""}<section class="gc-stack">${cards || '<p class="gc-empty">No saved teams yet. Create one to swap your active pets in a single click.</p>'}</section>`;
     }
     function renderKeybinds() {
       const shortcutRow = (label, attribute, value) => `<label class="gc-shortcut-row"><b>${escapeHtml(label)}</b><input readonly ${attribute} value="${escapeHtml(value)}" placeholder="Click, then press keys"></label>`;
@@ -2609,23 +2671,6 @@
       const panel = document.getElementById("gc-panel");
       if (panel && !panel.hidden && activeTab === "rooms") renderPanel();
     }
-    function renderShops() {
-      const shops = state.game?.shops || {};
-      const liveItems = /* @__PURE__ */ new Map();
-      for (const item of shops[shopAlarmTab]?.inventory || []) {
-        const id = itemId(item);
-        if (id) liveItems.set(id, item);
-      }
-      const itemIds = [.../* @__PURE__ */ new Set([...SEASONAL_SHOP_ITEMS[shopAlarmTab] || [], ...liveItems.keys()])].filter((id) => shopAlarmTab !== "tool" || !EXCLUDED_TOOL_ALERTS.has(id));
-      const available = new Set(availableShopItems().filter((row) => row.shop === shopAlarmTab).map((row) => row.id));
-      const rows = itemIds.map((id) => {
-        const key = `${shopAlarmTab}:${id}`;
-        const sprite = page.__gardenCompanionShopSprites?.[id];
-        return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span></label>`;
-      });
-      const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? "active" : ""}">${label}</button>`).join("");
-      return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join("") || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;
-    }
     function renderSilence() {
       const selected = new Set(config.silencedAbilities || []);
       return `<p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
@@ -2707,23 +2752,15 @@
         button.disabled = true;
         button.textContent = "Activating...";
       });
-      main.querySelectorAll("[data-delete-team]").forEach((button) => button.onclick = () => {
-        confirmDeleteTeamId = button.dataset.deleteTeam;
-        renderPanelPreservingScroll();
-      });
-      main.querySelector("[data-cancel-delete-team]")?.addEventListener("click", () => {
-        confirmDeleteTeamId = null;
-        renderPanelPreservingScroll();
-      });
+      main.querySelectorAll("[data-delete-team]").forEach((button) => button.onclick = () => askDeleteConfirmation(button.dataset.deleteTeam));
+      main.querySelector("[data-cancel-delete-team]")?.addEventListener("click", () => askDeleteConfirmation(null));
       main.querySelector("[data-confirm-delete-team]")?.addEventListener("click", (event) => {
         const button = event.currentTarget;
         const teamId = button.dataset.confirmDeleteTeam;
         if (!teamId) return;
         button.disabled = true;
         button.textContent = "Deleting...";
-        pendingTeamDeleteId = teamId;
-        confirmDeleteTeamId = null;
-        send({ type: "DeletePetTeam", teamId });
+        requestTeamDelete(teamId);
         toast("Team deletion requested.", "success");
       });
       main.querySelectorAll("[data-team-key]").forEach((input) => {
@@ -2756,16 +2793,11 @@
       });
       main.querySelectorAll("[data-shop-alert]").forEach((element) => element.onchange = () => {
         const input = element;
-        const key = input.dataset.shopAlert;
-        config.shopAlerts[key] = input.checked;
+        toggleShopAlert(input.dataset.shopAlert, input.checked);
         saveConfig();
-        if (input.checked) {
-          armAlarmAudio();
-          showSelectedShopAlarm(key);
-        } else stopAlarm(`shop:${key}`);
       });
       main.querySelectorAll("[data-shop-tab]").forEach((button) => button.onclick = () => {
-        shopAlarmTab = button.dataset.shopTab || shopAlarmTab;
+        setShopAlarmTab(button.dataset.shopTab || "");
         renderPanel();
       });
       main.querySelectorAll("[data-silence]").forEach((input) => input.onchange = () => {
@@ -4499,7 +4531,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       fallbackHighlight: null
     };
     let press = null;
-    let toastTimer = 0;
+    let toastTimer2 = 0;
     let lastLoggedPlanterPotCount = null;
     let openedRoomSocketCount = 0;
     let moveBusy = false;
@@ -4643,11 +4675,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     captureGameSocket();
     function ensureToast() {
-      let toast = document.getElementById("mg-plant-drag-toast");
-      if (toast) return toast;
-      toast = document.createElement("div");
-      toast.id = "mg-plant-drag-toast";
-      toast.style.cssText = [
+      let toast2 = document.getElementById("mg-plant-drag-toast");
+      if (toast2) return toast2;
+      toast2 = document.createElement("div");
+      toast2.id = "mg-plant-drag-toast";
+      toast2.style.cssText = [
         "position:fixed",
         "top:18px",
         "left:50%",
@@ -4667,22 +4699,22 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         "pointer-events:none",
         "transition:opacity .16s ease,transform .16s ease"
       ].join(";");
-      document.documentElement.appendChild(toast);
-      return toast;
+      document.documentElement.appendChild(toast2);
+      return toast2;
     }
     function showToast(message, tone = "normal", duration = 2200) {
       if (!document.documentElement) return;
-      const toast = ensureToast();
-      toast.textContent = message;
-      toast.style.borderColor = tone === "error" ? "rgba(248,113,113,.65)" : tone === "success" ? "rgba(74,222,128,.55)" : "rgba(255,255,255,.2)";
-      toast.style.color = tone === "error" ? "#fecaca" : tone === "success" ? "#bbf7d0" : "#f4f7f8";
-      toast.style.opacity = "1";
-      toast.style.transform = "translateX(-50%) translateY(0)";
-      clearTimeout(toastTimer);
+      const toast2 = ensureToast();
+      toast2.textContent = message;
+      toast2.style.borderColor = tone === "error" ? "rgba(248,113,113,.65)" : tone === "success" ? "rgba(74,222,128,.55)" : "rgba(255,255,255,.2)";
+      toast2.style.color = tone === "error" ? "#fecaca" : tone === "success" ? "#bbf7d0" : "#f4f7f8";
+      toast2.style.opacity = "1";
+      toast2.style.transform = "translateX(-50%) translateY(0)";
+      clearTimeout(toastTimer2);
       if (duration > 0) {
-        toastTimer = window.setTimeout(() => {
-          toast.style.opacity = "0";
-          toast.style.transform = "translateX(-50%) translateY(-12px)";
+        toastTimer2 = window.setTimeout(() => {
+          toast2.style.opacity = "0";
+          toast2.style.transform = "translateX(-50%) translateY(-12px)";
         }, duration);
       }
     }
@@ -4931,14 +4963,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       });
       log(`Sent PotPlant for farm slot ${slot}.`, { requestId });
     }
-    function sendPlantGardenPlant(slot, itemId) {
+    function sendPlantGardenPlant(slot, itemId2) {
       sendMessage({
         scopePath: ["Room", "Quinoa"],
         type: "PlantGardenPlant",
         slot,
-        itemId
+        itemId: itemId2
       });
-      log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId });
+      log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId: itemId2 });
     }
     function prepareHeldPlant(activePress) {
       const source = pointToFarmTile(activePress.startX, activePress.startY, activePress.target);
