@@ -194,7 +194,7 @@ assert.match(companionSource, /gc-shop-sprite/, 'shop alarm items do not render 
 for (const excludedTool of ['Shovel', 'FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo']) assert.match(companionSource, new RegExp(`EXCLUDED_TOOL_ALERTS[\\s\\S]*'${excludedTool}'`), `${excludedTool} is not excluded from tool alarms`);
 assert.match(companionSource, /shop === 'tool' && EXCLUDED_TOOL_ALERTS\.has\(id\)/, 'excluded tools can still trigger live alarms');
 assert.match(companionSource, /shopAlarmTab !== 'tool' \|\| !EXCLUDED_TOOL_ALERTS\.has\(id\)/, 'excluded tools remain in the alarm list');
-assert.match(companionSource, /\['teams', 'abilities', 'shops', 'petFood'\]\.includes\(activeTab\)/, 'open shop alarms do not refresh when sprites load');
+assert.match(companionSource, /\['teams', 'abilities', 'shops', 'petFood', 'calculators'\]\.includes\(activeTab\)/, 'an open sprite-backed tab does not refresh when sprites load');
 for (const shopSpriteGroup of ["seed", "egg", "tool"]) assert.match(petSpriteSource, new RegExp(`${shopSpriteGroup}: \\[`), `missing ${shopSpriteGroup} sprite group`);
 assert.match(petSpriteInjector, /script\.textContent = __PET_SPRITE_LOADER__/, 'pet atlas loader is not injected into the game page');
 assert.match(indexSource, /initPlantDragMove\(\);/, 'plant drag is not installed for runtime toggling');
@@ -394,6 +394,8 @@ assert.match(companionSource, /const CALCULATOR_TABS = \[\['dust', 'Dust'\], \['
 assert.match(calculatorsSource, /return growthMultiplier \* \(1 \+ added - others\.length\);/, 'crop mutation value no longer stacks the way the game does');
 assert.match(calculatorsSource, /const each = Math\.round\(base \* scale \* mutation\);\s*\n\s*return \{[^}]*total: Math\.round\(each \* friend\)/, 'crop value no longer rounds before and after the room bonus');
 assert.match(calculatorsSource, /Math\.min\(FRIEND_CAP, 1 \+ Math\.max\(0, Math\.floor\(friends\)\) \* FRIEND_STEP\)/, 'the room bonus is no longer capped the way the game caps it');
+assert.match(calculatorsSource, /<span>Players<\/span><select data-value-friends>/, 'the room bonus selector is not labelled as total players');
+assert.match(calculatorsSource, />\$\{count \+ 1\} \(\+\$\{Math\.round\(\(friendMultiplier\(count\) - 1\) \* 100\)\}%\)/, 'the room bonus player count is off by one');
 assert.match(companionSource, /const DUST_RARITY: Record<string, number> = \{ Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 \}/, 'dust rarity multipliers are wrong');
 assert.match(companionSource, /hatch >= 50 \? 1 : hatch > 10 \? 2 : 5/, 'dust hatch multiplier does not match the calculator');
 assert.match(companionSource, /weights\.set\(species, weight\)/, 'hatch chances are not derived from the egg catalog');

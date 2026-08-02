@@ -980,7 +980,7 @@
       }).join("");
       return `<div class="gc-value-group"><b>${escapeHtml(VALUE_GROUP_LABELS[group] || group)}</b><div>${pills}</div></div>`;
     }).join("");
-    const friendOptions = Array.from({ length: MAX_FRIENDS + 1 }, (_, count) => `<option value="${count}" ${count === valueFriends ? "selected" : ""}>${count} (+${Math.round((friendMultiplier(count) - 1) * 100)}%)</option>`).join("");
+    const friendOptions = Array.from({ length: MAX_FRIENDS + 1 }, (_, count) => `<option value="${count}" ${count === valueFriends ? "selected" : ""}>${count + 1} (+${Math.round((friendMultiplier(count) - 1) * 100)}%)</option>`).join("");
     const atMax = value.scale >= value.maxScale - 1e-4;
     return `<section class="gc-card gc-value-card">
 <div class="gc-value-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><select data-value-species>${options}</select></div>
@@ -3599,7 +3599,7 @@ ${rows}</div>`;
       makeDraggable(lunar, LUNAR_POSITION_KEY);
       page.__gardenCompanionPetSpritesReady = () => {
         const panel = document.getElementById("gc-panel");
-        if (panel && !panel.hidden && ["teams", "abilities", "shops", "petFood"].includes(activeTab)) renderPanel();
+        if (panel && !panel.hidden && ["teams", "abilities", "shops", "petFood", "calculators"].includes(activeTab)) renderPanel();
         resetPetFoodSignature();
         renderPetFood();
       };

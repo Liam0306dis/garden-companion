@@ -253,7 +253,7 @@ function renderValueCalculator(): string {
     return `<div class="gc-value-group"><b>${escapeHtml(VALUE_GROUP_LABELS[group] || group)}</b><div>${pills}</div></div>`;
   }).join('');
   const friendOptions = Array.from({ length: MAX_FRIENDS + 1 }, (_, count) =>
-    `<option value="${count}" ${count === valueFriends ? 'selected' : ''}>${count} (+${Math.round((friendMultiplier(count) - 1) * 100)}%)</option>`).join('');
+    `<option value="${count}" ${count === valueFriends ? 'selected' : ''}>${count + 1} (+${Math.round((friendMultiplier(count) - 1) * 100)}%)</option>`).join('');
   const atMax = value.scale >= value.maxScale - .0001;
   return `<section class="gc-card gc-value-card">
 <div class="gc-value-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><select data-value-species>${options}</select></div>

@@ -659,7 +659,7 @@ export function initCompanion(): void {
     makeDraggable(lunar, LUNAR_POSITION_KEY);
     page.__gardenCompanionPetSpritesReady = () => {
       const panel = document.getElementById('gc-panel');
-      if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood'].includes(activeTab)) renderPanel();
+      if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood', 'calculators'].includes(activeTab)) renderPanel();
       resetPetFoodSignature();
       renderPetFood();
     };
