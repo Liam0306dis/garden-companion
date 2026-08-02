@@ -316,11 +316,11 @@ function injectStyles(): void {
     #${PANEL_ID} button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
     #${PANEL_ID} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
     #${PANEL_ID} header button[data-close]{border-radius:50%;background:transparent}
-    #${PANEL_ID} canvas{display:block;width:100%;height:420px;cursor:pointer}
+    #${PANEL_ID} canvas{display:block;width:100%;height:min(420px,calc(100vh - 150px));cursor:pointer}
     #${PANEL_ID} .gf-status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
     #${PANEL_ID} .gf-status b{font:700 12px system-ui,sans-serif}
     #${PANEL_ID} .gf-status small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;white-space:nowrap}
-    #${PANEL_ID} .gf-body{max-height:430px;overflow:auto;padding:10px 12px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+    #${PANEL_ID} .gf-body{max-height:min(430px,calc(100vh - 150px));overflow:auto;padding:10px 12px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
     #${PANEL_ID} .gf-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
     #${PANEL_ID} .gf-totals div{padding:7px 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
     #${PANEL_ID} .gf-totals small{display:block;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;letter-spacing:.08em;text-transform:uppercase}
@@ -732,6 +732,7 @@ export function initFishing(): void {
     const surface = Math.round(top + trackHeight * .34);
     const bankRight = Math.round(sceneLeft + (sceneRight - sceneLeft) * .32);
     const ground = surface - 3;
+    const platformEdge = bankRight + 22;
 
     context.save();
     context.beginPath();
@@ -743,6 +744,56 @@ export function initFishing(): void {
     sky.addColorStop(1, '#243044');
     context.fillStyle = sky;
     context.fillRect(sceneLeft, top, sceneRight - sceneLeft, surface - top);
+
+    // A hazy light and slow clouds give the sky depth without competing with the status text.
+    const sceneWidth = sceneRight - sceneLeft;
+    const glowX = sceneLeft + sceneWidth * .78;
+    const glowY = top + 48;
+    const glow = context.createRadialGradient(glowX, glowY, 2, glowX, glowY, 54);
+    glow.addColorStop(0, 'rgba(226,232,240,.24)');
+    glow.addColorStop(1, 'rgba(226,232,240,0)');
+    context.fillStyle = glow;
+    context.fillRect(glowX - 54, glowY - 54, 108, 108);
+    context.fillStyle = 'rgba(226,232,240,.12)';
+    context.beginPath();
+    context.arc(glowX, glowY, 12, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = 'rgba(203,213,225,.07)';
+    for (const [cloudX, cloudY, cloudWidth] of [[.45, .2, 74], [.68, .38, 92]] as const) {
+      const x = sceneLeft + sceneWidth * cloudX;
+      const y = top + (surface - top) * cloudY;
+      context.beginPath();
+      context.ellipse(x, y, cloudWidth * .34, 8, 0, 0, Math.PI * 2);
+      context.ellipse(x - cloudWidth * .22, y + 2, cloudWidth * .25, 6, 0, 0, Math.PI * 2);
+      context.ellipse(x + cloudWidth * .25, y + 2, cloudWidth * .28, 7, 0, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    // Two distant ridges sit behind the far shore and fade into the evening haze.
+    context.fillStyle = 'rgba(35,49,65,.62)';
+    context.beginPath();
+    context.moveTo(sceneLeft, surface);
+    context.lineTo(sceneLeft, surface - 14);
+    context.lineTo(sceneLeft + sceneWidth * .18, surface - 58);
+    context.lineTo(sceneLeft + sceneWidth * .34, surface - 24);
+    context.lineTo(sceneLeft + sceneWidth * .53, surface - 72);
+    context.lineTo(sceneLeft + sceneWidth * .72, surface - 20);
+    context.lineTo(sceneRight, surface - 46);
+    context.lineTo(sceneRight, surface);
+    context.closePath();
+    context.fill();
+    context.fillStyle = 'rgba(18,34,43,.7)';
+    context.beginPath();
+    context.moveTo(sceneLeft, surface);
+    context.lineTo(sceneLeft + sceneWidth * .16, surface - 24);
+    context.lineTo(sceneLeft + sceneWidth * .31, surface - 10);
+    context.lineTo(sceneLeft + sceneWidth * .48, surface - 35);
+    context.lineTo(sceneLeft + sceneWidth * .66, surface - 12);
+    context.lineTo(sceneLeft + sceneWidth * .84, surface - 30);
+    context.lineTo(sceneRight, surface - 12);
+    context.lineTo(sceneRight, surface);
+    context.closePath();
+    context.fill();
 
     // A low treeline so the far side of the lake reads as distance rather than a flat edge.
     context.fillStyle = 'rgba(14,26,30,.85)';
@@ -762,11 +813,17 @@ export function initFishing(): void {
     water.addColorStop(1, '#05121b');
     context.fillStyle = water;
     context.fillRect(sceneLeft, surface, sceneRight - sceneLeft, bottom - surface);
+    context.fillStyle = 'rgba(148,210,226,.08)';
+    for (let line = 0; line < 6; line++) {
+      const y = surface + 18 + line * 31;
+      const x = bankRight + 42 + (line % 2) * 27;
+      context.fillRect(x, y, Math.max(24, sceneRight - x - 38 - line * 8), 1);
+    }
 
     // Scenery fish and the hooked fish share the water, clipped so they slide past the near bank.
     context.save();
     context.beginPath();
-    context.rect(bankRight - 20, surface, sceneRight - bankRight + 20, bottom - surface);
+    context.rect(bankRight - 34, surface, sceneRight - bankRight + 34, bottom - surface);
     context.clip();
     for (const swimmer of swimmers) {
       const x = bankRight + swimmer.x * (sceneRight - bankRight);
@@ -823,31 +880,58 @@ export function initFishing(): void {
       context.fill();
     }
 
-    // The near bank, drawn over the water so its lip hides the waterline.
-    const bank = context.createLinearGradient(0, ground - 10, 0, bottom);
-    bank.addColorStop(0, '#2f4a2b');
-    bank.addColorStop(.18, '#243a22');
-    bank.addColorStop(.5, '#241d16');
-    bank.addColorStop(1, '#140f0b');
-    context.fillStyle = bank;
-    context.beginPath();
-    context.moveTo(sceneLeft, ground - 6);
-    for (let x = sceneLeft; x <= bankRight; x += 10) {
-      context.lineTo(x, ground - 6 + Math.sin(x * .05) * 1.6 + (x / bankRight) * 6);
+    // The angler stands on a grassy cliff. Its rock face retreats under the lip, leaving a pocket
+    // of water visible beneath the platform instead of turning the whole left side into solid land.
+    const cliff = new Path2D();
+    cliff.moveTo(sceneLeft, ground - 6);
+    for (let x = sceneLeft; x <= platformEdge; x += 10) {
+      cliff.lineTo(x, ground - 6 + Math.sin(x * .05) * 1.6 + (x / platformEdge) * 5);
     }
-    context.lineTo(bankRight + 8, ground + 6);
-    context.lineTo(bankRight + 8, bottom);
-    context.lineTo(sceneLeft, bottom);
-    context.closePath();
-    context.fill();
+    cliff.lineTo(platformEdge, ground + 4);
+    cliff.bezierCurveTo(bankRight + 10, ground + 14, bankRight - 12, ground + 30, bankRight - 24, ground + 56);
+    cliff.bezierCurveTo(bankRight - 34, ground + 92, bankRight - 20, bottom - 30, bankRight - 38, bottom);
+    cliff.lineTo(sceneLeft, bottom);
+    cliff.closePath();
+    const bank = context.createLinearGradient(0, ground - 10, 0, bottom);
+    bank.addColorStop(0, '#36532f');
+    bank.addColorStop(.13, '#2a3f25');
+    bank.addColorStop(.28, '#3a3025');
+    bank.addColorStop(.62, '#251b14');
+    bank.addColorStop(1, '#120d09');
+    context.fillStyle = bank;
+    context.fill(cliff);
+    context.save();
+    context.clip(cliff);
+    context.strokeStyle = 'rgba(152,119,82,.16)';
+    context.lineWidth = 2;
+    for (let ledge = 0; ledge < 5; ledge++) {
+      const y = ground + 30 + ledge * 42;
+      context.beginPath();
+      context.moveTo(sceneLeft + 18 + (ledge % 2) * 12, y);
+      context.bezierCurveTo(bankRight - 70, y - 9, bankRight - 48, y + 10, bankRight - 25, y - 4);
+      context.stroke();
+    }
+    context.restore();
     context.strokeStyle = 'rgba(120,180,110,.35)';
     context.lineWidth = 1.5;
     context.beginPath();
-    for (let x = sceneLeft; x <= bankRight; x += 10) {
-      const y = ground - 6 + Math.sin(x * .05) * 1.6 + (x / bankRight) * 6;
+    for (let x = sceneLeft; x <= platformEdge; x += 10) {
+      const y = ground - 6 + Math.sin(x * .05) * 1.6 + (x / platformEdge) * 5;
       if (x === sceneLeft) context.moveTo(x, y); else context.lineTo(x, y);
     }
     context.stroke();
+    // Grass and a few stones soften the platform edge without hiding the line or the pets.
+    context.strokeStyle = 'rgba(134,190,112,.42)';
+    context.lineWidth = 1;
+    for (let x = sceneLeft + 8; x < platformEdge; x += 13) {
+      const y = ground - 7 + Math.sin(x * .05) * 1.6 + (x / platformEdge) * 5;
+      context.beginPath();
+      context.moveTo(x, y);
+      context.lineTo(x - 2, y - 5 - (x % 3));
+      context.moveTo(x, y);
+      context.lineTo(x + 3, y - 4);
+      context.stroke();
+    }
 
     // Active pets wander the bank behind the angler, wearing their colour mutation.
     for (const walker of [...walkers].sort((a, b) => a.depth - b.depth)) {

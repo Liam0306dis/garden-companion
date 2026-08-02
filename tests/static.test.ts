@@ -595,6 +595,10 @@ assert.match(fishingSource, /\/\\\/version\\\/\(\[\^\/\]\+\)\\\//, 'the fishing 
 assert.match(fishingSource, /const source = pet \? petSpriteSource\(pet\) : undefined;/, 'shore pets do not use the mutation-tinted pet sprites');
 assert.match(petsSource, /export function petSpriteSource/, 'the tinted pet sprite is not shared with anything that draws');
 assert.match(fishingSource, /image\.complete && image\.naturalWidth > 0/, 'a half-loaded image can be drawn');
+assert.match(fishingSource, /canvas\{[^}]*height:min\(420px,calc\(100vh - 150px\)\)/, 'the enlarged fishing canvas can put its header above a short viewport');
+assert.match(fishingSource, /\.gf-body\{[^}]*max-height:min\(430px,calc\(100vh - 150px\)\)/, 'a fishing list can put its header above a short viewport');
+assert.match(fishingSource, /const platformEdge = bankRight \+ 22;/, 'the fishing bank no longer extends into a cliff platform');
+assert.match(fishingSource, /cliff\.bezierCurveTo\(bankRight \+ 10[\s\S]*cliff\.bezierCurveTo\(bankRight - 34/, 'the fishing cliff no longer leaves water visible beneath its ledge');
 // Sprites are padded to their own frames, so standing one on the ground by its box leaves it hovering.
 assert.match(fishingSource, /const inset = footInset\(bottomImage, bottomSource\);/, 'the angler is placed by its image box rather than its artwork');
 assert.match(fishingSource, /inset = \(probe\.height - 1 - y\) \/ probe\.height;/, 'sprite ground contact is guessed rather than measured');
