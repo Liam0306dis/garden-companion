@@ -1,6 +1,7 @@
 import { page } from '../page.js';
 import { state } from '../state.js';
 import { makeDraggable } from '../draggable.js';
+import { petSpriteSource } from '../pets.js';
 import { escapeHtml, loadLocal, saveLocal } from '../utils.js';
 import { fishingMuted, playBite, playCast, playCatch, playEscape, playReelClick, primeFishingAudio, setFishingMuted } from './fishing-audio.js';
 
@@ -61,6 +62,9 @@ const FIGHT_PACE = .5;
 const START_PROGRESS = .2;
 const LOSE_FLOOR = -.15;
 const REEL_LIMIT = 45000;
+/** Rod back-swing then forward whip. The flight lands as the cast splash in the audio plays. */
+const CAST_WINDUP = 150;
+const CAST_FLIGHT = 210;
 /**
  * Hook zone control. Friction is what makes this steerable: without it, holding accelerates without
  * bound and the zone can only ever overshoot, so the smaller a zone gets the more it oscillates
@@ -102,6 +106,97 @@ function zoneAgility(speed: number): number {
  */
 function fishTravelSpeed(speed: number): number {
   return .5 * FISH_PULL * speed / (-Math.log(.93) * 60) * 1.6;
+}
+
+/**
+ * The player's own blobbling, drawn as the four cosmetic layers the game stores on them. In world
+ * the game renders these through Rive, where only bottom, mid and top are images and the expression
+ * drives a state machine input. A still composite of all four is close enough for a figure this
+ * size and costs nothing beyond four image loads.
+ */
+const AVATAR_COLOURS = new Set(['Black', 'Blue', 'Gray', 'Green', 'Pink', 'Purple', 'Red', 'Yellow']);
+
+function defaultAvatar(colour: string | undefined): string[] {
+  const shade = colour && AVATAR_COLOURS.has(colour) ? colour : 'Gray';
+  return [`Bottom_Default${shade}.png`, `Mid_Default${shade}.png`, `Top_Default${shade}.png`, 'Expression_Default.png'];
+}
+
+/** The game serves its assets from a versioned path, so the version is read from its own tags. */
+let assetsBase: string | null = null;
+
+function detectAssetsBase(): string | null {
+  if (assetsBase) return assetsBase;
+  const sources = [
+    ...Array.from(document.scripts).map(script => script.src),
+    ...Array.from(document.querySelectorAll<HTMLLinkElement>('link[href]')).map(link => link.href),
+  ];
+  for (const source of sources) {
+    const match = source.match(/\/version\/([^/]+)\//);
+    if (match?.[1]) return assetsBase = `https://magicgarden.gg/version/${match[1]}/assets/`;
+  }
+  return null;
+}
+
+const images = new Map<string, HTMLImageElement>();
+
+/** Returns the image only once it can actually be drawn, so a pending load simply renders nothing. */
+function readyImage(source: string): HTMLImageElement | null {
+  let image = images.get(source);
+  if (!image) {
+    image = new Image();
+    image.src = source;
+    images.set(source, image);
+  }
+  return image.complete && image.naturalWidth > 0 ? image : null;
+}
+
+const footInsets = new Map<string, number>();
+
+/**
+ * How much transparent padding sits below the artwork, as a fraction of the image height. Sprites
+ * are padded to their own frames, so standing one on the ground by its image box leaves it hovering.
+ * Measuring the lowest opaque row is exact and self-correcting, where a fixed nudge is a guess that
+ * only suits one sprite. Everything here is served from the game's own origin, so reading pixels
+ * back is allowed; a failure just falls back to the image box.
+ */
+function footInset(image: HTMLImageElement, source: string): number {
+  const cached = footInsets.get(source);
+  if (cached !== undefined) return cached;
+  let inset = 0;
+  try {
+    const probe = document.createElement('canvas');
+    probe.width = image.naturalWidth;
+    probe.height = image.naturalHeight;
+    const context = probe.getContext('2d', { willReadFrequently: true });
+    if (context) {
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, probe.width, probe.height).data;
+      rows: for (let y = probe.height - 1; y >= 0; y--) {
+        for (let x = 0; x < probe.width; x++) {
+          if (pixels[(y * probe.width + x) * 4 + 3] > 8) {
+            inset = (probe.height - 1 - y) / probe.height;
+            break rows;
+          }
+        }
+      }
+    }
+  } catch { inset = 0; }
+  footInsets.set(source, inset);
+  return inset;
+}
+
+/** Draws a sprite standing on `groundY`, centred on `x`, scaled so its artwork is `height` tall. */
+function drawStanding(context: CanvasRenderingContext2D, image: HTMLImageElement, source: string, x: number, groundY: number, height: number, facing = 1): number {
+  const inset = footInset(image, source);
+  // `height` describes the visible artwork, so the whole frame has to be scaled up to compensate.
+  const frameHeight = height / Math.max(.2, 1 - inset);
+  const frameWidth = image.naturalWidth / image.naturalHeight * frameHeight;
+  context.save();
+  context.translate(x, groundY + frameHeight * inset);
+  context.scale(facing < 0 ? -1 : 1, 1);
+  context.drawImage(image, -frameWidth / 2, -frameHeight, frameWidth, frameHeight);
+  context.restore();
+  return frameWidth;
 }
 
 interface FishDef {
@@ -212,7 +307,7 @@ function injectStyles(): void {
   style.textContent = `
     #${PANEL_ID}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID}[hidden]{display:none}
-    #${PANEL_ID} .gf-card{position:fixed;right:14px;bottom:56px;width:min(470px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
+    #${PANEL_ID} .gf-card{position:fixed;right:14px;bottom:56px;width:min(780px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
     #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move}
     #${PANEL_ID} h2{margin:0;font:700 13px/1.2 system-ui,sans-serif;letter-spacing:.02em}
     #${PANEL_ID} header div{display:flex;align-items:center;gap:4px}
@@ -221,7 +316,7 @@ function injectStyles(): void {
     #${PANEL_ID} button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
     #${PANEL_ID} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
     #${PANEL_ID} header button[data-close]{border-radius:50%;background:transparent}
-    #${PANEL_ID} canvas{display:block;width:100%;height:310px;cursor:pointer}
+    #${PANEL_ID} canvas{display:block;width:100%;height:420px;cursor:pointer}
     #${PANEL_ID} .gf-status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
     #${PANEL_ID} .gf-status b{font:700 12px system-ui,sans-serif}
     #${PANEL_ID} .gf-status small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;white-space:nowrap}
@@ -304,6 +399,7 @@ export function initFishing(): void {
   let hooked: FishDef | null = null;
   let hookedWeight = 0;
   let biteAt = 0;
+  let castAt = 0;
   let waitUntil = 0;
   let reelEndsAt = 0;
   let fishAt = .5, fishVelocity = 0, fishTarget = .5, retargetAt = 0;
@@ -321,6 +417,45 @@ export function initFishing(): void {
   interface Swimmer { x: number; y: number; speed: number; size: number; colour: string; phase: number }
   const SWIMMER_COLOURS = ['#4b7f96', '#3f6f86', '#5b8f7a', '#6b7f9c', '#7a8fa0'];
   const swimmers: Swimmer[] = Array.from({ length: 9 }, () => spawnSwimmer(Math.random()));
+
+  // The player's active pets, milling about on the bank behind them.
+  interface Walker { id: string; x: number; target: number; facing: number; phase: number; depth: number }
+  let walkers: Walker[] = [];
+  let walkerSignature = '';
+
+  /** Looked up fresh each frame: the slot array is replaced wholesale on every game patch. */
+  function walkerPet(id: string) {
+    return (state.slot?.data?.petSlots ?? []).find(pet => pet.id === id);
+  }
+
+  function syncWalkers(): void {
+    const pets = state.slot?.data?.petSlots ?? [];
+    const signature = pets.map(pet => `${pet.id}:${pet.petSpecies}`).join(',');
+    if (signature === walkerSignature) return;
+    walkerSignature = signature;
+    walkers = pets.filter(pet => pet.petSpecies && pet.id).map((pet, index) => ({
+      id: pet.id,
+      x: .12 + (index + .5) / Math.max(1, pets.length) * .7,
+      target: .1 + Math.random() * .8,
+      facing: 1,
+      phase: Math.random() * Math.PI * 2,
+      depth: Math.random(),
+    }));
+  }
+
+  /**
+   * The four cosmetic layers for our own player, falling back to the plain blobbling. The resolved
+   * player id is used rather than the room's own field, which is not always populated.
+   */
+  function avatarLayers(): string[] {
+    const room = state.room;
+    const id = state.playerId || room?.selfPlayerId;
+    const self = room?.players?.find(player => player.id === id);
+    const avatar = self?.cosmetic?.avatar;
+    return Array.isArray(avatar) && avatar.length === 4 && avatar.every(layer => typeof layer === 'string')
+      ? avatar
+      : defaultAvatar(self?.cosmetic?.color);
+  }
 
   function spawnSwimmer(x = Math.random() < .5 ? -.1 : 1.1): Swimmer {
     const rightward = x < .5;
@@ -361,7 +496,9 @@ export function initFishing(): void {
     holding = false;
     lastCatch = null;
     progress = 0;
-    waitUntil = performance.now() + 1200 + Math.random() * 3600;
+    castAt = performance.now();
+    // The bite can never land before the float does, whatever the wait rolls.
+    waitUntil = castAt + CAST_WINDUP + CAST_FLIGHT + 1200 + Math.random() * 3600;
     setPhase('waiting', 'Line is out. Wait for the bob to dip.');
     playCast();
     resumeLoop();
@@ -470,7 +607,7 @@ export function initFishing(): void {
   function release(): void { holding = false; }
 
   function shiftActiveTimers(duration: number): void {
-    if (phase === 'waiting') waitUntil += duration;
+    if (phase === 'waiting') { waitUntil += duration; castAt += duration; }
     else if (phase === 'bite') biteAt += duration;
     else if (phase === 'reel') {
       reelStartedAt += duration;
@@ -525,6 +662,18 @@ export function initFishing(): void {
       swimmer.x += swimmer.speed * delta;
       if (swimmer.x < -.15 || swimmer.x > 1.15) Object.assign(swimmer, spawnSwimmer());
     }
+    syncWalkers();
+    for (const walker of walkers) {
+      const stride = walker.target - walker.x;
+      // Close enough counts as arrived, otherwise a pet jitters on the spot forever.
+      if (Math.abs(stride) < .012) {
+        if (Math.random() < delta * .6) walker.target = .08 + Math.random() * .82;
+      } else {
+        const move = Math.sign(stride) * Math.min(Math.abs(stride), .11 * delta);
+        walker.x += move;
+        walker.facing = move > 0 ? 1 : -1;
+      }
+    }
     draw();
     frame = requestAnimationFrame(step);
   }
@@ -569,77 +718,260 @@ export function initFishing(): void {
     context.clearRect(0, 0, width, height);
 
     const now = performance.now();
-    const trackX = width - 62;
-    const trackWidth = 26;
-    const barX = width - 28;
     const top = 12;
     const bottom = height - 12;
     const trackHeight = bottom - top;
+    const sceneLeft = 12;
+    const trackX = width - 64;
+    const trackWidth = 26;
+    const barX = width - 28;
+    // The gauges get their own column so a fight is never read against moving water.
+    const sceneRight = trackX - 14;
 
-    // Scene: sky over water, with the float sitting on the surface.
-    const sceneRight = trackX - 12;
-    const surface = top + 52;
-    const sky = context.createLinearGradient(0, top, 0, surface);
-    sky.addColorStop(0, '#12121b');
-    sky.addColorStop(1, '#1b2233');
-    context.fillStyle = sky;
-    context.beginPath();
-    context.roundRect(12, top, sceneRight - 12, surface - top, [8, 8, 0, 0]);
-    context.fill();
-    const water = context.createLinearGradient(0, surface, 0, bottom);
-    water.addColorStop(0, '#0e3245');
-    water.addColorStop(1, '#06151f');
-    context.fillStyle = water;
-    context.beginPath();
-    context.roundRect(12, surface, sceneRight - 12, bottom - surface, [0, 0, 8, 8]);
-    context.fill();
-    context.strokeStyle = 'rgba(255,255,255,.09)';
-    context.lineWidth = 1;
-    context.beginPath();
-    context.roundRect(12.5, top + .5, sceneRight - 13, trackHeight - 1, 8);
-    context.stroke();
+    // Side-on lake: bank on the left with the angler on it, water running off to the right.
+    const surface = Math.round(top + trackHeight * .34);
+    const bankRight = Math.round(sceneLeft + (sceneRight - sceneLeft) * .32);
+    const ground = surface - 3;
 
-    // Scenery fish, clipped to the water so they slide in and out of the pond edges.
     context.save();
     context.beginPath();
-    context.roundRect(12, surface, sceneRight - 12, bottom - surface, [0, 0, 8, 8]);
+    context.roundRect(sceneLeft, top, sceneRight - sceneLeft, trackHeight, 8);
+    context.clip();
+
+    const sky = context.createLinearGradient(0, top, 0, surface);
+    sky.addColorStop(0, '#141420');
+    sky.addColorStop(1, '#243044');
+    context.fillStyle = sky;
+    context.fillRect(sceneLeft, top, sceneRight - sceneLeft, surface - top);
+
+    // A low treeline so the far side of the lake reads as distance rather than a flat edge.
+    context.fillStyle = 'rgba(14,26,30,.85)';
+    context.beginPath();
+    context.moveTo(sceneLeft, surface);
+    for (let x = sceneLeft; x <= sceneRight; x += 14) {
+      const roll = Math.sin(x * .07) + Math.sin(x * .017 + 2.1);
+      context.lineTo(x, surface - 9 - roll * 4);
+    }
+    context.lineTo(sceneRight, surface);
+    context.closePath();
+    context.fill();
+
+    const water = context.createLinearGradient(0, surface, 0, bottom);
+    water.addColorStop(0, '#12455e');
+    water.addColorStop(.35, '#0c3145');
+    water.addColorStop(1, '#05121b');
+    context.fillStyle = water;
+    context.fillRect(sceneLeft, surface, sceneRight - sceneLeft, bottom - surface);
+
+    // Scenery fish and the hooked fish share the water, clipped so they slide past the near bank.
+    context.save();
+    context.beginPath();
+    context.rect(bankRight - 20, surface, sceneRight - bankRight + 20, bottom - surface);
     context.clip();
     for (const swimmer of swimmers) {
-      const x = 12 + swimmer.x * (sceneRight - 12);
-      const y = surface + 10 + swimmer.y * (bottom - surface - 20) + Math.sin(now / 900 + swimmer.phase) * 3;
-      drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, .5, now + swimmer.phase * 400);
-    }
-    if (phase === 'reel' && hooked) {
-      // The fight in the water mirrors the track, so the fish you are pulling on is visible.
-      const rule = RARITIES[hooked.rarity];
-      const size = 11 + RARITY_ORDER.indexOf(hooked.rarity) * 3.5;
-      const y = surface + 16 + fishAt * (bottom - surface - 32);
-      const drift = Math.sin(now / 640) * (sceneRight - 12) * .16;
-      drawSwimmer(context, centreOf(12, sceneRight) + drift, y, size, Math.cos(now / 640) > 0 ? 1 : -1, rule.colour, .85, now);
+      const x = bankRight + swimmer.x * (sceneRight - bankRight);
+      const y = surface + 16 + swimmer.y * (bottom - surface - 26) + Math.sin(now / 900 + swimmer.phase) * 3;
+      drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, .45, now + swimmer.phase * 400);
     }
     context.restore();
 
-    const centre = centreOf(12, sceneRight);
-    const bobBase = surface + (phase === 'waiting' ? 0 : phase === 'bite' ? 7 : 0);
+    // Everything hanging off the line shares these, so the float, hook and fish stay attached.
+    const anchorX = Math.round(bankRight + (sceneRight - bankRight) * .42);
+    const castElapsed = now - castAt;
+    const casting = phase === 'waiting' && castElapsed < CAST_WINDUP + CAST_FLIGHT;
+    const hooking = phase === 'reel' && Boolean(hooked);
+    const fishSize = hooked ? 12 + RARITY_ORDER.indexOf(hooked.rarity) * 3.5 : 12;
+    const fishFacing = Math.cos(now / 640) > 0 ? 1 : -1;
+    const fishX = hooking ? anchorX + Math.sin(now / 640) * (sceneRight - bankRight) * .13 : anchorX;
+    const fishY = hooking ? surface + 22 + fishAt * (bottom - surface - 40) : surface + 58;
+    // The hook rides in the fish's mouth during a fight, so the whole line follows the fish.
+    const hookX = hooking ? fishX + fishFacing * fishSize * .95 : anchorX;
+    const hookY = hooking ? fishY : surface + 46 + Math.sin(now / 1100) * 3;
+    // A fought fish drags the float toward it rather than leaving it parked mid-lake.
+    const floatX = hooking ? Math.round(anchorX + (fishX - anchorX) * .5) : anchorX;
+    const bobBase = surface + (phase === 'bite' ? 7 : 0);
     const bob = phase === 'waiting' ? Math.sin(now / 420) * 2 : phase === 'bite' ? Math.sin(now / 55) * 3 : 0;
-    if (phase !== 'idle' && phase !== 'result') {
-      context.strokeStyle = 'rgba(255,255,255,.35)';
+
+    if (phase !== 'idle' && phase !== 'result' && !casting) {
+      // Tippet from the float down to the hook, then the hook itself.
+      context.strokeStyle = 'rgba(255,255,255,.3)';
+      context.lineWidth = 1;
       context.beginPath();
-      context.moveTo(centre, top + 8);
-      context.lineTo(centre, bobBase + bob);
+      context.moveTo(floatX, bobBase + bob);
+      context.quadraticCurveTo((floatX + hookX) / 2, (bobBase + hookY) / 2, hookX, hookY);
       context.stroke();
-      context.fillStyle = phase === 'bite' ? '#f87171' : '#e4e4e7';
+      context.strokeStyle = 'rgba(226,232,240,.85)';
+      context.lineWidth = 1.6;
       context.beginPath();
-      context.arc(centre, bobBase + bob, 4.5, 0, Math.PI * 2);
+      context.moveTo(hookX, hookY - 7);
+      context.lineTo(hookX, hookY);
+      context.arc(hookX - 2.6, hookY, 2.6, 0, Math.PI * .9, false);
+      context.stroke();
+    }
+
+    if (hooking && hooked) {
+      // The fight in the water mirrors the track, so the fish you are pulling on is visible.
+      drawSwimmer(context, fishX, fishY, fishSize, fishFacing, RARITIES[hooked.rarity].colour, .85, now);
+    } else if (phase === 'bite') {
+      // Something has come up to take it: a dark shape nosing the hook, not yet identifiable.
+      const nose = Math.sin(now / 90) * 4;
+      drawSwimmer(context, hookX + 16 + nose, hookY + 3, 13, -1, 'rgba(12,26,34,.95)', .9, now);
+    } else if (phase === 'waiting' && !casting) {
+      context.fillStyle = 'rgba(255,255,255,.35)';
+      context.beginPath();
+      context.arc(hookX - 1, hookY + 1, 1.6, 0, Math.PI * 2);
       context.fill();
-      for (let ring = 0; ring < 3; ring++) {
-        const wave = (now / 900 + ring / 3) % 1;
-        context.strokeStyle = `rgba(255,255,255,${(.22 * (1 - wave)).toFixed(3)})`;
-        context.beginPath();
-        context.ellipse(centre, bobBase + bob + 2, 6 + wave * 34, 2 + wave * 8, 0, 0, Math.PI * 2);
-        context.stroke();
+    }
+
+    // The near bank, drawn over the water so its lip hides the waterline.
+    const bank = context.createLinearGradient(0, ground - 10, 0, bottom);
+    bank.addColorStop(0, '#2f4a2b');
+    bank.addColorStop(.18, '#243a22');
+    bank.addColorStop(.5, '#241d16');
+    bank.addColorStop(1, '#140f0b');
+    context.fillStyle = bank;
+    context.beginPath();
+    context.moveTo(sceneLeft, ground - 6);
+    for (let x = sceneLeft; x <= bankRight; x += 10) {
+      context.lineTo(x, ground - 6 + Math.sin(x * .05) * 1.6 + (x / bankRight) * 6);
+    }
+    context.lineTo(bankRight + 8, ground + 6);
+    context.lineTo(bankRight + 8, bottom);
+    context.lineTo(sceneLeft, bottom);
+    context.closePath();
+    context.fill();
+    context.strokeStyle = 'rgba(120,180,110,.35)';
+    context.lineWidth = 1.5;
+    context.beginPath();
+    for (let x = sceneLeft; x <= bankRight; x += 10) {
+      const y = ground - 6 + Math.sin(x * .05) * 1.6 + (x / bankRight) * 6;
+      if (x === sceneLeft) context.moveTo(x, y); else context.lineTo(x, y);
+    }
+    context.stroke();
+
+    // Active pets wander the bank behind the angler, wearing their colour mutation.
+    for (const walker of [...walkers].sort((a, b) => a.depth - b.depth)) {
+      const pet = walkerPet(walker.id);
+      const source = pet ? petSpriteSource(pet) : undefined;
+      const image = source ? readyImage(source) : null;
+      if (!image || !source) continue;
+      const x = sceneLeft + 14 + walker.x * (bankRight - sceneLeft - 34);
+      const y = ground + 4 + walker.depth * 16;
+      const height = 30 + walker.depth * 6;
+      context.save();
+      context.globalAlpha = .32;
+      context.fillStyle = '#000';
+      context.beginPath();
+      context.ellipse(x, y, height * .34, 3, 0, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+      context.save();
+      context.translate(0, Math.sin(now / 500 + walker.phase) * 1.5);
+      drawStanding(context, image, source, x, y, height, walker.facing);
+      context.restore();
+    }
+
+    // The angler: our own blobbling, with a rod arcing out over the water.
+    const anglerX = Math.round(bankRight - 62);
+    const anglerY = ground + 4;
+    const sway = Math.sin(now / 1100) * 1.5;
+    const layers = avatarLayers();
+    const base = detectAssetsBase();
+    const avatarHeight = 62;
+    if (base) {
+      context.save();
+      context.globalAlpha = .35;
+      context.fillStyle = '#000';
+      context.beginPath();
+      context.ellipse(anglerX, anglerY, 17, 4, 0, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+      // Every layer is drawn into the same frame with the same anchor. Scaling each to its own
+      // height would let a hat or an expression drift out of register with the body beneath it.
+      const bottomSource = `${base}cosmetic/${layers[0]}`;
+      const bottomImage = readyImage(bottomSource);
+      if (bottomImage) {
+        const inset = footInset(bottomImage, bottomSource);
+        const frameHeight = avatarHeight / Math.max(.2, 1 - inset);
+        const frameTop = anglerY + frameHeight * inset - frameHeight + sway;
+        for (const layer of layers) {
+          const image = readyImage(`${base}cosmetic/${layer}`);
+          if (!image) continue;
+          const frameWidth = image.naturalWidth / image.naturalHeight * frameHeight;
+          context.drawImage(image, anglerX - frameWidth / 2, frameTop, frameWidth, frameHeight);
+        }
       }
     }
+
+    // Rod and line. The rod loads toward the water while a fish is on.
+    const handX = anglerX + 14;
+    const handY = anglerY - avatarHeight * .52 + sway;
+    const load = phase === 'reel' ? 16 : phase === 'bite' ? 8 : 0;
+    let tipX = bankRight + 34 + load;
+    let tipY = top + 34 + load * 1.4;
+    // The cast: the rod is taken back, whipped forward past its rest, then settles.
+    if (casting) {
+      const back = castElapsed < CAST_WINDUP
+        ? castElapsed / CAST_WINDUP
+        : 1 - (1 - Math.pow(1 - (castElapsed - CAST_WINDUP) / CAST_FLIGHT, 3));
+      const whip = castElapsed < CAST_WINDUP ? 0 : Math.sin(Math.PI * (castElapsed - CAST_WINDUP) / CAST_FLIGHT);
+      tipX += -52 * back + 20 * whip;
+      tipY += 34 * back - 12 * whip;
+    }
+    context.strokeStyle = '#c8a06a';
+    context.lineWidth = 2.5;
+    context.beginPath();
+    context.moveTo(handX, handY);
+    context.quadraticCurveTo(handX + (tipX - handX) * .4, handY - 46 - load * .4, tipX, tipY);
+    context.stroke();
+
+    if (casting) {
+      // Mid-cast the float is in the air, so the line runs taut to it rather than sagging to water.
+      const travel = Math.max(0, (castElapsed - CAST_WINDUP) / CAST_FLIGHT);
+      const flyX = tipX + (anchorX - tipX) * travel;
+      const flyY = tipY + (surface - tipY) * travel - Math.sin(Math.PI * travel) * 52;
+      context.strokeStyle = 'rgba(255,255,255,.4)';
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(tipX, tipY);
+      context.lineTo(flyX, flyY);
+      context.stroke();
+      context.fillStyle = '#e4e4e7';
+      context.beginPath();
+      context.arc(flyX, flyY, 4.5, 0, Math.PI * 2);
+      context.fill();
+    } else if (phase !== 'idle' && phase !== 'result') {
+      context.strokeStyle = 'rgba(255,255,255,.4)';
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(tipX, tipY);
+      context.quadraticCurveTo((tipX + floatX) / 2, (tipY + bobBase) / 2 + 12, floatX, bobBase + bob);
+      context.stroke();
+      for (let ring = 0; ring < 3; ring++) {
+        const wave = (now / 900 + ring / 3) % 1;
+        context.strokeStyle = `rgba(255,255,255,${(.2 * (1 - wave)).toFixed(3)})`;
+        context.beginPath();
+        context.ellipse(floatX, bobBase + bob + 2, 6 + wave * 40, 2 + wave * 7, 0, 0, Math.PI * 2);
+        context.stroke();
+      }
+      context.fillStyle = phase === 'bite' ? '#f87171' : '#e4e4e7';
+      context.beginPath();
+      context.arc(floatX, bobBase + bob, 5, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = 'rgba(0,0,0,.35)';
+      context.beginPath();
+      context.arc(floatX, bobBase + bob + 2, 5, 0, Math.PI);
+      context.fill();
+    }
+    context.restore();
+
+    context.strokeStyle = 'rgba(255,255,255,.09)';
+    context.lineWidth = 1;
+    context.beginPath();
+    context.roundRect(sceneLeft + .5, top + .5, sceneRight - sceneLeft - 1, trackHeight - 1, 8);
+    context.stroke();
+
+    const centre = centreOf(sceneLeft, trackX);
 
     // The catch stays on screen until the next cast, so a fast reeler still sees what they landed.
     if (phase === 'result' && lastCatch) {
@@ -647,7 +979,7 @@ export function initFishing(): void {
       const cardWidth = Math.min(250, sceneRight - 40);
       const cardHeight = 96;
       const cardX = centre - cardWidth / 2;
-      const cardY = surface - 30;
+      const cardY = Math.round(top + (trackHeight - cardHeight) / 2);
       context.fillStyle = 'rgba(8,8,12,.9)';
       context.strokeStyle = rule.colour;
       context.lineWidth = 1.5;
@@ -677,11 +1009,26 @@ export function initFishing(): void {
       context.fillText(now < resultLockUntil ? 'Reading the tape...' : 'Click to cast again', centre, cardY + cardHeight + 18);
     }
 
-    context.textAlign = 'center';
+    // The status sits in its own corner of the sky, where nothing in the scene can run into it.
+    context.textAlign = 'left';
     context.font = '700 11px system-ui,sans-serif';
     context.fillStyle = phase === 'bite' ? '#fca5a5' : 'rgba(255,255,255,.62)';
     const heading = phase === 'idle' ? 'Click to cast' : phase === 'waiting' ? 'Waiting...' : phase === 'bite' ? 'BITE!' : phase === 'reel' ? 'Hold to reel' : 'Click to cast again';
-    context.fillText(heading, centre, bottom - 12);
+    context.fillText(heading, sceneLeft + 14, top + 22);
+
+    // A draining bar during the bite, so the window you have to react in is something you can see.
+    if (phase === 'bite') {
+      const left = Math.max(0, 1 - (now - biteAt) / BITE_WINDOW);
+      const barWidth = 86;
+      context.fillStyle = 'rgba(255,255,255,.12)';
+      context.beginPath();
+      context.roundRect(sceneLeft + 14, top + 28, barWidth, 4, 2);
+      context.fill();
+      context.fillStyle = '#f87171';
+      context.beginPath();
+      context.roundRect(sceneLeft + 14, top + 28, barWidth * left, 4, 2);
+      context.fill();
+    }
 
     // A bench fight is marked on the canvas itself, so a test can never be mistaken for a catch.
     if (testing && (phase === 'reel' || phase === 'result')) {
@@ -692,29 +1039,22 @@ export function initFishing(): void {
       context.strokeStyle = 'rgba(251,191,36,.5)';
       context.lineWidth = 1;
       context.beginPath();
-      context.roundRect(20, top + 8, badgeWidth, 18, 5);
+      context.roundRect(trackX - badgeWidth - 14, top + 10, badgeWidth, 18, 5);
       context.fill();
       context.stroke();
       context.fillStyle = '#fbbf24';
-      context.textAlign = 'left';
-      context.fillText(label, 28, top + 20);
-      context.textAlign = 'center';
+      context.fillText(label, trackX - badgeWidth - 6, top + 22);
     }
-    // A draining bar during the bite, so the window you have to react in is something you can see.
-    if (phase === 'bite') {
-      const left = Math.max(0, 1 - (now - biteAt) / BITE_WINDOW);
-      const barWidth = 76;
-      context.fillStyle = 'rgba(255,255,255,.12)';
-      context.beginPath();
-      context.roundRect(centre - barWidth / 2, bottom - 8, barWidth, 4, 2);
-      context.fill();
-      context.fillStyle = '#f87171';
-      context.beginPath();
-      context.roundRect(centre - barWidth / 2, bottom - 8, barWidth * left, 4, 2);
-      context.fill();
-    }
+    context.textAlign = 'center';
 
     // Track: the fish runs up and down it, the hook zone is what you steer.
+    context.fillStyle = 'rgba(255,255,255,.02)';
+    context.strokeStyle = 'rgba(255,255,255,.07)';
+    context.lineWidth = 1;
+    context.beginPath();
+    context.roundRect(trackX - 8.5, top + .5, barX - trackX + 28, trackHeight - 1, 8);
+    context.fill();
+    context.stroke();
     context.fillStyle = 'rgba(255,255,255,.05)';
     context.beginPath();
     context.roundRect(trackX, top, trackWidth, trackHeight, 8);

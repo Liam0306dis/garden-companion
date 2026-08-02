@@ -611,10 +611,21 @@
     image.onerror = () => pendingPetSprites.delete(key);
     image.src = source;
   }
+  function petOverlay(pet) {
+    const mutations = pet.mutations || [];
+    return mutations.includes("Rainbow") ? "rainbow" : mutations.includes("Gold") ? "gold" : "";
+  }
+  function petSpriteSource(pet) {
+    const source = page.__gardenCompanionPetSprites?.[pet.petSpecies];
+    const overlay = petOverlay(pet);
+    if (!source || !overlay) return source;
+    const key = `${pet.petSpecies}:${overlay}`;
+    renderMutatedPetSprite(key, source, overlay);
+    return mutatedPetSprites.get(key) || source;
+  }
   function petSprite(pet) {
     const source = page.__gardenCompanionPetSprites?.[pet.petSpecies];
-    const mutations = pet.mutations || [];
-    const overlay = mutations.includes("Rainbow") ? "rainbow" : mutations.includes("Gold") ? "gold" : "";
+    const overlay = petOverlay(pet);
     const mutationKey = source && overlay ? `${pet.petSpecies}:${overlay}` : "";
     if (source && overlay) renderMutatedPetSprite(mutationKey, source, overlay);
     const displayedSource = mutationKey ? mutatedPetSprites.get(mutationKey) || source : source;
@@ -5224,6 +5235,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var START_PROGRESS = 0.2;
   var LOSE_FLOOR = -0.15;
   var REEL_LIMIT = 45e3;
+  var CAST_WINDUP = 150;
+  var CAST_FLIGHT = 210;
   var ZONE_LIFT = 11.5;
   var ZONE_GRAVITY = 4.9;
   var ZONE_FRICTION = 0.89;
@@ -5235,6 +5248,73 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function fishTravelSpeed(speed) {
     return 0.5 * FISH_PULL * speed / (-Math.log(0.93) * 60) * 1.6;
+  }
+  var AVATAR_COLOURS = /* @__PURE__ */ new Set(["Black", "Blue", "Gray", "Green", "Pink", "Purple", "Red", "Yellow"]);
+  function defaultAvatar(colour) {
+    const shade = colour && AVATAR_COLOURS.has(colour) ? colour : "Gray";
+    return [`Bottom_Default${shade}.png`, `Mid_Default${shade}.png`, `Top_Default${shade}.png`, "Expression_Default.png"];
+  }
+  var assetsBase = null;
+  function detectAssetsBase() {
+    if (assetsBase) return assetsBase;
+    const sources = [
+      ...Array.from(document.scripts).map((script) => script.src),
+      ...Array.from(document.querySelectorAll("link[href]")).map((link) => link.href)
+    ];
+    for (const source of sources) {
+      const match = source.match(/\/version\/([^/]+)\//);
+      if (match?.[1]) return assetsBase = `https://magicgarden.gg/version/${match[1]}/assets/`;
+    }
+    return null;
+  }
+  var images = /* @__PURE__ */ new Map();
+  function readyImage(source) {
+    let image = images.get(source);
+    if (!image) {
+      image = new Image();
+      image.src = source;
+      images.set(source, image);
+    }
+    return image.complete && image.naturalWidth > 0 ? image : null;
+  }
+  var footInsets = /* @__PURE__ */ new Map();
+  function footInset(image, source) {
+    const cached = footInsets.get(source);
+    if (cached !== void 0) return cached;
+    let inset = 0;
+    try {
+      const probe = document.createElement("canvas");
+      probe.width = image.naturalWidth;
+      probe.height = image.naturalHeight;
+      const context = probe.getContext("2d", { willReadFrequently: true });
+      if (context) {
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(0, 0, probe.width, probe.height).data;
+        rows: for (let y = probe.height - 1; y >= 0; y--) {
+          for (let x = 0; x < probe.width; x++) {
+            if (pixels[(y * probe.width + x) * 4 + 3] > 8) {
+              inset = (probe.height - 1 - y) / probe.height;
+              break rows;
+            }
+          }
+        }
+      }
+    } catch {
+      inset = 0;
+    }
+    footInsets.set(source, inset);
+    return inset;
+  }
+  function drawStanding(context, image, source, x, groundY, height, facing = 1) {
+    const inset = footInset(image, source);
+    const frameHeight = height / Math.max(0.2, 1 - inset);
+    const frameWidth = image.naturalWidth / image.naturalHeight * frameHeight;
+    context.save();
+    context.translate(x, groundY + frameHeight * inset);
+    context.scale(facing < 0 ? -1 : 1, 1);
+    context.drawImage(image, -frameWidth / 2, -frameHeight, frameWidth, frameHeight);
+    context.restore();
+    return frameWidth;
   }
   var FISH = [
     { id: "pondMinnow", name: "Pond Minnow", rarity: "common", min: 0.1, max: 0.6, note: "Travels in crowds and panics alone." },
@@ -5314,7 +5394,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     style.textContent = `
     #${PANEL_ID2}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID2}[hidden]{display:none}
-    #${PANEL_ID2} .gf-card{position:fixed;right:14px;bottom:56px;width:min(470px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
+    #${PANEL_ID2} .gf-card{position:fixed;right:14px;bottom:56px;width:min(780px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
     #${PANEL_ID2} header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move}
     #${PANEL_ID2} h2{margin:0;font:700 13px/1.2 system-ui,sans-serif;letter-spacing:.02em}
     #${PANEL_ID2} header div{display:flex;align-items:center;gap:4px}
@@ -5323,7 +5403,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     #${PANEL_ID2} button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
     #${PANEL_ID2} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
     #${PANEL_ID2} header button[data-close]{border-radius:50%;background:transparent}
-    #${PANEL_ID2} canvas{display:block;width:100%;height:310px;cursor:pointer}
+    #${PANEL_ID2} canvas{display:block;width:100%;height:420px;cursor:pointer}
     #${PANEL_ID2} .gf-status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
     #${PANEL_ID2} .gf-status b{font:700 12px system-ui,sans-serif}
     #${PANEL_ID2} .gf-status small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;white-space:nowrap}
@@ -5398,6 +5478,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let hooked = null;
     let hookedWeight = 0;
     let biteAt = 0;
+    let castAt = 0;
     let waitUntil = 0;
     let reelEndsAt = 0;
     let fishAt = 0.5, fishVelocity = 0, fishTarget = 0.5, retargetAt = 0;
@@ -5412,6 +5493,32 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let draggableReady = false;
     const SWIMMER_COLOURS = ["#4b7f96", "#3f6f86", "#5b8f7a", "#6b7f9c", "#7a8fa0"];
     const swimmers = Array.from({ length: 9 }, () => spawnSwimmer(Math.random()));
+    let walkers = [];
+    let walkerSignature = "";
+    function walkerPet(id) {
+      return (state.slot?.data?.petSlots ?? []).find((pet) => pet.id === id);
+    }
+    function syncWalkers() {
+      const pets = state.slot?.data?.petSlots ?? [];
+      const signature = pets.map((pet) => `${pet.id}:${pet.petSpecies}`).join(",");
+      if (signature === walkerSignature) return;
+      walkerSignature = signature;
+      walkers = pets.filter((pet) => pet.petSpecies && pet.id).map((pet, index) => ({
+        id: pet.id,
+        x: 0.12 + (index + 0.5) / Math.max(1, pets.length) * 0.7,
+        target: 0.1 + Math.random() * 0.8,
+        facing: 1,
+        phase: Math.random() * Math.PI * 2,
+        depth: Math.random()
+      }));
+    }
+    function avatarLayers() {
+      const room = state.room;
+      const id = state.playerId || room?.selfPlayerId;
+      const self = room?.players?.find((player) => player.id === id);
+      const avatar = self?.cosmetic?.avatar;
+      return Array.isArray(avatar) && avatar.length === 4 && avatar.every((layer) => typeof layer === "string") ? avatar : defaultAvatar(self?.cosmetic?.color);
+    }
     function spawnSwimmer(x = Math.random() < 0.5 ? -0.1 : 1.1) {
       const rightward = x < 0.5;
       return {
@@ -5452,7 +5559,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       holding = false;
       lastCatch = null;
       progress = 0;
-      waitUntil = performance.now() + 1200 + Math.random() * 3600;
+      castAt = performance.now();
+      waitUntil = castAt + CAST_WINDUP + CAST_FLIGHT + 1200 + Math.random() * 3600;
       setPhase("waiting", "Line is out. Wait for the bob to dip.");
       playCast();
       resumeLoop();
@@ -5548,8 +5656,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       holding = false;
     }
     function shiftActiveTimers(duration) {
-      if (phase === "waiting") waitUntil += duration;
-      else if (phase === "bite") biteAt += duration;
+      if (phase === "waiting") {
+        waitUntil += duration;
+        castAt += duration;
+      } else if (phase === "bite") biteAt += duration;
       else if (phase === "reel") {
         reelStartedAt += duration;
         reelEndsAt += duration;
@@ -5597,6 +5707,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         swimmer.x += swimmer.speed * delta;
         if (swimmer.x < -0.15 || swimmer.x > 1.15) Object.assign(swimmer, spawnSwimmer());
       }
+      syncWalkers();
+      for (const walker of walkers) {
+        const stride = walker.target - walker.x;
+        if (Math.abs(stride) < 0.012) {
+          if (Math.random() < delta * 0.6) walker.target = 0.08 + Math.random() * 0.82;
+        } else {
+          const move = Math.sign(stride) * Math.min(Math.abs(stride), 0.11 * delta);
+          walker.x += move;
+          walker.facing = move > 0 ? 1 : -1;
+        }
+      }
       draw();
       frame = requestAnimationFrame(step);
     }
@@ -5635,77 +5756,231 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       context.clearRect(0, 0, width, height);
       const now = performance.now();
-      const trackX = width - 62;
-      const trackWidth = 26;
-      const barX = width - 28;
       const top = 12;
       const bottom = height - 12;
       const trackHeight = bottom - top;
-      const sceneRight = trackX - 12;
-      const surface = top + 52;
-      const sky = context.createLinearGradient(0, top, 0, surface);
-      sky.addColorStop(0, "#12121b");
-      sky.addColorStop(1, "#1b2233");
-      context.fillStyle = sky;
+      const sceneLeft = 12;
+      const trackX = width - 64;
+      const trackWidth = 26;
+      const barX = width - 28;
+      const sceneRight = trackX - 14;
+      const surface = Math.round(top + trackHeight * 0.34);
+      const bankRight = Math.round(sceneLeft + (sceneRight - sceneLeft) * 0.32);
+      const ground = surface - 3;
+      context.save();
       context.beginPath();
-      context.roundRect(12, top, sceneRight - 12, surface - top, [8, 8, 0, 0]);
+      context.roundRect(sceneLeft, top, sceneRight - sceneLeft, trackHeight, 8);
+      context.clip();
+      const sky = context.createLinearGradient(0, top, 0, surface);
+      sky.addColorStop(0, "#141420");
+      sky.addColorStop(1, "#243044");
+      context.fillStyle = sky;
+      context.fillRect(sceneLeft, top, sceneRight - sceneLeft, surface - top);
+      context.fillStyle = "rgba(14,26,30,.85)";
+      context.beginPath();
+      context.moveTo(sceneLeft, surface);
+      for (let x = sceneLeft; x <= sceneRight; x += 14) {
+        const roll = Math.sin(x * 0.07) + Math.sin(x * 0.017 + 2.1);
+        context.lineTo(x, surface - 9 - roll * 4);
+      }
+      context.lineTo(sceneRight, surface);
+      context.closePath();
       context.fill();
       const water = context.createLinearGradient(0, surface, 0, bottom);
-      water.addColorStop(0, "#0e3245");
-      water.addColorStop(1, "#06151f");
+      water.addColorStop(0, "#12455e");
+      water.addColorStop(0.35, "#0c3145");
+      water.addColorStop(1, "#05121b");
       context.fillStyle = water;
+      context.fillRect(sceneLeft, surface, sceneRight - sceneLeft, bottom - surface);
+      context.save();
       context.beginPath();
-      context.roundRect(12, surface, sceneRight - 12, bottom - surface, [0, 0, 8, 8]);
+      context.rect(bankRight - 20, surface, sceneRight - bankRight + 20, bottom - surface);
+      context.clip();
+      for (const swimmer of swimmers) {
+        const x = bankRight + swimmer.x * (sceneRight - bankRight);
+        const y = surface + 16 + swimmer.y * (bottom - surface - 26) + Math.sin(now / 900 + swimmer.phase) * 3;
+        drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, 0.45, now + swimmer.phase * 400);
+      }
+      context.restore();
+      const anchorX = Math.round(bankRight + (sceneRight - bankRight) * 0.42);
+      const castElapsed = now - castAt;
+      const casting = phase === "waiting" && castElapsed < CAST_WINDUP + CAST_FLIGHT;
+      const hooking = phase === "reel" && Boolean(hooked);
+      const fishSize = hooked ? 12 + RARITY_ORDER2.indexOf(hooked.rarity) * 3.5 : 12;
+      const fishFacing = Math.cos(now / 640) > 0 ? 1 : -1;
+      const fishX = hooking ? anchorX + Math.sin(now / 640) * (sceneRight - bankRight) * 0.13 : anchorX;
+      const fishY = hooking ? surface + 22 + fishAt * (bottom - surface - 40) : surface + 58;
+      const hookX = hooking ? fishX + fishFacing * fishSize * 0.95 : anchorX;
+      const hookY = hooking ? fishY : surface + 46 + Math.sin(now / 1100) * 3;
+      const floatX = hooking ? Math.round(anchorX + (fishX - anchorX) * 0.5) : anchorX;
+      const bobBase = surface + (phase === "bite" ? 7 : 0);
+      const bob = phase === "waiting" ? Math.sin(now / 420) * 2 : phase === "bite" ? Math.sin(now / 55) * 3 : 0;
+      if (phase !== "idle" && phase !== "result" && !casting) {
+        context.strokeStyle = "rgba(255,255,255,.3)";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(floatX, bobBase + bob);
+        context.quadraticCurveTo((floatX + hookX) / 2, (bobBase + hookY) / 2, hookX, hookY);
+        context.stroke();
+        context.strokeStyle = "rgba(226,232,240,.85)";
+        context.lineWidth = 1.6;
+        context.beginPath();
+        context.moveTo(hookX, hookY - 7);
+        context.lineTo(hookX, hookY);
+        context.arc(hookX - 2.6, hookY, 2.6, 0, Math.PI * 0.9, false);
+        context.stroke();
+      }
+      if (hooking && hooked) {
+        drawSwimmer(context, fishX, fishY, fishSize, fishFacing, RARITIES[hooked.rarity].colour, 0.85, now);
+      } else if (phase === "bite") {
+        const nose = Math.sin(now / 90) * 4;
+        drawSwimmer(context, hookX + 16 + nose, hookY + 3, 13, -1, "rgba(12,26,34,.95)", 0.9, now);
+      } else if (phase === "waiting" && !casting) {
+        context.fillStyle = "rgba(255,255,255,.35)";
+        context.beginPath();
+        context.arc(hookX - 1, hookY + 1, 1.6, 0, Math.PI * 2);
+        context.fill();
+      }
+      const bank = context.createLinearGradient(0, ground - 10, 0, bottom);
+      bank.addColorStop(0, "#2f4a2b");
+      bank.addColorStop(0.18, "#243a22");
+      bank.addColorStop(0.5, "#241d16");
+      bank.addColorStop(1, "#140f0b");
+      context.fillStyle = bank;
+      context.beginPath();
+      context.moveTo(sceneLeft, ground - 6);
+      for (let x = sceneLeft; x <= bankRight; x += 10) {
+        context.lineTo(x, ground - 6 + Math.sin(x * 0.05) * 1.6 + x / bankRight * 6);
+      }
+      context.lineTo(bankRight + 8, ground + 6);
+      context.lineTo(bankRight + 8, bottom);
+      context.lineTo(sceneLeft, bottom);
+      context.closePath();
       context.fill();
+      context.strokeStyle = "rgba(120,180,110,.35)";
+      context.lineWidth = 1.5;
+      context.beginPath();
+      for (let x = sceneLeft; x <= bankRight; x += 10) {
+        const y = ground - 6 + Math.sin(x * 0.05) * 1.6 + x / bankRight * 6;
+        if (x === sceneLeft) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      }
+      context.stroke();
+      for (const walker of [...walkers].sort((a, b) => a.depth - b.depth)) {
+        const pet = walkerPet(walker.id);
+        const source = pet ? petSpriteSource(pet) : void 0;
+        const image = source ? readyImage(source) : null;
+        if (!image || !source) continue;
+        const x = sceneLeft + 14 + walker.x * (bankRight - sceneLeft - 34);
+        const y = ground + 4 + walker.depth * 16;
+        const height2 = 30 + walker.depth * 6;
+        context.save();
+        context.globalAlpha = 0.32;
+        context.fillStyle = "#000";
+        context.beginPath();
+        context.ellipse(x, y, height2 * 0.34, 3, 0, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+        context.save();
+        context.translate(0, Math.sin(now / 500 + walker.phase) * 1.5);
+        drawStanding(context, image, source, x, y, height2, walker.facing);
+        context.restore();
+      }
+      const anglerX = Math.round(bankRight - 62);
+      const anglerY = ground + 4;
+      const sway = Math.sin(now / 1100) * 1.5;
+      const layers = avatarLayers();
+      const base = detectAssetsBase();
+      const avatarHeight = 62;
+      if (base) {
+        context.save();
+        context.globalAlpha = 0.35;
+        context.fillStyle = "#000";
+        context.beginPath();
+        context.ellipse(anglerX, anglerY, 17, 4, 0, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+        const bottomSource = `${base}cosmetic/${layers[0]}`;
+        const bottomImage = readyImage(bottomSource);
+        if (bottomImage) {
+          const inset = footInset(bottomImage, bottomSource);
+          const frameHeight = avatarHeight / Math.max(0.2, 1 - inset);
+          const frameTop = anglerY + frameHeight * inset - frameHeight + sway;
+          for (const layer of layers) {
+            const image = readyImage(`${base}cosmetic/${layer}`);
+            if (!image) continue;
+            const frameWidth = image.naturalWidth / image.naturalHeight * frameHeight;
+            context.drawImage(image, anglerX - frameWidth / 2, frameTop, frameWidth, frameHeight);
+          }
+        }
+      }
+      const handX = anglerX + 14;
+      const handY = anglerY - avatarHeight * 0.52 + sway;
+      const load = phase === "reel" ? 16 : phase === "bite" ? 8 : 0;
+      let tipX = bankRight + 34 + load;
+      let tipY = top + 34 + load * 1.4;
+      if (casting) {
+        const back = castElapsed < CAST_WINDUP ? castElapsed / CAST_WINDUP : 1 - (1 - Math.pow(1 - (castElapsed - CAST_WINDUP) / CAST_FLIGHT, 3));
+        const whip = castElapsed < CAST_WINDUP ? 0 : Math.sin(Math.PI * (castElapsed - CAST_WINDUP) / CAST_FLIGHT);
+        tipX += -52 * back + 20 * whip;
+        tipY += 34 * back - 12 * whip;
+      }
+      context.strokeStyle = "#c8a06a";
+      context.lineWidth = 2.5;
+      context.beginPath();
+      context.moveTo(handX, handY);
+      context.quadraticCurveTo(handX + (tipX - handX) * 0.4, handY - 46 - load * 0.4, tipX, tipY);
+      context.stroke();
+      if (casting) {
+        const travel = Math.max(0, (castElapsed - CAST_WINDUP) / CAST_FLIGHT);
+        const flyX = tipX + (anchorX - tipX) * travel;
+        const flyY = tipY + (surface - tipY) * travel - Math.sin(Math.PI * travel) * 52;
+        context.strokeStyle = "rgba(255,255,255,.4)";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(tipX, tipY);
+        context.lineTo(flyX, flyY);
+        context.stroke();
+        context.fillStyle = "#e4e4e7";
+        context.beginPath();
+        context.arc(flyX, flyY, 4.5, 0, Math.PI * 2);
+        context.fill();
+      } else if (phase !== "idle" && phase !== "result") {
+        context.strokeStyle = "rgba(255,255,255,.4)";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(tipX, tipY);
+        context.quadraticCurveTo((tipX + floatX) / 2, (tipY + bobBase) / 2 + 12, floatX, bobBase + bob);
+        context.stroke();
+        for (let ring = 0; ring < 3; ring++) {
+          const wave = (now / 900 + ring / 3) % 1;
+          context.strokeStyle = `rgba(255,255,255,${(0.2 * (1 - wave)).toFixed(3)})`;
+          context.beginPath();
+          context.ellipse(floatX, bobBase + bob + 2, 6 + wave * 40, 2 + wave * 7, 0, 0, Math.PI * 2);
+          context.stroke();
+        }
+        context.fillStyle = phase === "bite" ? "#f87171" : "#e4e4e7";
+        context.beginPath();
+        context.arc(floatX, bobBase + bob, 5, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "rgba(0,0,0,.35)";
+        context.beginPath();
+        context.arc(floatX, bobBase + bob + 2, 5, 0, Math.PI);
+        context.fill();
+      }
+      context.restore();
       context.strokeStyle = "rgba(255,255,255,.09)";
       context.lineWidth = 1;
       context.beginPath();
-      context.roundRect(12.5, top + 0.5, sceneRight - 13, trackHeight - 1, 8);
+      context.roundRect(sceneLeft + 0.5, top + 0.5, sceneRight - sceneLeft - 1, trackHeight - 1, 8);
       context.stroke();
-      context.save();
-      context.beginPath();
-      context.roundRect(12, surface, sceneRight - 12, bottom - surface, [0, 0, 8, 8]);
-      context.clip();
-      for (const swimmer of swimmers) {
-        const x = 12 + swimmer.x * (sceneRight - 12);
-        const y = surface + 10 + swimmer.y * (bottom - surface - 20) + Math.sin(now / 900 + swimmer.phase) * 3;
-        drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, 0.5, now + swimmer.phase * 400);
-      }
-      if (phase === "reel" && hooked) {
-        const rule = RARITIES[hooked.rarity];
-        const size = 11 + RARITY_ORDER2.indexOf(hooked.rarity) * 3.5;
-        const y = surface + 16 + fishAt * (bottom - surface - 32);
-        const drift = Math.sin(now / 640) * (sceneRight - 12) * 0.16;
-        drawSwimmer(context, centreOf(12, sceneRight) + drift, y, size, Math.cos(now / 640) > 0 ? 1 : -1, rule.colour, 0.85, now);
-      }
-      context.restore();
-      const centre = centreOf(12, sceneRight);
-      const bobBase = surface + (phase === "waiting" ? 0 : phase === "bite" ? 7 : 0);
-      const bob = phase === "waiting" ? Math.sin(now / 420) * 2 : phase === "bite" ? Math.sin(now / 55) * 3 : 0;
-      if (phase !== "idle" && phase !== "result") {
-        context.strokeStyle = "rgba(255,255,255,.35)";
-        context.beginPath();
-        context.moveTo(centre, top + 8);
-        context.lineTo(centre, bobBase + bob);
-        context.stroke();
-        context.fillStyle = phase === "bite" ? "#f87171" : "#e4e4e7";
-        context.beginPath();
-        context.arc(centre, bobBase + bob, 4.5, 0, Math.PI * 2);
-        context.fill();
-        for (let ring = 0; ring < 3; ring++) {
-          const wave = (now / 900 + ring / 3) % 1;
-          context.strokeStyle = `rgba(255,255,255,${(0.22 * (1 - wave)).toFixed(3)})`;
-          context.beginPath();
-          context.ellipse(centre, bobBase + bob + 2, 6 + wave * 34, 2 + wave * 8, 0, 0, Math.PI * 2);
-          context.stroke();
-        }
-      }
+      const centre = centreOf(sceneLeft, trackX);
       if (phase === "result" && lastCatch) {
         const rule = RARITIES[lastCatch.fish.rarity];
         const cardWidth = Math.min(250, sceneRight - 40);
         const cardHeight = 96;
         const cardX = centre - cardWidth / 2;
-        const cardY = surface - 30;
+        const cardY = Math.round(top + (trackHeight - cardHeight) / 2);
         context.fillStyle = "rgba(8,8,12,.9)";
         context.strokeStyle = rule.colour;
         context.lineWidth = 1.5;
@@ -5734,11 +6009,23 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         context.font = "400 10px system-ui,sans-serif";
         context.fillText(now < resultLockUntil ? "Reading the tape..." : "Click to cast again", centre, cardY + cardHeight + 18);
       }
-      context.textAlign = "center";
+      context.textAlign = "left";
       context.font = "700 11px system-ui,sans-serif";
       context.fillStyle = phase === "bite" ? "#fca5a5" : "rgba(255,255,255,.62)";
       const heading = phase === "idle" ? "Click to cast" : phase === "waiting" ? "Waiting..." : phase === "bite" ? "BITE!" : phase === "reel" ? "Hold to reel" : "Click to cast again";
-      context.fillText(heading, centre, bottom - 12);
+      context.fillText(heading, sceneLeft + 14, top + 22);
+      if (phase === "bite") {
+        const left = Math.max(0, 1 - (now - biteAt) / BITE_WINDOW);
+        const barWidth = 86;
+        context.fillStyle = "rgba(255,255,255,.12)";
+        context.beginPath();
+        context.roundRect(sceneLeft + 14, top + 28, barWidth, 4, 2);
+        context.fill();
+        context.fillStyle = "#f87171";
+        context.beginPath();
+        context.roundRect(sceneLeft + 14, top + 28, barWidth * left, 4, 2);
+        context.fill();
+      }
       if (testing && (phase === "reel" || phase === "result")) {
         const label = hooked ? `TEST  ${hooked.name}  ${fightLength()}` : "TEST";
         context.font = "700 9px system-ui,sans-serif";
@@ -5747,26 +6034,20 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         context.strokeStyle = "rgba(251,191,36,.5)";
         context.lineWidth = 1;
         context.beginPath();
-        context.roundRect(20, top + 8, badgeWidth, 18, 5);
+        context.roundRect(trackX - badgeWidth - 14, top + 10, badgeWidth, 18, 5);
         context.fill();
         context.stroke();
         context.fillStyle = "#fbbf24";
-        context.textAlign = "left";
-        context.fillText(label, 28, top + 20);
-        context.textAlign = "center";
+        context.fillText(label, trackX - badgeWidth - 6, top + 22);
       }
-      if (phase === "bite") {
-        const left = Math.max(0, 1 - (now - biteAt) / BITE_WINDOW);
-        const barWidth = 76;
-        context.fillStyle = "rgba(255,255,255,.12)";
-        context.beginPath();
-        context.roundRect(centre - barWidth / 2, bottom - 8, barWidth, 4, 2);
-        context.fill();
-        context.fillStyle = "#f87171";
-        context.beginPath();
-        context.roundRect(centre - barWidth / 2, bottom - 8, barWidth * left, 4, 2);
-        context.fill();
-      }
+      context.textAlign = "center";
+      context.fillStyle = "rgba(255,255,255,.02)";
+      context.strokeStyle = "rgba(255,255,255,.07)";
+      context.lineWidth = 1;
+      context.beginPath();
+      context.roundRect(trackX - 8.5, top + 0.5, barX - trackX + 28, trackHeight - 1, 8);
+      context.fill();
+      context.stroke();
       context.fillStyle = "rgba(255,255,255,.05)";
       context.beginPath();
       context.roundRect(trackX, top, trackWidth, trackHeight, 8);

@@ -114,6 +114,8 @@ export interface RoomPlayer {
   id?: string;
   databaseUserId?: string;
   name?: string;
+  /** Avatar is four layer filenames, ordered bottom, mid, top, expression. */
+  cosmetic?: { avatar?: string[]; color?: string };
 }
 
 export interface RoomState {

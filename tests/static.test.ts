@@ -56,6 +56,7 @@ const buildSource = await readFile(resolve(root, 'scripts', 'build.ts'), 'utf8')
 const plannerSource = await readFile(resolve(root, 'src', 'features', 'garden-planner.ts'), 'utf8');
 const fishingSource = await readFile(resolve(root, 'src', 'features', 'fishing.ts'), 'utf8');
 const fishingAudioSource = await readFile(resolve(root, 'src', 'features', 'fishing-audio.ts'), 'utf8');
+const petsSource = await readFile(resolve(root, 'src', 'pets.ts'), 'utf8');
 const dragSource = await readFile(resolve(root, 'src', 'draggable.ts'), 'utf8');
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
 const packageLock = JSON.parse(await readFile(resolve(root, 'package-lock.json'), 'utf8')) as { version: string; packages: Record<string, { version: string }> };
@@ -585,5 +586,17 @@ assert.match(fishingSource, /const gap = Math\.max\(0, now - lastTime\);[\s\S]*i
 assert.match(fishingSource, /function startLoop\(\): void \{\s*lastTime = performance\.now\(\);\s*if \(frame === null\) frame = requestAnimationFrame\(step\);/, 'a new fishing action can inherit and apply a stale frame gap');
 assert.match(fishingSource, /function cast\(\)[\s\S]*playCast\(\);\s*resumeLoop\(\);/, 'casting bypasses fishing pause recovery');
 assert.match(fishingSource, /function close\(\)[\s\S]*host\.hidden = true;\s*pauseLoop\(\);/, 'closing fishing does not pause its active timers');
+// The angler is the player's own blobbling, read from the cosmetic the game already stores on them.
+assert.match(fishingSource, /self\?\.cosmetic\?\.avatar/, 'the fishing angler does not use the player cosmetic');
+assert.match(fishingSource, /`\$\{base\}cosmetic\/\$\{layer\}`/, 'avatar layers are not loaded from the cosmetic asset path');
+// The asset version is scraped from the page, never written down, or a game update blanks the art.
+assert.doesNotMatch(fishingSource, /version\/\d+\//, 'fishing pins a game asset version instead of detecting it');
+assert.match(fishingSource, /\/\\\/version\\\/\(\[\^\/\]\+\)\\\//, 'the fishing asset base is no longer detected from the page');
+assert.match(fishingSource, /const source = pet \? petSpriteSource\(pet\) : undefined;/, 'shore pets do not use the mutation-tinted pet sprites');
+assert.match(petsSource, /export function petSpriteSource/, 'the tinted pet sprite is not shared with anything that draws');
+assert.match(fishingSource, /image\.complete && image\.naturalWidth > 0/, 'a half-loaded image can be drawn');
+// Sprites are padded to their own frames, so standing one on the ground by its box leaves it hovering.
+assert.match(fishingSource, /const inset = footInset\(bottomImage, bottomSource\);/, 'the angler is placed by its image box rather than its artwork');
+assert.match(fishingSource, /inset = \(probe\.height - 1 - y\) \/ probe\.height;/, 'sprite ground contact is guessed rather than measured');
 
 console.log('Static checks passed');

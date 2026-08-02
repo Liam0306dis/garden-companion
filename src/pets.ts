@@ -96,10 +96,29 @@ function renderMutatedPetSprite(key: string, source: string, mutation: string): 
   image.src = source;
 }
 
+/** A pet carries at most one colour mutation, and Rainbow wins when both are somehow present. */
+function petOverlay(pet: Pet): string {
+  const mutations = pet.mutations || [];
+  return mutations.includes('Rainbow') ? 'rainbow' : mutations.includes('Gold') ? 'gold' : '';
+}
+
+/**
+ * The sprite URL for a pet, tinted for its colour mutation once that render finishes. Callers that
+ * draw rather than emit markup use this, since the tint is cached asynchronously and the plain
+ * sprite is the right thing to show until it lands.
+ */
+export function petSpriteSource(pet: Pet): string | undefined {
+  const source = page.__gardenCompanionPetSprites?.[pet.petSpecies];
+  const overlay = petOverlay(pet);
+  if (!source || !overlay) return source;
+  const key = `${pet.petSpecies}:${overlay}`;
+  renderMutatedPetSprite(key, source, overlay);
+  return mutatedPetSprites.get(key) || source;
+}
+
 export function petSprite(pet: Pet): string {
   const source = page.__gardenCompanionPetSprites?.[pet.petSpecies];
-  const mutations = pet.mutations || [];
-  const overlay = mutations.includes('Rainbow') ? 'rainbow' : mutations.includes('Gold') ? 'gold' : '';
+  const overlay = petOverlay(pet);
   const mutationKey = source && overlay ? `${pet.petSpecies}:${overlay}` : '';
   if (source && overlay) renderMutatedPetSprite(mutationKey, source, overlay);
   const displayedSource = mutationKey ? mutatedPetSprites.get(mutationKey) || source : source;
