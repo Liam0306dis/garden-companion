@@ -389,7 +389,11 @@ assert.doesNotMatch(petTeamsSource.slice(petTeamsSource.indexOf('export function
 assert.match(companionSource, /const signature = tabRefreshSignature\(\);\s*if \(signature && signature === lastTabSignature\) return;/, 'an unchanged tab still schedules a redraw');
 assert.match(companionSource, /return Boolean\(scrollable\?\.matches\(':hover'\)\)/, 'a redraw can interrupt scrolling in the Pet Teams and Pet Food tabs');
 assert.match(companionSource, /const owned = new Map\((?:services\.)?allPets\(\)\.map\(pet => \[pet\.id, pet\]\)\)/, 'team member sprites rescan every pet per tile');
-assert.match(companionSource, /const CALCULATOR_TABS = \[\['dust', 'Dust'\], \['food', 'Food'\], \['granter', 'Granters'\]\]/, 'calculator sub-tabs are missing');
+assert.match(companionSource, /const CALCULATOR_TABS = \[\['dust', 'Dust'\], \['value', 'Crop Value'\], \['food', 'Food'\], \['granter', 'Granters'\]\]/, 'calculator sub-tabs are missing');
+// The crop value calculator has to match the game's own sums, not an approximation of them.
+assert.match(calculatorsSource, /return growthMultiplier \* \(1 \+ added - others\.length\);/, 'crop mutation value no longer stacks the way the game does');
+assert.match(calculatorsSource, /const each = Math\.round\(base \* scale \* mutation\);\s*\n\s*return \{[^}]*total: Math\.round\(each \* friend\)/, 'crop value no longer rounds before and after the room bonus');
+assert.match(calculatorsSource, /Math\.min\(FRIEND_CAP, 1 \+ Math\.max\(0, Math\.floor\(friends\)\) \* FRIEND_STEP\)/, 'the room bonus is no longer capped the way the game caps it');
 assert.match(companionSource, /const DUST_RARITY: Record<string, number> = \{ Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 \}/, 'dust rarity multipliers are wrong');
 assert.match(companionSource, /hatch >= 50 \? 1 : hatch > 10 \? 2 : 5/, 'dust hatch multiplier does not match the calculator');
 assert.match(companionSource, /weights\.set\(species, weight\)/, 'hatch chances are not derived from the egg catalog');

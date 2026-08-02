@@ -1,5 +1,6 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
 import { PET_CATALOG, PLANT_CATALOG } from '../constants.js';
+import { NAME_OVERRIDES } from '../utils.js';
 
 interface PlantCatalogEntry {
   crop?: { baseSellPrice?: number; maxScale?: number };
@@ -399,7 +400,7 @@ function escapeHtml(value: unknown): string {
 }
 
 function displayName(value: string): string {
-  return value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return NAME_OVERRIDES[value] ?? value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 
 function mutationMultiplier(mutations: readonly string[]): number {

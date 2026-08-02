@@ -39,6 +39,11 @@ export function produceSprite(species: string): string {
   return page.__gardenCompanionProduceSprites?.[species] || page.__gardenCompanionShopSprites?.[species] || '';
 }
 
+/** The game's own mutation icon, keyed by mutation id. Empty until the sprite atlases finish. */
+export function mutationSprite(mutation: string): string {
+  return page.__gardenCompanionMutationSprites?.[mutation] || '';
+}
+
 const mutatedPetSprites = new Map<string, string>();
 const pendingPetSprites = new Set<string>();
 

@@ -4,8 +4,19 @@ export function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 }
 
+/**
+ * Ids whose split-on-capitals name is not what the thing is actually called. Kept here because
+ * every display path funnels through humanize, so an override applies everywhere at once.
+ */
+export const NAME_OVERRIDES: Record<string, string> = {
+  ThunderCelestialShroomPlant: 'Stormcap',
+  ThunderCelestial: 'Thunderpeel',
+};
+
 export function humanize(value: unknown): string {
-  return String(value || '').replace(/_NEW$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Za-z])([IVX]+)$/g, '$1 $2');
+  const id = String(value || '');
+  return NAME_OVERRIDES[id]
+    ?? id.replace(/_NEW$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Za-z])([IVX]+)$/g, '$1 $2');
 }
 
 export function formatDuration(ms: number): string {

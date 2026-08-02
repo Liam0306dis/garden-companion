@@ -1,10 +1,10 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, PET_CATALOG, PLANT_CATALOG } from '../constants.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG } from '../constants.js';
 import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { activePets, allPets, petDiet, petMetrics, petSprite, produceSprite } from '../pets.js';
+import { activePets, allPets, mutationSprite, petDiet, petMetrics, petSprite, produceSprite } from '../pets.js';
 import { state } from '../state.js';
 import { escapeHtml, formatDuration, humanize } from '../utils.js';
 
@@ -93,7 +93,93 @@ const granterStrengths: Array<number | null> = [null, null, null];
 const granterEnabled = [true, true, true];
 const foodSlots: Array<{ species: string; food: string } | null> = [null, null, null];
 
-const CALCULATOR_TABS = [['dust', 'Dust'], ['food', 'Food'], ['granter', 'Granters']];
+const CALCULATOR_TABS = [['dust', 'Dust'], ['value', 'Crop Value'], ['food', 'Food'], ['granter', 'Granters']];
+
+/**
+ * Crop value, following the game exactly: a crop's colour mutation multiplies, and every other
+ * mutation adds its own multiplier less one on top. That reproduces the combination table the game
+ * shows, and keeps working for mutations added after this was written.
+ */
+const VALUE_GROUPS = ['Growth', 'Hydro', 'Lunar'];
+const VALUE_GROUP_LABELS: Record<string, string> = { Growth: 'Colour', Hydro: 'Weather', Lunar: 'Lunar' };
+/** Each extra player in the room is worth ten percent, and the game caps the whole bonus at double. */
+const FRIEND_STEP = .1;
+const FRIEND_CAP = 2;
+const MAX_FRIENDS = 5;
+
+let valueSpecies = '';
+/** Held as a position along the size range so switching crop keeps the slider where you left it. */
+let valueSizeFraction = 1;
+let valueMutations: Record<string, string> = {};
+let valueFriends = 0;
+
+function cropCatalog(species: string) {
+  return PLANT_CATALOG[species]?.crop;
+}
+
+function valueSpeciesList(): string[] {
+  return Object.keys(PLANT_CATALOG).filter(species => Number(cropCatalog(species)?.baseSellPrice) > 0);
+}
+
+function currentValueSpecies(): string {
+  const list = valueSpeciesList();
+  return list.includes(valueSpecies) ? valueSpecies : list[0] || '';
+}
+
+function mutationsInGroup(group: string): string[] {
+  return Object.keys(MUTATION_CATALOG).filter(id => MUTATION_CATALOG[id]?.group === group);
+}
+
+function mutationMultiplierFor(selected: string[]): number {
+  const growth = selected.find(id => MUTATION_CATALOG[id]?.group === 'Growth');
+  const others = selected.filter(id => MUTATION_CATALOG[id] && MUTATION_CATALOG[id].group !== 'Growth');
+  const growthMultiplier = growth ? MUTATION_CATALOG[growth].coinMultiplier : 1;
+  const added = others.reduce((sum, id) => sum + MUTATION_CATALOG[id].coinMultiplier, 0);
+  return growthMultiplier * (1 + added - others.length);
+}
+
+function friendMultiplier(friends: number): number {
+  return Math.min(FRIEND_CAP, 1 + Math.max(0, Math.floor(friends)) * FRIEND_STEP);
+}
+
+interface CropValue { base: number; scale: number; maxScale: number; mutation: number; friend: number; each: number; total: number }
+
+function cropValueFor(species: string, sizeFraction: number, selected: string[], friends: number): CropValue {
+  const crop = cropCatalog(species);
+  const base = Number(crop?.baseSellPrice) || 0;
+  const maxScale = Number(crop?.maxScale) || 1;
+  const scale = 1 + Math.max(0, Math.min(1, sizeFraction)) * (maxScale - 1);
+  const mutation = mutationMultiplierFor(selected);
+  const friend = friendMultiplier(friends);
+  // The game rounds the crop before the room bonus, then rounds the bonused total.
+  const each = Math.round(base * scale * mutation);
+  return { base, scale, maxScale, mutation, friend, each, total: Math.round(each * friend) };
+}
+
+export function setValueSpecies(species: string): void {
+  valueSpecies = species;
+}
+
+export function setValueSize(fraction: number): void {
+  valueSizeFraction = Math.max(0, Math.min(1, fraction));
+}
+
+export function setValueFriends(friends: number): void {
+  valueFriends = Math.max(0, Math.min(MAX_FRIENDS, Math.round(friends)));
+}
+
+/** Groups are exclusive: a crop never carries two colours, two weathers, or two times at once. */
+export function setValueMutation(group: string, id: string): void {
+  valueMutations = { ...valueMutations, [group]: valueMutations[group] === id ? '' : id };
+}
+
+export function clearValueMutations(): void {
+  valueMutations = {};
+}
+
+function selectedValueMutations(): string[] {
+  return VALUE_GROUPS.map(group => valueMutations[group]).filter(Boolean);
+}
 
 export function setCalculatorTab(tab: string): void {
   calculatorTab = tab;
@@ -137,8 +223,58 @@ export function calculatorsSignature(): string {
 export function renderCalculators(): string {
   const tabs = CALCULATOR_TABS.map(([id, label]) =>
     `<button data-calc-tab="${id}" class="${id === calculatorTab ? 'active' : ''}">${label}</button>`).join('');
-  const body = calculatorTab === 'granter' ? renderGranterCalculator() : calculatorTab === 'food' ? renderFoodCalculator() : renderDustCalculator();
+  const body = calculatorTab === 'granter' ? renderGranterCalculator()
+    : calculatorTab === 'food' ? renderFoodCalculator()
+      : calculatorTab === 'value' ? renderValueCalculator()
+        : renderDustCalculator();
   return `<div class="gc-calc-tabs">${tabs}</div>${body}`;
+}
+
+function renderValueCalculator(): string {
+  const species = currentValueSpecies();
+  if (!species) return '<p class="gc-empty">No crops with a sell price were found in the catalog.</p>';
+  const selected = selectedValueMutations();
+  const value = cropValueFor(species, valueSizeFraction, selected, valueFriends);
+  const sprite = produceSprite(species);
+  const options = valueSpeciesList()
+    .map(id => `<option value="${escapeHtml(id)}" ${id === species ? 'selected' : ''}>${escapeHtml(humanize(id))}</option>`)
+    .join('');
+  const groups = VALUE_GROUPS.map(group => {
+    const ids = mutationsInGroup(group);
+    if (!ids.length) return '';
+    const pills = ids.map(id => {
+      const on = valueMutations[group] === id;
+      const name = MUTATION_CATALOG[id]?.name || humanize(id);
+      const icon = mutationSprite(id);
+      // The name still labels the button whenever its icon has not loaded, or no longer exists.
+      const face = icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(name)}">` : `<span>${escapeHtml(name)}</span>`;
+      return `<button class="gc-value-pill${on ? ' on' : ''}" title="${escapeHtml(name)}" data-value-mutation="${escapeHtml(group)}" data-value-mutation-id="${escapeHtml(id)}">${face}<small>x${MUTATION_CATALOG[id]?.coinMultiplier}</small></button>`;
+    }).join('');
+    return `<div class="gc-value-group"><b>${escapeHtml(VALUE_GROUP_LABELS[group] || group)}</b><div>${pills}</div></div>`;
+  }).join('');
+  const friendOptions = Array.from({ length: MAX_FRIENDS + 1 }, (_, count) =>
+    `<option value="${count}" ${count === valueFriends ? 'selected' : ''}>${count} (+${Math.round((friendMultiplier(count) - 1) * 100)}%)</option>`).join('');
+  const atMax = value.scale >= value.maxScale - .0001;
+  return `<section class="gc-card gc-value-card">
+<div class="gc-value-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><select data-value-species>${options}</select></div>
+<label class="gc-value-size"><span>Size<b data-value-scale>${value.scale.toFixed(2)}x</b><em data-value-max ${atMax ? '' : 'hidden'}>max</em></span><input type="range" min="0" max="1000" step="1" value="${Math.round(valueSizeFraction * 1000)}" data-value-size></label>
+${groups}
+<div class="gc-value-foot"><label><span>Players</span><select data-value-friends>${friendOptions}</select></label><button data-value-clear>Clear</button></div>
+<div class="gc-value-result"><b data-value-total>${value.total.toLocaleString()}</b><small>coins</small></div>
+</section>`;
+}
+
+/** The size slider updates in place: a full re-render would drop the drag half way through. */
+export function updateValueSection(main: HTMLElement): void {
+  const species = currentValueSpecies();
+  if (!species) return;
+  const value = cropValueFor(species, valueSizeFraction, selectedValueMutations(), valueFriends);
+  const total = main.querySelector<HTMLElement>('[data-value-total]');
+  if (total) total.textContent = value.total.toLocaleString();
+  const scale = main.querySelector<HTMLElement>('[data-value-scale]');
+  if (scale) scale.textContent = `${value.scale.toFixed(2)}x`;
+  const max = main.querySelector<HTMLElement>('[data-value-max]');
+  if (max) max.hidden = value.scale < value.maxScale - .0001;
 }
 
 function renderDustCalculator(): string {
@@ -324,6 +460,17 @@ export function bindCalculatorEvents(main: HTMLElement): void {
   const dustSearchInput = main.querySelector<HTMLInputElement>('[data-dust-search]');
   bindListSearch(dustSearchInput);
   dustSearchInput?.addEventListener('input', () => { dustSearch = dustSearchInput.value; });
+  const valueSpeciesSelect = main.querySelector<HTMLSelectElement>('[data-value-species]');
+  if (valueSpeciesSelect) valueSpeciesSelect.onchange = () => { setValueSpecies(valueSpeciesSelect.value); panelActions.renderPanelPreservingScroll(); };
+  const valueSize = main.querySelector<HTMLInputElement>('[data-value-size]');
+  if (valueSize) valueSize.oninput = () => { setValueSize(Number(valueSize.value) / 1000); updateValueSection(main); };
+  main.querySelector('[data-value-clear]')?.addEventListener('click', () => { clearValueMutations(); panelActions.renderPanelPreservingScroll(); });
+  main.querySelectorAll<HTMLButtonElement>('[data-value-mutation]').forEach(button => button.onclick = () => {
+    setValueMutation(button.dataset.valueMutation!, button.dataset.valueMutationId!);
+    panelActions.renderPanelPreservingScroll();
+  });
+  const valueFriendSelect = main.querySelector<HTMLSelectElement>('[data-value-friends]');
+  if (valueFriendSelect) valueFriendSelect.onchange = () => { setValueFriends(Number(valueFriendSelect.value)); updateValueSection(main); };
   main.querySelector('[data-granter-ability]')?.addEventListener('change', event => {
     selectGranterAbility((event.target as HTMLSelectElement).value);
     updateGranterSection(main);
