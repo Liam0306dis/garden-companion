@@ -17,6 +17,22 @@ const RECORD_KEY = 'gardenCompanion.fishing.v1';
 const POSITION_KEY = 'gardenCompanion.fishingPosition.v1';
 
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
+type FishingSceneWeather = 'Clear' | 'Rain' | 'Frost' | 'Dawn' | 'AmberMoon' | 'Thunderstorm';
+
+const WEATHER_TRANSITION = 1600;
+
+function fishingSceneWeather(value: string | null): FishingSceneWeather {
+  switch (value) {
+    case 'Rain':
+    case 'Frost':
+    case 'Dawn':
+    case 'AmberMoon':
+    case 'Thunderstorm':
+      return value;
+    default:
+      return 'Clear';
+  }
+}
 
 interface RarityRule {
   label: string;
@@ -400,6 +416,8 @@ export function initFishing(): void {
   let hookedWeight = 0;
   let biteAt = 0;
   let castAt = 0;
+  let castDistance = .42;
+  let hookDepth = .28;
   let waitUntil = 0;
   let reelEndsAt = 0;
   let fishAt = .5, fishVelocity = 0, fishTarget = .5, retargetAt = 0;
@@ -412,6 +430,10 @@ export function initFishing(): void {
   let reelStartedAt = 0;
   let fightEndedAt = 0;
   let draggableReady = false;
+  let currentSceneWeather: FishingSceneWeather = 'Clear';
+  let previousSceneWeather: FishingSceneWeather = 'Clear';
+  let sceneWeatherChangedAt = 0;
+  let sceneWeatherReady = false;
 
   // Idle scenery: a few fish drifting through the water so the pond is never still.
   interface Swimmer { x: number; y: number; speed: number; size: number; colour: string; phase: number }
@@ -477,6 +499,25 @@ export function initFishing(): void {
     return typeof value === 'string' && value ? value : null;
   }
 
+  function sceneWeatherLayers(now: number): Array<[FishingSceneWeather, number]> {
+    const live = fishingSceneWeather(weather());
+    if (!sceneWeatherReady) {
+      currentSceneWeather = live;
+      previousSceneWeather = live;
+      sceneWeatherChangedAt = now - WEATHER_TRANSITION;
+      sceneWeatherReady = true;
+    } else if (live !== currentSceneWeather) {
+      previousSceneWeather = currentSceneWeather;
+      currentSceneWeather = live;
+      sceneWeatherChangedAt = now;
+    }
+    const progress = Math.min(1, Math.max(0, (now - sceneWeatherChangedAt) / WEATHER_TRANSITION));
+    const blend = progress * progress * (3 - 2 * progress);
+    return blend >= 1 || previousSceneWeather === currentSceneWeather
+      ? [[currentSceneWeather, 1]]
+      : [[previousSceneWeather, 1 - blend], [currentSceneWeather, blend]];
+  }
+
   function save(): void { saveLocal(RECORD_KEY, record); }
 
   function setPhase(next: Phase, text: string, colour = 'rgba(255,255,255,.72)'): void {
@@ -496,6 +537,8 @@ export function initFishing(): void {
     holding = false;
     lastCatch = null;
     progress = 0;
+    castDistance = .28 + Math.random() * .5;
+    hookDepth = .16 + Math.random() * .38;
     castAt = performance.now();
     // The bite can never land before the float does, whatever the wait rolls.
     waitUntil = castAt + CAST_WINDUP + CAST_FLIGHT + 1200 + Math.random() * 3600;
@@ -703,6 +746,245 @@ export function initFishing(): void {
     startLoop();
   }
 
+  function drawWeatherSky(
+    context: CanvasRenderingContext2D,
+    kind: FishingSceneWeather,
+    opacity: number,
+    now: number,
+    left: number,
+    right: number,
+    top: number,
+    surface: number,
+  ): void {
+    if (opacity <= 0) return;
+    const width = right - left;
+    const height = surface - top;
+    context.save();
+    context.globalAlpha = opacity;
+
+    if (kind === 'Clear') {
+      const x = left + width * .78;
+      const y = top + 48;
+      const glow = context.createRadialGradient(x, y, 2, x, y, 54);
+      glow.addColorStop(0, 'rgba(226,232,240,.24)');
+      glow.addColorStop(1, 'rgba(226,232,240,0)');
+      context.fillStyle = glow;
+      context.fillRect(x - 54, y - 54, 108, 108);
+      context.fillStyle = 'rgba(226,232,240,.12)';
+      context.beginPath();
+      context.arc(x, y, 12, 0, Math.PI * 2);
+      context.fill();
+    } else if (kind === 'Dawn') {
+      const dawn = context.createLinearGradient(0, top, 0, surface);
+      dawn.addColorStop(0, 'rgba(84,62,108,.72)');
+      dawn.addColorStop(.55, 'rgba(190,91,111,.55)');
+      dawn.addColorStop(1, 'rgba(255,184,105,.68)');
+      context.fillStyle = dawn;
+      context.fillRect(left, top, width, height);
+      const x = left + width * .76;
+      const y = surface - 10;
+      const glow = context.createRadialGradient(x, y, 2, x, y, 70);
+      glow.addColorStop(0, 'rgba(255,238,173,.8)');
+      glow.addColorStop(1, 'rgba(255,177,101,0)');
+      context.fillStyle = glow;
+      context.fillRect(x - 70, y - 70, 140, 100);
+      context.fillStyle = '#ffe5a3';
+      context.beginPath();
+      context.arc(x, y, 14, Math.PI, Math.PI * 2);
+      context.fill();
+    } else if (kind === 'AmberMoon') {
+      context.fillStyle = 'rgba(28,20,55,.72)';
+      context.fillRect(left, top, width, height);
+      context.fillStyle = 'rgba(255,231,171,.42)';
+      for (let star = 0; star < 14; star++) {
+        const x = left + 18 + (star * 67) % Math.max(20, width - 36);
+        const y = top + 15 + (star * 29) % Math.max(20, height - 34);
+        context.fillRect(x, y, star % 4 === 0 ? 1.5 : 1, star % 4 === 0 ? 1.5 : 1);
+      }
+      const x = left + width * .77;
+      const y = top + 45;
+      const glow = context.createRadialGradient(x, y, 4, x, y, 70);
+      glow.addColorStop(0, 'rgba(251,191,36,.46)');
+      glow.addColorStop(1, 'rgba(251,146,60,0)');
+      context.fillStyle = glow;
+      context.fillRect(x - 70, y - 70, 140, 140);
+      context.fillStyle = '#e6a83c';
+      context.beginPath();
+      context.arc(x, y, 19, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = 'rgba(111,63,36,.24)';
+      context.beginPath();
+      context.arc(x - 6, y - 4, 4, 0, Math.PI * 2);
+      context.arc(x + 7, y + 5, 3, 0, Math.PI * 2);
+      context.fill();
+    } else if (kind === 'Frost') {
+      const frost = context.createLinearGradient(0, top, 0, surface);
+      frost.addColorStop(0, 'rgba(118,151,177,.5)');
+      frost.addColorStop(1, 'rgba(202,226,232,.44)');
+      context.fillStyle = frost;
+      context.fillRect(left, top, width, height);
+      const x = left + width * .76;
+      const y = top + 42;
+      const glow = context.createRadialGradient(x, y, 2, x, y, 48);
+      glow.addColorStop(0, 'rgba(240,249,255,.35)');
+      glow.addColorStop(1, 'rgba(240,249,255,0)');
+      context.fillStyle = glow;
+      context.fillRect(x - 48, y - 48, 96, 96);
+    } else {
+      const thunder = kind === 'Thunderstorm';
+      context.fillStyle = thunder ? 'rgba(5,11,25,.7)' : 'rgba(18,31,48,.48)';
+      context.fillRect(left, top, width, height);
+      context.fillStyle = thunder ? 'rgba(10,13,24,.82)' : 'rgba(42,53,66,.62)';
+      const drift = now * (thunder ? .012 : .006);
+      for (let cloud = 0; cloud < (thunder ? 5 : 4); cloud++) {
+        const x = left - 60 + (cloud * 103 + drift) % (width + 120);
+        const y = top + 18 + (cloud % 3) * 17;
+        const size = 78 + (cloud % 2) * 24;
+        context.beginPath();
+        context.ellipse(x, y, size * .42, 13, 0, 0, Math.PI * 2);
+        context.ellipse(x - size * .28, y + 5, size * .3, 10, 0, 0, Math.PI * 2);
+        context.ellipse(x + size * .3, y + 4, size * .34, 11, 0, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+    context.restore();
+  }
+
+  function drawWeatherWater(
+    context: CanvasRenderingContext2D,
+    kind: FishingSceneWeather,
+    opacity: number,
+    now: number,
+    left: number,
+    right: number,
+    surface: number,
+    bottom: number,
+  ): void {
+    if (opacity <= 0 || kind === 'Clear') return;
+    const width = right - left;
+    context.save();
+    context.globalAlpha = opacity;
+    if (kind === 'Dawn' || kind === 'AmberMoon') {
+      context.fillStyle = kind === 'Dawn' ? 'rgba(244,126,93,.16)' : 'rgba(230,168,60,.14)';
+      context.fillRect(left, surface, width, bottom - surface);
+      const centre = left + width * .76;
+      context.fillStyle = kind === 'Dawn' ? 'rgba(255,211,145,.34)' : 'rgba(251,191,36,.3)';
+      for (let reflection = 0; reflection < 9; reflection++) {
+        const y = surface + 8 + reflection * 17;
+        const span = 48 - reflection * 2 + Math.sin(now / 420 + reflection) * 9;
+        context.fillRect(centre - span / 2, y, span, 1.5);
+      }
+    } else if (kind === 'Frost') {
+      context.fillStyle = 'rgba(180,221,232,.18)';
+      context.fillRect(left, surface, width, bottom - surface);
+      context.strokeStyle = 'rgba(226,247,250,.58)';
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(left, surface + 1);
+      for (let x = left; x <= right; x += 18) context.lineTo(x, surface + 1 + Math.sin(x * .1) * 1.5);
+      context.stroke();
+    } else {
+      const thunder = kind === 'Thunderstorm';
+      context.fillStyle = thunder ? 'rgba(2,10,20,.32)' : 'rgba(9,26,41,.2)';
+      context.fillRect(left, surface, width, bottom - surface);
+      context.strokeStyle = thunder ? 'rgba(174,210,224,.24)' : 'rgba(174,210,224,.14)';
+      context.lineWidth = thunder ? 1.5 : 1;
+      for (let wave = 0; wave < (thunder ? 10 : 7); wave++) {
+        const y = surface + 10 + wave * 21;
+        const x = left - 45 + (wave * 57 + now * (thunder ? .025 : .014)) % (width + 45);
+        context.beginPath();
+        context.moveTo(x, y);
+        context.quadraticCurveTo(x + 24, y - (thunder ? 4 : 2), x + 52, y);
+        context.stroke();
+      }
+    }
+    context.restore();
+  }
+
+  function drawWeatherCliff(
+    context: CanvasRenderingContext2D,
+    kind: FishingSceneWeather,
+    opacity: number,
+    cliff: Path2D,
+  ): void {
+    if (opacity <= 0 || kind === 'Clear') return;
+    context.save();
+    context.globalAlpha = opacity;
+    context.fillStyle = kind === 'Frost'
+      ? 'rgba(188,221,225,.22)'
+      : kind === 'Rain' || kind === 'Thunderstorm'
+        ? 'rgba(5,18,28,.24)'
+        : kind === 'Dawn'
+          ? 'rgba(196,97,65,.09)'
+          : 'rgba(191,116,35,.1)';
+    context.fill(cliff);
+    context.restore();
+  }
+
+  function drawWeatherForeground(
+    context: CanvasRenderingContext2D,
+    kind: FishingSceneWeather,
+    opacity: number,
+    now: number,
+    left: number,
+    right: number,
+    top: number,
+    bottom: number,
+  ): void {
+    if (opacity <= 0) return;
+    const width = right - left;
+    const height = bottom - top;
+    context.save();
+
+    if (kind === 'Thunderstorm') {
+      const cycle = now % 7200;
+      const flash = cycle < 110 ? 1 - cycle / 110 : cycle > 190 && cycle < 270 ? 1 - (cycle - 190) / 80 : 0;
+      if (flash > 0) {
+        context.globalAlpha = opacity * flash * .16;
+        context.fillStyle = '#dbeafe';
+        context.fillRect(left, top, width, height);
+        context.globalAlpha = opacity * flash * .82;
+        context.strokeStyle = '#eef6ff';
+        context.lineWidth = 2;
+        const x = left + width * .72;
+        context.beginPath();
+        context.moveTo(x, top + 8);
+        context.lineTo(x - 10, top + 35);
+        context.lineTo(x + 2, top + 32);
+        context.lineTo(x - 13, top + 64);
+        context.stroke();
+      }
+    }
+
+    if (kind === 'Rain' || kind === 'Thunderstorm') {
+      const thunder = kind === 'Thunderstorm';
+      context.globalAlpha = opacity;
+      context.strokeStyle = thunder ? 'rgba(203,225,239,.42)' : 'rgba(186,220,237,.3)';
+      context.lineWidth = thunder ? 1.2 : 1;
+      const count = thunder ? 52 : 34;
+      for (let drop = 0; drop < count; drop++) {
+        const x = left + (drop * 71 + now * (thunder ? .028 : .018)) % width;
+        const y = top + (drop * 37 + now * (thunder ? .36 : .24)) % height;
+        context.beginPath();
+        context.moveTo(x, y);
+        context.lineTo(x - (thunder ? 6 : 4), y + (thunder ? 15 : 11));
+        context.stroke();
+      }
+    } else if (kind === 'Frost') {
+      context.globalAlpha = opacity;
+      context.fillStyle = 'rgba(240,249,255,.72)';
+      for (let flake = 0; flake < 28; flake++) {
+        const x = left + (flake * 53 + now * (.006 + (flake % 3) * .002)) % width;
+        const y = top + (flake * 31 + now * (.018 + (flake % 4) * .004)) % height;
+        const size = .8 + (flake % 3) * .45;
+        context.beginPath();
+        context.arc(x + Math.sin(now / 900 + flake) * 5, y, size, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+    context.restore();
+  }
+
   function draw(): void {
     const element = canvas();
     const context = element?.getContext('2d');
@@ -718,6 +1000,7 @@ export function initFishing(): void {
     context.clearRect(0, 0, width, height);
 
     const now = performance.now();
+    const atmosphereLayers = sceneWeatherLayers(now);
     const top = 12;
     const bottom = height - 12;
     const trackHeight = bottom - top;
@@ -729,7 +1012,7 @@ export function initFishing(): void {
     const sceneRight = trackX - 14;
 
     // Side-on lake: bank on the left with the angler on it, water running off to the right.
-    const surface = Math.round(top + trackHeight * .34);
+    const surface = Math.round(top + trackHeight * .39);
     const bankRight = Math.round(sceneLeft + (sceneRight - sceneLeft) * .32);
     const ground = surface - 3;
     const platformEdge = bankRight + 22;
@@ -745,19 +1028,8 @@ export function initFishing(): void {
     context.fillStyle = sky;
     context.fillRect(sceneLeft, top, sceneRight - sceneLeft, surface - top);
 
-    // A hazy light and slow clouds give the sky depth without competing with the status text.
+    // Slow clouds give the base sky depth while the live weather supplies its light and colour.
     const sceneWidth = sceneRight - sceneLeft;
-    const glowX = sceneLeft + sceneWidth * .78;
-    const glowY = top + 48;
-    const glow = context.createRadialGradient(glowX, glowY, 2, glowX, glowY, 54);
-    glow.addColorStop(0, 'rgba(226,232,240,.24)');
-    glow.addColorStop(1, 'rgba(226,232,240,0)');
-    context.fillStyle = glow;
-    context.fillRect(glowX - 54, glowY - 54, 108, 108);
-    context.fillStyle = 'rgba(226,232,240,.12)';
-    context.beginPath();
-    context.arc(glowX, glowY, 12, 0, Math.PI * 2);
-    context.fill();
     context.fillStyle = 'rgba(203,213,225,.07)';
     for (const [cloudX, cloudY, cloudWidth] of [[.45, .2, 74], [.68, .38, 92]] as const) {
       const x = sceneLeft + sceneWidth * cloudX;
@@ -767,6 +1039,9 @@ export function initFishing(): void {
       context.ellipse(x - cloudWidth * .22, y + 2, cloudWidth * .25, 6, 0, 0, Math.PI * 2);
       context.ellipse(x + cloudWidth * .25, y + 2, cloudWidth * .28, 7, 0, 0, Math.PI * 2);
       context.fill();
+    }
+    for (const [kind, opacity] of atmosphereLayers) {
+      drawWeatherSky(context, kind, opacity, now, sceneLeft, sceneRight, top, surface);
     }
 
     // Two distant ridges sit behind the far shore and fade into the evening haze.
@@ -819,6 +1094,9 @@ export function initFishing(): void {
       const x = bankRight + 42 + (line % 2) * 27;
       context.fillRect(x, y, Math.max(24, sceneRight - x - 38 - line * 8), 1);
     }
+    for (const [kind, opacity] of atmosphereLayers) {
+      drawWeatherWater(context, kind, opacity, now, sceneLeft, sceneRight, surface, bottom);
+    }
 
     // Scenery fish and the hooked fish share the water, clipped so they slide past the near bank.
     context.save();
@@ -833,7 +1111,7 @@ export function initFishing(): void {
     context.restore();
 
     // Everything hanging off the line shares these, so the float, hook and fish stay attached.
-    const anchorX = Math.round(bankRight + (sceneRight - bankRight) * .42);
+    const anchorX = Math.round(bankRight + (sceneRight - bankRight) * castDistance);
     const castElapsed = now - castAt;
     const casting = phase === 'waiting' && castElapsed < CAST_WINDUP + CAST_FLIGHT;
     const hooking = phase === 'reel' && Boolean(hooked);
@@ -843,7 +1121,9 @@ export function initFishing(): void {
     const fishY = hooking ? surface + 22 + fishAt * (bottom - surface - 40) : surface + 58;
     // The hook rides in the fish's mouth during a fight, so the whole line follows the fish.
     const hookX = hooking ? fishX + fishFacing * fishSize * .95 : anchorX;
-    const hookY = hooking ? fishY : surface + 46 + Math.sin(now / 1100) * 3;
+    const hookY = hooking
+      ? fishY
+      : surface + 18 + hookDepth * (bottom - surface - 36) + Math.sin(now / 1100) * 3;
     // A fought fish drags the float toward it rather than leaving it parked mid-lake.
     const floatX = hooking ? Math.round(anchorX + (fishX - anchorX) * .5) : anchorX;
     const bobBase = surface + (phase === 'bite' ? 7 : 0);
@@ -932,16 +1212,22 @@ export function initFishing(): void {
       context.lineTo(x + 3, y - 4);
       context.stroke();
     }
+    for (const [kind, opacity] of atmosphereLayers) drawWeatherCliff(context, kind, opacity, cliff);
 
-    // Active pets wander the bank behind the angler, wearing their colour mutation.
+    const anglerX = Math.round(bankRight - 30);
+    const anglerY = ground + 4;
+    const petLeft = sceneLeft + 18;
+    const petRight = anglerX - 30;
+
+    // Active pets wander behind the angler, with their range ending before they can crowd them.
     for (const walker of [...walkers].sort((a, b) => a.depth - b.depth)) {
       const pet = walkerPet(walker.id);
       const source = pet ? petSpriteSource(pet) : undefined;
       const image = source ? readyImage(source) : null;
       if (!image || !source) continue;
-      const x = sceneLeft + 14 + walker.x * (bankRight - sceneLeft - 34);
+      const x = petLeft + walker.x * Math.max(1, petRight - petLeft);
       const y = ground + 4 + walker.depth * 16;
-      const height = 30 + walker.depth * 6;
+      const height = 32 + walker.depth * 7;
       context.save();
       context.globalAlpha = .32;
       context.fillStyle = '#000';
@@ -956,12 +1242,10 @@ export function initFishing(): void {
     }
 
     // The angler: our own blobbling, with a rod arcing out over the water.
-    const anglerX = Math.round(bankRight - 62);
-    const anglerY = ground + 4;
     const sway = Math.sin(now / 1100) * 1.5;
     const layers = avatarLayers();
     const base = detectAssetsBase();
-    const avatarHeight = 62;
+    const avatarHeight = 68;
     if (base) {
       context.save();
       context.globalAlpha = .35;
@@ -1046,6 +1330,9 @@ export function initFishing(): void {
       context.beginPath();
       context.arc(floatX, bobBase + bob + 2, 5, 0, Math.PI);
       context.fill();
+    }
+    for (const [kind, opacity] of atmosphereLayers) {
+      drawWeatherForeground(context, kind, opacity, now, sceneLeft, sceneRight, top, bottom);
     }
     context.restore();
 
