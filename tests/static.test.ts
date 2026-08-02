@@ -58,6 +58,7 @@ const fishingSource = await readFile(resolve(root, 'src', 'features', 'fishing.t
 const fishingAudioSource = await readFile(resolve(root, 'src', 'features', 'fishing-audio.ts'), 'utf8');
 const dragSource = await readFile(resolve(root, 'src', 'draggable.ts'), 'utf8');
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
+const packageLock = JSON.parse(await readFile(resolve(root, 'package-lock.json'), 'utf8')) as { version: string; packages: Record<string, { version: string }> };
 
 for (const marker of [
   '@name         Garden Companion',
@@ -89,6 +90,8 @@ for (const marker of [
 
 assert.equal((built.match(/\/\/ ==UserScript==/g) ?? []).length, 1, 'nested userscript headers');
 assert.ok(built.includes(`@version      ${packageJson.version}`), 'userscript and package versions differ');
+assert.equal(packageLock.version, packageJson.version, 'package lock version differs from package version');
+assert.equal(packageLock.packages['']?.version, packageJson.version, 'locked root package version differs from package version');
 assert.ok(!built.includes('\u2014'), 'em dash found');
 assert.ok(!built.includes('@ts-nocheck'), 'unchecked TypeScript boundary found');
 assert.match(buildSource, /if \(!petMatches\.length\) continue;/, 'build can replace the pet catalog with an empty extraction');
@@ -548,7 +551,13 @@ assert.match(plantDragSource, /target\?\.tagName === 'CANVAS' && !target\.closes
 assert.doesNotMatch(fishingAudioSource, /new Audio\(|fetch\(|\.mp3|\.ogg|\.wav|new AudioContext/, 'fishing audio loads external sound rather than synthesizing it');
 assert.match(fishingAudioSource, /const context = armAlarmAudio\(\);/, 'fishing audio does not share the alarm audio context');
 // A weather fish is the reward for fishing during that weather, so it must not bite outside it.
-assert.match(fishingSource, /FISH\.filter\(fish => !fish\.weather \|\| fish\.weather === weather\)/, 'weather fish bite outside their own weather');
+assert.match(fishingSource, /FISH\.filter\(fish => \(!fish\.weather \|\| fish\.weather === weather\)/, 'weather fish bite outside their own weather');
+assert.match(fishingSource, /common: \{[^}]*weight: 48[\s\S]*uncommon: \{[^}]*weight: 28[\s\S]*rare: \{[^}]*weight: 15[\s\S]*epic: \{[^}]*weight: 6[\s\S]*legendary: \{[^}]*weight: 2\.5[\s\S]*mythic: \{[^}]*weight: \.5/, 'fishing rarity rates have drifted from the balanced distribution');
+assert.match(fishingSource, /const WEATHER_FISH_WEIGHT = 2;/, 'matching-weather fish no longer receive their within-tier boost');
+assert.match(fishingSource, /const WEATHER_MYTHIC_CHANCE = \.03;/, 'event mythics no longer use the agreed three percent rate');
+assert.match(fishingSource, /eventMythics\.length && Math\.random\(\) < WEATHER_MYTHIC_CHANCE/, 'event mythics are not rolled separately from the ordinary rarity pool');
+assert.match(fishingSource, /const rarity = weightedPick\(rarities, value => RARITIES\[value\]\.weight\);/, 'fish are selected before rarity, so adding species changes tier rates');
+assert.match(fishingSource, /!eventMythics\.includes\(fish\)/, 'event mythics can also appear through the ordinary mythic roll');
 // The bench exists to measure a fight, not to fill in a collection that is meant to be earned.
 assert.match(fishingSource, /if \(!testing\) \{\s*\n\s*record\.fish\[hooked\.id\] =/, 'a bench fight is written into the catch record');
 assert.match(fishingSource, /if \(phase === 'reel' && testing\) \{[^}]*playEscape\(\);/s, 'a lost bench fight counts against the record');
@@ -565,5 +574,8 @@ assert.match(fishingSource, /if \(progress >= 1\) land\(\);\s*\n\s*else if \(pro
 assert.match(fishingSource, /\(inside \? rule\.fill : -rule\.drain\) \* FIGHT_PACE \* delta/, 'fight pacing no longer scales fill and drain by the same factor');
 assert.match(fishingSource, /draw\(\);\s*\n\s*frame = requestAnimationFrame\(step\);\s*\n\s*\}/, 'the animation loop does not always queue its next frame');
 assert.match(dragSource, /button, input, select, textarea, a, \[data-no-drag\]/, 'draggable panels no longer honour data-no-drag');
+assert.match(fishingSource, /host\.hidden = false;[\s\S]*renderChrome\(\);[\s\S]*makeDraggable\(card, POSITION_KEY\)/, 'the saved fishing position is restored while the panel is still hidden');
+assert.doesNotMatch(fishingSource.slice(fishingSource.indexOf('function mount()')), /makeDraggable\(card, POSITION_KEY\)/, 'fishing drag is initialised before the hidden panel has a measurable size');
+assert.equal((fishingSource.match(/if \(view === 'game'\) startLoop\(\);\s*else stopLoop\(\);/g) ?? []).length, 2, 'non-game fishing views leave the animation loop running');
 
 console.log('Static checks passed');

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.88
+// @version      0.6.89
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3372,7 +3372,7 @@ ${rows}</div>`;
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>A minigame of our own. Catches are recorded here only - the garden is untouched.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderAbilities() {
       const active = state.slot?.data?.petSlots || [];
@@ -5208,14 +5208,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var RECORD_KEY = "gardenCompanion.fishing.v1";
   var POSITION_KEY2 = "gardenCompanion.fishingPosition.v1";
   var RARITIES = {
-    common: { label: "Common", colour: "#94a3b8", weight: 100, zone: 0.26, speed: 1, fill: 0.4, drain: 0.38 },
-    uncommon: { label: "Uncommon", colour: "#34d399", weight: 58, zone: 0.26, speed: 1.02, fill: 0.39, drain: 0.38 },
-    rare: { label: "Rare", colour: "#38bdf8", weight: 26, zone: 0.25, speed: 1.08, fill: 0.37, drain: 0.375 },
-    epic: { label: "Epic", colour: "#a78bfa", weight: 10, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
-    legendary: { label: "Legendary", colour: "#fbbf24", weight: 3.2, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
-    mythic: { label: "Mythic", colour: "#f472b6", weight: 0.8, zone: 0.22, speed: 1.3, fill: 0.3, drain: 0.37 }
+    common: { label: "Common", colour: "#94a3b8", weight: 48, zone: 0.26, speed: 1, fill: 0.4, drain: 0.38 },
+    uncommon: { label: "Uncommon", colour: "#34d399", weight: 28, zone: 0.26, speed: 1.02, fill: 0.39, drain: 0.38 },
+    rare: { label: "Rare", colour: "#38bdf8", weight: 15, zone: 0.25, speed: 1.08, fill: 0.37, drain: 0.375 },
+    epic: { label: "Epic", colour: "#a78bfa", weight: 6, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
+    legendary: { label: "Legendary", colour: "#fbbf24", weight: 2.5, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
+    mythic: { label: "Mythic", colour: "#f472b6", weight: 0.5, zone: 0.22, speed: 1.3, fill: 0.3, drain: 0.37 }
   };
   var RARITY_ORDER2 = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
+  var WEATHER_FISH_WEIGHT = 2;
+  var WEATHER_MYTHIC_CHANCE = 0.03;
   var BITE_WINDOW = 1500;
   var RESULT_LOCK = 1600;
   var FIGHT_PACE = 0.5;
@@ -5250,13 +5252,20 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     { id: "ironjawCatfish", name: "Ironjaw Catfish", rarity: "rare", min: 6, max: 16, note: "Has taken three hooks and kept them." },
     { id: "lanternCod", name: "Lantern Cod", rarity: "rare", min: 3.5, max: 11, weather: "Dawn", note: "Carries its own small sunrise." },
     { id: "chillbackChar", name: "Chillback Char", rarity: "rare", min: 2.5, max: 8, weather: "Frost", note: "Warm to the touch, strangely." },
+    { id: "amberfinTench", name: "Amberfin Tench", rarity: "rare", min: 3, max: 10, weather: "AmberMoon", note: "Slow, heavy, and the colour of old honey." },
+    { id: "staticShiner", name: "Static Shiner", rarity: "rare", min: 2, max: 7, weather: "Thunderstorm", note: "Sets the hairs on your arm up before you see it." },
+    { id: "mirrorfinArowana", name: "Mirrorfin Arowana", rarity: "epic", min: 9, max: 30, note: "Turns without disturbing the water around it." },
+    { id: "cloudburstSalmon", name: "Cloudburst Salmon", rarity: "epic", min: 10, max: 28, weather: "Rain", note: "Swims up the rain itself, given enough of it." },
     { id: "stormfinMarlin", name: "Stormfin Marlin", rarity: "epic", min: 12, max: 34, weather: "Thunderstorm", note: "Runs ahead of the weather front." },
     { id: "frostbellySturgeon", name: "Frostbelly Sturgeon", rarity: "epic", min: 15, max: 40, weather: "Frost", note: "Older than the pond it swims in." },
     { id: "dawnlitAngelfish", name: "Dawnlit Angelfish", rarity: "epic", min: 8, max: 22, weather: "Dawn", note: "Only surfaces while the light is thin." },
     { id: "amberscaleTuna", name: "Amberscale Tuna", rarity: "epic", min: 18, max: 46, weather: "AmberMoon", note: "Set solid in colour, still very much alive." },
+    { id: "crownscaleArapaima", name: "Crownscale Arapaima", rarity: "legendary", min: 28, max: 82, note: "The smaller fish follow it as if it knows the way." },
     { id: "thunderjawGar", name: "Thunderjaw Gar", rarity: "legendary", min: 30, max: 75, weather: "Thunderstorm", note: "The bite arrives before the fish does." },
     { id: "glacierLeviathan", name: "Glacier Leviathan", rarity: "legendary", min: 40, max: 95, weather: "Frost", note: "Mistaken for the far bank more than once." },
     { id: "sunspireSerpent", name: "Sunspire Serpent", rarity: "legendary", min: 25, max: 68, weather: "Dawn", note: "Coils around the light and holds it there." },
+    { id: "harvestmoonWels", name: "Harvestmoon Wels", rarity: "legendary", min: 35, max: 88, weather: "AmberMoon", note: "Comes up once the whole pond has turned the same colour as it." },
+    { id: "firstLightRay", name: "First Light Ray", rarity: "mythic", min: 55, max: 165, weather: "Dawn", note: "Seen only in the minute the sky decides on a colour." },
     { id: "oldRootmouth", name: "Old Rootmouth", rarity: "mythic", min: 60, max: 140, weather: "AmberMoon", note: "The garden grew around it, not the other way round." },
     { id: "rainbowWhiskerfish", name: "Rainbow Whiskerfish", rarity: "mythic", min: 70, max: 210, note: "Nobody agrees on what colour it actually is." }
   ];
@@ -5271,16 +5280,25 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       fish: stored.fish && typeof stored.fish === "object" ? stored.fish : {}
     };
   }
-  function pickFish(weather) {
-    const pool = FISH.filter((fish) => !fish.weather || fish.weather === weather);
-    const weights = pool.map((fish) => RARITIES[fish.rarity].weight * (fish.weather ? 7 : 1));
-    const total = weights.reduce((sum, value) => sum + value, 0);
+  function weightedPick(items, weight) {
+    const total = items.reduce((sum, item) => sum + weight(item), 0);
     let roll = Math.random() * total;
-    for (let index = 0; index < pool.length; index++) {
-      roll -= weights[index];
-      if (roll <= 0) return pool[index];
+    for (const item of items) {
+      roll -= weight(item);
+      if (roll <= 0) return item;
     }
-    return pool[pool.length - 1];
+    return items[items.length - 1];
+  }
+  function pickFish(weather) {
+    const eventMythics = FISH.filter((fish) => fish.rarity === "mythic" && fish.weather === weather);
+    if (eventMythics.length && Math.random() < WEATHER_MYTHIC_CHANCE) {
+      return eventMythics[Math.floor(Math.random() * eventMythics.length)];
+    }
+    const pool = FISH.filter((fish) => (!fish.weather || fish.weather === weather) && !eventMythics.includes(fish));
+    const rarities = RARITY_ORDER2.filter((rarity2) => pool.some((fish) => fish.rarity === rarity2));
+    const rarity = weightedPick(rarities, (value) => RARITIES[value].weight);
+    const tier = pool.filter((fish) => fish.rarity === rarity);
+    return weightedPick(tier, (fish) => fish.weather ? WEATHER_FISH_WEIGHT : 1);
   }
   function weatherLabel(weather) {
     if (!weather) return "Clear skies";
@@ -5390,6 +5408,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let testing = false;
     let reelStartedAt = 0;
     let fightEndedAt = 0;
+    let draggableReady = false;
     const SWIMMER_COLOURS = ["#4b7f96", "#3f6f86", "#5b8f7a", "#6b7f9c", "#7a8fa0"];
     const swimmers = Array.from({ length: 9 }, () => spawnSwimmer(Math.random()));
     function spawnSwimmer(x = Math.random() < 0.5 ? -0.1 : 1.1) {
@@ -5800,6 +5819,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const target = button.dataset.view;
         view = view === target ? "game" : target;
         renderChrome();
+        if (view === "game") startLoop();
+        else stopLoop();
       });
       card.querySelectorAll("[data-fight]").forEach((button) => button.onclick = () => {
         const fish = FISH_BY_ID.get(button.dataset.fight);
@@ -5840,7 +5861,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       host.hidden = false;
       primeFishingAudio();
       renderChrome();
-      startLoop();
+      if (!draggableReady) {
+        const card = host.querySelector(".gf-card");
+        if (card) {
+          makeDraggable(card, POSITION_KEY2);
+          draggableReady = true;
+        }
+      }
+      if (view === "game") startLoop();
+      else stopLoop();
     }
     function close() {
       const host = panel();
@@ -5858,16 +5887,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       card.className = "gf-card";
       host.appendChild(card);
       document.body.appendChild(host);
-      makeDraggable(card, POSITION_KEY2);
       for (const type of ["pointerdown", "pointerup", "pointermove", "pointercancel", "mousedown", "mouseup", "click", "dblclick", "wheel", "contextmenu"]) {
         card.addEventListener(type, (event) => event.stopPropagation());
       }
       window.addEventListener("pointerup", release);
       page.__gardenCompanionToggleFishing = () => panel()?.hidden ? open() : close();
       page.__gardenCompanionFishingBench = () => {
-        open();
         view = "bench";
-        renderChrome();
+        open();
       };
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true });
