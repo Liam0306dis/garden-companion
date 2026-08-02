@@ -5558,7 +5558,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function step(now) {
       frame = null;
-      const gap = now - lastTime;
+      const gap = Math.max(0, now - lastTime);
       if (gap > 1e3) shiftActiveTimers(gap);
       const delta = Math.min(0.05, gap / 1e3 || 0);
       lastTime = now;
@@ -5601,9 +5601,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       frame = requestAnimationFrame(step);
     }
     function startLoop() {
-      if (frame !== null) return;
       lastTime = performance.now();
-      frame = requestAnimationFrame(step);
+      if (frame === null) frame = requestAnimationFrame(step);
     }
     function stopLoop() {
       if (frame !== null) cancelAnimationFrame(frame);

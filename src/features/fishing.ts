@@ -482,7 +482,7 @@ export function initFishing(): void {
   function step(now: number): void {
     // Cleared first so a throw anywhere below leaves the loop restartable rather than wedged.
     frame = null;
-    const gap = now - lastTime;
+    const gap = Math.max(0, now - lastTime);
     // Browsers stop requestAnimationFrame in hidden tabs. Treat any long gap as paused time so a
     // backgrounded tab, sleeping laptop, or blocked main thread cannot expire an active cast.
     if (gap > 1000) shiftActiveTimers(gap);
@@ -530,9 +530,8 @@ export function initFishing(): void {
   }
 
   function startLoop(): void {
-    if (frame !== null) return;
     lastTime = performance.now();
-    frame = requestAnimationFrame(step);
+    if (frame === null) frame = requestAnimationFrame(step);
   }
 
   function stopLoop(): void {
