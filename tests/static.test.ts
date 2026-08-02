@@ -579,7 +579,10 @@ assert.match(fishingOpenSource, /host\.hidden = false;\s*primeFishingAudio\(\);\
 assert.doesNotMatch(fishingSource.slice(fishingSource.indexOf('function mount()')), /makeDraggable\(card, POSITION_KEY\)/, 'fishing drag is initialised before the hidden panel has a measurable size');
 assert.equal((fishingSource.match(/if \(view === 'game'\) resumeLoop\(\);\s*else pauseLoop\(\);/g) ?? []).length, 2, 'non-game fishing views do not pause and resume the animation loop');
 assert.match(fishingSource, /function pauseLoop\(\)[\s\S]*pausedAt = performance\.now\(\);[\s\S]*stopLoop\(\);/, 'fishing does not record when its animation loop was paused');
-assert.match(fishingSource, /const pausedFor = performance\.now\(\) - pausedAt;[\s\S]*waitUntil \+= pausedFor;[\s\S]*biteAt \+= pausedFor;[\s\S]*reelStartedAt \+= pausedFor;[\s\S]*reelEndsAt \+= pausedFor;[\s\S]*retargetAt \+= pausedFor;/, 'paused fishing time still advances an active cast or fight');
+assert.match(fishingSource, /function shiftActiveTimers\(duration: number\)[\s\S]*waitUntil \+= duration;[\s\S]*biteAt \+= duration;[\s\S]*reelStartedAt \+= duration;[\s\S]*reelEndsAt \+= duration;[\s\S]*retargetAt \+= duration;/, 'not every active fishing timer is shifted by a pause');
+assert.match(fishingSource, /const pausedFor = performance\.now\(\) - pausedAt;\s*shiftActiveTimers\(pausedFor\);/, 'resuming fishing does not shift its active timers');
+assert.match(fishingSource, /const gap = now - lastTime;[\s\S]*if \(gap > 1000\) shiftActiveTimers\(gap\);/, 'a throttled animation frame can expire an active fishing timer');
+assert.match(fishingSource, /function cast\(\)[\s\S]*playCast\(\);\s*resumeLoop\(\);/, 'casting bypasses fishing pause recovery');
 assert.match(fishingSource, /function close\(\)[\s\S]*host\.hidden = true;\s*pauseLoop\(\);/, 'closing fishing does not pause its active timers');
 
 console.log('Static checks passed');

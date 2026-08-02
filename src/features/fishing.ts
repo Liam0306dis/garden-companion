@@ -364,7 +364,7 @@ export function initFishing(): void {
     waitUntil = performance.now() + 1200 + Math.random() * 3600;
     setPhase('waiting', 'Line is out. Wait for the bob to dip.');
     playCast();
-    startLoop();
+    resumeLoop();
   }
 
   /** Puts a fish on the hook and resets the fight, shared by a real bite and a bench fight. */
@@ -469,10 +469,24 @@ export function initFishing(): void {
 
   function release(): void { holding = false; }
 
+  function shiftActiveTimers(duration: number): void {
+    if (phase === 'waiting') waitUntil += duration;
+    else if (phase === 'bite') biteAt += duration;
+    else if (phase === 'reel') {
+      reelStartedAt += duration;
+      reelEndsAt += duration;
+      retargetAt += duration;
+    }
+  }
+
   function step(now: number): void {
     // Cleared first so a throw anywhere below leaves the loop restartable rather than wedged.
     frame = null;
-    const delta = Math.min(.05, (now - lastTime) / 1000 || 0);
+    const gap = now - lastTime;
+    // Browsers stop requestAnimationFrame in hidden tabs. Treat any long gap as paused time so a
+    // backgrounded tab, sleeping laptop, or blocked main thread cannot expire an active cast.
+    if (gap > 1000) shiftActiveTimers(gap);
+    const delta = Math.min(.05, gap / 1000 || 0);
     lastTime = now;
     if (phase === 'waiting' && now >= waitUntil) beginBite(now);
     else if (phase === 'bite' && now - biteAt > BITE_WINDOW) lose('The bite went slack. It let go.');
@@ -535,13 +549,7 @@ export function initFishing(): void {
   function resumeLoop(): void {
     if (pausedAt !== null) {
       const pausedFor = performance.now() - pausedAt;
-      if (phase === 'waiting') waitUntil += pausedFor;
-      else if (phase === 'bite') biteAt += pausedFor;
-      else if (phase === 'reel') {
-        reelStartedAt += pausedFor;
-        reelEndsAt += pausedFor;
-        retargetAt += pausedFor;
-      }
+      shiftActiveTimers(pausedFor);
       pausedAt = null;
     }
     startLoop();

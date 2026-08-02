@@ -5455,7 +5455,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       waitUntil = performance.now() + 1200 + Math.random() * 3600;
       setPhase("waiting", "Line is out. Wait for the bob to dip.");
       playCast();
-      startLoop();
+      resumeLoop();
     }
     function armFish(fish, now) {
       hooked = fish;
@@ -5547,9 +5547,20 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function release() {
       holding = false;
     }
+    function shiftActiveTimers(duration) {
+      if (phase === "waiting") waitUntil += duration;
+      else if (phase === "bite") biteAt += duration;
+      else if (phase === "reel") {
+        reelStartedAt += duration;
+        reelEndsAt += duration;
+        retargetAt += duration;
+      }
+    }
     function step(now) {
       frame = null;
-      const delta = Math.min(0.05, (now - lastTime) / 1e3 || 0);
+      const gap = now - lastTime;
+      if (gap > 1e3) shiftActiveTimers(gap);
+      const delta = Math.min(0.05, gap / 1e3 || 0);
       lastTime = now;
       if (phase === "waiting" && now >= waitUntil) beginBite(now);
       else if (phase === "bite" && now - biteAt > BITE_WINDOW) lose("The bite went slack. It let go.");
@@ -5606,13 +5617,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function resumeLoop() {
       if (pausedAt !== null) {
         const pausedFor = performance.now() - pausedAt;
-        if (phase === "waiting") waitUntil += pausedFor;
-        else if (phase === "bite") biteAt += pausedFor;
-        else if (phase === "reel") {
-          reelStartedAt += pausedFor;
-          reelEndsAt += pausedFor;
-          retargetAt += pausedFor;
-        }
+        shiftActiveTimers(pausedFor);
         pausedAt = null;
       }
       startLoop();
