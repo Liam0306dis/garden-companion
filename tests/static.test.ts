@@ -597,13 +597,15 @@ assert.match(petsSource, /export function petSpriteSource/, 'the tinted pet spri
 assert.match(fishingSource, /image\.complete && image\.naturalWidth > 0/, 'a half-loaded image can be drawn');
 assert.match(fishingSource, /canvas\{[^}]*height:min\(420px,calc\(100vh - 150px\)\)/, 'the enlarged fishing canvas can put its header above a short viewport');
 assert.match(fishingSource, /\.gf-body\{[^}]*max-height:min\(430px,calc\(100vh - 150px\)\)/, 'a fishing list can put its header above a short viewport');
-assert.match(fishingSource, /const platformEdge = bankRight \+ 22;/, 'the fishing bank no longer extends into a cliff platform');
-assert.match(fishingSource, /cliff\.bezierCurveTo\(bankRight \+ 10[\s\S]*cliff\.bezierCurveTo\(bankRight - 34/, 'the fishing cliff no longer leaves water visible beneath its ledge');
-assert.match(fishingSource, /const WEATHER_TRANSITION = 1600;[\s\S]*function fishingSceneWeather/, 'fishing weather scenery changes abruptly or is no longer driven by live weather');
+assert.match(fishingSource, /if \(!sceneWeatherReady && !state\.game\) return \[\['Clear', 1\]\];/, 'fishing latches clear weather before the initial game state arrives');
+assert.match(fishingSource, /const blend = progress \* progress \* \(3 - 2 \* progress\);/, 'fishing weather no longer transitions smoothly');
 assert.match(fishingSource, /drawWeatherSky\([\s\S]*drawWeatherWater\([\s\S]*drawWeatherCliff\([\s\S]*drawWeatherForeground\(/, 'the fishing scene no longer applies weather across the sky, water, cliff, and foreground');
-assert.match(fishingSource, /castDistance = \.28 \+ Math\.random\(\) \* \.5;[\s\S]*hookDepth = \.16 \+ Math\.random\(\) \* \.38;/, 'fishing casts no longer vary their landing distance and hook depth');
-assert.match(fishingSource, /const surface = Math\.round\(top \+ trackHeight \* \.39\);[\s\S]*const avatarHeight = 68;/, 'the fishing scene is no longer framed closer to the angler');
-assert.match(fishingSource, /const anglerX = Math\.round\(bankRight - 30\);[\s\S]*const petRight = anglerX - 30;[\s\S]*walker\.x \* Math\.max\(1, petRight - petLeft\)/, 'shore pets can crowd or cross through the cliffside angler');
+assert.match(fishingSource, /castDistance = [^;]*Math\.random\(\)[^;]*;[\s\S]*hookDepth = [^;]*Math\.random\(\)[^;]*;/, 'fishing casts no longer vary their landing distance and hook depth');
+assert.match(fishingSource, /const safeCastDistance = Math\.max\(0, Math\.min\(1, castDistance\)\);[\s\S]*const anchorX = Math\.round\(dockEnd \+ \(sceneRight - dockEnd\) \* safeCastDistance\);/, 'a fishing cast can land outside the available water');
+assert.match(fishingSource, /const safeHookDepth = Math\.max\(0, Math\.min\(1, hookDepth\)\);[\s\S]*safeHookDepth \* \(bottom - surface - 36\)/, 'the fishing hook depth is not constrained to the water');
+assert.match(fishingSource, /const petRight = Math\.min\(dockStart, anglerX\) - petClearance;[\s\S]*walker\.x \* Math\.max\(1, petRight - petLeft\)/, 'shore pets can walk onto the dock or crowd its angler');
+const scenerySwimmerSource = fishingSource.slice(fishingSource.indexOf('// The bank and dock are drawn later'), fishingSource.indexOf('// Everything hanging off the line'));
+assert.doesNotMatch(scenerySwimmerSource, /context\.clip\(\)/, 'scenery fish disappear against a straight clipping line beneath the dock');
 // Sprites are padded to their own frames, so standing one on the ground by its box leaves it hovering.
 assert.match(fishingSource, /const inset = footInset\(bottomImage, bottomSource\);/, 'the angler is placed by its image box rather than its artwork');
 assert.match(fishingSource, /inset = \(probe\.height - 1 - y\) \/ probe\.height;/, 'sprite ground contact is guessed rather than measured');

@@ -5560,6 +5560,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return typeof value === "string" && value ? value : null;
     }
     function sceneWeatherLayers(now) {
+      if (!sceneWeatherReady && !state.game) return [["Clear", 1]];
       const live = fishingSceneWeather(weather());
       if (!sceneWeatherReady) {
         currentSceneWeather = live;
@@ -5999,7 +6000,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const surface = Math.round(top + trackHeight * 0.39);
       const bankRight = Math.round(sceneLeft + (sceneRight - sceneLeft) * 0.32);
       const ground = surface - 3;
-      const platformEdge = bankRight + 22;
+      const shoreEdge = bankRight - 34;
+      const dockStart = shoreEdge - 34;
+      const dockEnd = bankRight + 38;
+      const deckTop = ground - 7;
       context.save();
       context.beginPath();
       context.roundRect(sceneLeft, top, sceneRight - sceneLeft, trackHeight, 8);
@@ -6066,32 +6070,29 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       context.fillStyle = "rgba(148,210,226,.08)";
       for (let line = 0; line < 6; line++) {
         const y = surface + 18 + line * 31;
-        const x = bankRight + 42 + line % 2 * 27;
+        const x = dockEnd + 20 + line % 2 * 27;
         context.fillRect(x, y, Math.max(24, sceneRight - x - 38 - line * 8), 1);
       }
       for (const [kind, opacity] of atmosphereLayers) {
         drawWeatherWater(context, kind, opacity, now, sceneLeft, sceneRight, surface, bottom);
       }
-      context.save();
-      context.beginPath();
-      context.rect(bankRight - 34, surface, sceneRight - bankRight + 34, bottom - surface);
-      context.clip();
       for (const swimmer of swimmers) {
-        const x = bankRight + swimmer.x * (sceneRight - bankRight);
+        const x = shoreEdge + swimmer.x * (sceneRight - shoreEdge);
         const y = surface + 16 + swimmer.y * (bottom - surface - 26) + Math.sin(now / 900 + swimmer.phase) * 3;
         drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, 0.45, now + swimmer.phase * 400);
       }
-      context.restore();
-      const anchorX = Math.round(bankRight + (sceneRight - bankRight) * castDistance);
+      const safeCastDistance = Math.max(0, Math.min(1, castDistance));
+      const safeHookDepth = Math.max(0, Math.min(1, hookDepth));
+      const anchorX = Math.round(dockEnd + (sceneRight - dockEnd) * safeCastDistance);
       const castElapsed = now - castAt;
       const casting = phase === "waiting" && castElapsed < CAST_WINDUP + CAST_FLIGHT;
       const hooking = phase === "reel" && Boolean(hooked);
       const fishSize = hooked ? 12 + RARITY_ORDER2.indexOf(hooked.rarity) * 3.5 : 12;
       const fishFacing = Math.cos(now / 640) > 0 ? 1 : -1;
-      const fishX = hooking ? anchorX + Math.sin(now / 640) * (sceneRight - bankRight) * 0.13 : anchorX;
+      const fishX = hooking ? anchorX + Math.sin(now / 640) * (sceneRight - dockEnd) * 0.13 : anchorX;
       const fishY = hooking ? surface + 22 + fishAt * (bottom - surface - 40) : surface + 58;
       const hookX = hooking ? fishX + fishFacing * fishSize * 0.95 : anchorX;
-      const hookY = hooking ? fishY : surface + 18 + hookDepth * (bottom - surface - 36) + Math.sin(now / 1100) * 3;
+      const hookY = hooking ? fishY : surface + 18 + safeHookDepth * (bottom - surface - 36) + Math.sin(now / 1100) * 3;
       const floatX = hooking ? Math.round(anchorX + (fishX - anchorX) * 0.5) : anchorX;
       const bobBase = surface + (phase === "bite" ? 7 : 0);
       const bob = phase === "waiting" ? Math.sin(now / 420) * 2 : phase === "bite" ? Math.sin(now / 55) * 3 : 0;
@@ -6123,12 +6124,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       const cliff = new Path2D();
       cliff.moveTo(sceneLeft, ground - 6);
-      for (let x = sceneLeft; x <= platformEdge; x += 10) {
-        cliff.lineTo(x, ground - 6 + Math.sin(x * 0.05) * 1.6 + x / platformEdge * 5);
+      for (let x = sceneLeft; x <= shoreEdge; x += 10) {
+        cliff.lineTo(x, ground - 6 + Math.sin(x * 0.05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5);
       }
-      cliff.lineTo(platformEdge, ground + 4);
-      cliff.bezierCurveTo(bankRight + 10, ground + 14, bankRight - 12, ground + 30, bankRight - 24, ground + 56);
-      cliff.bezierCurveTo(bankRight - 34, ground + 92, bankRight - 20, bottom - 30, bankRight - 38, bottom);
+      cliff.lineTo(shoreEdge + 3, ground + 4);
+      cliff.bezierCurveTo(shoreEdge - 2, ground + 18, shoreEdge - 20, ground + 32, shoreEdge - 24, ground + 58);
+      cliff.bezierCurveTo(shoreEdge - 36, ground + 92, shoreEdge - 20, bottom - 30, shoreEdge - 30, bottom);
       cliff.lineTo(sceneLeft, bottom);
       cliff.closePath();
       const bank = context.createLinearGradient(0, ground - 10, 0, bottom);
@@ -6147,23 +6148,23 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const y = ground + 30 + ledge * 42;
         context.beginPath();
         context.moveTo(sceneLeft + 18 + ledge % 2 * 12, y);
-        context.bezierCurveTo(bankRight - 70, y - 9, bankRight - 48, y + 10, bankRight - 25, y - 4);
+        context.bezierCurveTo(shoreEdge - 55, y - 9, shoreEdge - 34, y + 10, shoreEdge - 12, y - 4);
         context.stroke();
       }
       context.restore();
       context.strokeStyle = "rgba(120,180,110,.35)";
       context.lineWidth = 1.5;
       context.beginPath();
-      for (let x = sceneLeft; x <= platformEdge; x += 10) {
-        const y = ground - 6 + Math.sin(x * 0.05) * 1.6 + x / platformEdge * 5;
+      for (let x = sceneLeft; x <= shoreEdge; x += 10) {
+        const y = ground - 6 + Math.sin(x * 0.05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5;
         if (x === sceneLeft) context.moveTo(x, y);
         else context.lineTo(x, y);
       }
       context.stroke();
       context.strokeStyle = "rgba(134,190,112,.42)";
       context.lineWidth = 1;
-      for (let x = sceneLeft + 8; x < platformEdge; x += 13) {
-        const y = ground - 7 + Math.sin(x * 0.05) * 1.6 + x / platformEdge * 5;
+      for (let x = sceneLeft + 8; x < shoreEdge; x += 13) {
+        const y = ground - 7 + Math.sin(x * 0.05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5;
         context.beginPath();
         context.moveTo(x, y);
         context.lineTo(x - 2, y - 5 - x % 3);
@@ -6172,10 +6173,48 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         context.stroke();
       }
       for (const [kind, opacity] of atmosphereLayers) drawWeatherCliff(context, kind, opacity, cliff);
-      const anglerX = Math.round(bankRight - 30);
-      const anglerY = ground + 4;
+      const postBottom = Math.max(deckTop + 14, bottom - 20);
+      context.fillStyle = "#3a281b";
+      for (const postX of [shoreEdge + 14, dockEnd - 14]) {
+        context.fillRect(postX - 4, deckTop + 8, 8, postBottom - deckTop - 8);
+        context.fillStyle = "rgba(10,18,20,.28)";
+        context.fillRect(postX - 4, surface + 20, 8, Math.max(0, postBottom - surface - 20));
+        context.fillStyle = "#3a281b";
+      }
+      context.fillStyle = "rgba(11,18,20,.42)";
+      context.fillRect(dockStart, deckTop + 8, dockEnd - dockStart, 6);
+      const timber = context.createLinearGradient(0, deckTop, 0, deckTop + 12);
+      timber.addColorStop(0, "#9a7045");
+      timber.addColorStop(0.55, "#765132");
+      timber.addColorStop(1, "#51351f");
+      context.fillStyle = timber;
+      context.fillRect(dockStart, deckTop, dockEnd - dockStart, 11);
+      context.strokeStyle = "rgba(35,22,13,.55)";
+      context.lineWidth = 1;
+      for (let plank = dockStart + 15; plank < dockEnd; plank += 17) {
+        context.beginPath();
+        context.moveTo(plank, deckTop);
+        context.lineTo(plank, deckTop + 11);
+        context.stroke();
+      }
+      context.strokeStyle = "rgba(242,196,125,.2)";
+      context.beginPath();
+      context.moveTo(dockStart, deckTop + 2);
+      context.lineTo(dockEnd, deckTop + 2);
+      context.stroke();
+      for (const [kind, opacity] of atmosphereLayers) {
+        if (kind === "Clear") continue;
+        context.save();
+        context.globalAlpha = opacity;
+        context.fillStyle = kind === "Frost" ? "rgba(218,239,239,.38)" : kind === "Rain" || kind === "Thunderstorm" ? "rgba(9,21,29,.28)" : kind === "Dawn" ? "rgba(211,111,70,.14)" : "rgba(207,136,41,.16)";
+        context.fillRect(dockStart, deckTop, dockEnd - dockStart, kind === "Frost" ? 4 : 11);
+        context.restore();
+      }
+      const anglerX = Math.round(dockEnd - 26);
+      const anglerY = deckTop + 1;
       const petLeft = sceneLeft + 18;
-      const petRight = anglerX - 30;
+      const petClearance = 18;
+      const petRight = Math.min(dockStart, anglerX) - petClearance;
       for (const walker of [...walkers].sort((a, b) => a.depth - b.depth)) {
         const pet = walkerPet(walker.id);
         const source = pet ? petSpriteSource(pet) : void 0;
@@ -6225,7 +6264,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const handX = anglerX + 14;
       const handY = anglerY - avatarHeight * 0.52 + sway;
       const load = phase === "reel" ? 16 : phase === "bite" ? 8 : 0;
-      let tipX = bankRight + 34 + load;
+      let tipX = dockEnd + 34 + load;
       let tipY = top + 34 + load * 1.4;
       if (casting) {
         const back = castElapsed < CAST_WINDUP ? castElapsed / CAST_WINDUP : 1 - (1 - Math.pow(1 - (castElapsed - CAST_WINDUP) / CAST_FLIGHT, 3));

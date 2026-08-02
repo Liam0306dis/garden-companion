@@ -500,6 +500,7 @@ export function initFishing(): void {
   }
 
   function sceneWeatherLayers(now: number): Array<[FishingSceneWeather, number]> {
+    if (!sceneWeatherReady && !state.game) return [['Clear', 1]];
     const live = fishingSceneWeather(weather());
     if (!sceneWeatherReady) {
       currentSceneWeather = live;
@@ -1011,11 +1012,14 @@ export function initFishing(): void {
     // The gauges get their own column so a fight is never read against moving water.
     const sceneRight = trackX - 14;
 
-    // Side-on lake: bank on the left with the angler on it, water running off to the right.
+    // Side-on lake: a bank on the left and a dock reaching out over the water.
     const surface = Math.round(top + trackHeight * .39);
     const bankRight = Math.round(sceneLeft + (sceneRight - sceneLeft) * .32);
     const ground = surface - 3;
-    const platformEdge = bankRight + 22;
+    const shoreEdge = bankRight - 34;
+    const dockStart = shoreEdge - 34;
+    const dockEnd = bankRight + 38;
+    const deckTop = ground - 7;
 
     context.save();
     context.beginPath();
@@ -1091,39 +1095,37 @@ export function initFishing(): void {
     context.fillStyle = 'rgba(148,210,226,.08)';
     for (let line = 0; line < 6; line++) {
       const y = surface + 18 + line * 31;
-      const x = bankRight + 42 + (line % 2) * 27;
+      const x = dockEnd + 20 + (line % 2) * 27;
       context.fillRect(x, y, Math.max(24, sceneRight - x - 38 - line * 8), 1);
     }
     for (const [kind, opacity] of atmosphereLayers) {
       drawWeatherWater(context, kind, opacity, now, sceneLeft, sceneRight, surface, bottom);
     }
 
-    // Scenery fish and the hooked fish share the water, clipped so they slide past the near bank.
-    context.save();
-    context.beginPath();
-    context.rect(bankRight - 34, surface, sceneRight - bankRight + 34, bottom - surface);
-    context.clip();
+    // The bank and dock are drawn later, so fish pass beneath the dock and disappear naturally
+    // behind the irregular shoreline instead of being cut off by a straight clipping boundary.
     for (const swimmer of swimmers) {
-      const x = bankRight + swimmer.x * (sceneRight - bankRight);
+      const x = shoreEdge + swimmer.x * (sceneRight - shoreEdge);
       const y = surface + 16 + swimmer.y * (bottom - surface - 26) + Math.sin(now / 900 + swimmer.phase) * 3;
       drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, .45, now + swimmer.phase * 400);
     }
-    context.restore();
 
     // Everything hanging off the line shares these, so the float, hook and fish stay attached.
-    const anchorX = Math.round(bankRight + (sceneRight - bankRight) * castDistance);
+    const safeCastDistance = Math.max(0, Math.min(1, castDistance));
+    const safeHookDepth = Math.max(0, Math.min(1, hookDepth));
+    const anchorX = Math.round(dockEnd + (sceneRight - dockEnd) * safeCastDistance);
     const castElapsed = now - castAt;
     const casting = phase === 'waiting' && castElapsed < CAST_WINDUP + CAST_FLIGHT;
     const hooking = phase === 'reel' && Boolean(hooked);
     const fishSize = hooked ? 12 + RARITY_ORDER.indexOf(hooked.rarity) * 3.5 : 12;
     const fishFacing = Math.cos(now / 640) > 0 ? 1 : -1;
-    const fishX = hooking ? anchorX + Math.sin(now / 640) * (sceneRight - bankRight) * .13 : anchorX;
+    const fishX = hooking ? anchorX + Math.sin(now / 640) * (sceneRight - dockEnd) * .13 : anchorX;
     const fishY = hooking ? surface + 22 + fishAt * (bottom - surface - 40) : surface + 58;
     // The hook rides in the fish's mouth during a fight, so the whole line follows the fish.
     const hookX = hooking ? fishX + fishFacing * fishSize * .95 : anchorX;
     const hookY = hooking
       ? fishY
-      : surface + 18 + hookDepth * (bottom - surface - 36) + Math.sin(now / 1100) * 3;
+      : surface + 18 + safeHookDepth * (bottom - surface - 36) + Math.sin(now / 1100) * 3;
     // A fought fish drags the float toward it rather than leaving it parked mid-lake.
     const floatX = hooking ? Math.round(anchorX + (fishX - anchorX) * .5) : anchorX;
     const bobBase = surface + (phase === 'bite' ? 7 : 0);
@@ -1160,16 +1162,15 @@ export function initFishing(): void {
       context.fill();
     }
 
-    // The angler stands on a grassy cliff. Its rock face retreats under the lip, leaving a pocket
-    // of water visible beneath the platform instead of turning the whole left side into solid land.
+    // The natural bank ends behind the dock, leaving open water beneath the angler.
     const cliff = new Path2D();
     cliff.moveTo(sceneLeft, ground - 6);
-    for (let x = sceneLeft; x <= platformEdge; x += 10) {
-      cliff.lineTo(x, ground - 6 + Math.sin(x * .05) * 1.6 + (x / platformEdge) * 5);
+    for (let x = sceneLeft; x <= shoreEdge; x += 10) {
+      cliff.lineTo(x, ground - 6 + Math.sin(x * .05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5);
     }
-    cliff.lineTo(platformEdge, ground + 4);
-    cliff.bezierCurveTo(bankRight + 10, ground + 14, bankRight - 12, ground + 30, bankRight - 24, ground + 56);
-    cliff.bezierCurveTo(bankRight - 34, ground + 92, bankRight - 20, bottom - 30, bankRight - 38, bottom);
+    cliff.lineTo(shoreEdge + 3, ground + 4);
+    cliff.bezierCurveTo(shoreEdge - 2, ground + 18, shoreEdge - 20, ground + 32, shoreEdge - 24, ground + 58);
+    cliff.bezierCurveTo(shoreEdge - 36, ground + 92, shoreEdge - 20, bottom - 30, shoreEdge - 30, bottom);
     cliff.lineTo(sceneLeft, bottom);
     cliff.closePath();
     const bank = context.createLinearGradient(0, ground - 10, 0, bottom);
@@ -1188,23 +1189,23 @@ export function initFishing(): void {
       const y = ground + 30 + ledge * 42;
       context.beginPath();
       context.moveTo(sceneLeft + 18 + (ledge % 2) * 12, y);
-      context.bezierCurveTo(bankRight - 70, y - 9, bankRight - 48, y + 10, bankRight - 25, y - 4);
+      context.bezierCurveTo(shoreEdge - 55, y - 9, shoreEdge - 34, y + 10, shoreEdge - 12, y - 4);
       context.stroke();
     }
     context.restore();
     context.strokeStyle = 'rgba(120,180,110,.35)';
     context.lineWidth = 1.5;
     context.beginPath();
-    for (let x = sceneLeft; x <= platformEdge; x += 10) {
-      const y = ground - 6 + Math.sin(x * .05) * 1.6 + (x / platformEdge) * 5;
+    for (let x = sceneLeft; x <= shoreEdge; x += 10) {
+      const y = ground - 6 + Math.sin(x * .05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5;
       if (x === sceneLeft) context.moveTo(x, y); else context.lineTo(x, y);
     }
     context.stroke();
-    // Grass and a few stones soften the platform edge without hiding the line or the pets.
+    // Grass softens the shoreline behind the dock without hiding the pets.
     context.strokeStyle = 'rgba(134,190,112,.42)';
     context.lineWidth = 1;
-    for (let x = sceneLeft + 8; x < platformEdge; x += 13) {
-      const y = ground - 7 + Math.sin(x * .05) * 1.6 + (x / platformEdge) * 5;
+    for (let x = sceneLeft + 8; x < shoreEdge; x += 13) {
+      const y = ground - 7 + Math.sin(x * .05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5;
       context.beginPath();
       context.moveTo(x, y);
       context.lineTo(x - 2, y - 5 - (x % 3));
@@ -1214,10 +1215,56 @@ export function initFishing(): void {
     }
     for (const [kind, opacity] of atmosphereLayers) drawWeatherCliff(context, kind, opacity, cliff);
 
-    const anglerX = Math.round(bankRight - 30);
-    const anglerY = ground + 4;
+    // Timber posts disappear into the lake, then the deck and individual planks sit over them.
+    const postBottom = Math.max(deckTop + 14, bottom - 20);
+    context.fillStyle = '#3a281b';
+    for (const postX of [shoreEdge + 14, dockEnd - 14]) {
+      context.fillRect(postX - 4, deckTop + 8, 8, postBottom - deckTop - 8);
+      context.fillStyle = 'rgba(10,18,20,.28)';
+      context.fillRect(postX - 4, surface + 20, 8, Math.max(0, postBottom - surface - 20));
+      context.fillStyle = '#3a281b';
+    }
+    context.fillStyle = 'rgba(11,18,20,.42)';
+    context.fillRect(dockStart, deckTop + 8, dockEnd - dockStart, 6);
+    const timber = context.createLinearGradient(0, deckTop, 0, deckTop + 12);
+    timber.addColorStop(0, '#9a7045');
+    timber.addColorStop(.55, '#765132');
+    timber.addColorStop(1, '#51351f');
+    context.fillStyle = timber;
+    context.fillRect(dockStart, deckTop, dockEnd - dockStart, 11);
+    context.strokeStyle = 'rgba(35,22,13,.55)';
+    context.lineWidth = 1;
+    for (let plank = dockStart + 15; plank < dockEnd; plank += 17) {
+      context.beginPath();
+      context.moveTo(plank, deckTop);
+      context.lineTo(plank, deckTop + 11);
+      context.stroke();
+    }
+    context.strokeStyle = 'rgba(242,196,125,.2)';
+    context.beginPath();
+    context.moveTo(dockStart, deckTop + 2);
+    context.lineTo(dockEnd, deckTop + 2);
+    context.stroke();
+    for (const [kind, opacity] of atmosphereLayers) {
+      if (kind === 'Clear') continue;
+      context.save();
+      context.globalAlpha = opacity;
+      context.fillStyle = kind === 'Frost'
+        ? 'rgba(218,239,239,.38)'
+        : kind === 'Rain' || kind === 'Thunderstorm'
+          ? 'rgba(9,21,29,.28)'
+          : kind === 'Dawn'
+            ? 'rgba(211,111,70,.14)'
+            : 'rgba(207,136,41,.16)';
+      context.fillRect(dockStart, deckTop, dockEnd - dockStart, kind === 'Frost' ? 4 : 11);
+      context.restore();
+    }
+
+    const anglerX = Math.round(dockEnd - 26);
+    const anglerY = deckTop + 1;
     const petLeft = sceneLeft + 18;
-    const petRight = anglerX - 30;
+    const petClearance = 18;
+    const petRight = Math.min(dockStart, anglerX) - petClearance;
 
     // Active pets wander behind the angler, with their range ending before they can crowd them.
     for (const walker of [...walkers].sort((a, b) => a.depth - b.depth)) {
@@ -1275,7 +1322,7 @@ export function initFishing(): void {
     const handX = anglerX + 14;
     const handY = anglerY - avatarHeight * .52 + sway;
     const load = phase === 'reel' ? 16 : phase === 'bite' ? 8 : 0;
-    let tipX = bankRight + 34 + load;
+    let tipX = dockEnd + 34 + load;
     let tipY = top + 34 + load * 1.4;
     // The cast: the rod is taken back, whipped forward past its rest, then settles.
     if (casting) {
