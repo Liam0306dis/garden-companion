@@ -54,6 +54,9 @@ const petSpriteSource = await readFile(resolve(root, 'src', 'pet-sprites.ts'), '
 const petSpriteInjector = await readFile(resolve(root, 'src', 'pet-sprites-injector.ts'), 'utf8');
 const buildSource = await readFile(resolve(root, 'scripts', 'build.ts'), 'utf8');
 const plannerSource = await readFile(resolve(root, 'src', 'features', 'garden-planner.ts'), 'utf8');
+const fishingSource = await readFile(resolve(root, 'src', 'features', 'fishing.ts'), 'utf8');
+const fishingAudioSource = await readFile(resolve(root, 'src', 'features', 'fishing-audio.ts'), 'utf8');
+const dragSource = await readFile(resolve(root, 'src', 'draggable.ts'), 'utf8');
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
 
 for (const marker of [
@@ -459,7 +462,9 @@ assert.match(plannerSource, /return planner\.rotation === 0 \? -360 : -planner\.
 assert.match(plannerSource, /data-plan-flip="true"/, 'decor cannot be flipped');
 assert.match(petSpriteSource, /decor: DECOR_IDS/, 'decor sprites still use a hardcoded list');
 assert.ok(built.includes('FanousLantern: { name: "Fanous Lantern"'), 'newer decor is missing from the catalog');
-assert.match(styleSource, /#gc-panel \.gc-launch-row button \{[^}]*width:auto/, 'the launch button stretches and crushes its label');
+// A fixed width both keeps the flex parent from stretching the button and keeps every launch
+// button on the Features tab the same size, whatever its label says.
+assert.match(styleSource, /#gc-panel \.gc-launch-row button \{[^}]*width:132px[^}]*flex:0 0 auto/, 'the launch buttons size themselves to their labels');
 assert.match(plannerSource, /const NATIVE_UI_LABELS = \['GardenInfoCardSystem', 'ActionHud', 'PetActionButtons'\]/, 'the native crop card and action buttons are not hidden while planning');
 assert.match(plannerSource, /function restoreNativeCardUi\(\)/, 'the native crop card is never restored');
 assert.match(plannerSource, /restoreNativeCardUi\(\);\s*document\.body\.classList\.remove\('gc-planning'\)/, 'leaving the planner does not restore the native crop card');
@@ -527,5 +532,38 @@ assert.match(companionSource, /panel\.addEventListener\('focusout'.*refreshPendi
 assert.match(companionSource, /main\.addEventListener\('pointerleave'.*refreshPending/, 'a pending refresh is not retried when the pointer leaves the blocked tab content');
 
 assert.match(searchSource, /input\.closest\('section, #gc-team-picker, main'\)/, 'a search box wrapped in a row cannot find its list');
+
+// The fishing minigame is ours alone: it must never reach the game, and its clicks must never fall
+// through to the canvas underneath, where they would move a plant or harvest a crop.
+assert.doesNotMatch(fishingSource, /sendMessage|sendQuinoaCommand|from '\.\.\/game-connection/, 'the fishing minigame sends messages to the game');
+assert.match(fishingSource, /card\.addEventListener\(type, event => event\.stopPropagation\(\)\)/, 'fishing clicks are not stopped from reaching the game');
+assert.match(fishingSource, /'pointerdown', 'pointerup', 'pointermove', 'pointercancel', 'mousedown', 'mouseup', 'click', 'dblclick', 'wheel', 'contextmenu'/, 'the fishing card lets some pointer events through to the game');
+assert.match(fishingSource, /<canvas data-no-drag>/, 'dragging inside the fishing canvas moves the panel');
+// Plant drag listens on document in the capture phase, so stopPropagation inside our panel cannot
+// reach it. It has to recognise a companion canvas as ours and leave it alone.
+assert.match(fishingSource, /host\.dataset\.gcUi = 'fishing'/, 'the fishing panel is not marked as companion UI');
+assert.match(plantDragSource, /target\?\.tagName === 'CANVAS' && !target\.closest\?\.\('\[data-gc-ui\]'\)/, 'plant drag treats a companion canvas as the game canvas');
+// Fishing sound is synthesized: a userscript cannot host audio files, and a second AudioContext
+// would be one more than the page should ever hold.
+assert.doesNotMatch(fishingAudioSource, /new Audio\(|fetch\(|\.mp3|\.ogg|\.wav|new AudioContext/, 'fishing audio loads external sound rather than synthesizing it');
+assert.match(fishingAudioSource, /const context = armAlarmAudio\(\);/, 'fishing audio does not share the alarm audio context');
+// A weather fish is the reward for fishing during that weather, so it must not bite outside it.
+assert.match(fishingSource, /FISH\.filter\(fish => !fish\.weather \|\| fish\.weather === weather\)/, 'weather fish bite outside their own weather');
+// The bench exists to measure a fight, not to fill in a collection that is meant to be earned.
+assert.match(fishingSource, /if \(!testing\) \{\s*\n\s*record\.fish\[hooked\.id\] =/, 'a bench fight is written into the catch record');
+assert.match(fishingSource, /if \(phase === 'reel' && testing\) \{[^}]*playEscape\(\);/s, 'a lost bench fight counts against the record');
+// One input surface: a Cast button beside a canvas you hold to reel reads as a reel control.
+assert.doesNotMatch(fishingSource, /data-cast/, 'the fishing game view has a cast button separate from the canvas');
+// A fixed zone speed against a per-tier fish speed makes the top tiers unwinnable rather than hard.
+assert.match(fishingSource, /const agility = zoneAgility\(rule\.speed\);/, 'hook zone control no longer scales with the tier it is chasing');
+// Friction is the difference between a zone you can park and one that can only overshoot.
+assert.match(fishingSource, /zoneVelocity \*= Math\.pow\(ZONE_FRICTION, delta \* 60\);/, 'the hook zone has no friction, so holding accelerates without bound');
+assert.match(fishingSource, /fishVelocity \*= Math\.pow\(\.93, delta \* 60\);/, 'fish damping is per frame, so the fight differs by refresh rate');
+// Ending a cast must not end the animation loop, or the panel freezes after the first fish.
+assert.match(fishingSource, /if \(progress >= 1\) land\(\);\s*\n\s*else if \(progress <= LOSE_FLOOR\) lose\(/, 'ending a cast returns before the next frame is queued');
+// Scaling fill and drain together is what keeps a longer fight from also being an easier one.
+assert.match(fishingSource, /\(inside \? rule\.fill : -rule\.drain\) \* FIGHT_PACE \* delta/, 'fight pacing no longer scales fill and drain by the same factor');
+assert.match(fishingSource, /draw\(\);\s*\n\s*frame = requestAnimationFrame\(step\);\s*\n\s*\}/, 'the animation loop does not always queue its next frame');
+assert.match(dragSource, /button, input, select, textarea, a, \[data-no-drag\]/, 'draggable panels no longer honour data-no-drag');
 
 console.log('Static checks passed');

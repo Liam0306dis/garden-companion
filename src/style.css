@@ -63,7 +63,8 @@
 .gc-shortcuts,.gc-tracking { margin-top:10px; }
 .gc-launch-row { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px; }
 .gc-launch-row > div { min-width:0; }
-#gc-panel .gc-launch-row button { width:auto;flex:0 0 auto;padding:8px 14px;white-space:nowrap; }
+/* Fixed width so the launch buttons line up down the tab rather than tracking their label lengths. */
+#gc-panel .gc-launch-row button { width:132px;flex:0 0 auto;padding:8px 14px;white-space:nowrap;text-align:center; }
 .gc-shortcuts > p { margin-bottom:9px; }
 .gc-shortcut-grid { overflow:hidden;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.12); }
 .gc-shortcut-row { display:grid;grid-template-columns:minmax(145px,1fr) 210px;align-items:center;gap:14px;padding:8px 10px; }

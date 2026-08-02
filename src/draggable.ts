@@ -26,7 +26,7 @@ export function makeDraggable(element: HTMLElement, storageKey: string): void {
 
   element.addEventListener('pointerdown', event => {
     // Anything interactive keeps its own behaviour, so only bare chrome starts a drag.
-    if ((event.target as HTMLElement).closest('button, input, select, textarea, a')) return;
+    if ((event.target as HTMLElement).closest('button, input, select, textarea, a, [data-no-drag]')) return;
     const rect = element.getBoundingClientRect();
     dragging = true;
     startX = event.clientX;

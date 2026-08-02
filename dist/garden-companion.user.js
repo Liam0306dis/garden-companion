@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.87
+// @version      0.6.88
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -624,8 +624,8 @@
     const maximum = Number(PET_CATALOG[pet.petSpecies]?.maxHunger || 0);
     const value = Math.max(0, Number(pet.hunger || 0));
     const percent = maximum > 0 ? Math.min(100, value / maximum * 100) : value > 0 ? 100 : 0;
-    const tone = percent < 20 ? "low" : percent < 50 ? "medium" : "good";
-    return `<div class="gc-hunger" title="${value.toLocaleString()} / ${maximum.toLocaleString()}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
+    const tone2 = percent < 20 ? "low" : percent < 50 ? "medium" : "good";
+    return `<div class="gc-hunger" title="${value.toLocaleString()} / ${maximum.toLocaleString()}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone2}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
   }
   function petMetrics(pet) {
     const info = PET_CATALOG[pet?.petSpecies || ""];
@@ -1464,7 +1464,7 @@
 
   // src/toast.ts
   var toastTimer;
-  function toast(message, tone = "") {
+  function toast(message, tone2 = "") {
     let element = document.getElementById("gc-toast");
     if (!element) {
       element = document.createElement("div");
@@ -1472,7 +1472,7 @@
       document.documentElement.appendChild(element);
     }
     element.textContent = message;
-    element.dataset.tone = tone;
+    element.dataset.tone = tone2;
     element.classList.add("is-visible");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => element.classList.remove("is-visible"), 2600);
@@ -2701,7 +2701,7 @@ ${rows}</div>`;
     let dragging = false;
     let startX = 0, startY = 0, originLeft = 0, originTop = 0;
     element.addEventListener("pointerdown", (event) => {
-      if (event.target.closest("button, input, select, textarea, a")) return;
+      if (event.target.closest("button, input, select, textarea, a, [data-no-drag]")) return;
       const rect = element.getBoundingClientRect();
       dragging = true;
       startX = event.clientX;
@@ -3372,7 +3372,7 @@ ${rows}</div>`;
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>A minigame of our own. Catches are recorded here only - the garden is untouched.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderAbilities() {
       const active = state.slot?.data?.petSlots || [];
@@ -3414,6 +3414,10 @@ ${rows}</div>`;
         }
       });
       main.querySelector("[data-open-overview]")?.addEventListener("click", () => page.__gardenCompanionToggleOverview?.());
+      main.querySelector("[data-open-fishing]")?.addEventListener("click", () => {
+        closePanel();
+        page.__gardenCompanionToggleFishing?.();
+      });
       main.querySelectorAll("[data-silence]").forEach((input) => input.onchange = () => {
         const set = new Set(config.silencedAbilities || []);
         input.checked ? set.add(input.dataset.silence) : set.delete(input.dataset.silence);
@@ -3442,7 +3446,7 @@ ${rows}</div>`;
     }
     function mount() {
       const style = document.createElement("style");
-      style.textContent = ":root {\n  --gc-bg: #0c0c11;\n  --gc-raised: #121219;\n  --gc-soft: rgba(255,255,255,.035);\n  --gc-line: rgba(255,255,255,.075);\n  --gc-text: #e4e4e7;\n  --gc-muted: rgba(255,255,255,.72);\n  --gc-accent: #a78bfa;\n  --gc-green: #34d399;\n  --gc-gold: #fbbf24;\n  --gc-danger: #f87171;\n}\n#gc-panel img,#gc-alarm img,#gc-turtle img,#gc-overview-panel img { image-rendering:auto!important; }\n#gc-lunar { position:fixed;right:16px;bottom:16px;cursor:move;z-index:99990;width:238px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:linear-gradient(145deg,#10151a,#090b0f 72%);border:1px solid rgba(125,211,252,.13);border-radius:13px;box-shadow:0 18px 55px rgba(0,0,0,.68),inset 0 1px rgba(255,255,255,.04);font:14px/1.2 system-ui,sans-serif;user-select:none; }\n#gc-lunar::before { content:'';position:absolute;top:0;left:14px;right:14px;height:1px;background:linear-gradient(90deg,transparent,#67e8f9 42%,#a78bfa 68%,transparent);opacity:.75; }\n.gc-lunar-head { display:flex;align-items:center;justify-content:space-between;padding:10px 10px 3px 12px; }\n.gc-lunar-title { min-width:0;display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase; }\n.gc-lunar-mark { position:relative;width:18px;height:18px;flex:0 0 auto;border-radius:50%;background:linear-gradient(145deg,#67e8f9,#8b5cf6);box-shadow:0 0 14px rgba(103,232,249,.2); }\n.gc-lunar-mark::after { content:'';position:absolute;top:2px;left:6px;width:14px;height:14px;border-radius:50%;background:#0d1116; }\n#gc-lunar button[data-options] { width:27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:7px;color:#cbd5e1;background:rgba(255,255,255,.035);cursor:pointer;transition:.15s; }\n#gc-lunar button[data-options] svg { width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8; }\n#gc-lunar button[data-options]:hover { color:#e0f2fe;border-color:rgba(103,232,249,.3);background:rgba(103,232,249,.08); }\n.gc-lunar-countdown { display:flex;align-items:center;justify-content:center;padding:4px 12px 14px; }\n.gc-lunar-countdown strong { color:#f8fafc;font:650 31px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.035em;text-align:center;text-shadow:0 0 20px rgba(103,232,249,.1); }\n#gc-lunar .gc-health { min-height:30px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:6px 9px 6px 12px;background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.055); }\n#gc-ws-health { min-width:0;display:flex;align-items:center;gap:6px;color:#a8b6c8;font-size:9px;font-weight:650; }\n#gc-ws-health i { width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,.4); }\n#gc-ws-health[data-status=connected] i { background:var(--gc-green);box-shadow:0 0 8px rgba(52,211,153,.45); }\n#gc-ws-health[data-status=disconnected] i { background:var(--gc-danger);box-shadow:0 0 8px rgba(248,113,113,.45); }\n#gc-update-health { margin-left:auto;padding:4px 7px;border:1px solid rgba(255,255,255,.06);border-radius:6px;color:#a8b6c8;background:rgba(255,255,255,.025);cursor:pointer;font:750 9px/1.2 system-ui,sans-serif; }\n#gc-update-health:hover { color:#ddd6fe;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08); }\n#gc-update-health[data-status=available] { color:#fecaca;border-color:rgba(248,113,113,.72);background:rgba(248,113,113,.07);box-shadow:0 0 0 1px rgba(248,113,113,.16),0 0 13px rgba(248,113,113,.1); }\n#gc-update-health[data-status=failed] { color:var(--gc-danger); }\n#gc-panel { position:fixed;inset:0;z-index:999995;padding:18px;box-sizing:border-box;display:grid;place-items:center;background:transparent;pointer-events:none;color:var(--gc-text);font:14px/1.45 system-ui,sans-serif; }\n#gc-panel[hidden] { display:none; }\n.gc-shell { width:min(880px,96vw);height:min(720px,92vh);overflow:hidden;display:flex;flex-direction:column;pointer-events:auto;background:var(--gc-bg);border:1px solid var(--gc-line);border-radius:12px;box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035); }\n.gc-shell > header { min-height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line); }\n.gc-shell header small { color:var(--gc-muted);font-size:9px;font-weight:700;letter-spacing:.18em; }\n.gc-shell header h2 { margin:3px 0 0;color:#fafafa;font-size:19px;line-height:1.1;letter-spacing:.02em; }\n.gc-shell header button { width:28px;height:28px;padding:0;border:1px solid var(--gc-line);border-radius:50%;color:var(--gc-muted);background:transparent;cursor:pointer; }\n.gc-shell header button:hover { color:#fff;background:rgba(255,255,255,.07); }\n.gc-layout { min-height:0;flex:1;display:grid;grid-template-columns:148px minmax(0,1fr); }\n.gc-layout nav { padding:12px 9px;background:#09090d;border-right:1px solid var(--gc-line); }\n.gc-layout nav button { width:100%;padding:9px 10px;margin:1px 0;border:1px solid transparent;border-radius:7px;text-align:left;color:var(--gc-muted);background:transparent;cursor:pointer;font:600 11px system-ui,sans-serif; }\n.gc-layout nav button:hover { color:#d4d4d8;background:var(--gc-soft); }\n.gc-layout nav button.active { color:#ddd6fe;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.1);box-shadow:inset 2px 0 var(--gc-accent); }\n.gc-layout main { overflow:auto;padding:14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent; }\n.gc-note { margin:0 0 12px;color:var(--gc-muted);font-size:11px; }\n.gc-list,.gc-stack { display:flex;flex-direction:column;gap:7px; }\n.gc-toggle,.gc-check { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft);cursor:pointer; }\n.gc-toggle:hover,.gc-check:hover,.gc-card:hover { border-color:rgba(255,255,255,.13); }\n.gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }\n.gc-toggle b,.gc-check b { color:#e4e4e7;font-size:12px; }\n.gc-toggle small,.gc-check small { margin-top:2px;color:var(--gc-muted);font-size:10px; }\n.gc-toggle input { position:absolute;opacity:0;pointer-events:none; }\n.gc-toggle i { width:32px;height:18px;flex:0 0 auto;border-radius:12px;background:rgba(255,255,255,.12);transition:.18s; }\n.gc-toggle i::after { content:'';display:block;width:14px;height:14px;margin:2px;border-radius:50%;background:#a1a1aa;transition:.18s; }\n.gc-toggle input:checked + i { background:#7c3aed; }\n.gc-toggle input:checked + i::after { transform:translateX(14px);background:#fff; }\n.gc-card { padding:11px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft);transition:border-color .15s; }\n.gc-card h3 { margin:0 0 3px;color:#f4f4f5;font-size:15px;line-height:1.2; }\n.gc-card p { margin:0;color:var(--gc-muted);font-size:10px; }\n.gc-shortcuts,.gc-tracking { margin-top:10px; }\n.gc-launch-row { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px; }\n.gc-launch-row > div { min-width:0; }\n#gc-panel .gc-launch-row button { width:auto;flex:0 0 auto;padding:8px 14px;white-space:nowrap; }\n.gc-shortcuts > p { margin-bottom:9px; }\n.gc-shortcut-grid { overflow:hidden;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.12); }\n.gc-shortcut-row { display:grid;grid-template-columns:minmax(145px,1fr) 210px;align-items:center;gap:14px;padding:8px 10px; }\n.gc-shortcut-row + .gc-shortcut-row { border-top:1px solid var(--gc-line); }\n.gc-shortcut-row b { color:#e4e4e7;font-size:11px; }\n.gc-shortcut-row input { width:100%;height:30px;box-sizing:border-box;padding:0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none;cursor:pointer; }\n.gc-shortcut-row input:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n#gc-panel input::placeholder,#gc-team-picker input::placeholder { color:rgba(255,255,255,.5);opacity:1; }\n.gc-row { display:flex;align-items:center;justify-content:space-between;gap:10px; }\n.gc-row + .gc-row { margin-top:10px;padding-top:9px;border-top:1px solid var(--gc-line); }\n.gc-card input[type=text],.gc-card > input,.gc-key input,.gc-search { width:100%;height:34px;box-sizing:border-box;padding:0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none; }\n.gc-card select { width:100%;height:34px;box-sizing:border-box;padding:0 30px 0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none;cursor:pointer; }\n.gc-card select:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n.gc-search { margin:9px 0 0; }\n.gc-search:focus,.gc-card input:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n.gc-card > input { margin:7px 0 9px; }\n.gc-key { min-width:0;flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;color:var(--gc-muted);font-size:10px; }\n.gc-key input { height:29px;cursor:pointer; }\n.gc-key small { grid-column:2;margin-top:-5px;color:var(--gc-muted);font-size:9px; }\n.gc-team-delete-confirm { display:flex;align-items:center;gap:5px;white-space:nowrap; }\n.gc-team-delete-confirm b { color:var(--gc-danger);font-size:10px; }\n.gc-pet-grid { max-height:250px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:9px; }\n.gc-pet-grid label { min-width:0;display:flex;align-items:center;gap:9px;padding:8px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16);cursor:pointer; }\n.gc-pet-grid label:has(input:checked) { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08); }\n.gc-pet-grid span:not(.gc-pet-sprite) { min-width:0;display:flex;flex:1;flex-direction:column; }\n.gc-pet-grid b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-pet-grid small { color:var(--gc-muted);font-size:9px; }\n#gc-panel button { padding:6px 9px;border:1px solid var(--gc-line);border-radius:6px;color:#d4d4d8;background:rgba(255,255,255,.04);cursor:pointer;font:600 11px system-ui,sans-serif; }\n#gc-panel button:hover { color:#fff;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.09); }\n#gc-panel .gc-primary { width:100%;color:#fff;border-color:#7c3aed;background:#7c3aed; }\n#gc-panel .gc-danger { color:var(--gc-danger); }\n.gc-pill { padding:3px 7px;border:1px solid rgba(167,139,250,.16);border-radius:5px;color:#c4b5fd;background:rgba(167,139,250,.08);font-size:10px;white-space:nowrap; }\n.gc-chips { display:flex;flex-wrap:wrap;gap:4px;margin-top:8px; }\n.gc-chips span { padding:3px 7px;border:1px solid rgba(96,165,250,.16);border-radius:5px;color:#93c5fd;background:rgba(96,165,250,.07);font-size:10px; }\n.gc-chips span[data-active=false] { opacity:.32;text-decoration:line-through; }\n.gc-log { max-height:280px;overflow:auto;margin-top:8px; }\n.gc-layout main.gc-ability-log-tab { min-height:0;display:flex;overflow:hidden;flex-direction:column; }\n.gc-ability-log-card { min-height:0;flex:1;display:flex;flex-direction:column; }\n.gc-ability-log-tab .gc-log { min-height:0;max-height:none;flex:1; }\n.gc-log > div { display:grid;grid-template-columns:62px 58px minmax(0,1fr);gap:8px;padding:7px 2px;border-top:1px solid var(--gc-line);font:10px ui-monospace,monospace; }\n.gc-proc-result { display:flex;min-width:0;align-items:baseline;gap:6px;color:#f4f4f5;font-size:11px;font-weight:700; }.gc-proc-result i { overflow:hidden;color:#67e8f9;font-size:11px;font-weight:700;font-style:normal;text-overflow:ellipsis;white-space:nowrap; }\n.gc-log time { color:var(--gc-muted); }\n.gc-log > p { padding:9px 2px;color:var(--gc-muted);font-size:10px; }\n.gc-ability-log-card .gc-row h3 { white-space:nowrap; }\n.gc-ability-log-card .gc-row .gc-log-search { flex:1;min-width:0;max-width:230px;height:28px;font-size:11px; }\n.gc-room { display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px; }\n.gc-room h3 { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }\n.gc-room-faces { display:flex;align-items:center;margin:5px 0 2px; }\n.gc-room-face { width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;margin-left:-5px;overflow:hidden;border:2px solid #0c0c11;border-radius:50%;background:linear-gradient(135deg,rgba(167,139,250,.3),rgba(103,232,249,.22));color:#ddd6fe;font:700 10px system-ui,sans-serif; }\n.gc-room-face:first-child { margin-left:0; }\n.gc-room-face img { width:100%;height:100%;object-fit:cover; }\n.gc-check-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px; }\n.gc-check { justify-content:flex-start;padding:8px; }\n.gc-check input { accent-color:#8b5cf6; }\n.gc-filter-list [hidden] { display:none; }\n.gc-pet-sprite { position:relative;width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.025); }\n.gc-pet-sprite img { width:40px;height:40px;object-fit:contain;image-rendering:auto; }\n.gc-pet-sprite i { color:rgba(255,255,255,.5);font:700 20px system-ui,sans-serif;font-style:normal; }\n.gc-pet-head { display:grid;grid-template-columns:auto minmax(0,1fr) minmax(130px,180px);align-items:center;gap:10px; }\n.gc-pet-head h3 { margin:0; }\n.gc-pet-head .gc-ability-chips { margin-top:5px; }\n.gc-hunger { min-width:110px; }\n.gc-hunger > div { display:flex;justify-content:space-between;color:var(--gc-muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em; }\n.gc-hunger > div b { color:#d4d4d8; }\n.gc-hunger > i { display:block;height:5px;margin-top:4px;overflow:hidden;border-radius:4px;background:rgba(255,255,255,.06); }\n.gc-hunger > i u { display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#059669,#34d399);text-decoration:none; }\n.gc-hunger > i u[data-tone=medium] { background:linear-gradient(90deg,#d97706,#fbbf24); }\n.gc-hunger > i u[data-tone=low] { background:linear-gradient(90deg,#dc2626,#f87171); }\n.gc-team-abilities { display:block;margin-top:5px;color:#a78bfa;font-size:9px;line-height:1.35; }\n.gc-pet-grid span.gc-ability-chips { flex:0 0 auto;flex-direction:row;flex-wrap:nowrap;margin-top:5px; }\n.gc-pet-str { flex:0 0 auto;align-self:center;padding:3px 7px;border:1px solid var(--gc-line);border-radius:7px;color:#c4b5fd;background:rgba(167,139,250,.08);font-size:12px;line-height:1;white-space:nowrap; }\n.gc-pet-str i { color:var(--gc-muted);font-size:9px;font-style:normal; }\n.gc-team-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:var(--gc-muted);font-size:11px; }.gc-team-summary b { color:#e4e4e7; }.gc-active-pets { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px; }.gc-active-pets .gc-pet-head { grid-template-columns:auto minmax(0,1fr); }.gc-active-pets .gc-hunger { grid-column:1/-1;min-width:0; }.gc-pet-strength { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--gc-line);color:var(--gc-muted);font-size:10px; }.gc-pet-strength b { color:#c4b5fd; }.gc-pet-strength strong { color:#34d399;font-size:9px;text-align:right; }.gc-section-label { margin:13px 2px 7px;color:var(--gc-muted);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase; }.gc-ability-summary { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px; }.gc-ability-summary > div:first-child > small { display:block;margin-top:5px;color:#fbbf24;font-size:10px; }.gc-ability-rate { display:flex;min-width:92px;flex-direction:column;text-align:right; }.gc-ability-rate b { color:#60a5fa;font:700 14px ui-monospace,monospace; }.gc-ability-rate small { color:var(--gc-muted);font:9px ui-monospace,monospace; }\n.gc-proc-list { margin-top:9px;border-top:1px solid var(--gc-line); }\n.gc-pet-potions { margin-top:6px;padding:4px 6px;border:1px solid rgba(167,139,250,.16);border-radius:5px;color:#c4b5fd;background:rgba(167,139,250,.07);text-align:center;font-size:9px;font-weight:750; }\n.gc-proc-row { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.045); }\n.gc-proc-row div { min-width:0;display:flex;flex-direction:column; }\n.gc-proc-row small,.gc-proc-row > span { color:var(--gc-muted);font-size:9px; }\n.gc-proc-row p { grid-column:1/-1;margin:0;color:rgba(255,255,255,.75);font:10px/1.35 ui-monospace,monospace; }\n.gc-ability-filter { position:relative;z-index:5;margin-bottom:8px; }\n.gc-ability-filter > span { display:block;margin-bottom:6px;color:var(--gc-muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em; }.gc-ability-filter details { position:relative; }.gc-ability-filter details>summary { height:34px;box-sizing:border-box;padding:8px 30px 8px 10px;border:1px solid var(--gc-line);border-radius:7px;list-style:none;color:var(--gc-text);background:#08080c;cursor:pointer;font-size:11px;font-weight:700; }.gc-ability-filter details>summary::-webkit-details-marker { display:none; }.gc-ability-filter details>summary::after { content:'\\25BE';position:absolute;right:11px;color:var(--gc-muted); }.gc-ability-picker { position:absolute;top:39px;left:0;right:0;z-index:10;max-height:min(320px,50vh);padding:5px;overflow:auto;border:1px solid rgba(167,139,250,.28);border-radius:7px;background:#08080c;box-shadow:0 18px 45px rgba(0,0,0,.72); }.gc-ability-picker header { display:flex;gap:5px;margin-bottom:5px; }.gc-ability-picker header button { flex:1; }.gc-ability-picker>button { width:100%;display:flex;align-items:center;justify-content:space-between;margin:2px 0;padding:7px 8px!important;text-align:left!important; }.gc-ability-picker>button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.3)!important;background:rgba(167,139,250,.12)!important; }.gc-ability-picker>button i { color:#a78bfa;font-style:normal; }\n.gc-ability-filter > small { display:block;margin-top:6px;color:var(--gc-muted);font-size:9px; }\n.gc-shop-tabs { display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px; }.gc-shop-tabs button { flex:1 1 72px; }.gc-shop-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }\n.gc-shop-sprite { width:32px;height:32px;flex:0 0 auto;display:grid!important;place-items:center;overflow:hidden;border-radius:6px;background:rgba(255,255,255,.035); }.gc-shop-sprite img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }\n.gc-empty { padding:22px;color:var(--gc-muted);text-align:center; }\n#gc-alarm { position:fixed;top:22px;left:50%;z-index:999999;transform:translateX(-50%);min-width:430px;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:11px;padding:14px;color:#fff;background:linear-gradient(135deg,#2b0d12,#26170a);border:2px solid #fb923c;border-radius:12px;box-shadow:0 0 0 4px rgba(239,68,68,.18),0 0 32px rgba(249,115,22,.55),0 20px 65px rgba(0,0,0,.8);animation:gc-alarm-pulse .8s ease-in-out infinite alternate;font:12px system-ui,sans-serif; }\n#gc-alarm .gc-alarm-icon { width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#ef4444;color:#fff;font:900 26px/1 system-ui,sans-serif;font-style:normal;box-shadow:0 0 16px rgba(239,68,68,.8); } #gc-alarm div { display:flex;flex-direction:column; } #gc-alarm small { color:#fdba74;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase; } #gc-alarm strong { margin:2px 0;font-size:18px; } #gc-alarm span { color:#fed7aa;font-size:11px; } #gc-alarm button { padding:8px 11px;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:rgba(255,255,255,.1);cursor:pointer;font-weight:800; } #gc-alarm button[data-buy] { color:#1c1208;background:#fb923c;border-color:#fdba74; }\n#gc-alarm [data-alarm-queue] { margin-top:3px;color:#fbbf24;font-size:11px;font-style:normal;font-weight:800; }\n@keyframes gc-alarm-pulse { from { transform:translateX(-50%) scale(1);filter:brightness(1); } to { transform:translateX(-50%) scale(1.015);filter:brightness(1.2); } }\n#gc-turtle { position:fixed;z-index:99989;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 9px;color:#f4f4f5;background:rgba(12,12,17,.96);border:1px solid rgba(167,139,250,.35);border-radius:6px;pointer-events:none;white-space:nowrap;text-align:center;font:700 12px/1.45 system-ui,sans-serif; }\n#gc-team-picker { position:fixed;inset:0;z-index:999996;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:rgba(4,4,8,.55);color:var(--gc-text);font:12px/1.45 system-ui,sans-serif; }\n#gc-team-picker img { image-rendering:auto!important; }\n.gc-team-picker-shell { width:min(1080px,96vw);height:min(760px,92vh);display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;overflow:hidden;background:var(--gc-bg);border:1px solid rgba(167,139,250,.25);border-radius:13px;box-shadow:0 30px 90px rgba(0,0,0,.75); }\n.gc-team-picker-shell > header { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--gc-line); }\n.gc-team-picker-shell > header small { color:var(--gc-muted);font-size:9px;font-weight:800;letter-spacing:.16em; }\n.gc-team-picker-shell > header h2 { margin:2px 0 0;font-size:17px; }\n.gc-team-picker-shell > header button { width:28px;height:28px;padding:0;color:var(--gc-muted);border:1px solid var(--gc-line);border-radius:7px;background:transparent;cursor:pointer; }\n.gc-team-picker-controls { display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 16px; }\n.gc-team-picker-controls .gc-search { margin:0; }\n.gc-team-picker-controls input { height:34px;box-sizing:border-box;padding:0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none; }\n.gc-team-picker-controls input:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n.gc-team-picker-count { color:var(--gc-muted);font-size:11px;font-weight:700;white-space:nowrap; }\n.gc-team-picker-count[data-tone=good] { color:var(--gc-green); }\n.gc-team-picker-count[data-tone=error] { color:var(--gc-danger); }\n.gc-emblem-picker { padding:0 16px 10px; }\n.gc-emblem-head { display:flex;align-items:center;gap:10px;margin-bottom:7px; }\n.gc-emblem-head > span { color:var(--gc-muted);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }\n.gc-emblem-head > small { margin-left:auto;color:var(--gc-muted);font-size:10px; }\n.gc-emblem-tabs { display:flex;gap:5px; }\n.gc-emblem-tabs button { padding:4px 10px;font-size:10px; }\n.gc-emblem-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }\n.gc-emblem-strip { max-height:96px;display:flex;flex-wrap:wrap;gap:5px;overflow:auto;padding:2px; }\n.gc-emblem-strip[hidden] { display:none; }\n.gc-emblem-strip button { width:44px;height:44px;flex:0 0 auto;display:grid;place-items:center;gap:1px;padding:2px!important;border:1px solid var(--gc-line);border-radius:8px;background:rgba(255,255,255,.03);cursor:pointer; }\n.gc-emblem-strip button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.55)!important;background:rgba(167,139,250,.16)!important; }\n.gc-emblem-strip button:disabled { opacity:.3;cursor:not-allowed; }\n.gc-emblem-strip button b { font-size:15px; }\n.gc-emblem-hint { margin:0;padding:6px 2px;color:var(--gc-muted);font-size:10px; }\n.gc-emblem-strip button small { max-width:100%;overflow:hidden;color:var(--gc-muted);text-overflow:ellipsis;white-space:nowrap;font-size:9px; }\n.gc-emblem-strip button img { width:30px;height:30px;object-fit:contain; }\n.gc-emblem-strip button:has(small) img { width:22px;height:22px; }\n.gc-emblem-strip button i { width:15px;height:15px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#67e8f9); }\n.gc-emblem-strip button i[data-emblem-icon=gold] { background:linear-gradient(135deg,#fbbf24,#f59e0b); }\n.gc-emblem-strip button i[data-emblem-icon=rainbow] { background:linear-gradient(135deg,#f87171,#fbbf24 35%,#34d399 65%,#60a5fa); }\n.gc-emblem-strip button i[data-emblem-icon=thunder] { background:linear-gradient(135deg,#fde047,#a855f7); }\n.gc-emblem-strip button i[data-emblem-icon=dawn] { background:linear-gradient(135deg,#fda4af,#fcd34d); }\n.gc-emblem-strip button i[data-emblem-icon=amber] { background:linear-gradient(135deg,#f59e0b,#b45309); }\n.gc-emblem-strip button i[data-emblem-icon=wet] { background:linear-gradient(135deg,#38bdf8,#0ea5e9); }\n.gc-emblem-strip button i[data-emblem-icon=chilled] { background:linear-gradient(135deg,#a5f3fc,#22d3ee); }\n.gc-emblem-strip button i[data-emblem-icon=frozen] { background:linear-gradient(135deg,#e0f2fe,#7dd3fc); }\n.gc-emblem-strip button i[data-emblem-icon=coin] { background:linear-gradient(135deg,#fde68a,#d97706); }\n.gc-emblem-strip button i[data-emblem-icon=egg] { background:linear-gradient(135deg,#fff7ed,#fed7aa); }\n.gc-calc-tabs { display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px; }\n.gc-calc-tabs button { flex:1 1 90px; }\n.gc-calc-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }\n.gc-calc-total { color:var(--gc-gold);font-size:15px;font-weight:800;white-space:nowrap; }\n.gc-calc-select { width:100%;height:34px;box-sizing:border-box;padding:0 9px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none;font:inherit; }\n.gc-calc-hint { margin:7px 0 0;color:var(--gc-muted);font-size:10px; }\n.gc-calc-table { width:100%;border-collapse:collapse;margin-top:8px;font-size:11px; }\n.gc-calc-table th { padding:0 0 5px;color:var(--gc-muted);text-align:left;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }\n.gc-calc-table td { padding:6px 6px 6px 0;border-top:1px solid var(--gc-line);vertical-align:middle; }\n.gc-calc-table td:first-child { display:flex;align-items:center;gap:8px; }\n.gc-calc-table td small { display:block;color:var(--gc-muted);font-size:9px; }\n.gc-calc-table .gc-shop-sprite { width:26px;height:26px; }\n.gc-calc-table .gc-shop-sprite img { width:22px;height:22px; }\n.gc-calc-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px; }\n.gc-calc-grid > div { padding:9px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(255,255,255,.02); }\n.gc-calc-grid small { display:block;margin-bottom:3px;color:var(--gc-muted);font-size:9px;text-transform:uppercase;letter-spacing:.07em; }\n.gc-calc-grid b { font-size:16px; }\n.gc-dust-list { max-height:340px;overflow:auto;display:flex;flex-direction:column;gap:5px;margin-top:8px; }\n.gc-dust-row { display:flex;align-items:center;gap:9px;padding:6px 9px 6px 6px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16);cursor:pointer; }\n.gc-dust-row:has(input:checked) { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08); }\n.gc-dust-row .gc-pet-sprite { width:34px;height:34px;border-radius:7px; }\n.gc-dust-row .gc-pet-sprite img { width:30px;height:30px; }\n.gc-dust-row > span { min-width:0;flex:1;display:flex;flex-direction:column; }\n.gc-dust-row b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-dust-row small { color:var(--gc-muted);font-size:9px; }\n.gc-dust-value { flex:0 0 auto;color:var(--gc-gold);font-size:12px; }\n.gc-granter-list { display:flex;flex-direction:column;gap:7px;margin-top:8px; }\n.gc-granter-row { display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,180px);align-items:center;gap:10px;padding:7px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }\n.gc-granter-row[data-active=false] { opacity:.45; }\n.gc-granter-row[data-owned=false] .gc-pet-sprite { border-style:dashed; }\n.gc-granter-row[data-owned=false] .gc-granter-head small { color:#fbbf24; }\n.gc-granter-head { min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer; }\n.gc-granter-head .gc-pet-sprite { width:32px;height:32px;border-radius:7px; }\n.gc-granter-head .gc-pet-sprite img { width:28px;height:28px; }\n.gc-granter-head > span { min-width:0;display:flex;flex-direction:column; }\n.gc-granter-head b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-granter-head small { color:var(--gc-muted);font-size:9px; }\n.gc-granter-slider { display:flex;align-items:center;gap:8px; }\n.gc-granter-slider input { flex:1;min-width:0;accent-color:var(--gc-accent); }\n.gc-granter-slider b { min-width:24px;text-align:right;font-size:12px; }\n.gc-food-slots { display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px; }\n.gc-food-slot { display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }\n.gc-food-slot select { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:11px; }\n.gc-food-slot small { color:var(--gc-muted);font-size:9px; }\n.gc-team-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:9px 11px;border:1px solid var(--gc-line);border-radius:9px;background:linear-gradient(180deg,rgba(167,139,250,.07),transparent); }\n.gc-team-summary-line { min-width:0;color:var(--gc-muted);font-size:11px; }\n.gc-team-summary-line b { color:var(--gc-text);font-size:12px; }\n.gc-team-card { position:relative;display:flex;flex-direction:column;gap:10px;padding:12px; }\n.gc-team-card[data-active=true] { border-color:rgba(52,211,153,.34);background:linear-gradient(180deg,rgba(52,211,153,.06),rgba(255,255,255,.02)); }\n.gc-team-card[data-active=true]::before { content:'';position:absolute;top:12px;bottom:12px;left:0;width:2px;border-radius:0 2px 2px 0;background:linear-gradient(180deg,#34d399,rgba(52,211,153,.2)); }\n.gc-team-head { display:flex;align-items:center;gap:10px; }\n.gc-team-head .gc-team-emblem { flex:0 0 auto;margin-left:0;min-width:26px;height:26px; }\n.gc-team-title { min-width:0;flex:1;display:flex;flex-direction:column;gap:1px; }\n.gc-team-title h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px; }\n.gc-team-title small { color:var(--gc-muted);font-size:10px; }\n.gc-team-actions { flex:0 0 auto;display:flex;gap:6px; }\n.gc-team-active { padding:3px 8px;border-radius:20px;color:#6ee7b7;background:rgba(52,211,153,.13);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }\n.gc-team-size { flex:0 0 auto;padding:3px 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-muted);font-size:10px;font-weight:700; }\n.gc-team-pets { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px; }\n.gc-team-pet { min-width:0;display:flex;align-items:center;gap:9px;padding:7px;border:1px solid var(--gc-line);border-radius:9px;background:rgba(0,0,0,.2); }\n.gc-team-pet.is-missing { border-style:dashed;border-color:rgba(248,113,113,.35); }\n.gc-team-pet.is-empty { justify-content:flex-start;border-style:dashed;opacity:.5; }\n.gc-team-pet.is-empty > i { width:36px;height:36px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.04);color:var(--gc-muted);font-style:normal;font-size:17px; }\n.gc-team-pet .gc-pet-sprite { width:36px;height:36px;border-radius:8px; }\n.gc-team-pet .gc-pet-sprite img { width:32px;height:32px; }\n.gc-team-pet > span { min-width:0;display:flex;flex-direction:column;gap:1px; }\n.gc-team-pet b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-team-pet small { color:var(--gc-muted);font-size:9px; }\n.gc-ability-chips { display:flex;flex-wrap:wrap;gap:3px;margin-top:2px; }\n.gc-ability-chip { width:10px;height:10px;flex:0 0 auto;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);cursor:help;transition:transform .1s; }\n.gc-ability-chip:hover { transform:scale(1.25); }\n.gc-team-foot { display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-top:9px;border-top:1px solid var(--gc-line); }\n.gc-team-emblem { display:inline-grid;place-items:center;vertical-align:middle;margin-left:7px;padding:1px 6px;border:1px solid rgba(167,139,250,.3);border-radius:6px;color:#c4b5fd;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em; }\n.gc-team-emblem:has(img) { padding:2px; }\n.gc-team-emblem img { width:16px;height:16px;object-fit:contain; }\n.gc-team-emblem.is-empty { color:var(--gc-muted);border-style:dashed; }\n.gc-pet-grid label.gc-pet-locked { opacity:.42; }\n.gc-pet-grid label.gc-pet-locked input { cursor:not-allowed; }\n.gc-team-picker-grid { max-height:none;height:100%;margin:0;padding:0 16px 12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;align-content:start; }\n.gc-team-picker-grid label { padding:9px; }\n.gc-team-picker-shell > footer { display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--gc-line); }\n.gc-team-picker-shell > footer button { padding:8px 16px; }\n#gc-petfood { position:fixed;left:0;top:0;z-index:99991;width:0;height:0;pointer-events:none;font:12px/1.3 system-ui,sans-serif;user-select:none; }\n#gc-petfood[hidden] { display:none; }\n#gc-petfood img { image-rendering:auto!important; }\n#gc-petfood [data-food-row] { position:fixed;box-sizing:border-box;display:grid;place-items:center;padding:2px;overflow:hidden;color:var(--gc-text);border:1px solid rgba(167,139,250,.35);border-radius:9px;background:linear-gradient(145deg,rgba(24,20,40,.95),rgba(12,12,17,.95));box-shadow:0 6px 18px rgba(0,0,0,.55);pointer-events:auto;cursor:pointer;transition:border-color .12s,background .12s; }\n#gc-petfood [data-food-row]:hover:not(:disabled) { border-color:rgba(167,139,250,.75);background:linear-gradient(145deg,rgba(56,42,94,.95),rgba(22,20,34,.95)); }\n#gc-petfood [data-food-row]:disabled { opacity:.45;cursor:not-allowed; }\n#gc-petfood [data-food-row] img { flex:0 0 auto;object-fit:contain; }\n#gc-petfood [data-food-row] i { color:rgba(255,255,255,.7);font:700 17px system-ui,sans-serif;font-style:normal; }\n.gc-petfood-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 3px;color:#0c0c11;background:#fbbf24;border-radius:7px;text-align:center;font:800 11px/16px system-ui,sans-serif; }\n.gc-petfood-options { position:fixed;padding:3px 6px;color:#c4b5fd;border:1px solid rgba(167,139,250,.3);border-radius:7px;background:rgba(16,14,26,.92);box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;font:700 10px system-ui,sans-serif; }\n.gc-petfood-options:hover { color:#ede9fe;border-color:rgba(167,139,250,.6); }\n.gc-food-card .gc-food-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }\n.gc-food-card .gc-food-head span { color:var(--gc-muted);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }\n.gc-food-options { display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px;margin-top:8px; }\n.gc-food-options button { display:flex!important;align-items:center;gap:7px;padding:5px 7px!important;text-align:left!important; }\n.gc-food-options button > span:last-child { min-width:0;display:flex;flex-direction:column; }\n.gc-food-options button small { color:var(--gc-muted);font-size:9px; }\n.gc-food-options button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.4)!important;background:rgba(167,139,250,.15)!important; }\n#gc-toast { position:fixed;left:50%;top:20px;z-index:1000000;transform:translate(-50%,-12px);padding:9px 14px;color:#fff;background:#17171f;border:1px solid rgba(52,211,153,.35);border-radius:7px;opacity:0;pointer-events:none;transition:.2s;font:12px system-ui,sans-serif; }\n#gc-toast.is-visible { opacity:1;transform:translate(-50%,0); } #gc-toast[data-tone=error] { border-color:rgba(248,113,113,.5); }\n@media(max-width:650px) { #gc-panel{padding:6px}.gc-shell{width:100%;height:100%;border-radius:9px}.gc-layout{grid-template-columns:104px minmax(0,1fr)}.gc-layout main{padding:9px}.gc-check-grid,.gc-pet-grid,.gc-active-pets{grid-template-columns:1fr}.gc-shortcut-row{grid-template-columns:1fr;gap:5px}#gc-alarm{min-width:0;width:calc(100vw - 24px)} }\n\n#gc-planner { position:fixed;right:16px;top:16px;z-index:99992;width:340px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:linear-gradient(145deg,#10151a,#090b0f 72%);border:1px solid rgba(167,139,250,.3);border-radius:11px;box-shadow:0 18px 55px rgba(0,0,0,.7);font:12px/1.4 system-ui,sans-serif;user-select:none; }\n#gc-planner img { image-rendering:auto!important; }\n#gc-planner header { display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid var(--gc-line); }\n#gc-planner header b { flex:1;font-size:12px; }\n#gc-planner header span { color:var(--gc-muted);font-size:10px; }\n#gc-planner header button { padding:5px 10px;color:#fecaca;border:1px solid rgba(248,113,113,.4);border-radius:6px;background:rgba(248,113,113,.1);cursor:pointer;font:700 10px system-ui,sans-serif; }\n.gc-planner-body { padding:11px 13px 14px; }\n.gc-planner-body > small { display:block;margin-bottom:9px;color:var(--gc-muted);font-size:10px; }\n.gc-planner-modes { display:flex;gap:5px;margin-bottom:8px; }\n.gc-planner-modes button { flex:1;padding:6px 10px;color:var(--gc-text);border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.03);cursor:pointer;font:700 11px system-ui,sans-serif; }\n.gc-planner-modes button.active { color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16); }\n.gc-planner-mount { max-height:136px!important;margin-top:6px; }\n.gc-planner-grid { max-height:238px;display:grid;grid-template-columns:repeat(auto-fill,minmax(43px,1fr));gap:5px;overflow:auto;padding:2px; }\n.gc-planner-grid button { position:relative;aspect-ratio:1;display:grid;place-items:center;padding:4px;box-sizing:border-box;overflow:hidden;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.03);cursor:pointer; }\n.gc-planner-grid button[data-active=true] { border-color:rgba(167,139,250,.6);background:rgba(167,139,250,.18); }\n.gc-planner-grid button[data-rarity=Uncommon] { box-shadow:inset 0 -2px rgba(52,211,153,.6); }\n.gc-planner-grid button[data-rarity=Rare] { box-shadow:inset 0 -2px rgba(96,165,250,.7); }\n.gc-planner-grid button[data-rarity=Legendary] { box-shadow:inset 0 -2px rgba(251,191,36,.75); }\n.gc-planner-grid button[data-rarity=Mythic] { box-shadow:inset 0 -2px rgba(232,121,249,.75); }\n.gc-planner-grid button[data-rarity=Celestial] { box-shadow:inset 0 -2px rgba(103,232,249,.8); }\n.gc-planner-grid button[data-rarity=Divine] { box-shadow:inset 0 -2px rgba(248,113,113,.8); }\n.gc-planner-grid img { position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);object-fit:contain; }\n.gc-planner-grid i { color:var(--gc-muted);font-style:normal;font-size:12px; }\n.gc-planner-row { display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap; }\n.gc-planner-row > b { color:var(--gc-muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em; }\n.gc-planner-mutations { display:flex;flex-direction:column;gap:4px;flex:1;min-width:0; }\n.gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }\n.gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }\n.gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }\n.gc-planner-mutation b { font-size:9px; }\n.gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }\n.gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:11px;font-weight:700;text-align:right; }\n.gc-planner-row button,.gc-planner-mutations button { padding:5px 9px;color:var(--gc-text);border:1px solid var(--gc-line);border-radius:6px;background:rgba(255,255,255,.03);cursor:pointer;font:700 10px system-ui,sans-serif; }\n.gc-planner-mutations button[data-active=true] { color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16); }\n.gc-planner-row input,.gc-planner-row select { flex:1;min-width:0;height:29px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:11px; }\nbody.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }\n.gc-journal-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }\n.gc-journal-summary b { color:#f4f4f5;font-size:15px; }\n.gc-journal-list { display:flex;flex-direction:column;gap:5px;margin-top:8px; }\n.gc-journal-list[data-incomplete-only=true] .gc-journal-row[data-complete=true] { display:none; }\n.gc-journal-row { display:grid;grid-template-columns:minmax(120px,1.1fr) auto;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft); }\n.gc-journal-row[data-complete=true] { border-color:rgba(74,222,128,.32);background:rgba(74,222,128,.07); }\n.gc-journal-head { display:flex;min-width:0;align-items:center;gap:7px; }\n.gc-journal-head b { display:block;overflow:hidden;color:#f4f4f5;font-size:12px;text-overflow:ellipsis;white-space:nowrap; }\n.gc-journal-head small { color:var(--gc-muted);font-size:10px; }\n.gc-journal-chips { display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px; }\n.gc-journal-chip { position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--gc-line);border-radius:5px;background:rgba(255,255,255,.03); }\n.gc-journal-chip img { max-width:18px;max-height:18px;object-fit:contain; }\n.gc-journal-chip b { color:var(--gc-text);font-size:8px;font-weight:700; }\n.gc-journal-chip[data-logged=false] { opacity:.24;filter:grayscale(1); }\n.gc-journal-chip[data-logged=true] { border-color:rgba(167,139,250,.42);background:rgba(167,139,250,.14); }\n.gc-journal-abilities { grid-column:1 / -1;display:flex;align-items:center;gap:6px; }\n.gc-journal-abilities small { color:var(--gc-muted);font-size:9px; }\n.gc-row [data-journal-incomplete][data-active=true] { color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16); }\n.gc-journal-group { display:flex;flex-direction:column;gap:5px; }\n.gc-journal-group + .gc-journal-group { margin-top:11px; }\n.gc-journal-group[hidden] { display:none; }\n.gc-journal-group-head { display:flex;align-items:center;gap:6px;margin:0;color:var(--gc-muted);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase; }\n.gc-journal-group-head .gc-shop-sprite img { max-width:16px;max-height:16px; }\n.gc-journal-list[data-incomplete-only=true] .gc-journal-group:not(:has(.gc-journal-row[data-complete=false])) { display:none; }\n#gc-lunar[data-dragging=true] { opacity:.9; }\n#gc-lunar button { cursor:pointer; }\nbutton.gc-pet-potions { width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left; }\nbutton.gc-pet-potions i { flex:0 0 auto;padding:2px 7px;border:1px solid rgba(167,139,250,.4);border-radius:5px;color:#ddd6fe;background:rgba(167,139,250,.14);font-size:9px;font-weight:700;font-style:normal; }\nbutton.gc-pet-potions:hover { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.09); }\nbutton.gc-pet-potions:disabled { opacity:.5;cursor:default; }\n";
+      style.textContent = ":root {\n  --gc-bg: #0c0c11;\n  --gc-raised: #121219;\n  --gc-soft: rgba(255,255,255,.035);\n  --gc-line: rgba(255,255,255,.075);\n  --gc-text: #e4e4e7;\n  --gc-muted: rgba(255,255,255,.72);\n  --gc-accent: #a78bfa;\n  --gc-green: #34d399;\n  --gc-gold: #fbbf24;\n  --gc-danger: #f87171;\n}\n#gc-panel img,#gc-alarm img,#gc-turtle img,#gc-overview-panel img { image-rendering:auto!important; }\n#gc-lunar { position:fixed;right:16px;bottom:16px;cursor:move;z-index:99990;width:238px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:linear-gradient(145deg,#10151a,#090b0f 72%);border:1px solid rgba(125,211,252,.13);border-radius:13px;box-shadow:0 18px 55px rgba(0,0,0,.68),inset 0 1px rgba(255,255,255,.04);font:14px/1.2 system-ui,sans-serif;user-select:none; }\n#gc-lunar::before { content:'';position:absolute;top:0;left:14px;right:14px;height:1px;background:linear-gradient(90deg,transparent,#67e8f9 42%,#a78bfa 68%,transparent);opacity:.75; }\n.gc-lunar-head { display:flex;align-items:center;justify-content:space-between;padding:10px 10px 3px 12px; }\n.gc-lunar-title { min-width:0;display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase; }\n.gc-lunar-mark { position:relative;width:18px;height:18px;flex:0 0 auto;border-radius:50%;background:linear-gradient(145deg,#67e8f9,#8b5cf6);box-shadow:0 0 14px rgba(103,232,249,.2); }\n.gc-lunar-mark::after { content:'';position:absolute;top:2px;left:6px;width:14px;height:14px;border-radius:50%;background:#0d1116; }\n#gc-lunar button[data-options] { width:27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:7px;color:#cbd5e1;background:rgba(255,255,255,.035);cursor:pointer;transition:.15s; }\n#gc-lunar button[data-options] svg { width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8; }\n#gc-lunar button[data-options]:hover { color:#e0f2fe;border-color:rgba(103,232,249,.3);background:rgba(103,232,249,.08); }\n.gc-lunar-countdown { display:flex;align-items:center;justify-content:center;padding:4px 12px 14px; }\n.gc-lunar-countdown strong { color:#f8fafc;font:650 31px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.035em;text-align:center;text-shadow:0 0 20px rgba(103,232,249,.1); }\n#gc-lunar .gc-health { min-height:30px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:6px 9px 6px 12px;background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.055); }\n#gc-ws-health { min-width:0;display:flex;align-items:center;gap:6px;color:#a8b6c8;font-size:9px;font-weight:650; }\n#gc-ws-health i { width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,.4); }\n#gc-ws-health[data-status=connected] i { background:var(--gc-green);box-shadow:0 0 8px rgba(52,211,153,.45); }\n#gc-ws-health[data-status=disconnected] i { background:var(--gc-danger);box-shadow:0 0 8px rgba(248,113,113,.45); }\n#gc-update-health { margin-left:auto;padding:4px 7px;border:1px solid rgba(255,255,255,.06);border-radius:6px;color:#a8b6c8;background:rgba(255,255,255,.025);cursor:pointer;font:750 9px/1.2 system-ui,sans-serif; }\n#gc-update-health:hover { color:#ddd6fe;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08); }\n#gc-update-health[data-status=available] { color:#fecaca;border-color:rgba(248,113,113,.72);background:rgba(248,113,113,.07);box-shadow:0 0 0 1px rgba(248,113,113,.16),0 0 13px rgba(248,113,113,.1); }\n#gc-update-health[data-status=failed] { color:var(--gc-danger); }\n#gc-panel { position:fixed;inset:0;z-index:999995;padding:18px;box-sizing:border-box;display:grid;place-items:center;background:transparent;pointer-events:none;color:var(--gc-text);font:14px/1.45 system-ui,sans-serif; }\n#gc-panel[hidden] { display:none; }\n.gc-shell { width:min(880px,96vw);height:min(720px,92vh);overflow:hidden;display:flex;flex-direction:column;pointer-events:auto;background:var(--gc-bg);border:1px solid var(--gc-line);border-radius:12px;box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035); }\n.gc-shell > header { min-height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line); }\n.gc-shell header small { color:var(--gc-muted);font-size:9px;font-weight:700;letter-spacing:.18em; }\n.gc-shell header h2 { margin:3px 0 0;color:#fafafa;font-size:19px;line-height:1.1;letter-spacing:.02em; }\n.gc-shell header button { width:28px;height:28px;padding:0;border:1px solid var(--gc-line);border-radius:50%;color:var(--gc-muted);background:transparent;cursor:pointer; }\n.gc-shell header button:hover { color:#fff;background:rgba(255,255,255,.07); }\n.gc-layout { min-height:0;flex:1;display:grid;grid-template-columns:148px minmax(0,1fr); }\n.gc-layout nav { padding:12px 9px;background:#09090d;border-right:1px solid var(--gc-line); }\n.gc-layout nav button { width:100%;padding:9px 10px;margin:1px 0;border:1px solid transparent;border-radius:7px;text-align:left;color:var(--gc-muted);background:transparent;cursor:pointer;font:600 11px system-ui,sans-serif; }\n.gc-layout nav button:hover { color:#d4d4d8;background:var(--gc-soft); }\n.gc-layout nav button.active { color:#ddd6fe;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.1);box-shadow:inset 2px 0 var(--gc-accent); }\n.gc-layout main { overflow:auto;padding:14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent; }\n.gc-note { margin:0 0 12px;color:var(--gc-muted);font-size:11px; }\n.gc-list,.gc-stack { display:flex;flex-direction:column;gap:7px; }\n.gc-toggle,.gc-check { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft);cursor:pointer; }\n.gc-toggle:hover,.gc-check:hover,.gc-card:hover { border-color:rgba(255,255,255,.13); }\n.gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }\n.gc-toggle b,.gc-check b { color:#e4e4e7;font-size:12px; }\n.gc-toggle small,.gc-check small { margin-top:2px;color:var(--gc-muted);font-size:10px; }\n.gc-toggle input { position:absolute;opacity:0;pointer-events:none; }\n.gc-toggle i { width:32px;height:18px;flex:0 0 auto;border-radius:12px;background:rgba(255,255,255,.12);transition:.18s; }\n.gc-toggle i::after { content:'';display:block;width:14px;height:14px;margin:2px;border-radius:50%;background:#a1a1aa;transition:.18s; }\n.gc-toggle input:checked + i { background:#7c3aed; }\n.gc-toggle input:checked + i::after { transform:translateX(14px);background:#fff; }\n.gc-card { padding:11px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft);transition:border-color .15s; }\n.gc-card h3 { margin:0 0 3px;color:#f4f4f5;font-size:15px;line-height:1.2; }\n.gc-card p { margin:0;color:var(--gc-muted);font-size:10px; }\n.gc-shortcuts,.gc-tracking { margin-top:10px; }\n.gc-launch-row { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px; }\n.gc-launch-row > div { min-width:0; }\n/* Fixed width so the launch buttons line up down the tab rather than tracking their label lengths. */\n#gc-panel .gc-launch-row button { width:132px;flex:0 0 auto;padding:8px 14px;white-space:nowrap;text-align:center; }\n.gc-shortcuts > p { margin-bottom:9px; }\n.gc-shortcut-grid { overflow:hidden;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.12); }\n.gc-shortcut-row { display:grid;grid-template-columns:minmax(145px,1fr) 210px;align-items:center;gap:14px;padding:8px 10px; }\n.gc-shortcut-row + .gc-shortcut-row { border-top:1px solid var(--gc-line); }\n.gc-shortcut-row b { color:#e4e4e7;font-size:11px; }\n.gc-shortcut-row input { width:100%;height:30px;box-sizing:border-box;padding:0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none;cursor:pointer; }\n.gc-shortcut-row input:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n#gc-panel input::placeholder,#gc-team-picker input::placeholder { color:rgba(255,255,255,.5);opacity:1; }\n.gc-row { display:flex;align-items:center;justify-content:space-between;gap:10px; }\n.gc-row + .gc-row { margin-top:10px;padding-top:9px;border-top:1px solid var(--gc-line); }\n.gc-card input[type=text],.gc-card > input,.gc-key input,.gc-search { width:100%;height:34px;box-sizing:border-box;padding:0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none; }\n.gc-card select { width:100%;height:34px;box-sizing:border-box;padding:0 30px 0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none;cursor:pointer; }\n.gc-card select:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n.gc-search { margin:9px 0 0; }\n.gc-search:focus,.gc-card input:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n.gc-card > input { margin:7px 0 9px; }\n.gc-key { min-width:0;flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;color:var(--gc-muted);font-size:10px; }\n.gc-key input { height:29px;cursor:pointer; }\n.gc-key small { grid-column:2;margin-top:-5px;color:var(--gc-muted);font-size:9px; }\n.gc-team-delete-confirm { display:flex;align-items:center;gap:5px;white-space:nowrap; }\n.gc-team-delete-confirm b { color:var(--gc-danger);font-size:10px; }\n.gc-pet-grid { max-height:250px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:9px; }\n.gc-pet-grid label { min-width:0;display:flex;align-items:center;gap:9px;padding:8px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16);cursor:pointer; }\n.gc-pet-grid label:has(input:checked) { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08); }\n.gc-pet-grid span:not(.gc-pet-sprite) { min-width:0;display:flex;flex:1;flex-direction:column; }\n.gc-pet-grid b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-pet-grid small { color:var(--gc-muted);font-size:9px; }\n#gc-panel button { padding:6px 9px;border:1px solid var(--gc-line);border-radius:6px;color:#d4d4d8;background:rgba(255,255,255,.04);cursor:pointer;font:600 11px system-ui,sans-serif; }\n#gc-panel button:hover { color:#fff;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.09); }\n#gc-panel .gc-primary { width:100%;color:#fff;border-color:#7c3aed;background:#7c3aed; }\n#gc-panel .gc-danger { color:var(--gc-danger); }\n.gc-pill { padding:3px 7px;border:1px solid rgba(167,139,250,.16);border-radius:5px;color:#c4b5fd;background:rgba(167,139,250,.08);font-size:10px;white-space:nowrap; }\n.gc-chips { display:flex;flex-wrap:wrap;gap:4px;margin-top:8px; }\n.gc-chips span { padding:3px 7px;border:1px solid rgba(96,165,250,.16);border-radius:5px;color:#93c5fd;background:rgba(96,165,250,.07);font-size:10px; }\n.gc-chips span[data-active=false] { opacity:.32;text-decoration:line-through; }\n.gc-log { max-height:280px;overflow:auto;margin-top:8px; }\n.gc-layout main.gc-ability-log-tab { min-height:0;display:flex;overflow:hidden;flex-direction:column; }\n.gc-ability-log-card { min-height:0;flex:1;display:flex;flex-direction:column; }\n.gc-ability-log-tab .gc-log { min-height:0;max-height:none;flex:1; }\n.gc-log > div { display:grid;grid-template-columns:62px 58px minmax(0,1fr);gap:8px;padding:7px 2px;border-top:1px solid var(--gc-line);font:10px ui-monospace,monospace; }\n.gc-proc-result { display:flex;min-width:0;align-items:baseline;gap:6px;color:#f4f4f5;font-size:11px;font-weight:700; }.gc-proc-result i { overflow:hidden;color:#67e8f9;font-size:11px;font-weight:700;font-style:normal;text-overflow:ellipsis;white-space:nowrap; }\n.gc-log time { color:var(--gc-muted); }\n.gc-log > p { padding:9px 2px;color:var(--gc-muted);font-size:10px; }\n.gc-ability-log-card .gc-row h3 { white-space:nowrap; }\n.gc-ability-log-card .gc-row .gc-log-search { flex:1;min-width:0;max-width:230px;height:28px;font-size:11px; }\n.gc-room { display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px; }\n.gc-room h3 { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }\n.gc-room-faces { display:flex;align-items:center;margin:5px 0 2px; }\n.gc-room-face { width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;margin-left:-5px;overflow:hidden;border:2px solid #0c0c11;border-radius:50%;background:linear-gradient(135deg,rgba(167,139,250,.3),rgba(103,232,249,.22));color:#ddd6fe;font:700 10px system-ui,sans-serif; }\n.gc-room-face:first-child { margin-left:0; }\n.gc-room-face img { width:100%;height:100%;object-fit:cover; }\n.gc-check-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px; }\n.gc-check { justify-content:flex-start;padding:8px; }\n.gc-check input { accent-color:#8b5cf6; }\n.gc-filter-list [hidden] { display:none; }\n.gc-pet-sprite { position:relative;width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.025); }\n.gc-pet-sprite img { width:40px;height:40px;object-fit:contain;image-rendering:auto; }\n.gc-pet-sprite i { color:rgba(255,255,255,.5);font:700 20px system-ui,sans-serif;font-style:normal; }\n.gc-pet-head { display:grid;grid-template-columns:auto minmax(0,1fr) minmax(130px,180px);align-items:center;gap:10px; }\n.gc-pet-head h3 { margin:0; }\n.gc-pet-head .gc-ability-chips { margin-top:5px; }\n.gc-hunger { min-width:110px; }\n.gc-hunger > div { display:flex;justify-content:space-between;color:var(--gc-muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em; }\n.gc-hunger > div b { color:#d4d4d8; }\n.gc-hunger > i { display:block;height:5px;margin-top:4px;overflow:hidden;border-radius:4px;background:rgba(255,255,255,.06); }\n.gc-hunger > i u { display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#059669,#34d399);text-decoration:none; }\n.gc-hunger > i u[data-tone=medium] { background:linear-gradient(90deg,#d97706,#fbbf24); }\n.gc-hunger > i u[data-tone=low] { background:linear-gradient(90deg,#dc2626,#f87171); }\n.gc-team-abilities { display:block;margin-top:5px;color:#a78bfa;font-size:9px;line-height:1.35; }\n.gc-pet-grid span.gc-ability-chips { flex:0 0 auto;flex-direction:row;flex-wrap:nowrap;margin-top:5px; }\n.gc-pet-str { flex:0 0 auto;align-self:center;padding:3px 7px;border:1px solid var(--gc-line);border-radius:7px;color:#c4b5fd;background:rgba(167,139,250,.08);font-size:12px;line-height:1;white-space:nowrap; }\n.gc-pet-str i { color:var(--gc-muted);font-size:9px;font-style:normal; }\n.gc-team-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:var(--gc-muted);font-size:11px; }.gc-team-summary b { color:#e4e4e7; }.gc-active-pets { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px; }.gc-active-pets .gc-pet-head { grid-template-columns:auto minmax(0,1fr); }.gc-active-pets .gc-hunger { grid-column:1/-1;min-width:0; }.gc-pet-strength { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--gc-line);color:var(--gc-muted);font-size:10px; }.gc-pet-strength b { color:#c4b5fd; }.gc-pet-strength strong { color:#34d399;font-size:9px;text-align:right; }.gc-section-label { margin:13px 2px 7px;color:var(--gc-muted);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase; }.gc-ability-summary { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px; }.gc-ability-summary > div:first-child > small { display:block;margin-top:5px;color:#fbbf24;font-size:10px; }.gc-ability-rate { display:flex;min-width:92px;flex-direction:column;text-align:right; }.gc-ability-rate b { color:#60a5fa;font:700 14px ui-monospace,monospace; }.gc-ability-rate small { color:var(--gc-muted);font:9px ui-monospace,monospace; }\n.gc-proc-list { margin-top:9px;border-top:1px solid var(--gc-line); }\n.gc-pet-potions { margin-top:6px;padding:4px 6px;border:1px solid rgba(167,139,250,.16);border-radius:5px;color:#c4b5fd;background:rgba(167,139,250,.07);text-align:center;font-size:9px;font-weight:750; }\n.gc-proc-row { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.045); }\n.gc-proc-row div { min-width:0;display:flex;flex-direction:column; }\n.gc-proc-row small,.gc-proc-row > span { color:var(--gc-muted);font-size:9px; }\n.gc-proc-row p { grid-column:1/-1;margin:0;color:rgba(255,255,255,.75);font:10px/1.35 ui-monospace,monospace; }\n.gc-ability-filter { position:relative;z-index:5;margin-bottom:8px; }\n.gc-ability-filter > span { display:block;margin-bottom:6px;color:var(--gc-muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em; }.gc-ability-filter details { position:relative; }.gc-ability-filter details>summary { height:34px;box-sizing:border-box;padding:8px 30px 8px 10px;border:1px solid var(--gc-line);border-radius:7px;list-style:none;color:var(--gc-text);background:#08080c;cursor:pointer;font-size:11px;font-weight:700; }.gc-ability-filter details>summary::-webkit-details-marker { display:none; }.gc-ability-filter details>summary::after { content:'\\25BE';position:absolute;right:11px;color:var(--gc-muted); }.gc-ability-picker { position:absolute;top:39px;left:0;right:0;z-index:10;max-height:min(320px,50vh);padding:5px;overflow:auto;border:1px solid rgba(167,139,250,.28);border-radius:7px;background:#08080c;box-shadow:0 18px 45px rgba(0,0,0,.72); }.gc-ability-picker header { display:flex;gap:5px;margin-bottom:5px; }.gc-ability-picker header button { flex:1; }.gc-ability-picker>button { width:100%;display:flex;align-items:center;justify-content:space-between;margin:2px 0;padding:7px 8px!important;text-align:left!important; }.gc-ability-picker>button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.3)!important;background:rgba(167,139,250,.12)!important; }.gc-ability-picker>button i { color:#a78bfa;font-style:normal; }\n.gc-ability-filter > small { display:block;margin-top:6px;color:var(--gc-muted);font-size:9px; }\n.gc-shop-tabs { display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px; }.gc-shop-tabs button { flex:1 1 72px; }.gc-shop-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }\n.gc-shop-sprite { width:32px;height:32px;flex:0 0 auto;display:grid!important;place-items:center;overflow:hidden;border-radius:6px;background:rgba(255,255,255,.035); }.gc-shop-sprite img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }\n.gc-empty { padding:22px;color:var(--gc-muted);text-align:center; }\n#gc-alarm { position:fixed;top:22px;left:50%;z-index:999999;transform:translateX(-50%);min-width:430px;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:11px;padding:14px;color:#fff;background:linear-gradient(135deg,#2b0d12,#26170a);border:2px solid #fb923c;border-radius:12px;box-shadow:0 0 0 4px rgba(239,68,68,.18),0 0 32px rgba(249,115,22,.55),0 20px 65px rgba(0,0,0,.8);animation:gc-alarm-pulse .8s ease-in-out infinite alternate;font:12px system-ui,sans-serif; }\n#gc-alarm .gc-alarm-icon { width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#ef4444;color:#fff;font:900 26px/1 system-ui,sans-serif;font-style:normal;box-shadow:0 0 16px rgba(239,68,68,.8); } #gc-alarm div { display:flex;flex-direction:column; } #gc-alarm small { color:#fdba74;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase; } #gc-alarm strong { margin:2px 0;font-size:18px; } #gc-alarm span { color:#fed7aa;font-size:11px; } #gc-alarm button { padding:8px 11px;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:rgba(255,255,255,.1);cursor:pointer;font-weight:800; } #gc-alarm button[data-buy] { color:#1c1208;background:#fb923c;border-color:#fdba74; }\n#gc-alarm [data-alarm-queue] { margin-top:3px;color:#fbbf24;font-size:11px;font-style:normal;font-weight:800; }\n@keyframes gc-alarm-pulse { from { transform:translateX(-50%) scale(1);filter:brightness(1); } to { transform:translateX(-50%) scale(1.015);filter:brightness(1.2); } }\n#gc-turtle { position:fixed;z-index:99989;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 9px;color:#f4f4f5;background:rgba(12,12,17,.96);border:1px solid rgba(167,139,250,.35);border-radius:6px;pointer-events:none;white-space:nowrap;text-align:center;font:700 12px/1.45 system-ui,sans-serif; }\n#gc-team-picker { position:fixed;inset:0;z-index:999996;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:rgba(4,4,8,.55);color:var(--gc-text);font:12px/1.45 system-ui,sans-serif; }\n#gc-team-picker img { image-rendering:auto!important; }\n.gc-team-picker-shell { width:min(1080px,96vw);height:min(760px,92vh);display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;overflow:hidden;background:var(--gc-bg);border:1px solid rgba(167,139,250,.25);border-radius:13px;box-shadow:0 30px 90px rgba(0,0,0,.75); }\n.gc-team-picker-shell > header { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--gc-line); }\n.gc-team-picker-shell > header small { color:var(--gc-muted);font-size:9px;font-weight:800;letter-spacing:.16em; }\n.gc-team-picker-shell > header h2 { margin:2px 0 0;font-size:17px; }\n.gc-team-picker-shell > header button { width:28px;height:28px;padding:0;color:var(--gc-muted);border:1px solid var(--gc-line);border-radius:7px;background:transparent;cursor:pointer; }\n.gc-team-picker-controls { display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 16px; }\n.gc-team-picker-controls .gc-search { margin:0; }\n.gc-team-picker-controls input { height:34px;box-sizing:border-box;padding:0 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none; }\n.gc-team-picker-controls input:focus { border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09); }\n.gc-team-picker-count { color:var(--gc-muted);font-size:11px;font-weight:700;white-space:nowrap; }\n.gc-team-picker-count[data-tone=good] { color:var(--gc-green); }\n.gc-team-picker-count[data-tone=error] { color:var(--gc-danger); }\n.gc-emblem-picker { padding:0 16px 10px; }\n.gc-emblem-head { display:flex;align-items:center;gap:10px;margin-bottom:7px; }\n.gc-emblem-head > span { color:var(--gc-muted);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }\n.gc-emblem-head > small { margin-left:auto;color:var(--gc-muted);font-size:10px; }\n.gc-emblem-tabs { display:flex;gap:5px; }\n.gc-emblem-tabs button { padding:4px 10px;font-size:10px; }\n.gc-emblem-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }\n.gc-emblem-strip { max-height:96px;display:flex;flex-wrap:wrap;gap:5px;overflow:auto;padding:2px; }\n.gc-emblem-strip[hidden] { display:none; }\n.gc-emblem-strip button { width:44px;height:44px;flex:0 0 auto;display:grid;place-items:center;gap:1px;padding:2px!important;border:1px solid var(--gc-line);border-radius:8px;background:rgba(255,255,255,.03);cursor:pointer; }\n.gc-emblem-strip button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.55)!important;background:rgba(167,139,250,.16)!important; }\n.gc-emblem-strip button:disabled { opacity:.3;cursor:not-allowed; }\n.gc-emblem-strip button b { font-size:15px; }\n.gc-emblem-hint { margin:0;padding:6px 2px;color:var(--gc-muted);font-size:10px; }\n.gc-emblem-strip button small { max-width:100%;overflow:hidden;color:var(--gc-muted);text-overflow:ellipsis;white-space:nowrap;font-size:9px; }\n.gc-emblem-strip button img { width:30px;height:30px;object-fit:contain; }\n.gc-emblem-strip button:has(small) img { width:22px;height:22px; }\n.gc-emblem-strip button i { width:15px;height:15px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#67e8f9); }\n.gc-emblem-strip button i[data-emblem-icon=gold] { background:linear-gradient(135deg,#fbbf24,#f59e0b); }\n.gc-emblem-strip button i[data-emblem-icon=rainbow] { background:linear-gradient(135deg,#f87171,#fbbf24 35%,#34d399 65%,#60a5fa); }\n.gc-emblem-strip button i[data-emblem-icon=thunder] { background:linear-gradient(135deg,#fde047,#a855f7); }\n.gc-emblem-strip button i[data-emblem-icon=dawn] { background:linear-gradient(135deg,#fda4af,#fcd34d); }\n.gc-emblem-strip button i[data-emblem-icon=amber] { background:linear-gradient(135deg,#f59e0b,#b45309); }\n.gc-emblem-strip button i[data-emblem-icon=wet] { background:linear-gradient(135deg,#38bdf8,#0ea5e9); }\n.gc-emblem-strip button i[data-emblem-icon=chilled] { background:linear-gradient(135deg,#a5f3fc,#22d3ee); }\n.gc-emblem-strip button i[data-emblem-icon=frozen] { background:linear-gradient(135deg,#e0f2fe,#7dd3fc); }\n.gc-emblem-strip button i[data-emblem-icon=coin] { background:linear-gradient(135deg,#fde68a,#d97706); }\n.gc-emblem-strip button i[data-emblem-icon=egg] { background:linear-gradient(135deg,#fff7ed,#fed7aa); }\n.gc-calc-tabs { display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px; }\n.gc-calc-tabs button { flex:1 1 90px; }\n.gc-calc-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }\n.gc-calc-total { color:var(--gc-gold);font-size:15px;font-weight:800;white-space:nowrap; }\n.gc-calc-select { width:100%;height:34px;box-sizing:border-box;padding:0 9px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;outline:none;font:inherit; }\n.gc-calc-hint { margin:7px 0 0;color:var(--gc-muted);font-size:10px; }\n.gc-calc-table { width:100%;border-collapse:collapse;margin-top:8px;font-size:11px; }\n.gc-calc-table th { padding:0 0 5px;color:var(--gc-muted);text-align:left;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }\n.gc-calc-table td { padding:6px 6px 6px 0;border-top:1px solid var(--gc-line);vertical-align:middle; }\n.gc-calc-table td:first-child { display:flex;align-items:center;gap:8px; }\n.gc-calc-table td small { display:block;color:var(--gc-muted);font-size:9px; }\n.gc-calc-table .gc-shop-sprite { width:26px;height:26px; }\n.gc-calc-table .gc-shop-sprite img { width:22px;height:22px; }\n.gc-calc-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px; }\n.gc-calc-grid > div { padding:9px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(255,255,255,.02); }\n.gc-calc-grid small { display:block;margin-bottom:3px;color:var(--gc-muted);font-size:9px;text-transform:uppercase;letter-spacing:.07em; }\n.gc-calc-grid b { font-size:16px; }\n.gc-dust-list { max-height:340px;overflow:auto;display:flex;flex-direction:column;gap:5px;margin-top:8px; }\n.gc-dust-row { display:flex;align-items:center;gap:9px;padding:6px 9px 6px 6px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16);cursor:pointer; }\n.gc-dust-row:has(input:checked) { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08); }\n.gc-dust-row .gc-pet-sprite { width:34px;height:34px;border-radius:7px; }\n.gc-dust-row .gc-pet-sprite img { width:30px;height:30px; }\n.gc-dust-row > span { min-width:0;flex:1;display:flex;flex-direction:column; }\n.gc-dust-row b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-dust-row small { color:var(--gc-muted);font-size:9px; }\n.gc-dust-value { flex:0 0 auto;color:var(--gc-gold);font-size:12px; }\n.gc-granter-list { display:flex;flex-direction:column;gap:7px;margin-top:8px; }\n.gc-granter-row { display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,180px);align-items:center;gap:10px;padding:7px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }\n.gc-granter-row[data-active=false] { opacity:.45; }\n.gc-granter-row[data-owned=false] .gc-pet-sprite { border-style:dashed; }\n.gc-granter-row[data-owned=false] .gc-granter-head small { color:#fbbf24; }\n.gc-granter-head { min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer; }\n.gc-granter-head .gc-pet-sprite { width:32px;height:32px;border-radius:7px; }\n.gc-granter-head .gc-pet-sprite img { width:28px;height:28px; }\n.gc-granter-head > span { min-width:0;display:flex;flex-direction:column; }\n.gc-granter-head b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-granter-head small { color:var(--gc-muted);font-size:9px; }\n.gc-granter-slider { display:flex;align-items:center;gap:8px; }\n.gc-granter-slider input { flex:1;min-width:0;accent-color:var(--gc-accent); }\n.gc-granter-slider b { min-width:24px;text-align:right;font-size:12px; }\n.gc-food-slots { display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px; }\n.gc-food-slot { display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }\n.gc-food-slot select { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:11px; }\n.gc-food-slot small { color:var(--gc-muted);font-size:9px; }\n.gc-team-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:9px 11px;border:1px solid var(--gc-line);border-radius:9px;background:linear-gradient(180deg,rgba(167,139,250,.07),transparent); }\n.gc-team-summary-line { min-width:0;color:var(--gc-muted);font-size:11px; }\n.gc-team-summary-line b { color:var(--gc-text);font-size:12px; }\n.gc-team-card { position:relative;display:flex;flex-direction:column;gap:10px;padding:12px; }\n.gc-team-card[data-active=true] { border-color:rgba(52,211,153,.34);background:linear-gradient(180deg,rgba(52,211,153,.06),rgba(255,255,255,.02)); }\n.gc-team-card[data-active=true]::before { content:'';position:absolute;top:12px;bottom:12px;left:0;width:2px;border-radius:0 2px 2px 0;background:linear-gradient(180deg,#34d399,rgba(52,211,153,.2)); }\n.gc-team-head { display:flex;align-items:center;gap:10px; }\n.gc-team-head .gc-team-emblem { flex:0 0 auto;margin-left:0;min-width:26px;height:26px; }\n.gc-team-title { min-width:0;flex:1;display:flex;flex-direction:column;gap:1px; }\n.gc-team-title h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px; }\n.gc-team-title small { color:var(--gc-muted);font-size:10px; }\n.gc-team-actions { flex:0 0 auto;display:flex;gap:6px; }\n.gc-team-active { padding:3px 8px;border-radius:20px;color:#6ee7b7;background:rgba(52,211,153,.13);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }\n.gc-team-size { flex:0 0 auto;padding:3px 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-muted);font-size:10px;font-weight:700; }\n.gc-team-pets { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px; }\n.gc-team-pet { min-width:0;display:flex;align-items:center;gap:9px;padding:7px;border:1px solid var(--gc-line);border-radius:9px;background:rgba(0,0,0,.2); }\n.gc-team-pet.is-missing { border-style:dashed;border-color:rgba(248,113,113,.35); }\n.gc-team-pet.is-empty { justify-content:flex-start;border-style:dashed;opacity:.5; }\n.gc-team-pet.is-empty > i { width:36px;height:36px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.04);color:var(--gc-muted);font-style:normal;font-size:17px; }\n.gc-team-pet .gc-pet-sprite { width:36px;height:36px;border-radius:8px; }\n.gc-team-pet .gc-pet-sprite img { width:32px;height:32px; }\n.gc-team-pet > span { min-width:0;display:flex;flex-direction:column;gap:1px; }\n.gc-team-pet b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px; }\n.gc-team-pet small { color:var(--gc-muted);font-size:9px; }\n.gc-ability-chips { display:flex;flex-wrap:wrap;gap:3px;margin-top:2px; }\n.gc-ability-chip { width:10px;height:10px;flex:0 0 auto;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);cursor:help;transition:transform .1s; }\n.gc-ability-chip:hover { transform:scale(1.25); }\n.gc-team-foot { display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-top:9px;border-top:1px solid var(--gc-line); }\n.gc-team-emblem { display:inline-grid;place-items:center;vertical-align:middle;margin-left:7px;padding:1px 6px;border:1px solid rgba(167,139,250,.3);border-radius:6px;color:#c4b5fd;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em; }\n.gc-team-emblem:has(img) { padding:2px; }\n.gc-team-emblem img { width:16px;height:16px;object-fit:contain; }\n.gc-team-emblem.is-empty { color:var(--gc-muted);border-style:dashed; }\n.gc-pet-grid label.gc-pet-locked { opacity:.42; }\n.gc-pet-grid label.gc-pet-locked input { cursor:not-allowed; }\n.gc-team-picker-grid { max-height:none;height:100%;margin:0;padding:0 16px 12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;align-content:start; }\n.gc-team-picker-grid label { padding:9px; }\n.gc-team-picker-shell > footer { display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--gc-line); }\n.gc-team-picker-shell > footer button { padding:8px 16px; }\n#gc-petfood { position:fixed;left:0;top:0;z-index:99991;width:0;height:0;pointer-events:none;font:12px/1.3 system-ui,sans-serif;user-select:none; }\n#gc-petfood[hidden] { display:none; }\n#gc-petfood img { image-rendering:auto!important; }\n#gc-petfood [data-food-row] { position:fixed;box-sizing:border-box;display:grid;place-items:center;padding:2px;overflow:hidden;color:var(--gc-text);border:1px solid rgba(167,139,250,.35);border-radius:9px;background:linear-gradient(145deg,rgba(24,20,40,.95),rgba(12,12,17,.95));box-shadow:0 6px 18px rgba(0,0,0,.55);pointer-events:auto;cursor:pointer;transition:border-color .12s,background .12s; }\n#gc-petfood [data-food-row]:hover:not(:disabled) { border-color:rgba(167,139,250,.75);background:linear-gradient(145deg,rgba(56,42,94,.95),rgba(22,20,34,.95)); }\n#gc-petfood [data-food-row]:disabled { opacity:.45;cursor:not-allowed; }\n#gc-petfood [data-food-row] img { flex:0 0 auto;object-fit:contain; }\n#gc-petfood [data-food-row] i { color:rgba(255,255,255,.7);font:700 17px system-ui,sans-serif;font-style:normal; }\n.gc-petfood-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 3px;color:#0c0c11;background:#fbbf24;border-radius:7px;text-align:center;font:800 11px/16px system-ui,sans-serif; }\n.gc-petfood-options { position:fixed;padding:3px 6px;color:#c4b5fd;border:1px solid rgba(167,139,250,.3);border-radius:7px;background:rgba(16,14,26,.92);box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;font:700 10px system-ui,sans-serif; }\n.gc-petfood-options:hover { color:#ede9fe;border-color:rgba(167,139,250,.6); }\n.gc-food-card .gc-food-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }\n.gc-food-card .gc-food-head span { color:var(--gc-muted);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }\n.gc-food-options { display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px;margin-top:8px; }\n.gc-food-options button { display:flex!important;align-items:center;gap:7px;padding:5px 7px!important;text-align:left!important; }\n.gc-food-options button > span:last-child { min-width:0;display:flex;flex-direction:column; }\n.gc-food-options button small { color:var(--gc-muted);font-size:9px; }\n.gc-food-options button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.4)!important;background:rgba(167,139,250,.15)!important; }\n#gc-toast { position:fixed;left:50%;top:20px;z-index:1000000;transform:translate(-50%,-12px);padding:9px 14px;color:#fff;background:#17171f;border:1px solid rgba(52,211,153,.35);border-radius:7px;opacity:0;pointer-events:none;transition:.2s;font:12px system-ui,sans-serif; }\n#gc-toast.is-visible { opacity:1;transform:translate(-50%,0); } #gc-toast[data-tone=error] { border-color:rgba(248,113,113,.5); }\n@media(max-width:650px) { #gc-panel{padding:6px}.gc-shell{width:100%;height:100%;border-radius:9px}.gc-layout{grid-template-columns:104px minmax(0,1fr)}.gc-layout main{padding:9px}.gc-check-grid,.gc-pet-grid,.gc-active-pets{grid-template-columns:1fr}.gc-shortcut-row{grid-template-columns:1fr;gap:5px}#gc-alarm{min-width:0;width:calc(100vw - 24px)} }\n\n#gc-planner { position:fixed;right:16px;top:16px;z-index:99992;width:340px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:linear-gradient(145deg,#10151a,#090b0f 72%);border:1px solid rgba(167,139,250,.3);border-radius:11px;box-shadow:0 18px 55px rgba(0,0,0,.7);font:12px/1.4 system-ui,sans-serif;user-select:none; }\n#gc-planner img { image-rendering:auto!important; }\n#gc-planner header { display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid var(--gc-line); }\n#gc-planner header b { flex:1;font-size:12px; }\n#gc-planner header span { color:var(--gc-muted);font-size:10px; }\n#gc-planner header button { padding:5px 10px;color:#fecaca;border:1px solid rgba(248,113,113,.4);border-radius:6px;background:rgba(248,113,113,.1);cursor:pointer;font:700 10px system-ui,sans-serif; }\n.gc-planner-body { padding:11px 13px 14px; }\n.gc-planner-body > small { display:block;margin-bottom:9px;color:var(--gc-muted);font-size:10px; }\n.gc-planner-modes { display:flex;gap:5px;margin-bottom:8px; }\n.gc-planner-modes button { flex:1;padding:6px 10px;color:var(--gc-text);border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.03);cursor:pointer;font:700 11px system-ui,sans-serif; }\n.gc-planner-modes button.active { color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16); }\n.gc-planner-mount { max-height:136px!important;margin-top:6px; }\n.gc-planner-grid { max-height:238px;display:grid;grid-template-columns:repeat(auto-fill,minmax(43px,1fr));gap:5px;overflow:auto;padding:2px; }\n.gc-planner-grid button { position:relative;aspect-ratio:1;display:grid;place-items:center;padding:4px;box-sizing:border-box;overflow:hidden;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.03);cursor:pointer; }\n.gc-planner-grid button[data-active=true] { border-color:rgba(167,139,250,.6);background:rgba(167,139,250,.18); }\n.gc-planner-grid button[data-rarity=Uncommon] { box-shadow:inset 0 -2px rgba(52,211,153,.6); }\n.gc-planner-grid button[data-rarity=Rare] { box-shadow:inset 0 -2px rgba(96,165,250,.7); }\n.gc-planner-grid button[data-rarity=Legendary] { box-shadow:inset 0 -2px rgba(251,191,36,.75); }\n.gc-planner-grid button[data-rarity=Mythic] { box-shadow:inset 0 -2px rgba(232,121,249,.75); }\n.gc-planner-grid button[data-rarity=Celestial] { box-shadow:inset 0 -2px rgba(103,232,249,.8); }\n.gc-planner-grid button[data-rarity=Divine] { box-shadow:inset 0 -2px rgba(248,113,113,.8); }\n.gc-planner-grid img { position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);object-fit:contain; }\n.gc-planner-grid i { color:var(--gc-muted);font-style:normal;font-size:12px; }\n.gc-planner-row { display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap; }\n.gc-planner-row > b { color:var(--gc-muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em; }\n.gc-planner-mutations { display:flex;flex-direction:column;gap:4px;flex:1;min-width:0; }\n.gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }\n.gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }\n.gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }\n.gc-planner-mutation b { font-size:9px; }\n.gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }\n.gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:11px;font-weight:700;text-align:right; }\n.gc-planner-row button,.gc-planner-mutations button { padding:5px 9px;color:var(--gc-text);border:1px solid var(--gc-line);border-radius:6px;background:rgba(255,255,255,.03);cursor:pointer;font:700 10px system-ui,sans-serif; }\n.gc-planner-mutations button[data-active=true] { color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16); }\n.gc-planner-row input,.gc-planner-row select { flex:1;min-width:0;height:29px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:11px; }\nbody.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }\n.gc-journal-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }\n.gc-journal-summary b { color:#f4f4f5;font-size:15px; }\n.gc-journal-list { display:flex;flex-direction:column;gap:5px;margin-top:8px; }\n.gc-journal-list[data-incomplete-only=true] .gc-journal-row[data-complete=true] { display:none; }\n.gc-journal-row { display:grid;grid-template-columns:minmax(120px,1.1fr) auto;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft); }\n.gc-journal-row[data-complete=true] { border-color:rgba(74,222,128,.32);background:rgba(74,222,128,.07); }\n.gc-journal-head { display:flex;min-width:0;align-items:center;gap:7px; }\n.gc-journal-head b { display:block;overflow:hidden;color:#f4f4f5;font-size:12px;text-overflow:ellipsis;white-space:nowrap; }\n.gc-journal-head small { color:var(--gc-muted);font-size:10px; }\n.gc-journal-chips { display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px; }\n.gc-journal-chip { position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--gc-line);border-radius:5px;background:rgba(255,255,255,.03); }\n.gc-journal-chip img { max-width:18px;max-height:18px;object-fit:contain; }\n.gc-journal-chip b { color:var(--gc-text);font-size:8px;font-weight:700; }\n.gc-journal-chip[data-logged=false] { opacity:.24;filter:grayscale(1); }\n.gc-journal-chip[data-logged=true] { border-color:rgba(167,139,250,.42);background:rgba(167,139,250,.14); }\n.gc-journal-abilities { grid-column:1 / -1;display:flex;align-items:center;gap:6px; }\n.gc-journal-abilities small { color:var(--gc-muted);font-size:9px; }\n.gc-row [data-journal-incomplete][data-active=true] { color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16); }\n.gc-journal-group { display:flex;flex-direction:column;gap:5px; }\n.gc-journal-group + .gc-journal-group { margin-top:11px; }\n.gc-journal-group[hidden] { display:none; }\n.gc-journal-group-head { display:flex;align-items:center;gap:6px;margin:0;color:var(--gc-muted);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase; }\n.gc-journal-group-head .gc-shop-sprite img { max-width:16px;max-height:16px; }\n.gc-journal-list[data-incomplete-only=true] .gc-journal-group:not(:has(.gc-journal-row[data-complete=false])) { display:none; }\n#gc-lunar[data-dragging=true] { opacity:.9; }\n#gc-lunar button { cursor:pointer; }\nbutton.gc-pet-potions { width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left; }\nbutton.gc-pet-potions i { flex:0 0 auto;padding:2px 7px;border:1px solid rgba(167,139,250,.4);border-radius:5px;color:#ddd6fe;background:rgba(167,139,250,.14);font-size:9px;font-weight:700;font-style:normal; }\nbutton.gc-pet-potions:hover { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.09); }\nbutton.gc-pet-potions:disabled { opacity:.5;cursor:default; }\n";
       document.head.appendChild(style);
       const lunar = document.createElement("div");
       lunar.id = "gc-lunar";
@@ -4519,17 +4523,17 @@ ${rows}</div>`;
     const DECOR = DECOR_CATALOG;
     const LAYOUT_KEY = "gardenCompanion.layouts.v1";
     const MUTATION_GROUPS = [...new Set(Object.values(MUTATIONS).map((mutation) => mutation.group))];
-    const RARITY_ORDER2 = ["Common", "Uncommon", "Rare", "Legendary", "Mythic", "Divine", "Celestial"];
+    const RARITY_ORDER3 = ["Common", "Uncommon", "Rare", "Legendary", "Mythic", "Divine", "Celestial"];
     function rarityRank2(species) {
-      const rank = RARITY_ORDER2.indexOf(PLANTS[species]?.rarity || "Common");
-      return rank < 0 ? RARITY_ORDER2.length : rank;
+      const rank = RARITY_ORDER3.indexOf(PLANTS[species]?.rarity || "Common");
+      return rank < 0 ? RARITY_ORDER3.length : rank;
     }
     function sortedDecor() {
       return Object.keys(DECOR).sort((left, right) => rarityIndex(DECOR[left]?.rarity) - rarityIndex(DECOR[right]?.rarity) || (DECOR[left]?.name || left).localeCompare(DECOR[right]?.name || right));
     }
     function rarityIndex(rarity) {
-      const rank = RARITY_ORDER2.indexOf(rarity || "Common");
-      return rank < 0 ? RARITY_ORDER2.length : rank;
+      const rank = RARITY_ORDER3.indexOf(rarity || "Common");
+      return rank < 0 ? RARITY_ORDER3.length : rank;
     }
     function decorRotation() {
       if (!planner.flipped) return planner.rotation;
@@ -5039,6 +5043,837 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     page3.__gardenCompanionPlannerOpen = () => planner.open;
   }
 
+  // src/features/fishing-audio.ts
+  var MUTE_KEY = "gardenCompanion.fishingMuted.v1";
+  var CLICK_INTERVAL = 62;
+  var muted = loadLocal(MUTE_KEY, false);
+  var noiseBuffer = null;
+  var noiseContext = null;
+  var lastClickAt = 0;
+  function fishingMuted() {
+    return muted;
+  }
+  function setFishingMuted(value) {
+    muted = value;
+    saveLocal(MUTE_KEY, value);
+  }
+  function audio() {
+    if (muted) return null;
+    const context = armAlarmAudio();
+    return context && context.state !== "closed" ? context : null;
+  }
+  function primeFishingAudio() {
+    audio();
+  }
+  function noise(context) {
+    if (noiseBuffer && noiseContext === context) return noiseBuffer;
+    const buffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let index = 0; index < data.length; index++) data[index] = Math.random() * 2 - 1;
+    noiseContext = context;
+    noiseBuffer = buffer;
+    return buffer;
+  }
+  function splash(context, at, strength, volume = 0.2) {
+    const source = context.createBufferSource();
+    source.buffer = noise(context);
+    source.playbackRate.value = 0.8 + Math.random() * 0.4;
+    const filter = context.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.Q.value = 0.7;
+    filter.frequency.setValueAtTime(2200 * strength, at);
+    filter.frequency.exponentialRampToValueAtTime(280, at + 0.36 * strength);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(1e-4, at);
+    gain.gain.linearRampToValueAtTime(volume * strength, at + 0.012);
+    gain.gain.exponentialRampToValueAtTime(8e-4, at + 0.44 * strength);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(at, Math.random() * 0.5);
+    source.stop(at + 0.5 * strength + 0.06);
+  }
+  function droplet(context, at, frequency, volume = 0.09) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, at);
+    oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.45, at + 0.09);
+    gain.gain.setValueAtTime(1e-4, at);
+    gain.gain.linearRampToValueAtTime(volume, at + 6e-3);
+    gain.gain.exponentialRampToValueAtTime(8e-4, at + 0.13);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(at);
+    oscillator.stop(at + 0.15);
+  }
+  function tone(context, at, frequency, length, volume = 0.12, type = "triangle") {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, at);
+    gain.gain.setValueAtTime(1e-4, at);
+    gain.gain.linearRampToValueAtTime(volume, at + 0.015);
+    gain.gain.exponentialRampToValueAtTime(8e-4, at + length);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(at);
+    oscillator.stop(at + length + 0.04);
+  }
+  function semitone(base, steps) {
+    return base * Math.pow(2, steps / 12);
+  }
+  function playCast() {
+    const context = audio();
+    if (!context) return;
+    const now = context.currentTime;
+    const source = context.createBufferSource();
+    source.buffer = noise(context);
+    const filter = context.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.Q.value = 4;
+    filter.frequency.setValueAtTime(700, now);
+    filter.frequency.exponentialRampToValueAtTime(2600, now + 0.16);
+    filter.frequency.exponentialRampToValueAtTime(900, now + 0.32);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(1e-4, now);
+    gain.gain.linearRampToValueAtTime(0.13, now + 0.06);
+    gain.gain.exponentialRampToValueAtTime(8e-4, now + 0.34);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(now, Math.random() * 0.5);
+    source.stop(now + 0.38);
+    splash(context, now + 0.34, 0.55, 0.16);
+    droplet(context, now + 0.36, 900);
+  }
+  function playBite() {
+    const context = audio();
+    if (!context) return;
+    const now = context.currentTime;
+    splash(context, now, 0.7, 0.19);
+    droplet(context, now + 0.02, 640);
+    tone(context, now + 0.05, 1180, 0.07, 0.1, "square");
+    tone(context, now + 0.16, 1480, 0.07, 0.1, "square");
+  }
+  function playReelClick(inside) {
+    const context = audio();
+    if (!context) return;
+    const stamp = performance.now();
+    if (stamp - lastClickAt < CLICK_INTERVAL) return;
+    lastClickAt = stamp;
+    const now = context.currentTime;
+    const source = context.createBufferSource();
+    source.buffer = noise(context);
+    source.playbackRate.value = inside ? 1.5 : 1;
+    const filter = context.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.Q.value = 9;
+    filter.frequency.setValueAtTime(inside ? 2100 : 1350, now);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(1e-4, now);
+    gain.gain.linearRampToValueAtTime(inside ? 0.075 : 0.055, now + 3e-3);
+    gain.gain.exponentialRampToValueAtTime(8e-4, now + 0.035);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(now, Math.random() * 0.5);
+    source.stop(now + 0.05);
+  }
+  function playCatch(tier) {
+    const context = audio();
+    if (!context) return;
+    const now = context.currentTime;
+    splash(context, now, 1.15, 0.24);
+    droplet(context, now + 0.06, 760);
+    droplet(context, now + 0.14, 1020);
+    const steps = [0, 4, 7, 12, 16, 19, 24];
+    const notes = Math.min(steps.length, 3 + tier);
+    for (let index = 0; index < notes; index++) {
+      tone(context, now + 0.18 + index * 0.085, semitone(523.25, steps[index]), 0.3, 0.1);
+    }
+  }
+  function playEscape() {
+    const context = audio();
+    if (!context) return;
+    const now = context.currentTime;
+    splash(context, now, 0.95, 0.2);
+    tone(context, now + 0.05, 392, 0.22, 0.09);
+    tone(context, now + 0.2, 294, 0.34, 0.09);
+  }
+
+  // src/features/fishing.ts
+  var STYLE_ID2 = "gc-fishing-style";
+  var PANEL_ID2 = "gc-fishing-panel";
+  var RECORD_KEY = "gardenCompanion.fishing.v1";
+  var POSITION_KEY2 = "gardenCompanion.fishingPosition.v1";
+  var RARITIES = {
+    common: { label: "Common", colour: "#94a3b8", weight: 100, zone: 0.26, speed: 1, fill: 0.4, drain: 0.38 },
+    uncommon: { label: "Uncommon", colour: "#34d399", weight: 58, zone: 0.26, speed: 1.02, fill: 0.39, drain: 0.38 },
+    rare: { label: "Rare", colour: "#38bdf8", weight: 26, zone: 0.25, speed: 1.08, fill: 0.37, drain: 0.375 },
+    epic: { label: "Epic", colour: "#a78bfa", weight: 10, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
+    legendary: { label: "Legendary", colour: "#fbbf24", weight: 3.2, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
+    mythic: { label: "Mythic", colour: "#f472b6", weight: 0.8, zone: 0.22, speed: 1.3, fill: 0.3, drain: 0.37 }
+  };
+  var RARITY_ORDER2 = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
+  var BITE_WINDOW = 1500;
+  var RESULT_LOCK = 1600;
+  var FIGHT_PACE = 0.5;
+  var START_PROGRESS = 0.2;
+  var LOSE_FLOOR = -0.15;
+  var REEL_LIMIT = 45e3;
+  var ZONE_LIFT = 11.5;
+  var ZONE_GRAVITY = 4.9;
+  var ZONE_FRICTION = 0.89;
+  var FISH_PULL = 4.5;
+  var ZONE_DRAG = -Math.log(ZONE_FRICTION) * 60;
+  var SPEED_BASELINE = 0.55;
+  function zoneAgility(speed) {
+    return 1 + (speed / SPEED_BASELINE - 1) * 0.6;
+  }
+  function fishTravelSpeed(speed) {
+    return 0.5 * FISH_PULL * speed / (-Math.log(0.93) * 60) * 1.6;
+  }
+  var FISH = [
+    { id: "pondMinnow", name: "Pond Minnow", rarity: "common", min: 0.1, max: 0.6, note: "Travels in crowds and panics alone." },
+    { id: "muddyBream", name: "Muddy Bream", rarity: "common", min: 0.4, max: 1.8, note: "Tastes of the bottom it never leaves." },
+    { id: "reedPerch", name: "Reed Perch", rarity: "common", min: 0.3, max: 1.4, note: "Hides in the shallows, strikes at anything." },
+    { id: "gardenGuppy", name: "Garden Guppy", rarity: "common", min: 0.1, max: 0.4, note: "Somehow always in the watering can." },
+    { id: "rainSilverfin", name: "Rain Silverfin", rarity: "common", min: 0.2, max: 1.1, weather: "Rain", note: "Rises the moment the first drop lands." },
+    { id: "copperCarp", name: "Copper Carp", rarity: "uncommon", min: 1.2, max: 4.5, note: "Old enough to have opinions about lures." },
+    { id: "speckledTrout", name: "Speckled Trout", rarity: "uncommon", min: 0.8, max: 3.2, note: "Fast, fussy, worth the trouble." },
+    { id: "glassEel", name: "Glass Eel", rarity: "uncommon", min: 0.5, max: 2.4, note: "You can read the riverbed through it." },
+    { id: "mossBass", name: "Moss Bass", rarity: "uncommon", min: 1.5, max: 5, note: "Wears its pond like a coat." },
+    { id: "puddlePike", name: "Puddle Pike", rarity: "uncommon", min: 1.8, max: 6, weather: "Rain", note: "Appears in water far too small for it." },
+    { id: "moonscaleKoi", name: "Moonscale Koi", rarity: "rare", min: 3, max: 9, note: "Every scale holds a slightly different moon." },
+    { id: "brambleRay", name: "Bramble Ray", rarity: "rare", min: 4, max: 12, note: "Glides like a thrown blanket." },
+    { id: "ironjawCatfish", name: "Ironjaw Catfish", rarity: "rare", min: 6, max: 16, note: "Has taken three hooks and kept them." },
+    { id: "lanternCod", name: "Lantern Cod", rarity: "rare", min: 3.5, max: 11, weather: "Dawn", note: "Carries its own small sunrise." },
+    { id: "chillbackChar", name: "Chillback Char", rarity: "rare", min: 2.5, max: 8, weather: "Frost", note: "Warm to the touch, strangely." },
+    { id: "stormfinMarlin", name: "Stormfin Marlin", rarity: "epic", min: 12, max: 34, weather: "Thunderstorm", note: "Runs ahead of the weather front." },
+    { id: "frostbellySturgeon", name: "Frostbelly Sturgeon", rarity: "epic", min: 15, max: 40, weather: "Frost", note: "Older than the pond it swims in." },
+    { id: "dawnlitAngelfish", name: "Dawnlit Angelfish", rarity: "epic", min: 8, max: 22, weather: "Dawn", note: "Only surfaces while the light is thin." },
+    { id: "amberscaleTuna", name: "Amberscale Tuna", rarity: "epic", min: 18, max: 46, weather: "AmberMoon", note: "Set solid in colour, still very much alive." },
+    { id: "thunderjawGar", name: "Thunderjaw Gar", rarity: "legendary", min: 30, max: 75, weather: "Thunderstorm", note: "The bite arrives before the fish does." },
+    { id: "glacierLeviathan", name: "Glacier Leviathan", rarity: "legendary", min: 40, max: 95, weather: "Frost", note: "Mistaken for the far bank more than once." },
+    { id: "sunspireSerpent", name: "Sunspire Serpent", rarity: "legendary", min: 25, max: 68, weather: "Dawn", note: "Coils around the light and holds it there." },
+    { id: "oldRootmouth", name: "Old Rootmouth", rarity: "mythic", min: 60, max: 140, weather: "AmberMoon", note: "The garden grew around it, not the other way round." },
+    { id: "rainbowWhiskerfish", name: "Rainbow Whiskerfish", rarity: "mythic", min: 70, max: 210, note: "Nobody agrees on what colour it actually is." }
+  ];
+  var FISH_BY_ID = new Map(FISH.map((fish) => [fish.id, fish]));
+  var EMPTY_RECORD = { casts: 0, caught: 0, escaped: 0, fish: {} };
+  function loadRecord() {
+    const stored = loadLocal(RECORD_KEY, {});
+    return {
+      casts: Number(stored.casts) || 0,
+      caught: Number(stored.caught) || 0,
+      escaped: Number(stored.escaped) || 0,
+      fish: stored.fish && typeof stored.fish === "object" ? stored.fish : {}
+    };
+  }
+  function pickFish(weather) {
+    const pool = FISH.filter((fish) => !fish.weather || fish.weather === weather);
+    const weights = pool.map((fish) => RARITIES[fish.rarity].weight * (fish.weather ? 7 : 1));
+    const total = weights.reduce((sum, value) => sum + value, 0);
+    let roll = Math.random() * total;
+    for (let index = 0; index < pool.length; index++) {
+      roll -= weights[index];
+      if (roll <= 0) return pool[index];
+    }
+    return pool[pool.length - 1];
+  }
+  function weatherLabel(weather) {
+    if (!weather) return "Clear skies";
+    return weather === "AmberMoon" ? "Amber Moon" : weather;
+  }
+  function formatWeight(kilos) {
+    return kilos >= 10 ? `${kilos.toFixed(1)} kg` : `${kilos.toFixed(2)} kg`;
+  }
+  function injectStyles2() {
+    if (document.getElementById(STYLE_ID2)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID2;
+    style.textContent = `
+    #${PANEL_ID2}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
+    #${PANEL_ID2}[hidden]{display:none}
+    #${PANEL_ID2} .gf-card{position:fixed;right:14px;bottom:56px;width:min(470px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
+    #${PANEL_ID2} header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move}
+    #${PANEL_ID2} h2{margin:0;font:700 13px/1.2 system-ui,sans-serif;letter-spacing:.02em}
+    #${PANEL_ID2} header div{display:flex;align-items:center;gap:4px}
+    #${PANEL_ID2} button{padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);font:700 10px system-ui,sans-serif;cursor:pointer}
+    #${PANEL_ID2} button:hover{color:#ddd6fe;border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.1)}
+    #${PANEL_ID2} button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
+    #${PANEL_ID2} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
+    #${PANEL_ID2} header button[data-close]{border-radius:50%;background:transparent}
+    #${PANEL_ID2} canvas{display:block;width:100%;height:310px;cursor:pointer}
+    #${PANEL_ID2} .gf-status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
+    #${PANEL_ID2} .gf-status b{font:700 12px system-ui,sans-serif}
+    #${PANEL_ID2} .gf-status small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;white-space:nowrap}
+    #${PANEL_ID2} .gf-body{max-height:430px;overflow:auto;padding:10px 12px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+    #${PANEL_ID2} .gf-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+    #${PANEL_ID2} .gf-totals div{padding:7px 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
+    #${PANEL_ID2} .gf-totals small{display:block;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+    #${PANEL_ID2} .gf-totals b{font:700 15px/1.3 system-ui,sans-serif}
+    #${PANEL_ID2} .gf-tier{margin:11px 0 6px;display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    #${PANEL_ID2} .gf-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
+    #${PANEL_ID2} .gf-row+.gf-row{margin-top:4px}
+    #${PANEL_ID2} .gf-row i{width:7px;height:7px;flex:0 0 auto;border-radius:50%}
+    #${PANEL_ID2} .gf-row span{flex:1;min-width:0}
+    #${PANEL_ID2} .gf-row b{display:block;font:700 12px system-ui,sans-serif}
+    #${PANEL_ID2} .gf-row small{display:block;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px}
+    #${PANEL_ID2} .gf-row em{flex:0 0 auto;font-style:normal;font-size:10px;color:var(--gc-muted,rgba(255,255,255,.72))}
+    #${PANEL_ID2} .gf-row[data-found=false]{opacity:.42}
+    #${PANEL_ID2} .gf-row[data-found=false] b{color:var(--gc-muted,rgba(255,255,255,.72))}
+    #${PANEL_ID2} .gf-note{margin:0 0 8px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:11px}
+    #${PANEL_ID2} .gf-reset{margin-top:14px;padding-top:12px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
+    #${PANEL_ID2} .gf-reset button{width:100%;padding:8px}
+    #${PANEL_ID2} .gf-bench-stats{display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:6px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px}
+    #${PANEL_ID2} .gf-bench-stats b{color:var(--gc-text,#e4e4e7);font:700 10px system-ui,sans-serif}
+    #${PANEL_ID2} .gf-bench-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:4px}
+    #${PANEL_ID2} button.gf-bench-fish{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 8px;font:600 11px system-ui,sans-serif;text-align:left}
+    #${PANEL_ID2} button.gf-bench-fish small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-weight:400}
+  `;
+    document.head.appendChild(style);
+  }
+  function centreOf(left, right) {
+    return (left + right) / 2;
+  }
+  function drawSwimmer(context, x, y, size, direction, colour, alpha, time) {
+    const wag = Math.sin(time / 170) * size * 0.3;
+    context.save();
+    context.translate(x, y);
+    context.scale(direction < 0 ? -1 : 1, 1);
+    context.globalAlpha = alpha;
+    context.fillStyle = colour;
+    context.beginPath();
+    context.ellipse(0, 0, size, size * 0.54, 0, 0, Math.PI * 2);
+    context.fill();
+    context.beginPath();
+    context.moveTo(-size * 0.8, 0);
+    context.lineTo(-size * 1.7, -size * 0.52 + wag);
+    context.lineTo(-size * 1.7, size * 0.52 + wag);
+    context.closePath();
+    context.fill();
+    context.globalAlpha = alpha * 0.55;
+    context.beginPath();
+    context.moveTo(-size * 0.1, -size * 0.5);
+    context.lineTo(size * 0.2, -size * 0.95);
+    context.lineTo(size * 0.45, -size * 0.48);
+    context.closePath();
+    context.fill();
+    context.globalAlpha = alpha;
+    context.fillStyle = "rgba(255,255,255,.8)";
+    context.beginPath();
+    context.arc(size * 0.48, -size * 0.13, Math.max(1, size * 0.11), 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
+  function initFishing() {
+    let record = loadRecord();
+    let view = "game";
+    let phase = "idle";
+    let message = "Click the pond to put a line in.";
+    let holding = false;
+    let frame = null;
+    let lastTime = 0;
+    let hooked = null;
+    let hookedWeight = 0;
+    let biteAt = 0;
+    let waitUntil = 0;
+    let reelEndsAt = 0;
+    let fishAt = 0.5, fishVelocity = 0, fishTarget = 0.5, retargetAt = 0;
+    let zoneAt = 0.5, zoneVelocity = 0, zoneHeight = 0.3;
+    let progress = 0;
+    let resultColour = "rgba(255,255,255,.72)";
+    let resultLockUntil = 0;
+    let lastCatch = null;
+    let testing = false;
+    let reelStartedAt = 0;
+    let fightEndedAt = 0;
+    const SWIMMER_COLOURS = ["#4b7f96", "#3f6f86", "#5b8f7a", "#6b7f9c", "#7a8fa0"];
+    const swimmers = Array.from({ length: 9 }, () => spawnSwimmer(Math.random()));
+    function spawnSwimmer(x = Math.random() < 0.5 ? -0.1 : 1.1) {
+      const rightward = x < 0.5;
+      return {
+        x,
+        y: 0.12 + Math.random() * 0.78,
+        speed: (rightward ? 1 : -1) * (0.035 + Math.random() * 0.075),
+        size: 6 + Math.random() * 10,
+        colour: SWIMMER_COLOURS[Math.floor(Math.random() * SWIMMER_COLOURS.length)],
+        phase: Math.random() * Math.PI * 2
+      };
+    }
+    function panel() {
+      return document.getElementById(PANEL_ID2);
+    }
+    function canvas() {
+      return panel()?.querySelector("canvas") ?? null;
+    }
+    function weather() {
+      const value = state.game?.weather;
+      return typeof value === "string" && value ? value : null;
+    }
+    function save() {
+      saveLocal(RECORD_KEY, record);
+    }
+    function setPhase(next, text, colour = "rgba(255,255,255,.72)") {
+      phase = next;
+      message = text;
+      resultColour = colour;
+      if (next === "result") resultLockUntil = performance.now() + RESULT_LOCK;
+      renderChrome();
+    }
+    function cast() {
+      if (phase !== "idle" && phase !== "result") return;
+      record.casts++;
+      save();
+      hooked = null;
+      testing = false;
+      holding = false;
+      lastCatch = null;
+      progress = 0;
+      waitUntil = performance.now() + 1200 + Math.random() * 3600;
+      setPhase("waiting", "Line is out. Wait for the bob to dip.");
+      playCast();
+      startLoop();
+    }
+    function armFish(fish, now) {
+      hooked = fish;
+      hookedWeight = fish.min + Math.random() * (fish.max - fish.min);
+      zoneHeight = RARITIES[fish.rarity].zone;
+      zoneAt = 0.5;
+      zoneVelocity = 0;
+      fishAt = 0.5;
+      fishVelocity = 0;
+      fishTarget = 0.5;
+      retargetAt = now;
+      progress = START_PROGRESS;
+      lastCatch = null;
+      fightEndedAt = 0;
+    }
+    function beginBite(now) {
+      armFish(pickFish(weather()), now);
+      testing = false;
+      biteAt = now;
+      setPhase("bite", "Bite! Click to set the hook.");
+      playBite();
+    }
+    function startBenchFight(fish) {
+      const now = performance.now();
+      armFish(fish, now);
+      testing = true;
+      holding = false;
+      view = "game";
+      reelStartedAt = now;
+      reelEndsAt = now + REEL_LIMIT;
+      setPhase("reel", `Test fight: ${fish.name}`);
+      startLoop();
+    }
+    function beginReel(now) {
+      reelStartedAt = now;
+      reelEndsAt = now + REEL_LIMIT;
+      holding = true;
+      setPhase("reel", "Hold the mouse to lift, release to drop.");
+    }
+    function fightLength() {
+      return `${(((fightEndedAt || performance.now()) - reelStartedAt) / 1e3).toFixed(1)}s`;
+    }
+    function land() {
+      if (!hooked) return;
+      fightEndedAt = performance.now();
+      const existing = record.fish[hooked.id];
+      if (!testing) {
+        record.fish[hooked.id] = {
+          count: (existing?.count ?? 0) + 1,
+          best: Math.max(existing?.best ?? 0, hookedWeight),
+          first: existing?.first ?? Date.now()
+        };
+        record.caught++;
+        save();
+      }
+      const rule = RARITIES[hooked.rarity];
+      lastCatch = { fish: hooked, weight: hookedWeight, fresh: !testing && !existing };
+      playCatch(RARITY_ORDER2.indexOf(hooked.rarity));
+      const detail = testing ? `Test fight won in ${fightLength()} - not recorded` : `Landed a ${hooked.name}, ${formatWeight(hookedWeight)} in ${fightLength()}${existing ? "" : " - new to your record!"}`;
+      setPhase("result", detail, rule.colour);
+    }
+    function lose(text) {
+      fightEndedAt = performance.now();
+      if (phase === "reel" && testing) {
+        playEscape();
+        hooked = null;
+        lastCatch = null;
+        setPhase("result", `Test fight lost after ${fightLength()} - not recorded`, "rgba(248,113,113,.85)");
+        return;
+      }
+      if (phase === "bite" || phase === "reel") {
+        record.escaped++;
+        save();
+        playEscape();
+      }
+      hooked = null;
+      lastCatch = null;
+      setPhase("result", text, "rgba(248,113,113,.85)");
+    }
+    function press() {
+      const now = performance.now();
+      if (phase === "result" && now < resultLockUntil) return;
+      if (phase === "idle" || phase === "result") return cast();
+      if (phase === "waiting") return lose("Reeled in too early. Nothing there.");
+      if (phase === "bite") return beginReel(now);
+      if (phase === "reel") holding = true;
+    }
+    function release() {
+      holding = false;
+    }
+    function step(now) {
+      frame = null;
+      const delta = Math.min(0.05, (now - lastTime) / 1e3 || 0);
+      lastTime = now;
+      if (phase === "waiting" && now >= waitUntil) beginBite(now);
+      else if (phase === "bite" && now - biteAt > BITE_WINDOW) lose("The bite went slack. It let go.");
+      else if (phase === "reel" && hooked) {
+        const rule = RARITIES[hooked.rarity];
+        if (now >= retargetAt) {
+          fishTarget = 0.06 + Math.random() * 0.88;
+          retargetAt = now + 320 + Math.random() * 780 / rule.speed;
+        }
+        fishVelocity += (fishTarget - fishAt) * FISH_PULL * rule.speed * delta;
+        fishVelocity *= Math.pow(0.93, delta * 60);
+        fishAt = Math.max(0.03, Math.min(0.97, fishAt + fishVelocity * delta * 1.6));
+        const agility = zoneAgility(rule.speed);
+        zoneVelocity += (holding ? -ZONE_LIFT : ZONE_GRAVITY) * agility * delta;
+        zoneVelocity *= Math.pow(ZONE_FRICTION, delta * 60);
+        zoneAt += zoneVelocity * delta;
+        const half = zoneHeight / 2;
+        if (zoneAt < half) {
+          zoneAt = half;
+          zoneVelocity = 0;
+        }
+        if (zoneAt > 1 - half) {
+          zoneAt = 1 - half;
+          zoneVelocity = 0;
+        }
+        const inside = Math.abs(fishAt - zoneAt) < half;
+        progress += (inside ? rule.fill : -rule.drain) * FIGHT_PACE * delta;
+        if (holding) playReelClick(inside);
+        if (progress >= 1) land();
+        else if (progress <= LOSE_FLOOR) lose("It threw the hook and was gone.");
+        else if (now >= reelEndsAt) lose("The line gave out. It kept the hook.");
+      }
+      for (const swimmer of swimmers) {
+        swimmer.x += swimmer.speed * delta;
+        if (swimmer.x < -0.15 || swimmer.x > 1.15) Object.assign(swimmer, spawnSwimmer());
+      }
+      draw();
+      frame = requestAnimationFrame(step);
+    }
+    function startLoop() {
+      if (frame !== null) return;
+      lastTime = performance.now();
+      frame = requestAnimationFrame(step);
+    }
+    function stopLoop() {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+    }
+    function draw() {
+      const element = canvas();
+      const context = element?.getContext("2d");
+      if (!element || !context) return;
+      const ratio = Math.min(3, window.devicePixelRatio || 1);
+      const width = element.clientWidth;
+      const height = element.clientHeight;
+      if (element.width !== Math.round(width * ratio) || element.height !== Math.round(height * ratio)) {
+        element.width = Math.round(width * ratio);
+        element.height = Math.round(height * ratio);
+      }
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, width, height);
+      const now = performance.now();
+      const trackX = width - 62;
+      const trackWidth = 26;
+      const barX = width - 28;
+      const top = 12;
+      const bottom = height - 12;
+      const trackHeight = bottom - top;
+      const sceneRight = trackX - 12;
+      const surface = top + 52;
+      const sky = context.createLinearGradient(0, top, 0, surface);
+      sky.addColorStop(0, "#12121b");
+      sky.addColorStop(1, "#1b2233");
+      context.fillStyle = sky;
+      context.beginPath();
+      context.roundRect(12, top, sceneRight - 12, surface - top, [8, 8, 0, 0]);
+      context.fill();
+      const water = context.createLinearGradient(0, surface, 0, bottom);
+      water.addColorStop(0, "#0e3245");
+      water.addColorStop(1, "#06151f");
+      context.fillStyle = water;
+      context.beginPath();
+      context.roundRect(12, surface, sceneRight - 12, bottom - surface, [0, 0, 8, 8]);
+      context.fill();
+      context.strokeStyle = "rgba(255,255,255,.09)";
+      context.lineWidth = 1;
+      context.beginPath();
+      context.roundRect(12.5, top + 0.5, sceneRight - 13, trackHeight - 1, 8);
+      context.stroke();
+      context.save();
+      context.beginPath();
+      context.roundRect(12, surface, sceneRight - 12, bottom - surface, [0, 0, 8, 8]);
+      context.clip();
+      for (const swimmer of swimmers) {
+        const x = 12 + swimmer.x * (sceneRight - 12);
+        const y = surface + 10 + swimmer.y * (bottom - surface - 20) + Math.sin(now / 900 + swimmer.phase) * 3;
+        drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, 0.5, now + swimmer.phase * 400);
+      }
+      if (phase === "reel" && hooked) {
+        const rule = RARITIES[hooked.rarity];
+        const size = 11 + RARITY_ORDER2.indexOf(hooked.rarity) * 3.5;
+        const y = surface + 16 + fishAt * (bottom - surface - 32);
+        const drift = Math.sin(now / 640) * (sceneRight - 12) * 0.16;
+        drawSwimmer(context, centreOf(12, sceneRight) + drift, y, size, Math.cos(now / 640) > 0 ? 1 : -1, rule.colour, 0.85, now);
+      }
+      context.restore();
+      const centre = centreOf(12, sceneRight);
+      const bobBase = surface + (phase === "waiting" ? 0 : phase === "bite" ? 7 : 0);
+      const bob = phase === "waiting" ? Math.sin(now / 420) * 2 : phase === "bite" ? Math.sin(now / 55) * 3 : 0;
+      if (phase !== "idle" && phase !== "result") {
+        context.strokeStyle = "rgba(255,255,255,.35)";
+        context.beginPath();
+        context.moveTo(centre, top + 8);
+        context.lineTo(centre, bobBase + bob);
+        context.stroke();
+        context.fillStyle = phase === "bite" ? "#f87171" : "#e4e4e7";
+        context.beginPath();
+        context.arc(centre, bobBase + bob, 4.5, 0, Math.PI * 2);
+        context.fill();
+        for (let ring = 0; ring < 3; ring++) {
+          const wave = (now / 900 + ring / 3) % 1;
+          context.strokeStyle = `rgba(255,255,255,${(0.22 * (1 - wave)).toFixed(3)})`;
+          context.beginPath();
+          context.ellipse(centre, bobBase + bob + 2, 6 + wave * 34, 2 + wave * 8, 0, 0, Math.PI * 2);
+          context.stroke();
+        }
+      }
+      if (phase === "result" && lastCatch) {
+        const rule = RARITIES[lastCatch.fish.rarity];
+        const cardWidth = Math.min(250, sceneRight - 40);
+        const cardHeight = 96;
+        const cardX = centre - cardWidth / 2;
+        const cardY = surface - 30;
+        context.fillStyle = "rgba(8,8,12,.9)";
+        context.strokeStyle = rule.colour;
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.roundRect(cardX, cardY, cardWidth, cardHeight, 10);
+        context.fill();
+        context.stroke();
+        drawSwimmer(context, cardX + 34, cardY + 34, 15, 1, rule.colour, 1, now);
+        context.textAlign = "left";
+        context.fillStyle = rule.colour;
+        context.font = "700 9px system-ui,sans-serif";
+        context.fillText(rule.label.toUpperCase(), cardX + 62, cardY + 22);
+        context.fillStyle = "#fafafa";
+        context.font = "700 14px system-ui,sans-serif";
+        context.fillText(lastCatch.fish.name, cardX + 62, cardY + 40);
+        context.fillStyle = "rgba(255,255,255,.72)";
+        context.font = "600 12px system-ui,sans-serif";
+        context.fillText(formatWeight(lastCatch.weight), cardX + 62, cardY + 58);
+        if (lastCatch.fresh) {
+          context.fillStyle = "#34d399";
+          context.font = "700 9px system-ui,sans-serif";
+          context.fillText("NEW SPECIES", cardX + 62, cardY + 74);
+        }
+        context.textAlign = "center";
+        context.fillStyle = "rgba(255,255,255,.4)";
+        context.font = "400 10px system-ui,sans-serif";
+        context.fillText(now < resultLockUntil ? "Reading the tape..." : "Click to cast again", centre, cardY + cardHeight + 18);
+      }
+      context.textAlign = "center";
+      context.font = "700 11px system-ui,sans-serif";
+      context.fillStyle = phase === "bite" ? "#fca5a5" : "rgba(255,255,255,.62)";
+      const heading = phase === "idle" ? "Click to cast" : phase === "waiting" ? "Waiting..." : phase === "bite" ? "BITE!" : phase === "reel" ? "Hold to reel" : "Click to cast again";
+      context.fillText(heading, centre, bottom - 12);
+      if (testing && (phase === "reel" || phase === "result")) {
+        const label = hooked ? `TEST  ${hooked.name}  ${fightLength()}` : "TEST";
+        context.font = "700 9px system-ui,sans-serif";
+        const badgeWidth = context.measureText(label).width + 16;
+        context.fillStyle = "rgba(251,191,36,.16)";
+        context.strokeStyle = "rgba(251,191,36,.5)";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.roundRect(20, top + 8, badgeWidth, 18, 5);
+        context.fill();
+        context.stroke();
+        context.fillStyle = "#fbbf24";
+        context.textAlign = "left";
+        context.fillText(label, 28, top + 20);
+        context.textAlign = "center";
+      }
+      if (phase === "bite") {
+        const left = Math.max(0, 1 - (now - biteAt) / BITE_WINDOW);
+        const barWidth = 76;
+        context.fillStyle = "rgba(255,255,255,.12)";
+        context.beginPath();
+        context.roundRect(centre - barWidth / 2, bottom - 8, barWidth, 4, 2);
+        context.fill();
+        context.fillStyle = "#f87171";
+        context.beginPath();
+        context.roundRect(centre - barWidth / 2, bottom - 8, barWidth * left, 4, 2);
+        context.fill();
+      }
+      context.fillStyle = "rgba(255,255,255,.05)";
+      context.beginPath();
+      context.roundRect(trackX, top, trackWidth, trackHeight, 8);
+      context.fill();
+      if (phase === "reel" && hooked) {
+        const rule = RARITIES[hooked.rarity];
+        const half = zoneHeight / 2;
+        const inside = Math.abs(fishAt - zoneAt) < half;
+        context.fillStyle = inside ? "rgba(52,211,153,.28)" : "rgba(255,255,255,.10)";
+        context.beginPath();
+        context.roundRect(trackX + 2, top + (zoneAt - half) * trackHeight, trackWidth - 4, zoneHeight * trackHeight, 6);
+        context.fill();
+        context.fillStyle = rule.colour;
+        context.beginPath();
+        context.arc(trackX + trackWidth / 2, top + fishAt * trackHeight, 6, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.fillStyle = "rgba(255,255,255,.05)";
+      context.beginPath();
+      context.roundRect(barX, top, 12, trackHeight, 6);
+      context.fill();
+      const filled = Math.max(0, Math.min(1, progress));
+      if (phase === "reel" && filled > 0) {
+        context.fillStyle = hooked ? RARITIES[hooked.rarity].colour : "#34d399";
+        context.beginPath();
+        context.roundRect(barX, bottom - filled * trackHeight, 12, filled * trackHeight, 6);
+        context.fill();
+      }
+    }
+    function collectionHtml() {
+      const found = Object.keys(record.fish).length;
+      const sections = RARITY_ORDER2.map((rarity) => {
+        const rows = FISH.filter((fish) => fish.rarity === rarity).map((fish) => {
+          const entry = record.fish[fish.id];
+          const gate = fish.weather ? `${weatherLabel(fish.weather)} only` : "";
+          const detail = entry ? [gate, fish.note].filter(Boolean).join(" · ") : gate || "Not caught yet";
+          return `<div class="gf-row" data-found="${Boolean(entry)}"><i style="background:${RARITIES[rarity].colour}"></i><span><b>${escapeHtml(fish.name)}</b><small>${escapeHtml(detail)}</small></span><em>${entry ? `${entry.count}x &middot; ${escapeHtml(formatWeight(entry.best))}` : "&mdash;"}</em></div>`;
+        }).join("");
+        const tierFound = FISH.filter((fish) => fish.rarity === rarity && record.fish[fish.id]).length;
+        const tierTotal = FISH.filter((fish) => fish.rarity === rarity).length;
+        return `<div class="gf-tier" style="color:${RARITIES[rarity].colour}"><span>${RARITIES[rarity].label}</span><span>${tierFound}/${tierTotal}</span></div>${rows}`;
+      }).join("");
+      return `<div class="gf-body"><p class="gf-note">Fish with a weather listed bite in that weather and no other. Caught fish are recorded in this browser only - nothing here touches your garden.</p><div class="gf-totals"><div><small>Caught</small><b>${record.caught.toLocaleString()}</b></div><div><small>Species</small><b>${found}/${FISH.length}</b></div><div><small>Casts</small><b>${record.casts.toLocaleString()}</b></div></div>${sections}<div class="gf-reset"><button data-reset>Reset record</button></div></div>`;
+    }
+    function benchHtml() {
+      const tiers = RARITY_ORDER2.map((rarity) => {
+        const rule = RARITIES[rarity];
+        const fill = rule.fill * FIGHT_PACE;
+        const drain = rule.drain * FIGHT_PACE;
+        const breakEven = Math.round(drain / (fill + drain) * 100);
+        const perfect = ((1 - START_PROGRESS) / fill).toFixed(1);
+        const buttons = FISH.filter((fish) => fish.rarity === rarity).map((fish) => `<button class="gf-bench-fish" data-fight="${escapeHtml(fish.id)}">${escapeHtml(fish.name)}${fish.weather ? `<small>${escapeHtml(weatherLabel(fish.weather))}</small>` : ""}</button>`).join("");
+        return `<div class="gf-tier" style="color:${rule.colour}"><span>${rule.label}</span><span>hold ${breakEven}% to break even</span></div><div class="gf-bench-stats"><span>Zone <b>${Math.round(rule.zone * 100)}%</b></span><span>Fish <b>${fishTravelSpeed(rule.speed).toFixed(2)}/s</b></span><span>Lift <b>${((ZONE_LIFT - ZONE_GRAVITY) / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Drop <b>${(ZONE_GRAVITY / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Fill <b>${fill.toFixed(3)}/s</b></span><span>Drain <b>${drain.toFixed(3)}/s</b></span><span>Flawless <b>${perfect}s</b></span></div><div class="gf-bench-grid">${buttons}</div>`;
+      }).join("");
+      return `<div class="gf-body"><p class="gf-note">Pick any fish to fight it straight away, skipping the cast and its weather. Bench fights are never added to your record. Pace ${FIGHT_PACE}, start ${START_PROGRESS}, floor ${LOSE_FLOOR}, limit ${REEL_LIMIT / 1e3}s.</p>${tiers}<div class="gf-reset"><button data-view="bench">Back to the pond</button></div></div>`;
+    }
+    function gameHtml() {
+      return `<canvas data-no-drag></canvas><div class="gf-status"><b style="color:${resultColour}">${escapeHtml(message)}</b><small>${escapeHtml(weatherLabel(weather()))}</small></div>`;
+    }
+    function renderChrome() {
+      const host = panel();
+      if (!host || host.hidden) return;
+      const card = host.querySelector(".gf-card");
+      if (!card) return;
+      const quiet = fishingMuted();
+      const body = view === "collection" ? collectionHtml() : view === "bench" ? benchHtml() : gameHtml();
+      card.innerHTML = `<header><h2>&#127907; Fishing</h2><div><button data-mute title="${quiet ? "Sound off" : "Sound on"}">${quiet ? "&#128263;" : "&#128266;"}</button><button data-view="collection" data-active="${view === "collection"}" title="Catch record">&#128220;</button><button data-close aria-label="Close">&#10005;</button></div></header>${body}`;
+      card.querySelector("[data-close]").onclick = close;
+      card.querySelector("[data-mute]").onclick = () => {
+        setFishingMuted(!quiet);
+        if (quiet) primeFishingAudio();
+        renderChrome();
+      };
+      card.querySelectorAll("[data-view]").forEach((button) => button.onclick = () => {
+        const target = button.dataset.view;
+        view = view === target ? "game" : target;
+        renderChrome();
+      });
+      card.querySelectorAll("[data-fight]").forEach((button) => button.onclick = () => {
+        const fish = FISH_BY_ID.get(button.dataset.fight);
+        if (fish) startBenchFight(fish);
+      });
+      card.querySelector("[data-reset]")?.addEventListener("click", () => {
+        if (!confirm("Clear your fishing record? Every catch is forgotten.")) return;
+        record = { ...EMPTY_RECORD, fish: {} };
+        save();
+        renderChrome();
+      });
+      const element = card.querySelector("canvas");
+      if (element) {
+        element.onpointerdown = (event) => {
+          event.preventDefault();
+          if (event.button !== 0) return;
+          try {
+            element.setPointerCapture(event.pointerId);
+          } catch {
+          }
+          press();
+        };
+        element.onpointerup = (event) => {
+          try {
+            element.releasePointerCapture(event.pointerId);
+          } catch {
+          }
+          release();
+        };
+        element.onpointercancel = release;
+        element.onpointerleave = release;
+      }
+      if (view === "game") draw();
+    }
+    function open() {
+      const host = panel();
+      if (!host) return;
+      host.hidden = false;
+      primeFishingAudio();
+      renderChrome();
+      startLoop();
+    }
+    function close() {
+      const host = panel();
+      if (host) host.hidden = true;
+      holding = false;
+      stopLoop();
+    }
+    function mount() {
+      injectStyles2();
+      const host = document.createElement("div");
+      host.id = PANEL_ID2;
+      host.hidden = true;
+      host.dataset.gcUi = "fishing";
+      const card = document.createElement("div");
+      card.className = "gf-card";
+      host.appendChild(card);
+      document.body.appendChild(host);
+      makeDraggable(card, POSITION_KEY2);
+      for (const type of ["pointerdown", "pointerup", "pointermove", "pointercancel", "mousedown", "mouseup", "click", "dblclick", "wheel", "contextmenu"]) {
+        card.addEventListener(type, (event) => event.stopPropagation());
+      }
+      window.addEventListener("pointerup", release);
+      page.__gardenCompanionToggleFishing = () => panel()?.hidden ? open() : close();
+      page.__gardenCompanionFishingBench = () => {
+        open();
+        view = "bench";
+        renderChrome();
+      };
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true });
+    else mount();
+  }
+
   // src/features/plant-drag-move.ts
   function initPlantDragMove() {
     "use strict";
@@ -5238,12 +6073,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       document.documentElement.appendChild(toast2);
       return toast2;
     }
-    function showToast(message, tone = "normal", duration = 2200) {
+    function showToast(message, tone2 = "normal", duration = 2200) {
       if (!document.documentElement) return;
       const toast2 = ensureToast();
       toast2.textContent = message;
-      toast2.style.borderColor = tone === "error" ? "rgba(248,113,113,.65)" : tone === "success" ? "rgba(74,222,128,.55)" : "rgba(255,255,255,.2)";
-      toast2.style.color = tone === "error" ? "#fecaca" : tone === "success" ? "#bbf7d0" : "#f4f7f8";
+      toast2.style.borderColor = tone2 === "error" ? "rgba(248,113,113,.65)" : tone2 === "success" ? "rgba(74,222,128,.55)" : "rgba(255,255,255,.2)";
+      toast2.style.color = tone2 === "error" ? "#fecaca" : tone2 === "success" ? "#bbf7d0" : "#f4f7f8";
       toast2.style.opacity = "1";
       toast2.style.transform = "translateX(-50%) translateY(0)";
       clearTimeout(toastTimer2);
@@ -5345,7 +6180,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     }, 250);
     function isGameCanvas(target) {
-      return target?.tagName === "CANVAS";
+      return target?.tagName === "CANVAS" && !target.closest?.("[data-gc-ui]");
     }
     function waitFor(condition, timeoutMs, intervalMs = 100) {
       const started = performance.now();
@@ -5757,4 +6592,5 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   if (page2.__gardenCompanionFeature?.("overview")) initGardenOverview();
   initPlantDragMove();
   initGardenPlanner();
+  initFishing();
 })();

@@ -346,7 +346,9 @@ export function initPlantDragMove(): void {
     }, 250);
 
     function isGameCanvas(target) {
-        return target?.tagName === 'CANVAS';
+        // Our own panels draw on canvases too, and these listeners run in the capture phase, so a
+        // companion window cannot stop them by other means. Anything inside our UI is not the game.
+        return target?.tagName === 'CANVAS' && !target.closest?.('[data-gc-ui]');
     }
 
     function waitFor(condition, timeoutMs, intervalMs = 100) {
