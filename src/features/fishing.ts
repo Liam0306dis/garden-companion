@@ -1216,7 +1216,7 @@ export function initFishing(): void {
     for (const [kind, opacity] of atmosphereLayers) drawWeatherCliff(context, kind, opacity, cliff);
 
     // Timber posts disappear into the lake, then the deck and individual planks sit over them.
-    const postBottom = Math.max(deckTop + 14, bottom - 20);
+    const postBottom = Math.max(deckTop + 14, bottom);
     context.fillStyle = '#3a281b';
     for (const postX of [shoreEdge + 14, dockEnd - 14]) {
       context.fillRect(postX - 4, deckTop + 8, 8, postBottom - deckTop - 8);
