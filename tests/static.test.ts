@@ -554,7 +554,7 @@ assert.match(fishingAudioSource, /const context = armAlarmAudio\(\);/, 'fishing 
 assert.match(fishingSource, /FISH\.filter\(fish => \(!fish\.weather \|\| fish\.weather === weather\)/, 'weather fish bite outside their own weather');
 assert.match(fishingSource, /common: \{[^}]*weight: 48[\s\S]*uncommon: \{[^}]*weight: 28[\s\S]*rare: \{[^}]*weight: 15[\s\S]*epic: \{[^}]*weight: 6[\s\S]*legendary: \{[^}]*weight: 2\.5[\s\S]*mythic: \{[^}]*weight: \.5/, 'fishing rarity rates have drifted from the balanced distribution');
 assert.match(fishingSource, /const WEATHER_FISH_WEIGHT = 2;/, 'matching-weather fish no longer receive their within-tier boost');
-assert.match(fishingSource, /const WEATHER_MYTHIC_CHANCE = \.03;/, 'event mythics no longer use the agreed three percent rate');
+assert.match(fishingSource, /const WEATHER_MYTHIC_CHANCE = \.015;/, 'event mythics no longer use the agreed one-point-five percent rate');
 assert.match(fishingSource, /eventMythics\.length && Math\.random\(\) < WEATHER_MYTHIC_CHANCE/, 'event mythics are not rolled separately from the ordinary rarity pool');
 assert.match(fishingSource, /const rarity = weightedPick\(rarities, value => RARITIES\[value\]\.weight\);/, 'fish are selected before rarity, so adding species changes tier rates');
 assert.match(fishingSource, /!eventMythics\.includes\(fish\)/, 'event mythics can also appear through the ordinary mythic roll');
@@ -574,8 +574,12 @@ assert.match(fishingSource, /if \(progress >= 1\) land\(\);\s*\n\s*else if \(pro
 assert.match(fishingSource, /\(inside \? rule\.fill : -rule\.drain\) \* FIGHT_PACE \* delta/, 'fight pacing no longer scales fill and drain by the same factor');
 assert.match(fishingSource, /draw\(\);\s*\n\s*frame = requestAnimationFrame\(step\);\s*\n\s*\}/, 'the animation loop does not always queue its next frame');
 assert.match(dragSource, /button, input, select, textarea, a, \[data-no-drag\]/, 'draggable panels no longer honour data-no-drag');
-assert.match(fishingSource, /host\.hidden = false;[\s\S]*renderChrome\(\);[\s\S]*makeDraggable\(card, POSITION_KEY\)/, 'the saved fishing position is restored while the panel is still hidden');
+const fishingOpenSource = fishingSource.slice(fishingSource.indexOf('function open()'), fishingSource.indexOf('function close()'));
+assert.match(fishingOpenSource, /host\.hidden = false;\s*primeFishingAudio\(\);\s*renderChrome\(\);\s*if \(!draggableReady\) \{[\s\S]*makeDraggable\(card, POSITION_KEY\)/, 'the saved fishing position is restored while the panel is still hidden');
 assert.doesNotMatch(fishingSource.slice(fishingSource.indexOf('function mount()')), /makeDraggable\(card, POSITION_KEY\)/, 'fishing drag is initialised before the hidden panel has a measurable size');
-assert.equal((fishingSource.match(/if \(view === 'game'\) startLoop\(\);\s*else stopLoop\(\);/g) ?? []).length, 2, 'non-game fishing views leave the animation loop running');
+assert.equal((fishingSource.match(/if \(view === 'game'\) resumeLoop\(\);\s*else pauseLoop\(\);/g) ?? []).length, 2, 'non-game fishing views do not pause and resume the animation loop');
+assert.match(fishingSource, /function pauseLoop\(\)[\s\S]*pausedAt = performance\.now\(\);[\s\S]*stopLoop\(\);/, 'fishing does not record when its animation loop was paused');
+assert.match(fishingSource, /const pausedFor = performance\.now\(\) - pausedAt;[\s\S]*waitUntil \+= pausedFor;[\s\S]*biteAt \+= pausedFor;[\s\S]*reelStartedAt \+= pausedFor;[\s\S]*reelEndsAt \+= pausedFor;[\s\S]*retargetAt \+= pausedFor;/, 'paused fishing time still advances an active cast or fight');
+assert.match(fishingSource, /function close\(\)[\s\S]*host\.hidden = true;\s*pauseLoop\(\);/, 'closing fishing does not pause its active timers');
 
 console.log('Static checks passed');

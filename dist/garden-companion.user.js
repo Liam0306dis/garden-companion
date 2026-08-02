@@ -5217,7 +5217,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   };
   var RARITY_ORDER2 = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
   var WEATHER_FISH_WEIGHT = 2;
-  var WEATHER_MYTHIC_CHANCE = 0.03;
+  var WEATHER_MYTHIC_CHANCE = 0.015;
   var BITE_WINDOW = 1500;
   var RESULT_LOCK = 1600;
   var FIGHT_PACE = 0.5;
@@ -5393,6 +5393,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let message = "Click the pond to put a line in.";
     let holding = false;
     let frame = null;
+    let pausedAt = null;
     let lastTime = 0;
     let hooked = null;
     let hookedWeight = 0;
@@ -5479,6 +5480,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function startBenchFight(fish) {
       const now = performance.now();
+      pausedAt = null;
       armFish(fish, now);
       testing = true;
       holding = false;
@@ -5595,6 +5597,25 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function stopLoop() {
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
+    }
+    function pauseLoop() {
+      if (pausedAt === null) pausedAt = performance.now();
+      holding = false;
+      stopLoop();
+    }
+    function resumeLoop() {
+      if (pausedAt !== null) {
+        const pausedFor = performance.now() - pausedAt;
+        if (phase === "waiting") waitUntil += pausedFor;
+        else if (phase === "bite") biteAt += pausedFor;
+        else if (phase === "reel") {
+          reelStartedAt += pausedFor;
+          reelEndsAt += pausedFor;
+          retargetAt += pausedFor;
+        }
+        pausedAt = null;
+      }
+      startLoop();
     }
     function draw() {
       const element = canvas();
@@ -5819,8 +5840,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const target = button.dataset.view;
         view = view === target ? "game" : target;
         renderChrome();
-        if (view === "game") startLoop();
-        else stopLoop();
+        if (view === "game") resumeLoop();
+        else pauseLoop();
       });
       card.querySelectorAll("[data-fight]").forEach((button) => button.onclick = () => {
         const fish = FISH_BY_ID.get(button.dataset.fight);
@@ -5868,14 +5889,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           draggableReady = true;
         }
       }
-      if (view === "game") startLoop();
-      else stopLoop();
+      if (view === "game") resumeLoop();
+      else pauseLoop();
     }
     function close() {
       const host = panel();
       if (host) host.hidden = true;
-      holding = false;
-      stopLoop();
+      pauseLoop();
     }
     function mount() {
       injectStyles2();

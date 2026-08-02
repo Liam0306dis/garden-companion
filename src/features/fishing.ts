@@ -42,7 +42,7 @@ const RARITIES: Record<Rarity, RarityRule> = {
 
 const RARITY_ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 const WEATHER_FISH_WEIGHT = 2;
-const WEATHER_MYTHIC_CHANCE = .03;
+const WEATHER_MYTHIC_CHANCE = .015;
 
 /** How long the float stays dipped. Long enough to react to without making the hook automatic. */
 const BITE_WINDOW = 1500;
@@ -297,6 +297,7 @@ export function initFishing(): void {
   let message = 'Click the pond to put a line in.';
   let holding = false;
   let frame: number | null = null;
+  let pausedAt: number | null = null;
   let lastTime = 0;
 
   // Reel state, all in track fractions where 0 is the top of the track.
@@ -396,6 +397,7 @@ export function initFishing(): void {
    */
   function startBenchFight(fish: FishDef): void {
     const now = performance.now();
+    pausedAt = null;
     armFish(fish, now);
     testing = true;
     holding = false;
@@ -522,6 +524,27 @@ export function initFishing(): void {
   function stopLoop(): void {
     if (frame !== null) cancelAnimationFrame(frame);
     frame = null;
+  }
+
+  function pauseLoop(): void {
+    if (pausedAt === null) pausedAt = performance.now();
+    holding = false;
+    stopLoop();
+  }
+
+  function resumeLoop(): void {
+    if (pausedAt !== null) {
+      const pausedFor = performance.now() - pausedAt;
+      if (phase === 'waiting') waitUntil += pausedFor;
+      else if (phase === 'bite') biteAt += pausedFor;
+      else if (phase === 'reel') {
+        reelStartedAt += pausedFor;
+        reelEndsAt += pausedFor;
+        retargetAt += pausedFor;
+      }
+      pausedAt = null;
+    }
+    startLoop();
   }
 
   function draw(): void {
@@ -777,8 +800,8 @@ export function initFishing(): void {
       const target = button.dataset.view as 'collection' | 'bench';
       view = view === target ? 'game' : target;
       renderChrome();
-      if (view === 'game') startLoop();
-      else stopLoop();
+      if (view === 'game') resumeLoop();
+      else pauseLoop();
     });
     card.querySelectorAll<HTMLButtonElement>('[data-fight]').forEach(button => button.onclick = () => {
       const fish = FISH_BY_ID.get(button.dataset.fight!);
@@ -823,15 +846,14 @@ export function initFishing(): void {
         draggableReady = true;
       }
     }
-    if (view === 'game') startLoop();
-    else stopLoop();
+    if (view === 'game') resumeLoop();
+    else pauseLoop();
   }
 
   function close(): void {
     const host = panel();
     if (host) host.hidden = true;
-    holding = false;
-    stopLoop();
+    pauseLoop();
   }
 
   function mount(): void {
