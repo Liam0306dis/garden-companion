@@ -285,6 +285,7 @@ assert.match(companionSource, /Keep Planter Pot selected/, 'selection keeper tog
 assert.match(companionSource, /keepPlanterPotSelected: false/, 'selection keeper must default off');
 assert.doesNotMatch(indexSource, /if \(page\.__gardenCompanionFeature\?\.\('dragMove'\)\) initPlantDragMove/, 'plant drag still requires a reload to install');
 assert.match(plantDragSource, /function isEnabled\(\)[\s\S]*__gardenCompanionFeature\?\.\('dragMove'\)/, 'plant drag does not read its live feature setting');
+assert.match(plantDragSource, /const HOLD_MS = 1000;/, 'plant drag hold time is not one second');
 assert.match(plantDragSource, /if \(!isEnabled\(\) \|\| press \|\| event\.button/, 'disabled plant drag still starts presses');
 assert.match(companionSource, /Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately\. Background mode applies after a reload\./, 'Features note is outdated');
 assert.match(companionSource, /Hold, drag and release a plant - consumes planter pots/, 'Plant drag move description is incorrect');
