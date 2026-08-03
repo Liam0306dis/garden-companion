@@ -4,7 +4,6 @@
 // @version      0.6.95
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
-// @match        https://1227719606223765687.discordsays.com/*
 // @match        https://magiccircle.gg/r/*
 // @match        https://magicgarden.gg/r/*
 // @match        https://starweaver.org/r/*
