@@ -1,6 +1,6 @@
 {
   "name": "garden-companion",
-  "version": "0.6.92",
+  "version": "0.6.93",
   "private": true,
   "type": "module",
   "scripts": {
