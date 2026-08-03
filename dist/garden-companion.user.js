@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.94
+// @version      0.6.95
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -2912,6 +2912,8 @@ ${rows}</div>`;
     return output;
   }
   var restockClocks = /* @__PURE__ */ new Map();
+  var initialShopTimer = 0;
+  var pendingInitialSignature = "";
   function restockedShops() {
     const restocked = /* @__PURE__ */ new Set();
     for (const [shop, data] of Object.entries(state.game?.shops || {})) {
@@ -2923,12 +2925,14 @@ ${rows}</div>`;
     }
     return restocked;
   }
-  function processShops() {
-    if (!feature("shopAlarms")) return;
-    const restocked = restockedShops();
-    const available = availableShopItems();
-    const signature = available.map((row) => `${row.shop}:${row.id}:${row.remaining}`).sort().join("|");
-    if (signature === state.lastShopSignature && !restocked.size) return;
+  function shopSignature(available) {
+    return available.map((row) => `${row.shop}:${row.id}:${row.remaining}`).sort().join("|");
+  }
+  function applyShopSnapshot(available, signature, restocked) {
+    if (signature === state.lastShopSignature && !restocked.size) {
+      state.initializedShops = true;
+      return;
+    }
     const old = new Set(state.lastShopSignature.split("|").map((value) => value.split(":").slice(0, 2).join(":")));
     const availableKeys = new Set(available.map((row) => `${row.shop}:${row.id}`));
     if (state.initializedShops) {
@@ -2942,6 +2946,33 @@ ${rows}</div>`;
       if (!state.initializedShops || !old.has(key) || restocked.has(row.shop)) showShopAlarm(row);
     }
     state.initializedShops = true;
+  }
+  function settleInitialShops(signature) {
+    if (signature !== pendingInitialSignature && initialShopTimer) window.clearTimeout(initialShopTimer);
+    if (signature === pendingInitialSignature && initialShopTimer) return;
+    pendingInitialSignature = signature;
+    initialShopTimer = window.setTimeout(() => {
+      initialShopTimer = 0;
+      if (!feature("shopAlarms") || state.initializedShops) return;
+      const available = availableShopItems();
+      const latestSignature = shopSignature(available);
+      if (latestSignature !== pendingInitialSignature) {
+        settleInitialShops(latestSignature);
+        return;
+      }
+      applyShopSnapshot(available, latestSignature, /* @__PURE__ */ new Set());
+    }, 500);
+  }
+  function processShops() {
+    if (!feature("shopAlarms")) return;
+    const restocked = restockedShops();
+    const available = availableShopItems();
+    const signature = shopSignature(available);
+    if (!state.initializedShops) {
+      settleInitialShops(signature);
+      return;
+    }
+    applyShopSnapshot(available, signature, restocked);
   }
   function showShopAlarm(row) {
     const owner = `shop:${row.shop}:${row.id}`;

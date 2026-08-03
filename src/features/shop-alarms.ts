@@ -46,6 +46,8 @@ function availableShopItems() {
 }
 
 const restockClocks = new Map<string, number>();
+let initialShopTimer = 0;
+let pendingInitialSignature = '';
 
 /**
  * Each shop counts down to its next restock, so the countdown jumping back up is the cycle turning
@@ -64,13 +66,15 @@ function restockedShops(): Set<string> {
   return restocked;
 }
 
-export function processShops(): void {
-  if (!feature('shopAlarms')) return;
-  // Read the clocks first: a restock that changes nothing about stock still has to be noticed.
-  const restocked = restockedShops();
-  const available = availableShopItems();
-  const signature = available.map(row => `${row.shop}:${row.id}:${row.remaining}`).sort().join('|');
-  if (signature === state.lastShopSignature && !restocked.size) return;
+function shopSignature(available): string {
+  return available.map(row => `${row.shop}:${row.id}:${row.remaining}`).sort().join('|');
+}
+
+function applyShopSnapshot(available, signature: string, restocked: Set<string>): void {
+  if (signature === state.lastShopSignature && !restocked.size) {
+    state.initializedShops = true;
+    return;
+  }
   const old = new Set(state.lastShopSignature.split('|').map(value => value.split(':').slice(0, 2).join(':')));
   const availableKeys = new Set(available.map(row => `${row.shop}:${row.id}`));
   if (state.initializedShops) for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
@@ -82,6 +86,36 @@ export function processShops(): void {
     if (!state.initializedShops || !old.has(key) || restocked.has(row.shop)) showShopAlarm(row);
   }
   state.initializedShops = true;
+}
+
+function settleInitialShops(signature: string): void {
+  if (signature !== pendingInitialSignature && initialShopTimer) window.clearTimeout(initialShopTimer);
+  if (signature === pendingInitialSignature && initialShopTimer) return;
+  pendingInitialSignature = signature;
+  initialShopTimer = window.setTimeout(() => {
+    initialShopTimer = 0;
+    if (!feature('shopAlarms') || state.initializedShops) return;
+    const available = availableShopItems();
+    const latestSignature = shopSignature(available);
+    if (latestSignature !== pendingInitialSignature) {
+      settleInitialShops(latestSignature);
+      return;
+    }
+    applyShopSnapshot(available, latestSignature, new Set());
+  }, 500);
+}
+
+export function processShops(): void {
+  if (!feature('shopAlarms')) return;
+  // Read the clocks first: a restock that changes nothing about stock still has to be noticed.
+  const restocked = restockedShops();
+  const available = availableShopItems();
+  const signature = shopSignature(available);
+  if (!state.initializedShops) {
+    settleInitialShops(signature);
+    return;
+  }
+  applyShopSnapshot(available, signature, restocked);
 }
 
 function showShopAlarm(row): void {
