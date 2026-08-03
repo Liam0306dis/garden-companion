@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.95
+// @version      0.6.96
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -3778,9 +3778,9 @@ ${rows}</div>`;
   }
   function loadFocus() {
     try {
-      return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", invert: false, opacity: 0.2, ...JSON.parse(localStorage.getItem(FOCUS_KEY) || "{}") };
+      return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", maxSize: false, invert: false, opacity: 0.2, ...JSON.parse(localStorage.getItem(FOCUS_KEY) || "{}") };
     } catch {
-      return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", invert: false, opacity: 0.2 };
+      return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", maxSize: false, invert: false, opacity: 0.2 };
     }
   }
   function saveFocus(config2) {
@@ -3846,7 +3846,9 @@ ${rows}</div>`;
       const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected || selected.has(tile.species)) || config2.scope === tile.species;
       const mutations = slot.mutations || [];
       const mutationMatches = config2.mutationRule === "none" ? config2.mutations.every((name) => !mutations.includes(name)) : config2.mutationRule === "any" ? config2.mutations.some((name) => mutations.includes(name)) : config2.mutations.length ? config2.mutations.every((name) => mutations.includes(name)) : mutations.length === 0;
-      const result = scopeMatches && mutationMatches;
+      const maximumScale = PLANT_CATALOG[slot.species ?? tile.species]?.crop?.maxScale;
+      const maxSizeMatches = !config2.maxSize || Boolean(maximumScale && Number(slot.targetScale ?? 1) >= maximumScale);
+      const result = scopeMatches && mutationMatches && maxSizeMatches;
       return config2.invert ? !result : result;
     }
     function capture(system) {
@@ -4205,7 +4207,7 @@ ${rows}</div>`;
     #${PANEL_ID} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
     #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
     #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8)}
-    #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move}
+    #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move;touch-action:none;user-select:none}
     #${PANEL_ID} h2{flex:0 0 auto;margin:0;white-space:nowrap;font:700 14px/1.2 system-ui,sans-serif;letter-spacing:.02em}
     #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:4px}
     #${PANEL_ID} header button,#${PANEL_ID} button{padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);cursor:pointer;font:700 10px system-ui,sans-serif}
@@ -4294,6 +4296,7 @@ ${rows}</div>`;
     }
     let configMode = null;
     let refreshTimer = null;
+    let activeDrag = false;
     let lastSignature = "";
     const previousMissing = /* @__PURE__ */ new Map();
     function keyCombo(event) {
@@ -4377,7 +4380,7 @@ ${rows}</div>`;
         const foundMutations = new Set(DEFAULT_TARGETS);
         for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) for (const slot of tile.slots ?? []) for (const mutation of slot.mutations ?? []) foundMutations.add(mutation);
         for (const mutation of focus.mutations) foundMutations.add(mutation);
-        return `<section class="go-section"><div class="go-section-title"><span>Plant focus</span><span>Fade non-matching crops</span></div><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? "checked" : ""}></label><label class="go-config-row"><span>Show</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label><label class="go-config-row"><span>Mutation rule</span><select data-focus-rule>${[["all", "All selected"], ["any", "Any selected"], ["none", "None selected"]].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><div class="go-pill-section"><b>Mutations (${focus.mutations.length}) <button data-focus-clear>Clear</button></b><div>${[...foundMutations].map((name) => `<button class="go-pill ${focus.mutations.includes(name) ? "on" : ""}" data-focus-mutation="${escapeHtml2(name)}">${focus.mutations.includes(name) ? "<i>&#10003;</i>" : ""}<span>${escapeHtml2(displayName(name))}</span></button>`).join("")}</div></div><label class="go-config-row"><span>Invert match</span><input type="checkbox" data-focus-invert ${focus.invert ? "checked" : ""}></label><label class="go-config-row"><span>Faded opacity <b data-opacity-value>${Math.round(focus.opacity * 100)}%</b></span><input type="range" min="5" max="60" step="5" value="${Math.round(focus.opacity * 100)}" data-focus-opacity></label></section>`;
+        return `<section class="go-section"><div class="go-section-title"><span>Plant focus</span><span>Fade non-matching crops</span></div><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? "checked" : ""}></label><label class="go-config-row"><span>Show</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label><label class="go-config-row"><span>Mutation rule</span><select data-focus-rule>${[["all", "All selected"], ["any", "Any selected"], ["none", "None selected"]].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><div class="go-pill-section"><b>Mutations (${focus.mutations.length}) <button data-focus-clear>Clear</button></b><div>${[...foundMutations].map((name) => `<button class="go-pill ${focus.mutations.includes(name) ? "on" : ""}" data-focus-mutation="${escapeHtml2(name)}">${focus.mutations.includes(name) ? "<i>&#10003;</i>" : ""}<span>${escapeHtml2(displayName(name))}</span></button>`).join("")}</div></div><label class="go-config-row"><span>Max size only</span><input type="checkbox" data-focus-max-size ${focus.maxSize ? "checked" : ""}></label><label class="go-config-row"><span>Invert match</span><input type="checkbox" data-focus-invert ${focus.invert ? "checked" : ""}></label><label class="go-config-row"><span>Faded opacity <b data-opacity-value>${Math.round(focus.opacity * 100)}%</b></span><input type="range" min="5" max="60" step="5" value="${Math.round(focus.opacity * 100)}" data-focus-opacity></label></section>`;
       }
       return "";
     }
@@ -4460,6 +4463,8 @@ ${rows}</div>`;
     function installDrag(card, header, save = null) {
       header.onpointerdown = (event) => {
         if (event.target.closest("button")) return;
+        event.preventDefault();
+        activeDrag = true;
         const bounds = card.getBoundingClientRect();
         const offsetX = event.clientX - bounds.left;
         const offsetY = event.clientY - bounds.top;
@@ -4472,12 +4477,16 @@ ${rows}</div>`;
         };
         const finish = () => {
           window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", finish);
+          window.removeEventListener("pointercancel", finish);
+          activeDrag = false;
           const left = parseFloat(card.style.left);
           const top = parseFloat(card.style.top);
           if (save && Number.isFinite(left) && Number.isFinite(top)) save(left, top);
         };
         window.addEventListener("pointermove", move);
-        window.addEventListener("pointerup", finish, { once: true });
+        window.addEventListener("pointerup", finish);
+        window.addEventListener("pointercancel", finish);
       };
     }
     function bindSearch(input) {
@@ -4495,6 +4504,10 @@ ${rows}</div>`;
       const stats = calculateStats(runtime(), getCatalog(), filter, trackedMutations, view.ignorePreserved, mutationConfig);
       checkCompletions(stats);
       if (panel.hidden) return;
+      if (activeDrag) {
+        updateCountdowns(panel, stats);
+        return;
+      }
       if (!force && panel.contains(document.activeElement)) {
         updateCountdowns(panel, stats);
         return;
@@ -4584,7 +4597,8 @@ ${rows}</div>`;
       const saveFocusControls = () => {
         saveFocus(focus);
         applyPlantFocus();
-        lastSignature = "";
+        const focusButton = panel.querySelector("[data-focus-config]");
+        if (focusButton) focusButton.dataset.active = String(focus.enabled);
       };
       const focusEnabled = panel.querySelector("[data-focus-enabled]");
       if (focusEnabled) focusEnabled.onchange = () => {
@@ -4615,6 +4629,12 @@ ${rows}</div>`;
         saveFocusControls();
         render(true);
       });
+      const focusMaxSize = panel.querySelector("[data-focus-max-size]");
+      if (focusMaxSize) focusMaxSize.onchange = () => {
+        focus.maxSize = focusMaxSize.checked;
+        saveFocusControls();
+        focusMaxSize.blur();
+      };
       const focusInvert = panel.querySelector("[data-focus-invert]");
       if (focusInvert) focusInvert.onchange = () => {
         focus.invert = focusInvert.checked;

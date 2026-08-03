@@ -201,6 +201,11 @@ assert.match(overviewSource, /structureSignature/, 'overview structural refresh 
 assert.match(overviewSource, /installPlantFocus/, 'overview plant focus missing');
 assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*focusEnabled\.blur\(\)/, 'plant focus enabled checkbox keeps keyboard focus');
 assert.match(overviewSource, /focusInvert\.onchange[\s\S]*focusInvert\.blur\(\)/, 'plant focus invert checkbox keeps keyboard focus');
+assert.match(overviewSource, /data-focus-max-size/, 'plant focus max-size toggle is missing');
+assert.match(overviewSource, /!config\.maxSize \|\| Boolean\(maximumScale && Number\(slot\.targetScale \?\? 1\) >= maximumScale\)/, 'plant focus max-size matching is missing');
+assert.match(overviewSource, /focusMaxSize\.onchange[\s\S]*focus\.maxSize = focusMaxSize\.checked[\s\S]*focusMaxSize\.blur\(\)/, 'plant focus max-size toggle is not saved or releases keyboard focus incorrectly');
+assert.match(overviewSource, /if \(activeDrag\) \{ updateCountdowns\(panel, stats\); return; \}/, 'garden overview must not replace a panel while it is being dragged');
+assert.doesNotMatch(overviewSource, /const saveFocusControls = \(\) => \{[^}]*lastSignature = ''/, 'plant focus controls must not schedule a popup-replacing redraw');
 assert.match(overviewSource, /PageObject\.defineProperty\(prototype, 'tileViews'/, 'plant focus direct tile-view capture missing');
 assert.match(overviewSource, /property === 'tileViews'.*attributes\?\.value instanceof PageMap/s, 'plant focus defined-property capture missing');
 assert.match(overviewSource, /view\.draw = function.*enforce\(view\.childView\?\.plantVisual\?\.container\)/s, 'plant focus redraw enforcement missing');
