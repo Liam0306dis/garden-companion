@@ -12,6 +12,15 @@ import { escapeHtml, humanize } from '../utils.js';
 
 /** Watches shop stock and raises an alarm when an item the player selected comes back in stock. */
 
+interface AvailableShopItem {
+  shop: string;
+  id: string;
+  item: ShopItem;
+  remaining: number;
+}
+
+const INITIAL_SHOP_SETTLE_MS = 500;
+
 function itemId(item): string {
   for (const key of ITEM_KEYS) if (item?.[key]) return String(item[key]);
   return '';
@@ -33,8 +42,8 @@ function purchasedCount(shop, id) {
   return Number(purchases[id] || 0);
 }
 
-function availableShopItems() {
-  const output = [];
+function availableShopItems(): AvailableShopItem[] {
+  const output: AvailableShopItem[] = [];
   for (const [shop, data] of Object.entries(state.game?.shops || {})) {
     for (const item of Array.isArray(data?.inventory) ? data.inventory : []) {
       const id = itemId(item);
@@ -66,11 +75,11 @@ function restockedShops(): Set<string> {
   return restocked;
 }
 
-function shopSignature(available): string {
+function shopSignature(available: AvailableShopItem[]): string {
   return available.map(row => `${row.shop}:${row.id}:${row.remaining}`).sort().join('|');
 }
 
-function applyShopSnapshot(available, signature: string, restocked: Set<string>): void {
+function applyShopSnapshot(available: AvailableShopItem[], signature: string, restocked: Set<string>): void {
   if (signature === state.lastShopSignature && !restocked.size) {
     state.initializedShops = true;
     return;
@@ -102,7 +111,7 @@ function settleInitialShops(signature: string): void {
       return;
     }
     applyShopSnapshot(available, latestSignature, new Set());
-  }, 500);
+  }, INITIAL_SHOP_SETTLE_MS);
 }
 
 export function processShops(): void {
@@ -118,7 +127,7 @@ export function processShops(): void {
   applyShopSnapshot(available, signature, restocked);
 }
 
-function showShopAlarm(row): void {
+function showShopAlarm(row: AvailableShopItem): void {
   const owner = `shop:${row.shop}:${row.id}`;
   showAlarmBanner({
     owner,

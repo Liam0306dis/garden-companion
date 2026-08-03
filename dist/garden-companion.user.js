@@ -2883,6 +2883,7 @@ ${rows}</div>`;
   }
 
   // src/features/shop-alarms.ts
+  var INITIAL_SHOP_SETTLE_MS = 500;
   function itemId(item) {
     for (const key of ITEM_KEYS) if (item?.[key]) return String(item[key]);
     return "";
@@ -2961,7 +2962,7 @@ ${rows}</div>`;
         return;
       }
       applyShopSnapshot(available, latestSignature, /* @__PURE__ */ new Set());
-    }, 500);
+    }, INITIAL_SHOP_SETTLE_MS);
   }
   function processShops() {
     if (!feature("shopAlarms")) return;
