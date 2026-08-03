@@ -7392,9 +7392,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
 
   // src/features/planter-pot-selection.ts
   var wrappedAtoms = /* @__PURE__ */ new WeakSet();
+  var INSTALL_INTERVAL_MS = 250;
+  var MAX_INSTALL_ATTEMPTS = 240;
   var pendingSelection = null;
   function isEnabled() {
-    return page.__gardenCompanionFeature?.("keepPlanterPotSelected") !== false;
+    return page.__gardenCompanionFeature?.("keepPlanterPotSelected") === true;
   }
   function atomMap3() {
     const cache = page.jotaiAtomCache;
@@ -7468,9 +7470,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function initPlanterPotSelection() {
     if (installHooks()) return;
+    let attempts = 0;
     const timer = window.setInterval(() => {
       if (installHooks()) window.clearInterval(timer);
-    }, 250);
+      else if (++attempts >= MAX_INSTALL_ATTEMPTS) {
+        window.clearInterval(timer);
+        console.warn("[Garden Companion] Planter Pot selection keeper could not find the game inventory atoms.");
+      }
+    }, INSTALL_INTERVAL_MS);
   }
 
   // src/pet-sprites-injector.ts

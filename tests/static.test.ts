@@ -204,6 +204,10 @@ assert.match(planterPotSelectionSource, /myOptimisticInventoryItemsAtom/, 'selec
 assert.match(planterPotSelectionSource, /mySelectedItemIdAtom/, 'selection keeper does not watch selected items');
 assert.match(planterPotSelectionSource, /selectedItemId === 'PlanterPot'/, 'selection keeper is not limited to Planter Pot use');
 assert.match(planterPotSelectionSource, /pending\.addedPlantIds\.has\(nextItemId\)/, 'selection keeper does not target the newly potted plant');
+assert.match(planterPotSelectionSource, /__gardenCompanionFeature\?\.\('keepPlanterPotSelected'\) === true/, 'selection keeper is not strictly opt-in');
+assert.match(planterPotSelectionSource, /MAX_INSTALL_ATTEMPTS = 240/, 'selection keeper atom retry is not bounded');
+assert.match(planterPotSelectionSource, /attempts >= MAX_INSTALL_ATTEMPTS/, 'selection keeper atom retry cap is not enforced');
+assert.match(planterPotSelectionSource, /selection keeper could not find the game inventory atoms/, 'selection keeper does not report atom installation failure');
 assert.match(companionSource, /Keep Planter Pot selected/, 'selection keeper toggle is missing from Features');
 assert.match(companionSource, /keepPlanterPotSelected: false/, 'selection keeper must default off');
 assert.doesNotMatch(indexSource, /if \(page\.__gardenCompanionFeature\?\.\('dragMove'\)\) initPlantDragMove/, 'plant drag still requires a reload to install');

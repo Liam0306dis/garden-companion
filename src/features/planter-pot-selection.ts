@@ -19,10 +19,12 @@ interface PendingPotSelection {
 }
 
 const wrappedAtoms = new WeakSet<JotaiAtom>();
+const INSTALL_INTERVAL_MS = 250;
+const MAX_INSTALL_ATTEMPTS = 240;
 let pendingSelection: PendingPotSelection | null = null;
 
 function isEnabled(): boolean {
-  return page.__gardenCompanionFeature?.('keepPlanterPotSelected') !== false;
+  return page.__gardenCompanionFeature?.('keepPlanterPotSelected') === true;
 }
 
 function atomMap(): Map<unknown, JotaiAtom> | null {
@@ -113,7 +115,12 @@ function installHooks(): boolean {
 
 export function initPlanterPotSelection(): void {
   if (installHooks()) return;
+  let attempts = 0;
   const timer = window.setInterval(() => {
     if (installHooks()) window.clearInterval(timer);
-  }, 250);
+    else if (++attempts >= MAX_INSTALL_ATTEMPTS) {
+      window.clearInterval(timer);
+      console.warn('[Garden Companion] Planter Pot selection keeper could not find the game inventory atoms.');
+    }
+  }, INSTALL_INTERVAL_MS);
 }
