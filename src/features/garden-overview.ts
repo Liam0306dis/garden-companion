@@ -573,7 +573,9 @@ function injectStyles(): void {
   style.id = STYLE_ID;
   style.textContent = `
     #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-raised,#121219);color:var(--gc-text,#e4e4e7);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
-    #${BUTTON_ID}:hover{border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.12)}
+    /* Layered over the solid base rather than replacing it: this button sits on the game canvas,
+       so a translucent hover would show the garden through it instead of lighting it up. */
+    #${BUTTON_ID}:hover{border-color:rgba(167,139,250,.35);background:linear-gradient(rgba(167,139,250,.16),rgba(167,139,250,.16)),var(--gc-raised,#121219)}
     #${PANEL_ID}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID}[hidden]{display:none}
     #${PANEL_ID} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
