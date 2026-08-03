@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { generateCelestialLayout, type CelestialSpecies } from '../src/celestial-layout.js';
 
 const root = resolve(import.meta.dirname, '..');
 const built = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
@@ -50,6 +51,8 @@ const styleSource = await readFile(resolve(root, 'src', 'style.css'), 'utf8');
 const overviewSource = await readFile(resolve(root, 'src', 'features', 'garden-overview.ts'), 'utf8');
 const plantDragSource = await readFile(resolve(root, 'src', 'features', 'plant-drag-move.ts'), 'utf8');
 const planterPotSelectionSource = await readFile(resolve(root, 'src', 'features', 'planter-pot-selection.ts'), 'utf8');
+const celestialLayoutSource = await readFile(resolve(root, 'src', 'celestial-layout.ts'), 'utf8');
+const celestialGuideSource = await readFile(resolve(root, 'src', 'features', 'celestial-layout-guide.ts'), 'utf8');
 const indexSource = await readFile(resolve(root, 'src', 'index.ts'), 'utf8');
 const petSpriteSource = await readFile(resolve(root, 'src', 'pet-sprites.ts'), 'utf8');
 const petSpriteInjector = await readFile(resolve(root, 'src', 'pet-sprites-injector.ts'), 'utf8');
@@ -61,6 +64,50 @@ const petsSource = await readFile(resolve(root, 'src', 'pets.ts'), 'utf8');
 const dragSource = await readFile(resolve(root, 'src', 'draggable.ts'), 'utf8');
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
 const packageLock = JSON.parse(await readFile(resolve(root, 'package-lock.json'), 'utf8')) as { version: string; packages: Record<string, { version: string }> };
+
+const bothPlants: CelestialSpecies[] = [
+  'MoonCelestial', 'MoonCelestial', 'DawnCelestial', 'DawnCelestial',
+  ...Array.from({ length: 5 }, () => 'Dawnbreaker' as const),
+  ...Array.from({ length: 3 }, () => 'Starweaver' as const),
+];
+const bothLayout = generateCelestialLayout(bothPlants, 10, 5, 'both');
+assert.equal(bothLayout.error, '', 'valid celestial plants did not produce a covered layout');
+assert.equal(bothLayout.met, bothPlants.length, 'not every celestial plant receives both buffs');
+assert.deepEqual(
+  bothLayout.cells.flatMap(cell => cell.species ? [cell.species] : []).sort(),
+  [...bothPlants].sort(),
+  'celestial layout changed the planted species counts',
+);
+const amberLayout = generateCelestialLayout(['MoonCelestial', 'MoonCelestial', 'Starweaver'], 10, 5, 'amber');
+assert.equal(amberLayout.met, 3, 'Amberbound-only layout incorrectly requires Dawnbinders');
+const dawnLayout = generateCelestialLayout(['DawnCelestial', 'DawnCelestial', 'Dawnbreaker'], 10, 5, 'dawn');
+assert.equal(dawnLayout.met, 3, 'Dawnbound-only layout incorrectly requires Moonbinders');
+const reportedAmberSet: CelestialSpecies[] = [
+  ...Array.from({ length: 19 }, () => 'MoonCelestial' as const),
+  ...Array.from({ length: 33 }, () => 'DawnCelestial' as const),
+  ...Array.from({ length: 45 }, () => 'Dawnbreaker' as const),
+];
+const reportedAmberLayout = generateCelestialLayout(reportedAmberSet, 10, 10, 'amber');
+assert.equal(reportedAmberLayout.met, reportedAmberSet.length, '19 Moonbinders do not cover the reported 97-plant Amberbound layout');
+assert.deepEqual(reportedAmberLayout.cells.flatMap(cell => cell.species ? [cell.species] : []).sort(), [...reportedAmberSet].sort(), 'single-buff constructor changed the reported plant counts');
+assert.match(generateCelestialLayout(['MoonCelestial', 'Starweaver'], 10, 5, 'amber').error, /At least two Moonbinders/, 'single Moonbinder was accepted as its own buff source');
+assert.deepEqual(generateCelestialLayout(bothPlants, 10, 5, 'both'), bothLayout, 'celestial layout is not deterministic');
+const occupiedIndexes = bothLayout.cells.flatMap((cell, index) => cell.species ? [index] : []);
+const occupiedRows = occupiedIndexes.map(index => Math.floor(index / 5));
+const occupiedColumns = occupiedIndexes.map(index => index % 5);
+const occupiedArea = (Math.max(...occupiedRows) - Math.min(...occupiedRows) + 1)
+  * (Math.max(...occupiedColumns) - Math.min(...occupiedColumns) + 1);
+assert.ok(occupiedArea <= 20, 'celestial layout is not compact for a typical plant set');
+assert.ok(Math.abs((Math.min(...occupiedRows) + Math.max(...occupiedRows)) / 2 - 4.5) <= 1, 'celestial layout is not vertically centred');
+assert.ok(Math.abs((Math.min(...occupiedColumns) + Math.max(...occupiedColumns)) / 2 - 2) <= 1, 'celestial layout is not horizontally centred');
+const blockedTiles = Array.from({ length: 50 }, (_, index) => index >= 10 && index < 40);
+const emptyPreferred = generateCelestialLayout(['DawnCelestial', 'DawnCelestial', 'Starweaver'], 10, 5, 'dawn', blockedTiles);
+assert.equal(emptyPreferred.met, 3, 'empty-space preference broke complete buff coverage');
+assert.ok(emptyPreferred.cells.every((cell, index) => !cell.species || !blockedTiles[index]), 'celestial layout used occupied tiles when sufficient empty space existed');
+const impossibleLargeSet: CelestialSpecies[] = ['MoonCelestial', 'MoonCelestial', 'DawnCelestial', 'DawnCelestial', ...Array.from({ length: 196 }, () => 'Starweaver' as const)];
+const impossibleStarted = performance.now();
+generateCelestialLayout(impossibleLargeSet, 100, 50, 'both');
+assert.ok(performance.now() - impossibleStarted < 500, 'a provably impossible large celestial layout blocks for too long');
 
 for (const marker of [
   '@name         Garden Companion',
@@ -200,6 +247,32 @@ for (const shopSpriteGroup of ["seed", "egg", "tool"]) assert.match(petSpriteSou
 assert.match(petSpriteInjector, /script\.textContent = __PET_SPRITE_LOADER__/, 'pet atlas loader is not injected into the game page');
 assert.match(indexSource, /initPlantDragMove\(\);/, 'plant drag is not installed for runtime toggling');
 assert.match(indexSource, /initPlanterPotSelection\(\);/, 'Planter Pot selection keeper is not installed');
+assert.match(indexSource, /initCelestialLayoutGuide\(\);/, 'celestial layout guide is not installed');
+assert.match(companionSource, /data-open-celestial-layout/, 'celestial layout launcher is missing from Features');
+assert.match(companionSource, /__gardenCompanionToggleCelestialLayout/, 'celestial layout launcher is not wired');
+assert.match(celestialGuideSource, /MoonCelestial.*DawnCelestial.*Dawnbreaker.*Starweaver/, 'celestial layout species are incomplete');
+assert.match(celestialGuideSource, /side === 'left'.*columns\.slice\(0, split\).*columns\.slice\(split\)/s, 'celestial layout does not split the farm by mapped columns');
+assert.match(celestialGuideSource, /generateCelestialLayout\(plants, rows, columns, guide\.goal, blocked\)/, 'celestial layout does not account for occupied farm tiles');
+assert.match(celestialGuideSource, /stylePlant\(ref, correct \? 0x66ff8c : 0xff5265/, 'celestial plants are not tinted for placement feedback');
+assert.match(celestialGuideSource, /placementType\(planned\) === placementType\(actual\)/, 'Dawnbreaker and Starweaver are not interchangeable in placement feedback');
+assert.match(celestialGuideSource, /renderer\.textureGenerator\.generateTexture\(\{ target: display, resolution: 1 \}\)/, 'celestial layout does not use the game renderer to capture the complete plant');
+assert.doesNotMatch(celestialGuideSource, /renderer\.extract\.canvas|toDataURL/, 'celestial layout performs a blocking GPU image readback');
+assert.match(celestialGuideSource, /system\.worldContainer\.addChild\(ghost\)/, 'celestial layout does not display captured plants in the game world');
+assert.match(celestialGuideSource, /node\.renderPipeId === 'sprite'.*!\('textures' in node\)/, 'celestial layout does not select a static PIXI Sprite constructor');
+assert.match(celestialGuideSource, /label\.textContent = SPECIES_LABELS\[planned\]/, 'celestial layout has no readable fallback when a plant capture is unavailable');
+assert.match(celestialGuideSource, /else positionOverlay\(\);[\s\S]*requestAnimationFrame\(frame\)/, 'celestial layout does not follow camera movement and zoom every frame');
+assert.match(celestialGuideSource, /now - lastStateAt >= 250/, 'celestial layout still rebuilds garden state on every visual frame');
+assert.doesNotMatch(celestialGuideSource, /function positionOverlay\(\)[\s\S]*dirtTiles\(\)/, 'celestial layout remaps every farm tile on each animation frame');
+assert.match(celestialGuideSource, /makeDraggable\(panel, POSITION_KEY\)/, 'celestial layout panel is not draggable');
+assert.match(celestialGuideSource, /gardenCompanion\.celestialLayoutPosition\.v1/, 'celestial layout panel position is not persisted');
+assert.doesNotMatch(celestialGuideSource, /panel\.addEventListener\('pointerdown',[^\n]+, true\)/, 'celestial layout blocks pointerdown before its drag handler can run');
+assert.doesNotMatch(celestialGuideSource, /updateTileData/, 'celestial layout mutates the live tile renderer and would block plant movement');
+assert.doesNotMatch(celestialGuideSource, /__gardenCompanionProduceSprites|__gardenCompanionShopSprites|__gardenCompanionPlantSprites/, 'celestial layout still uses flat extracted artwork');
+assert.match(celestialLayoutSource, /Moonbinders.*plant cannot grant Amberbound to itself/, 'Amberbound source validation is missing');
+assert.match(celestialLayoutSource, /Dawnbinders.*plant cannot grant Dawnbound to itself/, 'Dawnbound source validation is missing');
+assert.match(celestialLayoutSource, /const deadline = performance\.now\(\) \+ 120/, 'celestial layout search has no blocking-time budget');
+assert.match(celestialLayoutSource, /currentInspection\.met !== currentInspection\.required/, 'celestial layout keeps searching after finding full coverage');
+assert.match(styleSource, /#gc-celestial-overlay/, 'celestial layout overlay styles are missing');
 assert.match(planterPotSelectionSource, /myOptimisticInventoryItemsAtom/, 'selection keeper does not watch inventory changes');
 assert.match(planterPotSelectionSource, /mySelectedItemIdAtom/, 'selection keeper does not watch selected items');
 assert.match(planterPotSelectionSource, /selectedItemId === 'PlanterPot'/, 'selection keeper is not limited to Planter Pot use');

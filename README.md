@@ -19,6 +19,7 @@ actions. It does not perform unattended gameplay.
 - Crop values and pet-adjusted crop or egg growth estimates (Turtle-Timer)
 - Pet food buttons docked beside the games own pet panel, one per active pet, with per-species preferred foods, held produce counts on each food icon, one-click feeding, and automatic hiding while a pet card is open
 - Layout planner for arranging plants and decor on your own tiles, with mutations, crop sizes, and saved layouts
+- Celestial layout guide for arranging Moonbinder, Dawnbinder, Dawnbreaker, and Starweaver plants on either farm side, with game-rendered plant overlays, Amberbound, Dawnbound, or combined coverage, and live red or green placement feedback
 - Plant drag movement by holding, dragging, and releasing a plant, consumes planter pot on each successful move
 - Optional selection keeper prevents a manually used Planter Pot from switching to the picked-up plant
 - Instant harvest - Spacebar triggers instant harvest for mature Gold or Rainbow crops (Default OFF)
