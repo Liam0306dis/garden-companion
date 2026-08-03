@@ -104,6 +104,9 @@ const blockedTiles = Array.from({ length: 50 }, (_, index) => index >= 10 && ind
 const emptyPreferred = generateCelestialLayout(['DawnCelestial', 'DawnCelestial', 'Starweaver'], 10, 5, 'dawn', blockedTiles);
 assert.equal(emptyPreferred.met, 3, 'empty-space preference broke complete buff coverage');
 assert.ok(emptyPreferred.cells.every((cell, index) => !cell.species || !blockedTiles[index]), 'celestial layout used occupied tiles when sufficient empty space existed');
+const unavailableTiles = Array.from({ length: 50 }, (_, index) => index === 22 || index === 23);
+const preservedExcluded = generateCelestialLayout(['MoonCelestial', 'MoonCelestial', 'Starweaver'], 10, 5, 'amber', [], unavailableTiles);
+assert.ok(preservedExcluded.cells.every((cell, index) => !cell.species || !unavailableTiles[index]), 'celestial layout placed a plant on a preserved tile');
 const impossibleLargeSet: CelestialSpecies[] = ['MoonCelestial', 'MoonCelestial', 'DawnCelestial', 'DawnCelestial', ...Array.from({ length: 196 }, () => 'Starweaver' as const)];
 const impossibleStarted = performance.now();
 generateCelestialLayout(impossibleLargeSet, 100, 50, 'both');
@@ -252,7 +255,9 @@ assert.match(companionSource, /data-open-celestial-layout/, 'celestial layout la
 assert.match(companionSource, /__gardenCompanionToggleCelestialLayout/, 'celestial layout launcher is not wired');
 assert.match(celestialGuideSource, /MoonCelestial.*DawnCelestial.*Dawnbreaker.*Starweaver/, 'celestial layout species are incomplete');
 assert.match(celestialGuideSource, /side === 'left'.*columns\.slice\(0, split\).*columns\.slice\(split\)/s, 'celestial layout does not split the farm by mapped columns');
-assert.match(celestialGuideSource, /generateCelestialLayout\(plants, rows, columns, guide\.goal, blocked\)/, 'celestial layout does not account for occupied farm tiles');
+assert.match(celestialGuideSource, /generateCelestialLayout\(plants, rows, columns, guide\.goal, blocked, unavailable\)/, 'celestial layout does not account for occupied and preserved farm tiles');
+assert.match(celestialGuideSource, /tile\.slots\?\.some\(slot => slot\.preserved === true\)/, 'celestial layout does not detect preserved plants');
+assert.match(celestialGuideSource, /!isPreserved\(tile\).*CELESTIAL_SPECIES\.has/, 'celestial layout still counts or highlights preserved celestial plants');
 assert.match(celestialGuideSource, /stylePlant\(ref, correct \? 0x66ff8c : 0xff5265/, 'celestial plants are not tinted for placement feedback');
 assert.match(celestialGuideSource, /placementType\(planned\) === placementType\(actual\)/, 'Dawnbreaker and Starweaver are not interchangeable in placement feedback');
 assert.match(celestialGuideSource, /renderer\.textureGenerator\.generateTexture\(\{ target: display, resolution: 1 \}\)/, 'celestial layout does not use the game renderer to capture the complete plant');

@@ -86,6 +86,10 @@ export function initCelestialLayoutGuide(): void {
     return state.slot?.data?.garden?.tileObjects ?? {};
   }
 
+  function isPreserved(tile: GardenTile | undefined): boolean {
+    return tile?.objectType === 'plant' && Boolean(tile.slots?.some(slot => slot.preserved === true));
+  }
+
   function dirtTiles(): DirtTileRef[] {
     const system = tileSystem();
     const slotIndex = ownSlotIndex();
@@ -112,7 +116,7 @@ export function initCelestialLayoutGuide(): void {
 
   function currentCelestials(): CelestialSpecies[] {
     return Object.values(liveTiles()).flatMap(tile =>
-      tile?.objectType === 'plant' && CELESTIAL_SPECIES.has(tile.species as CelestialSpecies)
+      tile?.objectType === 'plant' && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species as CelestialSpecies)
         ? [tile.species as CelestialSpecies]
         : []);
   }
@@ -153,11 +157,12 @@ export function initCelestialLayoutGuide(): void {
     }
     const plants = currentCelestials();
     const current = liveTiles();
+    const unavailable = tiles.map(tile => isPreserved(current[tile.localIndex]));
     const blocked = tiles.map(tile => {
       const occupant = current[tile.localIndex];
       return Boolean(occupant && !(occupant.objectType === 'plant' && CELESTIAL_SPECIES.has(occupant.species as CelestialSpecies)));
     });
-    const result = generateCelestialLayout(plants, rows, columns, guide.goal, blocked);
+    const result = generateCelestialLayout(plants, rows, columns, guide.goal, blocked, unavailable);
     if (!result.cells.length) {
       status(result.error, 'error');
       return;
@@ -360,7 +365,7 @@ export function initCelestialLayoutGuide(): void {
     const current = liveTiles();
     const wanted = new Set<string>(guide.plan.keys());
     for (const [localIndex, tile] of Object.entries(current)) {
-      if (tile?.objectType === 'plant' && CELESTIAL_SPECIES.has(tile.species as CelestialSpecies)) wanted.add(localIndex);
+      if (tile?.objectType === 'plant' && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species as CelestialSpecies)) wanted.add(localIndex);
     }
     root.querySelectorAll<HTMLElement>('[data-celestial-tile]').forEach(element => {
       if (!wanted.has(element.dataset.celestialTile!)) element.remove();
@@ -374,7 +379,7 @@ export function initCelestialLayoutGuide(): void {
       if (!ref) continue;
       const planned = guide.plan.get(localIndex) ?? null;
       const actualTile = current[localIndex];
-      const actual = actualTile?.objectType === 'plant' && CELESTIAL_SPECIES.has(actualTile.species as CelestialSpecies)
+      const actual = actualTile?.objectType === 'plant' && !isPreserved(actualTile) && CELESTIAL_SPECIES.has(actualTile.species as CelestialSpecies)
         ? actualTile.species as CelestialSpecies
         : null;
       const covered = guide.covered.get(localIndex) !== false;

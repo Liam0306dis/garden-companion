@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.93
+// @version      0.6.94
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -7561,8 +7561,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     return { score, required, met, coverage };
   }
-  function initialLayout(species, rows, columns, random, blocked) {
-    const positions = Array.from({ length: rows * columns }, (_, index) => index).sort((left, right) => {
+  function initialLayout(species, rows, columns, random, blocked, unavailable) {
+    const positions = Array.from({ length: rows * columns }, (_, index) => index).filter((index) => !unavailable[index]).sort((left, right) => {
       if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
       const leftRow = Math.floor(left / columns);
       const leftColumn = left % columns;
@@ -7579,7 +7579,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
     return cells;
   }
-  function singleBuffLayout(species, rows, columns, goal, blocked) {
+  function singleBuffLayout(species, rows, columns, goal, blocked, unavailable) {
     const sourceSpecies = goal === "amber" ? "MoonCelestial" : "DawnCelestial";
     const sourceCount = species.filter((name) => name === sourceSpecies).length;
     if (sourceCount < 2) return null;
@@ -7606,7 +7606,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const first = row * columns + column;
         for (const second of [column + 1 < columns ? first + 1 : -1, row + 1 < rows ? first + columns : -1]) {
           if (second < 0) continue;
-          pairs.push({ sources: [first, second], covered: [.../* @__PURE__ */ new Set([...neighbours(first), ...neighbours(second)])] });
+          if (unavailable[first] || unavailable[second]) continue;
+          pairs.push({ sources: [first, second], covered: [.../* @__PURE__ */ new Set([...neighbours(first), ...neighbours(second)])].filter((index) => !unavailable[index]) });
         }
       }
     }
@@ -7674,8 +7675,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       error: inspection.met === inspection.required ? "" : `${inspection.required - inspection.met} plant slots could not receive the selected buffs.`
     };
   }
-  function generateCelestialLayout(species, rows, columns, goal, blocked = []) {
-    const capacity = rows * columns;
+  function generateCelestialLayout(species, rows, columns, goal, blocked = [], unavailable = []) {
+    const capacity = rows * columns - unavailable.filter(Boolean).length;
     if (!species.length) return { cells: [], required: 0, met: 0, error: "No celestial plants are currently planted." };
     if (species.length > capacity) return { cells: [], required: species.length, met: 0, error: `The selected side has ${capacity} slots, but ${species.length} celestial plants are planted.` };
     const moonCount = species.filter((name) => name === "MoonCelestial").length;
@@ -7687,13 +7688,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return { cells: [], required: species.length, met: 0, error: "At least two Dawnbinders are needed because a plant cannot grant Dawnbound to itself." };
     }
     if (goal === "amber" || goal === "dawn") {
-      const constructed = singleBuffLayout(species, rows, columns, goal, blocked);
+      const constructed = singleBuffLayout(species, rows, columns, goal, blocked, unavailable);
       if (constructed) {
         const inspection = inspect(constructed, rows, columns, goal, blocked, true);
         if (inspection.met === inspection.required) return resultFrom(constructed, inspection, goal);
       }
     }
-    const random = seededRandom(`${rows}x${columns}:${goal}:${[...species].sort().join(",")}:${blocked.map((value) => value ? 1 : 0).join("")}`);
+    const random = seededRandom(`${rows}x${columns}:${goal}:${[...species].sort().join(",")}:${blocked.map((value) => value ? 1 : 0).join("")}:${unavailable.map((value) => value ? 1 : 0).join("")}`);
     const amberCapacity = moonCount * 8;
     const dawnCapacity = dawnCount * 8;
     const provablyImpossible = (goal === "amber" || goal === "both" ? species.length > amberCapacity : false) || (goal === "dawn" || goal === "both" ? species.length > dawnCapacity : false);
@@ -7703,7 +7704,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let best = null;
     let bestInspection = null;
     for (let restart = 0; restart < restarts; restart++) {
-      const current = initialLayout(species, rows, columns, random, blocked);
+      const current = initialLayout(species, rows, columns, random, blocked, unavailable);
       let currentInspection = inspect(current, rows, columns, goal, blocked);
       for (let step = 0; step < steps && currentInspection.met !== currentInspection.required; step++) {
         if ((step & 31) === 0 && performance.now() >= deadline) break;
@@ -7713,6 +7714,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           second = Math.floor(random() * current.length);
         }
         if (first === second || current[first].type === current[second].type) continue;
+        if (current[first].type !== "empty" && current[second].type === "empty" && unavailable[second]) continue;
+        if (current[second].type !== "empty" && current[first].type === "empty" && unavailable[first]) continue;
         [current[first], current[second]] = [current[second], current[first]];
         const candidate = inspect(current, rows, columns, goal, blocked);
         const temperature = Math.max(0.05, 1.1 * (1 - step / steps));
@@ -7728,7 +7731,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       if (bestInspection.met === bestInspection.required || performance.now() >= deadline) break;
     }
-    const finalCells = best ?? initialLayout(species, rows, columns, random, blocked);
+    const finalCells = best ?? initialLayout(species, rows, columns, random, blocked, unavailable);
     const result = inspect(finalCells, rows, columns, goal, blocked, true);
     return resultFrom(finalCells, result, goal);
   }
@@ -7780,6 +7783,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function liveTiles() {
       return state.slot?.data?.garden?.tileObjects ?? {};
     }
+    function isPreserved(tile) {
+      return tile?.objectType === "plant" && Boolean(tile.slots?.some((slot) => slot.preserved === true));
+    }
     function dirtTiles() {
       const system = tileSystem();
       const slotIndex = ownSlotIndex();
@@ -7803,7 +7809,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return tiles.filter((tile) => selectedColumns.has(tile.x)).sort((left, right) => left.y - right.y || left.x - right.x);
     }
     function currentCelestials() {
-      return Object.values(liveTiles()).flatMap((tile) => tile?.objectType === "plant" && CELESTIAL_SPECIES.has(tile.species) ? [tile.species] : []);
+      return Object.values(liveTiles()).flatMap((tile) => tile?.objectType === "plant" && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species) ? [tile.species] : []);
     }
     function status(message, tone2 = "normal") {
       guide.message = message;
@@ -7839,11 +7845,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       const plants = currentCelestials();
       const current = liveTiles();
+      const unavailable = tiles.map((tile) => isPreserved(current[tile.localIndex]));
       const blocked = tiles.map((tile) => {
         const occupant = current[tile.localIndex];
         return Boolean(occupant && !(occupant.objectType === "plant" && CELESTIAL_SPECIES.has(occupant.species)));
       });
-      const result = generateCelestialLayout(plants, rows, columns, guide.goal, blocked);
+      const result = generateCelestialLayout(plants, rows, columns, guide.goal, blocked, unavailable);
       if (!result.cells.length) {
         status(result.error, "error");
         return;
@@ -8047,7 +8054,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const current = liveTiles();
       const wanted = new Set(guide.plan.keys());
       for (const [localIndex, tile] of Object.entries(current)) {
-        if (tile?.objectType === "plant" && CELESTIAL_SPECIES.has(tile.species)) wanted.add(localIndex);
+        if (tile?.objectType === "plant" && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species)) wanted.add(localIndex);
       }
       root.querySelectorAll("[data-celestial-tile]").forEach((element) => {
         if (!wanted.has(element.dataset.celestialTile)) element.remove();
@@ -8060,7 +8067,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         if (!ref) continue;
         const planned = guide.plan.get(localIndex) ?? null;
         const actualTile = current[localIndex];
-        const actual = actualTile?.objectType === "plant" && CELESTIAL_SPECIES.has(actualTile.species) ? actualTile.species : null;
+        const actual = actualTile?.objectType === "plant" && !isPreserved(actualTile) && CELESTIAL_SPECIES.has(actualTile.species) ? actualTile.species : null;
         const covered = guide.covered.get(localIndex) !== false;
         const compatible = Boolean(planned && actual && placementType(planned) === placementType(actual));
         const correct = compatible && covered;

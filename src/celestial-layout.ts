@@ -111,8 +111,8 @@ function inspect(cells: WorkingCell[], rows: number, columns: number, goal: Cele
   return { score, required, met, coverage };
 }
 
-function initialLayout(species: CelestialSpecies[], rows: number, columns: number, random: () => number, blocked: readonly boolean[]): WorkingCell[] {
-  const positions = Array.from({ length: rows * columns }, (_, index) => index).sort((left, right) => {
+function initialLayout(species: CelestialSpecies[], rows: number, columns: number, random: () => number, blocked: readonly boolean[], unavailable: readonly boolean[]): WorkingCell[] {
+  const positions = Array.from({ length: rows * columns }, (_, index) => index).filter(index => !unavailable[index]).sort((left, right) => {
     if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
     const leftRow = Math.floor(left / columns);
     const leftColumn = left % columns;
@@ -134,6 +134,7 @@ function singleBuffLayout(
   columns: number,
   goal: 'amber' | 'dawn',
   blocked: readonly boolean[],
+  unavailable: readonly boolean[],
 ): WorkingCell[] | null {
   const sourceSpecies: CelestialSpecies = goal === 'amber' ? 'MoonCelestial' : 'DawnCelestial';
   const sourceCount = species.filter(name => name === sourceSpecies).length;
@@ -161,7 +162,8 @@ function singleBuffLayout(
       const first = row * columns + column;
       for (const second of [column + 1 < columns ? first + 1 : -1, row + 1 < rows ? first + columns : -1]) {
         if (second < 0) continue;
-        pairs.push({ sources: [first, second], covered: [...new Set([...neighbours(first), ...neighbours(second)])] });
+        if (unavailable[first] || unavailable[second]) continue;
+        pairs.push({ sources: [first, second], covered: [...new Set([...neighbours(first), ...neighbours(second)])].filter(index => !unavailable[index]) });
       }
     }
   }
@@ -235,8 +237,9 @@ export function generateCelestialLayout(
   columns: number,
   goal: CelestialGoal,
   blocked: readonly boolean[] = [],
+  unavailable: readonly boolean[] = [],
 ): CelestialLayoutResult {
-  const capacity = rows * columns;
+  const capacity = rows * columns - unavailable.filter(Boolean).length;
   if (!species.length) return { cells: [], required: 0, met: 0, error: 'No celestial plants are currently planted.' };
   if (species.length > capacity) return { cells: [], required: species.length, met: 0, error: `The selected side has ${capacity} slots, but ${species.length} celestial plants are planted.` };
   const moonCount = species.filter(name => name === 'MoonCelestial').length;
@@ -249,14 +252,14 @@ export function generateCelestialLayout(
   }
 
   if (goal === 'amber' || goal === 'dawn') {
-    const constructed = singleBuffLayout(species, rows, columns, goal, blocked);
+    const constructed = singleBuffLayout(species, rows, columns, goal, blocked, unavailable);
     if (constructed) {
       const inspection = inspect(constructed, rows, columns, goal, blocked, true);
       if (inspection.met === inspection.required) return resultFrom(constructed, inspection, goal);
     }
   }
 
-  const random = seededRandom(`${rows}x${columns}:${goal}:${[...species].sort().join(',')}:${blocked.map(value => value ? 1 : 0).join('')}`);
+  const random = seededRandom(`${rows}x${columns}:${goal}:${[...species].sort().join(',')}:${blocked.map(value => value ? 1 : 0).join('')}:${unavailable.map(value => value ? 1 : 0).join('')}`);
   const amberCapacity = moonCount * 8;
   const dawnCapacity = dawnCount * 8;
   const provablyImpossible = (goal === 'amber' || goal === 'both' ? species.length > amberCapacity : false)
@@ -267,7 +270,7 @@ export function generateCelestialLayout(
   let best: WorkingCell[] | null = null;
   let bestInspection: Inspection | null = null;
   for (let restart = 0; restart < restarts; restart++) {
-    const current = initialLayout(species, rows, columns, random, blocked);
+    const current = initialLayout(species, rows, columns, random, blocked, unavailable);
     let currentInspection = inspect(current, rows, columns, goal, blocked);
     for (let step = 0; step < steps && currentInspection.met !== currentInspection.required; step++) {
       if ((step & 31) === 0 && performance.now() >= deadline) break;
@@ -277,6 +280,8 @@ export function generateCelestialLayout(
         second = Math.floor(random() * current.length);
       }
       if (first === second || current[first].type === current[second].type) continue;
+      if (current[first].type !== 'empty' && current[second].type === 'empty' && unavailable[second]) continue;
+      if (current[second].type !== 'empty' && current[first].type === 'empty' && unavailable[first]) continue;
       [current[first], current[second]] = [current[second], current[first]];
       const candidate = inspect(current, rows, columns, goal, blocked);
       const temperature = Math.max(0.05, 1.1 * (1 - step / steps));
@@ -293,7 +298,7 @@ export function generateCelestialLayout(
     if (bestInspection.met === bestInspection.required || performance.now() >= deadline) break;
   }
 
-  const finalCells = best ?? initialLayout(species, rows, columns, random, blocked);
+  const finalCells = best ?? initialLayout(species, rows, columns, random, blocked, unavailable);
   const result = inspect(finalCells, rows, columns, goal, blocked, true);
   return resultFrom(finalCells, result, goal);
 }
