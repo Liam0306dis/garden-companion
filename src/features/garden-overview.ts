@@ -198,14 +198,18 @@ function installPlantFocus(
     const selected = selectedSpecies();
     const scopeMatches = config.scope === 'all' || config.scope === 'tracked' && (!selected || selected.has(tile.species)) || config.scope === tile.species;
     const mutations = slot.mutations || [];
-    const mutationMatches = config.mutationRule === 'none'
-      ? config.mutations.every(name => !mutations.includes(name))
-      : config.mutationRule === 'any'
-        ? config.mutations.some(name => mutations.includes(name))
-        : config.mutations.length ? config.mutations.every(name => mutations.includes(name)) : mutations.length === 0;
-    const maximumScale = PLANT_CATALOG[slot.species ?? tile.species]?.crop?.maxScale;
-    const maxSizeMatches = !config.maxSize || Boolean(maximumScale && Number(slot.targetScale ?? 1) >= maximumScale);
-    const result = scopeMatches && mutationMatches && maxSizeMatches;
+    const conditions = config.mutations.map(name => mutations.includes(name));
+    if (config.maxSize) conditions.push((tile.slots || []).some((candidate: PlantSlot) => {
+      if (ignorePreserved() && candidate.preserved) return false;
+      const maximumScale = PLANT_CATALOG[candidate.species ?? tile.species]?.crop?.maxScale;
+      return Boolean(maximumScale && Number(candidate.targetScale ?? 1) >= maximumScale);
+    }));
+    const ruleMatches = conditions.length
+      ? config.mutationRule === 'none' ? conditions.every(match => !match)
+        : config.mutationRule === 'any' ? conditions.some(Boolean)
+          : conditions.every(Boolean)
+      : mutations.length === 0;
+    const result = scopeMatches && ruleMatches;
     return config.invert ? !result : result;
   }
 
@@ -296,15 +300,21 @@ function installPlantFocus(
       return;
     }
     const seen = new Set<any>();
+    const now = Date.now();
     views.forEach((view: any, globalIndex: number) => {
       const dirt = typeof dirtMap.get === 'function' ? dirtMap.get(globalIndex) : dirtMap[globalIndex];
       const tile = view?.tileObject;
       if (!dirt || dirt.userSlotIdx !== slotIndex || tile?.objectType !== 'plant') return;
       const slots: PlantSlot[] = tile.slots || [];
-      const visible = new Map(slots.map(slot => [slot.slotId, matches(tile, slot, config)]));
       const plantVisual = view.childView?.plantVisual;
       const crops = plantVisual?.getCropVisuals?.() || [];
       armView(view);
+      if (Number(tile.maturedAt ?? 0) > now) {
+        fade(plantVisual?.container, config.opacity, seen);
+        crops.forEach((crop: any) => fade(cropContainer(crop), config.opacity, seen));
+        return;
+      }
+      const visible = new Map(slots.map(slot => [slot.slotId, matches(tile, slot, config)]));
       if (![...visible.values()].some(Boolean)) {
         fade(plantVisual?.container, config.opacity, seen);
         crops.forEach((crop: any) => restore(cropContainer(crop)));
@@ -630,7 +640,7 @@ function injectStyles(): void {
     #${PANEL_ID} .go-filter label:hover{border-color:rgba(255,255,255,.13)}
     #${PANEL_ID} .go-tools{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 8px}#${PANEL_ID} .go-search{width:100%;box-sizing:border-box;height:32px;margin-bottom:8px;padding:0 10px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;outline:none;background:#08080c;color:var(--gc-text,#e4e4e7);font:11px system-ui,sans-serif}
     #${PANEL_ID} .go-pill-list{max-height:320px;overflow:auto}#${PANEL_ID} .go-pill-section{margin:9px 0}#${PANEL_ID} .go-pill-section>b{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}#${PANEL_ID} .go-pill-section>b button{padding:3px 8px;font-size:9px;text-transform:none}#${PANEL_ID} .go-pill-section>div{display:flex;flex-wrap:wrap;gap:4px}
-    #${PANEL_ID} button.go-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);font-size:10px;white-space:nowrap}#${PANEL_ID} button.go-pill.on{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}#${PANEL_ID} button.go-pill i{color:var(--gc-accent,#a78bfa);font-size:9px;font-style:normal}#${PANEL_ID} button.go-pill small{opacity:.5;font-size:9px}
+    #${PANEL_ID} button.go-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);font-size:10px;white-space:nowrap}#${PANEL_ID} button.go-pill.on{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}#${PANEL_ID} button.go-pill i{width:9px;flex:0 0 9px;color:var(--gc-accent,#a78bfa);font-size:9px;font-style:normal;text-align:center}#${PANEL_ID} button.go-pill small{opacity:.5;font-size:9px}
     #${PANEL_ID} .go-search:focus{border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09)}#${PANEL_ID} .go-collapsible{cursor:pointer;margin:0}#${PANEL_ID} .go-muted{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;opacity:.7}
     #${PANEL_ID} .go-config-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
     #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:#08080c;color:var(--gc-text,#e4e4e7);font:11px system-ui,sans-serif;cursor:pointer}
@@ -741,14 +751,14 @@ export function initGardenOverview(): void {
       const selected = filter ?? new Set(species);
       const counts = new Map<string, number>();
       for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === 'plant' && tile.species) counts.set(tile.species, (counts.get(tile.species) ?? 0) + 1);
-      const section = (label: string, names: string[]) => names.length ? `<div class="go-pill-section"><b>${label} (${names.length})</b><div>${names.map(name => `<button class="go-pill ${selected.has(name) ? 'on' : ''}" data-species-toggle="${escapeHtml(name)}" data-filter-text="${escapeHtml(displayName(name).toLowerCase())}">${selected.has(name) ? '<i>&#10003;</i>' : ''}<span>${escapeHtml(displayName(name))}</span>${counts.has(name) ? `<small>&middot;${counts.get(name)}</small>` : ''}</button>`).join('')}</div></div>` : '';
+      const section = (label: string, names: string[]) => names.length ? `<div class="go-pill-section"><b>${label} (${names.length})</b><div>${names.map(name => `<button class="go-pill ${selected.has(name) ? 'on' : ''}" data-species-toggle="${escapeHtml(name)}" data-filter-text="${escapeHtml(displayName(name).toLowerCase())}"><i>${selected.has(name) ? '&#10003;' : ''}</i><span>${escapeHtml(displayName(name))}</span>${counts.has(name) ? `<small>&middot;${counts.get(name)}</small>` : ''}</button>`).join('')}</div></div>` : '';
       const tracked = species.filter(name => selected.has(name));
       const owned = species.filter(name => !selected.has(name) && counts.has(name));
       const rest = species.filter(name => !selected.has(name) && !counts.has(name));
       return `<section class="go-section"><div class="go-section-title"><span>Tracked plants</span><span>${selected.size}/${species.length}</span></div><input class="go-search" data-species-search placeholder="Search plants"><div class="go-tools"><button data-all>All</button><button data-none>None</button><button data-owned>Track owned</button></div><div class="go-pill-list">${section('Tracked', tracked)}${section('In your garden', owned)}${section('All plants', rest)}</div></section>`;
     }
     if (configMode === 'mutations') {
-      const group = (label: string, pairs: Array<[keyof MutationConfig, string]>) => `<div class="go-pill-section"><b>${label}</b><div>${pairs.map(([key, name]) => `<button class="go-pill ${mutationConfig[key] ? 'on' : ''}" data-mutation-key="${key}">${mutationConfig[key] ? '<i>&#10003;</i>' : ''}<span>${name}</span></button>`).join('')}</div></div>`;
+      const group = (label: string, pairs: Array<[keyof MutationConfig, string]>) => `<div class="go-pill-section"><b>${label}</b><div>${pairs.map(([key, name]) => `<button class="go-pill ${mutationConfig[key] ? 'on' : ''}" data-mutation-key="${key}"><i>${mutationConfig[key] ? '&#10003;' : ''}</i><span>${name}</span></button>`).join('')}</div></div>`;
       return `<section class="go-section"><div class="go-section-title"><span>Mutation tracking</span><span>${trackedMutations.size} selected</span></div><div class="go-pill-list">${group('Color', [['rainbow', 'Rainbow'], ['gold', 'Gold']])}${group('Weather', [['frozen', 'Frozen'], ['thunderstruck', 'Thunderstruck'], ['thundercharged', 'Thundercharged'], ['wet', 'Wet'], ['chilled', 'Chilled']])}${group('Time', [['amberlit', 'Amberlit'], ['dawnlit', 'Dawnlit'], ['dawncharged', 'Dawnbound'], ['ambercharged', 'Amberbound']])}${group('Other', [['none', 'None']])}${group('Combine bars', [['combineRainbow', 'Rainbow + Gold'], ['combineAmberDawn', 'Amberlit + Dawnlit'], ['combineDawnAmbercharged', 'Dawnbound + Amberbound'], ['combineFrozenThunderstruck', 'Frozen + Thunderstruck']])}${group('Estimate scope', [['granterAllGarden', 'Whole garden'], ['ignorePreserved', 'Ignore preserved']])}</div></section>`;
     }
     if (configMode === 'focus') {
@@ -756,7 +766,7 @@ export function initGardenOverview(): void {
       const foundMutations = new Set(DEFAULT_TARGETS);
       for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) for (const slot of tile.slots ?? []) for (const mutation of slot.mutations ?? []) foundMutations.add(mutation);
       for (const mutation of focus.mutations) foundMutations.add(mutation);
-      return `<section class="go-section"><div class="go-section-title"><span>Plant focus</span><span>Fade non-matching crops</span></div><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? 'checked' : ''}></label><label class="go-config-row"><span>Show</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml(value)}" ${focus.scope === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label><label class="go-config-row"><span>Mutation rule</span><select data-focus-rule>${[['all', 'All selected'], ['any', 'Any selected'], ['none', 'None selected']].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><div class="go-pill-section"><b>Mutations (${focus.mutations.length}) <button data-focus-clear>Clear</button></b><div>${[...foundMutations].map(name => `<button class="go-pill ${focus.mutations.includes(name) ? 'on' : ''}" data-focus-mutation="${escapeHtml(name)}">${focus.mutations.includes(name) ? '<i>&#10003;</i>' : ''}<span>${escapeHtml(displayName(name))}</span></button>`).join('')}</div></div><label class="go-config-row"><span>Max size only</span><input type="checkbox" data-focus-max-size ${focus.maxSize ? 'checked' : ''}></label><label class="go-config-row"><span>Invert match</span><input type="checkbox" data-focus-invert ${focus.invert ? 'checked' : ''}></label><label class="go-config-row"><span>Faded opacity <b data-opacity-value>${Math.round(focus.opacity * 100)}%</b></span><input type="range" min="5" max="60" step="5" value="${Math.round(focus.opacity * 100)}" data-focus-opacity></label></section>`;
+      return `<section class="go-section"><div class="go-section-title"><span>Plant focus</span><span>Fade non-matching crops</span></div><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? 'checked' : ''}></label><label class="go-config-row"><span>Show</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml(value)}" ${focus.scope === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label><label class="go-config-row"><span>Mutation rule</span><select data-focus-rule>${[['all', 'All selected'], ['any', 'Any selected'], ['none', 'None selected']].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><div class="go-pill-section"><b>Mutations (${focus.mutations.length}) <button data-focus-clear>Clear</button></b><div>${[...foundMutations].map(name => `<button class="go-pill ${focus.mutations.includes(name) ? 'on' : ''}" data-focus-mutation="${escapeHtml(name)}"><i>${focus.mutations.includes(name) ? '&#10003;' : ''}</i><span>${escapeHtml(displayName(name))}</span></button>`).join('')}</div></div><label class="go-config-row"><span>Max size only</span><input type="checkbox" data-focus-max-size ${focus.maxSize ? 'checked' : ''}></label><label class="go-config-row"><span>Invert match</span><input type="checkbox" data-focus-invert ${focus.invert ? 'checked' : ''}></label><label class="go-config-row"><span>Faded opacity <b data-opacity-value>${Math.round(focus.opacity * 100)}%</b></span><input type="range" min="5" max="60" step="5" value="${Math.round(focus.opacity * 100)}" data-focus-opacity></label></section>`;
     }
     return '';
   }

@@ -202,7 +202,11 @@ assert.match(overviewSource, /installPlantFocus/, 'overview plant focus missing'
 assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*focusEnabled\.blur\(\)/, 'plant focus enabled checkbox keeps keyboard focus');
 assert.match(overviewSource, /focusInvert\.onchange[\s\S]*focusInvert\.blur\(\)/, 'plant focus invert checkbox keeps keyboard focus');
 assert.match(overviewSource, /data-focus-max-size/, 'plant focus max-size toggle is missing');
-assert.match(overviewSource, /!config\.maxSize \|\| Boolean\(maximumScale && Number\(slot\.targetScale \?\? 1\) >= maximumScale\)/, 'plant focus max-size matching is missing');
+assert.match(overviewSource, /if \(config\.maxSize\) conditions\.push\(\(tile\.slots \|\| \[\]\)\.some/, 'plant focus max-size rule must inspect the whole plant');
+assert.match(overviewSource, /config\.mutationRule === 'any' \? conditions\.some\(Boolean\)/, 'plant focus max-size rule must participate in Any matching');
+assert.match(overviewSource, /config\.mutationRule === 'none' \? conditions\.every\(match => !match\)/, 'plant focus max-size rule must participate in None matching');
+assert.match(overviewSource, /if \(Number\(tile\.maturedAt \?\? 0\) > now\) \{[\s\S]*fade\(plantVisual\?\.container[\s\S]*crops\.forEach\(\(crop: any\) => fade\(cropContainer\(crop\)/, 'growing base plants and their slots must always remain faded');
+assert.match(overviewSource, /button\.go-pill i\{width:9px;flex:0 0 9px/, 'overview selection buttons must reserve checkmark space');
 assert.match(overviewSource, /focusMaxSize\.onchange[\s\S]*focus\.maxSize = focusMaxSize\.checked[\s\S]*focusMaxSize\.blur\(\)/, 'plant focus max-size toggle is not saved or releases keyboard focus incorrectly');
 assert.match(overviewSource, /if \(activeDrag\) \{ updateCountdowns\(panel, stats\); return; \}/, 'garden overview must not replace a panel while it is being dragged');
 assert.doesNotMatch(overviewSource, /const saveFocusControls = \(\) => \{[^}]*lastSignature = ''/, 'plant focus controls must not schedule a popup-replacing redraw');
