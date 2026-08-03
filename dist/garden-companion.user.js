@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.91
+// @version      0.6.92
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -391,6 +391,7 @@
   var DEFAULTS = {
     overview: true,
     dragMove: true,
+    keepPlanterPotSelected: false,
     petTeams: true,
     abilities: true,
     rooms: true,
@@ -3508,13 +3509,14 @@ ${rows}</div>`;
     function renderFeatures() {
       const rows = [
         ["dragMove", "Plant drag move", "Hold, drag and release a plant - consumes planter pots"],
+        ["keepPlanterPotSelected", "Keep Planter Pot selected", "Do not switch to the picked-up plant after using a Planter Pot"],
         ["turtleTimer", "Crop and egg estimates", "Values and pet-adjusted timing"],
         ["petFood", "Pet food panel", "Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab"],
         ["instantHarvest", "Instant harvest key", "Spacebar harvest for mature Gold or Rainbow crops"],
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderAbilities() {
       const active = state.slot?.data?.petSlots || [];
@@ -6719,7 +6721,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let lastLoggedPlanterPotCount = null;
     let openedRoomSocketCount = 0;
     let moveBusy = false;
-    function isEnabled() {
+    function isEnabled2() {
       return pageWindow.__gardenCompanionFeature?.("dragMove") !== false;
     }
     function log(message, detail) {
@@ -6902,13 +6904,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         }, duration);
       }
     }
-    function atomMap3() {
+    function atomMap4() {
       const cache = pageWindow.jotaiAtomCache;
       if (cache instanceof Map) return cache;
       return cache?.cache ?? null;
     }
     function hookAtom2(debugLabel, onValue) {
-      const map = atomMap3();
+      const map = atomMap4();
       if (!map || typeof map.values !== "function") return false;
       for (const atom of map.values()) {
         if (atom?.debugLabel !== debugLabel || typeof atom.read !== "function") continue;
@@ -6940,10 +6942,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           if (Array.isArray(value)) {
             live.inventoryItems = value;
             live.inventoryReady = true;
-            const planterPotCount = value.reduce((total, item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" ? total + (item.quantity ?? 1) : total, 0);
-            if (planterPotCount !== lastLoggedPlanterPotCount) {
-              lastLoggedPlanterPotCount = planterPotCount;
-              log(`Planter Pots in inventory: ${planterPotCount}`);
+            const planterPotCount2 = value.reduce((total, item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" ? total + (item.quantity ?? 1) : total, 0);
+            if (planterPotCount2 !== lastLoggedPlanterPotCount) {
+              lastLoggedPlanterPotCount = planterPotCount2;
+              log(`Planter Pots in inventory: ${planterPotCount2}`);
             }
           }
         }],
@@ -7230,7 +7232,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function activatePress(activePress) {
       if (press !== activePress || activePress.cancelled || activePress.released) return;
-      if (!isEnabled()) {
+      if (!isEnabled2()) {
         activePress.cancelled = true;
         clearPress(activePress);
         return;
@@ -7260,7 +7262,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       document.documentElement.style.cursor = "";
     }
     document.addEventListener("pointerdown", (event) => {
-      if (!isEnabled() || press || event.button !== 0 || !event.isPrimary || !isGameCanvas(event.target)) return;
+      if (!isEnabled2() || press || event.button !== 0 || !event.isPrimary || !isGameCanvas(event.target)) return;
       if (isPointerOverGameUi(event)) {
         log("Ignored plant drag input over a native canvas control.");
         return;
@@ -7302,7 +7304,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     document.addEventListener("pointermove", (event) => {
       const activePress = press;
       if (!activePress || event.pointerId !== activePress.pointerId) return;
-      if (!isEnabled()) {
+      if (!isEnabled2()) {
         activePress.cancelled = true;
         restoreSourcePlant(activePress);
         moveBusy = false;
@@ -7330,7 +7332,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     document.addEventListener("pointerup", (event) => {
       const activePress = press;
       if (!activePress || event.pointerId !== activePress.pointerId) return;
-      if (!isEnabled()) {
+      if (!isEnabled2()) {
         activePress.cancelled = true;
         restoreSourcePlant(activePress);
         moveBusy = false;
@@ -7388,6 +7390,89 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     log(`Loaded. Hold a plant for ${HOLD_MS / 1e3} second before dragging.`);
   }
 
+  // src/features/planter-pot-selection.ts
+  var wrappedAtoms = /* @__PURE__ */ new WeakSet();
+  var pendingSelection = null;
+  function isEnabled() {
+    return page.__gardenCompanionFeature?.("keepPlanterPotSelected") !== false;
+  }
+  function atomMap3() {
+    const cache = page.jotaiAtomCache;
+    if (cache instanceof Map) return cache;
+    return cache?.cache instanceof Map ? cache.cache : null;
+  }
+  function findAtom(map, debugLabel) {
+    for (const atom of map.values()) {
+      if (atom?.debugLabel === debugLabel) return atom;
+    }
+    return null;
+  }
+  function planterPotCount(items) {
+    return items.reduce((total, item) => {
+      if (item?.itemType !== "Tool" || item.toolId !== "PlanterPot") return total;
+      return total + (typeof item.quantity === "number" ? item.quantity : 1);
+    }, 0);
+  }
+  function plantIds(items) {
+    return new Set(
+      items.filter((item) => item?.itemType === "Plant" && typeof item.id === "string").map((item) => item.id)
+    );
+  }
+  function hasItemId(items, itemId2) {
+    return items.some((item) => item?.itemType === "Tool" ? item.toolId === itemId2 : item?.id === itemId2);
+  }
+  function installHooks() {
+    const map = atomMap3();
+    if (!map) return false;
+    const inventoryAtom = findAtom(map, "myOptimisticInventoryItemsAtom");
+    const selectedItemAtom = findAtom(map, "mySelectedItemIdAtom");
+    if (!inventoryAtom?.write || !selectedItemAtom?.write) return false;
+    if (wrappedAtoms.has(inventoryAtom) || wrappedAtoms.has(selectedItemAtom)) return true;
+    const originalInventoryWrite = inventoryAtom.write;
+    const originalSelectedItemWrite = selectedItemAtom.write;
+    inventoryAtom.write = function(get, set, ...args) {
+      const typedGet = get;
+      const previousItems = typedGet(inventoryAtom);
+      const nextItems = args[0];
+      if (isEnabled() && Array.isArray(previousItems) && Array.isArray(nextItems)) {
+        const selectedItemId = typedGet(selectedItemAtom);
+        if (selectedItemId === "PlanterPot" && planterPotCount(previousItems) - planterPotCount(nextItems) === 1) {
+          const previousPlantIds = plantIds(previousItems);
+          const addedPlantIds = new Set([...plantIds(nextItems)].filter((id) => !previousPlantIds.has(id)));
+          if (addedPlantIds.size > 0) {
+            pendingSelection = {
+              addedPlantIds,
+              restoreItemId: hasItemId(nextItems, "PlanterPot") ? "PlanterPot" : null,
+              expiresAt: performance.now() + 2e3
+            };
+          }
+        }
+      }
+      return originalInventoryWrite.call(this, typedGet, set, ...args);
+    };
+    selectedItemAtom.write = function(get, set, ...args) {
+      const pending = pendingSelection;
+      if (!isEnabled()) pendingSelection = null;
+      else if (pending && performance.now() <= pending.expiresAt) {
+        pendingSelection = null;
+        const nextItemId = args[0];
+        if (typeof nextItemId === "string" && pending.addedPlantIds.has(nextItemId)) {
+          return originalSelectedItemWrite.call(this, get, set, pending.restoreItemId);
+        }
+      } else if (pending) pendingSelection = null;
+      return originalSelectedItemWrite.call(this, get, set, ...args);
+    };
+    wrappedAtoms.add(inventoryAtom);
+    wrappedAtoms.add(selectedItemAtom);
+    return true;
+  }
+  function initPlanterPotSelection() {
+    if (installHooks()) return;
+    const timer = window.setInterval(() => {
+      if (installHooks()) window.clearInterval(timer);
+    }, 250);
+  }
+
   // src/pet-sprites-injector.ts
   function installPetSpriteLoader() {
     const script = document.createElement("script");
@@ -7404,6 +7489,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var page2 = window;
   if (page2.__gardenCompanionFeature?.("overview")) initGardenOverview();
   initPlantDragMove();
+  initPlanterPotSelection();
   initGardenPlanner();
   initFishing();
 })();

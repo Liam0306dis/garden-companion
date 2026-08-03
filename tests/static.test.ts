@@ -49,6 +49,7 @@ const abilityLogSource = await readFile(resolve(root, 'src', 'features', 'abilit
 const styleSource = await readFile(resolve(root, 'src', 'style.css'), 'utf8');
 const overviewSource = await readFile(resolve(root, 'src', 'features', 'garden-overview.ts'), 'utf8');
 const plantDragSource = await readFile(resolve(root, 'src', 'features', 'plant-drag-move.ts'), 'utf8');
+const planterPotSelectionSource = await readFile(resolve(root, 'src', 'features', 'planter-pot-selection.ts'), 'utf8');
 const indexSource = await readFile(resolve(root, 'src', 'index.ts'), 'utf8');
 const petSpriteSource = await readFile(resolve(root, 'src', 'pet-sprites.ts'), 'utf8');
 const petSpriteInjector = await readFile(resolve(root, 'src', 'pet-sprites-injector.ts'), 'utf8');
@@ -198,10 +199,17 @@ assert.match(companionSource, /\['teams', 'abilities', 'shops', 'petFood', 'calc
 for (const shopSpriteGroup of ["seed", "egg", "tool"]) assert.match(petSpriteSource, new RegExp(`${shopSpriteGroup}: \\[`), `missing ${shopSpriteGroup} sprite group`);
 assert.match(petSpriteInjector, /script\.textContent = __PET_SPRITE_LOADER__/, 'pet atlas loader is not injected into the game page');
 assert.match(indexSource, /initPlantDragMove\(\);/, 'plant drag is not installed for runtime toggling');
+assert.match(indexSource, /initPlanterPotSelection\(\);/, 'Planter Pot selection keeper is not installed');
+assert.match(planterPotSelectionSource, /myOptimisticInventoryItemsAtom/, 'selection keeper does not watch inventory changes');
+assert.match(planterPotSelectionSource, /mySelectedItemIdAtom/, 'selection keeper does not watch selected items');
+assert.match(planterPotSelectionSource, /selectedItemId === 'PlanterPot'/, 'selection keeper is not limited to Planter Pot use');
+assert.match(planterPotSelectionSource, /pending\.addedPlantIds\.has\(nextItemId\)/, 'selection keeper does not target the newly potted plant');
+assert.match(companionSource, /Keep Planter Pot selected/, 'selection keeper toggle is missing from Features');
+assert.match(companionSource, /keepPlanterPotSelected: false/, 'selection keeper must default off');
 assert.doesNotMatch(indexSource, /if \(page\.__gardenCompanionFeature\?\.\('dragMove'\)\) initPlantDragMove/, 'plant drag still requires a reload to install');
 assert.match(plantDragSource, /function isEnabled\(\)[\s\S]*__gardenCompanionFeature\?\.\('dragMove'\)/, 'plant drag does not read its live feature setting');
 assert.match(plantDragSource, /if \(!isEnabled\(\) \|\| press \|\| event\.button/, 'disabled plant drag still starts presses');
-assert.match(companionSource, /Plant drag, estimates, and harvest settings apply immediately\. Background mode applies after a reload\./, 'Features note is outdated');
+assert.match(companionSource, /Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately\. Background mode applies after a reload\./, 'Features note is outdated');
 assert.match(companionSource, /Hold, drag and release a plant - consumes planter pots/, 'Plant drag move description is incorrect');
 assert.match(overviewSource, /\.go-card\{width:min\(344px,94vw\)/, 'overview does not match the standalone compact width');
 assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter estimates missing');

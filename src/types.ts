@@ -198,6 +198,7 @@ export interface JotaiAtom {
 export interface CompanionConfig {
   overview: boolean;
   dragMove: boolean;
+  keepPlanterPotSelected: boolean;
   petTeams: boolean;
   abilities: boolean;
   rooms: boolean;

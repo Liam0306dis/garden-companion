@@ -7,6 +7,7 @@ export const ALWAYS_ENABLED = new Set(['overview', 'petTeams', 'abilities', 'roo
 export const DEFAULTS: CompanionConfig = {
   overview: true,
   dragMove: true,
+  keepPlanterPotSelected: false,
   petTeams: true,
   abilities: true,
   rooms: true,

@@ -20,6 +20,7 @@ actions. It does not perform unattended gameplay.
 - Pet food buttons docked beside the games own pet panel, one per active pet, with per-species preferred foods, held produce counts on each food icon, one-click feeding, and automatic hiding while a pet card is open
 - Layout planner for arranging plants and decor on your own tiles, with mutations, crop sizes, and saved layouts
 - Plant drag movement by holding, dragging, and releasing a plant, consumes planter pot on each successful move
+- Optional selection keeper prevents a manually used Planter Pot from switching to the picked-up plant
 - Instant harvest - Spacebar triggers instant harvest for mature Gold or Rainbow crops (Default OFF)
 - Configurable global keybinds for Garden Companion, Garden Overview, the layout planner, weather station, seed, egg, and tool shops
 - Draggable UTC lunar-event countdown that remembers its position, with a settings button and WebSocket health indicator
@@ -51,7 +52,7 @@ options. Background mode keeps the game-visible state active and starts a
 near-silent audio context after the first user interaction. It can also be
 disabled, with changes taking effect after a reload.
 
-Plant drag movement, crop and egg estimates, and instant harvest can be enabled
+Plant drag movement, Planter Pot selection, crop and egg estimates, and instant harvest can be enabled
 or disabled without reloading. Background mode changes apply after a reload.
 When recording a keybind, press Escape to cancel or clear it. Assigning an
 existing key to a new action clears its previous assignment.
