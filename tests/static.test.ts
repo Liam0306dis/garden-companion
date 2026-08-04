@@ -225,6 +225,14 @@ assert.match(overviewSource, /installDrag\(panel\.querySelector\('\.go-card'\)!.
 assert.match(overviewSource, /const configPlacement = configPosition \? `style="position:fixed;left:/, 'overview config position is not restored during redraws');
 assert.match(overviewSource, /installDrag\(configCard, configHeader, \(left, top\) => \{ configPosition = \{ left, top \}; \}\)/, 'overview config drag position is not retained');
 assert.match(overviewSource, /if \(!panel \|\| \(panel\.hidden && !view\.alarm\)\) return;[\s\S]*checkCompletions\(stats\);[\s\S]*if \(panel\.hidden\) return;/, 'overview alarm monitoring stops when its window is hidden');
+assert.match(overviewSource, /if \(!alarmTargets\.has\(target\)\) \{[\s\S]*previousMissing\.delete\(row\.mutation\);[\s\S]*continue;/, 'overview granter alarms must ignore disabled alarm targets and clear stale completion state');
+assert.match(overviewSource, /data-alarm-config[\s\S]*Configure completion alarms/, 'overview granter alarm configuration button is missing');
+assert.match(overviewSource, /ALARM_TARGETS_KEY[\s\S]*loadAlarmTargets[\s\S]*saveAlarmTargets/, 'overview granter alarm targets are not persisted');
+assert.match(overviewSource, /const ALARM_TARGETS = \[[^;]*'Max Size'\]/, 'overview completion alarms must include Max Size');
+assert.match(overviewSource, /name === 'Max Size' \? 'All selected crops have reached maximum size'/, 'max-size alarm uses mutation completion wording');
+assert.match(overviewSource, /const target = row\.mutation === 'Bee Size' \? 'Max Size' : row\.mutation/, 'Bee Size estimates must use the Max Size alarm target');
+assert.match(overviewSource, /!notified\.has\(target\)[\s\S]*notified\.add\(target\)[\s\S]*notifyCompletedMutation\(target\)/, 'equivalent max-size completion rows must not create duplicate alarms');
+assert.match(overviewSource, /data-alarm-target[\s\S]*previousMissing\.delete\(target\)/, 'disabling a granter alarm target must clear its completion baseline');
 assert.match(overviewSource, /if \(!view\.alarm && refreshTimer\)/, 'closing Garden Overview still disables an armed mutation alarm');
 assert.match(overviewSource, /if \(view\.alarm\) ensureRefreshTimer\(\);/, 'saved overview alarm is not resumed after mounting');
 assert.match(companionSource, /function showAlarmBanner\(options: CompanionAlarmOptions\)/, 'shared alarm presentation is missing');

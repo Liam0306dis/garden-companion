@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.97
+// @version      0.6.98
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -3709,6 +3709,7 @@ ${rows}</div>`;
   var MUTATION_KEY = "gardenCompanion.overviewMutations.v2";
   var VIEW_KEY = "gardenCompanion.overviewView.v1";
   var FOCUS_KEY = "gardenCompanion.overviewFocus.v1";
+  var ALARM_TARGETS_KEY = "gardenCompanion.overviewAlarmTargets.v1";
   var SHORTCUT_KEY = "gardenCompanion.overviewShortcut.v1";
   var POSITION_KEY = "gardenCompanion.overviewPosition.v1";
   var DEFAULT_TARGETS = ["Rainbow", "Gold", "Frozen", "Thunderstruck", "Thundercharged", "Wet", "Chilled", "Dawnlit", "Dawncharged", "Ambershine", "Ambercharged"];
@@ -3722,6 +3723,7 @@ ${rows}</div>`;
     DawnlitGranter: { mutation: "Dawnlit", chance: 4 },
     AmberlitGranter: { mutation: "Ambershine", chance: 2 }
   };
+  var ALARM_TARGETS = [...new Set(Object.values(GRANTERS).map((rule) => rule.mutation)), "Max Size"];
   var MUTATION_DEFAULTS = {
     wet: false,
     chilled: false,
@@ -3775,6 +3777,22 @@ ${rows}</div>`;
   }
   function selectedMutations(config2) {
     return new Set(Object.entries(MUTATION_IDS).filter(([key]) => config2[key]).map(([, id]) => id));
+  }
+  function loadAlarmTargets(defaults) {
+    try {
+      const stored = localStorage.getItem(ALARM_TARGETS_KEY);
+      if (stored === null) return new Set([...defaults].filter((target) => ALARM_TARGETS.includes(target)));
+      const parsed = JSON.parse(stored);
+      return new Set(Array.isArray(parsed) ? parsed.filter((target) => typeof target === "string" && ALARM_TARGETS.includes(target)) : []);
+    } catch {
+      return new Set([...defaults].filter((target) => ALARM_TARGETS.includes(target)));
+    }
+  }
+  function saveAlarmTargets(targets) {
+    try {
+      localStorage.setItem(ALARM_TARGETS_KEY, JSON.stringify([...targets]));
+    } catch {
+    }
   }
   function loadFocus() {
     try {
@@ -4243,7 +4261,7 @@ ${rows}</div>`;
     #${PANEL_ID} .go-progress b{font:700 12px system-ui,sans-serif}#${PANEL_ID} .go-progress>i{display:block;height:5px;overflow:hidden;border-radius:3px;background:rgba(255,255,255,.07)}
     #${PANEL_ID} .go-progress>i u{display:block;height:100%;border-radius:3px;text-decoration:none}
     #${PANEL_ID} .go-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}#${PANEL_ID} .go-section-head .go-section-title{flex:1;margin:0}
-    #${PANEL_ID} .go-section-head button{width:26px;height:26px;padding:0;font-size:13px}
+    #${PANEL_ID} .go-section-head button{width:26px;height:26px;padding:0;font-size:13px}#${PANEL_ID} .go-section-actions{display:flex;align-items:center;gap:4px}
     #${PANEL_ID} .go-eta-detail,#${PANEL_ID} .go-eta-done{padding:8px 10px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-text,#e4e4e7)}
     #${PANEL_ID} .go-eta-detail+.go-eta-detail,#${PANEL_ID} .go-eta-detail+.go-eta-done,#${PANEL_ID} .go-eta-done+.go-eta-detail,#${PANEL_ID} .go-eta-done+.go-eta-done{margin-top:5px}
     #${PANEL_ID} .go-eta-detail>div,#${PANEL_ID} .go-eta-done{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -4291,6 +4309,7 @@ ${rows}</div>`;
     let filter = loadFilter();
     let mutationConfig = loadMutationConfig();
     let trackedMutations = selectedMutations(mutationConfig);
+    let alarmTargets = loadAlarmTargets(trackedMutations);
     let view = loadView();
     view.ignorePreserved = mutationConfig.ignorePreserved;
     let focus = loadFocus();
@@ -4324,15 +4343,24 @@ ${rows}</div>`;
       if (!view.alarm) return;
       page3.__gardenCompanionShowAlarm?.({
         owner: "overview",
-        label: "GARDEN ALARM | MUTATION GRANTER",
+        label: name === "Max Size" ? "GARDEN ALARM | MAX SIZE" : "GARDEN ALARM | MUTATION GRANTER",
         title: `${displayName(name)} target complete`,
-        detail: "All selected crops have this mutation"
+        detail: name === "Max Size" ? "All selected crops have reached maximum size" : "All selected crops have this mutation"
       });
     }
     function checkCompletions(stats) {
+      const notified = /* @__PURE__ */ new Set();
       for (const row of stats.granterEtas) {
+        const target = row.mutation === "Bee Size" ? "Max Size" : row.mutation;
+        if (!alarmTargets.has(target)) {
+          previousMissing.delete(row.mutation);
+          continue;
+        }
         const previous = previousMissing.get(row.mutation);
-        if (previous !== void 0 && previous > 0 && row.missing === 0) notifyCompletedMutation(row.mutation);
+        if (previous !== void 0 && previous > 0 && row.missing === 0 && !notified.has(target)) {
+          notified.add(target);
+          notifyCompletedMutation(target);
+        }
         previousMissing.set(row.mutation, row.missing);
       }
     }
@@ -4359,6 +4387,7 @@ ${rows}</div>`;
         etas: stats.granterEtas.map((row) => [row.mutation, row.pets, row.missing, Math.round(row.meanSeconds), Math.round(row.totalSeconds)]),
         filter: filter ? [...filter] : null,
         tracked: [...trackedMutations],
+        alarms: [...alarmTargets],
         mutationConfig,
         view,
         configMode
@@ -4384,6 +4413,10 @@ ${rows}</div>`;
       if (configMode === "mutations") {
         const group = (label, pairs) => `<div class="go-pill-section"><b>${label}</b><div>${pairs.map(([key, name]) => `<button class="go-pill ${mutationConfig[key] ? "on" : ""}" data-mutation-key="${key}"><i>${mutationConfig[key] ? "&#10003;" : ""}</i><span>${name}</span></button>`).join("")}</div></div>`;
         return `<section class="go-section"><div class="go-section-title"><span>Mutation tracking</span><span>${trackedMutations.size} selected</span></div><div class="go-pill-list">${group("Color", [["rainbow", "Rainbow"], ["gold", "Gold"]])}${group("Weather", [["frozen", "Frozen"], ["thunderstruck", "Thunderstruck"], ["thundercharged", "Thundercharged"], ["wet", "Wet"], ["chilled", "Chilled"]])}${group("Time", [["amberlit", "Amberlit"], ["dawnlit", "Dawnlit"], ["dawncharged", "Dawnbound"], ["ambercharged", "Amberbound"]])}${group("Other", [["none", "None"]])}${group("Combine bars", [["combineRainbow", "Rainbow + Gold"], ["combineAmberDawn", "Amberlit + Dawnlit"], ["combineDawnAmbercharged", "Dawnbound + Amberbound"], ["combineFrozenThunderstruck", "Frozen + Thunderstruck"]])}${group("Estimate scope", [["granterAllGarden", "Whole garden"], ["ignorePreserved", "Ignore preserved"]])}</div></section>`;
+      }
+      if (configMode === "alarms") {
+        const buttons = ALARM_TARGETS.map((target) => `<button class="go-pill ${alarmTargets.has(target) ? "on" : ""}" data-alarm-target="${escapeHtml2(target)}"><i>${alarmTargets.has(target) ? "&#10003;" : ""}</i><span>${escapeHtml2(displayName(target))}</span></button>`).join("");
+        return `<section class="go-section"><div class="go-section-title"><span>Completion alarms</span><span data-alarm-count>${alarmTargets.size}/${ALARM_TARGETS.length} selected</span></div><p class="go-muted">Choose which granter targets may trigger the Garden alarm.</p><div class="go-tools"><button data-alarm-all>All</button><button data-alarm-none>None</button></div><div class="go-pill-section"><div>${buttons}</div></div></section>`;
       }
       if (configMode === "focus") {
         const scopes = [["tracked", "Tracked plants"], ["all", "All plants"], ...species.map((name) => [name, displayName(name)])];
@@ -4468,7 +4501,7 @@ ${rows}</div>`;
       const growing = Math.max(0, stats.crops - stats.mature);
       const growth = growing === 0 && stats.notMaxSize === 0 ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>' : growing === 0 ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString()}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ""}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString()}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
       const bonus = Math.round((stats.friendBonus - 1) * 100);
-      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div>${etaRows}</section>` : ""}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? "&#9662;" : "&#9656;"}</span></div><div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? "&#9662;" : "&#9656;"}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}><div class="go-plant-row"><span>Total</span><b>${totalPlants}</b></div>${plantRows2 || '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
+      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? "&#9662;" : "&#9656;"}</span></div><div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? "&#9662;" : "&#9656;"}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}><div class="go-plant-row"><span>Total</span><b>${totalPlants}</b></div>${plantRows2 || '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
     }
     function installDrag(card, header, save = null) {
       header.onpointerdown = (event) => {
@@ -4533,7 +4566,7 @@ ${rows}</div>`;
       const species = knownSpecies();
       const placement = position ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position.top))}px;` : "";
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
-      const configTitle = configMode === "species" ? "Tracked Plants" : configMode === "mutations" ? "Mutation Config" : "Plant Focus";
+      const configTitle = configMode === "species" ? "Tracked Plants" : configMode === "mutations" ? "Mutation Config" : configMode === "alarms" ? "Alarm Config" : "Plant Focus";
       const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml2(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configHtml(species)}</div></div>` : "";
       panel.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-species-config title="Configure tracked plants">&#x1F33F;</button><button data-focus-config data-active="${focus.enabled}" title="Configure plant focus">&#9680;</button><button data-mutation-config title="Configure tracked mutations">&#128295;</button><button data-zoom title="Cycle zoom">${view.zoom}x</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
       const nextBody = panel.querySelector(".go-body");
@@ -4553,6 +4586,11 @@ ${rows}</div>`;
       };
       panel.querySelector("[data-mutation-config]").onclick = () => {
         configMode = configMode === "mutations" ? null : "mutations";
+        render(true);
+      };
+      const alarmConfigButton = panel.querySelector("[data-alarm-config]");
+      if (alarmConfigButton) alarmConfigButton.onclick = () => {
+        configMode = configMode === "alarms" ? null : "alarms";
         render(true);
       };
       const alarmButton = panel.querySelector("[data-alarm]");
@@ -4603,6 +4641,37 @@ ${rows}</div>`;
         saveMutationConfig(mutationConfig);
         saveView(view);
         render(true);
+      });
+      const syncAlarmTargetControls = () => {
+        panel.querySelectorAll("[data-alarm-target]").forEach((button) => {
+          const selected = alarmTargets.has(button.dataset.alarmTarget ?? "");
+          button.classList.toggle("on", selected);
+          const check = button.querySelector("i");
+          if (check) check.innerHTML = selected ? "&#10003;" : "";
+        });
+        const count = panel.querySelector("[data-alarm-count]");
+        if (count) count.textContent = `${alarmTargets.size}/${ALARM_TARGETS.length} selected`;
+      };
+      panel.querySelectorAll("[data-alarm-target]").forEach((button) => button.onclick = () => {
+        const target = button.dataset.alarmTarget ?? "";
+        if (alarmTargets.has(target)) {
+          alarmTargets.delete(target);
+          previousMissing.delete(target);
+          if (target === "Max Size") previousMissing.delete("Bee Size");
+        } else alarmTargets.add(target);
+        saveAlarmTargets(alarmTargets);
+        syncAlarmTargetControls();
+      });
+      panel.querySelector("[data-alarm-all]")?.addEventListener("click", () => {
+        alarmTargets = new Set(ALARM_TARGETS);
+        saveAlarmTargets(alarmTargets);
+        syncAlarmTargetControls();
+      });
+      panel.querySelector("[data-alarm-none]")?.addEventListener("click", () => {
+        alarmTargets = /* @__PURE__ */ new Set();
+        previousMissing.clear();
+        saveAlarmTargets(alarmTargets);
+        syncAlarmTargetControls();
       });
       const saveFocusControls = () => {
         saveFocus(focus);
