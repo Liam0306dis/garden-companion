@@ -158,6 +158,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionToggleOverview?: () => void;
   __gardenCompanionToggleFishing?: () => void;
   __gardenCompanionToggleCelestialLayout?: () => void;
+  __gardenCompanionToggleCropCleanser?: () => void;
   __gardenCompanionFishingBench?: () => void;
   __gardenCompanionSetCinematic?: (enabled: boolean) => boolean;
   __gardenCompanionPlannerOpen?: () => boolean;
