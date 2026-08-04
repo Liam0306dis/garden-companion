@@ -294,6 +294,7 @@ assert.doesNotMatch(cropCleanserSource, /currentSignature|setInterval\([^)]*rend
 assert.match(cropCleanserSource, /reconcileCleanserCount[\s\S]*heldToolCount\('CropCleanser'\)[\s\S]*updateCleanserControls/, 'Crop Cleanser inventory does not reconcile while the helper is open');
 assert.match(cropCleanserSource, /live === lastLiveCleanserCount && live === displayedCleanserCount/, 'rejected Crop Cleanser requests leave the displayed inventory stale');
 assert.match(cropCleanserSource, /optimisticCountUntil = Date\.now\(\) \+ 2_000/, 'Crop Cleanser optimistic inventory has no reconciliation grace period');
+assert.match(cropCleanserSource, /DawnCelestial.*Dawnbinder[\s\S]*MoonCelestial.*Moonbinder/, 'Crop Cleanser helper does not use the celestial crop names');
 assert.match(cropCleanserSource, /startCountReconciliation\(\)[\s\S]*stopCountReconciliation\(\)/, 'Crop Cleanser inventory polling is not scoped to the open panel');
 assert.doesNotMatch(cropCleanserSource, /initCropCleanserHelper\(\)[\s\S]*setInterval/, 'Crop Cleanser inventory polling runs for the page lifetime');
 assert.match(companionSource, /Crop Cleanser Helper.*data-interface-key="\$\{CROP_CLEANSER_KEY\.id\}"/s, 'Crop Cleanser keybind is missing from the Keybinds tab');
