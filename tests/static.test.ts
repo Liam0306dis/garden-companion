@@ -279,9 +279,12 @@ assert.match(indexSource, /initPlanterPotSelection\(\);/, 'Planter Pot selection
 assert.match(indexSource, /initCelestialLayoutGuide\(\);/, 'celestial layout guide is not installed');
 assert.match(indexSource, /initCropCleanserHelper\(\);/, 'Crop Cleanser helper is not installed');
 assert.match(companionSource, /data-open-crop-cleanser/, 'Crop Cleanser helper launcher is missing from Features');
-assert.match(cropCleanserSource, /Wet.*Chilled.*Frozen.*Ambershine.*Dawnlit.*Ambercharged.*Dawncharged/s, 'Crop Cleanser mutation filters are incomplete');
-assert.match(cropCleanserSource, /send\(\{ type: 'CropCleanser', tileObjectIdx: row\.tileObjectIdx, growSlotIdx: row\.growSlotIdx \}\)/, 'Crop Cleanser request does not match the game protocol');
-assert.match(cropCleanserSource, /slot\.preserved === true.*!Number\.isFinite\(endTime\).*endTime > Date\.now\(\)/, 'Crop Cleanser helper lists unusable crop slots');
+assert.match(cropCleanserSource, /Wet.*Chilled.*Frozen.*Thunderstruck.*Thundercharged.*Ambershine.*Dawnlit.*Ambercharged.*Dawncharged/s, 'Crop Cleanser mutation filters are incomplete');
+assert.match(cropCleanserSource, /send\(\{ type: 'CropCleanser', tileObjectIdx: live\.tileObjectIdx, growSlotIdx: live\.growSlotIdx \}\)/, 'Crop Cleanser request does not match the game protocol');
+assert.match(cropCleanserSource, /slot\.preserved === true/, 'Crop Cleanser helper lists preserved crop slots');
+assert.doesNotMatch(cropCleanserSource, /endTime > Date\.now/, 'Crop Cleanser helper incorrectly hides growing crops');
+assert.match(cropCleanserSource, /liveRowMatches\(row\)[\s\S]*if \(!live\)[\s\S]*send\(\{ type: 'CropCleanser'/, 'Crop Cleanser target is not revalidated before sending');
+assert.match(cropCleanserSource, /live\.startTime !== snapshot\.startTime/, 'Crop Cleanser replacement crops are not rejected');
 assert.match(cropCleanserSource, /removes all cleanseable weather mutations/, 'Crop Cleanser helper does not explain the native removal scope');
 assert.match(cropCleanserSource, /rowSnapshot = matchingRows\(\);[\s\S]*cleansedRows\.clear\(\)/, 'Crop Cleanser rows are not snapshotted per opening or filter');
 assert.match(cropCleanserSource, /cleansedRows\.has\(row\.key\)[\s\S]*Cleansed/, 'cleansed Crop Cleanser rows do not remain visible');

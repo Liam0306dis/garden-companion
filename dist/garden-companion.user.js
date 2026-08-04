@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.6.99
+// @version      0.7.0
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -8313,6 +8313,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     { id: "Wet", label: "Wet" },
     { id: "Chilled", label: "Chilled" },
     { id: "Frozen", label: "Frozen" },
+    { id: "Thunderstruck", label: "Thunderstruck" },
+    { id: "Thundercharged", label: "Thundercharged" },
     { id: "Ambershine", label: "Amberlit" },
     { id: "Dawnlit", label: "Dawnlit" },
     { id: "Ambercharged", label: "Amberbound" },
@@ -8341,15 +8343,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     for (const [tileIndex, tile] of Object.entries(state.slot?.data?.garden?.tileObjects || {})) {
       for (const [slotIndex, slot] of (tile.slots || []).entries()) {
         const mutations = Array.isArray(slot.mutations) ? slot.mutations : [];
-        const endTime = Number(slot.endTime);
-        if (!mutations.includes(selectedMutation) || slot.preserved === true || !Number.isFinite(endTime) || endTime > Date.now()) continue;
+        if (!mutations.includes(selectedMutation) || slot.preserved === true) continue;
         const growSlotIdx = slot.slotId ?? slotIndex;
         rows.push({
           key: `${tileIndex}:${String(growSlotIdx)}`,
           tileObjectIdx: commandTileIndex(tileIndex),
           growSlotIdx,
           species: slot.species || tile.species || "Unknown crop",
-          mutations: [...mutations]
+          mutations: [...mutations],
+          startTime: slot.startTime
         });
       }
     }
@@ -8358,6 +8360,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const rightName = humanize(right.species);
       return leftName.localeCompare(rightName) || String(left.key).localeCompare(String(right.key), void 0, { numeric: true });
     });
+  }
+  function cleanseableSignature(mutations) {
+    return mutations.filter((mutation) => CLEANSEABLE.has(mutation)).sort().join("|");
+  }
+  function liveRowMatches(snapshot) {
+    const live = matchingRows().find((row) => row.key === snapshot.key);
+    if (!live || live.species !== snapshot.species || live.startTime !== snapshot.startTime) return null;
+    return cleanseableSignature(live.mutations) === cleanseableSignature(snapshot.mutations) ? live : null;
   }
   function refreshSnapshot() {
     rowSnapshot = matchingRows();
@@ -8384,7 +8394,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const disabled = cleaners <= 0 || cleansed;
       return `<tr><td><b>${escapeHtml(humanize(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join("")}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}" ${disabled ? "disabled" : ""}>${cleansed ? "Cleansed" : "Cleanse"}</button></td></tr>`;
     }).join("");
-    body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString()}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No mature, unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
+    body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString()}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
       selectedMutation = button.dataset.cleanserMutation || "";
       refreshSnapshot();
@@ -8393,8 +8403,19 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     body.querySelectorAll("[data-cleanse-row]").forEach((button) => button.onclick = () => {
       const row = rows.find((candidate) => candidate.key === button.dataset.cleanseRow);
       if (!row) return;
+      const live = liveRowMatches(row);
+      if (!live) {
+        button.disabled = true;
+        button.textContent = "Changed";
+        toast("That crop changed after this list was opened. Reopen the helper and check it again.", "error");
+        return;
+      }
+      if (heldToolCount("CropCleanser") <= 0) {
+        toast("No Crop Cleansers are available.", "error");
+        return;
+      }
       try {
-        send({ type: "CropCleanser", tileObjectIdx: row.tileObjectIdx, growSlotIdx: row.growSlotIdx });
+        send({ type: "CropCleanser", tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
         cleansedRows.add(row.key);
         snapshotCleanserCount = Math.max(0, snapshotCleanserCount - 1);
         button.disabled = true;
@@ -8406,7 +8427,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
             action.disabled = true;
           });
         }
-        toast(`Crop Cleanser requested for ${humanize(row.species)}.`, "success");
+        toast(`Crop Cleanser requested for ${humanize(live.species)}.`, "success");
       } catch (error) {
         toast(error.message, "error");
       }
