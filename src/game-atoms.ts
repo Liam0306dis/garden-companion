@@ -25,10 +25,12 @@ export const GAME_INTERFACES: ReadonlyArray<{ id: GameInterface; label: string }
 let activeModalAtom: JotaiAtom | null = null;
 let cinematicAtom: JotaiAtom | null = null;
 let gameAtomSet: ((atom: JotaiAtom, value: unknown) => unknown) | null = null;
-const wrappedAtomWrites = new Map<JotaiAtom, JotaiAtom['write']>();
+const wrappedAtomWrites = new Map<JotaiAtom, { original: JotaiAtom['write']; capture: JotaiAtom['write'] }>();
 
 export function restoreAtomWriteCaptures(): void {
-  for (const [atom, original] of wrappedAtomWrites) if (atom.write) atom.write = original;
+  for (const [atom, { original, capture }] of wrappedAtomWrites) {
+    if (atom.write === capture) atom.write = original;
+  }
   wrappedAtomWrites.clear();
 }
 
@@ -47,12 +49,13 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
   }
   if (gameAtomSet || typeof atom?.write !== 'function' || wrappedAtomWrites.has(atom)) return atom;
   const original = atom.write;
-  atom.write = function(get, set, ...args) {
+  const capture = function(this: JotaiAtom, get, set, ...args) {
     gameAtomSet = (target, value) => set(target, value);
     restoreAtomWriteCaptures();
     return original.call(this, get, set, ...args);
   };
-  wrappedAtomWrites.set(atom, original);
+  atom.write = capture;
+  wrappedAtomWrites.set(atom, { original, capture });
   return atom;
 }
 

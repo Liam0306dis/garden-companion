@@ -27,7 +27,22 @@ interface BasisModule {
   TranscoderTextureFormat: { cTFRGBA32: number };
 }
 
+interface RiveRuntime {
+  Rive: new (options: Record<string, unknown>) => {
+    resizeDrawingSurfaceToCanvas(): void;
+    cleanup(): void;
+  };
+  Layout: new (options: Record<string, unknown>) => unknown;
+  Fit: { Contain: unknown };
+  Alignment: { Center: unknown };
+}
+
+interface AssetManifest {
+  bundles?: Array<{ assets?: Array<{ alias?: string[]; src?: string[] }> }>;
+}
+
 const TRANSCODER_URL = 'https://unpkg.com/@h00w/basis-universal-transcoder?module';
+const RIVE_RUNTIME_URL = 'https://unpkg.com/@rive-app/canvas-single@2.38.5/rive.js';
 
 const DECOR_IDS = Object.keys(__DECOR_CATALOG__);
 
@@ -90,23 +105,141 @@ async function detectAssetsBase(): Promise<string | null> {
   return null;
 }
 
-async function atlasPaths(assetsBase: string): Promise<string[]> {
+async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[]; petRiveUrl: string | null }> {
   try {
     const response = await fetch(`${assetsBase}manifest.json`);
-    if (!response.ok) return [];
-    const manifest = await response.json() as { bundles?: Array<{ assets?: Array<{ src?: string[] }> }> };
+    if (!response.ok) return { atlasPaths: [], petRiveUrl: null };
+    const manifest = await response.json() as AssetManifest;
     const paths = new Set<string>();
+    let petRiveUrl: string | null = null;
     for (const bundle of manifest.bundles ?? []) {
       for (const asset of bundle.assets ?? []) {
         for (const source of asset.src ?? []) {
           if (source.startsWith('atlases/') && source.endsWith('.json')) paths.add(source);
+          if (asset.alias?.some(alias => alias === 'rive/pets.riv' || alias === 'rive/pets')) {
+            petRiveUrl = new URL(source, assetsBase).href;
+          }
         }
       }
     }
-    return [...paths];
+    return { atlasPaths: [...paths], petRiveUrl };
   } catch {
-    return [];
+    return { atlasPaths: [], petRiveUrl: null };
   }
+}
+
+let riveRuntimePromise: Promise<RiveRuntime> | null = null;
+
+function riveRuntime(): Promise<RiveRuntime> {
+  const existing = (window as unknown as { rive?: RiveRuntime }).rive;
+  if (existing?.Rive) return Promise.resolve(existing);
+  if (riveRuntimePromise) return riveRuntimePromise;
+  riveRuntimePromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = RIVE_RUNTIME_URL;
+    script.onload = () => {
+      const runtime = (window as unknown as { rive?: RiveRuntime }).rive;
+      runtime?.Rive ? resolve(runtime) : reject(new Error('Rive runtime did not initialise.'));
+    };
+    script.onerror = () => reject(new Error('Rive runtime could not be loaded.'));
+    (document.head || document.documentElement).appendChild(script);
+  });
+  return riveRuntimePromise;
+}
+
+function imageFromDataUrl(source: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Rendered pet image could not be read.'));
+    image.src = source;
+  });
+}
+
+async function trimTransparentImage(source: string): Promise<string> {
+  const image = await imageFromDataUrl(source);
+  const scan = document.createElement('canvas');
+  scan.width = image.naturalWidth;
+  scan.height = image.naturalHeight;
+  const context = scan.getContext('2d');
+  if (!context) return source;
+  context.drawImage(image, 0, 0);
+  const pixels = context.getImageData(0, 0, scan.width, scan.height).data;
+  let minX = scan.width;
+  let minY = scan.height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < scan.height; y++) {
+    for (let x = 0; x < scan.width; x++) {
+      if (pixels[(y * scan.width + x) * 4 + 3] < 8) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  if (maxX < minX || maxY < minY) return source;
+  const width = maxX - minX + 1;
+  const height = maxY - minY + 1;
+  const padding = Math.max(4, Math.ceil(Math.max(width, height) * 0.06));
+  const size = Math.max(width, height) + padding * 2;
+  const output = document.createElement('canvas');
+  output.width = size;
+  output.height = size;
+  output.getContext('2d')?.drawImage(scan, minX, minY, width, height, (size - width) / 2, (size - height) / 2, width, height);
+  return output.toDataURL('image/png');
+}
+
+async function renderRivePet(runtime: RiveRuntime, buffer: ArrayBuffer, species: string): Promise<string | null> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 360;
+  canvas.height = 510;
+  canvas.style.cssText = 'position:fixed;left:-10000px;top:0;width:180px;height:255px;opacity:0;pointer-events:none';
+  (document.body || document.documentElement).appendChild(canvas);
+  return new Promise(resolve => {
+    let settled = false;
+    let instance: InstanceType<RiveRuntime['Rive']> | null = null;
+    const finish = async (source: string | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      try { instance?.cleanup(); } catch {}
+      canvas.remove();
+      if (!source) return resolve(null);
+      try { resolve(await trimTransparentImage(source)); }
+      catch { resolve(source); }
+    };
+    const timeout = window.setTimeout(() => void finish(null), 4_000);
+    try {
+      instance = new runtime.Rive({
+        buffer: buffer.slice(0),
+        canvas,
+        artboard: species,
+        stateMachines: 'Pet State Machine',
+        autoplay: true,
+        layout: new runtime.Layout({ fit: runtime.Fit.Contain, alignment: runtime.Alignment.Center }),
+        onLoad: () => {
+          instance?.resizeDrawingSurfaceToCanvas();
+          window.setTimeout(() => void finish(canvas.toDataURL('image/png')), 100);
+        },
+        onLoadError: () => void finish(null),
+      });
+    } catch {
+      void finish(null);
+    }
+  });
+}
+
+async function loadRivePetFrames(url: string, species: string[]): Promise<Map<string, string>> {
+  const [runtime, response] = await Promise.all([riveRuntime(), fetch(url)]);
+  if (!response.ok) throw new Error('Pet animation file could not be loaded.');
+  const buffer = await response.arrayBuffer();
+  const frames = new Map<string, string>();
+  for (const name of species) {
+    const image = await renderRivePet(runtime, buffer, name);
+    if (image) frames.set(normaliseKey(`sprite/pet/${name}`), image);
+  }
+  return frames;
 }
 
 async function basisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
@@ -198,8 +331,8 @@ export async function initPetSprites(): Promise<void> {
   const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
   const assetsBase = await detectAssetsBase();
   if (!assetsBase) return;
-  const paths = await atlasPaths(assetsBase);
-  if (!paths.length) return;
+  const { atlasPaths: paths, petRiveUrl } = await assetSources(assetsBase);
+  if (!paths.length && !petRiveUrl) return;
   const species = Object.keys(__PET_CATALOG__);
   const shopCandidates = Object.fromEntries(Object.entries(SHOP_SPRITE_GROUPS).flatMap(([group, itemIds]) =>
     itemIds.map(itemId => [itemId, shopSpriteCandidates(group, itemId)]),
@@ -218,7 +351,18 @@ export async function initPetSprites(): Promise<void> {
     ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
   ]);
   try {
-    const { frames, trimmed } = await loadPetFrames(assetsBase, paths, wanted, trimmedWanted);
+    const atlasResult = paths.length
+      ? await loadPetFrames(assetsBase, paths, wanted, trimmedWanted)
+      : { frames: new Map<string, string>(), trimmed: new Map<string, string>() };
+    const { frames, trimmed } = atlasResult;
+    if (petRiveUrl) {
+      try {
+        const riveFrames = await loadRivePetFrames(petRiveUrl, species);
+        for (const [key, image] of riveFrames) frames.set(key, image);
+      } catch (error) {
+        console.warn('[Garden Companion] Current pet animations could not be rendered.', error);
+      }
+    }
     page.__gardenCompanionPetSprites = Object.fromEntries(species.flatMap(name => {
       const image = frames.get(normaliseKey(`sprite/pet/${name}`));
       return image ? [[name, image]] : [];

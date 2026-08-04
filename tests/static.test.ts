@@ -45,6 +45,7 @@ const shopAlarmsSource = await readFile(resolve(root, 'src', 'features', 'shop-a
 const journalSource = await readFile(resolve(root, 'src', 'features', 'journal.ts'), 'utf8');
 const searchSource = await readFile(resolve(root, 'src', 'list-search.ts'), 'utf8');
 const catalogSource = await readFile(resolve(root, 'src', 'game-catalogs.ts'), 'utf8');
+const gameAtomsSource = await readFile(resolve(root, 'src', 'game-atoms.ts'), 'utf8');
 const calculatorsSource = await readFile(resolve(root, 'src', 'features', 'calculators.ts'), 'utf8');
 const abilityLogSource = await readFile(resolve(root, 'src', 'features', 'ability-log.ts'), 'utf8');
 const styleSource = await readFile(resolve(root, 'src', 'style.css'), 'utf8');
@@ -262,6 +263,8 @@ assert.doesNotMatch(overviewSource, /backdrop-filter:blur|background:#fff/, 'ove
 assert.match(companionSource, /__gardenCompanionPetSprites\?\.\[pet\.petSpecies\]/, 'pet cards do not use loaded atlas sprites');
 assert.doesNotMatch(companionSource, /\/sprite\/pet\/.*\.png/, 'pet cards use invalid standalone sprite URLs');
 assert.match(petSpriteSource, /loadPetFrames/, 'pet atlas loader missing');
+assert.match(petSpriteSource, /rive\/pets\.riv/, 'current Rive pet asset is not discovered from the manifest');
+assert.match(petSpriteSource, /loadRivePetFrames/, 'Rive pet portraits are not rendered');
 assert.match(petSpriteSource, /__gardenCompanionShopSprites/, 'shop atlas sprites are not exposed');
 assert.match(companionSource, /gc-shop-sprite/, 'shop alarm items do not render sprites');
 for (const excludedTool of ['Shovel', 'FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo']) assert.match(companionSource, new RegExp(`EXCLUDED_TOOL_ALERTS[\\s\\S]*'${excludedTool}'`), `${excludedTool} is not excluded from tool alarms`);
@@ -305,6 +308,7 @@ assert.match(planterPotSelectionSource, /mySelectedItemIdAtom/, 'selection keepe
 assert.match(planterPotSelectionSource, /selectedItemId === 'PlanterPot'/, 'selection keeper is not limited to Planter Pot use');
 assert.match(planterPotSelectionSource, /pending\.addedPlantIds\.has\(nextItemId\)/, 'selection keeper does not target the newly potted plant');
 assert.match(planterPotSelectionSource, /__gardenCompanionFeature\?\.\('keepPlanterPotSelected'\) === true/, 'selection keeper is not strictly opt-in');
+assert.match(gameAtomsSource, /if \(atom\.write === capture\) atom\.write = original/, 'game atom capture cleanup can remove a later feature hook');
 assert.match(planterPotSelectionSource, /MAX_INSTALL_ATTEMPTS = 240/, 'selection keeper atom retry is not bounded');
 assert.match(planterPotSelectionSource, /attempts >= MAX_INSTALL_ATTEMPTS/, 'selection keeper atom retry cap is not enforced');
 assert.match(planterPotSelectionSource, /selection keeper could not find the game inventory atoms/, 'selection keeper does not report atom installation failure');
