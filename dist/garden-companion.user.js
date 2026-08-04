@@ -8323,8 +8323,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var CLEANSEABLE = new Set(MUTATIONS.map((mutation) => mutation.id));
   var selectedMutation = "";
   var rowSnapshot = [];
-  var snapshotCleanserCount = 0;
+  var displayedCleanserCount = 0;
+  var lastLiveCleanserCount = 0;
+  var optimisticCountUntil = 0;
+  var reconcileTimer = null;
   var cleansedRows = /* @__PURE__ */ new Set();
+  var changedRows = /* @__PURE__ */ new Set();
   function mutationLabel(id) {
     return MUTATION_CATALOG[id]?.name || humanize(id);
   }
@@ -8341,6 +8345,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (!selectedMutation) return [];
     const rows = [];
     for (const [tileIndex, tile] of Object.entries(state.slot?.data?.garden?.tileObjects || {})) {
+      const plant = PLANT_CATALOG[tile.species || ""];
+      const maturedAt = Number(tile.maturedAt);
+      if (plant?.regrows !== false && (!Number.isFinite(maturedAt) || maturedAt > Date.now())) continue;
       for (const [slotIndex, slot] of (tile.slots || []).entries()) {
         const mutations = Array.isArray(slot.mutations) ? slot.mutations : [];
         if (!mutations.includes(selectedMutation) || slot.preserved === true) continue;
@@ -8371,18 +8378,50 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function refreshSnapshot() {
     rowSnapshot = matchingRows();
-    snapshotCleanserCount = heldToolCount("CropCleanser");
+    displayedCleanserCount = heldToolCount("CropCleanser");
+    lastLiveCleanserCount = displayedCleanserCount;
+    optimisticCountUntil = 0;
     cleansedRows.clear();
+    changedRows.clear();
   }
   function panel() {
     return document.getElementById("gc-crop-cleanser");
+  }
+  function updateCleanserControls(body) {
+    const count = body.querySelector(".gc-cleanser-summary b");
+    if (count) count.textContent = displayedCleanserCount.toLocaleString();
+    body.querySelectorAll("[data-cleanse-row]").forEach((button) => {
+      const key = button.dataset.cleanseRow || "";
+      button.disabled = displayedCleanserCount <= 0 || cleansedRows.has(key) || changedRows.has(key);
+    });
+  }
+  function reconcileCleanserCount() {
+    const root = panel();
+    if (!root || root.hidden) return;
+    const live = heldToolCount("CropCleanser");
+    if (live === lastLiveCleanserCount && live === displayedCleanserCount) return;
+    if (live === lastLiveCleanserCount && Date.now() < optimisticCountUntil) return;
+    lastLiveCleanserCount = live;
+    displayedCleanserCount = live;
+    optimisticCountUntil = 0;
+    const body = root.querySelector("[data-cleanser-body]");
+    if (body) updateCleanserControls(body);
+  }
+  function startCountReconciliation() {
+    if (reconcileTimer !== null) return;
+    reconcileTimer = window.setInterval(reconcileCleanserCount, 500);
+  }
+  function stopCountReconciliation() {
+    if (reconcileTimer === null) return;
+    window.clearInterval(reconcileTimer);
+    reconcileTimer = null;
   }
   function render() {
     const root = panel();
     if (!root) return;
     const body = root.querySelector("[data-cleanser-body]");
     if (!body) return;
-    const cleaners = snapshotCleanserCount;
+    const cleaners = displayedCleanserCount;
     const rows = rowSnapshot;
     const choices = MUTATIONS.map((mutation) => {
       const sprite = mutationSprite(mutation.id);
@@ -8405,28 +8444,23 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (!row) return;
       const live = liveRowMatches(row);
       if (!live) {
-        button.disabled = true;
+        changedRows.add(row.key);
         button.textContent = "Changed";
+        updateCleanserControls(body);
         toast("That crop changed after this list was opened. Reopen the helper and check it again.", "error");
         return;
       }
-      if (heldToolCount("CropCleanser") <= 0) {
+      if (displayedCleanserCount <= 0 || heldToolCount("CropCleanser") <= 0) {
         toast("No Crop Cleansers are available.", "error");
         return;
       }
       try {
         send({ type: "CropCleanser", tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
         cleansedRows.add(row.key);
-        snapshotCleanserCount = Math.max(0, snapshotCleanserCount - 1);
-        button.disabled = true;
+        displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
+        optimisticCountUntil = Date.now() + 2e3;
         button.textContent = "Cleansed";
-        const count = body.querySelector(".gc-cleanser-summary b");
-        if (count) count.textContent = snapshotCleanserCount.toLocaleString();
-        if (snapshotCleanserCount === 0) {
-          body.querySelectorAll("[data-cleanse-row]").forEach((action) => {
-            action.disabled = true;
-          });
-        }
+        updateCleanserControls(body);
         toast(`Crop Cleanser requested for ${humanize(live.species)}.`, "success");
       } catch (error) {
         toast(error.message, "error");
@@ -8442,6 +8476,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     root.innerHTML = '<header><div><i></i><span>Crop Cleanser Helper</span></div><button data-cleanser-close aria-label="Close">×</button></header><main data-cleanser-body></main>';
     root.querySelector("[data-cleanser-close]").onclick = () => {
       root.hidden = true;
+      stopCountReconciliation();
     };
     document.body.appendChild(root);
     makeDraggable(root, POSITION_KEY4);
@@ -8453,6 +8488,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (!root.hidden) {
       refreshSnapshot();
       render();
+      startCountReconciliation();
+    } else {
+      stopCountReconciliation();
     }
   }
   function initCropCleanserHelper() {

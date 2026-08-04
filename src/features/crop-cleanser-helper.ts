@@ -1,4 +1,4 @@
-import { MUTATION_CATALOG } from '../constants.js';
+import { MUTATION_CATALOG, PLANT_CATALOG } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
 import { send } from '../game-connection.js';
 import { page } from '../page.js';
@@ -32,8 +32,12 @@ interface CleanserRow {
 
 let selectedMutation = '';
 let rowSnapshot: CleanserRow[] = [];
-let snapshotCleanserCount = 0;
+let displayedCleanserCount = 0;
+let lastLiveCleanserCount = 0;
+let optimisticCountUntil = 0;
+let reconcileTimer: number | null = null;
 const cleansedRows = new Set<string>();
+const changedRows = new Set<string>();
 
 function mutationLabel(id: string): string {
   return MUTATION_CATALOG[id]?.name || humanize(id);
@@ -54,6 +58,9 @@ function matchingRows(): CleanserRow[] {
   if (!selectedMutation) return [];
   const rows: CleanserRow[] = [];
   for (const [tileIndex, tile] of Object.entries(state.slot?.data?.garden?.tileObjects || {})) {
+    const plant = PLANT_CATALOG[tile.species || ''];
+    const maturedAt = Number(tile.maturedAt);
+    if (plant?.regrows !== false && (!Number.isFinite(maturedAt) || maturedAt > Date.now())) continue;
     for (const [slotIndex, slot] of (tile.slots || []).entries()) {
       const mutations = Array.isArray(slot.mutations) ? slot.mutations : [];
       if (!mutations.includes(selectedMutation) || slot.preserved === true) continue;
@@ -87,12 +94,48 @@ function liveRowMatches(snapshot: CleanserRow): CleanserRow | null {
 
 function refreshSnapshot(): void {
   rowSnapshot = matchingRows();
-  snapshotCleanserCount = heldToolCount('CropCleanser');
+  displayedCleanserCount = heldToolCount('CropCleanser');
+  lastLiveCleanserCount = displayedCleanserCount;
+  optimisticCountUntil = 0;
   cleansedRows.clear();
+  changedRows.clear();
 }
 
 function panel(): HTMLElement | null {
   return document.getElementById('gc-crop-cleanser');
+}
+
+function updateCleanserControls(body: HTMLElement): void {
+  const count = body.querySelector<HTMLElement>('.gc-cleanser-summary b');
+  if (count) count.textContent = displayedCleanserCount.toLocaleString();
+  body.querySelectorAll<HTMLButtonElement>('[data-cleanse-row]').forEach(button => {
+    const key = button.dataset.cleanseRow || '';
+    button.disabled = displayedCleanserCount <= 0 || cleansedRows.has(key) || changedRows.has(key);
+  });
+}
+
+function reconcileCleanserCount(): void {
+  const root = panel();
+  if (!root || root.hidden) return;
+  const live = heldToolCount('CropCleanser');
+  if (live === lastLiveCleanserCount && live === displayedCleanserCount) return;
+  if (live === lastLiveCleanserCount && Date.now() < optimisticCountUntil) return;
+  lastLiveCleanserCount = live;
+  displayedCleanserCount = live;
+  optimisticCountUntil = 0;
+  const body = root.querySelector<HTMLElement>('[data-cleanser-body]');
+  if (body) updateCleanserControls(body);
+}
+
+function startCountReconciliation(): void {
+  if (reconcileTimer !== null) return;
+  reconcileTimer = window.setInterval(reconcileCleanserCount, 500);
+}
+
+function stopCountReconciliation(): void {
+  if (reconcileTimer === null) return;
+  window.clearInterval(reconcileTimer);
+  reconcileTimer = null;
 }
 
 function render(): void {
@@ -100,7 +143,7 @@ function render(): void {
   if (!root) return;
   const body = root.querySelector<HTMLElement>('[data-cleanser-body]');
   if (!body) return;
-  const cleaners = snapshotCleanserCount;
+  const cleaners = displayedCleanserCount;
   const rows = rowSnapshot;
   const choices = MUTATIONS.map(mutation => {
     const sprite = mutationSprite(mutation.id);
@@ -123,26 +166,23 @@ function render(): void {
     if (!row) return;
     const live = liveRowMatches(row);
     if (!live) {
-      button.disabled = true;
+      changedRows.add(row.key);
       button.textContent = 'Changed';
+      updateCleanserControls(body);
       toast('That crop changed after this list was opened. Reopen the helper and check it again.', 'error');
       return;
     }
-    if (heldToolCount('CropCleanser') <= 0) {
+    if (displayedCleanserCount <= 0 || heldToolCount('CropCleanser') <= 0) {
       toast('No Crop Cleansers are available.', 'error');
       return;
     }
     try {
       send({ type: 'CropCleanser', tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
       cleansedRows.add(row.key);
-      snapshotCleanserCount = Math.max(0, snapshotCleanserCount - 1);
-      button.disabled = true;
+      displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
+      optimisticCountUntil = Date.now() + 2_000;
       button.textContent = 'Cleansed';
-      const count = body.querySelector<HTMLElement>('.gc-cleanser-summary b');
-      if (count) count.textContent = snapshotCleanserCount.toLocaleString();
-      if (snapshotCleanserCount === 0) {
-        body.querySelectorAll<HTMLButtonElement>('[data-cleanse-row]').forEach(action => { action.disabled = true; });
-      }
+      updateCleanserControls(body);
       toast(`Crop Cleanser requested for ${humanize(live.species)}.`, 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
@@ -157,7 +197,10 @@ function ensurePanel(): HTMLElement {
   root.id = 'gc-crop-cleanser';
   root.hidden = true;
   root.innerHTML = '<header><div><i></i><span>Crop Cleanser Helper</span></div><button data-cleanser-close aria-label="Close">×</button></header><main data-cleanser-body></main>';
-  root.querySelector<HTMLButtonElement>('[data-cleanser-close]')!.onclick = () => { root.hidden = true; };
+  root.querySelector<HTMLButtonElement>('[data-cleanser-close]')!.onclick = () => {
+    root.hidden = true;
+    stopCountReconciliation();
+  };
   document.body.appendChild(root);
   makeDraggable(root, POSITION_KEY);
   return root;
@@ -169,6 +212,9 @@ function toggle(): void {
   if (!root.hidden) {
     refreshSnapshot();
     render();
+    startCountReconciliation();
+  } else {
+    stopCountReconciliation();
   }
 }
 

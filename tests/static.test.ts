@@ -282,7 +282,7 @@ assert.match(companionSource, /data-open-crop-cleanser/, 'Crop Cleanser helper l
 assert.match(cropCleanserSource, /Wet.*Chilled.*Frozen.*Thunderstruck.*Thundercharged.*Ambershine.*Dawnlit.*Ambercharged.*Dawncharged/s, 'Crop Cleanser mutation filters are incomplete');
 assert.match(cropCleanserSource, /send\(\{ type: 'CropCleanser', tileObjectIdx: live\.tileObjectIdx, growSlotIdx: live\.growSlotIdx \}\)/, 'Crop Cleanser request does not match the game protocol');
 assert.match(cropCleanserSource, /slot\.preserved === true/, 'Crop Cleanser helper lists preserved crop slots');
-assert.doesNotMatch(cropCleanserSource, /endTime > Date\.now/, 'Crop Cleanser helper incorrectly hides growing crops');
+assert.match(cropCleanserSource, /PLANT_CATALOG\[tile\.species \|\| ''\][\s\S]*plant\?\.regrows !== false[\s\S]*maturedAt > Date\.now\(\)/, 'Crop Cleanser helper does not match the native garden-object maturity gate');
 assert.match(cropCleanserSource, /liveRowMatches\(row\)[\s\S]*if \(!live\)[\s\S]*send\(\{ type: 'CropCleanser'/, 'Crop Cleanser target is not revalidated before sending');
 assert.match(cropCleanserSource, /live\.startTime !== snapshot\.startTime/, 'Crop Cleanser replacement crops are not rejected');
 assert.match(cropCleanserSource, /removes all cleanseable weather mutations/, 'Crop Cleanser helper does not explain the native removal scope');
@@ -290,7 +290,12 @@ assert.match(cropCleanserSource, /rowSnapshot = matchingRows\(\);[\s\S]*cleansed
 assert.match(cropCleanserSource, /cleansedRows\.has\(row\.key\)[\s\S]*Cleansed/, 'cleansed Crop Cleanser rows do not remain visible');
 assert.match(cropCleanserSource, /cleansedRows\.add\(row\.key\)/, 'successful Crop Cleanser requests are not retained in the snapshot');
 assert.match(cropCleanserSource, /button\.textContent = 'Cleansed'/, 'cleansed Crop Cleanser rows are not updated in place');
-assert.doesNotMatch(cropCleanserSource, /setInterval|currentSignature/, 'Crop Cleanser list still refreshes while open');
+assert.doesNotMatch(cropCleanserSource, /currentSignature|setInterval\([^)]*render/, 'Crop Cleanser list still refreshes while open');
+assert.match(cropCleanserSource, /reconcileCleanserCount[\s\S]*heldToolCount\('CropCleanser'\)[\s\S]*updateCleanserControls/, 'Crop Cleanser inventory does not reconcile while the helper is open');
+assert.match(cropCleanserSource, /live === lastLiveCleanserCount && live === displayedCleanserCount/, 'rejected Crop Cleanser requests leave the displayed inventory stale');
+assert.match(cropCleanserSource, /optimisticCountUntil = Date\.now\(\) \+ 2_000/, 'Crop Cleanser optimistic inventory has no reconciliation grace period');
+assert.match(cropCleanserSource, /startCountReconciliation\(\)[\s\S]*stopCountReconciliation\(\)/, 'Crop Cleanser inventory polling is not scoped to the open panel');
+assert.doesNotMatch(cropCleanserSource, /initCropCleanserHelper\(\)[\s\S]*setInterval/, 'Crop Cleanser inventory polling runs for the page lifetime');
 assert.match(companionSource, /Crop Cleanser Helper.*data-interface-key="\$\{CROP_CLEANSER_KEY\.id\}"/s, 'Crop Cleanser keybind is missing from the Keybinds tab');
 assert.match(companionSource, /config\.interfaceKeybinds\[CROP_CLEANSER_KEY\.id\] === combo[\s\S]*__gardenCompanionToggleCropCleanser/, 'Crop Cleanser keybind does not toggle the helper');
 assert.match(companionSource, /data-open-celestial-layout/, 'celestial layout launcher is missing from Features');
