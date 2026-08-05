@@ -147,6 +147,7 @@
 .gc-ability-log-pet { min-width:0;display:flex;align-items:center; }.gc-ability-log-pet .gc-pet-sprite { width:36px;height:36px; }.gc-ability-log-pet .gc-pet-sprite img { width:32px;height:32px; }.gc-ability-log-pet .gc-pet-sprite i { font-size:15px; }
 .gc-ability-log-name { min-width:0;color:#f4f4f5;font-size:11px; }.gc-ability-log-name b { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .gc-ability-log-payload { min-width:0;color:#f4f4f5;font:700 11px/1.35 ui-monospace,monospace;overflow-wrap:anywhere; }
+.gc-ability-log-payload[data-detail] { cursor:help;text-decoration:underline dotted rgba(255,255,255,.4);text-underline-offset:3px; }
 .gc-log > p { padding:9px 2px;color:var(--gc-muted);font-size:10px; }
 .gc-room { display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px; }
 .gc-room h3 { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }

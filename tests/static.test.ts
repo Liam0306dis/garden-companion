@@ -173,6 +173,9 @@ assert.match(companionSource, /data-log-search/, 'the ability log cannot be sear
 assert.match(companionSource, /data: snapshotPayload\(entry\.parameters \|\| \{\}\)/, 'ability result payload is not snapshotted');
 assert.match(companionSource, /ability\.includes\('SeedFinder'\) && data\.speciesId[\s\S]*payloadItemName\(data\.speciesId\)/, 'seed finder result is not placed on the main line');
 assert.match(companionSource, /growSlot\?\.species[\s\S]*payloadItemName\(growSlot\.species\)/, 'mutation granter target is not placed on the main line');
+assert.match(companionSource, /ABILITY_GROUP_BY_ID\.get\(ability\) === 'Crop Size Boost'[\s\S]*scaleIncreasePercentage[\s\S]*toFixed\(1\).*% size/, 'Crop Size Boost payload omits its scale increase');
+assert.match(companionSource, /family === 'XP Boost'[\s\S]*XP gained:[\s\S]*family === 'Hunger Restore'[\s\S]*Hunger gained:/, 'XP and hunger proc amounts are missing from payload tooltips');
+assert.match(companionSource, /gc-ability-log-payload[\s\S]*tooltip \? ` title=[\s\S]*data-detail/, 'ability payload hover details are not rendered');
 assert.match(companionSource, /gc-ability-log-row[\s\S]*gc-ability-log-pet[\s\S]*gc-ability-log-name[\s\S]*gc-ability-log-payload/, 'Pet Ability rows do not show the pet, ability, and payload');
 assert.match(companionSource, /toLocaleDateString[\s\S]*toLocaleTimeString/, 'Pet Ability rows do not show both date and time');
 assert.match(companionSource, /when\.time[\s\S]*when\.date/, 'Pet Ability rows do not emphasize time before date');

@@ -1,5 +1,5 @@
 import { feature } from '../config.js';
-import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUPS, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS } from '../constants.js';
+import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUP_BY_ID, ABILITY_GROUPS, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS } from '../constants.js';
 import { config, saveConfig } from '../config.js';
 import { allPets, petSprite } from '../pets.js';
 import { saveAbilityLog, state, trimAbilityLogs, type AbilityLogRow } from '../state.js';
@@ -92,6 +92,13 @@ function payloadItemList(value: unknown): string {
 
 export function procOutcome(ability: string, data: Record<string, unknown>): string {
   const growSlot = payloadRecord(data.growSlot);
+  if (ABILITY_GROUP_BY_ID.get(ability) === 'Crop Size Boost') {
+    const parts: string[] = [];
+    if (growSlot?.species) parts.push(payloadItemName(growSlot.species));
+    if (data.numPlantsAffected != null) parts.push(`${Number(data.numPlantsAffected).toLocaleString()} plants`);
+    if (data.scaleIncreasePercentage != null) parts.push(`+${Number(data.scaleIncreasePercentage).toFixed(1)}% size`);
+    if (parts.length) return parts.join(' | ');
+  }
   if (ability.includes('SeedFinder') && data.speciesId) return payloadItemName(data.speciesId);
   if (growSlot?.species) return payloadItemName(growSlot.species);
   if (data.harvestedCrop) return payloadItemName(data.harvestedCrop);
@@ -114,6 +121,18 @@ export function procOutcome(ability: string, data: Record<string, unknown>): str
   if (data.mutation || data.targetMutation) return payloadItemName(data.mutation || data.targetMutation);
   const fallback = Object.entries(data).find(([key, value]) => !['pet', 'sourcePet'].includes(key) && ['string', 'number', 'boolean'].includes(typeof value));
   return fallback ? `${humanize(fallback[0])}: ${String(fallback[1])}` : 'Proc recorded';
+}
+
+export function procOutcomeTooltip(ability: string, data: Record<string, unknown>): string {
+  const family = ABILITY_GROUP_BY_ID.get(ability);
+  if (family === 'XP Boost') {
+    const gained = data.bonusXp ?? data.xpGranted;
+    if (gained != null) return `XP gained: +${Math.floor(Number(gained)).toLocaleString()} XP`;
+  }
+  if (family === 'Hunger Restore' && data.hungerRestoreAmount != null) {
+    return `Hunger gained: ${Number(data.hungerRestoreAmount).toLocaleString()}`;
+  }
+  return '';
 }
 
 
@@ -170,7 +189,8 @@ export function renderAbilityLogRows(selectedFilters: Set<string>): string {
     const when = procDateParts(log.at);
     const pet = triggeringPet(log);
     const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
-    return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload">${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
+    const tooltip = procOutcomeTooltip(log.ability, log.data);
+    return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip ? ` title="${escapeHtml(tooltip)}" data-detail` : ''}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
   }).join('') + more;
 }
 
