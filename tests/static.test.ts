@@ -712,7 +712,7 @@ assert.match(companionSource, /page\.__gardenCompanionFishingOpen\?\.\(\)/, 'ins
 assert.match(fishingSource, /node\.visible = false;\s*node\.renderable = false;/, 'native crop refreshes can render through the fishing pool');
 assert.match(fishingSource, /node\.label === 'WorldOverlay'/, 'standing-on-plant world effects remain visible over the fishing scene');
 assert.match(fishingSource, /for \(const \[node, saved\] of hiddenEffectNodes\)/, 'standing-on-plant world effects are not restored when fishing closes');
-assert.match(fishingSource, /if \(panel\(\)\?\.hidden === false\) return;\s*return originalDraw\.apply\(this, args\);/, 'tile views regenerate crop selection and standing effects while a fishing subview is open');
+assert.match(fishingSource, /if \(tileDrawSuppressed\) return;\s*return originalDraw\.apply\(this, args\);/, 'tile views regenerate crop selection and standing effects while a fishing subview is open');
 assert.match(fishingSource, /if \(panel\(\)\?\.hidden !== false \|\| !farmBounds\) return;/, 'active pets leave the boardwalk when a fishing subview is opened');
 assert.doesNotMatch(fishingSource, /gf-bank-pet|gf-boardwalk-pets/, 'fishing draws duplicate pet sprites instead of constraining the native pets');
 assert.match(plantDragSource, /system\?\.name === 'pet' && system\.views instanceof pageWindow\.Map/, 'the native active-pet system is not captured');
@@ -779,5 +779,9 @@ assert.match(fishingSource, /equipment\[id\] > 0 && EQUIPMENT_BY_ID\.get\(id\)\?
 assert.match(fishingSource, /\.gf-card\[data-view=game\]\{width:min\(360px,calc\(100vw - 24px\)\)\}/, 'the world fishing HUD is not compact on a small viewport');
 assert.match(fishingSource, /\.gf-body\{[^}]*max-height:min\(430px,calc\(100vh - 150px\)\)/, 'a fishing list can put its header above a short viewport');
 assert.match(fishingSource, /castDistance = [^;]*Math\.random\(\)[^;]*;[\s\S]*hookDepth = [^;]*Math\.random\(\)[^;]*;/, 'fishing casts no longer vary their landing distance and hook depth');
+// Tile draw wrappers outlive the scene unless restored, blanking the garden after the scene fails.
+assert.match(fishingSource, /function restoreTileDraw\(\)[\s\S]*if \(!tileView\.destroyed\) tileView\.draw = originalDraw;[\s\S]*wrappedTileViews\.clear\(\)/, 'suppressed tile draws are never restored');
+assert.match(fishingSource, /function restoreGarden\(\): void \{\s*tileDrawSuppressed = false;\s*restoreTileDraw\(\);/, 'restoring the garden leaves its tile draws suppressed');
+assert.doesNotMatch(fishingSource, /panel\(\)\?\.hidden === false\) return;/, 'a wrapped tile draw does a DOM lookup on every frame');
 
 console.log('Static checks passed');

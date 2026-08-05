@@ -11,6 +11,8 @@ export function escapeHtml(value: unknown): string {
 export const NAME_OVERRIDES: Record<string, string> = {
   ThunderCelestialShroomPlant: 'Stormcap',
   ThunderCelestial: 'Thunderpeel',
+  MoonCelestial: 'Moonbinder',
+  DawnCelestial: 'Dawnbinder',
 };
 
 export function humanize(value: unknown): string {

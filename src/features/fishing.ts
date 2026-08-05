@@ -65,6 +65,7 @@ const REEL_LIMIT = 45000;
 /** Rod back-swing then forward whip. The flight lands as the cast splash in the audio plays. */
 const CAST_WINDUP = 150;
 const CAST_FLIGHT = 210;
+/** Far above anything the game assigns, so the pond and rod always sort over the world. */
 const WORLD_OVERLAY_Z_INDEX = 0xe8d4a51000;
 /**
  * Hook zone control. Friction is what makes this steerable: without it, holding accelerates without
@@ -417,6 +418,9 @@ export function initFishing(): void {
   let farmBounds: { left: number; top: number; width: number; height: number } | null = null;
   let worldSceneWarningShown = false;
   let worldSceneDisabled = false;
+  const wrappedTileViews = new Map<Record<string, any>, (...args: any[]) => unknown>();
+  /** Read by every wrapped tile draw, so it must stay a plain flag rather than a DOM lookup. */
+  let tileDrawSuppressed = false;
   let cachedWorldOverlay: Record<string, any> | null = null;
   let cachedLocalAvatar: Record<string, any> | null = null;
   let cachedLocalAvatarId = '';
@@ -498,6 +502,7 @@ export function initFishing(): void {
   }
 
   function hideGarden(globals: number[], system: Record<string, any>): void {
+    tileDrawSuppressed = true;
     for (const index of globals) {
       const node = system.tileViews?.get?.(index)?.displayObject;
       if (!node || node.destroyed) continue;
@@ -511,6 +516,8 @@ export function initFishing(): void {
   }
 
   function restoreGarden(): void {
+    tileDrawSuppressed = false;
+    restoreTileDraw();
     for (const [node, saved] of hiddenGardenNodes) {
       if (!node.destroyed) {
         node.alpha = Number.isFinite(saved.alpha) ? saved.alpha : 1;
@@ -542,16 +549,28 @@ export function initFishing(): void {
     overlay.renderable = false;
   }
 
+  /**
+   * Tiles are suppressed by wrapping their draw, so the wrappers have to be removable: left in
+   * place they cost a lookup per tile per frame forever, and after the scene fails they would keep
+   * blanking the garden with no pond drawn over it.
+   */
   function installTileDrawSuppression(system: Record<string, any>): void {
     for (const tileView of system.tileViews?.values?.() ?? []) {
-      if (!tileView || tileView.__gardenFishingDrawWrapped || typeof tileView.draw !== 'function') continue;
+      if (!tileView || wrappedTileViews.has(tileView) || typeof tileView.draw !== 'function') continue;
       const originalDraw = tileView.draw;
+      wrappedTileViews.set(tileView, originalDraw);
       tileView.draw = function(...args: any[]) {
-        if (panel()?.hidden === false) return;
+        if (tileDrawSuppressed) return;
         return originalDraw.apply(this, args);
       };
-      tileView.__gardenFishingDrawWrapped = true;
     }
+  }
+
+  function restoreTileDraw(): void {
+    for (const [tileView, originalDraw] of wrappedTileViews) {
+      if (!tileView.destroyed) tileView.draw = originalDraw;
+    }
+    wrappedTileViews.clear();
   }
 
   function destroyGraphic(graphic: Record<string, any> | null): void {

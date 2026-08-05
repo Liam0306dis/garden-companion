@@ -851,7 +851,7 @@ export function initGardenOverview(): void {
       return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b>${have}<em>/${row.total}</em></b></div><u><i style="width:${percent.toFixed(1)}%;background:${color}"></i></u>${summary}</div>`;
     }).join('');
     const plantCount = (plants: number, crops: number) => plants > 0 && plants !== crops ? `${plants} <small>(${crops})</small>` : `${crops}`;
-    const plantRows = stats.species.map(row => `<div class="go-plant-row"><span>${escapeHtml(row.species)}</span><b>${plantCount(row.plants, row.crops)}</b></div>`).join('');
+    const plantRows = stats.species.map(row => `<div class="go-plant-row"><span>${escapeHtml(displayName(row.species))}</span><b>${plantCount(row.plants, row.crops)}</b></div>`).join('');
     const totalPlants = plantCount(stats.plants, stats.crops);
     const growing = Math.max(0, stats.crops - stats.mature);
     const growth = growing === 0 && stats.notMaxSize === 0
