@@ -366,6 +366,7 @@ assert.match(companionSource, /config\.trackedAbilities = \[\.\.\.currentKeys\]/
 assert.match(companionSource, /abilityFilter\.addEventListener\('focusout'[\s\S]*abilityFilter\.open = false/, 'ability filter does not close after focus leaves');
 assert.match(styleSource, /\.gc-ability-picker \{ position:absolute;top:39px;right:0/, 'ability filter still shifts the panel layout');
 assert.match(styleSource, /\.gc-ability-filter>summary \{ height:34px/, 'ability filter does not align with the search field');
+assert.match(styleSource, /\.gc-ability-log-actions \.gc-log-search \{[^}]*height:34px[^}]*margin:0/, 'ability history search field retains its global top margin');
 assert.match(companionSource, /\['Plant Growth Boost', \['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost'\]\]/, 'plant growth abilities are not grouped');
 assert.match(companionSource, /\['Mutation Granter', \['RainDance'.*'RainbowGranter'.*'ThunderstruckGranter'\]\]/, 'mutation granters are not grouped');
 for (const excludedAbility of ['HungerBoost', 'PetMutationBoost', 'ProduceMutationBoost', 'MoonKisser', 'Copycat', 'DawnCapture', 'Thundercharger', 'DawnbinderBoost']) assert.match(companionSource, new RegExp(`EXCLUDED_TRACKED_ABILITIES[\\s\\S]*'${excludedAbility}'`), `${excludedAbility} is not excluded from proc tracking`);
