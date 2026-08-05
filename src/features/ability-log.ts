@@ -1,9 +1,11 @@
 import { feature } from '../config.js';
 import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUPS, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS } from '../constants.js';
 import { config, saveConfig } from '../config.js';
-import { saveAbilityLog, state, trimAbilityLogs } from '../state.js';
+import { allPets, petSprite } from '../pets.js';
+import { saveAbilityLog, state, trimAbilityLogs, type AbilityLogRow } from '../state.js';
 import { panelActions } from '../panel-actions.js';
 import { LOG_KEY } from '../constants.js';
+import type { Pet } from '../types.js';
 import { saveLocal } from '../utils.js';
 import { escapeHtml, humanize } from '../utils.js';
 
@@ -65,10 +67,17 @@ function payloadRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
+function displayedItemName(value: unknown): string {
+  const raw = String(value ?? 'Unknown');
+  if (raw === 'MoonCelestial' || raw === 'Moon Celestial') return 'Moonbinder';
+  if (raw === 'DawnCelestial' || raw === 'Dawn Celestial') return 'Dawnbinder';
+  return humanize(raw);
+}
+
 function payloadItemName(value: unknown): string {
-  if (typeof value === 'string') return humanize(value);
+  if (typeof value === 'string') return displayedItemName(value);
   const item = payloadRecord(value);
-  return item ? humanize(item.name || item.species || item.petSpecies || item.eggId || item.id || 'Unknown') : String(value ?? 'Unknown');
+  return item ? displayedItemName(item.name || item.species || item.petSpecies || item.eggId || item.id || 'Unknown') : String(value ?? 'Unknown');
 }
 
 function payloadItemList(value: unknown): string {
@@ -120,6 +129,30 @@ function abilityFilterSummary(selectedFilters: Set<string>): string {
   return selectedFilters.size === ABILITY_FILTER_OPTIONS.length ? 'All abilities' : selectedFilters.size === 0 ? 'No abilities' : selectedFilters.size === 1 ? ABILITY_FILTER_OPTIONS.find(option => selectedFilters.has(option.key))?.label || 'No abilities' : `${selectedFilters.size} selections`;
 }
 
+function triggeringPet(log: AbilityLogRow): Pet | null {
+  const raw = payloadRecord(log.data.pet) || payloadRecord(log.data.sourcePet);
+  const id = String(raw?.id || '');
+  const owned = allPets().find(pet => id ? pet.id === id : pet.name === log.pet);
+  const petSpecies = String(raw?.petSpecies || raw?.species || owned?.petSpecies || '');
+  if (!petSpecies) return null;
+  return {
+    id: id || owned?.id || '',
+    name: String(raw?.name || owned?.name || log.pet),
+    petSpecies,
+    hunger: Number(raw?.hunger ?? owned?.hunger ?? 0),
+    mutations: Array.isArray(raw?.mutations) ? raw.mutations.filter(value => typeof value === 'string') as string[] : owned?.mutations,
+  };
+}
+
+function procDateParts(timestamp: number): { date: string; time: string; iso: string } {
+  const value = new Date(timestamp);
+  return {
+    date: value.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }),
+    time: value.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    iso: value.toISOString(),
+  };
+}
+
 export function renderAbilityLogRows(selectedFilters: Set<string>): string {
   const isVisibleAbility = (ability: string) => ABILITY_SET.has(ability) && ABILITY_FILTER_OPTIONS.some(option => selectedFilters.has(option.key) && option.abilities.includes(ability));
   const search = abilityLogSearch.trim().toLowerCase();
@@ -133,7 +166,12 @@ export function renderAbilityLogRows(selectedFilters: Set<string>): string {
   const recent = matched.slice(0, LOG_VISIBLE_ROWS);
   if (!recent.length) return search ? '<p>Nothing matches that search.</p>' : '<p>No ability procs recorded yet.</p>';
   const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : '';
-  return recent.map(log => `<div><time>${new Date(log.at).toLocaleTimeString()}</time><b>${escapeHtml(log.pet)}</b><span class="gc-proc-result">${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}<i>&rarr; ${escapeHtml(procOutcome(log.ability, log.data))}</i></span></div>`).join('') + more;
+  return recent.map(log => {
+    const when = procDateParts(log.at);
+    const pet = triggeringPet(log);
+    const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
+    return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload">${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
+  }).join('') + more;
 }
 
 export function refreshAbilityFilterUi(main: HTMLElement): void {
@@ -158,7 +196,7 @@ export function renderAbilityLog() {
   const selectedFilters = selectedAbilityFilters();
   const filterSummary = abilityFilterSummary(selectedFilters);
   const filterOptions = ABILITY_FILTER_OPTIONS.map(option => `<button data-ability-option="${escapeHtml(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml(option.label)}</span><i>${selectedFilters.has(option.key) ? '&#10003;' : ''}</i></button>`).join('');
-  return `<section class="gc-card gc-ability-filter"><span>Ability filter</span><details data-ability-filter ${abilityFilterMenuOpen ? 'open' : ''}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><small>Choose any combination. Proc history stores up to ${LOG_PER_ABILITY} entries per exact ability.</small></section><section class="gc-card gc-ability-log-card"><div class="gc-row"><h3>Recent tracked procs</h3><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search pet, ability or result" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><button data-clear-log>Clear</button></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
+  return `<section class="gc-card gc-ability-log-card"><div class="gc-ability-log-toolbar"><div><h3>Pet ability history</h3><small>Up to ${LOG_PER_ABILITY} entries are stored per ability.</small></div><div class="gc-ability-log-actions"><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search history" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><details class="gc-ability-filter" data-ability-filter ${abilityFilterMenuOpen ? 'open' : ''}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><button data-clear-log>Clear</button></div></div><div class="gc-ability-log-columns"><span>Time &amp; date</span><span>Pet</span><span>Ability</span><span>Payload</span></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
 }
 
 export function bindAbilityLogEvents(main: HTMLElement): void {

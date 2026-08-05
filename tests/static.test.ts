@@ -173,7 +173,14 @@ assert.match(companionSource, /data-log-search/, 'the ability log cannot be sear
 assert.match(companionSource, /data: snapshotPayload\(entry\.parameters \|\| \{\}\)/, 'ability result payload is not snapshotted');
 assert.match(companionSource, /ability\.includes\('SeedFinder'\) && data\.speciesId[\s\S]*payloadItemName\(data\.speciesId\)/, 'seed finder result is not placed on the main line');
 assert.match(companionSource, /growSlot\?\.species[\s\S]*payloadItemName\(growSlot\.species\)/, 'mutation granter target is not placed on the main line');
-assert.match(companionSource, /class="gc-proc-result"[\s\S]*&rarr;[\s\S]*procOutcome/, 'proc result is not displayed after the ability name');
+assert.match(companionSource, /gc-ability-log-row[\s\S]*gc-ability-log-pet[\s\S]*gc-ability-log-name[\s\S]*gc-ability-log-payload/, 'Pet Ability rows do not show the pet, ability, and payload');
+assert.match(companionSource, /toLocaleDateString[\s\S]*toLocaleTimeString/, 'Pet Ability rows do not show both date and time');
+assert.match(companionSource, /when\.time[\s\S]*when\.date/, 'Pet Ability rows do not emphasize time before date');
+assert.match(companionSource, /triggeringPet[\s\S]*petSprite\(pet\)/, 'Pet Ability rows do not show the triggering pet sprite');
+assert.doesNotMatch(companionSource, /gc-ability-log-pet[^`]*<small>/, 'Pet Ability rows still repeat the pet name beside its sprite');
+assert.match(companionSource, /MoonCelestial.*Moonbinder[\s\S]*DawnCelestial.*Dawnbinder/, 'Pet Ability payloads do not use displayed celestial plant names');
+assert.match(styleSource, /\.gc-ability-filter \{[^}]*width:126px/, 'Pet Ability filter is not compact');
+assert.match(styleSource, /\.gc-ability-log-payload \{[^}]*color:#f4f4f5/, 'Pet Ability payload text does not match the primary text colour');
 assert.doesNotMatch(companionSource, /procDataSummary/, 'legacy proc summary line remains');
 assert.doesNotMatch(companionSource, /gc-proc-payload|procPayloadJson/, 'raw proc payload remains visible in history');
 assert.match(styleSource, /#gc-panel[^\n]+background:\s*transparent/, 'main window still dims the game');
@@ -357,7 +364,7 @@ assert.match(companionSource, /data-ability-option/, 'Pet Abilities multi-select
 assert.match(companionSource, /data-ability-all[\s\S]*data-ability-none/, 'Pet Abilities All and None selections missing');
 assert.match(companionSource, /config\.trackedAbilities = \[\.\.\.currentKeys\]/, 'Pet Abilities selections are not saved together');
 assert.match(companionSource, /abilityFilter\.addEventListener\('focusout'[\s\S]*abilityFilter\.open = false/, 'ability filter does not close after focus leaves');
-assert.match(styleSource, /\.gc-ability-picker \{ position:absolute;top:39px/, 'ability filter still shifts the panel layout');
+assert.match(styleSource, /\.gc-ability-picker \{ position:absolute;top:34px;right:0/, 'ability filter still shifts the panel layout');
 assert.match(companionSource, /\['Plant Growth Boost', \['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost'\]\]/, 'plant growth abilities are not grouped');
 assert.match(companionSource, /\['Mutation Granter', \['RainDance'.*'RainbowGranter'.*'ThunderstruckGranter'\]\]/, 'mutation granters are not grouped');
 for (const excludedAbility of ['HungerBoost', 'PetMutationBoost', 'ProduceMutationBoost', 'MoonKisser', 'Copycat', 'DawnCapture', 'Thundercharger', 'DawnbinderBoost']) assert.match(companionSource, new RegExp(`EXCLUDED_TRACKED_ABILITIES[\\s\\S]*'${excludedAbility}'`), `${excludedAbility} is not excluded from proc tracking`);
