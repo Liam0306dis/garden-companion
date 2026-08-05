@@ -736,7 +736,7 @@ assert.match(fishingSource, /!eventMythics\.includes\(fish\)/, 'event mythics ca
 // The bench exists to measure a fight, not to fill in a collection that is meant to be earned.
 assert.match(fishingSource, /if \(!testing\) \{\s*\n\s*record\.fish\[hooked\.id\] =/, 'a bench fight is written into the catch record');
 assert.match(fishingSource, /if \(phase === 'reel' && testing\) \{[^}]*playEscape\(\);/s, 'a lost bench fight counts against the record');
-// One input surface: a Cast button beside a canvas you hold to reel reads as a reel control.
+// One input surface: a Cast button beside the world pond reads as a separate reel control.
 assert.doesNotMatch(fishingSource, /data-cast/, 'the fishing game view has a cast button separate from the canvas');
 // A fixed zone speed against a per-tier fish speed makes the top tiers unwinnable rather than hard.
 assert.match(fishingSource, /const agility = zoneAgility\(rule\.speed\);/, 'hook zone control no longer scales with the tier it is chasing');
@@ -749,24 +749,20 @@ assert.match(fishingSource, /\(inside \? rule\.fill \* equipmentFill\(\) : -rule
 assert.match(fishingSource, /record\.coins \+= reward\.coins;[\s\S]*record\.xp \+= reward\.xp;/, 'landed fish do not award local fishing coins and XP');
 assert.match(fishingSource, /candidate\.foundFrom === fish\.id && !record\.equipment\[candidate\.id\]/, 'equipment drops are not tied to specific fish');
 assert.match(fishingSource, /userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx/, 'fishing does not hide objects placed on the local boardwalk');
-assert.match(fishingSource, /const horizontalPadding = Math\.min\(width \* \.2, size \* 1\.35\);[\s\S]*width - horizontalPadding \* 2/, 'ambient fish can swim beyond the water and onto the boardwalk');
-assert.match(fishingSource, /const size = swimmer\.size \* 3\.1;[\s\S]*alpha: \.88[\s\S]*stroke\(\{ color: 0xe0f2fe/, 'world pond fish are too small or faint against the water');
-assert.match(fishingSource, /function drawDock[\s\S]*for \(let row = 0; row < 2; row\+\+\)[\s\S]*for \(let column = 0; column < 2; column\+\+\)/, 'the fishing pond does not draw a two-by-two wooden dock');
-assert.match(fishingSource, /__gardenCompanionShopSprites\?\.StoneBench[\s\S]*__gardenCompanionShopSprites\?\.WoodStoolShort[\s\S]*bounds\.top \+ 118[\s\S]*bounds\.top \+ bounds\.height - 18[\s\S]*deckRight - 72/, 'the wooden fishing area is missing its bench rows or stool column');
-assert.match(fishingSource, /graphic\.ellipse\(x, y, 29, 17\)[\s\S]*for \(let petal = 0; petal < 5; petal\+\+\)/, 'the pond lilies are still small or lack prominent flowers');
-assert.match(fishingSource, /fishGraphic\.zIndex = -998_999;\s*dockGraphic\.zIndex = -998_998;/, 'fish render over the wooden dock instead of beneath it');
-assert.match(fishingSource, /updateWorldScene\(now\);[\s\S]*destroyWorldScene\(\);\s*\n\s*\}\s*\n\s*frame = requestAnimationFrame\(step\);\s*\n\s*\}/, 'the animation loop does not recover and queue its next frame after a world renderer failure');
+assert.match(fishingSource, /catch \(error\) \{\s*if \(!worldSceneDisabled\) \{[\s\S]*worldSceneDisabled = true;[\s\S]*destroyWorldScene\(\);[\s\S]*frame = requestAnimationFrame\(step\);/, 'a persistent world renderer failure rebuilds the fishing scene every frame');
+assert.match(fishingSource, /function updateWorldScene\(now: number\): void \{\s*if \(panel\(\)\?\.hidden \|\| worldSceneDisabled\) return;/, 'the disabled world renderer is still retried every frame');
 assert.match(dragSource, /button, input, select, textarea, a, \[data-no-drag\]/, 'draggable panels no longer honour data-no-drag');
 const fishingOpenSource = fishingSource.slice(fishingSource.indexOf('function open('), fishingSource.indexOf('function close()'));
 assert.match(fishingOpenSource, /host\.hidden = false;\s*applyFishingCinematic\(\);\s*primeFishingAudio\(\);\s*renderChrome\(\);\s*if \(!draggableReady\) \{[\s\S]*makeDraggable\(card, POSITION_KEY\)/, 'the saved fishing position is restored while the panel is still hidden');
 assert.match(fishingSource, /function open\(targetView: 'game' \| 'bench' = 'game'\): void \{[\s\S]*view = targetView;/, 'opening fishing does not default to the fishing game');
 assert.match(fishingSource, /__gardenCompanionFishingBench = \(\) => \{\s*open\('bench'\);/, 'the tuning bench no longer opens directly');
 assert.doesNotMatch(fishingSource, /gf-rod-shop|stallX|Rod Shop/, 'the removed world rod shop is still rendered');
-assert.match(fishingSource, /const aboveGround = findPixiNode\(node => node\.label === 'AboveGround'\);[\s\S]*rodRenderLayer = new RenderLayer[\s\S]*rodRenderLayer\.zIndex = 0xe8d4a51001;[\s\S]*rodRenderLayer\.attach\?\.\(rodGraphic\);/, 'the fishing rod is not attached to a dedicated layer above the player');
-assert.match(fishingSource, /const rodBaseX = player\.x - 18;[\s\S]*let rodTipX = rodBaseX - 78;/, 'the fishing rod does not point left toward the pond');
+assert.match(fishingSource, /rodRenderLayer\.zIndex = WORLD_OVERLAY_Z_INDEX \+ 1;[\s\S]*rodRenderLayer\.attach\?\.\(rodGraphic\);/, 'the fishing rod is not attached to a layer above the world overlay and player');
 assert.match(fishingSource, /castElapsed < CAST_WINDUP[\s\S]*castElapsed - CAST_WINDUP\) \/ CAST_FLIGHT[\s\S]*lineEndX = rodTipX \+ \(targetX - rodTipX\) \* progress;/, 'the world rod and line do not animate through the cast');
 assert.doesNotMatch(fishingSource.slice(fishingSource.indexOf('function mount()')), /makeDraggable\(card, POSITION_KEY\)/, 'fishing drag is initialised before the hidden panel has a measurable size');
-assert.equal((fishingSource.match(/if \(view === 'game'\) resumeLoop\(\);\s*else pauseLoop\(\);/g) ?? []).length, 2, 'non-game fishing views do not pause and resume the animation loop');
+const fishingViewHandler = fishingSource.slice(fishingSource.indexOf("card.querySelectorAll<HTMLButtonElement>('[data-view]')"), fishingSource.indexOf("card.querySelectorAll<HTMLButtonElement>('[data-fight]')"));
+assert.doesNotMatch(fishingViewHandler, /pauseLoop\(|stopLoop\(/, 'opening Catch Record or Equipment pauses the pond and active cast');
+assert.match(fishingOpenSource, /worldSceneDisabled = false;[\s\S]*worldSceneWarningShown = false;[\s\S]*resumeLoop\(\);/, 'reopening fishing does not recover from a previous renderer failure');
 assert.match(fishingSource, /function pauseLoop\(\)[\s\S]*pausedAt = performance\.now\(\);[\s\S]*stopLoop\(\);/, 'fishing does not record when its animation loop was paused');
 assert.match(fishingSource, /function shiftActiveTimers\(duration: number\)[\s\S]*waitUntil \+= duration;[\s\S]*biteAt \+= duration;[\s\S]*reelStartedAt \+= duration;[\s\S]*reelEndsAt \+= duration;[\s\S]*retargetAt \+= duration;/, 'not every active fishing timer is shifted by a pause');
 assert.match(fishingSource, /const pausedFor = performance\.now\(\) - pausedAt;\s*shiftActiveTimers\(pausedFor\);/, 'resuming fishing does not shift its active timers');
@@ -774,28 +770,14 @@ assert.match(fishingSource, /const gap = Math\.max\(0, now - lastTime\);[\s\S]*i
 assert.match(fishingSource, /function startLoop\(\): void \{\s*lastTime = performance\.now\(\);\s*if \(frame === null\) frame = requestAnimationFrame\(step\);/, 'a new fishing action can inherit and apply a stale frame gap');
 assert.match(fishingSource, /function cast\(\)[\s\S]*playCast\(\);\s*resumeLoop\(\);/, 'casting bypasses fishing pause recovery');
 assert.match(fishingSource, /function close\(\)[\s\S]*host\.hidden = true;\s*pauseLoop\(\);/, 'closing fishing does not pause its active timers');
-// The angler is the player's own blobbling, read from the cosmetic the game already stores on them.
-assert.match(fishingSource, /self\?\.cosmetic\?\.avatar/, 'the fishing angler does not use the player cosmetic');
-assert.match(fishingSource, /`\$\{base\}cosmetic\/\$\{layer\}`/, 'avatar layers are not loaded from the cosmetic asset path');
-// The asset version is scraped from the page, never written down, or a game update blanks the art.
-assert.doesNotMatch(fishingSource, /version\/\d+\//, 'fishing pins a game asset version instead of detecting it');
-assert.match(fishingSource, /\/\\\/version\\\/\(\[\^\/\]\+\)\\\//, 'the fishing asset base is no longer detected from the page');
-assert.match(fishingSource, /const source = pet \? petSpriteSource\(pet\) : undefined;/, 'shore pets do not use the mutation-tinted pet sprites');
-assert.match(petsSource, /export function petSpriteSource/, 'the tinted pet sprite is not shared with anything that draws');
-assert.match(fishingSource, /image\.complete && image\.naturalWidth > 0/, 'a half-loaded image can be drawn');
+assert.match(fishingSource, /image\.complete && image\.naturalWidth > 0/, 'a half-loaded decor image can be drawn');
+assert.doesNotMatch(fishingSource, /function canvas\(|function draw\(\): void|drawWeatherSky\(|avatarLayers\(|<canvas/, 'the removed canvas fishing renderer is still bundled');
+assert.match(fishingSource, /if \(cachedWorldOverlay\?\.destroyed\) cachedWorldOverlay = null;[\s\S]*cachedWorldOverlay \|\| findPixiNode/, 'the stable world overlay is searched across the full PIXI scene every frame');
+assert.match(fishingSource, /if \(cachedLocalAvatarId !== id \|\| cachedLocalAvatar\?\.destroyed\)/, 'the stable local avatar is searched across the full PIXI scene every frame');
+assert.match(fishingSource, /Number\.isFinite\(xp\) \? Math\.max\(0, xp\) : 0/, 'non-finite saved fishing XP can hang the level calculation');
+assert.match(fishingSource, /equipment\[id\] > 0 && EQUIPMENT_BY_ID\.get\(id\)\?\.slot === slot/, 'loaded equipment is not validated against ownership and slot');
 assert.match(fishingSource, /\.gf-card\[data-view=game\]\{width:min\(360px,calc\(100vw - 24px\)\)\}/, 'the world fishing HUD is not compact on a small viewport');
 assert.match(fishingSource, /\.gf-body\{[^}]*max-height:min\(430px,calc\(100vh - 150px\)\)/, 'a fishing list can put its header above a short viewport');
-assert.match(fishingSource, /if \(!sceneWeatherReady && !state\.game\) return \[\['Clear', 1\]\];/, 'fishing latches clear weather before the initial game state arrives');
-assert.match(fishingSource, /const blend = progress \* progress \* \(3 - 2 \* progress\);/, 'fishing weather no longer transitions smoothly');
-assert.match(fishingSource, /drawWeatherSky\([\s\S]*drawWeatherWater\([\s\S]*drawWeatherCliff\([\s\S]*drawWeatherForeground\(/, 'the fishing scene no longer applies weather across the sky, water, cliff, and foreground');
 assert.match(fishingSource, /castDistance = [^;]*Math\.random\(\)[^;]*;[\s\S]*hookDepth = [^;]*Math\.random\(\)[^;]*;/, 'fishing casts no longer vary their landing distance and hook depth');
-assert.match(fishingSource, /const safeCastDistance = Math\.max\(0, Math\.min\(1, castDistance\)\);[\s\S]*const anchorX = Math\.round\(dockEnd \+ \(sceneRight - dockEnd\) \* safeCastDistance\);/, 'a fishing cast can land outside the available water');
-assert.match(fishingSource, /const safeHookDepth = Math\.max\(0, Math\.min\(1, hookDepth\)\);[\s\S]*safeHookDepth \* \(bottom - surface - 36\)/, 'the fishing hook depth is not constrained to the water');
-assert.match(fishingSource, /const petRight = Math\.min\(dockStart, anglerX\) - petClearance;[\s\S]*walker\.x \* Math\.max\(1, petRight - petLeft\)/, 'shore pets can walk onto the dock or crowd its angler');
-const scenerySwimmerSource = fishingSource.slice(fishingSource.indexOf('// The bank and dock are drawn later'), fishingSource.indexOf('// Everything hanging off the line'));
-assert.doesNotMatch(scenerySwimmerSource, /context\.clip\(\)/, 'scenery fish disappear against a straight clipping line beneath the dock');
-// Sprites are padded to their own frames, so standing one on the ground by its box leaves it hovering.
-assert.match(fishingSource, /const inset = footInset\(bottomImage, bottomSource\);/, 'the angler is placed by its image box rather than its artwork');
-assert.match(fishingSource, /inset = \(probe\.height - 1 - y\) \/ probe\.height;/, 'sprite ground contact is guessed rather than measured');
 
 console.log('Static checks passed');

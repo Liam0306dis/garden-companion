@@ -1,7 +1,6 @@
 import { page } from '../page.js';
 import { state } from '../state.js';
 import { makeDraggable } from '../draggable.js';
-import { petSpriteSource } from '../pets.js';
 import { pixiSurface } from '../pixi.js';
 import { escapeHtml, loadLocal, saveLocal } from '../utils.js';
 import { fishingMuted, playBite, playCast, playCatch, playEscape, playReelClick, primeFishingAudio, setFishingMuted } from './fishing-audio.js';
@@ -18,22 +17,6 @@ const RECORD_KEY = 'gardenCompanion.fishing.v1';
 const POSITION_KEY = 'gardenCompanion.fishingPosition.v1';
 
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
-type FishingSceneWeather = 'Clear' | 'Rain' | 'Frost' | 'Dawn' | 'AmberMoon' | 'Thunderstorm';
-
-const WEATHER_TRANSITION = 1600;
-
-function fishingSceneWeather(value: string | null): FishingSceneWeather {
-  switch (value) {
-    case 'Rain':
-    case 'Frost':
-    case 'Dawn':
-    case 'AmberMoon':
-    case 'Thunderstorm':
-      return value;
-    default:
-      return 'Clear';
-  }
-}
 
 interface RarityRule {
   label: string;
@@ -66,7 +49,7 @@ const WEATHER_MYTHIC_CHANCE = .015;
 const BITE_WINDOW = 1500;
 /**
  * Reeling is a stream of clicks, so the click that lands the fish is followed by more. The controls
- * ignores them for this long, otherwise the next cast starts before the catch has been read.
+ * ignore them for this long, otherwise the next cast starts before the catch has been read.
  */
 const RESULT_LOCK = 1600;
 /**
@@ -82,6 +65,7 @@ const REEL_LIMIT = 45000;
 /** Rod back-swing then forward whip. The flight lands as the cast splash in the audio plays. */
 const CAST_WINDUP = 150;
 const CAST_FLIGHT = 210;
+const WORLD_OVERLAY_Z_INDEX = 0xe8d4a51000;
 /**
  * Hook zone control. Friction is what makes this steerable: without it, holding accelerates without
  * bound and the zone can only ever overshoot, so the smaller a zone gets the more it oscillates
@@ -125,35 +109,6 @@ function fishTravelSpeed(speed: number): number {
   return .5 * FISH_PULL * speed / (-Math.log(.93) * 60) * 1.6;
 }
 
-/**
- * The player's own blobbling, drawn as the four cosmetic layers the game stores on them. In world
- * the game renders these through Rive, where only bottom, mid and top are images and the expression
- * drives a state machine input. A still composite of all four is close enough for a figure this
- * size and costs nothing beyond four image loads.
- */
-const AVATAR_COLOURS = new Set(['Black', 'Blue', 'Gray', 'Green', 'Pink', 'Purple', 'Red', 'Yellow']);
-
-function defaultAvatar(colour: string | undefined): string[] {
-  const shade = colour && AVATAR_COLOURS.has(colour) ? colour : 'Gray';
-  return [`Bottom_Default${shade}.png`, `Mid_Default${shade}.png`, `Top_Default${shade}.png`, 'Expression_Default.png'];
-}
-
-/** The game serves its assets from a versioned path, so the version is read from its own tags. */
-let assetsBase: string | null = null;
-
-function detectAssetsBase(): string | null {
-  if (assetsBase) return assetsBase;
-  const sources = [
-    ...Array.from(document.scripts).map(script => script.src),
-    ...Array.from(document.querySelectorAll<HTMLLinkElement>('link[href]')).map(link => link.href),
-  ];
-  for (const source of sources) {
-    const match = source.match(/\/version\/([^/]+)\//);
-    if (match?.[1]) return assetsBase = `https://magicgarden.gg/version/${match[1]}/assets/`;
-  }
-  return null;
-}
-
 const images = new Map<string, HTMLImageElement>();
 
 /** Returns the image only once it can actually be drawn, so a pending load simply renders nothing. */
@@ -165,55 +120,6 @@ function readyImage(source: string): HTMLImageElement | null {
     images.set(source, image);
   }
   return image.complete && image.naturalWidth > 0 ? image : null;
-}
-
-const footInsets = new Map<string, number>();
-
-/**
- * How much transparent padding sits below the artwork, as a fraction of the image height. Sprites
- * are padded to their own frames, so standing one on the ground by its image box leaves it hovering.
- * Measuring the lowest opaque row is exact and self-correcting, where a fixed nudge is a guess that
- * only suits one sprite. Everything here is served from the game's own origin, so reading pixels
- * back is allowed; a failure just falls back to the image box.
- */
-function footInset(image: HTMLImageElement, source: string): number {
-  const cached = footInsets.get(source);
-  if (cached !== undefined) return cached;
-  let inset = 0;
-  try {
-    const probe = document.createElement('canvas');
-    probe.width = image.naturalWidth;
-    probe.height = image.naturalHeight;
-    const context = probe.getContext('2d', { willReadFrequently: true });
-    if (context) {
-      context.drawImage(image, 0, 0);
-      const pixels = context.getImageData(0, 0, probe.width, probe.height).data;
-      rows: for (let y = probe.height - 1; y >= 0; y--) {
-        for (let x = 0; x < probe.width; x++) {
-          if (pixels[(y * probe.width + x) * 4 + 3] > 8) {
-            inset = (probe.height - 1 - y) / probe.height;
-            break rows;
-          }
-        }
-      }
-    }
-  } catch { inset = 0; }
-  footInsets.set(source, inset);
-  return inset;
-}
-
-/** Draws a sprite standing on `groundY`, centred on `x`, scaled so its artwork is `height` tall. */
-function drawStanding(context: CanvasRenderingContext2D, image: HTMLImageElement, source: string, x: number, groundY: number, height: number, facing = 1): number {
-  const inset = footInset(image, source);
-  // `height` describes the visible artwork, so the whole frame has to be scaled up to compensate.
-  const frameHeight = height / Math.max(.2, 1 - inset);
-  const frameWidth = image.naturalWidth / image.naturalHeight * frameHeight;
-  context.save();
-  context.translate(x, groundY + frameHeight * inset);
-  context.scale(facing < 0 ? -1 : 1, 1);
-  context.drawImage(image, -frameWidth / 2, -frameHeight, frameWidth, frameHeight);
-  context.restore();
-  return frameWidth;
 }
 
 interface FishDef {
@@ -317,21 +223,36 @@ const EMPTY_RECORD: FishingRecord = {
 
 function loadRecord(): FishingRecord {
   const stored = loadLocal<Partial<FishingRecord>>(RECORD_KEY, {});
+  const finite = (value: unknown): number => {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : 0;
+  };
+  const equipment: Record<string, number> = { reedRod: 1 };
+  if (stored.equipment && typeof stored.equipment === 'object') {
+    for (const [id, count] of Object.entries(stored.equipment)) {
+      if (EQUIPMENT_BY_ID.has(id) && finite(count) > 0) equipment[id] = finite(count);
+    }
+  }
+  const equipped = { ...EMPTY_RECORD.equipped };
+  for (const slot of ['rod', 'line', 'tackle'] as const) {
+    const id = stored.equipped?.[slot];
+    if (typeof id === 'string' && equipment[id] > 0 && EQUIPMENT_BY_ID.get(id)?.slot === slot) equipped[slot] = id;
+  }
   return {
-    casts: Number(stored.casts) || 0,
-    caught: Number(stored.caught) || 0,
-    escaped: Number(stored.escaped) || 0,
+    casts: finite(stored.casts),
+    caught: finite(stored.caught),
+    escaped: finite(stored.escaped),
     fish: stored.fish && typeof stored.fish === 'object' ? stored.fish : {},
-    coins: Number(stored.coins) || 0,
-    xp: Number(stored.xp) || 0,
-    equipment: stored.equipment && typeof stored.equipment === 'object' ? { reedRod: 1, ...stored.equipment } : { reedRod: 1 },
-    equipped: { ...EMPTY_RECORD.equipped, ...(stored.equipped ?? {}) },
+    coins: finite(stored.coins),
+    xp: finite(stored.xp),
+    equipment,
+    equipped,
   };
 }
 
 function fishingLevel(xp: number): { level: number; current: number; needed: number } {
   let level = 1;
-  let remaining = Math.max(0, xp);
+  let remaining = Number.isFinite(xp) ? Math.max(0, xp) : 0;
   let needed = 60;
   while (remaining >= needed) {
     remaining -= needed;
@@ -451,42 +372,6 @@ function injectStyles(): void {
   document.head.appendChild(style);
 }
 
-function centreOf(left: number, right: number): number {
-  return (left + right) / 2;
-}
-
-/** A side-on fish: body, wagging tail, and an eye. Used for the scenery and the hooked fish alike. */
-function drawSwimmer(context: CanvasRenderingContext2D, x: number, y: number, size: number, direction: number, colour: string, alpha: number, time: number): void {
-  const wag = Math.sin(time / 170) * size * .3;
-  context.save();
-  context.translate(x, y);
-  context.scale(direction < 0 ? -1 : 1, 1);
-  context.globalAlpha = alpha;
-  context.fillStyle = colour;
-  context.beginPath();
-  context.ellipse(0, 0, size, size * .54, 0, 0, Math.PI * 2);
-  context.fill();
-  context.beginPath();
-  context.moveTo(-size * .8, 0);
-  context.lineTo(-size * 1.7, -size * .52 + wag);
-  context.lineTo(-size * 1.7, size * .52 + wag);
-  context.closePath();
-  context.fill();
-  context.globalAlpha = alpha * .55;
-  context.beginPath();
-  context.moveTo(-size * .1, -size * .5);
-  context.lineTo(size * .2, -size * .95);
-  context.lineTo(size * .45, -size * .48);
-  context.closePath();
-  context.fill();
-  context.globalAlpha = alpha;
-  context.fillStyle = 'rgba(255,255,255,.8)';
-  context.beginPath();
-  context.arc(size * .48, -size * .13, Math.max(1, size * .11), 0, Math.PI * 2);
-  context.fill();
-  context.restore();
-}
-
 type Phase = 'idle' | 'waiting' | 'bite' | 'reel' | 'result';
 
 export function initFishing(): void {
@@ -519,10 +404,6 @@ export function initFishing(): void {
   let fightEndedAt = 0;
   let draggableReady = false;
   let cinematicApplied = false;
-  let currentSceneWeather: FishingSceneWeather = 'Clear';
-  let previousSceneWeather: FishingSceneWeather = 'Clear';
-  let sceneWeatherChangedAt = 0;
-  let sceneWeatherReady = false;
   const hiddenGardenNodes = new Map<Record<string, any>, { alpha: number; visible: boolean; renderable: boolean }>();
   const hiddenEffectNodes = new Map<Record<string, any>, { alpha: number; visible: boolean; renderable: boolean }>();
   let pondGraphic: Record<string, any> | null = null;
@@ -535,9 +416,18 @@ export function initFishing(): void {
   let pondBounds: { left: number; top: number; width: number; height: number } | null = null;
   let farmBounds: { left: number; top: number; width: number; height: number } | null = null;
   let worldSceneWarningShown = false;
+  let worldSceneDisabled = false;
+  let cachedWorldOverlay: Record<string, any> | null = null;
+  let cachedLocalAvatar: Record<string, any> | null = null;
+  let cachedLocalAvatarId = '';
+  let cachedGraphicsConstructor: (new (...args: any[]) => Record<string, any>) | null = null;
+  let cachedSpriteConstructor: Record<string, any> | null = null;
 
   function equippedEffects(): EquipmentDef[] {
-    return (Object.values(record.equipped) as string[]).map(id => EQUIPMENT_BY_ID.get(id)).filter((item): item is EquipmentDef => Boolean(item));
+    return Object.entries(record.equipped).map(([slot, id]) => {
+      const item = EQUIPMENT_BY_ID.get(id);
+      return item?.slot === slot && record.equipment[id] > 0 ? item : null;
+    }).filter((item): item is EquipmentDef => Boolean(item));
   }
 
   function equipmentTotal(key: 'zone' | 'start' | 'limit' | 'bite'): number {
@@ -576,9 +466,10 @@ export function initFishing(): void {
   }
 
   function graphicsConstructor(): (new (...args: any[]) => Record<string, any>) | null {
+    if (cachedGraphicsConstructor) return cachedGraphicsConstructor;
     const marker = page.__gardenCompanionFarmSystems?.tapToMove?.hoverMarker;
-    if (marker?.constructor) return marker.constructor;
-    return (findPixiNode(node => node.renderPipeId === 'graphics' && typeof node.clear === 'function')?.constructor as (new (...args: any[]) => Record<string, any>) | undefined) ?? null;
+    const constructor = marker?.constructor ?? findPixiNode(node => node.renderPipeId === 'graphics' && typeof node.clear === 'function')?.constructor;
+    return cachedGraphicsConstructor = (constructor as (new (...args: any[]) => Record<string, any>) | undefined) ?? null;
   }
 
   function farmGeometry(): { system: Record<string, any>; globals: number[]; left: number; top: number; width: number; height: number } | null {
@@ -639,8 +530,10 @@ export function initFishing(): void {
   }
 
   function hideStandingEffects(): void {
-    const overlay = findPixiNode(node => node.label === 'WorldOverlay');
+    if (cachedWorldOverlay?.destroyed) cachedWorldOverlay = null;
+    const overlay = cachedWorldOverlay || findPixiNode(node => node.label === 'WorldOverlay');
     if (!overlay || overlay.destroyed) return;
+    cachedWorldOverlay = overlay;
     if (!hiddenEffectNodes.has(overlay)) hiddenEffectNodes.set(overlay, {
       alpha: Number(overlay.alpha), visible: overlay.visible !== false, renderable: overlay.renderable !== false,
     });
@@ -728,7 +621,8 @@ export function initFishing(): void {
   }
 
   function spriteConstructor(): Record<string, any> | null {
-    return findPixiNode(node => node.texture && node.anchor && typeof (node.constructor as any)?.from === 'function')?.constructor as Record<string, any> ?? null;
+    if (cachedSpriteConstructor) return cachedSpriteConstructor;
+    return cachedSpriteConstructor = findPixiNode(node => node.texture && node.anchor && typeof (node.constructor as any)?.from === 'function')?.constructor as Record<string, any> ?? null;
   }
 
   function addSeatingSprite(Sprite: Record<string, any>, source: HTMLImageElement, x: number, y: number, width: number): void {
@@ -754,8 +648,9 @@ export function initFishing(): void {
     const stoolSource = page.__gardenCompanionShopSprites?.WoodStoolShort;
     const benchImage = benchSource ? readyImage(benchSource) : null;
     const stoolImage = stoolSource ? readyImage(stoolSource) : null;
+    if (!benchImage || !stoolImage) return;
     const Sprite = spriteConstructor();
-    if (!benchImage || !stoolImage || !Sprite) return;
+    if (!Sprite) return;
     const deckLeft = bounds.left + bounds.width * .62 + 20;
     const deckRight = bounds.left + bounds.width;
     const deckWidth = Math.max(1, deckRight - deckLeft);
@@ -826,7 +721,7 @@ export function initFishing(): void {
         const RenderLayer = aboveGround.constructor as unknown as new (options?: Record<string, unknown>) => Record<string, any>;
         rodRenderLayer = new RenderLayer({ sortableChildren: true });
         rodRenderLayer.label = 'GardenCompanionFishingRod';
-        rodRenderLayer.zIndex = 0xe8d4a51001;
+        rodRenderLayer.zIndex = WORLD_OVERLAY_Z_INDEX + 1;
         geometry.system.worldContainer.addChild(rodRenderLayer);
         rodRenderLayer.attach?.(rodGraphic);
       }
@@ -845,6 +740,7 @@ export function initFishing(): void {
 
   function positionPondInput(system: Record<string, any>): void {
     const input = panel()?.querySelector<HTMLElement>('.gf-pond-input');
+    if (input && view !== 'game') { input.hidden = true; return; }
     const surface = pixiSurface();
     if (!input || !surface || !pondBounds || typeof system.worldContainer?.toGlobal !== 'function') return;
     try {
@@ -868,7 +764,12 @@ export function initFishing(): void {
 
   function localAvatar(): Record<string, any> | null {
     const id = state.playerId || state.room?.selfPlayerId;
-    return id ? findPixiNode(node => node.label === `AvatarContainer (${id})`) : null;
+    if (!id) return null;
+    if (cachedLocalAvatarId !== id || cachedLocalAvatar?.destroyed) {
+      cachedLocalAvatarId = id;
+      cachedLocalAvatar = findPixiNode(node => node.label === `AvatarContainer (${id})`);
+    }
+    return cachedLocalAvatar;
   }
 
   function applyActivePetConstraints(system: Record<string, any>): void {
@@ -900,7 +801,7 @@ export function initFishing(): void {
   }
 
   function updateWorldScene(now: number): void {
-    if (panel()?.hidden || view !== 'game') return;
+    if (panel()?.hidden || worldSceneDisabled) return;
     applyFishingCinematic();
     const geometry = ensureWorldScene();
     if (!geometry || !pondBounds || !fishGraphic || !rodGraphic) return;
@@ -1006,45 +907,6 @@ export function initFishing(): void {
   const SWIMMER_COLOURS = ['#4b7f96', '#3f6f86', '#5b8f7a', '#6b7f9c', '#7a8fa0'];
   const swimmers: Swimmer[] = Array.from({ length: 9 }, () => spawnSwimmer(Math.random()));
 
-  // The player's active pets, milling about on the bank behind them.
-  interface Walker { id: string; x: number; target: number; facing: number; phase: number; depth: number }
-  let walkers: Walker[] = [];
-  let walkerSignature = '';
-
-  /** Looked up fresh each frame: the slot array is replaced wholesale on every game patch. */
-  function walkerPet(id: string) {
-    return (state.slot?.data?.petSlots ?? []).find(pet => pet.id === id);
-  }
-
-  function syncWalkers(): void {
-    const pets = state.slot?.data?.petSlots ?? [];
-    const signature = pets.map(pet => `${pet.id}:${pet.petSpecies}`).join(',');
-    if (signature === walkerSignature) return;
-    walkerSignature = signature;
-    walkers = pets.filter(pet => pet.petSpecies && pet.id).map((pet, index) => ({
-      id: pet.id,
-      x: .12 + (index + .5) / Math.max(1, pets.length) * .7,
-      target: .1 + Math.random() * .8,
-      facing: 1,
-      phase: Math.random() * Math.PI * 2,
-      depth: Math.random(),
-    }));
-  }
-
-  /**
-   * The four cosmetic layers for our own player, falling back to the plain blobbling. The resolved
-   * player id is used rather than the room's own field, which is not always populated.
-   */
-  function avatarLayers(): string[] {
-    const room = state.room;
-    const id = state.playerId || room?.selfPlayerId;
-    const self = room?.players?.find(player => player.id === id);
-    const avatar = self?.cosmetic?.avatar;
-    return Array.isArray(avatar) && avatar.length === 4 && avatar.every(layer => typeof layer === 'string')
-      ? avatar
-      : defaultAvatar(self?.cosmetic?.color);
-  }
-
   function spawnSwimmer(x = Math.random() < .5 ? -.1 : 1.1): Swimmer {
     const rightward = x < .5;
     return {
@@ -1058,7 +920,6 @@ export function initFishing(): void {
   }
 
   function panel(): HTMLElement | null { return document.getElementById(PANEL_ID); }
-  function canvas(): HTMLCanvasElement | null { return panel()?.querySelector('canvas') ?? null; }
 
   function applyFishingCinematic(): void {
     if (!cinematicApplied && page.__gardenCompanionSetCinematic?.(true, 'fishing')) cinematicApplied = true;
@@ -1073,26 +934,6 @@ export function initFishing(): void {
   function weather(): string | null {
     const value = state.game?.weather;
     return typeof value === 'string' && value ? value : null;
-  }
-
-  function sceneWeatherLayers(now: number): Array<[FishingSceneWeather, number]> {
-    if (!sceneWeatherReady && !state.game) return [['Clear', 1]];
-    const live = fishingSceneWeather(weather());
-    if (!sceneWeatherReady) {
-      currentSceneWeather = live;
-      previousSceneWeather = live;
-      sceneWeatherChangedAt = now - WEATHER_TRANSITION;
-      sceneWeatherReady = true;
-    } else if (live !== currentSceneWeather) {
-      previousSceneWeather = currentSceneWeather;
-      currentSceneWeather = live;
-      sceneWeatherChangedAt = now;
-    }
-    const progress = Math.min(1, Math.max(0, (now - sceneWeatherChangedAt) / WEATHER_TRANSITION));
-    const blend = progress * progress * (3 - 2 * progress);
-    return blend >= 1 || previousSceneWeather === currentSceneWeather
-      ? [[currentSceneWeather, 1]]
-      : [[previousSceneWeather, 1 - blend], [currentSceneWeather, blend]];
   }
 
   function save(): void { saveLocal(RECORD_KEY, record); }
@@ -1287,25 +1128,16 @@ export function initFishing(): void {
       swimmer.x += swimmer.speed * delta;
       if (swimmer.x < -.15 || swimmer.x > 1.15) Object.assign(swimmer, spawnSwimmer());
     }
-    syncWalkers();
-    for (const walker of walkers) {
-      const stride = walker.target - walker.x;
-      // Close enough counts as arrived, otherwise a pet jitters on the spot forever.
-      if (Math.abs(stride) < .012) {
-        if (Math.random() < delta * .6) walker.target = .08 + Math.random() * .82;
-      } else {
-        const move = Math.sign(stride) * Math.min(Math.abs(stride), .11 * delta);
-        walker.x += move;
-        walker.facing = move > 0 ? 1 : -1;
-      }
-    }
     try {
       updateWorldScene(now);
       updateHud();
     } catch (error) {
-      if (!worldSceneWarningShown) console.warn('[Garden Companion] Fishing pool could not be drawn.', error);
-      worldSceneWarningShown = true;
-      destroyWorldScene();
+      if (!worldSceneDisabled) {
+        if (!worldSceneWarningShown) console.warn('[Garden Companion] Fishing pool could not be drawn.', error);
+        worldSceneWarningShown = true;
+        worldSceneDisabled = true;
+        destroyWorldScene();
+      }
     }
     frame = requestAnimationFrame(step);
   }
@@ -1333,763 +1165,6 @@ export function initFishing(): void {
       pausedAt = null;
     }
     startLoop();
-  }
-
-  function drawWeatherSky(
-    context: CanvasRenderingContext2D,
-    kind: FishingSceneWeather,
-    opacity: number,
-    now: number,
-    left: number,
-    right: number,
-    top: number,
-    surface: number,
-  ): void {
-    if (opacity <= 0) return;
-    const width = right - left;
-    const height = surface - top;
-    context.save();
-    context.globalAlpha = opacity;
-
-    if (kind === 'Clear') {
-      const x = left + width * .78;
-      const y = top + 48;
-      const glow = context.createRadialGradient(x, y, 2, x, y, 54);
-      glow.addColorStop(0, 'rgba(226,232,240,.24)');
-      glow.addColorStop(1, 'rgba(226,232,240,0)');
-      context.fillStyle = glow;
-      context.fillRect(x - 54, y - 54, 108, 108);
-      context.fillStyle = 'rgba(226,232,240,.12)';
-      context.beginPath();
-      context.arc(x, y, 12, 0, Math.PI * 2);
-      context.fill();
-    } else if (kind === 'Dawn') {
-      const dawn = context.createLinearGradient(0, top, 0, surface);
-      dawn.addColorStop(0, 'rgba(84,62,108,.72)');
-      dawn.addColorStop(.55, 'rgba(190,91,111,.55)');
-      dawn.addColorStop(1, 'rgba(255,184,105,.68)');
-      context.fillStyle = dawn;
-      context.fillRect(left, top, width, height);
-      const x = left + width * .76;
-      const y = surface - 10;
-      const glow = context.createRadialGradient(x, y, 2, x, y, 70);
-      glow.addColorStop(0, 'rgba(255,238,173,.8)');
-      glow.addColorStop(1, 'rgba(255,177,101,0)');
-      context.fillStyle = glow;
-      context.fillRect(x - 70, y - 70, 140, 100);
-      context.fillStyle = '#ffe5a3';
-      context.beginPath();
-      context.arc(x, y, 14, Math.PI, Math.PI * 2);
-      context.fill();
-    } else if (kind === 'AmberMoon') {
-      context.fillStyle = 'rgba(28,20,55,.72)';
-      context.fillRect(left, top, width, height);
-      context.fillStyle = 'rgba(255,231,171,.42)';
-      for (let star = 0; star < 14; star++) {
-        const x = left + 18 + (star * 67) % Math.max(20, width - 36);
-        const y = top + 15 + (star * 29) % Math.max(20, height - 34);
-        context.fillRect(x, y, star % 4 === 0 ? 1.5 : 1, star % 4 === 0 ? 1.5 : 1);
-      }
-      const x = left + width * .77;
-      const y = top + 45;
-      const glow = context.createRadialGradient(x, y, 4, x, y, 70);
-      glow.addColorStop(0, 'rgba(251,191,36,.46)');
-      glow.addColorStop(1, 'rgba(251,146,60,0)');
-      context.fillStyle = glow;
-      context.fillRect(x - 70, y - 70, 140, 140);
-      context.fillStyle = '#e6a83c';
-      context.beginPath();
-      context.arc(x, y, 19, 0, Math.PI * 2);
-      context.fill();
-      context.fillStyle = 'rgba(111,63,36,.24)';
-      context.beginPath();
-      context.arc(x - 6, y - 4, 4, 0, Math.PI * 2);
-      context.arc(x + 7, y + 5, 3, 0, Math.PI * 2);
-      context.fill();
-    } else if (kind === 'Frost') {
-      const frost = context.createLinearGradient(0, top, 0, surface);
-      frost.addColorStop(0, 'rgba(118,151,177,.5)');
-      frost.addColorStop(1, 'rgba(202,226,232,.44)');
-      context.fillStyle = frost;
-      context.fillRect(left, top, width, height);
-      const x = left + width * .76;
-      const y = top + 42;
-      const glow = context.createRadialGradient(x, y, 2, x, y, 48);
-      glow.addColorStop(0, 'rgba(240,249,255,.35)');
-      glow.addColorStop(1, 'rgba(240,249,255,0)');
-      context.fillStyle = glow;
-      context.fillRect(x - 48, y - 48, 96, 96);
-    } else {
-      const thunder = kind === 'Thunderstorm';
-      context.fillStyle = thunder ? 'rgba(5,11,25,.7)' : 'rgba(18,31,48,.48)';
-      context.fillRect(left, top, width, height);
-      context.fillStyle = thunder ? 'rgba(10,13,24,.82)' : 'rgba(42,53,66,.62)';
-      const drift = now * (thunder ? .012 : .006);
-      for (let cloud = 0; cloud < (thunder ? 5 : 4); cloud++) {
-        const x = left - 60 + (cloud * 103 + drift) % (width + 120);
-        const y = top + 18 + (cloud % 3) * 17;
-        const size = 78 + (cloud % 2) * 24;
-        context.beginPath();
-        context.ellipse(x, y, size * .42, 13, 0, 0, Math.PI * 2);
-        context.ellipse(x - size * .28, y + 5, size * .3, 10, 0, 0, Math.PI * 2);
-        context.ellipse(x + size * .3, y + 4, size * .34, 11, 0, 0, Math.PI * 2);
-        context.fill();
-      }
-    }
-    context.restore();
-  }
-
-  function drawWeatherWater(
-    context: CanvasRenderingContext2D,
-    kind: FishingSceneWeather,
-    opacity: number,
-    now: number,
-    left: number,
-    right: number,
-    surface: number,
-    bottom: number,
-  ): void {
-    if (opacity <= 0 || kind === 'Clear') return;
-    const width = right - left;
-    context.save();
-    context.globalAlpha = opacity;
-    if (kind === 'Dawn' || kind === 'AmberMoon') {
-      context.fillStyle = kind === 'Dawn' ? 'rgba(244,126,93,.16)' : 'rgba(230,168,60,.14)';
-      context.fillRect(left, surface, width, bottom - surface);
-      const centre = left + width * .76;
-      context.fillStyle = kind === 'Dawn' ? 'rgba(255,211,145,.34)' : 'rgba(251,191,36,.3)';
-      for (let reflection = 0; reflection < 9; reflection++) {
-        const y = surface + 8 + reflection * 17;
-        const span = 48 - reflection * 2 + Math.sin(now / 420 + reflection) * 9;
-        context.fillRect(centre - span / 2, y, span, 1.5);
-      }
-    } else if (kind === 'Frost') {
-      context.fillStyle = 'rgba(180,221,232,.18)';
-      context.fillRect(left, surface, width, bottom - surface);
-      context.strokeStyle = 'rgba(226,247,250,.58)';
-      context.lineWidth = 2;
-      context.beginPath();
-      context.moveTo(left, surface + 1);
-      for (let x = left; x <= right; x += 18) context.lineTo(x, surface + 1 + Math.sin(x * .1) * 1.5);
-      context.stroke();
-    } else {
-      const thunder = kind === 'Thunderstorm';
-      context.fillStyle = thunder ? 'rgba(2,10,20,.32)' : 'rgba(9,26,41,.2)';
-      context.fillRect(left, surface, width, bottom - surface);
-      context.strokeStyle = thunder ? 'rgba(174,210,224,.24)' : 'rgba(174,210,224,.14)';
-      context.lineWidth = thunder ? 1.5 : 1;
-      for (let wave = 0; wave < (thunder ? 10 : 7); wave++) {
-        const y = surface + 10 + wave * 21;
-        const x = left - 45 + (wave * 57 + now * (thunder ? .025 : .014)) % (width + 45);
-        context.beginPath();
-        context.moveTo(x, y);
-        context.quadraticCurveTo(x + 24, y - (thunder ? 4 : 2), x + 52, y);
-        context.stroke();
-      }
-    }
-    context.restore();
-  }
-
-  function drawWeatherCliff(
-    context: CanvasRenderingContext2D,
-    kind: FishingSceneWeather,
-    opacity: number,
-    cliff: Path2D,
-  ): void {
-    if (opacity <= 0 || kind === 'Clear') return;
-    context.save();
-    context.globalAlpha = opacity;
-    context.fillStyle = kind === 'Frost'
-      ? 'rgba(188,221,225,.22)'
-      : kind === 'Rain' || kind === 'Thunderstorm'
-        ? 'rgba(5,18,28,.24)'
-        : kind === 'Dawn'
-          ? 'rgba(196,97,65,.09)'
-          : 'rgba(191,116,35,.1)';
-    context.fill(cliff);
-    context.restore();
-  }
-
-  function drawWeatherForeground(
-    context: CanvasRenderingContext2D,
-    kind: FishingSceneWeather,
-    opacity: number,
-    now: number,
-    left: number,
-    right: number,
-    top: number,
-    bottom: number,
-  ): void {
-    if (opacity <= 0) return;
-    const width = right - left;
-    const height = bottom - top;
-    context.save();
-
-    if (kind === 'Thunderstorm') {
-      const cycle = now % 7200;
-      const flash = cycle < 110 ? 1 - cycle / 110 : cycle > 190 && cycle < 270 ? 1 - (cycle - 190) / 80 : 0;
-      if (flash > 0) {
-        context.globalAlpha = opacity * flash * .16;
-        context.fillStyle = '#dbeafe';
-        context.fillRect(left, top, width, height);
-        context.globalAlpha = opacity * flash * .82;
-        context.strokeStyle = '#eef6ff';
-        context.lineWidth = 2;
-        const x = left + width * .72;
-        context.beginPath();
-        context.moveTo(x, top + 8);
-        context.lineTo(x - 10, top + 35);
-        context.lineTo(x + 2, top + 32);
-        context.lineTo(x - 13, top + 64);
-        context.stroke();
-      }
-    }
-
-    if (kind === 'Rain' || kind === 'Thunderstorm') {
-      const thunder = kind === 'Thunderstorm';
-      context.globalAlpha = opacity;
-      context.strokeStyle = thunder ? 'rgba(203,225,239,.42)' : 'rgba(186,220,237,.3)';
-      context.lineWidth = thunder ? 1.2 : 1;
-      const count = thunder ? 52 : 34;
-      for (let drop = 0; drop < count; drop++) {
-        const x = left + (drop * 71 + now * (thunder ? .028 : .018)) % width;
-        const y = top + (drop * 37 + now * (thunder ? .36 : .24)) % height;
-        context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(x - (thunder ? 6 : 4), y + (thunder ? 15 : 11));
-        context.stroke();
-      }
-    } else if (kind === 'Frost') {
-      context.globalAlpha = opacity;
-      context.fillStyle = 'rgba(240,249,255,.72)';
-      for (let flake = 0; flake < 28; flake++) {
-        const x = left + (flake * 53 + now * (.006 + (flake % 3) * .002)) % width;
-        const y = top + (flake * 31 + now * (.018 + (flake % 4) * .004)) % height;
-        const size = .8 + (flake % 3) * .45;
-        context.beginPath();
-        context.arc(x + Math.sin(now / 900 + flake) * 5, y, size, 0, Math.PI * 2);
-        context.fill();
-      }
-    }
-    context.restore();
-  }
-
-  function draw(): void {
-    const element = canvas();
-    const context = element?.getContext('2d');
-    if (!element || !context) return;
-    const ratio = Math.min(3, window.devicePixelRatio || 1);
-    const width = element.clientWidth;
-    const height = element.clientHeight;
-    if (element.width !== Math.round(width * ratio) || element.height !== Math.round(height * ratio)) {
-      element.width = Math.round(width * ratio);
-      element.height = Math.round(height * ratio);
-    }
-    context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.clearRect(0, 0, width, height);
-
-    const now = performance.now();
-    const atmosphereLayers = sceneWeatherLayers(now);
-    const top = 12;
-    const bottom = height - 12;
-    const trackHeight = bottom - top;
-    const sceneLeft = 12;
-    const trackX = width - 64;
-    const trackWidth = 26;
-    const barX = width - 28;
-    // The gauges get their own column so a fight is never read against moving water.
-    const sceneRight = trackX - 14;
-
-    // Side-on lake: a bank on the left and a dock reaching out over the water.
-    const surface = Math.round(top + trackHeight * .39);
-    const bankRight = Math.round(sceneLeft + (sceneRight - sceneLeft) * .32);
-    const ground = surface - 3;
-    const shoreEdge = bankRight - 34;
-    const dockStart = shoreEdge - 34;
-    const dockEnd = bankRight + 38;
-    const deckTop = ground - 7;
-
-    context.save();
-    context.beginPath();
-    context.roundRect(sceneLeft, top, sceneRight - sceneLeft, trackHeight, 8);
-    context.clip();
-
-    const sky = context.createLinearGradient(0, top, 0, surface);
-    sky.addColorStop(0, '#141420');
-    sky.addColorStop(1, '#243044');
-    context.fillStyle = sky;
-    context.fillRect(sceneLeft, top, sceneRight - sceneLeft, surface - top);
-
-    // Slow clouds give the base sky depth while the live weather supplies its light and colour.
-    const sceneWidth = sceneRight - sceneLeft;
-    context.fillStyle = 'rgba(203,213,225,.07)';
-    for (const [cloudX, cloudY, cloudWidth] of [[.45, .2, 74], [.68, .38, 92]] as const) {
-      const x = sceneLeft + sceneWidth * cloudX;
-      const y = top + (surface - top) * cloudY;
-      context.beginPath();
-      context.ellipse(x, y, cloudWidth * .34, 8, 0, 0, Math.PI * 2);
-      context.ellipse(x - cloudWidth * .22, y + 2, cloudWidth * .25, 6, 0, 0, Math.PI * 2);
-      context.ellipse(x + cloudWidth * .25, y + 2, cloudWidth * .28, 7, 0, 0, Math.PI * 2);
-      context.fill();
-    }
-    for (const [kind, opacity] of atmosphereLayers) {
-      drawWeatherSky(context, kind, opacity, now, sceneLeft, sceneRight, top, surface);
-    }
-
-    // Two distant ridges sit behind the far shore and fade into the evening haze.
-    context.fillStyle = 'rgba(35,49,65,.62)';
-    context.beginPath();
-    context.moveTo(sceneLeft, surface);
-    context.lineTo(sceneLeft, surface - 14);
-    context.lineTo(sceneLeft + sceneWidth * .18, surface - 58);
-    context.lineTo(sceneLeft + sceneWidth * .34, surface - 24);
-    context.lineTo(sceneLeft + sceneWidth * .53, surface - 72);
-    context.lineTo(sceneLeft + sceneWidth * .72, surface - 20);
-    context.lineTo(sceneRight, surface - 46);
-    context.lineTo(sceneRight, surface);
-    context.closePath();
-    context.fill();
-    context.fillStyle = 'rgba(18,34,43,.7)';
-    context.beginPath();
-    context.moveTo(sceneLeft, surface);
-    context.lineTo(sceneLeft + sceneWidth * .16, surface - 24);
-    context.lineTo(sceneLeft + sceneWidth * .31, surface - 10);
-    context.lineTo(sceneLeft + sceneWidth * .48, surface - 35);
-    context.lineTo(sceneLeft + sceneWidth * .66, surface - 12);
-    context.lineTo(sceneLeft + sceneWidth * .84, surface - 30);
-    context.lineTo(sceneRight, surface - 12);
-    context.lineTo(sceneRight, surface);
-    context.closePath();
-    context.fill();
-
-    // A low treeline so the far side of the lake reads as distance rather than a flat edge.
-    context.fillStyle = 'rgba(14,26,30,.85)';
-    context.beginPath();
-    context.moveTo(sceneLeft, surface);
-    for (let x = sceneLeft; x <= sceneRight; x += 14) {
-      const roll = Math.sin(x * .07) + Math.sin(x * .017 + 2.1);
-      context.lineTo(x, surface - 9 - roll * 4);
-    }
-    context.lineTo(sceneRight, surface);
-    context.closePath();
-    context.fill();
-
-    const water = context.createLinearGradient(0, surface, 0, bottom);
-    water.addColorStop(0, '#12455e');
-    water.addColorStop(.35, '#0c3145');
-    water.addColorStop(1, '#05121b');
-    context.fillStyle = water;
-    context.fillRect(sceneLeft, surface, sceneRight - sceneLeft, bottom - surface);
-    context.fillStyle = 'rgba(148,210,226,.08)';
-    for (let line = 0; line < 6; line++) {
-      const y = surface + 18 + line * 31;
-      const x = dockEnd + 20 + (line % 2) * 27;
-      context.fillRect(x, y, Math.max(24, sceneRight - x - 38 - line * 8), 1);
-    }
-    for (const [kind, opacity] of atmosphereLayers) {
-      drawWeatherWater(context, kind, opacity, now, sceneLeft, sceneRight, surface, bottom);
-    }
-
-    // The bank and dock are drawn later, so fish pass beneath the dock and disappear naturally
-    // behind the irregular shoreline instead of being cut off by a straight clipping boundary.
-    for (const swimmer of swimmers) {
-      const x = shoreEdge + swimmer.x * (sceneRight - shoreEdge);
-      const y = surface + 16 + swimmer.y * (bottom - surface - 26) + Math.sin(now / 900 + swimmer.phase) * 3;
-      drawSwimmer(context, x, y, swimmer.size, Math.sign(swimmer.speed), swimmer.colour, .45, now + swimmer.phase * 400);
-    }
-
-    // Everything hanging off the line shares these, so the float, hook and fish stay attached.
-    const safeCastDistance = Math.max(0, Math.min(1, castDistance));
-    const safeHookDepth = Math.max(0, Math.min(1, hookDepth));
-    const anchorX = Math.round(dockEnd + (sceneRight - dockEnd) * safeCastDistance);
-    const castElapsed = now - castAt;
-    const casting = phase === 'waiting' && castElapsed < CAST_WINDUP + CAST_FLIGHT;
-    const hooking = phase === 'reel' && Boolean(hooked);
-    const fishSize = hooked ? 12 + RARITY_ORDER.indexOf(hooked.rarity) * 3.5 : 12;
-    const fishFacing = Math.cos(now / 640) > 0 ? 1 : -1;
-    const fishX = hooking ? anchorX + Math.sin(now / 640) * (sceneRight - dockEnd) * .13 : anchorX;
-    const fishY = hooking ? surface + 22 + fishAt * (bottom - surface - 40) : surface + 58;
-    // The hook rides in the fish's mouth during a fight, so the whole line follows the fish.
-    const hookX = hooking ? fishX + fishFacing * fishSize * .95 : anchorX;
-    const hookY = hooking
-      ? fishY
-      : surface + 18 + safeHookDepth * (bottom - surface - 36) + Math.sin(now / 1100) * 3;
-    // A fought fish drags the float toward it rather than leaving it parked mid-lake.
-    const floatX = hooking ? Math.round(anchorX + (fishX - anchorX) * .5) : anchorX;
-    const bobBase = surface + (phase === 'bite' ? 7 : 0);
-    const bob = phase === 'waiting' ? Math.sin(now / 420) * 2 : phase === 'bite' ? Math.sin(now / 55) * 3 : 0;
-
-    if (phase !== 'idle' && phase !== 'result' && !casting) {
-      // Tippet from the float down to the hook, then the hook itself.
-      context.strokeStyle = 'rgba(255,255,255,.3)';
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(floatX, bobBase + bob);
-      context.quadraticCurveTo((floatX + hookX) / 2, (bobBase + hookY) / 2, hookX, hookY);
-      context.stroke();
-      context.strokeStyle = 'rgba(226,232,240,.85)';
-      context.lineWidth = 1.6;
-      context.beginPath();
-      context.moveTo(hookX, hookY - 7);
-      context.lineTo(hookX, hookY);
-      context.arc(hookX - 2.6, hookY, 2.6, 0, Math.PI * .9, false);
-      context.stroke();
-    }
-
-    if (hooking && hooked) {
-      // The fight in the water mirrors the track, so the fish you are pulling on is visible.
-      drawSwimmer(context, fishX, fishY, fishSize, fishFacing, RARITIES[hooked.rarity].colour, .85, now);
-    } else if (phase === 'bite') {
-      // Something has come up to take it: a dark shape nosing the hook, not yet identifiable.
-      const nose = Math.sin(now / 90) * 4;
-      drawSwimmer(context, hookX + 16 + nose, hookY + 3, 13, -1, 'rgba(12,26,34,.95)', .9, now);
-    } else if (phase === 'waiting' && !casting) {
-      context.fillStyle = 'rgba(255,255,255,.35)';
-      context.beginPath();
-      context.arc(hookX - 1, hookY + 1, 1.6, 0, Math.PI * 2);
-      context.fill();
-    }
-
-    // The natural bank ends behind the dock, leaving open water beneath the angler.
-    const cliff = new Path2D();
-    cliff.moveTo(sceneLeft, ground - 6);
-    for (let x = sceneLeft; x <= shoreEdge; x += 10) {
-      cliff.lineTo(x, ground - 6 + Math.sin(x * .05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5);
-    }
-    cliff.lineTo(shoreEdge + 3, ground + 4);
-    cliff.bezierCurveTo(shoreEdge - 2, ground + 18, shoreEdge - 20, ground + 32, shoreEdge - 24, ground + 58);
-    cliff.bezierCurveTo(shoreEdge - 36, ground + 92, shoreEdge - 20, bottom - 30, shoreEdge - 30, bottom);
-    cliff.lineTo(sceneLeft, bottom);
-    cliff.closePath();
-    const bank = context.createLinearGradient(0, ground - 10, 0, bottom);
-    bank.addColorStop(0, '#36532f');
-    bank.addColorStop(.13, '#2a3f25');
-    bank.addColorStop(.28, '#3a3025');
-    bank.addColorStop(.62, '#251b14');
-    bank.addColorStop(1, '#120d09');
-    context.fillStyle = bank;
-    context.fill(cliff);
-    context.save();
-    context.clip(cliff);
-    context.strokeStyle = 'rgba(152,119,82,.16)';
-    context.lineWidth = 2;
-    for (let ledge = 0; ledge < 5; ledge++) {
-      const y = ground + 30 + ledge * 42;
-      context.beginPath();
-      context.moveTo(sceneLeft + 18 + (ledge % 2) * 12, y);
-      context.bezierCurveTo(shoreEdge - 55, y - 9, shoreEdge - 34, y + 10, shoreEdge - 12, y - 4);
-      context.stroke();
-    }
-    context.restore();
-    context.strokeStyle = 'rgba(120,180,110,.35)';
-    context.lineWidth = 1.5;
-    context.beginPath();
-    for (let x = sceneLeft; x <= shoreEdge; x += 10) {
-      const y = ground - 6 + Math.sin(x * .05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5;
-      if (x === sceneLeft) context.moveTo(x, y); else context.lineTo(x, y);
-    }
-    context.stroke();
-    // Grass softens the shoreline behind the dock without hiding the pets.
-    context.strokeStyle = 'rgba(134,190,112,.42)';
-    context.lineWidth = 1;
-    for (let x = sceneLeft + 8; x < shoreEdge; x += 13) {
-      const y = ground - 7 + Math.sin(x * .05) * 1.6 + (x - sceneLeft) / (shoreEdge - sceneLeft) * 5;
-      context.beginPath();
-      context.moveTo(x, y);
-      context.lineTo(x - 2, y - 5 - (x % 3));
-      context.moveTo(x, y);
-      context.lineTo(x + 3, y - 4);
-      context.stroke();
-    }
-    for (const [kind, opacity] of atmosphereLayers) drawWeatherCliff(context, kind, opacity, cliff);
-
-    // Timber posts disappear into the lake, then the deck and individual planks sit over them.
-    const postBottom = Math.max(deckTop + 14, bottom);
-    context.fillStyle = '#3a281b';
-    for (const postX of [shoreEdge + 14, dockEnd - 14]) {
-      context.fillRect(postX - 4, deckTop + 8, 8, postBottom - deckTop - 8);
-      context.fillStyle = 'rgba(10,18,20,.28)';
-      context.fillRect(postX - 4, surface + 20, 8, Math.max(0, postBottom - surface - 20));
-      context.fillStyle = '#3a281b';
-    }
-    context.fillStyle = 'rgba(11,18,20,.42)';
-    context.fillRect(dockStart, deckTop + 8, dockEnd - dockStart, 6);
-    const timber = context.createLinearGradient(0, deckTop, 0, deckTop + 12);
-    timber.addColorStop(0, '#9a7045');
-    timber.addColorStop(.55, '#765132');
-    timber.addColorStop(1, '#51351f');
-    context.fillStyle = timber;
-    context.fillRect(dockStart, deckTop, dockEnd - dockStart, 11);
-    context.strokeStyle = 'rgba(35,22,13,.55)';
-    context.lineWidth = 1;
-    for (let plank = dockStart + 15; plank < dockEnd; plank += 17) {
-      context.beginPath();
-      context.moveTo(plank, deckTop);
-      context.lineTo(plank, deckTop + 11);
-      context.stroke();
-    }
-    context.strokeStyle = 'rgba(242,196,125,.2)';
-    context.beginPath();
-    context.moveTo(dockStart, deckTop + 2);
-    context.lineTo(dockEnd, deckTop + 2);
-    context.stroke();
-    for (const [kind, opacity] of atmosphereLayers) {
-      if (kind === 'Clear') continue;
-      context.save();
-      context.globalAlpha = opacity;
-      context.fillStyle = kind === 'Frost'
-        ? 'rgba(218,239,239,.38)'
-        : kind === 'Rain' || kind === 'Thunderstorm'
-          ? 'rgba(9,21,29,.28)'
-          : kind === 'Dawn'
-            ? 'rgba(211,111,70,.14)'
-            : 'rgba(207,136,41,.16)';
-      context.fillRect(dockStart, deckTop, dockEnd - dockStart, kind === 'Frost' ? 4 : 11);
-      context.restore();
-    }
-
-    const anglerX = Math.round(dockEnd - 26);
-    const anglerY = deckTop + 1;
-    const petLeft = sceneLeft + 18;
-    const petClearance = 18;
-    const petRight = Math.min(dockStart, anglerX) - petClearance;
-
-    // Active pets wander behind the angler, with their range ending before they can crowd them.
-    for (const walker of [...walkers].sort((a, b) => a.depth - b.depth)) {
-      const pet = walkerPet(walker.id);
-      const source = pet ? petSpriteSource(pet) : undefined;
-      const image = source ? readyImage(source) : null;
-      if (!image || !source) continue;
-      const x = petLeft + walker.x * Math.max(1, petRight - petLeft);
-      const y = ground + 4 + walker.depth * 16;
-      const height = 32 + walker.depth * 7;
-      context.save();
-      context.globalAlpha = .32;
-      context.fillStyle = '#000';
-      context.beginPath();
-      context.ellipse(x, y, height * .34, 3, 0, 0, Math.PI * 2);
-      context.fill();
-      context.restore();
-      context.save();
-      context.translate(0, Math.sin(now / 500 + walker.phase) * 1.5);
-      drawStanding(context, image, source, x, y, height, walker.facing);
-      context.restore();
-    }
-
-    // The angler: our own blobbling, with a rod arcing out over the water.
-    const sway = Math.sin(now / 1100) * 1.5;
-    const layers = avatarLayers();
-    const base = detectAssetsBase();
-    const avatarHeight = 68;
-    if (base) {
-      context.save();
-      context.globalAlpha = .35;
-      context.fillStyle = '#000';
-      context.beginPath();
-      context.ellipse(anglerX, anglerY, 17, 4, 0, 0, Math.PI * 2);
-      context.fill();
-      context.restore();
-      // Every layer is drawn into the same frame with the same anchor. Scaling each to its own
-      // height would let a hat or an expression drift out of register with the body beneath it.
-      const bottomSource = `${base}cosmetic/${layers[0]}`;
-      const bottomImage = readyImage(bottomSource);
-      if (bottomImage) {
-        const inset = footInset(bottomImage, bottomSource);
-        const frameHeight = avatarHeight / Math.max(.2, 1 - inset);
-        const frameTop = anglerY + frameHeight * inset - frameHeight + sway;
-        for (const layer of layers) {
-          const image = readyImage(`${base}cosmetic/${layer}`);
-          if (!image) continue;
-          const frameWidth = image.naturalWidth / image.naturalHeight * frameHeight;
-          context.drawImage(image, anglerX - frameWidth / 2, frameTop, frameWidth, frameHeight);
-        }
-      }
-    }
-
-    // Rod and line. The rod loads toward the water while a fish is on.
-    const handX = anglerX + 14;
-    const handY = anglerY - avatarHeight * .52 + sway;
-    const load = phase === 'reel' ? 16 : phase === 'bite' ? 8 : 0;
-    let tipX = dockEnd + 34 + load;
-    let tipY = top + 34 + load * 1.4;
-    // The cast: the rod is taken back, whipped forward past its rest, then settles.
-    if (casting) {
-      const back = castElapsed < CAST_WINDUP
-        ? castElapsed / CAST_WINDUP
-        : 1 - (1 - Math.pow(1 - (castElapsed - CAST_WINDUP) / CAST_FLIGHT, 3));
-      const whip = castElapsed < CAST_WINDUP ? 0 : Math.sin(Math.PI * (castElapsed - CAST_WINDUP) / CAST_FLIGHT);
-      tipX += -52 * back + 20 * whip;
-      tipY += 34 * back - 12 * whip;
-    }
-    context.strokeStyle = '#c8a06a';
-    context.lineWidth = 2.5;
-    context.beginPath();
-    context.moveTo(handX, handY);
-    context.quadraticCurveTo(handX + (tipX - handX) * .4, handY - 46 - load * .4, tipX, tipY);
-    context.stroke();
-
-    if (casting) {
-      // Mid-cast the float is in the air, so the line runs taut to it rather than sagging to water.
-      const travel = Math.max(0, (castElapsed - CAST_WINDUP) / CAST_FLIGHT);
-      const flyX = tipX + (anchorX - tipX) * travel;
-      const flyY = tipY + (surface - tipY) * travel - Math.sin(Math.PI * travel) * 52;
-      context.strokeStyle = 'rgba(255,255,255,.4)';
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(tipX, tipY);
-      context.lineTo(flyX, flyY);
-      context.stroke();
-      context.fillStyle = '#e4e4e7';
-      context.beginPath();
-      context.arc(flyX, flyY, 4.5, 0, Math.PI * 2);
-      context.fill();
-    } else if (phase !== 'idle' && phase !== 'result') {
-      context.strokeStyle = 'rgba(255,255,255,.4)';
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(tipX, tipY);
-      context.quadraticCurveTo((tipX + floatX) / 2, (tipY + bobBase) / 2 + 12, floatX, bobBase + bob);
-      context.stroke();
-      for (let ring = 0; ring < 3; ring++) {
-        const wave = (now / 900 + ring / 3) % 1;
-        context.strokeStyle = `rgba(255,255,255,${(.2 * (1 - wave)).toFixed(3)})`;
-        context.beginPath();
-        context.ellipse(floatX, bobBase + bob + 2, 6 + wave * 40, 2 + wave * 7, 0, 0, Math.PI * 2);
-        context.stroke();
-      }
-      context.fillStyle = phase === 'bite' ? '#f87171' : '#e4e4e7';
-      context.beginPath();
-      context.arc(floatX, bobBase + bob, 5, 0, Math.PI * 2);
-      context.fill();
-      context.fillStyle = 'rgba(0,0,0,.35)';
-      context.beginPath();
-      context.arc(floatX, bobBase + bob + 2, 5, 0, Math.PI);
-      context.fill();
-    }
-    for (const [kind, opacity] of atmosphereLayers) {
-      drawWeatherForeground(context, kind, opacity, now, sceneLeft, sceneRight, top, bottom);
-    }
-    context.restore();
-
-    context.strokeStyle = 'rgba(255,255,255,.09)';
-    context.lineWidth = 1;
-    context.beginPath();
-    context.roundRect(sceneLeft + .5, top + .5, sceneRight - sceneLeft - 1, trackHeight - 1, 8);
-    context.stroke();
-
-    const centre = centreOf(sceneLeft, trackX);
-
-    // The catch stays on screen until the next cast, so a fast reeler still sees what they landed.
-    if (phase === 'result' && lastCatch) {
-      const rule = RARITIES[lastCatch.fish.rarity];
-      const cardWidth = Math.min(250, sceneRight - 40);
-      const cardHeight = 96;
-      const cardX = centre - cardWidth / 2;
-      const cardY = Math.round(top + (trackHeight - cardHeight) / 2);
-      context.fillStyle = 'rgba(8,8,12,.9)';
-      context.strokeStyle = rule.colour;
-      context.lineWidth = 1.5;
-      context.beginPath();
-      context.roundRect(cardX, cardY, cardWidth, cardHeight, 10);
-      context.fill();
-      context.stroke();
-      drawSwimmer(context, cardX + 34, cardY + 34, 15, 1, rule.colour, 1, now);
-      context.textAlign = 'left';
-      context.fillStyle = rule.colour;
-      context.font = '700 9px system-ui,sans-serif';
-      context.fillText(rule.label.toUpperCase(), cardX + 62, cardY + 22);
-      context.fillStyle = '#fafafa';
-      context.font = '700 14px system-ui,sans-serif';
-      context.fillText(lastCatch.fish.name, cardX + 62, cardY + 40);
-      context.fillStyle = 'rgba(255,255,255,.72)';
-      context.font = '600 12px system-ui,sans-serif';
-      context.fillText(formatWeight(lastCatch.weight), cardX + 62, cardY + 58);
-      if (lastCatch.fresh) {
-        context.fillStyle = '#34d399';
-        context.font = '700 9px system-ui,sans-serif';
-        context.fillText('NEW SPECIES', cardX + 62, cardY + 74);
-      }
-      context.textAlign = 'center';
-      context.fillStyle = 'rgba(255,255,255,.4)';
-      context.font = '400 10px system-ui,sans-serif';
-      context.fillText(now < resultLockUntil ? 'Reading the tape...' : 'Click to cast again', centre, cardY + cardHeight + 18);
-    }
-
-    // The status sits in its own corner of the sky, where nothing in the scene can run into it.
-    context.textAlign = 'left';
-    context.font = '700 11px system-ui,sans-serif';
-    context.fillStyle = phase === 'bite' ? '#fca5a5' : 'rgba(255,255,255,.62)';
-    const heading = phase === 'idle' ? 'Click to cast' : phase === 'waiting' ? 'Waiting...' : phase === 'bite' ? 'BITE!' : phase === 'reel' ? 'Hold to reel' : 'Click to cast again';
-    context.fillText(heading, sceneLeft + 14, top + 22);
-
-    // A draining bar during the bite, so the window you have to react in is something you can see.
-    if (phase === 'bite') {
-      const left = Math.max(0, 1 - (now - biteAt) / BITE_WINDOW);
-      const barWidth = 86;
-      context.fillStyle = 'rgba(255,255,255,.12)';
-      context.beginPath();
-      context.roundRect(sceneLeft + 14, top + 28, barWidth, 4, 2);
-      context.fill();
-      context.fillStyle = '#f87171';
-      context.beginPath();
-      context.roundRect(sceneLeft + 14, top + 28, barWidth * left, 4, 2);
-      context.fill();
-    }
-
-    // A bench fight is marked on the canvas itself, so a test can never be mistaken for a catch.
-    if (testing && (phase === 'reel' || phase === 'result')) {
-      const label = hooked ? `TEST  ${hooked.name}  ${fightLength()}` : 'TEST';
-      context.font = '700 9px system-ui,sans-serif';
-      const badgeWidth = context.measureText(label).width + 16;
-      context.fillStyle = 'rgba(251,191,36,.16)';
-      context.strokeStyle = 'rgba(251,191,36,.5)';
-      context.lineWidth = 1;
-      context.beginPath();
-      context.roundRect(trackX - badgeWidth - 14, top + 10, badgeWidth, 18, 5);
-      context.fill();
-      context.stroke();
-      context.fillStyle = '#fbbf24';
-      context.fillText(label, trackX - badgeWidth - 6, top + 22);
-    }
-    context.textAlign = 'center';
-
-    // Track: the fish runs up and down it, the hook zone is what you steer.
-    context.fillStyle = 'rgba(255,255,255,.02)';
-    context.strokeStyle = 'rgba(255,255,255,.07)';
-    context.lineWidth = 1;
-    context.beginPath();
-    context.roundRect(trackX - 8.5, top + .5, barX - trackX + 28, trackHeight - 1, 8);
-    context.fill();
-    context.stroke();
-    context.fillStyle = 'rgba(255,255,255,.05)';
-    context.beginPath();
-    context.roundRect(trackX, top, trackWidth, trackHeight, 8);
-    context.fill();
-    if (phase === 'reel' && hooked) {
-      const rule = RARITIES[hooked.rarity];
-      const half = zoneHeight / 2;
-      const inside = Math.abs(fishAt - zoneAt) < half;
-      context.fillStyle = inside ? 'rgba(52,211,153,.28)' : 'rgba(255,255,255,.10)';
-      context.beginPath();
-      context.roundRect(trackX + 2, top + (zoneAt - half) * trackHeight, trackWidth - 4, zoneHeight * trackHeight, 6);
-      context.fill();
-      context.fillStyle = rule.colour;
-      context.beginPath();
-      context.arc(trackX + trackWidth / 2, top + fishAt * trackHeight, 6, 0, Math.PI * 2);
-      context.fill();
-    }
-
-    context.fillStyle = 'rgba(255,255,255,.05)';
-    context.beginPath();
-    context.roundRect(barX, top, 12, trackHeight, 6);
-    context.fill();
-    const filled = Math.max(0, Math.min(1, progress));
-    if (phase === 'reel' && filled > 0) {
-      context.fillStyle = hooked ? RARITIES[hooked.rarity].colour : '#34d399';
-      context.beginPath();
-      context.roundRect(barX, bottom - filled * trackHeight, 12, filled * trackHeight, 6);
-      context.fill();
-    }
   }
 
   function collectionHtml(): string {
@@ -2180,8 +1255,6 @@ export function initFishing(): void {
       const target = button.dataset.view as 'collection' | 'equipment' | 'bench';
       view = view === target ? 'game' : target;
       renderChrome();
-      if (view === 'game') resumeLoop();
-      else pauseLoop();
     });
     card.querySelectorAll<HTMLButtonElement>('[data-fight]').forEach(button => button.onclick = () => {
       const fish = FISH_BY_ID.get(button.dataset.fight!);
@@ -2234,6 +1307,8 @@ export function initFishing(): void {
     const host = panel();
     if (!host) return;
     view = targetView;
+    worldSceneDisabled = false;
+    worldSceneWarningShown = false;
     host.hidden = false;
     applyFishingCinematic();
     primeFishingAudio();
@@ -2245,8 +1320,7 @@ export function initFishing(): void {
         draggableReady = true;
       }
     }
-    if (view === 'game') resumeLoop();
-    else pauseLoop();
+    resumeLoop();
   }
 
   function close(): void {
