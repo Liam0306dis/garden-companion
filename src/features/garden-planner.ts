@@ -316,7 +316,7 @@ export function initGardenPlanner(): void {
 
   function hideNativeCardUi(): void {
     // The game's cinematic mode clears its whole HUD, which is exactly what planning wants.
-    if (cinematicApplied || page.__gardenCompanionSetCinematic?.(true)) {
+    if (cinematicApplied || page.__gardenCompanionSetCinematic?.(true, 'gardenPlanner')) {
       cinematicApplied = true;
       return;
     }
@@ -337,7 +337,7 @@ export function initGardenPlanner(): void {
 
   function restoreNativeCardUi(): void {
     if (cinematicApplied) {
-      page.__gardenCompanionSetCinematic?.(false);
+      page.__gardenCompanionSetCinematic?.(false, 'gardenPlanner');
       cinematicApplied = false;
     }
     for (const [node, visible] of hiddenNodes) {

@@ -90,10 +90,13 @@ export function openGameInterface(target: GameInterface): void {
   gameAtomSet(activeModalAtom, target);
 }
 
-page.__gardenCompanionSetCinematic = (enabled: boolean) => {
+const cinematicOwners = new Set<string>();
+page.__gardenCompanionSetCinematic = (enabled: boolean, owner = 'default') => {
   if (!cinematicAtom || !gameAtomSet) return false;
   try {
-    gameAtomSet(cinematicAtom, enabled);
+    if (enabled) cinematicOwners.add(owner);
+    else cinematicOwners.delete(owner);
+    gameAtomSet(cinematicAtom, cinematicOwners.size > 0);
     return true;
   } catch { return false; }
 };

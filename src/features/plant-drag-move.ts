@@ -15,6 +15,7 @@ export function initPlantDragMove(): void {
     const live = {
         tapToMove: null,
         tileSystem: null,
+        petSystem: null,
         worldTapRouter: null,
         inventoryItems: [],
         inventoryReady: false,
@@ -56,6 +57,7 @@ export function initPlantDragMove(): void {
         live.fallbackHighlight?.destroy?.();
         live.tapToMove = null;
         live.tileSystem = null;
+        live.petSystem = null;
         live.worldTapRouter = null;
         live.fallbackHighlight = null;
         live.ownUserSlotIdx = null;
@@ -101,6 +103,9 @@ export function initPlantDragMove(): void {
             watchTileSystemTeardown(system);
             disarmPrivateField('tileViews');
             log('Native farm tile map connected.');
+        } else if (system?.name === 'pet' && system.views instanceof pageWindow.Map) {
+            live.petSystem = system;
+            log('Native active-pet system connected.');
         } else if (system?.name === 'worldTapRouter' && Array.isArray(system.registeredClaimants)) {
             if (live.worldTapRouter === system) return;
             live.worldTapRouter = system;

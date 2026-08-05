@@ -160,7 +160,8 @@ export interface CompanionPage extends Window {
   __gardenCompanionToggleCelestialLayout?: () => void;
   __gardenCompanionToggleCropCleanser?: () => void;
   __gardenCompanionFishingBench?: () => void;
-  __gardenCompanionSetCinematic?: (enabled: boolean) => boolean;
+  __gardenCompanionFishingOpen?: () => boolean;
+  __gardenCompanionSetCinematic?: (enabled: boolean, owner?: string) => boolean;
   __gardenCompanionPlannerOpen?: () => boolean;
   __gardenCompanionPetSpritesReady?: () => void;
   __gardenCompanionClaimKeybind?: (owner: string, combo: string) => void;
@@ -176,6 +177,7 @@ export interface CompanionPage extends Window {
 export interface FarmSystems {
   tapToMove: Record<string, any> | null;
   tileSystem: Record<string, any> | null;
+  petSystem: Record<string, any> | null;
   worldTapRouter: Record<string, any> | null;
   ownUserSlotIdx: number | null;
   [key: string]: unknown;

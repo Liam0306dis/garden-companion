@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.2
+// @version      0.7.3
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -2348,10 +2348,13 @@ ${rows}</div>`;
     }
     gameAtomSet(activeModalAtom, target);
   }
-  page.__gardenCompanionSetCinematic = (enabled) => {
+  var cinematicOwners = /* @__PURE__ */ new Set();
+  page.__gardenCompanionSetCinematic = (enabled, owner = "default") => {
     if (!cinematicAtom || !gameAtomSet) return false;
     try {
-      gameAtomSet(cinematicAtom, enabled);
+      if (enabled) cinematicOwners.add(owner);
+      else cinematicOwners.delete(owner);
+      gameAtomSet(cinematicAtom, cinematicOwners.size > 0);
       return true;
     } catch {
       return false;
@@ -3325,7 +3328,7 @@ ${rows}</div>`;
     }
     function installInstantHarvest() {
       window.addEventListener("keydown", (event) => {
-        if (!feature("instantHarvest") || event.code !== "Space" || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
+        if (!feature("instantHarvest") || page.__gardenCompanionFishingOpen?.() || event.code !== "Space" || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
         if (state.currentAction && state.currentAction !== "none" && !["harvest", "rainbowHarvest", "goldHarvest"].includes(state.currentAction)) return;
         const tile = state.slot?.data?.garden?.tileObjects?.[String(state.dirtTileIndex)];
         if (!tile?.slots?.length) return;
@@ -5092,7 +5095,7 @@ ${rows}</div>`;
     }
     let cinematicApplied = false;
     function hideNativeCardUi() {
-      if (cinematicApplied || page3.__gardenCompanionSetCinematic?.(true)) {
+      if (cinematicApplied || page3.__gardenCompanionSetCinematic?.(true, "gardenPlanner")) {
         cinematicApplied = true;
         return;
       }
@@ -5112,7 +5115,7 @@ ${rows}</div>`;
     }
     function restoreNativeCardUi() {
       if (cinematicApplied) {
-        page3.__gardenCompanionSetCinematic?.(false);
+        page3.__gardenCompanionSetCinematic?.(false, "gardenPlanner");
         cinematicApplied = false;
       }
       for (const [node, visible] of hiddenNodes) {
@@ -5568,12 +5571,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
   }
   var RARITIES = {
-    common: { label: "Common", colour: "#94a3b8", weight: 48, zone: 0.26, speed: 1, fill: 0.4, drain: 0.38 },
-    uncommon: { label: "Uncommon", colour: "#34d399", weight: 28, zone: 0.26, speed: 1.02, fill: 0.39, drain: 0.38 },
-    rare: { label: "Rare", colour: "#38bdf8", weight: 15, zone: 0.25, speed: 1.08, fill: 0.37, drain: 0.375 },
-    epic: { label: "Epic", colour: "#a78bfa", weight: 6, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
-    legendary: { label: "Legendary", colour: "#fbbf24", weight: 2.5, zone: 0.24, speed: 1.15, fill: 0.34, drain: 0.37 },
-    mythic: { label: "Mythic", colour: "#f472b6", weight: 0.5, zone: 0.22, speed: 1.3, fill: 0.3, drain: 0.37 }
+    common: { label: "Common", colour: "#94a3b8", weight: 48, zone: 0.34, speed: 0.8, fill: 0.48, drain: 0.28 },
+    uncommon: { label: "Uncommon", colour: "#34d399", weight: 28, zone: 0.3, speed: 0.95, fill: 0.43, drain: 0.32 },
+    rare: { label: "Rare", colour: "#38bdf8", weight: 15, zone: 0.26, speed: 1.1, fill: 0.38, drain: 0.37 },
+    epic: { label: "Epic", colour: "#a78bfa", weight: 6, zone: 0.22, speed: 1.25, fill: 0.32, drain: 0.43 },
+    legendary: { label: "Legendary", colour: "#fbbf24", weight: 2.5, zone: 0.19, speed: 1.42, fill: 0.27, drain: 0.48 },
+    mythic: { label: "Mythic", colour: "#f472b6", weight: 0.5, zone: 0.15, speed: 1.7, fill: 0.21, drain: 0.58 }
   };
   var RARITY_ORDER2 = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
   var WEATHER_FISH_WEIGHT = 2;
@@ -5699,15 +5702,60 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     { id: "rainbowWhiskerfish", name: "Rainbow Whiskerfish", rarity: "mythic", min: 70, max: 210, note: "Nobody agrees on what colour it actually is." }
   ];
   var FISH_BY_ID = new Map(FISH.map((fish) => [fish.id, fish]));
-  var EMPTY_RECORD = { casts: 0, caught: 0, escaped: 0, fish: {} };
+  var EQUIPMENT = [
+    { id: "reedRod", name: "Reed Rod", slot: "rod", detail: "A dependable first rod." },
+    { id: "oakRod", name: "Oak Rod", slot: "rod", detail: "+2% catch zone and +5% progress.", price: 150, zone: 0.02, fill: 1.05 },
+    { id: "silverRod", name: "Silver Rod", slot: "rod", detail: "+3% catch zone and +10% progress.", price: 600, zone: 0.03, fill: 1.1 },
+    { id: "moonRod", name: "Moon Rod", slot: "rod", detail: "+4% catch zone and +16% progress.", price: 1800, zone: 0.04, fill: 1.16 },
+    { id: "braidedLine", name: "Braided Line", slot: "line", detail: "+5 seconds before the line breaks.", foundFrom: "speckledTrout", dropChance: 0.1, limit: 5e3 },
+    { id: "silkLine", name: "Mirror Silk Line", slot: "line", detail: "+10 seconds before the line breaks.", foundFrom: "mirrorfinArowana", dropChance: 0.08, limit: 1e4 },
+    { id: "reedFloat", name: "Reed Float", slot: "tackle", detail: "+300ms to set the hook.", foundFrom: "reedPerch", dropChance: 0.14, bite: 300 },
+    { id: "barbedHook", name: "Ironjaw Hook", slot: "tackle", detail: "Begin each fight with 7% more progress.", foundFrom: "ironjawCatfish", dropChance: 0.1, start: 0.07 },
+    { id: "crownLure", name: "Crownscale Lure", slot: "tackle", detail: "+3% catch zone.", foundFrom: "crownscaleArapaima", dropChance: 0.08, zone: 0.03 },
+    { id: "prismLure", name: "Prismatic Lure", slot: "tackle", detail: "+12% progress while the fish is controlled.", foundFrom: "rainbowWhiskerfish", dropChance: 0.12, fill: 1.12 }
+  ];
+  var EQUIPMENT_BY_ID = new Map(EQUIPMENT.map((item) => [item.id, item]));
+  var RARITY_REWARDS = {
+    common: { coins: 5, xp: 8 },
+    uncommon: { coins: 11, xp: 14 },
+    rare: { coins: 24, xp: 26 },
+    epic: { coins: 52, xp: 48 },
+    legendary: { coins: 110, xp: 90 },
+    mythic: { coins: 240, xp: 165 }
+  };
+  var EMPTY_RECORD = {
+    casts: 0,
+    caught: 0,
+    escaped: 0,
+    fish: {},
+    coins: 0,
+    xp: 0,
+    equipment: { reedRod: 1 },
+    equipped: { rod: "reedRod", line: "", tackle: "" }
+  };
   function loadRecord() {
     const stored = loadLocal(RECORD_KEY, {});
     return {
       casts: Number(stored.casts) || 0,
       caught: Number(stored.caught) || 0,
       escaped: Number(stored.escaped) || 0,
-      fish: stored.fish && typeof stored.fish === "object" ? stored.fish : {}
+      fish: stored.fish && typeof stored.fish === "object" ? stored.fish : {},
+      coins: Number(stored.coins) || 0,
+      xp: Number(stored.xp) || 0,
+      equipment: stored.equipment && typeof stored.equipment === "object" ? { reedRod: 1, ...stored.equipment } : { reedRod: 1 },
+      equipped: { ...EMPTY_RECORD.equipped, ...stored.equipped ?? {} }
     };
+  }
+  function fishingLevel(xp) {
+    let level = 1;
+    let remaining = Math.max(0, xp);
+    let needed = 60;
+    while (remaining >= needed) {
+      remaining -= needed;
+      level++;
+      needed = Math.round(60 * Math.pow(level, 1.35));
+    }
+    return { level, current: remaining, needed };
   }
   function weightedPick(items, weight) {
     const total = items.reduce((sum, item) => sum + weight(item), 0);
@@ -5743,7 +5791,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     style.textContent = `
     #${PANEL_ID2}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID2}[hidden]{display:none}
-    #${PANEL_ID2} .gf-card{position:fixed;right:14px;bottom:56px;width:min(780px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
+    #${PANEL_ID2} .gf-card{position:fixed;right:14px;bottom:56px;width:min(780px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 18px 50px rgba(0,0,0,.7),inset 0 1px rgba(255,255,255,.035)}
+    #${PANEL_ID2} .gf-card[data-view=game]{width:min(360px,calc(100vw - 24px))}
     #${PANEL_ID2} header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move}
     #${PANEL_ID2} h2{margin:0;font:700 13px/1.2 system-ui,sans-serif;letter-spacing:.02em}
     #${PANEL_ID2} header div{display:flex;align-items:center;gap:4px}
@@ -5752,7 +5801,32 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     #${PANEL_ID2} button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
     #${PANEL_ID2} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
     #${PANEL_ID2} header button[data-close]{border-radius:50%;background:transparent}
-    #${PANEL_ID2} canvas{display:block;width:100%;height:min(420px,calc(100vh - 150px));cursor:pointer}
+    #${PANEL_ID2} .gf-pond-input{position:fixed;pointer-events:auto;touch-action:none;cursor:crosshair}
+    #${PANEL_ID2} .gf-game{padding:10px 12px 12px}
+    #${PANEL_ID2} .gf-game-main{display:flex;align-items:center;gap:10px}
+    #${PANEL_ID2} .gf-game-main button{min-width:92px;height:38px;font-size:11px}
+    #${PANEL_ID2} .gf-game-copy{flex:1;min-width:0}
+    #${PANEL_ID2} .gf-game-copy b{display:block;color:#f8fafc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #${PANEL_ID2} .gf-game-copy small{display:block;margin-top:2px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px}
+    #${PANEL_ID2} .gf-fight{position:relative;height:12px;margin-top:9px;overflow:hidden;border-radius:6px;background:rgba(255,255,255,.06)}
+    #${PANEL_ID2} .gf-fight-progress{position:absolute;inset:0 auto 0 0;width:0;background:#34d399;opacity:.7}
+    #${PANEL_ID2} .gf-fight-zone{position:absolute;top:1px;bottom:1px;left:0;width:20%;border:1px solid rgba(255,255,255,.68);border-radius:5px;background:rgba(52,211,153,.18)}
+    #${PANEL_ID2} .gf-fight-fish{position:absolute;top:2px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f8fafc;box-shadow:0 0 5px currentColor}
+    #${PANEL_ID2} .gf-catch{display:grid;grid-template-columns:58px 1fr;gap:10px;margin-bottom:10px;padding:10px;border:1px solid color-mix(in srgb,var(--catch-colour) 45%,transparent);border-radius:10px;background:color-mix(in srgb,var(--catch-colour) 10%,rgba(255,255,255,.025))}
+    #${PANEL_ID2} .gf-catch-fish{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;color:var(--catch-colour);background:color-mix(in srgb,var(--catch-colour) 16%,#09090b);font-size:31px;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--catch-colour) 55%,transparent))}
+    #${PANEL_ID2} .gf-catch h3{margin:0;color:#fff;font:800 15px/1.2 system-ui,sans-serif}
+    #${PANEL_ID2} .gf-catch p{margin:3px 0 0;color:var(--catch-colour);font:700 10px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em}
+    #${PANEL_ID2} .gf-catch small{display:block;margin-top:5px;color:#e4e4e7;font-size:10px}
+    #${PANEL_ID2} .gf-catch-rewards{display:flex;gap:10px;margin-top:5px;color:#f8fafc;font-size:10px;font-weight:700}
+    #${PANEL_ID2} .gf-catch-item{color:#fbbf24!important}
+    #${PANEL_ID2} .gf-progress-line{height:7px;overflow:hidden;border-radius:4px;background:rgba(255,255,255,.07)}
+    #${PANEL_ID2} .gf-progress-line i{display:block;height:100%;background:#a78bfa}
+    #${PANEL_ID2} .gf-gear-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+    #${PANEL_ID2} .gf-gear{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
+    #${PANEL_ID2} .gf-gear span{flex:1;min-width:0}
+    #${PANEL_ID2} .gf-gear b,#${PANEL_ID2} .gf-gear small{display:block}
+    #${PANEL_ID2} .gf-gear small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px}
+    #${PANEL_ID2} .gf-gear[data-locked=true]{opacity:.5}
     #${PANEL_ID2} .gf-status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
     #${PANEL_ID2} .gf-status b{font:700 12px system-ui,sans-serif}
     #${PANEL_ID2} .gf-status small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;white-space:nowrap}
@@ -5842,10 +5916,474 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let reelStartedAt = 0;
     let fightEndedAt = 0;
     let draggableReady = false;
+    let cinematicApplied = false;
     let currentSceneWeather = "Clear";
     let previousSceneWeather = "Clear";
     let sceneWeatherChangedAt = 0;
     let sceneWeatherReady = false;
+    const hiddenGardenNodes = /* @__PURE__ */ new Map();
+    const hiddenEffectNodes = /* @__PURE__ */ new Map();
+    let pondGraphic = null;
+    let fishGraphic = null;
+    let dockGraphic = null;
+    let rodGraphic = null;
+    let rodRenderLayer = null;
+    let seatingSprites = [];
+    let pondSignature = "";
+    let pondBounds = null;
+    let farmBounds = null;
+    let worldSceneWarningShown = false;
+    function equippedEffects() {
+      return Object.values(record.equipped).map((id) => EQUIPMENT_BY_ID.get(id)).filter((item) => Boolean(item));
+    }
+    function equipmentTotal(key) {
+      return equippedEffects().reduce((total, item) => total + (item[key] ?? 0), 0);
+    }
+    function equipmentFill() {
+      const levelBonus = 1 + Math.min(0.12, (fishingLevel(record.xp).level - 1) * 5e-3);
+      return equippedEffects().reduce((total, item) => total * (item.fill ?? 1), levelBonus);
+    }
+    function catchRewards(fish, weight) {
+      const base = RARITY_REWARDS[fish.rarity];
+      const weightFactor = 0.7 + Math.max(0, Math.min(1, (weight - fish.min) / Math.max(0.01, fish.max - fish.min))) * 0.8;
+      return { coins: Math.max(1, Math.round(base.coins * weightFactor)), xp: Math.max(1, Math.round(base.xp * weightFactor)) };
+    }
+    function itemDrop(fish) {
+      const item = EQUIPMENT.find((candidate) => candidate.foundFrom === fish.id && !record.equipment[candidate.id]);
+      return item && Math.random() < (item.dropChance ?? 0) ? item : void 0;
+    }
+    function findPixiNode(predicate) {
+      const surface = pixiSurface();
+      if (!surface) return null;
+      const stack = [surface.stage];
+      const seen = /* @__PURE__ */ new WeakSet();
+      while (stack.length) {
+        const node = stack.pop();
+        if (!node || typeof node !== "object" || seen.has(node)) continue;
+        seen.add(node);
+        if (predicate(node)) return node;
+        if (Array.isArray(node.children)) stack.push(...node.children);
+      }
+      return null;
+    }
+    function graphicsConstructor() {
+      const marker = page.__gardenCompanionFarmSystems?.tapToMove?.hoverMarker;
+      if (marker?.constructor) return marker.constructor;
+      return findPixiNode((node) => node.renderPipeId === "graphics" && typeof node.clear === "function")?.constructor ?? null;
+    }
+    function farmGeometry() {
+      const systems = page.__gardenCompanionFarmSystems;
+      const system = systems?.tileSystem;
+      const slotIndex = systems?.ownUserSlotIdx;
+      const dirtMapping = slotIndex == null ? null : system?.map?.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slotIndex];
+      const boardwalkMapping = slotIndex == null ? null : system?.map?.userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx?.[slotIndex];
+      if (!system?.worldContainer || !dirtMapping) return null;
+      const globals = [...Object.values(dirtMapping), ...Object.values(boardwalkMapping ?? {})].map(Number).filter(Number.isFinite);
+      const cols = Number(system.map?.cols);
+      if (!globals.length || !Number.isFinite(cols) || cols <= 0) return null;
+      const xs = globals.map((index) => index % cols);
+      const ys = globals.map((index) => Math.floor(index / cols));
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const inset = 24;
+      return {
+        system,
+        globals,
+        left: minX * 256 + inset,
+        top: minY * 256 + inset,
+        width: (maxX - minX + 1) * 256 - inset * 2,
+        height: (maxY - minY + 1) * 256 - inset * 2
+      };
+    }
+    function hideGarden(globals, system) {
+      for (const index of globals) {
+        const node = system.tileViews?.get?.(index)?.displayObject;
+        if (!node || node.destroyed) continue;
+        if (!hiddenGardenNodes.has(node)) hiddenGardenNodes.set(node, {
+          alpha: Number(node.alpha),
+          visible: node.visible !== false,
+          renderable: node.renderable !== false
+        });
+        node.alpha = 0;
+        node.visible = false;
+        node.renderable = false;
+      }
+    }
+    function restoreGarden() {
+      for (const [node, saved] of hiddenGardenNodes) {
+        if (!node.destroyed) {
+          node.alpha = Number.isFinite(saved.alpha) ? saved.alpha : 1;
+          node.visible = saved.visible;
+          node.renderable = saved.renderable;
+        }
+      }
+      hiddenGardenNodes.clear();
+      for (const [node, saved] of hiddenEffectNodes) {
+        if (!node.destroyed) {
+          node.alpha = Number.isFinite(saved.alpha) ? saved.alpha : 1;
+          node.visible = saved.visible;
+          node.renderable = saved.renderable;
+        }
+      }
+      hiddenEffectNodes.clear();
+    }
+    function hideStandingEffects() {
+      const overlay = findPixiNode((node) => node.label === "WorldOverlay");
+      if (!overlay || overlay.destroyed) return;
+      if (!hiddenEffectNodes.has(overlay)) hiddenEffectNodes.set(overlay, {
+        alpha: Number(overlay.alpha),
+        visible: overlay.visible !== false,
+        renderable: overlay.renderable !== false
+      });
+      overlay.alpha = 0;
+      overlay.visible = false;
+      overlay.renderable = false;
+    }
+    function installTileDrawSuppression(system) {
+      for (const tileView of system.tileViews?.values?.() ?? []) {
+        if (!tileView || tileView.__gardenFishingDrawWrapped || typeof tileView.draw !== "function") continue;
+        const originalDraw = tileView.draw;
+        tileView.draw = function(...args) {
+          if (panel2()?.hidden === false) return;
+          return originalDraw.apply(this, args);
+        };
+        tileView.__gardenFishingDrawWrapped = true;
+      }
+    }
+    function destroyGraphic(graphic) {
+      if (!graphic) return;
+      try {
+        graphic.destroy?.({ children: true });
+      } catch {
+        try {
+          graphic.parent?.removeChild?.(graphic);
+        } catch {
+        }
+      }
+    }
+    function destroySeating() {
+      for (const sprite of seatingSprites) destroyGraphic(sprite);
+      seatingSprites = [];
+    }
+    function destroyWorldScene() {
+      restoreGarden();
+      destroyGraphic(pondGraphic);
+      destroyGraphic(fishGraphic);
+      destroyGraphic(dockGraphic);
+      destroyGraphic(rodGraphic);
+      destroyGraphic(rodRenderLayer);
+      destroySeating();
+      pondGraphic = fishGraphic = dockGraphic = rodGraphic = rodRenderLayer = null;
+      pondSignature = "";
+      pondBounds = null;
+      farmBounds = null;
+      const input = panel2()?.querySelector(".gf-pond-input");
+      if (input) input.hidden = true;
+    }
+    function drawPond(graphic, bounds) {
+      const { left, top, width, height } = bounds;
+      const waterWidth = width * 0.62;
+      const deckLeft = left + waterWidth + 20;
+      graphic.clear();
+      graphic.roundRect(left - 36, top - 36, width + 72, height + 72, 72).fill({ color: 1522471, alpha: 1 });
+      graphic.roundRect(left - 18, top - 18, width + 36, height + 36, 58).stroke({ color: 4156217, width: 34, alpha: 1 });
+      graphic.roundRect(left, top, waterWidth, height, 44).fill({ color: 2255737, alpha: 1 });
+      graphic.roundRect(left + 10, top + 10, waterWidth - 20, height - 20, 36).stroke({ color: 6535345, width: 8, alpha: 0.28 });
+      graphic.roundRect(deckLeft, top, Math.max(40, left + width - deckLeft), height, 30).fill({ color: 9132587, alpha: 1 });
+      for (let y = top + 22; y < top + height; y += 42) {
+        graphic.moveTo(deckLeft + 8, y).lineTo(left + width - 8, y).stroke({ color: 12616518, width: 6, alpha: 0.58 });
+      }
+      graphic.moveTo(deckLeft - 10, top + 12).lineTo(deckLeft - 10, top + height - 12).stroke({ color: 6240800, width: 18, alpha: 0.9 });
+      const hedgeCount = Math.max(8, Math.floor((width + height) / 180));
+      for (let index = 0; index < hedgeCount; index++) {
+        const fraction = index / hedgeCount;
+        const horizontal = index % 2 === 0;
+        const x = horizontal ? left + fraction * width : index % 4 === 1 ? left - 27 : left + width + 27;
+        const y = horizontal ? index % 4 === 0 ? top - 27 : top + height + 27 : top + fraction * height;
+        graphic.circle(x, y, 30 + index % 3 * 4).fill({ color: index % 2 ? 3107638 : 3766847, alpha: 1 });
+        graphic.circle(x - 7, y - 8, 12).fill({ color: 6001996, alpha: 0.72 });
+      }
+      for (let index = 0; index < 7; index++) {
+        const x = left + waterWidth * (0.12 + index * 0.137 % 0.76);
+        const y = top + height * (0.16 + index * 0.223 % 0.66);
+        graphic.ellipse(x, y, 29, 17).fill({ color: 4950858, alpha: 0.9 });
+        graphic.ellipse(x - 3, y - 3, 20, 10).fill({ color: 7120477, alpha: 0.34 });
+        graphic.moveTo(x, y).lineTo(x + 24, y - 8).stroke({ color: 2449209, width: 3, alpha: 0.85 });
+        if (index % 2 === 0) {
+          for (let petal = 0; petal < 5; petal++) {
+            const angle = petal * Math.PI * 2 / 5;
+            graphic.ellipse(x + Math.cos(angle) * 8, y - 5 + Math.sin(angle) * 5, 7, 4).fill({ color: 16361684, alpha: 0.95 });
+          }
+          graphic.circle(x, y - 5, 4).fill({ color: 16639626, alpha: 1 });
+        }
+      }
+    }
+    function spriteConstructor() {
+      return findPixiNode((node) => node.texture && node.anchor && typeof node.constructor?.from === "function")?.constructor ?? null;
+    }
+    function addSeatingSprite(Sprite, source, x, y, width) {
+      try {
+        const sprite = Sprite.from(source);
+        sprite.anchor?.set?.(0.5, 1);
+        const ratio = Number(sprite.texture?.height) > 0 ? Number(sprite.texture.width) / Number(sprite.texture.height) : 1;
+        sprite.width = width;
+        sprite.height = width / Math.max(0.2, ratio);
+        if (sprite.texture?.source) sprite.texture.source.scaleMode = "linear";
+        sprite.position.set(x, y);
+        sprite.eventMode = "none";
+        sprite.interactive = false;
+        sprite.zIndex = -998997;
+        seatingSprites.push(sprite);
+        farmBounds && page.__gardenCompanionFarmSystems?.tileSystem?.worldContainer?.addChild?.(sprite);
+      } catch {
+      }
+    }
+    function ensureSeating(bounds) {
+      if (seatingSprites.length) return;
+      const benchSource = page.__gardenCompanionShopSprites?.StoneBench;
+      const stoolSource = page.__gardenCompanionShopSprites?.WoodStoolShort;
+      const benchImage = benchSource ? readyImage(benchSource) : null;
+      const stoolImage = stoolSource ? readyImage(stoolSource) : null;
+      const Sprite = spriteConstructor();
+      if (!benchImage || !stoolImage || !Sprite) return;
+      const deckLeft = bounds.left + bounds.width * 0.62 + 20;
+      const deckRight = bounds.left + bounds.width;
+      const deckWidth = Math.max(1, deckRight - deckLeft);
+      const benchCount = Math.max(2, Math.floor(deckWidth / 230));
+      for (let index = 0; index < benchCount; index++) {
+        const x = deckLeft + deckWidth * (index + 0.5) / benchCount;
+        addSeatingSprite(Sprite, benchImage, x, bounds.top + 118, 172);
+        addSeatingSprite(Sprite, benchImage, x, bounds.top + bounds.height - 18, 172);
+      }
+      const stoolTop = bounds.top + 190;
+      const stoolBottom = bounds.top + bounds.height - 145;
+      const stoolCount = Math.max(3, Math.floor(Math.max(1, stoolBottom - stoolTop) / 210));
+      for (let index = 0; index < stoolCount; index++) {
+        const y = stoolCount === 1 ? (stoolTop + stoolBottom) / 2 : stoolTop + (stoolBottom - stoolTop) * index / (stoolCount - 1);
+        addSeatingSprite(Sprite, stoolImage, deckRight - 72, y, 82);
+      }
+    }
+    function drawDock(graphic, water) {
+      const tileSize = Math.min(256, water.width * 0.22, water.height * 0.24);
+      const width = tileSize * 2;
+      const height = tileSize * 2;
+      const left = water.left + water.width - width;
+      const top = water.top + (water.height - height) / 2;
+      graphic.clear();
+      graphic.roundRect(left - 10, top - 10, width + 20, height + 20, 14).fill({ color: 4860695, alpha: 1 });
+      for (let row = 0; row < 2; row++) {
+        for (let column = 0; column < 2; column++) {
+          const x = left + column * tileSize;
+          const y = top + row * tileSize;
+          graphic.rect(x + 4, y + 4, tileSize - 8, tileSize - 8).fill({ color: (row + column) % 2 ? 10052149 : 11038011, alpha: 1 });
+          for (let plank = 1; plank < 4; plank++) {
+            graphic.moveTo(x + 7, y + plank * tileSize / 4).lineTo(x + tileSize - 7, y + plank * tileSize / 4).stroke({ color: 6306079, width: 4, alpha: 0.7 });
+          }
+        }
+      }
+      for (const [x, y] of [[left, top], [left + width, top], [left, top + height], [left + width, top + height]]) {
+        graphic.circle(x, y, 13).fill({ color: 3612691, alpha: 1 });
+        graphic.circle(x, y - 3, 7).fill({ color: 9132594, alpha: 1 });
+      }
+    }
+    function ensureWorldScene() {
+      const geometry = farmGeometry();
+      const Graphic = graphicsConstructor();
+      if (!geometry || !Graphic) return null;
+      const signature = `${geometry.globals.join(",")}:${geometry.left}:${geometry.top}:${geometry.width}:${geometry.height}`;
+      if (!pondGraphic || !fishGraphic || !dockGraphic || !rodGraphic || pondSignature !== signature) {
+        destroyWorldScene();
+        pondGraphic = new Graphic();
+        fishGraphic = new Graphic();
+        dockGraphic = new Graphic();
+        rodGraphic = new Graphic();
+        for (const graphic of [pondGraphic, fishGraphic, dockGraphic, rodGraphic]) {
+          graphic.eventMode = "none";
+          graphic.interactive = false;
+        }
+        pondGraphic.zIndex = -999e3;
+        fishGraphic.zIndex = -998999;
+        dockGraphic.zIndex = -998998;
+        rodGraphic.zIndex = 999e3;
+        geometry.system.worldContainer.addChild(pondGraphic);
+        geometry.system.worldContainer.addChild(fishGraphic);
+        geometry.system.worldContainer.addChild(dockGraphic);
+        geometry.system.worldContainer.addChild(rodGraphic);
+        const aboveGround = findPixiNode((node) => node.label === "AboveGround");
+        if (aboveGround?.constructor) {
+          const RenderLayer = aboveGround.constructor;
+          rodRenderLayer = new RenderLayer({ sortableChildren: true });
+          rodRenderLayer.label = "GardenCompanionFishingRod";
+          rodRenderLayer.zIndex = 1000000000001;
+          geometry.system.worldContainer.addChild(rodRenderLayer);
+          rodRenderLayer.attach?.(rodGraphic);
+        }
+        farmBounds = { left: geometry.left, top: geometry.top, width: geometry.width, height: geometry.height };
+        pondBounds = { left: geometry.left, top: geometry.top, width: geometry.width * 0.62, height: geometry.height };
+        drawPond(pondGraphic, farmBounds);
+        drawDock(dockGraphic, pondBounds);
+        pondSignature = signature;
+      }
+      hideGarden(geometry.globals, geometry.system);
+      installTileDrawSuppression(geometry.system);
+      hideStandingEffects();
+      if (farmBounds) ensureSeating(farmBounds);
+      return geometry;
+    }
+    function positionPondInput(system) {
+      const input = panel2()?.querySelector(".gf-pond-input");
+      const surface = pixiSurface();
+      if (!input || !surface || !pondBounds || typeof system.worldContainer?.toGlobal !== "function") return;
+      try {
+        const corners = [
+          system.worldContainer.toGlobal({ x: pondBounds.left, y: pondBounds.top }),
+          system.worldContainer.toGlobal({ x: pondBounds.left + pondBounds.width, y: pondBounds.top }),
+          system.worldContainer.toGlobal({ x: pondBounds.left, y: pondBounds.top + pondBounds.height }),
+          system.worldContainer.toGlobal({ x: pondBounds.left + pondBounds.width, y: pondBounds.top + pondBounds.height })
+        ];
+        const xs = corners.map((point) => surface.toScreenX(point.x));
+        const ys = corners.map((point) => surface.toScreenY(point.y));
+        const left = Math.min(...xs), right = Math.max(...xs), top = Math.min(...ys), bottom = Math.max(...ys);
+        if (![left, right, top, bottom].every(Number.isFinite)) return;
+        input.hidden = false;
+        input.style.left = `${left}px`;
+        input.style.top = `${top}px`;
+        input.style.width = `${Math.max(0, right - left)}px`;
+        input.style.height = `${Math.max(0, bottom - top)}px`;
+      } catch {
+        input.hidden = true;
+      }
+    }
+    function localAvatar() {
+      const id = state.playerId || state.room?.selfPlayerId;
+      return id ? findPixiNode((node) => node.label === `AvatarContainer (${id})`) : null;
+    }
+    function applyActivePetConstraints(system) {
+      if (panel2()?.hidden !== false || !farmBounds) return;
+      const activeIds = new Set((state.slot?.data?.petSlots ?? []).map((pet) => pet.id));
+      const deckLeft = farmBounds.left + farmBounds.width * 0.62 + 48;
+      const deckRight = farmBounds.left + farmBounds.width - 48;
+      const deckTop = farmBounds.top + 126;
+      const deckBottom = farmBounds.top + farmBounds.height - 48;
+      for (const [id, petView] of system.views ?? []) {
+        if (!activeIds.has(id) || system.petInfoById?.get?.(id)?.riddenByPlayerId) continue;
+        const display = petView?.displayObject;
+        if (!display?.position || display.destroyed) continue;
+        const xProgress = Math.max(0, Math.min(1, (Number(display.x) - farmBounds.left) / Math.max(1, farmBounds.width)));
+        const yProgress = Math.max(0, Math.min(1, (Number(display.y) - farmBounds.top) / Math.max(1, farmBounds.height)));
+        display.position.set(deckLeft + xProgress * Math.max(0, deckRight - deckLeft), deckTop + yProgress * Math.max(0, deckBottom - deckTop));
+      }
+    }
+    function installPetConstraint(system) {
+      if (!system || system.__gardenFishingConstraint || typeof system.draw !== "function") return;
+      const originalDraw = system.draw;
+      system.draw = function(...args) {
+        const result = originalDraw.apply(this, args);
+        applyActivePetConstraints(this);
+        return result;
+      };
+      system.__gardenFishingConstraint = true;
+    }
+    function updateWorldScene(now) {
+      if (panel2()?.hidden || view !== "game") return;
+      applyFishingCinematic();
+      const geometry = ensureWorldScene();
+      if (!geometry || !pondBounds || !fishGraphic || !rodGraphic) return;
+      positionPondInput(geometry.system);
+      const { left, top, width, height } = pondBounds;
+      fishGraphic.clear();
+      for (const swimmer of swimmers) {
+        const direction = Math.sign(swimmer.speed) || 1;
+        const size = swimmer.size * 3.1;
+        const routeProgress = Math.max(0, Math.min(1, (swimmer.x + 0.15) / 1.3));
+        const horizontalPadding = Math.min(width * 0.2, size * 1.35);
+        const verticalPadding = Math.min(height * 0.2, size * 0.65);
+        const x = left + horizontalPadding + routeProgress * Math.max(0, width - horizontalPadding * 2);
+        const y = top + verticalPadding + swimmer.y * Math.max(0, height - verticalPadding * 2);
+        const colour = Number.parseInt(swimmer.colour.slice(1), 16);
+        fishGraphic.ellipse(x, y, size * 1.08, size * 0.56).fill({ color: 14412542, alpha: 0.13 });
+        fishGraphic.ellipse(x, y, size, size * 0.48).fill({ color: colour, alpha: 0.88 });
+        fishGraphic.ellipse(x, y, size, size * 0.48).stroke({ color: 14742270, width: Math.max(2, size * 0.08), alpha: 0.48 });
+        fishGraphic.moveTo(x - direction * size * 0.72, y).lineTo(x - direction * size * 1.22, y - size * 0.5).lineTo(x - direction * size * 1.22, y + size * 0.5).lineTo(x - direction * size * 0.72, y).fill({ color: colour, alpha: 0.82 });
+        fishGraphic.circle(x + direction * size * 0.55, y - size * 0.1, Math.max(3, size * 0.09)).fill({ color: 16317180, alpha: 1 });
+        fishGraphic.circle(x + direction * size * 0.57, y - size * 0.1, Math.max(1.5, size * 0.04)).fill({ color: 988970, alpha: 0.9 });
+      }
+      const targetX = left + width * castDistance;
+      const targetY = top + height * hookDepth;
+      const castElapsed = Math.max(0, now - castAt);
+      const casting = phase === "waiting" && castElapsed < CAST_WINDUP + CAST_FLIGHT;
+      if (phase !== "idle" && phase !== "result" && !casting) {
+        fishGraphic.circle(targetX, targetY, phase === "bite" ? 18 : 12).fill({ color: phase === "bite" ? 16498468 : 16317180, alpha: 0.92 });
+        fishGraphic.circle(targetX, targetY, phase === "bite" ? 30 + Math.sin(now / 90) * 7 : 22).stroke({ color: 14412542, width: 5, alpha: 0.32 });
+      }
+      rodGraphic.clear();
+      const avatar = localAvatar();
+      if (avatar?.getGlobalPosition && geometry.system.worldContainer?.toLocal) {
+        try {
+          const player = geometry.system.worldContainer.toLocal(avatar.getGlobalPosition());
+          const rodBaseX = player.x - 18;
+          const rodBaseY = player.y - 76;
+          let rodTipX = rodBaseX - 78;
+          let rodTipY = rodBaseY - 66;
+          if (casting && castElapsed < CAST_WINDUP) {
+            const progress2 = castElapsed / CAST_WINDUP;
+            const eased = progress2 * progress2 * (3 - 2 * progress2);
+            rodTipX += 118 * eased;
+            rodTipY -= 22 * eased;
+          } else if (casting) {
+            const progress2 = (castElapsed - CAST_WINDUP) / CAST_FLIGHT;
+            const eased = 1 - Math.pow(1 - progress2, 3);
+            rodTipX = rodBaseX + 40 - 132 * eased;
+            rodTipY = rodBaseY - 88 + 20 * eased;
+          }
+          rodGraphic.moveTo(rodBaseX, rodBaseY).lineTo(rodTipX, rodTipY).stroke({ color: 7356703, width: 9, alpha: 1 });
+          let lineEndX = targetX;
+          let lineEndY = targetY;
+          if (casting && castElapsed < CAST_WINDUP) {
+            lineEndX = rodTipX;
+            lineEndY = rodTipY;
+          } else if (casting) {
+            const progress2 = Math.max(0, Math.min(1, (castElapsed - CAST_WINDUP) / CAST_FLIGHT));
+            lineEndX = rodTipX + (targetX - rodTipX) * progress2;
+            lineEndY = rodTipY + (targetY - rodTipY) * progress2 - Math.sin(Math.PI * progress2) * 70;
+            fishGraphic.circle(lineEndX, lineEndY, 10).fill({ color: 16317180, alpha: 0.92 });
+          }
+          rodGraphic.moveTo(rodTipX, rodTipY).lineTo(lineEndX, lineEndY).stroke({ color: 14870768, width: 2, alpha: phase === "idle" || phase === "result" ? 0.35 : 0.85 });
+          rodGraphic.circle(rodBaseX, rodBaseY, 7).fill({ color: 14066011, alpha: 1 });
+        } catch {
+        }
+      }
+      installPetConstraint(page.__gardenCompanionFarmSystems?.petSystem);
+    }
+    function updateHud() {
+      const host = panel2();
+      if (!host || host.hidden || view !== "game") return;
+      const status = host.querySelector("[data-fishing-status]");
+      const weatherNode = host.querySelector("[data-fishing-weather]");
+      const progressNode = host.querySelector(".gf-fight-progress");
+      const zoneNode = host.querySelector(".gf-fight-zone");
+      const fishNode = host.querySelector(".gf-fight-fish");
+      if (status) {
+        status.textContent = message;
+        status.style.color = resultColour;
+      }
+      if (weatherNode) weatherNode.textContent = weatherLabel(weather());
+      if (progressNode) {
+        progressNode.style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
+        progressNode.style.background = hooked ? RARITIES[hooked.rarity].colour : "#34d399";
+      }
+      if (zoneNode) {
+        zoneNode.style.left = `${Math.max(0, zoneAt - zoneHeight / 2) * 100}%`;
+        zoneNode.style.width = `${zoneHeight * 100}%`;
+        zoneNode.hidden = phase !== "reel";
+      }
+      if (fishNode) {
+        fishNode.style.left = `${fishAt * 100}%`;
+        fishNode.style.color = hooked ? RARITIES[hooked.rarity].colour : "#f8fafc";
+        fishNode.style.background = hooked ? RARITIES[hooked.rarity].colour : "#f8fafc";
+        fishNode.hidden = phase !== "reel";
+      }
+    }
     const SWIMMER_COLOURS = ["#4b7f96", "#3f6f86", "#5b8f7a", "#6b7f9c", "#7a8fa0"];
     const swimmers = Array.from({ length: 9 }, () => spawnSwimmer(Math.random()));
     let walkers = [];
@@ -5890,6 +6428,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function canvas() {
       return panel2()?.querySelector("canvas") ?? null;
+    }
+    function applyFishingCinematic() {
+      if (!cinematicApplied && page.__gardenCompanionSetCinematic?.(true, "fishing")) cinematicApplied = true;
+    }
+    function restoreFishingCinematic() {
+      if (!cinematicApplied) return;
+      page.__gardenCompanionSetCinematic?.(false, "fishing");
+      cinematicApplied = false;
     }
     function weather() {
       const value = state.game?.weather;
@@ -5942,14 +6488,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function armFish(fish, now) {
       hooked = fish;
       hookedWeight = fish.min + Math.random() * (fish.max - fish.min);
-      zoneHeight = RARITIES[fish.rarity].zone;
+      zoneHeight = Math.min(0.42, RARITIES[fish.rarity].zone + equipmentTotal("zone"));
       zoneAt = 0.5;
       zoneVelocity = 0;
       fishAt = 0.5;
       fishVelocity = 0;
       fishTarget = 0.5;
       retargetAt = now;
-      progress = START_PROGRESS;
+      progress = Math.min(0.5, START_PROGRESS + equipmentTotal("start"));
       lastCatch = null;
       fightEndedAt = 0;
     }
@@ -5968,13 +6514,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       holding = false;
       view = "game";
       reelStartedAt = now;
-      reelEndsAt = now + REEL_LIMIT;
+      reelEndsAt = now + REEL_LIMIT + equipmentTotal("limit");
       setPhase("reel", `Test fight: ${fish.name}`);
       startLoop();
     }
     function beginReel(now) {
       reelStartedAt = now;
-      reelEndsAt = now + REEL_LIMIT;
+      reelEndsAt = now + REEL_LIMIT + equipmentTotal("limit");
       holding = true;
       setPhase("reel", "Hold the mouse to lift, release to drop.");
     }
@@ -5985,6 +6531,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (!hooked) return;
       fightEndedAt = performance.now();
       const existing = record.fish[hooked.id];
+      const reward = testing ? { coins: 0, xp: 0 } : catchRewards(hooked, hookedWeight);
+      const droppedItem = testing ? void 0 : itemDrop(hooked);
       if (!testing) {
         record.fish[hooked.id] = {
           count: (existing?.count ?? 0) + 1,
@@ -5992,12 +6540,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           first: existing?.first ?? Date.now()
         };
         record.caught++;
+        record.coins += reward.coins;
+        record.xp += reward.xp;
+        if (droppedItem) record.equipment[droppedItem.id] = 1;
         save();
       }
       const rule = RARITIES[hooked.rarity];
-      lastCatch = { fish: hooked, weight: hookedWeight, fresh: !testing && !existing };
+      lastCatch = { fish: hooked, weight: hookedWeight, fresh: !testing && !existing, ...reward, item: droppedItem };
       playCatch(RARITY_ORDER2.indexOf(hooked.rarity));
-      const detail = testing ? `Test fight won in ${fightLength()} - not recorded` : `Landed a ${hooked.name}, ${formatWeight(hookedWeight)} in ${fightLength()}${existing ? "" : " - new to your record!"}`;
+      const detail = testing ? `Test fight won in ${fightLength()} - not recorded` : `${hooked.name} landed in ${fightLength()}`;
       setPhase("result", detail, rule.colour);
     }
     function lose(text) {
@@ -6047,7 +6598,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const delta = Math.min(0.05, gap / 1e3 || 0);
       lastTime = now;
       if (phase === "waiting" && now >= waitUntil) beginBite(now);
-      else if (phase === "bite" && now - biteAt > BITE_WINDOW) lose("The bite went slack. It let go.");
+      else if (phase === "bite" && now - biteAt > BITE_WINDOW + equipmentTotal("bite")) lose("The bite went slack. It let go.");
       else if (phase === "reel" && hooked) {
         const rule = RARITIES[hooked.rarity];
         if (now >= retargetAt) {
@@ -6071,7 +6622,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           zoneVelocity = 0;
         }
         const inside = Math.abs(fishAt - zoneAt) < half;
-        progress += (inside ? rule.fill : -rule.drain) * FIGHT_PACE * delta;
+        progress += (inside ? rule.fill * equipmentFill() : -rule.drain) * FIGHT_PACE * delta;
         if (holding) playReelClick(inside);
         if (progress >= 1) land();
         else if (progress <= LOSE_FLOOR) lose("It threw the hook and was gone.");
@@ -6092,7 +6643,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           walker.facing = move > 0 ? 1 : -1;
         }
       }
-      draw();
+      try {
+        updateWorldScene(now);
+        updateHud();
+      } catch (error) {
+        if (!worldSceneWarningShown) console.warn("[Garden Companion] Fishing pool could not be drawn.", error);
+        worldSceneWarningShown = true;
+        destroyWorldScene();
+      }
       frame = requestAnimationFrame(step);
     }
     function startLoop() {
@@ -6778,6 +7336,26 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }).join("");
       return `<div class="gf-body"><p class="gf-note">Fish with a weather listed bite in that weather and no other. Caught fish are recorded in this browser only - nothing here touches your garden.</p><div class="gf-totals"><div><small>Caught</small><b>${record.caught.toLocaleString()}</b></div><div><small>Species</small><b>${found}/${FISH.length}</b></div><div><small>Casts</small><b>${record.casts.toLocaleString()}</b></div></div>${sections}<div class="gf-reset"><button data-reset>Reset record</button></div></div>`;
     }
+    function equipmentHtml() {
+      const level = fishingLevel(record.xp);
+      const slotNames = { rod: "Rods", line: "Lines", tackle: "Tackle" };
+      const sections = Object.keys(slotNames).map((slot) => {
+        const rows = EQUIPMENT.filter((item) => item.slot === slot).map((item) => {
+          const owned = Boolean(record.equipment[item.id]);
+          const equipped = record.equipped[slot] === item.id;
+          const sourceFish = item.foundFrom ? FISH_BY_ID.get(item.foundFrom)?.name : null;
+          let action = "";
+          if (equipped) action = "<button disabled>Equipped</button>";
+          else if (owned) action = `<button data-equip="${item.id}">Equip</button>`;
+          else if (item.price) action = `<button data-buy="${item.id}" ${record.coins < item.price ? "disabled" : ""}>${item.price.toLocaleString()} coins</button>`;
+          else action = `<button disabled>Find</button>`;
+          const acquisition = sourceFish && !owned ? `Caught from ${sourceFish}` : item.detail;
+          return `<div class="gf-gear" data-locked="${!owned && !item.price}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(acquisition)}</small></span>${action}</div>`;
+        }).join("");
+        return `<div class="gf-tier"><span>${slotNames[slot]}</span><span>${record.equipped[slot] ? escapeHtml(EQUIPMENT_BY_ID.get(record.equipped[slot])?.name ?? "") : "Empty"}</span></div><div class="gf-gear-grid">${rows}</div>`;
+      }).join("");
+      return `<div class="gf-body"><div class="gf-totals"><div><small>Fishing level</small><b>${level.level}</b></div><div><small>Fishing XP</small><b>${record.xp.toLocaleString()}</b></div><div><small>Fishing coins</small><b>${record.coins.toLocaleString()}</b></div></div><div class="gf-progress-line"><i style="width:${level.current / level.needed * 100}%"></i></div><p class="gf-note" style="margin-top:8px">${level.current.toLocaleString()} / ${level.needed.toLocaleString()} XP to the next level. Each level adds 0.5% catch progress, up to 12%. Fishing coins, XP and equipment belong only to this minigame.</p>${sections}</div>`;
+    }
     function benchHtml() {
       const tiers = RARITY_ORDER2.map((rarity) => {
         const rule = RARITIES[rarity];
@@ -6791,7 +7369,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return `<div class="gf-body"><p class="gf-note">Pick any fish to fight it straight away, skipping the cast and its weather. Bench fights are never added to your record. Pace ${FIGHT_PACE}, start ${START_PROGRESS}, floor ${LOSE_FLOOR}, limit ${REEL_LIMIT / 1e3}s.</p>${tiers}<div class="gf-reset"><button data-view="bench">Back to the pond</button></div></div>`;
     }
     function gameHtml() {
-      return `<canvas data-no-drag></canvas><div class="gf-status"><b style="color:${resultColour}">${escapeHtml(message)}</b><small>${escapeHtml(weatherLabel(weather()))}</small></div>`;
+      const catchCard = phase === "result" && lastCatch ? (() => {
+        const rule = RARITIES[lastCatch.fish.rarity];
+        const rewards = testing ? `<span>Bench catch</span>` : `<span>${lastCatch.coins} coins</span><span>${lastCatch.xp} XP</span>`;
+        const item = lastCatch.item ? `<small class="gf-catch-item">Equipment found: ${escapeHtml(lastCatch.item.name)}</small>` : "";
+        return `<div class="gf-catch" style="--catch-colour:${rule.colour}"><div class="gf-catch-fish">&#128031;</div><div><h3>${escapeHtml(lastCatch.fish.name)}</h3><p>${rule.label}${lastCatch.fresh ? " - New species" : ""}</p><small>${escapeHtml(formatWeight(lastCatch.weight))} - ${escapeHtml(fightLength())}</small><div class="gf-catch-rewards">${rewards}</div>${item}</div></div>`;
+      })() : "";
+      return `<div class="gf-game">${catchCard}<div class="gf-game-main"><button data-reel>${phase === "reel" ? "Hold to reel" : phase === "bite" ? "Set hook" : phase === "waiting" ? "Reel in" : "Cast line"}</button><div class="gf-game-copy"><b data-fishing-status style="color:${resultColour}">${escapeHtml(message)}</b><small data-fishing-weather>${escapeHtml(weatherLabel(weather()))}</small></div></div><div class="gf-fight"><i class="gf-fight-progress"></i><i class="gf-fight-zone"></i><i class="gf-fight-fish"></i></div></div>`;
     }
     function renderChrome() {
       const host = panel2();
@@ -6799,8 +7383,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const card = host.querySelector(".gf-card");
       if (!card) return;
       const quiet = fishingMuted();
-      const body = view === "collection" ? collectionHtml() : view === "bench" ? benchHtml() : gameHtml();
-      card.innerHTML = `<header><h2>&#127907; Fishing</h2><div><button data-mute title="${quiet ? "Sound off" : "Sound on"}">${quiet ? "&#128263;" : "&#128266;"}</button><button data-view="collection" data-active="${view === "collection"}" title="Catch record">&#128220;</button><button data-close aria-label="Close">&#10005;</button></div></header>${body}`;
+      const body = view === "collection" ? collectionHtml() : view === "equipment" ? equipmentHtml() : view === "bench" ? benchHtml() : gameHtml();
+      card.dataset.view = view;
+      const pondInput = host.querySelector(".gf-pond-input");
+      if (pondInput && view !== "game") pondInput.hidden = true;
+      card.innerHTML = `<header><h2>&#127907; Fishing</h2><div><button data-mute title="${quiet ? "Sound off" : "Sound on"}">${quiet ? "&#128263;" : "&#128266;"}</button><button data-view="equipment" data-active="${view === "equipment"}" title="Equipment">&#129520;</button><button data-view="collection" data-active="${view === "collection"}" title="Catch record">&#128220;</button><button data-close aria-label="Close">&#10005;</button></div></header>${body}`;
       card.querySelector("[data-close]").onclick = close;
       card.querySelector("[data-mute]").onclick = () => {
         setFishingMuted(!quiet);
@@ -6818,13 +7405,29 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const fish = FISH_BY_ID.get(button.dataset.fight);
         if (fish) startBenchFight(fish);
       });
-      card.querySelector("[data-reset]")?.addEventListener("click", () => {
-        if (!confirm("Clear your fishing record? Every catch is forgotten.")) return;
-        record = { ...EMPTY_RECORD, fish: {} };
+      card.querySelectorAll("[data-buy]").forEach((button) => button.onclick = () => {
+        const item = EQUIPMENT_BY_ID.get(button.dataset.buy);
+        if (!item?.price || record.equipment[item.id] || record.coins < item.price) return;
+        record.coins -= item.price;
+        record.equipment[item.id] = 1;
+        record.equipped[item.slot] = item.id;
         save();
         renderChrome();
       });
-      const element = card.querySelector("canvas");
+      card.querySelectorAll("[data-equip]").forEach((button) => button.onclick = () => {
+        const item = EQUIPMENT_BY_ID.get(button.dataset.equip);
+        if (!item || !record.equipment[item.id]) return;
+        record.equipped[item.slot] = item.id;
+        save();
+        renderChrome();
+      });
+      card.querySelector("[data-reset]")?.addEventListener("click", () => {
+        if (!confirm("Clear your fishing record? Every catch is forgotten.")) return;
+        record = { ...EMPTY_RECORD, fish: {}, equipment: { ...EMPTY_RECORD.equipment }, equipped: { ...EMPTY_RECORD.equipped } };
+        save();
+        renderChrome();
+      });
+      const element = card.querySelector("[data-reel]");
       if (element) {
         element.onpointerdown = (event) => {
           event.preventDefault();
@@ -6845,12 +7448,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         element.onpointercancel = release;
         element.onpointerleave = release;
       }
-      if (view === "game") draw();
+      if (view === "game") {
+        updateWorldScene(performance.now());
+        updateHud();
+      }
     }
-    function open() {
+    function open(targetView = "game") {
       const host = panel2();
       if (!host) return;
+      view = targetView;
       host.hidden = false;
+      applyFishingCinematic();
       primeFishingAudio();
       renderChrome();
       if (!draggableReady) {
@@ -6867,6 +7475,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const host = panel2();
       if (host) host.hidden = true;
       pauseLoop();
+      destroyWorldScene();
+      restoreFishingCinematic();
     }
     function mount() {
       injectStyles2();
@@ -6876,16 +7486,59 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       host.dataset.gcUi = "fishing";
       const card = document.createElement("div");
       card.className = "gf-card";
+      const pondInput = document.createElement("div");
+      pondInput.className = "gf-pond-input";
+      pondInput.hidden = true;
+      pondInput.dataset.noDrag = "";
+      host.appendChild(pondInput);
       host.appendChild(card);
       document.body.appendChild(host);
       for (const type of ["pointerdown", "pointerup", "pointermove", "pointercancel", "mousedown", "mouseup", "click", "dblclick", "wheel", "contextmenu"]) {
         card.addEventListener(type, (event) => event.stopPropagation());
+        if (type !== "wheel") pondInput.addEventListener(type, (event) => event.stopPropagation());
       }
+      pondInput.onpointerdown = (event) => {
+        event.preventDefault();
+        if (event.button !== 0) return;
+        try {
+          pondInput.setPointerCapture(event.pointerId);
+        } catch {
+        }
+        press();
+      };
+      pondInput.onpointerup = (event) => {
+        try {
+          pondInput.releasePointerCapture(event.pointerId);
+        } catch {
+        }
+        release();
+      };
+      pondInput.onpointercancel = release;
+      pondInput.addEventListener("wheel", (event) => {
+        const gameCanvas = document.querySelector(".QuinoaCanvas canvas");
+        if (!gameCanvas) return;
+        event.preventDefault();
+        event.stopPropagation();
+        gameCanvas.dispatchEvent(new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          deltaX: event.deltaX,
+          deltaY: event.deltaY,
+          deltaZ: event.deltaZ,
+          deltaMode: event.deltaMode,
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+          altKey: event.altKey,
+          metaKey: event.metaKey
+        }));
+      }, { passive: false });
       window.addEventListener("pointerup", release);
       page.__gardenCompanionToggleFishing = () => panel2()?.hidden ? open() : close();
+      page.__gardenCompanionFishingOpen = () => panel2()?.hidden === false;
       page.__gardenCompanionFishingBench = () => {
-        view = "bench";
-        open();
+        open("bench");
       };
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true });
@@ -6906,6 +7559,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const live = {
       tapToMove: null,
       tileSystem: null,
+      petSystem: null,
       worldTapRouter: null,
       inventoryItems: [],
       inventoryReady: false,
@@ -6939,6 +7593,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       live.fallbackHighlight?.destroy?.();
       live.tapToMove = null;
       live.tileSystem = null;
+      live.petSystem = null;
       live.worldTapRouter = null;
       live.fallbackHighlight = null;
       live.ownUserSlotIdx = null;
@@ -6981,6 +7636,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         watchTileSystemTeardown(system);
         disarmPrivateField("tileViews");
         log("Native farm tile map connected.");
+      } else if (system?.name === "pet" && system.views instanceof pageWindow.Map) {
+        live.petSystem = system;
+        log("Native active-pet system connected.");
       } else if (system?.name === "worldTapRouter" && Array.isArray(system.registeredClaimants)) {
         if (live.worldTapRouter === system) return;
         live.worldTapRouter = system;

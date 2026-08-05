@@ -287,7 +287,7 @@ export function initCompanion(): void {
 
   function installInstantHarvest() {
     window.addEventListener('keydown', event => {
-      if (!feature('instantHarvest') || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
+      if (!feature('instantHarvest') || page.__gardenCompanionFishingOpen?.() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
       if (state.currentAction && state.currentAction !== 'none' && !['harvest', 'rainbowHarvest', 'goldHarvest'].includes(state.currentAction)) return;
       const tile = state.slot?.data?.garden?.tileObjects?.[String(state.dirtTileIndex)];
       if (!tile?.slots?.length) return;

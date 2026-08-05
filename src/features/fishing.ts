@@ -2,6 +2,7 @@ import { page } from '../page.js';
 import { state } from '../state.js';
 import { makeDraggable } from '../draggable.js';
 import { petSpriteSource } from '../pets.js';
+import { pixiSurface } from '../pixi.js';
 import { escapeHtml, loadLocal, saveLocal } from '../utils.js';
 import { fishingMuted, playBite, playCast, playCatch, playEscape, playReelClick, primeFishingAudio, setFishingMuted } from './fishing-audio.js';
 
@@ -49,12 +50,12 @@ interface RarityRule {
 }
 
 const RARITIES: Record<Rarity, RarityRule> = {
-  common: { label: 'Common', colour: '#94a3b8', weight: 48, zone: .26, speed: 1, fill: .40, drain: .38 },
-  uncommon: { label: 'Uncommon', colour: '#34d399', weight: 28, zone: .26, speed: 1.02, fill: .39, drain: .38 },
-  rare: { label: 'Rare', colour: '#38bdf8', weight: 15, zone: .25, speed: 1.08, fill: .37, drain: .375 },
-  epic: { label: 'Epic', colour: '#a78bfa', weight: 6, zone: .24, speed: 1.15, fill: .34, drain: .37 },
-  legendary: { label: 'Legendary', colour: '#fbbf24', weight: 2.5, zone: .24, speed: 1.15, fill: .34, drain: .37 },
-  mythic: { label: 'Mythic', colour: '#f472b6', weight: .5, zone: .22, speed: 1.3, fill: .30, drain: .37 },
+  common: { label: 'Common', colour: '#94a3b8', weight: 48, zone: .34, speed: .8, fill: .48, drain: .28 },
+  uncommon: { label: 'Uncommon', colour: '#34d399', weight: 28, zone: .30, speed: .95, fill: .43, drain: .32 },
+  rare: { label: 'Rare', colour: '#38bdf8', weight: 15, zone: .26, speed: 1.1, fill: .38, drain: .37 },
+  epic: { label: 'Epic', colour: '#a78bfa', weight: 6, zone: .22, speed: 1.25, fill: .32, drain: .43 },
+  legendary: { label: 'Legendary', colour: '#fbbf24', weight: 2.5, zone: .19, speed: 1.42, fill: .27, drain: .48 },
+  mythic: { label: 'Mythic', colour: '#f472b6', weight: .5, zone: .15, speed: 1.7, fill: .21, drain: .58 },
 };
 
 const RARITY_ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
@@ -64,7 +65,7 @@ const WEATHER_MYTHIC_CHANCE = .015;
 /** How long the float stays dipped. Long enough to react to without making the hook automatic. */
 const BITE_WINDOW = 1500;
 /**
- * Reeling is a stream of clicks, so the click that lands the fish is followed by more. The canvas
+ * Reeling is a stream of clicks, so the click that lands the fish is followed by more. The controls
  * ignores them for this long, otherwise the next cast starts before the catch has been read.
  */
 const RESULT_LOCK = 1600;
@@ -265,9 +266,54 @@ const FISH: FishDef[] = [
 const FISH_BY_ID = new Map(FISH.map(fish => [fish.id, fish]));
 
 interface CatchRecord { count: number; best: number; first: number }
-interface FishingRecord { casts: number; caught: number; escaped: number; fish: Record<string, CatchRecord> }
+type EquipmentSlot = 'rod' | 'line' | 'tackle';
+interface EquipmentDef {
+  id: string;
+  name: string;
+  slot: EquipmentSlot;
+  detail: string;
+  price?: number;
+  foundFrom?: string;
+  dropChance?: number;
+  zone?: number;
+  fill?: number;
+  start?: number;
+  limit?: number;
+  bite?: number;
+}
+interface FishingRecord {
+  casts: number;
+  caught: number;
+  escaped: number;
+  fish: Record<string, CatchRecord>;
+  coins: number;
+  xp: number;
+  equipment: Record<string, number>;
+  equipped: Record<EquipmentSlot, string>;
+}
 
-const EMPTY_RECORD: FishingRecord = { casts: 0, caught: 0, escaped: 0, fish: {} };
+const EQUIPMENT: EquipmentDef[] = [
+  { id: 'reedRod', name: 'Reed Rod', slot: 'rod', detail: 'A dependable first rod.' },
+  { id: 'oakRod', name: 'Oak Rod', slot: 'rod', detail: '+2% catch zone and +5% progress.', price: 150, zone: .02, fill: 1.05 },
+  { id: 'silverRod', name: 'Silver Rod', slot: 'rod', detail: '+3% catch zone and +10% progress.', price: 600, zone: .03, fill: 1.1 },
+  { id: 'moonRod', name: 'Moon Rod', slot: 'rod', detail: '+4% catch zone and +16% progress.', price: 1800, zone: .04, fill: 1.16 },
+  { id: 'braidedLine', name: 'Braided Line', slot: 'line', detail: '+5 seconds before the line breaks.', foundFrom: 'speckledTrout', dropChance: .1, limit: 5000 },
+  { id: 'silkLine', name: 'Mirror Silk Line', slot: 'line', detail: '+10 seconds before the line breaks.', foundFrom: 'mirrorfinArowana', dropChance: .08, limit: 10000 },
+  { id: 'reedFloat', name: 'Reed Float', slot: 'tackle', detail: '+300ms to set the hook.', foundFrom: 'reedPerch', dropChance: .14, bite: 300 },
+  { id: 'barbedHook', name: 'Ironjaw Hook', slot: 'tackle', detail: 'Begin each fight with 7% more progress.', foundFrom: 'ironjawCatfish', dropChance: .1, start: .07 },
+  { id: 'crownLure', name: 'Crownscale Lure', slot: 'tackle', detail: '+3% catch zone.', foundFrom: 'crownscaleArapaima', dropChance: .08, zone: .03 },
+  { id: 'prismLure', name: 'Prismatic Lure', slot: 'tackle', detail: '+12% progress while the fish is controlled.', foundFrom: 'rainbowWhiskerfish', dropChance: .12, fill: 1.12 },
+];
+const EQUIPMENT_BY_ID = new Map(EQUIPMENT.map(item => [item.id, item]));
+const RARITY_REWARDS: Record<Rarity, { coins: number; xp: number }> = {
+  common: { coins: 5, xp: 8 }, uncommon: { coins: 11, xp: 14 }, rare: { coins: 24, xp: 26 },
+  epic: { coins: 52, xp: 48 }, legendary: { coins: 110, xp: 90 }, mythic: { coins: 240, xp: 165 },
+};
+
+const EMPTY_RECORD: FishingRecord = {
+  casts: 0, caught: 0, escaped: 0, fish: {}, coins: 0, xp: 0,
+  equipment: { reedRod: 1 }, equipped: { rod: 'reedRod', line: '', tackle: '' },
+};
 
 function loadRecord(): FishingRecord {
   const stored = loadLocal<Partial<FishingRecord>>(RECORD_KEY, {});
@@ -276,7 +322,23 @@ function loadRecord(): FishingRecord {
     caught: Number(stored.caught) || 0,
     escaped: Number(stored.escaped) || 0,
     fish: stored.fish && typeof stored.fish === 'object' ? stored.fish : {},
+    coins: Number(stored.coins) || 0,
+    xp: Number(stored.xp) || 0,
+    equipment: stored.equipment && typeof stored.equipment === 'object' ? { reedRod: 1, ...stored.equipment } : { reedRod: 1 },
+    equipped: { ...EMPTY_RECORD.equipped, ...(stored.equipped ?? {}) },
   };
+}
+
+function fishingLevel(xp: number): { level: number; current: number; needed: number } {
+  let level = 1;
+  let remaining = Math.max(0, xp);
+  let needed = 60;
+  while (remaining >= needed) {
+    remaining -= needed;
+    level++;
+    needed = Math.round(60 * Math.pow(level, 1.35));
+  }
+  return { level, current: remaining, needed };
 }
 
 function weightedPick<T>(items: T[], weight: (item: T) => number): T {
@@ -323,7 +385,8 @@ function injectStyles(): void {
   style.textContent = `
     #${PANEL_ID}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID}[hidden]{display:none}
-    #${PANEL_ID} .gf-card{position:fixed;right:14px;bottom:56px;width:min(780px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
+    #${PANEL_ID} .gf-card{position:fixed;right:14px;bottom:56px;width:min(780px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 18px 50px rgba(0,0,0,.7),inset 0 1px rgba(255,255,255,.035)}
+    #${PANEL_ID} .gf-card[data-view=game]{width:min(360px,calc(100vw - 24px))}
     #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move}
     #${PANEL_ID} h2{margin:0;font:700 13px/1.2 system-ui,sans-serif;letter-spacing:.02em}
     #${PANEL_ID} header div{display:flex;align-items:center;gap:4px}
@@ -332,7 +395,32 @@ function injectStyles(): void {
     #${PANEL_ID} button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
     #${PANEL_ID} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
     #${PANEL_ID} header button[data-close]{border-radius:50%;background:transparent}
-    #${PANEL_ID} canvas{display:block;width:100%;height:min(420px,calc(100vh - 150px));cursor:pointer}
+    #${PANEL_ID} .gf-pond-input{position:fixed;pointer-events:auto;touch-action:none;cursor:crosshair}
+    #${PANEL_ID} .gf-game{padding:10px 12px 12px}
+    #${PANEL_ID} .gf-game-main{display:flex;align-items:center;gap:10px}
+    #${PANEL_ID} .gf-game-main button{min-width:92px;height:38px;font-size:11px}
+    #${PANEL_ID} .gf-game-copy{flex:1;min-width:0}
+    #${PANEL_ID} .gf-game-copy b{display:block;color:#f8fafc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #${PANEL_ID} .gf-game-copy small{display:block;margin-top:2px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px}
+    #${PANEL_ID} .gf-fight{position:relative;height:12px;margin-top:9px;overflow:hidden;border-radius:6px;background:rgba(255,255,255,.06)}
+    #${PANEL_ID} .gf-fight-progress{position:absolute;inset:0 auto 0 0;width:0;background:#34d399;opacity:.7}
+    #${PANEL_ID} .gf-fight-zone{position:absolute;top:1px;bottom:1px;left:0;width:20%;border:1px solid rgba(255,255,255,.68);border-radius:5px;background:rgba(52,211,153,.18)}
+    #${PANEL_ID} .gf-fight-fish{position:absolute;top:2px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#f8fafc;box-shadow:0 0 5px currentColor}
+    #${PANEL_ID} .gf-catch{display:grid;grid-template-columns:58px 1fr;gap:10px;margin-bottom:10px;padding:10px;border:1px solid color-mix(in srgb,var(--catch-colour) 45%,transparent);border-radius:10px;background:color-mix(in srgb,var(--catch-colour) 10%,rgba(255,255,255,.025))}
+    #${PANEL_ID} .gf-catch-fish{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;color:var(--catch-colour);background:color-mix(in srgb,var(--catch-colour) 16%,#09090b);font-size:31px;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--catch-colour) 55%,transparent))}
+    #${PANEL_ID} .gf-catch h3{margin:0;color:#fff;font:800 15px/1.2 system-ui,sans-serif}
+    #${PANEL_ID} .gf-catch p{margin:3px 0 0;color:var(--catch-colour);font:700 10px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em}
+    #${PANEL_ID} .gf-catch small{display:block;margin-top:5px;color:#e4e4e7;font-size:10px}
+    #${PANEL_ID} .gf-catch-rewards{display:flex;gap:10px;margin-top:5px;color:#f8fafc;font-size:10px;font-weight:700}
+    #${PANEL_ID} .gf-catch-item{color:#fbbf24!important}
+    #${PANEL_ID} .gf-progress-line{height:7px;overflow:hidden;border-radius:4px;background:rgba(255,255,255,.07)}
+    #${PANEL_ID} .gf-progress-line i{display:block;height:100%;background:#a78bfa}
+    #${PANEL_ID} .gf-gear-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+    #${PANEL_ID} .gf-gear{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
+    #${PANEL_ID} .gf-gear span{flex:1;min-width:0}
+    #${PANEL_ID} .gf-gear b,#${PANEL_ID} .gf-gear small{display:block}
+    #${PANEL_ID} .gf-gear small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px}
+    #${PANEL_ID} .gf-gear[data-locked=true]{opacity:.5}
     #${PANEL_ID} .gf-status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
     #${PANEL_ID} .gf-status b{font:700 12px system-ui,sans-serif}
     #${PANEL_ID} .gf-status small{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;white-space:nowrap}
@@ -403,7 +491,7 @@ type Phase = 'idle' | 'waiting' | 'bite' | 'reel' | 'result';
 
 export function initFishing(): void {
   let record = loadRecord();
-  let view: 'game' | 'collection' | 'bench' = 'game';
+  let view: 'game' | 'collection' | 'equipment' | 'bench' = 'game';
   let phase: Phase = 'idle';
   let message = 'Click the pond to put a line in.';
   let holding = false;
@@ -425,15 +513,493 @@ export function initFishing(): void {
   let progress = 0;
   let resultColour = 'rgba(255,255,255,.72)';
   let resultLockUntil = 0;
-  let lastCatch: { fish: FishDef; weight: number; fresh: boolean } | null = null;
+  let lastCatch: { fish: FishDef; weight: number; fresh: boolean; coins: number; xp: number; item?: EquipmentDef } | null = null;
   let testing = false;
   let reelStartedAt = 0;
   let fightEndedAt = 0;
   let draggableReady = false;
+  let cinematicApplied = false;
   let currentSceneWeather: FishingSceneWeather = 'Clear';
   let previousSceneWeather: FishingSceneWeather = 'Clear';
   let sceneWeatherChangedAt = 0;
   let sceneWeatherReady = false;
+  const hiddenGardenNodes = new Map<Record<string, any>, { alpha: number; visible: boolean; renderable: boolean }>();
+  const hiddenEffectNodes = new Map<Record<string, any>, { alpha: number; visible: boolean; renderable: boolean }>();
+  let pondGraphic: Record<string, any> | null = null;
+  let fishGraphic: Record<string, any> | null = null;
+  let dockGraphic: Record<string, any> | null = null;
+  let rodGraphic: Record<string, any> | null = null;
+  let rodRenderLayer: Record<string, any> | null = null;
+  let seatingSprites: Record<string, any>[] = [];
+  let pondSignature = '';
+  let pondBounds: { left: number; top: number; width: number; height: number } | null = null;
+  let farmBounds: { left: number; top: number; width: number; height: number } | null = null;
+  let worldSceneWarningShown = false;
+
+  function equippedEffects(): EquipmentDef[] {
+    return (Object.values(record.equipped) as string[]).map(id => EQUIPMENT_BY_ID.get(id)).filter((item): item is EquipmentDef => Boolean(item));
+  }
+
+  function equipmentTotal(key: 'zone' | 'start' | 'limit' | 'bite'): number {
+    return equippedEffects().reduce((total, item) => total + (item[key] ?? 0), 0);
+  }
+
+  function equipmentFill(): number {
+    const levelBonus = 1 + Math.min(.12, (fishingLevel(record.xp).level - 1) * .005);
+    return equippedEffects().reduce((total, item) => total * (item.fill ?? 1), levelBonus);
+  }
+
+  function catchRewards(fish: FishDef, weight: number): { coins: number; xp: number } {
+    const base = RARITY_REWARDS[fish.rarity];
+    const weightFactor = .7 + Math.max(0, Math.min(1, (weight - fish.min) / Math.max(.01, fish.max - fish.min))) * .8;
+    return { coins: Math.max(1, Math.round(base.coins * weightFactor)), xp: Math.max(1, Math.round(base.xp * weightFactor)) };
+  }
+
+  function itemDrop(fish: FishDef): EquipmentDef | undefined {
+    const item = EQUIPMENT.find(candidate => candidate.foundFrom === fish.id && !record.equipment[candidate.id]);
+    return item && Math.random() < (item.dropChance ?? 0) ? item : undefined;
+  }
+
+  function findPixiNode(predicate: (node: Record<string, any>) => boolean): Record<string, any> | null {
+    const surface = pixiSurface();
+    if (!surface) return null;
+    const stack = [surface.stage];
+    const seen = new WeakSet<object>();
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node || typeof node !== 'object' || seen.has(node)) continue;
+      seen.add(node);
+      if (predicate(node)) return node;
+      if (Array.isArray(node.children)) stack.push(...node.children);
+    }
+    return null;
+  }
+
+  function graphicsConstructor(): (new (...args: any[]) => Record<string, any>) | null {
+    const marker = page.__gardenCompanionFarmSystems?.tapToMove?.hoverMarker;
+    if (marker?.constructor) return marker.constructor;
+    return (findPixiNode(node => node.renderPipeId === 'graphics' && typeof node.clear === 'function')?.constructor as (new (...args: any[]) => Record<string, any>) | undefined) ?? null;
+  }
+
+  function farmGeometry(): { system: Record<string, any>; globals: number[]; left: number; top: number; width: number; height: number } | null {
+    const systems = page.__gardenCompanionFarmSystems;
+    const system = systems?.tileSystem;
+    const slotIndex = systems?.ownUserSlotIdx;
+    const dirtMapping = slotIndex == null ? null : system?.map?.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slotIndex];
+    const boardwalkMapping = slotIndex == null ? null : system?.map?.userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx?.[slotIndex];
+    if (!system?.worldContainer || !dirtMapping) return null;
+    const globals = [...Object.values(dirtMapping), ...Object.values(boardwalkMapping ?? {})].map(Number).filter(Number.isFinite);
+    const cols = Number(system.map?.cols);
+    if (!globals.length || !Number.isFinite(cols) || cols <= 0) return null;
+    const xs = globals.map(index => index % cols);
+    const ys = globals.map(index => Math.floor(index / cols));
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const inset = 24;
+    return {
+      system,
+      globals,
+      left: minX * 256 + inset,
+      top: minY * 256 + inset,
+      width: (maxX - minX + 1) * 256 - inset * 2,
+      height: (maxY - minY + 1) * 256 - inset * 2,
+    };
+  }
+
+  function hideGarden(globals: number[], system: Record<string, any>): void {
+    for (const index of globals) {
+      const node = system.tileViews?.get?.(index)?.displayObject;
+      if (!node || node.destroyed) continue;
+      if (!hiddenGardenNodes.has(node)) hiddenGardenNodes.set(node, {
+        alpha: Number(node.alpha), visible: node.visible !== false, renderable: node.renderable !== false,
+      });
+      node.alpha = 0;
+      node.visible = false;
+      node.renderable = false;
+    }
+  }
+
+  function restoreGarden(): void {
+    for (const [node, saved] of hiddenGardenNodes) {
+      if (!node.destroyed) {
+        node.alpha = Number.isFinite(saved.alpha) ? saved.alpha : 1;
+        node.visible = saved.visible;
+        node.renderable = saved.renderable;
+      }
+    }
+    hiddenGardenNodes.clear();
+    for (const [node, saved] of hiddenEffectNodes) {
+      if (!node.destroyed) {
+        node.alpha = Number.isFinite(saved.alpha) ? saved.alpha : 1;
+        node.visible = saved.visible;
+        node.renderable = saved.renderable;
+      }
+    }
+    hiddenEffectNodes.clear();
+  }
+
+  function hideStandingEffects(): void {
+    const overlay = findPixiNode(node => node.label === 'WorldOverlay');
+    if (!overlay || overlay.destroyed) return;
+    if (!hiddenEffectNodes.has(overlay)) hiddenEffectNodes.set(overlay, {
+      alpha: Number(overlay.alpha), visible: overlay.visible !== false, renderable: overlay.renderable !== false,
+    });
+    overlay.alpha = 0;
+    overlay.visible = false;
+    overlay.renderable = false;
+  }
+
+  function installTileDrawSuppression(system: Record<string, any>): void {
+    for (const tileView of system.tileViews?.values?.() ?? []) {
+      if (!tileView || tileView.__gardenFishingDrawWrapped || typeof tileView.draw !== 'function') continue;
+      const originalDraw = tileView.draw;
+      tileView.draw = function(...args: any[]) {
+        if (panel()?.hidden === false) return;
+        return originalDraw.apply(this, args);
+      };
+      tileView.__gardenFishingDrawWrapped = true;
+    }
+  }
+
+  function destroyGraphic(graphic: Record<string, any> | null): void {
+    if (!graphic) return;
+    try { graphic.destroy?.({ children: true }); }
+    catch { try { graphic.parent?.removeChild?.(graphic); } catch {} }
+  }
+
+  function destroySeating(): void {
+    for (const sprite of seatingSprites) destroyGraphic(sprite);
+    seatingSprites = [];
+  }
+
+  function destroyWorldScene(): void {
+    restoreGarden();
+    destroyGraphic(pondGraphic);
+    destroyGraphic(fishGraphic);
+    destroyGraphic(dockGraphic);
+    destroyGraphic(rodGraphic);
+    destroyGraphic(rodRenderLayer);
+    destroySeating();
+    pondGraphic = fishGraphic = dockGraphic = rodGraphic = rodRenderLayer = null;
+    pondSignature = '';
+    pondBounds = null;
+    farmBounds = null;
+    const input = panel()?.querySelector<HTMLElement>('.gf-pond-input');
+    if (input) input.hidden = true;
+  }
+
+  function drawPond(graphic: Record<string, any>, bounds: NonNullable<typeof farmBounds>): void {
+    const { left, top, width, height } = bounds;
+    const waterWidth = width * .62;
+    const deckLeft = left + waterWidth + 20;
+    graphic.clear();
+    graphic.roundRect(left - 36, top - 36, width + 72, height + 72, 72).fill({ color: 0x173b27, alpha: 1 });
+    graphic.roundRect(left - 18, top - 18, width + 36, height + 36, 58).stroke({ color: 0x3f6b39, width: 34, alpha: 1 });
+    graphic.roundRect(left, top, waterWidth, height, 44).fill({ color: 0x226b79, alpha: 1 });
+    graphic.roundRect(left + 10, top + 10, waterWidth - 20, height - 20, 36).stroke({ color: 0x63b8b1, width: 8, alpha: .28 });
+    graphic.roundRect(deckLeft, top, Math.max(40, left + width - deckLeft), height, 30).fill({ color: 0x8b5a2b, alpha: 1 });
+    for (let y = top + 22; y < top + height; y += 42) {
+      graphic.moveTo(deckLeft + 8, y).lineTo(left + width - 8, y).stroke({ color: 0xc08346, width: 6, alpha: .58 });
+    }
+    graphic.moveTo(deckLeft - 10, top + 12).lineTo(deckLeft - 10, top + height - 12).stroke({ color: 0x5f3a20, width: 18, alpha: .9 });
+    const hedgeCount = Math.max(8, Math.floor((width + height) / 180));
+    for (let index = 0; index < hedgeCount; index++) {
+      const fraction = index / hedgeCount;
+      const horizontal = index % 2 === 0;
+      const x = horizontal ? left + fraction * width : (index % 4 === 1 ? left - 27 : left + width + 27);
+      const y = horizontal ? (index % 4 === 0 ? top - 27 : top + height + 27) : top + fraction * height;
+      graphic.circle(x, y, 30 + index % 3 * 4).fill({ color: index % 2 ? 0x2f6b36 : 0x397a3f, alpha: 1 });
+      graphic.circle(x - 7, y - 8, 12).fill({ color: 0x5b954c, alpha: .72 });
+    }
+    for (let index = 0; index < 7; index++) {
+      const x = left + waterWidth * (.12 + (index * .137) % .76);
+      const y = top + height * (.16 + (index * .223) % .66);
+      graphic.ellipse(x, y, 29, 17).fill({ color: 0x4b8b4a, alpha: .9 });
+      graphic.ellipse(x - 3, y - 3, 20, 10).fill({ color: 0x6ca65d, alpha: .34 });
+      graphic.moveTo(x, y).lineTo(x + 24, y - 8).stroke({ color: 0x255f39, width: 3, alpha: .85 });
+      if (index % 2 === 0) {
+        for (let petal = 0; petal < 5; petal++) {
+          const angle = petal * Math.PI * 2 / 5;
+          graphic.ellipse(x + Math.cos(angle) * 8, y - 5 + Math.sin(angle) * 5, 7, 4).fill({ color: 0xf9a8d4, alpha: .95 });
+        }
+        graphic.circle(x, y - 5, 4).fill({ color: 0xfde68a, alpha: 1 });
+      }
+    }
+  }
+
+  function spriteConstructor(): Record<string, any> | null {
+    return findPixiNode(node => node.texture && node.anchor && typeof (node.constructor as any)?.from === 'function')?.constructor as Record<string, any> ?? null;
+  }
+
+  function addSeatingSprite(Sprite: Record<string, any>, source: HTMLImageElement, x: number, y: number, width: number): void {
+    try {
+      const sprite = Sprite.from(source);
+      sprite.anchor?.set?.(.5, 1);
+      const ratio = Number(sprite.texture?.height) > 0 ? Number(sprite.texture.width) / Number(sprite.texture.height) : 1;
+      sprite.width = width;
+      sprite.height = width / Math.max(.2, ratio);
+      if (sprite.texture?.source) sprite.texture.source.scaleMode = 'linear';
+      sprite.position.set(x, y);
+      sprite.eventMode = 'none';
+      sprite.interactive = false;
+      sprite.zIndex = -998_997;
+      seatingSprites.push(sprite);
+      farmBounds && page.__gardenCompanionFarmSystems?.tileSystem?.worldContainer?.addChild?.(sprite);
+    } catch {}
+  }
+
+  function ensureSeating(bounds: NonNullable<typeof farmBounds>): void {
+    if (seatingSprites.length) return;
+    const benchSource = page.__gardenCompanionShopSprites?.StoneBench;
+    const stoolSource = page.__gardenCompanionShopSprites?.WoodStoolShort;
+    const benchImage = benchSource ? readyImage(benchSource) : null;
+    const stoolImage = stoolSource ? readyImage(stoolSource) : null;
+    const Sprite = spriteConstructor();
+    if (!benchImage || !stoolImage || !Sprite) return;
+    const deckLeft = bounds.left + bounds.width * .62 + 20;
+    const deckRight = bounds.left + bounds.width;
+    const deckWidth = Math.max(1, deckRight - deckLeft);
+    const benchCount = Math.max(2, Math.floor(deckWidth / 230));
+    for (let index = 0; index < benchCount; index++) {
+      const x = deckLeft + deckWidth * (index + .5) / benchCount;
+      addSeatingSprite(Sprite, benchImage, x, bounds.top + 118, 172);
+      addSeatingSprite(Sprite, benchImage, x, bounds.top + bounds.height - 18, 172);
+    }
+    const stoolTop = bounds.top + 190;
+    const stoolBottom = bounds.top + bounds.height - 145;
+    const stoolCount = Math.max(3, Math.floor(Math.max(1, stoolBottom - stoolTop) / 210));
+    for (let index = 0; index < stoolCount; index++) {
+      const y = stoolCount === 1 ? (stoolTop + stoolBottom) / 2 : stoolTop + (stoolBottom - stoolTop) * index / (stoolCount - 1);
+      addSeatingSprite(Sprite, stoolImage, deckRight - 72, y, 82);
+    }
+  }
+
+  function drawDock(graphic: Record<string, any>, water: NonNullable<typeof pondBounds>): void {
+    const tileSize = Math.min(256, water.width * .22, water.height * .24);
+    const width = tileSize * 2;
+    const height = tileSize * 2;
+    const left = water.left + water.width - width;
+    const top = water.top + (water.height - height) / 2;
+    graphic.clear();
+    graphic.roundRect(left - 10, top - 10, width + 20, height + 20, 14).fill({ color: 0x4a2b17, alpha: 1 });
+    for (let row = 0; row < 2; row++) {
+      for (let column = 0; column < 2; column++) {
+        const x = left + column * tileSize;
+        const y = top + row * tileSize;
+        graphic.rect(x + 4, y + 4, tileSize - 8, tileSize - 8).fill({ color: (row + column) % 2 ? 0x996235 : 0xa86d3b, alpha: 1 });
+        for (let plank = 1; plank < 4; plank++) {
+          graphic.moveTo(x + 7, y + plank * tileSize / 4).lineTo(x + tileSize - 7, y + plank * tileSize / 4).stroke({ color: 0x60391f, width: 4, alpha: .7 });
+        }
+      }
+    }
+    for (const [x, y] of [[left, top], [left + width, top], [left, top + height], [left + width, top + height]]) {
+      graphic.circle(x, y, 13).fill({ color: 0x372013, alpha: 1 });
+      graphic.circle(x, y - 3, 7).fill({ color: 0x8b5a32, alpha: 1 });
+    }
+  }
+
+  function ensureWorldScene(): ReturnType<typeof farmGeometry> {
+    const geometry = farmGeometry();
+    const Graphic = graphicsConstructor();
+    if (!geometry || !Graphic) return null;
+    const signature = `${geometry.globals.join(',')}:${geometry.left}:${geometry.top}:${geometry.width}:${geometry.height}`;
+    if (!pondGraphic || !fishGraphic || !dockGraphic || !rodGraphic || pondSignature !== signature) {
+      destroyWorldScene();
+      pondGraphic = new Graphic();
+      fishGraphic = new Graphic();
+      dockGraphic = new Graphic();
+      rodGraphic = new Graphic();
+      for (const graphic of [pondGraphic, fishGraphic, dockGraphic, rodGraphic]) {
+        graphic.eventMode = 'none';
+        graphic.interactive = false;
+      }
+      pondGraphic.zIndex = -999_000;
+      fishGraphic.zIndex = -998_999;
+      dockGraphic.zIndex = -998_998;
+      rodGraphic.zIndex = 999_000;
+      geometry.system.worldContainer.addChild(pondGraphic);
+      geometry.system.worldContainer.addChild(fishGraphic);
+      geometry.system.worldContainer.addChild(dockGraphic);
+      geometry.system.worldContainer.addChild(rodGraphic);
+      const aboveGround = findPixiNode(node => node.label === 'AboveGround');
+      if (aboveGround?.constructor) {
+        const RenderLayer = aboveGround.constructor as unknown as new (options?: Record<string, unknown>) => Record<string, any>;
+        rodRenderLayer = new RenderLayer({ sortableChildren: true });
+        rodRenderLayer.label = 'GardenCompanionFishingRod';
+        rodRenderLayer.zIndex = 0xe8d4a51001;
+        geometry.system.worldContainer.addChild(rodRenderLayer);
+        rodRenderLayer.attach?.(rodGraphic);
+      }
+      farmBounds = { left: geometry.left, top: geometry.top, width: geometry.width, height: geometry.height };
+      pondBounds = { left: geometry.left, top: geometry.top, width: geometry.width * .62, height: geometry.height };
+      drawPond(pondGraphic, farmBounds);
+      drawDock(dockGraphic, pondBounds);
+      pondSignature = signature;
+    }
+    hideGarden(geometry.globals, geometry.system);
+    installTileDrawSuppression(geometry.system);
+    hideStandingEffects();
+    if (farmBounds) ensureSeating(farmBounds);
+    return geometry;
+  }
+
+  function positionPondInput(system: Record<string, any>): void {
+    const input = panel()?.querySelector<HTMLElement>('.gf-pond-input');
+    const surface = pixiSurface();
+    if (!input || !surface || !pondBounds || typeof system.worldContainer?.toGlobal !== 'function') return;
+    try {
+      const corners = [
+        system.worldContainer.toGlobal({ x: pondBounds.left, y: pondBounds.top }),
+        system.worldContainer.toGlobal({ x: pondBounds.left + pondBounds.width, y: pondBounds.top }),
+        system.worldContainer.toGlobal({ x: pondBounds.left, y: pondBounds.top + pondBounds.height }),
+        system.worldContainer.toGlobal({ x: pondBounds.left + pondBounds.width, y: pondBounds.top + pondBounds.height }),
+      ];
+      const xs = corners.map(point => surface.toScreenX(point.x));
+      const ys = corners.map(point => surface.toScreenY(point.y));
+      const left = Math.min(...xs), right = Math.max(...xs), top = Math.min(...ys), bottom = Math.max(...ys);
+      if (![left, right, top, bottom].every(Number.isFinite)) return;
+      input.hidden = false;
+      input.style.left = `${left}px`;
+      input.style.top = `${top}px`;
+      input.style.width = `${Math.max(0, right - left)}px`;
+      input.style.height = `${Math.max(0, bottom - top)}px`;
+    } catch { input.hidden = true; }
+  }
+
+  function localAvatar(): Record<string, any> | null {
+    const id = state.playerId || state.room?.selfPlayerId;
+    return id ? findPixiNode(node => node.label === `AvatarContainer (${id})`) : null;
+  }
+
+  function applyActivePetConstraints(system: Record<string, any>): void {
+    if (panel()?.hidden !== false || !farmBounds) return;
+    const activeIds = new Set((state.slot?.data?.petSlots ?? []).map(pet => pet.id));
+    const deckLeft = farmBounds.left + farmBounds.width * .62 + 48;
+    const deckRight = farmBounds.left + farmBounds.width - 48;
+    const deckTop = farmBounds.top + 126;
+    const deckBottom = farmBounds.top + farmBounds.height - 48;
+    for (const [id, petView] of system.views ?? []) {
+      if (!activeIds.has(id) || system.petInfoById?.get?.(id)?.riddenByPlayerId) continue;
+      const display = petView?.displayObject;
+      if (!display?.position || display.destroyed) continue;
+      const xProgress = Math.max(0, Math.min(1, (Number(display.x) - farmBounds.left) / Math.max(1, farmBounds.width)));
+      const yProgress = Math.max(0, Math.min(1, (Number(display.y) - farmBounds.top) / Math.max(1, farmBounds.height)));
+      display.position.set(deckLeft + xProgress * Math.max(0, deckRight - deckLeft), deckTop + yProgress * Math.max(0, deckBottom - deckTop));
+    }
+  }
+
+  function installPetConstraint(system: Record<string, any> | null | undefined): void {
+    if (!system || system.__gardenFishingConstraint || typeof system.draw !== 'function') return;
+    const originalDraw = system.draw;
+    system.draw = function(...args: any[]) {
+      const result = originalDraw.apply(this, args);
+      applyActivePetConstraints(this);
+      return result;
+    };
+    system.__gardenFishingConstraint = true;
+  }
+
+  function updateWorldScene(now: number): void {
+    if (panel()?.hidden || view !== 'game') return;
+    applyFishingCinematic();
+    const geometry = ensureWorldScene();
+    if (!geometry || !pondBounds || !fishGraphic || !rodGraphic) return;
+    positionPondInput(geometry.system);
+    const { left, top, width, height } = pondBounds;
+    fishGraphic.clear();
+    for (const swimmer of swimmers) {
+      const direction = Math.sign(swimmer.speed) || 1;
+      const size = swimmer.size * 3.1;
+      const routeProgress = Math.max(0, Math.min(1, (swimmer.x + .15) / 1.3));
+      const horizontalPadding = Math.min(width * .2, size * 1.35);
+      const verticalPadding = Math.min(height * .2, size * .65);
+      const x = left + horizontalPadding + routeProgress * Math.max(0, width - horizontalPadding * 2);
+      const y = top + verticalPadding + swimmer.y * Math.max(0, height - verticalPadding * 2);
+      const colour = Number.parseInt(swimmer.colour.slice(1), 16);
+      fishGraphic.ellipse(x, y, size * 1.08, size * .56).fill({ color: 0xdbeafe, alpha: .13 });
+      fishGraphic.ellipse(x, y, size, size * .48).fill({ color: colour, alpha: .88 });
+      fishGraphic.ellipse(x, y, size, size * .48).stroke({ color: 0xe0f2fe, width: Math.max(2, size * .08), alpha: .48 });
+      fishGraphic.moveTo(x - direction * size * .72, y)
+        .lineTo(x - direction * size * 1.22, y - size * .5)
+        .lineTo(x - direction * size * 1.22, y + size * .5)
+        .lineTo(x - direction * size * .72, y)
+        .fill({ color: colour, alpha: .82 });
+      fishGraphic.circle(x + direction * size * .55, y - size * .1, Math.max(3, size * .09)).fill({ color: 0xf8fafc, alpha: 1 });
+      fishGraphic.circle(x + direction * size * .57, y - size * .1, Math.max(1.5, size * .04)).fill({ color: 0x0f172a, alpha: .9 });
+    }
+    const targetX = left + width * castDistance;
+    const targetY = top + height * hookDepth;
+    const castElapsed = Math.max(0, now - castAt);
+    const casting = phase === 'waiting' && castElapsed < CAST_WINDUP + CAST_FLIGHT;
+    if (phase !== 'idle' && phase !== 'result' && !casting) {
+      fishGraphic.circle(targetX, targetY, phase === 'bite' ? 18 : 12).fill({ color: phase === 'bite' ? 0xfbbf24 : 0xf8fafc, alpha: .92 });
+      fishGraphic.circle(targetX, targetY, phase === 'bite' ? 30 + Math.sin(now / 90) * 7 : 22).stroke({ color: 0xdbeafe, width: 5, alpha: .32 });
+    }
+    rodGraphic.clear();
+    const avatar = localAvatar();
+    if (avatar?.getGlobalPosition && geometry.system.worldContainer?.toLocal) {
+      try {
+        const player = geometry.system.worldContainer.toLocal(avatar.getGlobalPosition());
+        const rodBaseX = player.x - 18;
+        const rodBaseY = player.y - 76;
+        let rodTipX = rodBaseX - 78;
+        let rodTipY = rodBaseY - 66;
+        if (casting && castElapsed < CAST_WINDUP) {
+          const progress = castElapsed / CAST_WINDUP;
+          const eased = progress * progress * (3 - 2 * progress);
+          rodTipX += 118 * eased;
+          rodTipY -= 22 * eased;
+        } else if (casting) {
+          const progress = (castElapsed - CAST_WINDUP) / CAST_FLIGHT;
+          const eased = 1 - Math.pow(1 - progress, 3);
+          rodTipX = rodBaseX + 40 - 132 * eased;
+          rodTipY = rodBaseY - 88 + 20 * eased;
+        }
+        rodGraphic.moveTo(rodBaseX, rodBaseY).lineTo(rodTipX, rodTipY).stroke({ color: 0x70411f, width: 9, alpha: 1 });
+        let lineEndX = targetX;
+        let lineEndY = targetY;
+        if (casting && castElapsed < CAST_WINDUP) {
+          lineEndX = rodTipX;
+          lineEndY = rodTipY;
+        } else if (casting) {
+          const progress = Math.max(0, Math.min(1, (castElapsed - CAST_WINDUP) / CAST_FLIGHT));
+          lineEndX = rodTipX + (targetX - rodTipX) * progress;
+          lineEndY = rodTipY + (targetY - rodTipY) * progress - Math.sin(Math.PI * progress) * 70;
+          fishGraphic.circle(lineEndX, lineEndY, 10).fill({ color: 0xf8fafc, alpha: .92 });
+        }
+        rodGraphic.moveTo(rodTipX, rodTipY).lineTo(lineEndX, lineEndY).stroke({ color: 0xe2e8f0, width: 2, alpha: phase === 'idle' || phase === 'result' ? .35 : .85 });
+        rodGraphic.circle(rodBaseX, rodBaseY, 7).fill({ color: 0xd6a15b, alpha: 1 });
+      } catch {}
+    }
+    installPetConstraint(page.__gardenCompanionFarmSystems?.petSystem);
+  }
+
+  function updateHud(): void {
+    const host = panel();
+    if (!host || host.hidden || view !== 'game') return;
+    const status = host.querySelector<HTMLElement>('[data-fishing-status]');
+    const weatherNode = host.querySelector<HTMLElement>('[data-fishing-weather]');
+    const progressNode = host.querySelector<HTMLElement>('.gf-fight-progress');
+    const zoneNode = host.querySelector<HTMLElement>('.gf-fight-zone');
+    const fishNode = host.querySelector<HTMLElement>('.gf-fight-fish');
+    if (status) { status.textContent = message; status.style.color = resultColour; }
+    if (weatherNode) weatherNode.textContent = weatherLabel(weather());
+    if (progressNode) {
+      progressNode.style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
+      progressNode.style.background = hooked ? RARITIES[hooked.rarity].colour : '#34d399';
+    }
+    if (zoneNode) {
+      zoneNode.style.left = `${Math.max(0, zoneAt - zoneHeight / 2) * 100}%`;
+      zoneNode.style.width = `${zoneHeight * 100}%`;
+      zoneNode.hidden = phase !== 'reel';
+    }
+    if (fishNode) {
+      fishNode.style.left = `${fishAt * 100}%`;
+      fishNode.style.color = hooked ? RARITIES[hooked.rarity].colour : '#f8fafc';
+      fishNode.style.background = hooked ? RARITIES[hooked.rarity].colour : '#f8fafc';
+      fishNode.hidden = phase !== 'reel';
+    }
+  }
 
   // Idle scenery: a few fish drifting through the water so the pond is never still.
   interface Swimmer { x: number; y: number; speed: number; size: number; colour: string; phase: number }
@@ -494,6 +1060,16 @@ export function initFishing(): void {
   function panel(): HTMLElement | null { return document.getElementById(PANEL_ID); }
   function canvas(): HTMLCanvasElement | null { return panel()?.querySelector('canvas') ?? null; }
 
+  function applyFishingCinematic(): void {
+    if (!cinematicApplied && page.__gardenCompanionSetCinematic?.(true, 'fishing')) cinematicApplied = true;
+  }
+
+  function restoreFishingCinematic(): void {
+    if (!cinematicApplied) return;
+    page.__gardenCompanionSetCinematic?.(false, 'fishing');
+    cinematicApplied = false;
+  }
+
   function weather(): string | null {
     const value = state.game?.weather;
     return typeof value === 'string' && value ? value : null;
@@ -552,14 +1128,14 @@ export function initFishing(): void {
   function armFish(fish: FishDef, now: number): void {
     hooked = fish;
     hookedWeight = fish.min + Math.random() * (fish.max - fish.min);
-    zoneHeight = RARITIES[fish.rarity].zone;
+    zoneHeight = Math.min(.42, RARITIES[fish.rarity].zone + equipmentTotal('zone'));
     zoneAt = .5;
     zoneVelocity = 0;
     fishAt = .5;
     fishVelocity = 0;
     fishTarget = .5;
     retargetAt = now;
-    progress = START_PROGRESS;
+    progress = Math.min(.5, START_PROGRESS + equipmentTotal('start'));
     lastCatch = null;
     fightEndedAt = 0;
   }
@@ -584,14 +1160,14 @@ export function initFishing(): void {
     holding = false;
     view = 'game';
     reelStartedAt = now;
-    reelEndsAt = now + REEL_LIMIT;
+    reelEndsAt = now + REEL_LIMIT + equipmentTotal('limit');
     setPhase('reel', `Test fight: ${fish.name}`);
     startLoop();
   }
 
   function beginReel(now: number): void {
     reelStartedAt = now;
-    reelEndsAt = now + REEL_LIMIT;
+    reelEndsAt = now + REEL_LIMIT + equipmentTotal('limit');
     // The click that set the hook is already a press, so it counts as the first pull.
     holding = true;
     setPhase('reel', 'Hold the mouse to lift, release to drop.');
@@ -606,6 +1182,8 @@ export function initFishing(): void {
     if (!hooked) return;
     fightEndedAt = performance.now();
     const existing = record.fish[hooked.id];
+    const reward = testing ? { coins: 0, xp: 0 } : catchRewards(hooked, hookedWeight);
+    const droppedItem = testing ? undefined : itemDrop(hooked);
     if (!testing) {
       record.fish[hooked.id] = {
         count: (existing?.count ?? 0) + 1,
@@ -613,14 +1191,17 @@ export function initFishing(): void {
         first: existing?.first ?? Date.now(),
       };
       record.caught++;
+      record.coins += reward.coins;
+      record.xp += reward.xp;
+      if (droppedItem) record.equipment[droppedItem.id] = 1;
       save();
     }
     const rule = RARITIES[hooked.rarity];
-    lastCatch = { fish: hooked, weight: hookedWeight, fresh: !testing && !existing };
+    lastCatch = { fish: hooked, weight: hookedWeight, fresh: !testing && !existing, ...reward, item: droppedItem };
     playCatch(RARITY_ORDER.indexOf(hooked.rarity));
     const detail = testing
       ? `Test fight won in ${fightLength()} - not recorded`
-      : `Landed a ${hooked.name}, ${formatWeight(hookedWeight)} in ${fightLength()}${existing ? '' : ' - new to your record!'}`;
+      : `${hooked.name} landed in ${fightLength()}`;
     setPhase('result', detail, rule.colour);
   }
 
@@ -670,7 +1251,7 @@ export function initFishing(): void {
     const delta = Math.min(.05, gap / 1000 || 0);
     lastTime = now;
     if (phase === 'waiting' && now >= waitUntil) beginBite(now);
-    else if (phase === 'bite' && now - biteAt > BITE_WINDOW) lose('The bite went slack. It let go.');
+    else if (phase === 'bite' && now - biteAt > BITE_WINDOW + equipmentTotal('bite')) lose('The bite went slack. It let go.');
     else if (phase === 'reel' && hooked) {
       const rule = RARITIES[hooked.rarity];
       if (now >= retargetAt) {
@@ -694,7 +1275,7 @@ export function initFishing(): void {
       if (zoneAt > 1 - half) { zoneAt = 1 - half; zoneVelocity = 0; }
 
       const inside = Math.abs(fishAt - zoneAt) < half;
-      progress += (inside ? rule.fill : -rule.drain) * FIGHT_PACE * delta;
+      progress += (inside ? rule.fill * equipmentFill() : -rule.drain) * FIGHT_PACE * delta;
       if (holding) playReelClick(inside);
       // Landing or losing only ends the cast, never the loop: the frame below must always be
       // queued, or the panel stops animating and no later cast can ever start.
@@ -718,7 +1299,14 @@ export function initFishing(): void {
         walker.facing = move > 0 ? 1 : -1;
       }
     }
-    draw();
+    try {
+      updateWorldScene(now);
+      updateHud();
+    } catch (error) {
+      if (!worldSceneWarningShown) console.warn('[Garden Companion] Fishing pool could not be drawn.', error);
+      worldSceneWarningShown = true;
+      destroyWorldScene();
+    }
     frame = requestAnimationFrame(step);
   }
 
@@ -1520,6 +2108,27 @@ export function initFishing(): void {
     return `<div class="gf-body"><p class="gf-note">Fish with a weather listed bite in that weather and no other. Caught fish are recorded in this browser only - nothing here touches your garden.</p><div class="gf-totals"><div><small>Caught</small><b>${record.caught.toLocaleString()}</b></div><div><small>Species</small><b>${found}/${FISH.length}</b></div><div><small>Casts</small><b>${record.casts.toLocaleString()}</b></div></div>${sections}<div class="gf-reset"><button data-reset>Reset record</button></div></div>`;
   }
 
+  function equipmentHtml(): string {
+    const level = fishingLevel(record.xp);
+    const slotNames: Record<EquipmentSlot, string> = { rod: 'Rods', line: 'Lines', tackle: 'Tackle' };
+    const sections = (Object.keys(slotNames) as EquipmentSlot[]).map(slot => {
+      const rows = EQUIPMENT.filter(item => item.slot === slot).map(item => {
+        const owned = Boolean(record.equipment[item.id]);
+        const equipped = record.equipped[slot] === item.id;
+        const sourceFish = item.foundFrom ? FISH_BY_ID.get(item.foundFrom)?.name : null;
+        let action = '';
+        if (equipped) action = '<button disabled>Equipped</button>';
+        else if (owned) action = `<button data-equip="${item.id}">Equip</button>`;
+        else if (item.price) action = `<button data-buy="${item.id}" ${record.coins < item.price ? 'disabled' : ''}>${item.price.toLocaleString()} coins</button>`;
+        else action = `<button disabled>Find</button>`;
+        const acquisition = sourceFish && !owned ? `Caught from ${sourceFish}` : item.detail;
+        return `<div class="gf-gear" data-locked="${!owned && !item.price}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(acquisition)}</small></span>${action}</div>`;
+      }).join('');
+      return `<div class="gf-tier"><span>${slotNames[slot]}</span><span>${record.equipped[slot] ? escapeHtml(EQUIPMENT_BY_ID.get(record.equipped[slot])?.name ?? '') : 'Empty'}</span></div><div class="gf-gear-grid">${rows}</div>`;
+    }).join('');
+    return `<div class="gf-body"><div class="gf-totals"><div><small>Fishing level</small><b>${level.level}</b></div><div><small>Fishing XP</small><b>${record.xp.toLocaleString()}</b></div><div><small>Fishing coins</small><b>${record.coins.toLocaleString()}</b></div></div><div class="gf-progress-line"><i style="width:${level.current / level.needed * 100}%"></i></div><p class="gf-note" style="margin-top:8px">${level.current.toLocaleString()} / ${level.needed.toLocaleString()} XP to the next level. Each level adds 0.5% catch progress, up to 12%. Fishing coins, XP and equipment belong only to this minigame.</p>${sections}</div>`;
+  }
+
   /**
    * The tuning bench. Every number here is derived from the rarity table rather than written down
    * beside it, so it cannot drift out of step with how a fight actually plays.
@@ -1539,12 +2148,15 @@ export function initFishing(): void {
     return `<div class="gf-body"><p class="gf-note">Pick any fish to fight it straight away, skipping the cast and its weather. Bench fights are never added to your record. Pace ${FIGHT_PACE}, start ${START_PROGRESS}, floor ${LOSE_FLOOR}, limit ${REEL_LIMIT / 1000}s.</p>${tiers}<div class="gf-reset"><button data-view="bench">Back to the pond</button></div></div>`;
   }
 
-  /**
-   * The canvas is the only control. A separate Cast button invites the reader to hold it to reel,
-   * which it could never do, so casting lives on the same surface as everything else.
-   */
+  /** Both the world pond and compact action button use the same press and release controls. */
   function gameHtml(): string {
-    return `<canvas data-no-drag></canvas><div class="gf-status"><b style="color:${resultColour}">${escapeHtml(message)}</b><small>${escapeHtml(weatherLabel(weather()))}</small></div>`;
+    const catchCard = phase === 'result' && lastCatch ? (() => {
+      const rule = RARITIES[lastCatch.fish.rarity];
+      const rewards = testing ? `<span>Bench catch</span>` : `<span>${lastCatch.coins} coins</span><span>${lastCatch.xp} XP</span>`;
+      const item = lastCatch.item ? `<small class="gf-catch-item">Equipment found: ${escapeHtml(lastCatch.item.name)}</small>` : '';
+      return `<div class="gf-catch" style="--catch-colour:${rule.colour}"><div class="gf-catch-fish">&#128031;</div><div><h3>${escapeHtml(lastCatch.fish.name)}</h3><p>${rule.label}${lastCatch.fresh ? ' - New species' : ''}</p><small>${escapeHtml(formatWeight(lastCatch.weight))} - ${escapeHtml(fightLength())}</small><div class="gf-catch-rewards">${rewards}</div>${item}</div></div>`;
+    })() : '';
+    return `<div class="gf-game">${catchCard}<div class="gf-game-main"><button data-reel>${phase === 'reel' ? 'Hold to reel' : phase === 'bite' ? 'Set hook' : phase === 'waiting' ? 'Reel in' : 'Cast line'}</button><div class="gf-game-copy"><b data-fishing-status style="color:${resultColour}">${escapeHtml(message)}</b><small data-fishing-weather>${escapeHtml(weatherLabel(weather()))}</small></div></div><div class="gf-fight"><i class="gf-fight-progress"></i><i class="gf-fight-zone"></i><i class="gf-fight-fish"></i></div></div>`;
   }
 
   function renderChrome(): void {
@@ -1553,8 +2165,11 @@ export function initFishing(): void {
     const card = host.querySelector<HTMLElement>('.gf-card');
     if (!card) return;
     const quiet = fishingMuted();
-    const body = view === 'collection' ? collectionHtml() : view === 'bench' ? benchHtml() : gameHtml();
-    card.innerHTML = `<header><h2>&#127907; Fishing</h2><div><button data-mute title="${quiet ? 'Sound off' : 'Sound on'}">${quiet ? '&#128263;' : '&#128266;'}</button><button data-view="collection" data-active="${view === 'collection'}" title="Catch record">&#128220;</button><button data-close aria-label="Close">&#10005;</button></div></header>${body}`;
+    const body = view === 'collection' ? collectionHtml() : view === 'equipment' ? equipmentHtml() : view === 'bench' ? benchHtml() : gameHtml();
+    card.dataset.view = view;
+    const pondInput = host.querySelector<HTMLElement>('.gf-pond-input');
+    if (pondInput && view !== 'game') pondInput.hidden = true;
+    card.innerHTML = `<header><h2>&#127907; Fishing</h2><div><button data-mute title="${quiet ? 'Sound off' : 'Sound on'}">${quiet ? '&#128263;' : '&#128266;'}</button><button data-view="equipment" data-active="${view === 'equipment'}" title="Equipment">&#129520;</button><button data-view="collection" data-active="${view === 'collection'}" title="Catch record">&#128220;</button><button data-close aria-label="Close">&#10005;</button></div></header>${body}`;
     card.querySelector<HTMLButtonElement>('[data-close]')!.onclick = close;
     card.querySelector<HTMLButtonElement>('[data-mute]')!.onclick = () => {
       setFishingMuted(!quiet);
@@ -1562,7 +2177,7 @@ export function initFishing(): void {
       renderChrome();
     };
     card.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.onclick = () => {
-      const target = button.dataset.view as 'collection' | 'bench';
+      const target = button.dataset.view as 'collection' | 'equipment' | 'bench';
       view = view === target ? 'game' : target;
       renderChrome();
       if (view === 'game') resumeLoop();
@@ -1572,16 +2187,30 @@ export function initFishing(): void {
       const fish = FISH_BY_ID.get(button.dataset.fight!);
       if (fish) startBenchFight(fish);
     });
-    card.querySelector<HTMLButtonElement>('[data-reset]')?.addEventListener('click', () => {
-      if (!confirm('Clear your fishing record? Every catch is forgotten.')) return;
-      record = { ...EMPTY_RECORD, fish: {} };
+    card.querySelectorAll<HTMLButtonElement>('[data-buy]').forEach(button => button.onclick = () => {
+      const item = EQUIPMENT_BY_ID.get(button.dataset.buy!);
+      if (!item?.price || record.equipment[item.id] || record.coins < item.price) return;
+      record.coins -= item.price;
+      record.equipment[item.id] = 1;
+      record.equipped[item.slot] = item.id;
       save();
       renderChrome();
     });
-    const element = card.querySelector<HTMLCanvasElement>('canvas');
+    card.querySelectorAll<HTMLButtonElement>('[data-equip]').forEach(button => button.onclick = () => {
+      const item = EQUIPMENT_BY_ID.get(button.dataset.equip!);
+      if (!item || !record.equipment[item.id]) return;
+      record.equipped[item.slot] = item.id;
+      save();
+      renderChrome();
+    });
+    card.querySelector<HTMLButtonElement>('[data-reset]')?.addEventListener('click', () => {
+      if (!confirm('Clear your fishing record? Every catch is forgotten.')) return;
+      record = { ...EMPTY_RECORD, fish: {}, equipment: { ...EMPTY_RECORD.equipment }, equipped: { ...EMPTY_RECORD.equipped } };
+      save();
+      renderChrome();
+    });
+    const element = card.querySelector<HTMLButtonElement>('[data-reel]');
     if (element) {
-      // The pointer is captured for the whole pull, so sliding off the canvas mid-reel does not
-      // silently drop the hold and hand the fish back.
       element.onpointerdown = event => {
         event.preventDefault();
         if (event.button !== 0) return;
@@ -1595,13 +2224,18 @@ export function initFishing(): void {
       element.onpointercancel = release;
       element.onpointerleave = release;
     }
-    if (view === 'game') draw();
+    if (view === 'game') {
+      updateWorldScene(performance.now());
+      updateHud();
+    }
   }
 
-  function open(): void {
+  function open(targetView: 'game' | 'bench' = 'game'): void {
     const host = panel();
     if (!host) return;
+    view = targetView;
     host.hidden = false;
+    applyFishingCinematic();
     primeFishingAudio();
     renderChrome();
     if (!draggableReady) {
@@ -1619,6 +2253,8 @@ export function initFishing(): void {
     const host = panel();
     if (host) host.hidden = true;
     pauseLoop();
+    destroyWorldScene();
+    restoreFishingCinematic();
   }
 
   function mount(): void {
@@ -1630,19 +2266,56 @@ export function initFishing(): void {
     host.dataset.gcUi = 'fishing';
     const card = document.createElement('div');
     card.className = 'gf-card';
+    const pondInput = document.createElement('div');
+    pondInput.className = 'gf-pond-input';
+    pondInput.hidden = true;
+    pondInput.dataset.noDrag = '';
+    host.appendChild(pondInput);
     host.appendChild(card);
     document.body.appendChild(host);
     // Everything inside the card is ours: no click, drag or scroll may reach the game beneath it,
     // so a stray reel does not move a plant or harvest a crop.
     for (const type of ['pointerdown', 'pointerup', 'pointermove', 'pointercancel', 'mousedown', 'mouseup', 'click', 'dblclick', 'wheel', 'contextmenu']) {
       card.addEventListener(type, event => event.stopPropagation());
+      if (type !== 'wheel') pondInput.addEventListener(type, event => event.stopPropagation());
     }
+    pondInput.onpointerdown = event => {
+      event.preventDefault();
+      if (event.button !== 0) return;
+      try { pondInput.setPointerCapture(event.pointerId); } catch {}
+      press();
+    };
+    pondInput.onpointerup = event => {
+      try { pondInput.releasePointerCapture(event.pointerId); } catch {}
+      release();
+    };
+    pondInput.onpointercancel = release;
+    pondInput.addEventListener('wheel', event => {
+      const gameCanvas = document.querySelector<HTMLCanvasElement>('.QuinoaCanvas canvas');
+      if (!gameCanvas) return;
+      event.preventDefault();
+      event.stopPropagation();
+      gameCanvas.dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        deltaX: event.deltaX,
+        deltaY: event.deltaY,
+        deltaZ: event.deltaZ,
+        deltaMode: event.deltaMode,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        metaKey: event.metaKey,
+      }));
+    }, { passive: false });
     window.addEventListener('pointerup', release);
     page.__gardenCompanionToggleFishing = () => (panel()?.hidden ? open() : close());
+    page.__gardenCompanionFishingOpen = () => panel()?.hidden === false;
     // Published so the bench can be reached from the console without a button in the panel.
     page.__gardenCompanionFishingBench = () => {
-      view = 'bench';
-      open();
+      open('bench');
     };
   }
 
