@@ -1,0 +1,5 @@
+# Everything here is text and is kept LF in the working tree, whatever core.autocrlf says.
+# Without this, checking a file out on Windows rewrote it with CRLF, which broke the static
+# checks (their regexes match on \n) and made the built userscript look modified after every
+# build when only its line endings had changed.
+* text=auto eol=lf
