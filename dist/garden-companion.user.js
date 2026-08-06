@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.4
+// @version      0.7.5
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -4346,7 +4346,8 @@ ${rows}</div>`;
     function matches(tile, slot, config2) {
       if (ignorePreserved() && slot.preserved) return false;
       const selected = selectedSpecies();
-      const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected || selected.has(tile.species)) || config2.scope === tile.species;
+      const slotSpecies = slot.species ?? tile.species;
+      const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected || selected.has(slotSpecies)) || config2.scope === slotSpecies;
       const mutations = slot.mutations || [];
       const conditions = config2.mutations.map((name) => mutations.includes(name));
       if (config2.maxSize) conditions.push((tile.slots || []).some((candidate) => {
@@ -4602,6 +4603,15 @@ ${rows}</div>`;
       increment("Dawnlit", noTime);
     }
     for (const tile of Object.values(tiles)) {
+      let speciesRow3 = function(name) {
+        let row = bySpecies.get(name);
+        if (!row) {
+          row = { species: name, plants: 0, crops: 0, mature: 0, value: 0, mutations: /* @__PURE__ */ new Map() };
+          bySpecies.set(name, row);
+        }
+        return row;
+      };
+      var speciesRow2 = speciesRow3;
       if (tile.objectType !== "plant" || !tile.species || !Array.isArray(tile.slots)) continue;
       for (const slot of tile.slots) {
         if (ignorePreserved && slot.preserved) continue;
@@ -4610,16 +4620,16 @@ ${rows}</div>`;
         recordMissing(allMissing, slot.mutations ?? []);
         eligibleSlots.push({ slot, species: slot.species ?? tile.species, tracked: !filter || filter.has(slot.species ?? tile.species) });
       }
-      if (filter && !filter.has(tile.species)) continue;
-      let species = bySpecies.get(tile.species);
-      if (!species) {
-        species = { species: tile.species, plants: 0, crops: 0, mature: 0, value: 0, mutations: /* @__PURE__ */ new Map() };
-        bySpecies.set(tile.species, species);
+      const tileTracked = !filter || filter.has(tile.species);
+      if (tileTracked) {
+        result.plants++;
+        speciesRow3(tile.species).plants++;
       }
-      result.plants++;
-      species.plants++;
       for (const slot of tile.slots) {
         if (ignorePreserved && slot.preserved) continue;
+        const slotSpecies = slot.species ?? tile.species;
+        if (filter && !filter.has(slotSpecies)) continue;
+        const species = speciesRow3(slotSpecies);
         result.crops++;
         species.crops++;
         recordMissing(trackedMissing, slot.mutations ?? []);
@@ -4641,9 +4651,9 @@ ${rows}</div>`;
         if (slotMutations.some((name) => name === "Ambershine" || name === "Dawnlit")) result.targetProgress.AmberDawn = (result.targetProgress.AmberDawn ?? 0) + 1;
         if (slotMutations.some((name) => ["Dawncharged", "Dawnbound", "Ambercharged", "Amberbound"].includes(name))) result.targetProgress.DawnAmbercharged = (result.targetProgress.DawnAmbercharged ?? 0) + 1;
         if (!(slot.mutations || []).length) result.unmutated++;
-        const maximumScale = catalog?.[slot.species ?? tile.species]?.crop?.maxScale;
+        const maximumScale = catalog?.[slotSpecies]?.crop?.maxScale;
         if (maximumScale && Number(slot.targetScale ?? 1) < maximumScale) result.notMaxSize++;
-        const base = catalog?.[slot.species ?? tile.species]?.crop?.baseSellPrice ?? 0;
+        const base = catalog?.[slotSpecies]?.crop?.baseSellPrice ?? 0;
         const value = Math.round(base * Number(slot.targetScale ?? 1) * mutationMultiplier2(slot.mutations ?? []) * friendMultiplier2);
         result.value += value;
         species.value += value;

@@ -211,7 +211,10 @@ function installPlantFocus(
   function matches(tile: any, slot: PlantSlot, config: FocusConfig): boolean {
     if (ignorePreserved() && slot.preserved) return false;
     const selected = selectedSpecies();
-    const scopeMatches = config.scope === 'all' || config.scope === 'tracked' && (!selected || selected.has(tile.species)) || config.scope === tile.species;
+    // Rare variants live on the slot, so a Purple Daisy inside a Daisy patch is matched by its own
+    // name rather than the patch it grew in.
+    const slotSpecies = slot.species ?? tile.species;
+    const scopeMatches = config.scope === 'all' || config.scope === 'tracked' && (!selected || selected.has(slotSpecies)) || config.scope === slotSpecies;
     const mutations = slot.mutations || [];
     const conditions = config.mutations.map(name => mutations.includes(name));
     if (config.maxSize) conditions.push((tile.slots || []).some((candidate: PlantSlot) => {
@@ -496,16 +499,26 @@ function calculateStats(
       recordMissing(allMissing, slot.mutations ?? []);
       eligibleSlots.push({ slot, species: slot.species ?? tile.species, tracked: !filter || filter.has(slot.species ?? tile.species) });
     }
-    if (filter && !filter.has(tile.species)) continue;
-    let species = bySpecies.get(tile.species);
-    if (!species) {
-      species = { species: tile.species, plants: 0, crops: 0, mature: 0, value: 0, mutations: new Map() };
-      bySpecies.set(tile.species, species);
+    // A rare variant grows as a slot inside an ordinary patch, so crops are counted against the
+    // slot's own species. The plant itself belongs to the tile, and is only counted once.
+    const tileTracked = !filter || filter.has(tile.species);
+    function speciesRow(name: string): SpeciesStats {
+      let row = bySpecies.get(name);
+      if (!row) {
+        row = { species: name, plants: 0, crops: 0, mature: 0, value: 0, mutations: new Map() };
+        bySpecies.set(name, row);
+      }
+      return row;
     }
-    result.plants++;
-    species.plants++;
+    if (tileTracked) {
+      result.plants++;
+      speciesRow(tile.species).plants++;
+    }
     for (const slot of tile.slots as PlantSlot[]) {
       if (ignorePreserved && slot.preserved) continue;
+      const slotSpecies = slot.species ?? tile.species;
+      if (filter && !filter.has(slotSpecies)) continue;
+      const species = speciesRow(slotSpecies);
       result.crops++;
       species.crops++;
       recordMissing(trackedMissing, slot.mutations ?? []);
@@ -525,9 +538,9 @@ function calculateStats(
       if (slotMutations.some(name => name === 'Ambershine' || name === 'Dawnlit')) result.targetProgress.AmberDawn = (result.targetProgress.AmberDawn ?? 0) + 1;
       if (slotMutations.some(name => ['Dawncharged', 'Dawnbound', 'Ambercharged', 'Amberbound'].includes(name))) result.targetProgress.DawnAmbercharged = (result.targetProgress.DawnAmbercharged ?? 0) + 1;
       if (!(slot.mutations || []).length) result.unmutated++;
-      const maximumScale = catalog?.[slot.species ?? tile.species]?.crop?.maxScale;
+      const maximumScale = catalog?.[slotSpecies]?.crop?.maxScale;
       if (maximumScale && Number(slot.targetScale ?? 1) < maximumScale) result.notMaxSize++;
-      const base = catalog?.[slot.species ?? tile.species]?.crop?.baseSellPrice ?? 0;
+      const base = catalog?.[slotSpecies]?.crop?.baseSellPrice ?? 0;
       const value = Math.round(base * Number(slot.targetScale ?? 1) * mutationMultiplier(slot.mutations ?? []) * friendMultiplier);
       result.value += value;
       species.value += value;
