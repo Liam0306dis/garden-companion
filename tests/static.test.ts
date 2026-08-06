@@ -4,7 +4,15 @@ import { resolve } from 'node:path';
 import { generateCelestialLayout, type CelestialSpecies } from '../src/celestial-layout.js';
 
 const root = resolve(import.meta.dirname, '..');
-const built = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
+/**
+ * Git checks these files out with CRLF on Windows, so every assertion written with \n would fail
+ * depending on whether a file was last written by an editor or by git. Sources are normalised on
+ * the way in and the assertions stay readable.
+ */
+async function readSource(...parts: string[]): Promise<string> {
+  return (await readFile(resolve(root, ...parts), 'utf8')).replace(/\r\n/g, '\n');
+}
+const built = await readSource('dist', 'garden-companion.user.js');
 // The panel is being split out of companion.ts a piece at a time. Assertions about panel behaviour
 // run against every module that makes up the panel so that moving code between them is not a test
 // failure; companion.ts stays first so the slice(indexOf(...)) assertions below keep their order.
@@ -37,39 +45,40 @@ const companionSource = (await Promise.all([
   ['src', 'draggable.ts'],
   ['src', 'features', 'pet-teams.ts'],
   ['src', 'features', 'shop-alarms.ts'],
-].map(parts => readFile(resolve(root, ...parts), 'utf8')))).join('\n');
+].map(parts => readSource(...parts)))).join('\n');
 // Assertions that depend on where a function sits relative to another must name the file they
 // live in, otherwise a slice across the combined source silently matches nothing.
-const petTeamsSource = await readFile(resolve(root, 'src', 'features', 'pet-teams.ts'), 'utf8');
-const shopAlarmsSource = await readFile(resolve(root, 'src', 'features', 'shop-alarms.ts'), 'utf8');
-const journalSource = await readFile(resolve(root, 'src', 'features', 'journal.ts'), 'utf8');
-const searchSource = await readFile(resolve(root, 'src', 'list-search.ts'), 'utf8');
-const catalogSource = await readFile(resolve(root, 'src', 'game-catalogs.ts'), 'utf8');
-const gameAtomsSource = await readFile(resolve(root, 'src', 'game-atoms.ts'), 'utf8');
-const calculatorsSource = await readFile(resolve(root, 'src', 'features', 'calculators.ts'), 'utf8');
-const abilityLogSource = await readFile(resolve(root, 'src', 'features', 'ability-log.ts'), 'utf8');
-const styleSource = await readFile(resolve(root, 'src', 'style.css'), 'utf8');
-const overviewSource = await readFile(resolve(root, 'src', 'features', 'garden-overview.ts'), 'utf8');
-const plantDragSource = await readFile(resolve(root, 'src', 'features', 'plant-drag-move.ts'), 'utf8');
-const planterPotSelectionSource = await readFile(resolve(root, 'src', 'features', 'planter-pot-selection.ts'), 'utf8');
-const cropCleanserSource = await readFile(resolve(root, 'src', 'features', 'crop-cleanser-helper.ts'), 'utf8');
-const celestialLayoutSource = await readFile(resolve(root, 'src', 'celestial-layout.ts'), 'utf8');
-const celestialGuideSource = await readFile(resolve(root, 'src', 'features', 'celestial-layout-guide.ts'), 'utf8');
-const indexSource = await readFile(resolve(root, 'src', 'index.ts'), 'utf8');
-const petSpriteSource = await readFile(resolve(root, 'src', 'pet-sprites.ts'), 'utf8');
-const petSpriteInjector = await readFile(resolve(root, 'src', 'pet-sprites-injector.ts'), 'utf8');
-const buildSource = await readFile(resolve(root, 'scripts', 'build.ts'), 'utf8');
-const plannerSource = await readFile(resolve(root, 'src', 'features', 'garden-planner.ts'), 'utf8');
-const fishingSource = await readFile(resolve(root, 'src', 'features', 'fishing.ts'), 'utf8');
-const fishingAudioSource = await readFile(resolve(root, 'src', 'features', 'fishing-audio.ts'), 'utf8');
-const worldSceneSource = await readFile(resolve(root, 'src', 'world-scene.ts'), 'utf8');
-const connectionStateSource = await readFile(resolve(root, 'src', 'connection-state.ts'), 'utf8');
+const petTeamsSource = await readSource('src', 'features', 'pet-teams.ts');
+const shopAlarmsSource = await readSource('src', 'features', 'shop-alarms.ts');
+const journalSource = await readSource('src', 'features', 'journal.ts');
+const searchSource = await readSource('src', 'list-search.ts');
+const catalogSource = await readSource('src', 'game-catalogs.ts');
+const gameAtomsSource = await readSource('src', 'game-atoms.ts');
+const calculatorsSource = await readSource('src', 'features', 'calculators.ts');
+const abilityLogSource = await readSource('src', 'features', 'ability-log.ts');
+const styleSource = await readSource('src', 'style.css');
+const overviewSource = await readSource('src', 'features', 'garden-overview.ts');
+const plantDragSource = await readSource('src', 'features', 'plant-drag-move.ts');
+const planterPotSelectionSource = await readSource('src', 'features', 'planter-pot-selection.ts');
+const cropCleanserSource = await readSource('src', 'features', 'crop-cleanser-helper.ts');
+const celestialLayoutSource = await readSource('src', 'celestial-layout.ts');
+const celestialGuideSource = await readSource('src', 'features', 'celestial-layout-guide.ts');
+const indexSource = await readSource('src', 'index.ts');
+const petSpriteSource = await readSource('src', 'pet-sprites.ts');
+const petSpriteInjector = await readSource('src', 'pet-sprites-injector.ts');
+const buildSource = await readSource('scripts', 'build.ts');
+const plannerSource = await readSource('src', 'features', 'garden-planner.ts');
+const fishingSource = await readSource('src', 'features', 'fishing.ts');
+const fishingAudioSource = await readSource('src', 'features', 'fishing-audio.ts');
+const worldSceneSource = await readSource('src', 'world-scene.ts');
+const connectionStateSource = await readSource('src', 'connection-state.ts');
 const INITIAL_SETTLE_MS_VALUE = Number(shopAlarmsSource.match(/const INITIAL_SHOP_SETTLE_MS = (\d+)/)?.[1]);
 const RECONNECT_SETTLE_MS_VALUE = Number(shopAlarmsSource.match(/const RECONNECT_SETTLE_MS = (\d+)/)?.[1]);
-const petsSource = await readFile(resolve(root, 'src', 'pets.ts'), 'utf8');
-const dragSource = await readFile(resolve(root, 'src', 'draggable.ts'), 'utf8');
-const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
-const packageLock = JSON.parse(await readFile(resolve(root, 'package-lock.json'), 'utf8')) as { version: string; packages: Record<string, { version: string }> };
+const gardenDefenceSource = await readSource('src', 'features', 'garden-defence.ts');
+const petsSource = await readSource('src', 'pets.ts');
+const dragSource = await readSource('src', 'draggable.ts');
+const packageJson = JSON.parse(await readSource('package.json')) as { version: string };
+const packageLock = JSON.parse(await readSource('package-lock.json')) as { version: string; packages: Record<string, { version: string }> };
 
 const bothPlants: CelestialSpecies[] = [
   'MoonCelestial', 'MoonCelestial', 'DawnCelestial', 'DawnCelestial',
@@ -288,6 +297,17 @@ assert.match(companionSource, /shopAlarmTab !== 'tool' \|\| !EXCLUDED_TOOL_ALERT
 assert.match(companionSource, /\['teams', 'abilities', 'shops', 'petFood', 'calculators'\]\.includes\(activeTab\)/, 'an open sprite-backed tab does not refresh when sprites load');
 for (const shopSpriteGroup of ["seed", "egg", "tool"]) assert.match(petSpriteSource, new RegExp(`${shopSpriteGroup}: \\[`), `missing ${shopSpriteGroup} sprite group`);
 assert.match(petSpriteInjector, /script\.textContent = __PET_SPRITE_LOADER__/, 'pet atlas loader is not injected into the game page');
+// The game ships most days but its atlases rarely change, so the cache is keyed on the artwork.
+assert.match(petSpriteSource, /await fetch\(`\$\{assetsBase\}\$\{path\}`, \{ method: 'HEAD' \}\)/, 'sprite cache does not fingerprint the atlases it decoded');
+assert.match(petSpriteSource, /if \(stamps\.some\(value => !value\)\) return version;/, 'a missing atlas header silently produces a fingerprint that cannot be trusted');
+// The fingerprint picks a cache key; it must never be the reason sprites fail to appear.
+assert.match(petSpriteSource, /function withTimeout[\s\S]*Promise\.race\(\[[\s\S]*work\.catch\(\(\) => fallback\)/, 'a hanging fingerprint request can block sprite loading');
+assert.match(petSpriteSource, /const key = await withTimeout\([\s\S]*version,\s*2_000,/, 'the atlas fingerprint has no fallback deadline');
+assert.match(petSpriteSource, /fingerprint \?\?= \(async \(\) => \{/, 'the atlas fingerprint is rebuilt for every sprite stage');
+// A load that could not identify the atlases must not delete a bundle it cannot prove is stale.
+assert.match(petSpriteSource, /store\.put\(value, key\);\s*if \(!evict\) return;/, 'a fallback fingerprint still evicts good cache entries');
+assert.match(petSpriteSource, /return \{ key, identified: key !== version \};/, 'the cache cannot tell a real fingerprint from the version fallback');
+assert.doesNotMatch(petSpriteSource, /const key = `\$\{version\}:\$\{stage\}`/, 'sprite cache is still keyed on the asset version');
 // The loader is over half the script and compiles synchronously, then decodes a WASM transcoder and
 // every atlas. Doing that at document-start is the script's share of the game's slow first load.
 assert.doesNotMatch(petSpriteInjector, /export function installPetSpriteLoader\(\): void \{\s*const script = document\.createElement/, 'the sprite loader is injected synchronously at document-start');
@@ -480,7 +500,7 @@ assert.doesNotMatch(companionSource, /gardenCompanionEggEstimateLayout|nativeBot
 assert.match(companionSource, /if \(refreshNativeGardenCard\(\)\) return;/, 'HTML estimate fallback remains active after the native hook succeeds');
 assert.doesNotMatch(companionSource, /requestAnimationFrame\(renderTurtleOverlay\)/, 'garden card estimates still run every animation frame');
 assert.match(companionSource, /setInterval\(renderTurtleOverlay, 250\)/, 'garden card estimate refresh is not throttled');
-const panelSource = await readFile(resolve(root, 'src', 'companion.ts'), 'utf8');
+const panelSource = await readSource('src', 'companion.ts');
 const featuresSource = panelSource.slice(panelSource.indexOf('function renderFeatures()'), panelSource.indexOf('function renderAbilities()'));
 for (const removedToggle of ['overview', 'petTeams', 'abilities', 'rooms', 'shopAlarms', 'interfaceShortcuts', 'abilitySilencer', 'lunarTimer']) {
   assert.doesNotMatch(featuresSource, new RegExp(`\\['${removedToggle}',\\s*'`), `removed ${removedToggle} feature toggle remains`);
@@ -813,13 +833,79 @@ assert.match(worldSceneSource, /__gardenCompanionSetCinematic\?\.\(true, config\
 assert.match(worldSceneSource, /__gardenCompanionSetCinematic\?\.\(false, config\.owner\)/, 'a scene does not release cinematic mode under its own name');
 assert.match(worldSceneSource, /if \(signature !== next \|\| !graphics\.size\)/, 'a scene is rebuilt even when the farm has not changed shape');
 
-// A plant and its harvested crop are different atlas frames, and some callers want the plant. The
-// game's own slot offset is where a crop hangs on it, so nothing has to guess a mount point.
+// Garden Defence is a second consumer of the shared scene, and is bound by the same promise as
+// fishing: it draws over the farm and never touches it.
+assert.doesNotMatch(gardenDefenceSource, /sendMessage|sendQuinoaCommand|from '\.\.\/game-connection/, 'the garden defence minigame sends messages to the game');
+assert.match(gardenDefenceSource, /owner: 'gardenDefence'/, 'garden defence does not claim the world scene under its own name');
+assert.match(gardenDefenceSource, /card\.addEventListener\(type, event => event\.stopPropagation\(\)\)/, 'garden defence clicks are not stopped from reaching the game');
+assert.match(gardenDefenceSource, /if \(type !== 'wheel'\) lawnInput\.addEventListener/, 'the lawn blocks camera zoom from the mouse wheel');
+assert.match(gardenDefenceSource, /gameCanvas\.dispatchEvent\(new WheelEvent\('wheel'/, 'lawn wheel input is not forwarded to the game canvas');
+assert.match(gardenDefenceSource, /host\.dataset\.gcUi = 'gardenDefence'/, 'the garden defence panel is not marked as companion UI');
+// Every tower is a real plant, or its sprite silently never resolves and the tile renders empty.
+for (const tower of ['Sunflower', 'Saffron', 'Pumpkin', 'Cactus', 'Starweaver', 'Cardoon', 'Milkcap']) {
+  assert.match(gardenDefenceSource, new RegExp(`id: '${tower}'`), `garden defence is missing its ${tower} tower`);
+  assert.ok(built.includes(`${tower}: { crop: {`), `garden defence tower ${tower} is not a real plant in the game catalog`);
+}
+// Pests are the game's own Worm sprite, so they carry the same lifetime rules as the towers.
+assert.match(gardenDefenceSource, /const PEST_SPECIES = 'Worm';/, 'pests no longer use the games own worm sprite');
+assert.ok(built.includes('Worm: { name: "Worm"'), 'the worm pest species is not a real pet in the game catalog');
+assert.match(gardenDefenceSource, /readyImage\(page\.__gardenCompanionPetSprites\?\.\[PEST_SPECIES\]\)/, 'the pest sprite is not taken from the injected pet sprites');
+assert.match(gardenDefenceSource, /function removePest[\s\S]*scene\.removeSprite\(pest\.sprite\);\s*pest\.sprite = null;/, 'a dead pest leaks its world sprite');
+assert.match(gardenDefenceSource, /for \(const pest of pests\) if \(pest\.hp <= 0\) removePest\(pest\);/, 'killed pests are filtered out without releasing their sprites');
+assert.match(gardenDefenceSource, /for \(const pest of pests\) removePest\(pest\);\s*pests = \[\];/, 'clearing pests in tuning mode leaks their sprites');
+assert.match(gardenDefenceSource, /for \(const pest of pests\) pest\.sprite = null;/, 'pest sprites are not reclaimed when the scene is rebuilt');
+// The sprite faces right and every pest walks left, so an unmirrored worm moonwalks into the house.
+assert.match(gardenDefenceSource, /pest\.sprite\.scale\.x = Math\.abs\(Number\(pest\.sprite\.scale\.x\) \|\| 1\)/, 'pests are not mirrored to face the way they walk');
+assert.match(gardenDefenceSource, /sprite\.tint = now < pest\.slowUntil \? 0x8ec5e8/, 'a snared pest is not tinted, so the slow is invisible');
+
+// Some towers only look like themselves as the growing plant, so both sprite maps are needed.
+assert.match(gardenDefenceSource, /id: 'Starweaver'[^\n]*art: 'plant'/, 'the Starweaver tower is drawn as its crop rather than the plant');
+assert.match(gardenDefenceSource, /if \(def\.art === 'plant' && plant\) return plant;/, 'a tower asking for plant art still falls back to its crop first');
 assert.match(petSpriteSource, /__gardenCompanionPlantSprites/, 'growing-plant sprites are not exposed');
 assert.match(petSpriteSource, /const plantSprite = __PLANT_CATALOG__\[species\]\?\.plantSprite;/, 'plant sprites are not resolved from the captured plant frame');
+assert.match(buildSource, /plantSprite: plantBlock\.match\(\/sprite:\[A-Za-z_\$\]\+\\.Plant\\.\(\[A-Za-z0-9_\]\+\)\/\)/, 'the plant sprite frame is not captured from the game bundle');
 assert.ok(built.includes('plantSprite: "StarweaverPlant"'), 'the Starweaver plant frame is missing from the built catalog');
+
+// The fruit is what makes a Starweaver recognisable, so it is drawn as a second sprite over the
+// plant and has to be released on exactly the same paths as the plant itself.
+assert.match(gardenDefenceSource, /fruit\?: \{ scale: number \}/, 'a tower cannot opt into showing its fruit');
+// The mount point is the game's own slot offset, not a number invented here.
+assert.match(gardenDefenceSource, /const offset = PLANT_CATALOG\[plant\.def\.id\]\?\.slotOffset;/, 'the fruit is hung on a guessed offset rather than the plants real mount point');
+assert.match(gardenDefenceSource, /y: base - height \/ 2 \+ \(offset\?\.y \?\? 0\) \* height/, 'the fruit offset is not measured from the plant centre against its drawn height');
 assert.ok(buildSource.includes('slotOffsets:'), 'the plant slot offset is not captured from the game bundle');
 assert.ok(built.includes('slotOffset: { x: 4e-3, y: -0.308 }'), 'the Starweaver mount point is missing from the built catalog');
+assert.match(gardenDefenceSource, /id: 'Starweaver'[^\n]*fruit: \{/, 'the Starweaver tower does not show its fruit');
+assert.match(gardenDefenceSource, /scene\.removeSprite\(plant\.sprite\);\s*scene\.removeSprite\(plant\.fruitSprite\);/, 'a dug-up plant leaks its fruit sprite');
+assert.match(gardenDefenceSource, /for \(const plant of plants\) plant\.sprite = plant\.fruitSprite = null;/, 'fruit sprites are not reclaimed when the scene is rebuilt');
+assert.match(gardenDefenceSource, /zIndex: zIndex \+ 1/, 'the fruit does not draw above its own plant');
+assert.match(gardenDefenceSource, /const zIndex = -998_950 \+ plant\.lane \* 4;/, 'lanes leave no z room for a fruit above its plant');
+// Tinting is the only per-pest colour available, so the rare tiers ride on it.
+assert.match(gardenDefenceSource, /id: 'bloatworm'[^\n]*rainbow: true/, 'the bloat worm is not rainbow');
+assert.match(gardenDefenceSource, /id: 'huskworm'[^\n]*colour: 0xffcf4d/, 'the husk worm is not gold');
+assert.match(gardenDefenceSource, /pest\.def\.rainbow \? hueTint\(/, 'a rainbow pest is drawn with a flat tint');
+assert.match(gardenDefenceSource, /now < pest\.slowUntil \? 0x8ec5e8\s*:/, 'the rainbow cycle hides that a pest is snared');
+
+// Losing a run or a render failure must not end the animation loop, or reopening shows a dead board.
+assert.match(gardenDefenceSource, /catch \(error\) \{\s*scene\.fail\(error, 'Garden defence could not be drawn\.'\);\s*\}\s*frame = requestAnimationFrame\(step\);/, 'a world renderer failure stops garden defence queueing its next frame');
+assert.match(gardenDefenceSource, /if \(pests\.some\(pest => pest\.x <= -\.3\)\) endRun\(\);/, 'a pest crossing the house does not end the run');
+assert.match(gardenDefenceSource, /if \(!dev && wave > record\.best\) \{\s*record\.best = wave;/, 'a finished run does not record the best wave');
+// Digging a plant has to release its sprite, or the board leaks one sprite per plant lost.
+assert.match(gardenDefenceSource, /function removePlant[\s\S]*scene\.removeSprite\(plant\.sprite\);[\s\S]*plant\.sprite = null;/, 'digging or losing a plant leaks its world sprite');
+// The HUD is rebuilt wholesale, so doing it every frame would swallow the click that opened it.
+assert.match(gardenDefenceSource, /if \(now - chromeAt > 250\) \{ chromeAt = now; renderStatus\(\); \}/, 'the garden defence HUD is rebuilt every frame');
+// Tuning mode hands out free towers, so nothing it does may reach the saved record.
+assert.match(gardenDefenceSource, /if \(!dev && wave > record\.best\) \{/, 'a tuning run can set the best wave');
+assert.match(gardenDefenceSource, /if \(!dev\) \{\s*record\.runs\+\+;/, 'a tuning run is counted as a real run');
+assert.match(gardenDefenceSource, /if \(!dev\) \{\s*record\.sun \+= suns\[index\]\.value;/, 'sun collected in tuning mode is added to the record');
+assert.match(gardenDefenceSource, /if \(!dev && sun < def\.cost\)[\s\S]*if \(!dev\) sun -= def\.cost;/, 'tuning mode still charges for towers');
+assert.match(gardenDefenceSource, /reset\(\);\s*if \(panel\(\)\?\.hidden !== false\) open\(\);/, 'toggling tuning mode lets open() reset again and double-count the run');
+// The panel has no tuning button on purpose, so a normal player never sees these controls.
+assert.doesNotMatch(gardenDefenceSource, /data-open-dev|data-dev-toggle/, 'tuning mode is exposed in the normal panel');
+assert.match(gardenDefenceSource, /page\.__gardenCompanionGardenDefenceDev = \(enabled = !dev\)/, 'tuning mode cannot be reached from the console');
+// A health bar denominator read from the live wave drifts as the ramp moves past a spawned pest.
+assert.match(gardenDefenceSource, /const hp = waveHp\(def\);\s*pests\.push\(\{ def, lane, x: columns \+ \.35, hp, maxHp: hp/, 'a pest does not remember the health it spawned with');
+assert.match(gardenDefenceSource, /pest\.hp < pest\.maxHp[\s\S]*pest\.hp \/ pest\.maxHp/, 'the pest health bar is measured against the current wave rather than its own spawn');
+assert.match(indexSource, /initGardenDefence\(\);/, 'garden defence is never started');
 
 // A reconnect hands the world back in pieces. Diffing against the pre-drop world across that gap
 // reads an empty shop list as every watched item vanishing, then reappearing, which alarms for all
@@ -872,8 +958,8 @@ assert.match(petSpriteSource, /await cropFrames\(atlas, sheet, wanted, output\);
 // than once per load. Anything else means every reload rebuilds a few hundred PNGs from scratch.
 assert.match(petSpriteSource, /const CACHE_DB = 'gardenCompanionSprites';/, 'decoded sprites are not cached between loads');
 assert.match(petSpriteSource, /const cached = await readCache\(key\);\s*if \(cached\) \{ publish\(cached\); return; \}/, 'a cache hit still decodes every sprite');
-assert.match(petSpriteSource, /const key = `\$\{version\}:\$\{stage\}`;/, 'the sprite cache is not keyed by the games asset version');
-assert.match(petSpriteSource, /if \(typeof existing === 'string' && !existing\.startsWith\(`\$\{version\}:`\)\) store\.delete\(existing\);/, 'old asset versions are never evicted from the sprite cache');
+assert.match(petSpriteSource, /const key = `\$\{fingerprintKey\}:\$\{stage\}`;/, 'the sprite cache is not keyed by the atlas fingerprint');
+assert.match(petSpriteSource, /if \(typeof existing === 'string' && !existing\.startsWith\(`\$\{fingerprint\}:`\)\) store\.delete\(existing\);/, 'superseded sprite bundles are never evicted from the cache');
 assert.doesNotMatch(petSpriteSource, /localStorage\.setItem\('gardenCompanionSprites/, 'sprite data URLs are pushed into localStorage, which cannot hold them');
 // Only the player's own pets and crops are on screen during load; everything else waits to be asked.
 assert.match(petSpriteSource, /async function decodeEssential\(\)[\s\S]*produce: mapFrom\(produceCandidates, trimmed\)/, 'the startup sprite stage is not limited to pets and produce');

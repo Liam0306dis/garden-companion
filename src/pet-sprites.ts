@@ -288,20 +288,76 @@ async function readCache(key: string): Promise<SpriteBundle | null> {
   });
 }
 
-/** Writes this version's bundle and drops every other version's, so the cache cannot grow forever. */
-async function writeCache(key: string, value: SpriteBundle, version: string): Promise<void> {
+/**
+ * Writes this fingerprint's bundle and drops every other one's, so the cache cannot grow forever.
+ *
+ * Eviction only happens when the atlases were actually identified. A load that fell back to the
+ * asset version does not know what the artwork is, and letting it sweep would mean one slow request
+ * deleted a good bundle and forced a rebuild on the next load as well as its own.
+ */
+async function writeCache(key: string, value: SpriteBundle, fingerprint: string, evict: boolean): Promise<void> {
   const db = await openCache();
   if (!db) return;
   try {
     const store = db.transaction(CACHE_STORE, 'readwrite').objectStore(CACHE_STORE);
     store.put(value, key);
+    if (!evict) return;
     const keys = store.getAllKeys();
     keys.onsuccess = () => {
       for (const existing of keys.result) {
-        if (typeof existing === 'string' && !existing.startsWith(`${version}:`)) store.delete(existing);
+        if (typeof existing === 'string' && !existing.startsWith(`${fingerprint}:`)) store.delete(existing);
       }
     };
   } catch {}
+}
+
+/**
+ * What the cache is really keyed on. The game ships an update most days, but its sprite atlases
+ * change far less often, and their filenames are stable rather than content-hashed - so the asset
+ * version says nothing about whether the pixels moved. The server does: a HEAD on each atlas gives
+ * an ETag or a last-modified date, and hashing those together identifies the artwork itself. An
+ * update that only changes code then reuses every decoded sprite.
+ *
+ * Falls back to the asset version when the headers are unavailable, which is the old behaviour.
+ */
+async function atlasFingerprint(assetsBase: string, atlasPaths: string[], version: string): Promise<string> {
+  if (!atlasPaths.length) return version;
+  // Only the atlas JSON is HEADed: the manifest guarantees that path exists, where the image name
+  // lives inside the file. A repack changes both, so the JSON is a faithful stand-in for the sheet.
+  const stamp = async (path: string): Promise<string> => {
+    const response = await fetch(`${assetsBase}${path}`, { method: 'HEAD' });
+    if (!response.ok) return '';
+    const etag = response.headers.get('etag') ?? '';
+    const modified = response.headers.get('last-modified') ?? '';
+    const length = response.headers.get('content-length') ?? '';
+    return etag || modified ? `${path}|${etag}|${modified}|${length}` : '';
+  };
+  try {
+    const stamps = await Promise.all([...atlasPaths].sort().map(path => stamp(path).catch(() => '')));
+    if (stamps.some(value => !value)) return version;
+    return `a${hashText(stamps.join('\n'))}`;
+  } catch {
+    return version;
+  }
+}
+
+/**
+ * The fingerprint only decides which cache key to look under, so it must never be what keeps
+ * sprites off the screen. A slow or hanging request falls back to the asset version and carries on.
+ */
+function withTimeout(work: Promise<string>, fallback: string, ms: number): Promise<string> {
+  let timer = 0;
+  return Promise.race([
+    work.catch(() => fallback),
+    new Promise<string>(resolve => { timer = window.setTimeout(() => resolve(fallback), ms); }),
+  ]).finally(() => window.clearTimeout(timer));
+}
+
+/** FNV-1a. The fingerprint only has to change when the inputs do, not resist anything. */
+function hashText(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  return (hash >>> 0).toString(36);
 }
 
 async function basisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
@@ -460,6 +516,23 @@ export async function initPetSprites(): Promise<void> {
   }
 
   /**
+   * Both stages share one fingerprint, so the HEAD requests are made once per page load. `identified`
+   * is false when we fell back to the asset version, which is what keeps a degraded load from
+   * evicting a bundle it cannot prove is stale.
+   */
+  let fingerprint: Promise<{ key: string; identified: boolean }> | null = null;
+  function loadFingerprint(): Promise<{ key: string; identified: boolean }> {
+    return fingerprint ??= (async () => {
+      const key = await withTimeout(
+        (async () => atlasFingerprint(assetsBase!, (await loadSources()).atlasPaths, version))(),
+        version,
+        2_000,
+      );
+      return { key, identified: key !== version };
+    })();
+  }
+
+  /**
    * Only the player's own pets and the crops they grow are wanted while the game is starting. Shop
    * icons, decor, growing plants and the panel's own iconography are not on screen until a panel is
    * opened, so they are a second stage that nothing pays for unless it is asked for.
@@ -519,13 +592,14 @@ export async function initPetSprites(): Promise<void> {
     if (existing) return existing;
     const task = (async () => {
       try {
-        const key = `${version}:${stage}`;
+        const { key: fingerprintKey, identified } = await loadFingerprint();
+        const key = `${fingerprintKey}:${stage}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.
         const cached = await readCache(key);
         if (cached) { publish(cached); return; }
         const bundle = await stages[stage]();
         publish(bundle);
-        void writeCache(key, bundle, version);
+        void writeCache(key, bundle, fingerprintKey, identified);
       } catch (error) {
         running.delete(stage);
         console.warn(`[Garden Companion] ${stage} sprites could not be loaded.`, error);
