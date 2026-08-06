@@ -1,4 +1,5 @@
 import type { CompanionPage } from '../types.js';
+import { noteRoomSocketClosed, noteRoomSocketOpened } from '../connection-state.js';
 
 export function initPlantDragMove(): void {
     'use strict';
@@ -10,6 +11,8 @@ export function initPlantDragMove(): void {
     const PLACE_TIMEOUT_MS = 12_000;
     const TILE_SIZE = 256;
     const NATIVE_INPUT_GRACE_MS = 1500;
+    /** How long the global capture hooks may stay installed waiting for a system that never comes. */
+    const HOOK_RELEASE_TIMEOUT_MS = 60_000;
     const WRAPPED_FLAG = '__plantDragMoverWrapped';
 
     const live = {
@@ -51,6 +54,8 @@ export function initPlantDragMove(): void {
     const objectCtor = pageWindow.Object;
     const objectProto = objectCtor.prototype;
     const originalDefineProperty = objectCtor.defineProperty;
+    let originalMapSet: typeof Map.prototype.set | undefined;
+    let hookReleaseTimer = 0;
     const armedSystemFields = new Set();
 
     function resetPrivateSystems(reason) {
@@ -111,7 +116,8 @@ export function initPlantDragMove(): void {
             live.worldTapRouter = system;
             disarmPrivateField('registeredClaimants');
             log('Native canvas UI hit testing connected.');
-        }
+        } else return;
+        releaseGlobalHooksIfIdle();
     }
 
     function capturePrivateSystem(target, key, value) {
@@ -124,13 +130,72 @@ export function initPlantDragMove(): void {
         }
     }
 
-    (objectCtor as any).defineProperty = function(this: unknown, target, key, descriptor) {
-        const result = originalDefineProperty.call(this, target, key, descriptor);
-        if (armedSystemFields.has(key)) capturePrivateSystem(target, key, descriptor?.value);
-        return result;
-    };
+    /**
+     * Object.defineProperty and Map.prototype.set are patched to catch the engine's private farm
+     * systems as they are built. Both are extremely hot: a bundler defines a property per module
+     * export, and the game fills Maps constantly, so every call in the whole page pays for our
+     * wrapper for as long as it is installed. Accessors on Object.prototype are worse again - they
+     * sit on the prototype chain of every object in the page.
+     *
+     * So the hooks are treated as a net cast during startup and hauled back in the moment the last
+     * system is caught, and re-cast only when a reconnect rebuilds them.
+     */
+    function installDefinePropertyCapture() {
+        if ((objectCtor.defineProperty as any)?.[WRAPPED_FLAG]) return;
+        function watchedDefineProperty(this: unknown, target, key, descriptor) {
+            const result = originalDefineProperty.call(this, target, key, descriptor);
+            if (armedSystemFields.has(key)) capturePrivateSystem(target, key, descriptor?.value);
+            return result;
+        }
+        watchedDefineProperty[WRAPPED_FLAG] = true;
+        (objectCtor as any).defineProperty = watchedDefineProperty;
+    }
+
+    function restoreDefinePropertyCapture() {
+        if ((objectCtor.defineProperty as any)?.[WRAPPED_FLAG]) objectCtor.defineProperty = originalDefineProperty;
+    }
+
+    function restoreSystemRegistryCapture() {
+        const mapProto = pageWindow.Map?.prototype;
+        if (mapProto && (mapProto.set as any)?.[WRAPPED_FLAG] && typeof originalMapSet === 'function') {
+            mapProto.set = originalMapSet;
+        }
+    }
+
+    /**
+     * Every global hook exists only to catch something. Once there is nothing left to catch they
+     * are pure overhead on the game's own hot paths, so they come straight back off.
+     */
+    function releaseGlobalHooksIfIdle() {
+        if (armedSystemFields.size === 0) restoreDefinePropertyCapture();
+        if (live.tapToMove && live.tileSystem && live.petSystem && live.worldTapRouter) {
+            restoreSystemRegistryCapture();
+            if (hookReleaseTimer) { clearTimeout(hookReleaseTimer); hookReleaseTimer = 0; }
+        }
+    }
+
+    /**
+     * A system that never arrives must not cost the page a permanently patched Object and Map. The
+     * game is long since loaded by now, so anything still missing is not coming without a
+     * reconnect - and a reconnect re-arms all of this from scratch.
+     */
+    function scheduleHookRelease() {
+        if (hookReleaseTimer) clearTimeout(hookReleaseTimer);
+        hookReleaseTimer = pageWindow.setTimeout(() => {
+            hookReleaseTimer = 0;
+            if (armedSystemFields.size) {
+                for (const key of [...armedSystemFields]) disarmPrivateField(key);
+                log('Gave up waiting for the remaining farm systems; global hooks removed.');
+            }
+            restoreDefinePropertyCapture();
+            restoreSystemRegistryCapture();
+        }, HOOK_RELEASE_TIMEOUT_MS);
+    }
 
     function armPrivateSystemCapture() {
+        installDefinePropertyCapture();
+        installSystemRegistryCapture();
+        scheduleHookRelease();
         for (const key of ['lastHoverGridX', 'tileViews', 'registeredClaimants']) {
             if (armedSystemFields.has(key)) continue;
             armedSystemFields.add(key);
@@ -158,6 +223,7 @@ export function initPlantDragMove(): void {
         const mapProto = pageWindow.Map?.prototype;
         const originalSet = mapProto?.set;
         if (typeof originalSet !== 'function' || originalSet[WRAPPED_FLAG]) return;
+        originalMapSet = originalSet;
 
         function watchedMapSet(this: unknown, key, value) {
             const result = originalSet.call(this, key, value);
@@ -185,11 +251,14 @@ export function initPlantDragMove(): void {
             live.activeSocket = socket;
             socket.addEventListener('open', () => {
                 openedRoomSocketCount++;
+                // Published for everything that diffs game state, not just this feature.
+                noteRoomSocketOpened();
                 if (openedRoomSocketCount > 1) {
                     armPrivateSystemCapture();
                     log('Reconnect detected; private farm-system capture armed.');
                 }
             });
+            socket.addEventListener('close', noteRoomSocketClosed);
             return socket;
         }
 

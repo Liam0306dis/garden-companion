@@ -463,6 +463,8 @@ export function initCelestialLayoutGuide(): void {
   }
 
   function open(): void {
+    // Decor and growing-plant artwork is only decoded on demand, and the celestial guide draws full plants.
+    page.__gardenCompanionLoadSpriteGroup?.('deferred');
     if (guide.open) return;
     guide.open = true;
     renderPanel();

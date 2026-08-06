@@ -1,6 +1,7 @@
 import type { ShopItem } from '../types.js';
 import { armAlarmAudio, showAlarmBanner, stopAlarm, updateAlarmDetail } from '../alarms.js';
 import { config, feature, saveConfig } from '../config.js';
+import { onRoomConnectionInterrupted } from '../connection-state.js';
 import { EXCLUDED_TOOL_ALERTS, ITEM_KEYS, SEASONAL_SHOP_ITEMS, SHOP_NAMES, SHOP_TABS } from '../constants.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { bindListSearch } from '../list-search.js';
@@ -20,6 +21,12 @@ interface AvailableShopItem {
 }
 
 const INITIAL_SHOP_SETTLE_MS = 500;
+/**
+ * A reconnect dribbles the world back in over a second or so, and an empty shop list part-way
+ * through looks exactly like every watched item selling out and restocking at once. Wait for stock
+ * to hold still for longer than the initial load does before trusting it again.
+ */
+const RECONNECT_SETTLE_MS = 2500;
 
 function itemId(item): string {
   for (const key of ITEM_KEYS) if (item?.[key]) return String(item[key]);
@@ -114,8 +121,61 @@ function settleInitialShops(signature: string): void {
   }, INITIAL_SHOP_SETTLE_MS);
 }
 
+/**
+ * After a reconnect the shops are re-adopted rather than re-diffed. Nothing that was already on
+ * the shelf before the drop is news to the player, so the settled snapshot becomes the new
+ * baseline silently and only changes after that raise an alarm. Going through the initial-load
+ * path instead would alarm for everything in stock, which is the behaviour being fixed.
+ */
+let resettling = false;
+let resettleTimer = 0;
+let resettleSignature = '';
+
+function beginResettle(): void {
+  if (resettleTimer) window.clearTimeout(resettleTimer);
+  if (initialShopTimer) window.clearTimeout(initialShopTimer);
+  resettleTimer = 0;
+  initialShopTimer = 0;
+  pendingInitialSignature = '';
+  resettleSignature = '';
+  resettling = true;
+  // The clocks ran on without us, so a jump across the gap is not a restock we can attribute.
+  restockClocks.clear();
+}
+
+function settleAfterReconnect(signature: string): void {
+  if (signature === resettleSignature && resettleTimer) return;
+  if (resettleTimer) window.clearTimeout(resettleTimer);
+  resettleSignature = signature;
+  resettleTimer = window.setTimeout(() => {
+    resettleTimer = 0;
+    const available = availableShopItems();
+    const settled = shopSignature(available);
+    if (settled !== resettleSignature) {
+      settleAfterReconnect(settled);
+      return;
+    }
+    resettling = false;
+    // An item that sold out while we were away should not keep ringing for stock it no longer has.
+    const before = new Set(state.lastShopSignature.split('|').map(value => value.split(':').slice(0, 2).join(':')));
+    const availableKeys = new Set(available.map(row => `${row.shop}:${row.id}`));
+    if (state.initializedShops) for (const key of before) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
+    state.lastShopSignature = settled;
+    // Seed the clocks from the settled snapshot so the next real restock is the first one seen.
+    restockedShops();
+    state.initializedShops = true;
+    for (const row of available) updateAlarmDetail(`shop:${row.shop}:${row.id}`, `${row.remaining} remaining`);
+  }, RECONNECT_SETTLE_MS);
+}
+
+onRoomConnectionInterrupted(beginResettle);
+
 export function processShops(): void {
   if (!feature('shopAlarms')) return;
+  if (resettling) {
+    settleAfterReconnect(shopSignature(availableShopItems()));
+    return;
+  }
   // Read the clocks first: a restock that changes nothing about stock still has to be noticed.
   const restocked = restockedShops();
   const available = availableShopItems();

@@ -21,6 +21,7 @@ import {
 } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms } from './alarms.js';
+import { worldSceneActive } from './world-scene.js';
 import { send } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
 import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
@@ -287,7 +288,8 @@ export function initCompanion(): void {
 
   function installInstantHarvest() {
     window.addEventListener('keydown', event => {
-      if (!feature('instantHarvest') || page.__gardenCompanionFishingOpen?.() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
+      // Any minigame holding the farm owns the keyboard too, or space harvests behind the scene.
+      if (!feature('instantHarvest') || worldSceneActive() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
       if (state.currentAction && state.currentAction !== 'none' && !['harvest', 'rainbowHarvest', 'goldHarvest'].includes(state.currentAction)) return;
       const tile = state.slot?.data?.garden?.tileObjects?.[String(state.dirtTileIndex)];
       if (!tile?.slots?.length) return;
@@ -462,6 +464,11 @@ export function initCompanion(): void {
 
 
   function openPanel(tab = activeTab) {
+    // Sprite decoding is held back until the game is idle, so opening a panel is the cue that the
+    // artwork is now wanted more than the wait is. The panel shows shop, emblem and mutation icons,
+    // which are all in the deferred set.
+    page.__gardenCompanionLoadSprites?.();
+    page.__gardenCompanionLoadSpriteGroup?.('deferred');
     activeTab = tab;
     let panel = document.getElementById('gc-panel');
     if (!panel) {

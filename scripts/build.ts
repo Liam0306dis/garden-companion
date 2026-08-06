@@ -13,7 +13,7 @@ interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
-  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
+  plants: Record<string, { crop: { baseSellPrice: number; maxScale: number; sprite: string }; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number> }>;
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
@@ -76,6 +76,15 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
               .map(offset => offset[0].match(/speciesOverride:`([A-Za-z0-9_]+)`/)?.[1] || ''),
             entry: {
               crop: { baseSellPrice: Number(match[5]), maxScale: Number(match[6]), sprite: match[4] },
+              // The growing plant is a different atlas frame from its harvested crop, and some
+              // callers want the plant: a Starweaver crop looks nothing like a Starweaver.
+              plantSprite: plantBlock.match(/sprite:[A-Za-z_$]+\.Plant\.([A-Za-z0-9_]+)/)?.[1] || '',
+              // Where the game hangs the first crop on the plant, as a fraction of a 256 tile from
+              // its centre. Anything drawing a plant with its fruit needs the real mount point.
+              slotOffset: (() => {
+                const first = plantBlock.match(/slotOffsets:\[\{x:(-?[0-9.e+-]+),y:(-?[0-9.e+-]+)/);
+                return first ? { x: Number(first[1]), y: Number(first[2]) } : undefined;
+              })(),
               slots: Math.max(1, capacity || (plantBlock.match(/\{x:/g) || []).length),
               regrows: /harvestType:[A-Za-z_$]+\.Multiple/.test(plantBlock),
               rarity: match[2].match(/rarity:[A-Za-z_$]+\.([A-Za-z]+)/)?.[1] || 'Common',
@@ -191,7 +200,15 @@ const petSpriteBuild = await build({
     __PET_WASM_B64__: JSON.stringify(wasmBase64),
   },
 });
-const petSpriteLoader = petSpriteBuild.outputFiles[0].text;
+/**
+ * `npm run build -- --no-sprites` ships the script without the sprite pipeline: no 485KB WASM
+ * transcoder, no atlas decoding. Only useful for measuring what the sprite loader actually costs
+ * on a cold load - the resulting build has no pet, crop or decor artwork.
+ */
+const withoutSprites = process.argv.includes('--no-sprites');
+const petSpriteLoader = withoutSprites
+  ? 'console.warn("[Garden Companion] Built with --no-sprites: artwork is disabled.");'
+  : petSpriteBuild.outputFiles[0].text;
 
 await build({
   entryPoints: [resolve(root, 'src', 'index.ts')],
@@ -220,4 +237,4 @@ await build({
 
 const output = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
 if (output.includes('\u2014')) throw new Error('The generated userscript contains an em dash.');
-console.log(`Built dist/garden-companion.user.js (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs, ${Object.keys(catalogs.abilityColours).length} ability colours, ${Object.keys(catalogs.mutations).length} mutations, ${Object.keys(catalogs.decor).length} decor)`);
+console.log(`Built dist/garden-companion.user.js${withoutSprites ? ' [--no-sprites]' : ''} (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs, ${Object.keys(catalogs.abilityColours).length} ability colours, ${Object.keys(catalogs.mutations).length} mutations, ${Object.keys(catalogs.decor).length} decor)`);

@@ -62,6 +62,10 @@ const buildSource = await readFile(resolve(root, 'scripts', 'build.ts'), 'utf8')
 const plannerSource = await readFile(resolve(root, 'src', 'features', 'garden-planner.ts'), 'utf8');
 const fishingSource = await readFile(resolve(root, 'src', 'features', 'fishing.ts'), 'utf8');
 const fishingAudioSource = await readFile(resolve(root, 'src', 'features', 'fishing-audio.ts'), 'utf8');
+const worldSceneSource = await readFile(resolve(root, 'src', 'world-scene.ts'), 'utf8');
+const connectionStateSource = await readFile(resolve(root, 'src', 'connection-state.ts'), 'utf8');
+const INITIAL_SETTLE_MS_VALUE = Number(shopAlarmsSource.match(/const INITIAL_SHOP_SETTLE_MS = (\d+)/)?.[1]);
+const RECONNECT_SETTLE_MS_VALUE = Number(shopAlarmsSource.match(/const RECONNECT_SETTLE_MS = (\d+)/)?.[1]);
 const petsSource = await readFile(resolve(root, 'src', 'pets.ts'), 'utf8');
 const dragSource = await readFile(resolve(root, 'src', 'draggable.ts'), 'utf8');
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
@@ -284,6 +288,18 @@ assert.match(companionSource, /shopAlarmTab !== 'tool' \|\| !EXCLUDED_TOOL_ALERT
 assert.match(companionSource, /\['teams', 'abilities', 'shops', 'petFood', 'calculators'\]\.includes\(activeTab\)/, 'an open sprite-backed tab does not refresh when sprites load');
 for (const shopSpriteGroup of ["seed", "egg", "tool"]) assert.match(petSpriteSource, new RegExp(`${shopSpriteGroup}: \\[`), `missing ${shopSpriteGroup} sprite group`);
 assert.match(petSpriteInjector, /script\.textContent = __PET_SPRITE_LOADER__/, 'pet atlas loader is not injected into the game page');
+// The loader is over half the script and compiles synchronously, then decodes a WASM transcoder and
+// every atlas. Doing that at document-start is the script's share of the game's slow first load.
+assert.doesNotMatch(petSpriteInjector, /export function installPetSpriteLoader\(\): void \{\s*const script = document\.createElement/, 'the sprite loader is injected synchronously at document-start');
+assert.match(petSpriteInjector, /page\.addEventListener\('load', start, \{ once: true \}\)/, 'sprite loading does not wait for the page to finish loading');
+assert.match(petSpriteInjector, /requestIdleCallback/, 'sprite loading does not wait for the main thread to go quiet');
+// Injecting on the first pointer press defeats the whole deferral: the player clicks during the
+// load it was meant to stay out of. Opening a panel is the honest signal that artwork is wanted.
+assert.doesNotMatch(petSpriteInjector, /addEventListener\('pointerdown', inject/, 'a click during load drags the sprite loader back into the load');
+assert.match(companionSource, /page\.__gardenCompanionLoadSprites\?\.\(\);\s*page\.__gardenCompanionLoadSpriteGroup\?\.\('deferred'\);/, 'opening a panel does not pull in the artwork it needs');
+assert.match(petSpriteInjector, /idle\.call\(page, run, \{ timeout: 15_000 \}\)/, 'the idle timeout is short enough to fire during the load it avoids');
+assert.match(petSpriteInjector, /let injected = false;[\s\S]*if \(injected \|\| spritesDisabled\(\)\) return;\s*injected = true;/, 'the sprite loader can be injected more than once');
+assert.match(petSpriteInjector, /page\.__gardenCompanionLoadSprites = inject;/, 'nothing can pull the sprite loader in on demand');
 assert.match(indexSource, /initPlantDragMove\(\);/, 'plant drag is not installed for runtime toggling');
 assert.match(indexSource, /initPlanterPotSelection\(\);/, 'Planter Pot selection keeper is not installed');
 assert.match(indexSource, /initCelestialLayoutGuide\(\);/, 'celestial layout guide is not installed');
@@ -501,7 +517,7 @@ assert.doesNotMatch(companionSource, /PET_FOOD_POSITION_KEY/, 'free-floating pet
 assert.match(petSpriteSource, /__gardenCompanionProduceSprites/, 'produce atlas sprites are not exposed');
 assert.match(petSpriteSource, /cropFrames\(atlas, sheet, trimmedWanted, trimmedOutput, true\)/, 'produce sprites are not trimmed to their drawn pixels');
 assert.match(petSpriteSource, /const trim = trimmed \? \{ x: 0, y: 0, w: frame\.w, h: frame\.h \} : null/, 'trimmed crops swap the dimensions of rotated atlas frames');
-assert.match(petSpriteSource, /trimmed\.get\(key\)/, 'produce icons still use padded atlas frames');
+assert.match(petSpriteSource, /mapFrom\(produceCandidates, trimmed\)/, 'produce icons still use padded atlas frames');
 assert.match(styleSource, /\.gc-petfood-count \{[^}]*position:absolute/, 'produce count badge is not overlaid');
 assert.match(styleSource, /#gc-petfood \{[^}]*pointer-events:none/, 'docked pet food layer still blocks game clicks');
 assert.match(styleSource, /#gc-petfood \[data-food-row\] \{[^}]*overflow:hidden/, 'food icons can spill outside their button');
@@ -647,7 +663,7 @@ assert.match(plannerSource, /if \(planner\.scale === null\) return max;/, 'the s
 assert.match(plannerSource, /targetScale: scaleFor\(/, 'slots ignore the chosen size');
 assert.match(plannerSource, /function mutationIcon\(id: string\)/, 'mutations are still text buttons');
 assert.match(petSpriteSource, /__gardenCompanionMutationSprites/, 'mutation icons are not decoded');
-assert.match(petSpriteSource, /const source = decorIds\.has\(itemId\) \? trimmed : frames;/, 'decor sprites are not trimmed, so they sit oddly in their boxes');
+assert.match(petSpriteSource, /pick\(candidates, decorIds\.has\(itemId\) \? trimmed : frames\)/, 'decor sprites are not trimmed, so they sit oddly in their boxes');
 assert.match(styleSource, /\.gc-planner-grid img \{ position:absolute;inset:4px/, 'planner icons are sized against an indefinite box, so tall sprites clip');
 assert.match(plannerSource, /function refreshScaleControl\(panel: HTMLElement\)/, 'the size slider does not follow the selected crop');
 assert.match(plannerSource, /slider\.max = max\.toFixed\(2\)/, 'the size slider keeps a stale maximum when the crop changes');
@@ -704,19 +720,19 @@ assert.match(fishingSource, /'pointerdown', 'pointerup', 'pointermove', 'pointer
 assert.match(fishingSource, /pondInput\.addEventListener\(type, event => event\.stopPropagation\(\)\)/, 'world pond clicks are not stopped from reaching the garden');
 assert.match(fishingSource, /if \(type !== 'wheel'\) pondInput\.addEventListener/, 'the fishing pond blocks camera zoom from the mouse wheel');
 assert.match(fishingSource, /gameCanvas\.dispatchEvent\(new WheelEvent\('wheel'/, 'pond wheel input is not forwarded to the game canvas');
-assert.match(fishingSource, /AvatarContainer \(\$\{id\}\)/, 'the fishing rod is not attached to the live player avatar');
-assert.match(fishingSource, /restoreGarden\(\);[\s\S]*destroyGraphic\(pondGraphic\)/, 'closing fishing does not restore the garden scene');
-assert.match(fishingSource, /__gardenCompanionSetCinematic\?\.\(true, 'fishing'\)/, 'fishing does not enable native cinematic mode');
-assert.match(fishingSource, /__gardenCompanionSetCinematic\?\.\(false, 'fishing'\)/, 'fishing does not release native cinematic mode');
-assert.match(companionSource, /page\.__gardenCompanionFishingOpen\?\.\(\)/, 'instant harvest remains active while fishing');
-assert.match(fishingSource, /node\.visible = false;\s*node\.renderable = false;/, 'native crop refreshes can render through the fishing pool');
-assert.match(fishingSource, /node\.label === 'WorldOverlay'/, 'standing-on-plant world effects remain visible over the fishing scene');
-assert.match(fishingSource, /for \(const \[node, saved\] of hiddenEffectNodes\)/, 'standing-on-plant world effects are not restored when fishing closes');
-assert.match(fishingSource, /if \(tileDrawSuppressed\) return;\s*return originalDraw\.apply\(this, args\);/, 'tile views regenerate crop selection and standing effects while a fishing subview is open');
-assert.match(fishingSource, /if \(panel\(\)\?\.hidden !== false \|\| !farmBounds\) return;/, 'active pets leave the boardwalk when a fishing subview is opened');
+assert.match(worldSceneSource, /AvatarContainer \(\$\{id\}\)/, 'a scene rod cannot be attached to the live player avatar');
+assert.match(fishingSource, /owner: 'fishing'/, 'fishing does not claim the world scene under its own name');
+assert.match(fishingSource, /scene\.enter\(\);/, 'opening fishing does not claim the farm');
+assert.match(fishingSource, /scene\.exit\(\);/, 'closing fishing does not hand the farm back');
+assert.match(companionSource, /worldSceneActive\(\)/, 'instant harvest remains active while a minigame holds the farm');
+assert.match(worldSceneSource, /node\.visible = false;\s*node\.renderable = false;/, 'native crop refreshes can render through a world scene');
+assert.match(worldSceneSource, /node\.label === 'WorldOverlay'/, 'standing-on-plant world effects remain visible over a world scene');
+assert.match(worldSceneSource, /restoreNodes\(hiddenTiles\);\s*restoreNodes\(hiddenEffects\);/, 'a world scene does not restore both the garden and the standing effects');
+assert.match(worldSceneSource, /if \(suppressTileDraw\) return;\s*return originalDraw\.apply\(this, args\);/, 'tile views regenerate crop selection and standing effects while a scene is up');
+assert.match(worldSceneSource, /if \(!active \|\| !currentGeometry \|\| !penArea\) return;/, 'active pets leave their pen when a scene subview is opened');
 assert.doesNotMatch(fishingSource, /gf-bank-pet|gf-boardwalk-pets/, 'fishing draws duplicate pet sprites instead of constraining the native pets');
 assert.match(plantDragSource, /system\?\.name === 'pet' && system\.views instanceof pageWindow\.Map/, 'the native active-pet system is not captured');
-assert.match(fishingSource, /const result = originalDraw\.apply\(this, args\);\s*applyActivePetConstraints\(this\);/, 'active pets are constrained before the game updates their positions');
+assert.match(worldSceneSource, /const result = originalDraw\.apply\(this, args\);\s*penActivePets\(this\);/, 'active pets are constrained before the game updates their positions');
 // Plant drag listens on document in the capture phase, so stopPropagation inside our panel cannot
 // reach it. It has to recognise a companion canvas as ours and leave it alone.
 assert.match(fishingSource, /host\.dataset\.gcUi = 'fishing'/, 'the fishing panel is not marked as companion UI');
@@ -748,21 +764,23 @@ assert.match(fishingSource, /if \(progress >= 1\) land\(\);\s*\n\s*else if \(pro
 assert.match(fishingSource, /\(inside \? rule\.fill \* equipmentFill\(\) : -rule\.drain\) \* FIGHT_PACE \* delta/, 'equipped progress bonuses are not applied only while the fish is controlled');
 assert.match(fishingSource, /record\.coins \+= reward\.coins;[\s\S]*record\.xp \+= reward\.xp;/, 'landed fish do not award local fishing coins and XP');
 assert.match(fishingSource, /candidate\.foundFrom === fish\.id && !record\.equipment\[candidate\.id\]/, 'equipment drops are not tied to specific fish');
-assert.match(fishingSource, /userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx/, 'fishing does not hide objects placed on the local boardwalk');
-assert.match(fishingSource, /catch \(error\) \{\s*if \(!worldSceneDisabled\) \{[\s\S]*worldSceneDisabled = true;[\s\S]*destroyWorldScene\(\);[\s\S]*frame = requestAnimationFrame\(step\);/, 'a persistent world renderer failure rebuilds the fishing scene every frame');
-assert.match(fishingSource, /function updateWorldScene\(now: number\): void \{\s*if \(panel\(\)\?\.hidden \|\| worldSceneDisabled\) return;/, 'the disabled world renderer is still retried every frame');
+assert.match(worldSceneSource, /userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx/, 'a scene does not hide objects placed on the local boardwalk');
+assert.match(fishingSource, /catch \(error\) \{\s*scene\.fail\(error, 'Fishing pool could not be drawn\.'\);\s*\}\s*frame = requestAnimationFrame\(step\);/, 'a world renderer failure stops fishing queueing its next frame');
+assert.match(worldSceneSource, /fail\(error: unknown, message: string\): void \{\s*broken = true;[\s\S]*teardown\(\);/, 'a failed scene does not tear itself down');
+assert.match(worldSceneSource, /sync\(\): WorldGeometry \| null \{\s*if \(!active \|\| broken\) return null;/, 'a failed scene is still rebuilt every frame');
 assert.match(dragSource, /button, input, select, textarea, a, \[data-no-drag\]/, 'draggable panels no longer honour data-no-drag');
 const fishingOpenSource = fishingSource.slice(fishingSource.indexOf('function open('), fishingSource.indexOf('function close()'));
-assert.match(fishingOpenSource, /host\.hidden = false;\s*applyFishingCinematic\(\);\s*primeFishingAudio\(\);\s*renderChrome\(\);\s*if \(!draggableReady\) \{[\s\S]*makeDraggable\(card, POSITION_KEY\)/, 'the saved fishing position is restored while the panel is still hidden');
+assert.match(fishingOpenSource, /host\.hidden = false;\s*scene\.enter\(\);\s*primeFishingAudio\(\);\s*renderChrome\(\);\s*if \(!draggableReady\) \{[\s\S]*makeDraggable\(card, POSITION_KEY\)/, 'the saved fishing position is restored while the panel is still hidden');
 assert.match(fishingSource, /function open\(targetView: 'game' \| 'bench' = 'game'\): void \{[\s\S]*view = targetView;/, 'opening fishing does not default to the fishing game');
 assert.match(fishingSource, /__gardenCompanionFishingBench = \(\) => \{\s*open\('bench'\);/, 'the tuning bench no longer opens directly');
 assert.doesNotMatch(fishingSource, /gf-rod-shop|stallX|Rod Shop/, 'the removed world rod shop is still rendered');
-assert.match(fishingSource, /rodRenderLayer\.zIndex = WORLD_OVERLAY_Z_INDEX \+ 1;[\s\S]*rodRenderLayer\.attach\?\.\(rodGraphic\);/, 'the fishing rod is not attached to a layer above the world overlay and player');
+assert.match(worldSceneSource, /renderLayer\.zIndex = WORLD_OVERLAY_Z_INDEX \+ 1;[\s\S]*renderLayer\.attach\?\.\(graphic\);/, 'an abovePlayer layer is not lifted over the world overlay and player');
+assert.match(fishingSource, /abovePlayer: \['rod'\]/, 'the fishing rod is not drawn above the player');
 assert.match(fishingSource, /castElapsed < CAST_WINDUP[\s\S]*castElapsed - CAST_WINDUP\) \/ CAST_FLIGHT[\s\S]*lineEndX = rodTipX \+ \(targetX - rodTipX\) \* progress;/, 'the world rod and line do not animate through the cast');
 assert.doesNotMatch(fishingSource.slice(fishingSource.indexOf('function mount()')), /makeDraggable\(card, POSITION_KEY\)/, 'fishing drag is initialised before the hidden panel has a measurable size');
 const fishingViewHandler = fishingSource.slice(fishingSource.indexOf("card.querySelectorAll<HTMLButtonElement>('[data-view]')"), fishingSource.indexOf("card.querySelectorAll<HTMLButtonElement>('[data-fight]')"));
 assert.doesNotMatch(fishingViewHandler, /pauseLoop\(|stopLoop\(/, 'opening Catch Record or Equipment pauses the pond and active cast');
-assert.match(fishingOpenSource, /worldSceneDisabled = false;[\s\S]*worldSceneWarningShown = false;[\s\S]*resumeLoop\(\);/, 'reopening fishing does not recover from a previous renderer failure');
+assert.match(worldSceneSource, /enter\(\): void \{\s*active = true;\s*broken = false;\s*warned = false;/, 'reopening a scene does not recover from a previous renderer failure');
 assert.match(fishingSource, /function pauseLoop\(\)[\s\S]*pausedAt = performance\.now\(\);[\s\S]*stopLoop\(\);/, 'fishing does not record when its animation loop was paused');
 assert.match(fishingSource, /function shiftActiveTimers\(duration: number\)[\s\S]*waitUntil \+= duration;[\s\S]*biteAt \+= duration;[\s\S]*reelStartedAt \+= duration;[\s\S]*reelEndsAt \+= duration;[\s\S]*retargetAt \+= duration;/, 'not every active fishing timer is shifted by a pause');
 assert.match(fishingSource, /const pausedFor = performance\.now\(\) - pausedAt;\s*shiftActiveTimers\(pausedFor\);/, 'resuming fishing does not shift its active timers');
@@ -770,18 +788,101 @@ assert.match(fishingSource, /const gap = Math\.max\(0, now - lastTime\);[\s\S]*i
 assert.match(fishingSource, /function startLoop\(\): void \{\s*lastTime = performance\.now\(\);\s*if \(frame === null\) frame = requestAnimationFrame\(step\);/, 'a new fishing action can inherit and apply a stale frame gap');
 assert.match(fishingSource, /function cast\(\)[\s\S]*playCast\(\);\s*resumeLoop\(\);/, 'casting bypasses fishing pause recovery');
 assert.match(fishingSource, /function close\(\)[\s\S]*host\.hidden = true;\s*pauseLoop\(\);/, 'closing fishing does not pause its active timers');
-assert.match(fishingSource, /image\.complete && image\.naturalWidth > 0/, 'a half-loaded decor image can be drawn');
+assert.match(worldSceneSource, /image\.complete && image\.naturalWidth > 0/, 'a half-loaded scene image can be drawn');
 assert.doesNotMatch(fishingSource, /function canvas\(|function draw\(\): void|drawWeatherSky\(|avatarLayers\(|<canvas/, 'the removed canvas fishing renderer is still bundled');
-assert.match(fishingSource, /if \(cachedWorldOverlay\?\.destroyed\) cachedWorldOverlay = null;[\s\S]*cachedWorldOverlay \|\| findPixiNode/, 'the stable world overlay is searched across the full PIXI scene every frame');
-assert.match(fishingSource, /if \(cachedLocalAvatarId !== id \|\| cachedLocalAvatar\?\.destroyed\)/, 'the stable local avatar is searched across the full PIXI scene every frame');
+assert.match(worldSceneSource, /if \(cachedOverlay\?\.destroyed\) cachedOverlay = null;[\s\S]*cachedOverlay \|\| findNode/, 'the stable world overlay is searched across the full PIXI scene every frame');
+assert.match(worldSceneSource, /if \(cachedAvatarId !== id \|\| cachedAvatar\?\.destroyed\)/, 'the stable local avatar is searched across the full PIXI scene every frame');
 assert.match(fishingSource, /Number\.isFinite\(xp\) \? Math\.max\(0, xp\) : 0/, 'non-finite saved fishing XP can hang the level calculation');
 assert.match(fishingSource, /equipment\[id\] > 0 && EQUIPMENT_BY_ID\.get\(id\)\?\.slot === slot/, 'loaded equipment is not validated against ownership and slot');
 assert.match(fishingSource, /\.gf-card\[data-view=game\]\{width:min\(360px,calc\(100vw - 24px\)\)\}/, 'the world fishing HUD is not compact on a small viewport');
 assert.match(fishingSource, /\.gf-body\{[^}]*max-height:min\(430px,calc\(100vh - 150px\)\)/, 'a fishing list can put its header above a short viewport');
 assert.match(fishingSource, /castDistance = [^;]*Math\.random\(\)[^;]*;[\s\S]*hookDepth = [^;]*Math\.random\(\)[^;]*;/, 'fishing casts no longer vary their landing distance and hook depth');
 // Tile draw wrappers outlive the scene unless restored, blanking the garden after the scene fails.
-assert.match(fishingSource, /function restoreTileDraw\(\)[\s\S]*if \(!tileView\.destroyed\) tileView\.draw = originalDraw;[\s\S]*wrappedTileViews\.clear\(\)/, 'suppressed tile draws are never restored');
-assert.match(fishingSource, /function restoreGarden\(\): void \{\s*tileDrawSuppressed = false;\s*restoreTileDraw\(\);/, 'restoring the garden leaves its tile draws suppressed');
-assert.doesNotMatch(fishingSource, /panel\(\)\?\.hidden === false\) return;/, 'a wrapped tile draw does a DOM lookup on every frame');
+assert.match(worldSceneSource, /function restoreTileDraws\(\)[\s\S]*if \(!tileView\.destroyed\) tileView\.draw = originalDraw;[\s\S]*wrappedTileViews\.clear\(\)/, 'suppressed tile draws are never restored');
+assert.match(worldSceneSource, /function teardown\(\): void \{\s*suppressTileDraw = false;\s*restoreTileDraws\(\);/, 'tearing a scene down leaves its tile draws suppressed');
+assert.doesNotMatch(worldSceneSource, /panel\(\)\?\.hidden === false\) return;/, 'a wrapped tile draw does a DOM lookup on every frame');
+
+// A world scene borrows the player's real farm tiles, so its whole contract is that the garden
+// comes back. Every scene shares this module, so a regression here breaks all of them at once.
+assert.doesNotMatch(worldSceneSource, /sendMessage|sendQuinoaCommand|from '\.\/game-connection/, 'a world scene sends messages to the game');
+assert.match(worldSceneSource, /exit\(\): void \{\s*active = false;\s*activeScenes\.delete\(config\.owner\);\s*teardown\(\);\s*releaseCinematic\(\);/, 'leaving a scene does not release the farm, the cinematic claim and its owner slot together');
+assert.match(worldSceneSource, /function teardown\(\)[\s\S]*restoreNodes\(hiddenTiles\);[\s\S]*restoreNodes\(hiddenEffects\);[\s\S]*clearSprites\(\);/, 'a scene teardown leaves sprites or hidden nodes behind');
+assert.match(worldSceneSource, /const activeScenes = new Set<string>\(\);/, 'scenes cannot tell each other apart, so one closing frees another still holding the farm');
+// Two scenes open at once would fight over the same tiles, so each claims cinematic mode by name.
+assert.match(worldSceneSource, /__gardenCompanionSetCinematic\?\.\(true, config\.owner\)/, 'a scene does not claim cinematic mode under its own name');
+assert.match(worldSceneSource, /__gardenCompanionSetCinematic\?\.\(false, config\.owner\)/, 'a scene does not release cinematic mode under its own name');
+assert.match(worldSceneSource, /if \(signature !== next \|\| !graphics\.size\)/, 'a scene is rebuilt even when the farm has not changed shape');
+
+// A plant and its harvested crop are different atlas frames, and some callers want the plant. The
+// game's own slot offset is where a crop hangs on it, so nothing has to guess a mount point.
+assert.match(petSpriteSource, /__gardenCompanionPlantSprites/, 'growing-plant sprites are not exposed');
+assert.match(petSpriteSource, /const plantSprite = __PLANT_CATALOG__\[species\]\?\.plantSprite;/, 'plant sprites are not resolved from the captured plant frame');
+assert.ok(built.includes('plantSprite: "StarweaverPlant"'), 'the Starweaver plant frame is missing from the built catalog');
+assert.ok(buildSource.includes('slotOffsets:'), 'the plant slot offset is not captured from the game bundle');
+assert.ok(built.includes('slotOffset: { x: 4e-3, y: -0.308 }'), 'the Starweaver mount point is missing from the built catalog');
+
+// A reconnect hands the world back in pieces. Diffing against the pre-drop world across that gap
+// reads an empty shop list as every watched item vanishing, then reappearing, which alarms for all
+// of them at once. The settled snapshot has to be adopted silently instead.
+assert.match(plantDragSource, /noteRoomSocketOpened\(\);/, 'a reopened room socket is not published to the rest of the script');
+assert.match(plantDragSource, /socket\.addEventListener\('close', noteRoomSocketClosed\)/, 'a dropped room socket is not published to the rest of the script');
+assert.match(connectionStateSource, /roomSocketOpens\+\+;\s*if \(roomSocketOpens > 1\) emit\(\);/, 'the first connection of a session is announced as a reconnect');
+assert.match(shopAlarmsSource, /onRoomConnectionInterrupted\(beginResettle\)/, 'shop alarms do not re-baseline after a reconnect');
+assert.match(shopAlarmsSource, /function beginResettle\(\)[\s\S]*resettling = true;[\s\S]*restockClocks\.clear\(\);/, 'a reconnect leaves the restock clocks holding pre-drop values');
+assert.match(shopAlarmsSource, /if \(resettling\) \{\s*settleAfterReconnect\(shopSignature\(availableShopItems\(\)\)\);\s*return;\s*\}/, 'shop snapshots are still diffed while the connection is resettling');
+// Re-baselining must not run the initial-load path, which deliberately alarms for everything held.
+assert.doesNotMatch(shopAlarmsSource, /beginResettle[\s\S]{0,400}state\.initializedShops = false/, 'a reconnect re-runs the initial load and alarms for every item already in stock');
+assert.match(shopAlarmsSource, /resettling = false;[\s\S]*state\.lastShopSignature = settled;[\s\S]*restockedShops\(\);\s*state\.initializedShops = true;/, 'the settled reconnect snapshot is not adopted as the new silent baseline');
+assert.match(shopAlarmsSource, /if \(settled !== resettleSignature\) \{\s*settleAfterReconnect\(settled\);/, 'the reconnect settle does not wait for the shops to stop changing');
+assert.ok(RECONNECT_SETTLE_MS_VALUE > INITIAL_SETTLE_MS_VALUE, 'a reconnect settles no slower than a first load, so partial state can still slip through');
+
+// Catching the engine's private farm systems means patching Object.defineProperty, Map.prototype.set
+// and three accessors on Object.prototype. All three are on the hot path of every script on the
+// page - a bundler defines a property per export, the game fills Maps constantly, and an accessor
+// on Object.prototype sits on the prototype chain of every object there is. Leaving them installed
+// for the whole session taxes the game's own code forever, so they must come back off.
+assert.match(plantDragSource, /function restoreDefinePropertyCapture\(\)[\s\S]*objectCtor\.defineProperty = originalDefineProperty;/, 'the patched Object.defineProperty is never restored');
+assert.match(plantDragSource, /function restoreSystemRegistryCapture\(\)[\s\S]*mapProto\.set = originalMapSet;/, 'the patched Map.prototype.set is never restored');
+assert.match(plantDragSource, /function releaseGlobalHooksIfIdle\(\)\s*\{\s*if \(armedSystemFields\.size === 0\) restoreDefinePropertyCapture\(\);/, 'the global hooks are not released once every system is captured');
+assert.match(plantDragSource, /\} else return;\s*releaseGlobalHooksIfIdle\(\);/, 'capturing a system does not check whether the global hooks can come off');
+// A system that never arrives must not leave the page permanently patched.
+assert.match(plantDragSource, /const HOOK_RELEASE_TIMEOUT_MS = 60_000;/, 'there is no backstop for hooks waiting on a system that never arrives');
+assert.match(plantDragSource, /function scheduleHookRelease\(\)[\s\S]*for \(const key of \[\.\.\.armedSystemFields\]\) disarmPrivateField\(key\);[\s\S]*restoreDefinePropertyCapture\(\);\s*restoreSystemRegistryCapture\(\);/, 'the backstop does not remove every global hook');
+// A reconnect rebuilds the systems, so the hooks have to go back on with it.
+assert.match(plantDragSource, /function armPrivateSystemCapture\(\)\s*\{\s*installDefinePropertyCapture\(\);\s*installSystemRegistryCapture\(\);\s*scheduleHookRelease\(\);/, 'a reconnect does not re-install the capture hooks it needs');
+assert.match(plantDragSource, /installDefinePropertyCapture\(\) \{\s*if \(\(objectCtor\.defineProperty as any\)\?\.\[WRAPPED_FLAG\]\) return;/, 'the defineProperty hook can be installed on top of itself');
+
+// A switch for measuring what the sprite pipeline costs on a cold load. It has to live in storage:
+// the loader runs during startup, so a session-only flag could never be set before it had run.
+assert.match(petSpriteInjector, /const DISABLE_KEY = 'gardenCompanion\.disableSprites';/, 'sprite loading cannot be turned off for a load-time comparison');
+assert.match(petSpriteInjector, /if \(injected \|\| spritesDisabled\(\)\) return;/, 'a pointer press still injects sprites when they are disabled');
+assert.match(petSpriteInjector, /page\.__gardenCompanionDisableSprites = \(disabled = true\)/, 'the sprite switch is not reachable from the console');
+assert.match(buildSource, /const withoutSprites = process\.argv\.includes\('--no-sprites'\);/, 'there is no build that ships without the sprite pipeline');
+
+// Decoding a few hundred sprites means a few hundred synchronous PNG encodes. In one loop that is
+// over a second of blocked main thread, landing on the game's startup; sliced, the work is the same
+// but no single burst of it can hold a frame.
+assert.match(petSpriteSource, /const SLICE_BUDGET_MS = 8;/, 'sprite decoding has no main-thread budget');
+assert.match(petSpriteSource, /async function cropFrames\(/, 'sprite decoding cannot yield, so it runs as one long task');
+assert.match(petSpriteSource, /if \(performance\.now\(\) - sliceStarted >= SLICE_BUDGET_MS\) \{\s*await yieldToBrowser\(\);/, 'sprite decoding never hands the thread back');
+assert.match(petSpriteSource, /scheduler\.postTask\(\(\) => resolve\(\), \{ priority: 'background' \}\)/, 'sprite decoding does not yield at background priority where that is available');
+assert.match(petSpriteSource, /await cropFrames\(atlas, sheet, wanted, output\);\s*await cropFrames\(atlas, sheet, trimmedWanted, trimmedOutput, true\);/, 'the atlas loop does not await the sliced decode');
+
+// Decoding produces identical bytes for a given game release, so it is paid once per release rather
+// than once per load. Anything else means every reload rebuilds a few hundred PNGs from scratch.
+assert.match(petSpriteSource, /const CACHE_DB = 'gardenCompanionSprites';/, 'decoded sprites are not cached between loads');
+assert.match(petSpriteSource, /const cached = await readCache\(key\);\s*if \(cached\) \{ publish\(cached\); return; \}/, 'a cache hit still decodes every sprite');
+assert.match(petSpriteSource, /const key = `\$\{version\}:\$\{stage\}`;/, 'the sprite cache is not keyed by the games asset version');
+assert.match(petSpriteSource, /if \(typeof existing === 'string' && !existing\.startsWith\(`\$\{version\}:`\)\) store\.delete\(existing\);/, 'old asset versions are never evicted from the sprite cache');
+assert.doesNotMatch(petSpriteSource, /localStorage\.setItem\('gardenCompanionSprites/, 'sprite data URLs are pushed into localStorage, which cannot hold them');
+// Only the player's own pets and crops are on screen during load; everything else waits to be asked.
+assert.match(petSpriteSource, /async function decodeEssential\(\)[\s\S]*produce: mapFrom\(produceCandidates, trimmed\)/, 'the startup sprite stage is not limited to pets and produce');
+assert.match(petSpriteSource, /async function decodeDeferred\(\)[\s\S]*plant: mapFrom\(plantCandidates, trimmed\)/, 'decor and growing-plant art is not deferred');
+assert.match(petSpriteSource, /await runStage\('essential'\);/, 'the essential sprite stage never runs');
+assert.match(petSpriteSource, /page\.__gardenCompanionLoadSpriteGroup = /, 'the deferred sprite stage cannot be requested');
+assert.match(plannerSource, /page\.__gardenCompanionLoadSpriteGroup\?\.\('deferred'\)/, 'the layout planner does not request the decor art it draws');
+assert.match(celestialGuideSource, /page\.__gardenCompanionLoadSpriteGroup\?\.\('deferred'\)/, 'the celestial guide does not request the plant art it draws');
+// A stage in flight must not be started twice by two features opening at once.
+assert.match(petSpriteSource, /const existing = running\.get\(stage\);\s*if \(existing\) return existing;/, 'a sprite stage can be decoded twice at once');
 
 console.log('Static checks passed');

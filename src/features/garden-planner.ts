@@ -347,6 +347,8 @@ export function initGardenPlanner(): void {
   }
 
   function open(): void {
+    // Decor and growing-plant artwork is only decoded on demand, and the planner draws decor and full plants.
+    page.__gardenCompanionLoadSpriteGroup?.('deferred');
     if (planner.open || !tileSystem()) return;
     planner.open = true;
     planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === 'plant' || tile?.objectType === 'decor'));

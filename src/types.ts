@@ -151,6 +151,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionPetSprites?: Record<string, string>;
   __gardenCompanionShopSprites?: Record<string, string>;
   __gardenCompanionProduceSprites?: Record<string, string>;
+  __gardenCompanionPlantSprites?: Record<string, string>;
   __gardenCompanionEmblemSprites?: Record<string, string>;
   __gardenCompanionMutationSprites?: Record<string, string>;
   __gardenCompanionFarmSystems?: FarmSystems;
@@ -164,6 +165,9 @@ export interface CompanionPage extends Window {
   __gardenCompanionSetCinematic?: (enabled: boolean, owner?: string) => boolean;
   __gardenCompanionPlannerOpen?: () => boolean;
   __gardenCompanionPetSpritesReady?: () => void;
+  __gardenCompanionLoadSprites?: () => void;
+  __gardenCompanionLoadSpriteGroup?: (group?: string) => void;
+  __gardenCompanionDisableSprites?: (disabled?: boolean) => boolean;
   __gardenCompanionClaimKeybind?: (owner: string, combo: string) => void;
   __gardenCompanionOverviewShortcutChanged?: (shortcut: string) => void;
   __gardenCompanionArmAlarm?: () => AudioContext | null;

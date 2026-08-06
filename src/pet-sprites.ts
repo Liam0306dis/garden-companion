@@ -86,6 +86,12 @@ function produceSpriteCandidates(species: string): string[] {
   return [...(cropSprite ? [`sprite/plant/${cropSprite}`] : []), `sprite/plant/${species}`, `sprite/seed/${species}`];
 }
 
+/** The growing plant rather than its harvested crop, which for some species look nothing alike. */
+function plantSpriteCandidates(species: string): string[] {
+  const plantSprite = __PLANT_CATALOG__[species]?.plantSprite;
+  return plantSprite ? [`sprite/plant/${plantSprite}`] : [];
+}
+
 function normaliseKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9/]/g, '');
 }
@@ -242,6 +248,62 @@ async function loadRivePetFrames(url: string, species: string[]): Promise<Map<st
   return frames;
 }
 
+/**
+ * Decoded sprites are cached in IndexedDB against the game's asset version. Decoding a few hundred
+ * PNGs costs a noticeable chunk of the main thread, and it produces the same bytes every time, so
+ * paying it once per game release rather than once per page load is the whole point. A new asset
+ * version simply misses the cache and rebuilds.
+ *
+ * localStorage would be the obvious home and the wrong one: a few hundred PNG data URLs run to many
+ * megabytes and would blow its quota.
+ */
+const CACHE_DB = 'gardenCompanionSprites';
+const CACHE_STORE = 'maps';
+
+type SpriteMap = Record<string, string>;
+type SpriteBundle = Record<string, SpriteMap>;
+
+function openCache(): Promise<IDBDatabase | null> {
+  return new Promise(resolve => {
+    try {
+      const request = indexedDB.open(CACHE_DB, 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains(CACHE_STORE)) request.result.createObjectStore(CACHE_STORE);
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+async function readCache(key: string): Promise<SpriteBundle | null> {
+  const db = await openCache();
+  if (!db) return null;
+  return new Promise(resolve => {
+    try {
+      const request = db.transaction(CACHE_STORE, 'readonly').objectStore(CACHE_STORE).get(key);
+      request.onsuccess = () => resolve((request.result as SpriteBundle) ?? null);
+      request.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+/** Writes this version's bundle and drops every other version's, so the cache cannot grow forever. */
+async function writeCache(key: string, value: SpriteBundle, version: string): Promise<void> {
+  const db = await openCache();
+  if (!db) return;
+  try {
+    const store = db.transaction(CACHE_STORE, 'readwrite').objectStore(CACHE_STORE);
+    store.put(value, key);
+    const keys = store.getAllKeys();
+    keys.onsuccess = () => {
+      for (const existing of keys.result) {
+        if (typeof existing === 'string' && !existing.startsWith(`${version}:`)) store.delete(existing);
+      }
+    };
+  } catch {}
+}
+
 async function basisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
   const binary = atob(__PET_WASM_B64__.replace(/\s/g, ''));
   const bytes = new Uint8Array(binary.length);
@@ -269,7 +331,32 @@ async function decodeSheet(url: string, basis: BasisInstance, rgbaFormat: number
   }
 }
 
-function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Set<string>, output: Map<string, string>, trimmed = false): void {
+/**
+ * How long a single slice of sprite decoding may hold the main thread. One frame at 60fps is 16ms,
+ * so half of that leaves room for the game to keep drawing while sprites are built.
+ */
+const SLICE_BUDGET_MS = 8;
+
+/**
+ * Hands the thread back between slices. `scheduler.postTask` at background priority is the right
+ * tool where it exists: it lets anything the player can see go first.
+ */
+function yieldToBrowser(): Promise<void> {
+  return new Promise(resolve => {
+    const scheduler = (window as unknown as { scheduler?: { postTask?: (callback: () => void, options?: { priority: string }) => unknown } }).scheduler;
+    if (typeof scheduler?.postTask === 'function') scheduler.postTask(() => resolve(), { priority: 'background' });
+    else setTimeout(resolve, 0);
+  });
+}
+
+/**
+ * Every sprite is cut from the atlas and encoded to a PNG, and there are a few hundred of them.
+ * Encoding is synchronous, so doing the lot in one loop blocks the main thread for well over a
+ * second - which lands squarely on the game's own startup. The work is the same either way; slicing
+ * it just stops any single burst of it holding a frame.
+ */
+async function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Set<string>, output: Map<string, string>, trimmed = false): Promise<void> {
+  let sliceStarted = performance.now();
   for (const [name, descriptor] of Object.entries(atlas.frames ?? {})) {
     const key = normaliseKey(name);
     if (!wanted.has(key) || output.has(key)) continue;
@@ -293,6 +380,10 @@ function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Set<stri
       context.drawImage(sheet, frame.x, frame.y, frame.w, frame.h, placement.x, placement.y, frame.w, frame.h);
     }
     output.set(key, canvas.toDataURL('image/png'));
+    if (performance.now() - sliceStarted >= SLICE_BUDGET_MS) {
+      await yieldToBrowser();
+      sliceStarted = performance.now();
+    }
   }
 }
 
@@ -315,8 +406,8 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
       const imageUrl = atlas.meta?.image ? new URL(atlas.meta.image, jsonUrl).href : jsonUrl.replace(/\.json$/, '.ktx2');
       const sheet = await decodeSheet(imageUrl, basis, rgbaFormat);
       if (sheet) {
-        cropFrames(atlas, sheet, wanted, output);
-        cropFrames(atlas, sheet, trimmedWanted, trimmedOutput, true);
+        await cropFrames(atlas, sheet, wanted, output);
+        await cropFrames(atlas, sheet, trimmedWanted, trimmedOutput, true);
       }
       for (const related of atlas.meta?.related_multi_packs ?? []) {
         const relatedPath = jsonPath.replace(/[^/]+$/, '') + related.replace(/\.json$/, '') + '.json';
@@ -331,61 +422,119 @@ export async function initPetSprites(): Promise<void> {
   const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
   const assetsBase = await detectAssetsBase();
   if (!assetsBase) return;
-  const { atlasPaths: paths, petRiveUrl } = await assetSources(assetsBase);
-  if (!paths.length && !petRiveUrl) return;
+  const version = assetsBase.match(/\/version\/([^/]+)\//)?.[1] ?? 'unknown';
   const species = Object.keys(__PET_CATALOG__);
   const shopCandidates = Object.fromEntries(Object.entries(SHOP_SPRITE_GROUPS).flatMap(([group, itemIds]) =>
     itemIds.map(itemId => [itemId, shopSpriteCandidates(group, itemId)]),
   ));
   const produceCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, produceSpriteCandidates(name)]));
-  const decorIds = new Set(SHOP_SPRITE_GROUPS.decor);
-  const wanted = new Set([
-    ...species.map(name => normaliseKey(`sprite/pet/${name}`)),
-    ...Object.entries(shopCandidates).filter(([itemId]) => !decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
-  ]);
+  const plantCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, plantSpriteCandidates(name)]));
   const emblemCandidates = Object.fromEntries(Object.entries(EMBLEM_ICON_SPRITES).map(([icon, name]) => [icon, `sprite/ui/${name}`]));
-  const trimmedWanted = new Set([
-    ...Object.values(produceCandidates).flat().map(normaliseKey),
-    ...Object.values(emblemCandidates).map(normaliseKey),
-    ...Object.values(MUTATION_ICON_CANDIDATES).map(normaliseKey),
-    ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
-  ]);
-  try {
-    const atlasResult = paths.length
-      ? await loadPetFrames(assetsBase, paths, wanted, trimmedWanted)
+  const decorIds = new Set(SHOP_SPRITE_GROUPS.decor);
+
+  function pick(candidates: string[], source: Map<string, string>): string | undefined {
+    return candidates.map(normaliseKey).map(key => source.get(key)).find(Boolean);
+  }
+
+  function mapFrom<T extends string>(entries: Record<T, string[]>, source: Map<string, string>): SpriteMap {
+    return Object.fromEntries(Object.entries<string[]>(entries).flatMap(([name, candidates]) => {
+      const image = pick(candidates, source);
+      return image ? [[name, image]] : [];
+    }));
+  }
+
+  /** Assigning rather than replacing, so a later stage cannot wipe an earlier one's sprites. */
+  function publish(bundle: SpriteBundle): void {
+    if (bundle.pet) page.__gardenCompanionPetSprites = { ...page.__gardenCompanionPetSprites, ...bundle.pet };
+    if (bundle.produce) page.__gardenCompanionProduceSprites = { ...page.__gardenCompanionProduceSprites, ...bundle.produce };
+    if (bundle.shop) page.__gardenCompanionShopSprites = { ...page.__gardenCompanionShopSprites, ...bundle.shop };
+    if (bundle.plant) page.__gardenCompanionPlantSprites = { ...page.__gardenCompanionPlantSprites, ...bundle.plant };
+    if (bundle.emblem) page.__gardenCompanionEmblemSprites = { ...page.__gardenCompanionEmblemSprites, ...bundle.emblem };
+    if (bundle.mutation) page.__gardenCompanionMutationSprites = { ...page.__gardenCompanionMutationSprites, ...bundle.mutation };
+    page.__gardenCompanionPetSpritesReady?.();
+  }
+
+  let sources: { atlasPaths: string[]; petRiveUrl: string | null } | null = null;
+  async function loadSources(): Promise<{ atlasPaths: string[]; petRiveUrl: string | null }> {
+    return sources ??= await assetSources(assetsBase!);
+  }
+
+  /**
+   * Only the player's own pets and the crops they grow are wanted while the game is starting. Shop
+   * icons, decor, growing plants and the panel's own iconography are not on screen until a panel is
+   * opened, so they are a second stage that nothing pays for unless it is asked for.
+   */
+  async function decodeEssential(): Promise<SpriteBundle> {
+    const { atlasPaths, petRiveUrl } = await loadSources();
+    const wanted = new Set(species.map(name => normaliseKey(`sprite/pet/${name}`)));
+    const trimmedWanted = new Set(Object.values(produceCandidates).flat().map(normaliseKey));
+    const { frames, trimmed } = atlasPaths.length
+      ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
       : { frames: new Map<string, string>(), trimmed: new Map<string, string>() };
-    const { frames, trimmed } = atlasResult;
     if (petRiveUrl) {
       try {
-        const riveFrames = await loadRivePetFrames(petRiveUrl, species);
-        for (const [key, image] of riveFrames) frames.set(key, image);
+        for (const [key, image] of await loadRivePetFrames(petRiveUrl, species)) frames.set(key, image);
       } catch (error) {
         console.warn('[Garden Companion] Current pet animations could not be rendered.', error);
       }
     }
-    page.__gardenCompanionPetSprites = Object.fromEntries(species.flatMap(name => {
-      const image = frames.get(normaliseKey(`sprite/pet/${name}`));
-      return image ? [[name, image]] : [];
-    }));
-    page.__gardenCompanionShopSprites = Object.fromEntries(Object.entries(shopCandidates).flatMap(([itemId, candidates]) => {
-      const source = decorIds.has(itemId) ? trimmed : frames;
-      const image = candidates.map(normaliseKey).map(key => source.get(key)).find(Boolean);
-      return image ? [[itemId, image]] : [];
-    }));
-    page.__gardenCompanionProduceSprites = Object.fromEntries(Object.entries(produceCandidates).flatMap(([name, candidates]) => {
-      const image = candidates.map(normaliseKey).map(key => trimmed.get(key)).find(Boolean);
-      return image ? [[name, image]] : [];
-    }));
-    page.__gardenCompanionEmblemSprites = Object.fromEntries(Object.entries(emblemCandidates).flatMap(([icon, candidate]) => {
-      const image = trimmed.get(normaliseKey(candidate));
-      return image ? [[icon, image]] : [];
-    }));
-    page.__gardenCompanionMutationSprites = Object.fromEntries(Object.entries(MUTATION_ICON_CANDIDATES).flatMap(([id, candidate]) => {
-      const image = trimmed.get(normaliseKey(candidate));
-      return image ? [[id, image]] : [];
-    }));
-    page.__gardenCompanionPetSpritesReady?.();
-  } catch (error) {
-    console.warn('[Garden Companion] Pet sprites could not be loaded.', error);
+    return {
+      pet: Object.fromEntries(species.flatMap(name => {
+        const image = frames.get(normaliseKey(`sprite/pet/${name}`));
+        return image ? [[name, image]] : [];
+      })),
+      produce: mapFrom(produceCandidates, trimmed),
+    };
   }
+
+  async function decodeDeferred(): Promise<SpriteBundle> {
+    const { atlasPaths } = await loadSources();
+    const wanted = new Set(Object.entries(shopCandidates)
+      .filter(([itemId]) => !decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey));
+    const trimmedWanted = new Set([
+      ...Object.values(plantCandidates).flat().map(normaliseKey),
+      ...Object.values(emblemCandidates).map(normaliseKey),
+      ...Object.values(MUTATION_ICON_CANDIDATES).map(normaliseKey),
+      ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
+    ]);
+    const { frames, trimmed } = atlasPaths.length
+      ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
+      : { frames: new Map<string, string>(), trimmed: new Map<string, string>() };
+    return {
+      shop: Object.fromEntries(Object.entries(shopCandidates).flatMap(([itemId, candidates]) => {
+        const image = pick(candidates, decorIds.has(itemId) ? trimmed : frames);
+        return image ? [[itemId, image]] : [];
+      })),
+      plant: mapFrom(plantCandidates, trimmed),
+      emblem: mapFrom(Object.fromEntries(Object.entries(emblemCandidates).map(([icon, candidate]) => [icon, [candidate]])), trimmed),
+      mutation: mapFrom(Object.fromEntries(Object.entries(MUTATION_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
+    };
+  }
+
+  const stages: Record<string, () => Promise<SpriteBundle>> = { essential: decodeEssential, deferred: decodeDeferred };
+  const running = new Map<string, Promise<void>>();
+
+  function runStage(stage: string): Promise<void> {
+    const existing = running.get(stage);
+    if (existing) return existing;
+    const task = (async () => {
+      try {
+        const key = `${version}:${stage}`;
+        // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.
+        const cached = await readCache(key);
+        if (cached) { publish(cached); return; }
+        const bundle = await stages[stage]();
+        publish(bundle);
+        void writeCache(key, bundle, version);
+      } catch (error) {
+        running.delete(stage);
+        console.warn(`[Garden Companion] ${stage} sprites could not be loaded.`, error);
+      }
+    })();
+    running.set(stage, task);
+    return task;
+  }
+
+  page.__gardenCompanionLoadSpriteGroup = (group?: string) => void runStage(group === 'essential' ? 'essential' : 'deferred');
+  await runStage('essential');
 }
