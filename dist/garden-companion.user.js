@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.6
+// @version      0.7.7
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -5399,10 +5399,29 @@ ${rows}</div>`;
         rotation: index * 47 % 31 - 15
       };
     }
-    function plannedTile(species, mutations) {
-      const now = Date.now();
+    function patchCapacity(species) {
       const slots = Math.max(1, Number(PLANTS2[species]?.slots || 1));
-      const isPatch = slots > 1 && !PLANTS2[species]?.regrows;
+      return slots > 1 && !PLANTS2[species]?.regrows ? slots : 0;
+    }
+    const PATCH_VARIANTS = {
+      Snowdrop: "SnowdropDouble",
+      SnowdropDouble: "Snowdrop",
+      Daisy: "PurpleDaisy",
+      PurpleDaisy: "Daisy",
+      Clover: "FourLeafClover",
+      FourLeafClover: "Clover",
+      Cattail: "VariegatedCattail",
+      VariegatedCattail: "Cattail"
+    };
+    function sharesPatch(host, species) {
+      return host === species || PATCH_VARIANTS[host] === species;
+    }
+    function plannedTile(species, mutations, slotSpecies) {
+      const now = Date.now();
+      const capacity = Math.max(1, Number(PLANTS2[species]?.slots || 1));
+      const isPatch = patchCapacity(species) > 0;
+      const contents = isPatch && slotSpecies?.length ? slotSpecies.slice(0, capacity) : null;
+      const slots = contents?.length ?? capacity;
       const started = now - 36e5;
       const matured = now - 6e4;
       return {
@@ -5410,15 +5429,18 @@ ${rows}</div>`;
         species,
         plantedAt: started,
         maturedAt: matured,
-        slots: Array.from({ length: slots }, (_, slotId) => ({
-          species: PLANTS2[species]?.slotSpecies?.[slotId] || species,
-          startTime: started,
-          endTime: matured,
-          targetScale: scaleFor(PLANTS2[species]?.slotSpecies?.[slotId] || species),
-          mutations: [...mutations],
-          slotId,
-          ...isPatch ? patchSlotOffset(slotId, slots) : {}
-        }))
+        slots: Array.from({ length: slots }, (_, slotId) => {
+          const grown = contents?.[slotId] || PLANTS2[species]?.slotSpecies?.[slotId] || species;
+          return {
+            species: grown,
+            startTime: started,
+            endTime: matured,
+            targetScale: scaleFor(grown),
+            mutations: [...mutations],
+            slotId,
+            ...isPatch ? patchSlotOffset(slotId, capacity) : {}
+          };
+        })
       };
     }
     function applyTile(localIndex, force = false) {
@@ -5464,8 +5486,17 @@ ${rows}</div>`;
       const label = document.querySelector("#gc-planner [data-plan-count]");
       if (label) label.textContent = `${planner.tiles.size} planned`;
     }
-    function place(localIndex) {
-      planner.tiles.set(localIndex, planner.mode === "decor" ? plannedDecor() : plannedTile(planner.species, [...planner.mutations]));
+    function place(localIndex, fill = false) {
+      if (planner.mode === "decor") {
+        planner.tiles.set(localIndex, plannedDecor());
+      } else {
+        const existing = planner.tiles.get(localIndex);
+        const host = patchCapacity(planner.species) > 0 && !fill && existing?.objectType === "plant" && existing.species && sharesPatch(existing.species, planner.species) ? existing.species : planner.species;
+        const capacity = patchCapacity(host);
+        const current = host === existing?.species ? (existing?.slots ?? []).map((slot) => slot.species || host) : [];
+        const grown = host === planner.species && (fill || capacity === 0) ? void 0 : current.length >= capacity ? [...current.slice(0, capacity - 1), planner.species] : [...current, planner.species];
+        planner.tiles.set(localIndex, plannedTile(host, [...planner.mutations], grown));
+      }
       applyTile(localIndex);
       updateCount();
     }
@@ -5489,7 +5520,7 @@ ${rows}</div>`;
         erase(localIndex);
       } else if (event.button === 0) {
         planner.painting = true;
-        place(localIndex);
+        place(localIndex, event.shiftKey);
       }
     }
     function onPointerMove(event) {
@@ -5498,8 +5529,8 @@ ${rows}</div>`;
       if (localIndex === null) return;
       if (planner.erasing) {
         if (planner.tiles.has(localIndex)) erase(localIndex);
-      } else if (planner.mode === "decor" ? planner.tiles.get(localIndex)?.decorId !== planner.decorId : planner.tiles.get(localIndex)?.species !== planner.species) {
-        place(localIndex);
+      } else if (planner.mode === "decor" ? planner.tiles.get(localIndex)?.decorId !== planner.decorId : !sharesPatch(planner.tiles.get(localIndex)?.species ?? "", planner.species)) {
+        place(localIndex, true);
       }
     }
     function onPointerUp() {
@@ -5604,7 +5635,16 @@ ${rows}</div>`;
         };
       }
       const slot = tile.slots?.[0];
-      return { p: tile.species, m: slot?.mutations ?? [], s: round2(slot?.targetScale) };
+      const host = tile.species ?? "";
+      const capacity = patchCapacity(host);
+      const grown = (tile.slots ?? []).map((entry) => entry.species || host);
+      const custom = capacity > 0 && grown.length > 0 && (grown.length < capacity || grown.some((name) => name !== host));
+      return {
+        p: tile.species,
+        m: slot?.mutations ?? [],
+        s: round2(slot?.targetScale),
+        ...custom ? { v: grown } : {}
+      };
     }
     function fromRecipe(recipe) {
       const previousScale = planner.scale;
@@ -5623,7 +5663,7 @@ ${rows}</div>`;
           }
           return tile;
         }
-        return recipe.p ? plannedTile(recipe.p, recipe.m ?? []) : null;
+        return recipe.p ? plannedTile(recipe.p, recipe.m ?? [], recipe.v) : null;
       } finally {
         planner.scale = previousScale;
       }

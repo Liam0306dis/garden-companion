@@ -637,11 +637,11 @@ assert.match(buildSource, /slotCapacity:\(\[0-9\]\+\)/, 'patch capacity is not r
 assert.match(buildSource, /capacityBySeed/, 'rare patch variants do not inherit their parent capacity');
 assert.match(plannerSource, /const RARITY_ORDER = \['Common', 'Uncommon', 'Rare', 'Legendary', 'Mythic', 'Divine', 'Celestial'\]/, 'celestial plants are not sorted last');
 assert.match(plannerSource, /function patchSlotOffset\(index: number, count: number\)/, 'patch plants have no per-slot positions');
-assert.match(plannerSource, /\.\.\.\(isPatch \? patchSlotOffset\(slotId, slots\) : \{\}\)/, 'patch slots are placed without x and y, so only one crop draws');
+assert.match(plannerSource, /\.\.\.\(isPatch \? patchSlotOffset\(slotId, capacity\) : \{\}\)/, 'patch slots are placed without x and y, so only one crop draws');
 assert.match(plannerSource, /const started = now - 3_600_000;\s*const matured = now - 60_000;/, 'planned plants use a zero length growth window, which breaks their size');
 assert.doesNotMatch(plannerSource, /startTime: now - 60_000,\s*endTime: now - 60_000/, 'planned slots still start and end at the same instant');
 assert.match(plannerSource, /!PLANTS\[name\]\?\.component/, 'component species still get their own planner button');
-assert.match(plannerSource, /species: PLANTS\[species\]\?\.slotSpecies\?\.\[slotId\] \|\| species/, 'slot species overrides are ignored');
+assert.match(plannerSource, /const grown = contents\?\.\[slotId\] \|\| PLANTS\[species\]\?\.slotSpecies\?\.\[slotId\] \|\| species;/, 'slot species overrides are ignored');
 assert.match(buildSource, /speciesOverride:`\(\[A-Za-z0-9_\]\+\)`/, 'slot species overrides are not extracted');
 assert.ok(built.includes('slotSpecies: ["ThunderCelestialShroomPlant"'), 'Thunderspire stormcap slots are missing');
 assert.match(plannerSource, /const MUTATIONS = MUTATION_CATALOG/, 'planner mutations are not read from the game catalog');
@@ -658,6 +658,15 @@ assert.match(plannerSource, /if \(!planner\.open \|\| fromPlannerUi\(event\)\) r
 assert.match(plannerSource, /DECOR\[planner\.decorId\]\?\.rotates/, 'decor without rotation variants still offers a facing control');
 assert.match(plannerSource, /return planner\.rotation === 0 \? -360 : -planner\.rotation;/, 'flipped decor is not encoded as a negative rotation');
 assert.match(plannerSource, /data-plan-flip="true"/, 'decor cannot be flipped');
+// A patch is built one crop at a time, and the rare variants share their cousin's patch.
+assert.match(plannerSource, /patchSlotOffset\(slotId, capacity\)/, 'growing a patch rearranges the crops already placed in it');
+assert.match(plannerSource, /Snowdrop: 'SnowdropDouble', SnowdropDouble: 'Snowdrop'/, 'rare crop variants cannot share their common patch');
+assert.match(plannerSource, /function sharesPatch\(host: string, species: string\)[\s\S]*host === species \|\| PATCH_VARIANTS\[host\] === species/, 'patch hosting is not symmetric between a species and its variant');
+assert.match(plannerSource, /place\(localIndex, event\.shiftKey\)/, 'shift-click no longer fills a patch in one go');
+assert.match(plannerSource, /const custom = capacity > 0 && grown\.length > 0[\s\S]*grown\.some\(name => name !== host\)/, 'a part-filled or mixed patch is not saved with its layout');
+// Appending to a full patch would be sliced straight back off, so the click looks like a no-op.
+assert.match(plannerSource, /current\.length >= capacity\s*\?\s*\[\.\.\.current\.slice\(0, capacity - 1\), planner\.species\]/, 'a variant cannot be added to a patch that is already full');
+assert.match(plannerSource, /const capacity = patchCapacity\(host\);/, 'patch capacity is measured on the selected species rather than the host tile');
 assert.match(petSpriteSource, /decor: DECOR_IDS/, 'decor sprites still use a hardcoded list');
 assert.ok(built.includes('FanousLantern: { name: "Fanous Lantern"'), 'newer decor is missing from the catalog');
 // A fixed width both keeps the flex parent from stretching the button and keeps every launch
