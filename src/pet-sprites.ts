@@ -56,14 +56,16 @@ const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
     'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'Snowdrop', 'PineTree', 'Leek', 'Squash', 'Poinsettia',
     'Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial',
   ],
-  egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'ThunderEgg'],
+  // SnowEgg and WinterEgg are both live ids for the same egg, and only WinterEgg has atlas art,
+  // so both are listed and both resolve to that one frame.
+  egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'WinterEgg', 'ThunderEgg'],
   tool: ['PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion'],
 };
 
 function shopSpriteCandidates(group: string, itemId: string): string[] {
   if (itemId === 'OrangeTulip') return ['sprite/seed/Tulip', 'sprite/plant/Tulip'];
   if (itemId === 'WoodBirdhouse') return ['sprite/decor/Birdhouse'];
-  if (itemId === 'SnowEgg') return ['sprite/pet/SnowEgg', 'sprite/pet/WinterEgg'];
+  if (itemId === 'SnowEgg' || itemId === 'WinterEgg') return ['sprite/pet/WinterEgg', 'sprite/pet/SnowEgg'];
   if (group === 'seed') return [`sprite/seed/${itemId}`, `sprite/plant/${itemId}`];
   if (group === 'egg') return [`sprite/pet/${itemId}`];
   if (group === 'tool') return [`sprite/item/${itemId}`, `sprite/tool/${itemId}`];

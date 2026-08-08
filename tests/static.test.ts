@@ -980,4 +980,20 @@ assert.match(celestialGuideSource, /page\.__gardenCompanionLoadSpriteGroup\?\.\(
 // A stage in flight must not be started twice by two features opening at once.
 assert.match(petSpriteSource, /const existing = running\.get\(stage\);\s*if \(existing\) return existing;/, 'a sprite stage can be decoded twice at once');
 
+// Both ids for the winter egg are live in the game's catalog and only one of them has atlas art,
+// so a lookup by the other id has to resolve to the same frame rather than nothing.
+assert.match(petSpriteSource, /egg: \[[^\]]*'SnowEgg', 'WinterEgg'/, 'the winter egg is missing from the egg sprite list under one of its ids');
+assert.match(petSpriteSource, /itemId === 'SnowEgg' \|\| itemId === 'WinterEgg'/, 'only one of the winter egg ids resolves to its sprite');
+for (const eggId of ['SnowEgg', 'WinterEgg']) {
+  assert.ok(built.includes(`${eggId}: { name:`), `${eggId} is not a real egg in the game catalog`);
+}
+// This is how the winter egg lost its art: a live egg with no entry in the sprite list gets no
+// sprite, silently. Every egg the game ships has to be named here or the icon is simply absent.
+const eggSpriteList = petSpriteSource.match(/egg: \[([^\]]*)\]/)?.[1] ?? '';
+const catalogEggIds = [...built.matchAll(/([A-Za-z][A-Za-z0-9_]*): \{ name: "[^"]*", spawnWeights/g)].map(match => match[1]);
+assert.ok(catalogEggIds.length >= 9, 'the egg catalog could not be read out of the build');
+for (const eggId of catalogEggIds) {
+  assert.ok(eggSpriteList.includes(`'${eggId}'`), `${eggId} is in the game's egg catalog but has no sprite entry, so its icon will be missing`);
+}
+
 console.log('Static checks passed');
