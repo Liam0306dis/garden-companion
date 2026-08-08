@@ -967,8 +967,8 @@ assert.match(petSpriteSource, /await cropFrames\(atlas, sheet, wanted, output\);
 // than once per load. Anything else means every reload rebuilds a few hundred PNGs from scratch.
 assert.match(petSpriteSource, /const CACHE_DB = 'gardenCompanionSprites';/, 'decoded sprites are not cached between loads');
 assert.match(petSpriteSource, /const cached = await readCache\(key\);\s*if \(cached\) \{ publish\(cached\); return; \}/, 'a cache hit still decodes every sprite');
-assert.match(petSpriteSource, /const key = `\$\{fingerprintKey\}:\$\{stage\}`;/, 'the sprite cache is not keyed by the atlas fingerprint');
-assert.match(petSpriteSource, /if \(typeof existing === 'string' && !existing\.startsWith\(`\$\{fingerprint\}:`\)\) store\.delete\(existing\);/, 'superseded sprite bundles are never evicted from the cache');
+assert.match(petSpriteSource, /const key = `\$\{fingerprintKey\}:\$\{stage\}:/, 'the sprite cache is not keyed by the atlas fingerprint');
+assert.match(petSpriteSource, /if \(!existing\.startsWith\(`\$\{fingerprint\}:`\) \|\| existing\.startsWith\(stalePrefix\)\) store\.delete\(existing\);/, 'superseded sprite bundles are never evicted from the cache');
 assert.doesNotMatch(petSpriteSource, /localStorage\.setItem\('gardenCompanionSprites/, 'sprite data URLs are pushed into localStorage, which cannot hold them');
 // Only the player's own pets and crops are on screen during load; everything else waits to be asked.
 assert.match(petSpriteSource, /async function decodeEssential\(\)[\s\S]*produce: mapFrom\(produceCandidates, trimmed\)/, 'the startup sprite stage is not limited to pets and produce');
@@ -995,5 +995,14 @@ assert.ok(catalogEggIds.length >= 9, 'the egg catalog could not be read out of t
 for (const eggId of catalogEggIds) {
   assert.ok(eggSpriteList.includes(`'${eggId}'`), `${eggId} is in the game's egg catalog but has no sprite entry, so its icon will be missing`);
 }
+
+// The atlas fingerprint tracks the game's artwork. It cannot notice that we started asking for a
+// sprite we never asked for before, which is how the winter egg fix sat behind a stale cache.
+assert.match(petSpriteSource, /function requestSignature\(wanted: Set<string>, trimmedWanted: Set<string>\)/, 'the cache key ignores which sprites are being asked for');
+assert.match(petSpriteSource, /const key = `\$\{fingerprintKey\}:\$\{stage\}:\$\{requestSignature\(request\.wanted, request\.trimmedWanted\)\}`;/, 'the request set is not part of the cache key');
+assert.match(petSpriteSource, /existing\.startsWith\(stalePrefix\)/, 'a superseded request set is left in the cache forever');
+// Both halves of the key have to come from the same place the decode does, or they drift apart.
+assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = essentialRequest\(\);/, 'the essential decode does not use the request set the cache key was built from');
+assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = deferredRequest\(\);/, 'the deferred decode does not use the request set the cache key was built from');
 
 console.log('Static checks passed');

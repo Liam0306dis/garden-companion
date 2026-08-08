@@ -297,6 +297,22 @@ async function readCache(key: string): Promise<SpriteBundle | null> {
  * asset version does not know what the artwork is, and letting it sweep would mean one slow request
  * deleted a good bundle and forced a rebuild on the next load as well as its own.
  */
+/**
+ * The atlas fingerprint says whether the game's artwork changed. It cannot say whether *we* changed
+ * which sprites we ask for - and when the winter egg was added to the egg list, every cache holding
+ * a bundle without it kept serving that bundle until the game happened to reship its atlases. So
+ * the request set is hashed into the key too, and adding a sprite invalidates the cache by itself.
+ */
+function requestSignature(wanted: Set<string>, trimmedWanted: Set<string>): string {
+  const source = `${[...wanted].sort().join('|')}#${[...trimmedWanted].sort().join('|')}`;
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < source.length; index++) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
+
 async function writeCache(key: string, value: SpriteBundle, fingerprint: string, evict: boolean): Promise<void> {
   const db = await openCache();
   if (!db) return;
@@ -307,7 +323,11 @@ async function writeCache(key: string, value: SpriteBundle, fingerprint: string,
     const keys = store.getAllKeys();
     keys.onsuccess = () => {
       for (const existing of keys.result) {
-        if (typeof existing === 'string' && !existing.startsWith(`${fingerprint}:`)) store.delete(existing);
+        if (typeof existing !== 'string' || existing === key) continue;
+        // Other fingerprints are stale artwork; the same stage under a different signature is a
+        // stale request set. Both are dead weight the moment this key is written.
+        const stalePrefix = key.slice(0, key.lastIndexOf(':') + 1);
+        if (!existing.startsWith(`${fingerprint}:`) || existing.startsWith(stalePrefix)) store.delete(existing);
       }
     };
   } catch {}
@@ -539,10 +559,16 @@ export async function initPetSprites(): Promise<void> {
    * icons, decor, growing plants and the panel's own iconography are not on screen until a panel is
    * opened, so they are a second stage that nothing pays for unless it is asked for.
    */
+  function essentialRequest(): { wanted: Set<string>; trimmedWanted: Set<string> } {
+    return {
+      wanted: new Set(species.map(name => normaliseKey(`sprite/pet/${name}`))),
+      trimmedWanted: new Set(Object.values(produceCandidates).flat().map(normaliseKey)),
+    };
+  }
+
   async function decodeEssential(): Promise<SpriteBundle> {
     const { atlasPaths, petRiveUrl } = await loadSources();
-    const wanted = new Set(species.map(name => normaliseKey(`sprite/pet/${name}`)));
-    const trimmedWanted = new Set(Object.values(produceCandidates).flat().map(normaliseKey));
+    const { wanted, trimmedWanted } = essentialRequest();
     const { frames, trimmed } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
       : { frames: new Map<string, string>(), trimmed: new Map<string, string>() };
@@ -562,16 +588,22 @@ export async function initPetSprites(): Promise<void> {
     };
   }
 
+  function deferredRequest(): { wanted: Set<string>; trimmedWanted: Set<string> } {
+    return {
+      wanted: new Set(Object.entries(shopCandidates)
+        .filter(([itemId]) => !decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey)),
+      trimmedWanted: new Set([
+        ...Object.values(plantCandidates).flat().map(normaliseKey),
+        ...Object.values(emblemCandidates).map(normaliseKey),
+        ...Object.values(MUTATION_ICON_CANDIDATES).map(normaliseKey),
+        ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
+      ]),
+    };
+  }
+
   async function decodeDeferred(): Promise<SpriteBundle> {
     const { atlasPaths } = await loadSources();
-    const wanted = new Set(Object.entries(shopCandidates)
-      .filter(([itemId]) => !decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey));
-    const trimmedWanted = new Set([
-      ...Object.values(plantCandidates).flat().map(normaliseKey),
-      ...Object.values(emblemCandidates).map(normaliseKey),
-      ...Object.values(MUTATION_ICON_CANDIDATES).map(normaliseKey),
-      ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
-    ]);
+    const { wanted, trimmedWanted } = deferredRequest();
     const { frames, trimmed } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
       : { frames: new Map<string, string>(), trimmed: new Map<string, string>() };
@@ -587,6 +619,7 @@ export async function initPetSprites(): Promise<void> {
   }
 
   const stages: Record<string, () => Promise<SpriteBundle>> = { essential: decodeEssential, deferred: decodeDeferred };
+  const requests: Record<string, () => { wanted: Set<string>; trimmedWanted: Set<string> }> = { essential: essentialRequest, deferred: deferredRequest };
   const running = new Map<string, Promise<void>>();
 
   function runStage(stage: string): Promise<void> {
@@ -595,7 +628,8 @@ export async function initPetSprites(): Promise<void> {
     const task = (async () => {
       try {
         const { key: fingerprintKey, identified } = await loadFingerprint();
-        const key = `${fingerprintKey}:${stage}`;
+        const request = requests[stage]();
+        const key = `${fingerprintKey}:${stage}:${requestSignature(request.wanted, request.trimmedWanted)}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.
         const cached = await readCache(key);
         if (cached) { publish(cached); return; }
