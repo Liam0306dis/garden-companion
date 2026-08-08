@@ -10,6 +10,7 @@ import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
 import {
   ABILITY_DETAILS,
   GRANTER_CHANCES,
+  LUNAR_MINIMISED_KEY,
   LUNAR_POSITION_KEY,
   PASSIVE_REQUIRED_WEATHER,
   PET_CATALOG,
@@ -67,7 +68,7 @@ import {
 import { bindShopEvents, processShops, renderShops } from './features/shop-alarms.js';
 import { toast } from './toast.js';
 import { state } from './state.js';
-import { escapeHtml, formatDuration, humanize } from './utils.js';
+import { escapeHtml, formatDuration, humanize, loadLocal, saveLocal } from './utils.js';
 
 export function initCompanion(): void {
   'use strict';
@@ -321,11 +322,30 @@ export function initCompanion(): void {
     return midnight + 86400000;
   }
 
+  /**
+   * Minimised, the timer becomes an icon parked beside the Garden Overview button. The countdown
+   * still ticks into its tooltip, so the panel is worth collapsing rather than turning off.
+   */
+  let lunarMinimised = loadLocal<boolean>(LUNAR_MINIMISED_KEY, false);
+
+  function setLunarMinimised(minimised: boolean): void {
+    lunarMinimised = minimised;
+    saveLocal(LUNAR_MINIMISED_KEY, minimised);
+    updateLunarTimer();
+  }
+
   function updateLunarTimer() {
     const root = document.getElementById('gc-lunar');
+    const mini = document.getElementById('gc-lunar-mini');
     if (!root) return;
-    root.hidden = !feature('lunarTimer');
-    root.querySelector('strong').textContent = formatDuration(nextLunarAt() - Date.now());
+    const enabled = feature('lunarTimer');
+    const remaining = formatDuration(nextLunarAt() - Date.now());
+    root.hidden = !enabled || lunarMinimised;
+    root.querySelector('strong').textContent = remaining;
+    if (mini) {
+      mini.hidden = !enabled || !lunarMinimised;
+      mini.title = `Next lunar event in ${remaining}`;
+    }
   }
 
   type SocketStatus = 'connecting' | 'connected' | 'disconnected';
@@ -662,11 +682,19 @@ export function initCompanion(): void {
     document.head.appendChild(style);
     const lunar = document.createElement('div');
     lunar.id = 'gc-lunar';
-    lunar.innerHTML = '<div class="gc-lunar-head"><div class="gc-lunar-title"><i class="gc-lunar-mark"></i><span>Next lunar event</span></div><button data-options aria-label="Open Garden Companion options" title="Open Garden Companion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.1 13.5c.1-.5.1-1 0-1.5l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.3-.8L15 4.8h-4l-.4 2.5c-.5.2-.9.5-1.3.8l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.8.6 1.3.8l.4 2.5h4l.4-2.5c.5-.2.9-.5 1.3-.8l2.4 1 2-3.4-2-1.5Z"/></svg></button></div><div class="gc-lunar-countdown"><strong>--</strong></div><div class="gc-health"><span id="gc-ws-health" data-status="connecting"><i></i><b>Connecting</b></span><button id="gc-update-health" data-status="checking">Checking update</button></div>';
+    lunar.innerHTML = '<div class="gc-lunar-head"><div class="gc-lunar-title"><i class="gc-lunar-mark"></i><span>Next lunar event</span></div><div id="gc-lunar-head-actions"><button data-minimise aria-label="Minimise the lunar timer" title="Minimise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button><button data-options aria-label="Open Garden Companion options" title="Open Garden Companion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.1 13.5c.1-.5.1-1 0-1.5l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.3-.8L15 4.8h-4l-.4 2.5c-.5.2-.9.5-1.3.8l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.8.6 1.3.8l.4 2.5h4l.4-2.5c.5-.2.9-.5 1.3-.8l2.4 1 2-3.4-2-1.5Z"/></svg></button></div></div><div class="gc-lunar-countdown"><strong>--</strong></div><div class="gc-health"><span id="gc-ws-health" data-status="connecting"><i></i><b>Connecting</b></span><button id="gc-update-health" data-status="checking">Checking update</button></div>';
     lunar.querySelector<HTMLButtonElement>('[data-options]')!.onclick = togglePanel;
+    lunar.querySelector<HTMLButtonElement>('[data-minimise]')!.onclick = () => setLunarMinimised(true);
     lunar.querySelector<HTMLButtonElement>('#gc-update-health')!.onclick = handleUpdateClick;
     document.body.appendChild(lunar);
     makeDraggable(lunar, LUNAR_POSITION_KEY);
+    const lunarMini = document.createElement('button');
+    lunarMini.id = 'gc-lunar-mini';
+    lunarMini.hidden = true;
+    lunarMini.setAttribute('aria-label', 'Restore the lunar timer');
+    lunarMini.innerHTML = '<i class="gc-lunar-mark"></i>';
+    lunarMini.onclick = () => setLunarMinimised(false);
+    document.body.appendChild(lunarMini);
     page.__gardenCompanionPetSpritesReady = () => {
       const panel = document.getElementById('gc-panel');
       if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood', 'calculators'].includes(activeTab)) renderPanel();

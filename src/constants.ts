@@ -5,6 +5,7 @@ import { humanize } from './utils.js';
 export const STORE_KEY = 'gardenCompanion.config.v1';
 export const LOG_KEY = 'gardenCompanion.abilityLog.v1';
 export const LUNAR_POSITION_KEY = 'gardenCompanion.lunarPosition.v1';
+export const LUNAR_MINIMISED_KEY = 'gardenCompanion.lunarMinimised.v1';
 export const OVERVIEW_SHORTCUT_KEY = 'gardenCompanion.overviewShortcut.v1';
 export const UPDATE_URL = 'https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js';
 

@@ -220,6 +220,11 @@ assert.match(companionSource, /function beginKeybindCapture[\s\S]*input\.addEven
 assert.match(companionSource, /function closePanel\(\)[\s\S]*cancelKeybindCapture\?\.\(\)/, 'closing the panel does not cancel keybind capture');
 assert.match(overviewSource, /__gardenCompanionOverviewShortcutChanged = nextShortcut => \{ shortcut = nextShortcut; \}/, 'overview shortcut does not react to companion keybind changes');
 assert.match(styleSource, /\.gc-lunar-mark::after/, 'lunar timer crescent mark is missing');
+// Minimised it becomes an icon beside the Garden Overview button, which is 32px wide at left:10px.
+assert.match(styleSource, /#gc-lunar-mini \{[^}]*left:50px;bottom:10px/, 'the minimised lunar icon does not sit beside the overview button');
+assert.match(companionSource, /mini\.hidden = !enabled \|\| !lunarMinimised;/, 'the minimised lunar icon ignores the lunar timer feature toggle');
+assert.match(companionSource, /mini\.title = `Next lunar event in \$\{remaining\}`/, 'the minimised lunar icon stops reporting the countdown');
+assert.match(companionSource, /saveLocal\(LUNAR_MINIMISED_KEY, minimised\)/, 'a minimised lunar timer is not remembered');
 assert.match(styleSource, /#gc-lunar::before[\s\S]*linear-gradient/, 'lunar timer accent line is missing');
 assert.doesNotMatch(companionSource, /slice\(0, 500\)/, 'legacy global ability history limit found');
 assert.match(overviewSource, /structureSignature/, 'overview structural refresh guard missing');

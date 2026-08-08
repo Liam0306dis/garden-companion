@@ -19,7 +19,15 @@
 .gc-lunar-mark::after { content:'';position:absolute;top:2px;left:6px;width:14px;height:14px;border-radius:50%;background:#0d1116; }
 #gc-lunar button[data-options] { width:27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:7px;color:#cbd5e1;background:rgba(255,255,255,.035);cursor:pointer;transition:.15s; }
 #gc-lunar button[data-options] svg { width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8; }
-#gc-lunar button[data-options]:hover { color:#e0f2fe;border-color:rgba(103,232,249,.3);background:rgba(103,232,249,.08); }
+#gc-lunar button[data-options]:hover,#gc-lunar button[data-minimise]:hover { color:#e0f2fe;border-color:rgba(103,232,249,.3);background:rgba(103,232,249,.08); }
+#gc-lunar-head-actions { display:flex;align-items:center;gap:5px;flex:0 0 auto; }
+#gc-lunar button[data-minimise] { width:27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:7px;color:#cbd5e1;background:rgba(255,255,255,.035);cursor:pointer;transition:.15s; }
+#gc-lunar button[data-minimise] svg { width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round; }
+/* Sits beside the Garden Overview button, which is 32px at left:10px, so this clears it by 8px. */
+#gc-lunar-mini { position:fixed;left:50px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-text);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45); }
+#gc-lunar-mini:hover { border-color:rgba(103,232,249,.35);background:linear-gradient(rgba(103,232,249,.16),rgba(103,232,249,.16)),var(--gc-raised); }
+#gc-lunar-mini .gc-lunar-mark { width:16px;height:16px; }
+#gc-lunar-mini .gc-lunar-mark::after { top:2px;left:5px;width:12px;height:12px; }
 .gc-lunar-countdown { display:flex;align-items:center;justify-content:center;padding:4px 12px 14px; }
 .gc-lunar-countdown strong { color:#f8fafc;font:650 31px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.035em;text-align:center;text-shadow:0 0 20px rgba(103,232,249,.1); }
 #gc-lunar .gc-health { min-height:30px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:6px 9px 6px 12px;background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.055); }
