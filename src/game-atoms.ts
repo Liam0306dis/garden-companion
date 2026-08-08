@@ -37,7 +37,10 @@ export function restoreAtomWriteCaptures(): void {
 export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
   const atomKey = String(key);
   if (atomKey.endsWith('/activeModalAtom')) activeModalAtom = atom;
-  if (atomKey.endsWith('/isCinematicModeAtom')) cinematicAtom = atom;
+  if (atomKey.endsWith('/isCinematicModeAtom')) {
+    cinematicAtom = atom;
+    watchCinematicValue(atom);
+  }
   if ((atomKey.endsWith('/quinoaEngineAtom') || atom.debugLabel === 'quinoaEngineAtom') && typeof atom.write === 'function' && !atom.__gardenCompanionEngineCapture) {
     const originalEngineWrite = atom.write;
     atom.write = function(get, set, ...args) {
@@ -91,12 +94,74 @@ export function openGameInterface(target: GameInterface): void {
 }
 
 const cinematicOwners = new Set<string>();
+let cinematicValue = false;
+
+/**
+ * The atom has no getter, so its value is followed by watching what gets written to it. Ours and
+ * the player's writes look identical here; they are told apart by whether any of our features is
+ * currently holding a claim, which is what `cinematicOwners` records.
+ *
+ * The value is read back through the write's own getter rather than inferred from the argument.
+ * The game toggles with an updater, and replaying that against our own copy is only right while
+ * the copy already is, so a single drift would never correct itself.
+ */
+function watchCinematicValue(atom: JotaiAtom): void {
+  if (typeof atom.write !== 'function' || atom.__gardenCompanionCinematicWatch) return;
+  const originalWrite = atom.write;
+  atom.write = function(get, set, ...args) {
+    const result = originalWrite.call(this, get, set, ...args);
+    const previous = cinematicValue;
+    try {
+      cinematicValue = Boolean((get as (target: JotaiAtom) => unknown)(atom));
+    } catch {
+      const next = args[0];
+      cinematicValue = typeof next === 'function' ? Boolean((next as (value: boolean) => unknown)(previous)) : Boolean(next);
+    }
+    // A write we did not make while we hold a claim is the player toggling it, so that becomes the
+    // state to restore when the last claim is released.
+    if (!applyingOwnCinematic && cinematicOwners.size) cinematicBeforeClaim = cinematicValue;
+    if (cinematicValue !== previous) for (const listener of cinematicListeners) listener();
+    return result;
+  };
+  atom.__gardenCompanionCinematicWatch = true;
+}
+
+/**
+ * True only while the player has put the game into cinematic mode themselves. Our own scenes claim
+ * cinematic too, and their panels are the point of being there, so those must not count.
+ */
+page.__gardenCompanionCinematicFromGame = () => cinematicValue && cinematicOwners.size === 0;
+
+/**
+ * More than one thing steps aside for cinematic mode, so this is a subscription rather than a
+ * single slot a later feature could quietly take over. New listeners are called once on arrival, so
+ * they do not have to wait for the next toggle to match the current state.
+ */
+const cinematicListeners = new Set<() => void>();
+page.__gardenCompanionOnCinematicChange = (listener: () => void) => {
+  cinematicListeners.add(listener);
+  listener();
+};
+
+/**
+ * Whether the player already had cinematic mode on when our first scene claimed it. Releasing the
+ * last claim restores that rather than writing a flat false, so closing a scene cannot switch off
+ * a cinematic mode the player turned on themselves.
+ */
+let cinematicBeforeClaim = false;
+/** Set while we are the one writing, so the watcher can tell our own writes from the player's. */
+let applyingOwnCinematic = false;
+
 page.__gardenCompanionSetCinematic = (enabled: boolean, owner = 'default') => {
   if (!cinematicAtom || !gameAtomSet) return false;
   try {
-    if (enabled) cinematicOwners.add(owner);
-    else cinematicOwners.delete(owner);
-    gameAtomSet(cinematicAtom, cinematicOwners.size > 0);
+    if (enabled) {
+      if (!cinematicOwners.size) cinematicBeforeClaim = cinematicValue;
+      cinematicOwners.add(owner);
+    } else cinematicOwners.delete(owner);
+    applyingOwnCinematic = true;
+    try { gameAtomSet(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim); }
+    finally { applyingOwnCinematic = false; }
     return true;
   } catch { return false; }
 };

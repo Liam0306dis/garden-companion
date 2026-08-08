@@ -222,9 +222,21 @@ assert.match(overviewSource, /__gardenCompanionOverviewShortcutChanged = nextSho
 assert.match(styleSource, /\.gc-lunar-mark::after/, 'lunar timer crescent mark is missing');
 // Minimised it becomes an icon beside the Garden Overview button, which is 32px wide at left:10px.
 assert.match(styleSource, /#gc-lunar-mini \{[^}]*left:50px;bottom:10px/, 'the minimised lunar icon does not sit beside the overview button');
-assert.match(companionSource, /mini\.hidden = !enabled \|\| !lunarMinimised;/, 'the minimised lunar icon ignores the lunar timer feature toggle');
+assert.match(companionSource, /mini\.hidden = !shown \|\| !lunarMinimised;/, 'the minimised lunar icon ignores the lunar timer feature toggle');
 assert.match(companionSource, /mini\.title = `Next lunar event in \$\{remaining\}`/, 'the minimised lunar icon stops reporting the countdown');
 assert.match(companionSource, /saveLocal\(LUNAR_MINIMISED_KEY, minimised\)/, 'a minimised lunar timer is not remembered');
+// Our own scenes claim cinematic too, so the timer must only step aside for the player's own use.
+assert.match(companionSource, /cinematicValue && cinematicOwners\.size === 0/, 'the lunar timer cannot tell the player\'s cinematic mode from our own');
+assert.match(companionSource, /const shown = feature\('lunarTimer'\) && !page\.__gardenCompanionCinematicFromGame\?\.\(\);/, 'the lunar timer stays on screen in cinematic mode');
+assert.match(companionSource, /page\.__gardenCompanionOnCinematicChange\?\.\(updateLunarTimer\);/, 'entering cinematic mode leaves the timer in shot until the next tick');
+// More than one launcher hides, so this has to be a subscription rather than a single callback.
+assert.match(companionSource, /const cinematicListeners = new Set<\(\) => void>\(\);/, 'a second cinematic listener would replace the first');
+// The game toggles with an updater, so replaying it against our own copy could never self-correct.
+assert.match(companionSource, /cinematicValue = Boolean\(\(get as \(target: JotaiAtom\) => unknown\)\(atom\)\);/, 'the cinematic value is inferred rather than read back');
+// Releasing the last claim must not switch off a cinematic mode the player turned on themselves.
+assert.match(companionSource, /gameAtomSet\(cinematicAtom, cinematicOwners\.size > 0 \|\| cinematicBeforeClaim\)/, 'closing one of our scenes cancels the player\'s own cinematic mode');
+assert.match(companionSource, /if \(!applyingOwnCinematic && cinematicOwners\.size\) cinematicBeforeClaim = cinematicValue;/, 'a player toggle during one of our scenes is not remembered');
+assert.match(overviewSource, /button\.hidden = Boolean\(page\.__gardenCompanionCinematicFromGame\?\.\(\)\)/, 'the overview launcher stays on screen in cinematic mode');
 assert.match(styleSource, /#gc-lunar::before[\s\S]*linear-gradient/, 'lunar timer accent line is missing');
 assert.doesNotMatch(companionSource, /slice\(0, 500\)/, 'legacy global ability history limit found');
 assert.match(overviewSource, /structureSignature/, 'overview structural refresh guard missing');

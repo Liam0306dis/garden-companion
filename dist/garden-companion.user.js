@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.91
+// @version      0.7.92
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -2644,7 +2644,10 @@ ${rows}</div>`;
   function inspectGameAtom(key, atom) {
     const atomKey = String(key);
     if (atomKey.endsWith("/activeModalAtom")) activeModalAtom = atom;
-    if (atomKey.endsWith("/isCinematicModeAtom")) cinematicAtom = atom;
+    if (atomKey.endsWith("/isCinematicModeAtom")) {
+      cinematicAtom = atom;
+      watchCinematicValue(atom);
+    }
     if ((atomKey.endsWith("/quinoaEngineAtom") || atom.debugLabel === "quinoaEngineAtom") && typeof atom.write === "function" && !atom.__gardenCompanionEngineCapture) {
       const originalEngineWrite = atom.write;
       atom.write = function(get, set, ...args) {
@@ -2697,12 +2700,46 @@ ${rows}</div>`;
     gameAtomSet(activeModalAtom, target);
   }
   var cinematicOwners = /* @__PURE__ */ new Set();
+  var cinematicValue = false;
+  function watchCinematicValue(atom) {
+    if (typeof atom.write !== "function" || atom.__gardenCompanionCinematicWatch) return;
+    const originalWrite = atom.write;
+    atom.write = function(get, set, ...args) {
+      const result = originalWrite.call(this, get, set, ...args);
+      const previous = cinematicValue;
+      try {
+        cinematicValue = Boolean(get(atom));
+      } catch {
+        const next = args[0];
+        cinematicValue = typeof next === "function" ? Boolean(next(previous)) : Boolean(next);
+      }
+      if (!applyingOwnCinematic && cinematicOwners.size) cinematicBeforeClaim = cinematicValue;
+      if (cinematicValue !== previous) for (const listener of cinematicListeners) listener();
+      return result;
+    };
+    atom.__gardenCompanionCinematicWatch = true;
+  }
+  page.__gardenCompanionCinematicFromGame = () => cinematicValue && cinematicOwners.size === 0;
+  var cinematicListeners = /* @__PURE__ */ new Set();
+  page.__gardenCompanionOnCinematicChange = (listener) => {
+    cinematicListeners.add(listener);
+    listener();
+  };
+  var cinematicBeforeClaim = false;
+  var applyingOwnCinematic = false;
   page.__gardenCompanionSetCinematic = (enabled, owner = "default") => {
     if (!cinematicAtom || !gameAtomSet) return false;
     try {
-      if (enabled) cinematicOwners.add(owner);
-      else cinematicOwners.delete(owner);
-      gameAtomSet(cinematicAtom, cinematicOwners.size > 0);
+      if (enabled) {
+        if (!cinematicOwners.size) cinematicBeforeClaim = cinematicValue;
+        cinematicOwners.add(owner);
+      } else cinematicOwners.delete(owner);
+      applyingOwnCinematic = true;
+      try {
+        gameAtomSet(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim);
+      } finally {
+        applyingOwnCinematic = false;
+      }
       return true;
     } catch {
       return false;
@@ -3782,12 +3819,12 @@ ${rows}</div>`;
       const root = document.getElementById("gc-lunar");
       const mini = document.getElementById("gc-lunar-mini");
       if (!root) return;
-      const enabled = feature("lunarTimer");
+      const shown = feature("lunarTimer") && !page.__gardenCompanionCinematicFromGame?.();
       const remaining = formatDuration(nextLunarAt() - Date.now());
-      root.hidden = !enabled || lunarMinimised;
+      root.hidden = !shown || lunarMinimised;
       root.querySelector("strong").textContent = remaining;
       if (mini) {
-        mini.hidden = !enabled || !lunarMinimised;
+        mini.hidden = !shown || !lunarMinimised;
         mini.title = `Next lunar event in ${remaining}`;
       }
     }
@@ -4147,6 +4184,7 @@ ${rows}</div>`;
         resetPetFoodSignature();
         renderPetFood();
       };
+      page.__gardenCompanionOnCinematicChange?.(updateLunarTimer);
       updateLunarTimer();
       watchSocketHealth();
       checkForUpdate();
@@ -5298,6 +5336,9 @@ ${rows}</div>`;
       panel2.id = PANEL_ID;
       panel2.hidden = true;
       document.body.append(button, panel2);
+      page3.__gardenCompanionOnCinematicChange?.(() => {
+        button.hidden = Boolean(page3.__gardenCompanionCinematicFromGame?.());
+      });
       if (view.alarm) ensureRefreshTimer();
       window.addEventListener("keydown", (event) => {
         if (!shortcut || event.repeat || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) return;

@@ -165,6 +165,8 @@ export interface CompanionPage extends Window {
   __gardenCompanionFishingBench?: () => void;
   __gardenCompanionFishingOpen?: () => boolean;
   __gardenCompanionSetCinematic?: (enabled: boolean, owner?: string) => boolean;
+  __gardenCompanionCinematicFromGame?: () => boolean;
+  __gardenCompanionOnCinematicChange?: (listener: () => void) => void;
   __gardenCompanionPlannerOpen?: () => boolean;
   __gardenCompanionPetSpritesReady?: () => void;
   __gardenCompanionLoadSprites?: () => void;

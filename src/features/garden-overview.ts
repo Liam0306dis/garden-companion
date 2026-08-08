@@ -1079,6 +1079,11 @@ export function initGardenOverview(): void {
     panel.id = PANEL_ID;
     panel.hidden = true;
     document.body.append(button, panel);
+    // Cinematic mode is for screenshots, so the launcher steps aside - but only when the player
+    // asked for it. Our own scenes claim cinematic too, and this button belongs on screen there.
+    page.__gardenCompanionOnCinematicChange?.(() => {
+      button.hidden = Boolean(page.__gardenCompanionCinematicFromGame?.());
+    });
     if (view.alarm) ensureRefreshTimer();
     window.addEventListener('keydown', event => {
       if (!shortcut || event.repeat || ['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement as HTMLElement | null)?.tagName || '')) return;

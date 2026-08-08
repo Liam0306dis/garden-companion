@@ -338,12 +338,15 @@ export function initCompanion(): void {
     const root = document.getElementById('gc-lunar');
     const mini = document.getElementById('gc-lunar-mini');
     if (!root) return;
-    const enabled = feature('lunarTimer');
+    // Cinematic mode is for screenshots, so the panel and its icon both step aside - but only when
+    // the player asked for it. Our own scenes claim cinematic as well, and hiding there would take
+    // the timer away from the very screens it was opened alongside.
+    const shown = feature('lunarTimer') && !page.__gardenCompanionCinematicFromGame?.();
     const remaining = formatDuration(nextLunarAt() - Date.now());
-    root.hidden = !enabled || lunarMinimised;
+    root.hidden = !shown || lunarMinimised;
     root.querySelector('strong').textContent = remaining;
     if (mini) {
-      mini.hidden = !enabled || !lunarMinimised;
+      mini.hidden = !shown || !lunarMinimised;
       mini.title = `Next lunar event in ${remaining}`;
     }
   }
@@ -701,6 +704,9 @@ export function initCompanion(): void {
       resetPetFoodSignature();
       renderPetFood();
     };
+    // Reacting to the write rather than the next tick, so entering cinematic mode is not a second
+    // of the timer sitting in the shot.
+    page.__gardenCompanionOnCinematicChange?.(updateLunarTimer);
     updateLunarTimer();
     watchSocketHealth();
     checkForUpdate();
