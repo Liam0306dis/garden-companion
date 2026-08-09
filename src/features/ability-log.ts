@@ -90,14 +90,45 @@ function payloadItemList(value: unknown): string {
   return [...counts].map(([name, quantity]) => quantity > 1 ? `${name} x${quantity}` : name).join(', ');
 }
 
+function payloadItemCount(value: unknown): number {
+  if (!Array.isArray(value)) return value == null ? 0 : 1;
+  return value.reduce((total, item) => total + Number(payloadRecord(item)?.quantity || 1), 0);
+}
+
+/**
+ * Growth savings arrive as raw seconds, and four figures of them is unreadable: 204s is really
+ * 3m 24s. Sub-minute values keep just the seconds rather than gaining an empty minutes place.
+ */
+function formatReduction(value: unknown): string {
+  const total = Math.max(0, Math.round(Number(value) || 0));
+  if (total < 60) return `${total}s`;
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  if (minutes < 60) return seconds ? `${minutes}m ${String(seconds).padStart(2, '0')}s` : `${minutes}m`;
+  const remainder = minutes % 60;
+  return remainder ? `${Math.floor(minutes / 60)}h ${String(remainder).padStart(2, '0')}m` : `${Math.floor(minutes / 60)}h`;
+}
+
+/** Reads as "what was affected, then what it got", rather than two facts sitting side by side. */
+const ARROW = '->';
+
+function withReduction(text: string, seconds: unknown): string {
+  return seconds != null ? `${text} ${ARROW} ${formatReduction(seconds)} reduced` : text;
+}
+
+function countLabel(count: number, noun: string): string {
+  return `${count.toLocaleString()} ${noun}${count === 1 ? '' : 's'}`;
+}
+
 export function procOutcome(ability: string, data: Record<string, unknown>): string {
   const growSlot = payloadRecord(data.growSlot);
+  // What was touched, then what it gained. The species moves to the tooltip so the row keeps the
+  // shape every other boost has: an amount, then the effect on it.
   if (ABILITY_GROUP_BY_ID.get(ability) === 'Crop Size Boost') {
-    const parts: string[] = [];
-    if (growSlot?.species) parts.push(payloadItemName(growSlot.species));
-    if (data.numPlantsAffected != null) parts.push(`${Number(data.numPlantsAffected).toLocaleString()} plants`);
-    if (data.scaleIncreasePercentage != null) parts.push(`+${Number(data.scaleIncreasePercentage).toFixed(1)}% size`);
-    if (parts.length) return parts.join(' | ');
+    const count = data.numPlantsAffected != null ? countLabel(Number(data.numPlantsAffected), 'plant') : '';
+    const boost = data.scaleIncreasePercentage != null ? `+${Number(data.scaleIncreasePercentage).toFixed(1)}% boosted` : '';
+    if (count && boost) return `${count} ${ARROW} ${boost}`;
+    if (count || boost) return count || boost;
   }
   if (ability.includes('SeedFinder') && data.speciesId) return payloadItemName(data.speciesId);
   if (growSlot?.species) return payloadItemName(growSlot.species);
@@ -106,13 +137,20 @@ export function procOutcome(ability: string, data: Record<string, unknown>): str
   if (data.targetPet) return payloadItemName(data.targetPet);
   if (data.cropsRefunded) return payloadItemList(data.cropsRefunded);
   if (data.petsAffected) return payloadItemList(data.petsAffected);
-  if (data.eggsAffected) return payloadItemList(data.eggsAffected);
-  if (data.growSlotsAffected) return payloadItemList(data.growSlotsAffected);
+  // Growth boosts touch everything growing at once, so the row gets the count and the time saved
+  // and the full breakdown moves to the tooltip - a list of forty eggs is unreadable in a cell.
+  if (data.eggsAffected) return withReduction(countLabel(payloadItemCount(data.eggsAffected), 'egg'), data.secondsReduced);
+  if (data.growSlotsAffected) return withReduction(countLabel(payloadItemCount(data.growSlotsAffected), 'plant'), data.secondsReduced);
   if (data.eggId) return payloadItemName(data.eggId);
   if (data.coinsFound != null) return `${Number(data.coinsFound).toLocaleString()} coins`;
   if (data.bonusCoins != null) return `+${Number(data.bonusCoins).toLocaleString()} coins`;
   if (data.bonusXp != null) return `+${Number(data.bonusXp).toLocaleString()} XP`;
-  if (data.secondsReduced != null) return `${Number(data.secondsReduced).toLocaleString()}s reduced`;
+  // Plant growth reports a plain count rather than a list of slots, and the count came second, so
+  // the time alone was winning here and the number of plants was never reached.
+  if (data.secondsReduced != null) {
+    const saved = `${formatReduction(data.secondsReduced)} reduced`;
+    return data.numPlantsAffected != null ? `${countLabel(Number(data.numPlantsAffected), 'plant')} ${ARROW} ${saved}` : saved;
+  }
   if (data.numPlantsAffected != null) return `${Number(data.numPlantsAffected).toLocaleString()} plants`;
   if (data.hungerRestoreAmount != null) return `${Number(data.hungerRestoreAmount).toLocaleString()} hunger`;
   if (data.sellPrice != null) return `${Number(data.sellPrice).toLocaleString()} coins`;
@@ -131,6 +169,13 @@ export function procOutcomeTooltip(ability: string, data: Record<string, unknown
   }
   if (family === 'Hunger Restore' && data.hungerRestoreAmount != null) {
     return `Hunger gained: ${Number(data.hungerRestoreAmount).toLocaleString()}`;
+  }
+  // The row only has room for a count, so what was actually boosted lives here.
+  if (data.eggsAffected) return payloadItemList(data.eggsAffected);
+  if (data.growSlotsAffected) return payloadItemList(data.growSlotsAffected);
+  if (family === 'Crop Size Boost') {
+    const species = payloadRecord(data.growSlot)?.species;
+    if (species) return payloadItemName(species);
   }
   return '';
 }
@@ -178,9 +223,12 @@ export function renderAbilityLogRows(selectedFilters: Set<string>): string {
   const matched = state.abilityLog.filter(log => {
     if (!isVisibleAbility(log.ability)) return false;
     if (!search) return true;
-    // Searching covers what the row actually shows: the pet, the ability name and the outcome.
+    // Searching covers the pet, the ability name and the outcome, plus whatever the row moved into
+    // its tooltip: a growth boost shows only a count, and the species it touched are still worth
+    // being able to find.
     const name = ABILITY_DETAILS[log.ability]?.name || humanize(log.ability);
-    return `${log.pet} ${name} ${procOutcome(log.ability, log.data)}`.toLowerCase().includes(search);
+    const detail = procOutcomeTooltip(log.ability, log.data);
+    return `${log.pet} ${name} ${procOutcome(log.ability, log.data)} ${detail}`.toLowerCase().includes(search);
   });
   const recent = matched.slice(0, LOG_VISIBLE_ROWS);
   if (!recent.length) return search ? '<p>Nothing matches that search.</p>' : '<p>No ability procs recorded yet.</p>';

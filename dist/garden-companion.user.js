@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.94
+// @version      0.7.95
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -2226,14 +2226,33 @@ ${groups}
     }
     return [...counts].map(([name, quantity]) => quantity > 1 ? `${name} x${quantity}` : name).join(", ");
   }
+  function payloadItemCount(value) {
+    if (!Array.isArray(value)) return value == null ? 0 : 1;
+    return value.reduce((total, item) => total + Number(payloadRecord(item)?.quantity || 1), 0);
+  }
+  function formatReduction(value) {
+    const total = Math.max(0, Math.round(Number(value) || 0));
+    if (total < 60) return `${total}s`;
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    if (minutes < 60) return seconds ? `${minutes}m ${String(seconds).padStart(2, "0")}s` : `${minutes}m`;
+    const remainder = minutes % 60;
+    return remainder ? `${Math.floor(minutes / 60)}h ${String(remainder).padStart(2, "0")}m` : `${Math.floor(minutes / 60)}h`;
+  }
+  var ARROW = "->";
+  function withReduction(text, seconds) {
+    return seconds != null ? `${text} ${ARROW} ${formatReduction(seconds)} reduced` : text;
+  }
+  function countLabel(count, noun) {
+    return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+  }
   function procOutcome(ability, data) {
     const growSlot = payloadRecord(data.growSlot);
     if (ABILITY_GROUP_BY_ID.get(ability) === "Crop Size Boost") {
-      const parts = [];
-      if (growSlot?.species) parts.push(payloadItemName(growSlot.species));
-      if (data.numPlantsAffected != null) parts.push(`${Number(data.numPlantsAffected).toLocaleString()} plants`);
-      if (data.scaleIncreasePercentage != null) parts.push(`+${Number(data.scaleIncreasePercentage).toFixed(1)}% size`);
-      if (parts.length) return parts.join(" | ");
+      const count = data.numPlantsAffected != null ? countLabel(Number(data.numPlantsAffected), "plant") : "";
+      const boost = data.scaleIncreasePercentage != null ? `+${Number(data.scaleIncreasePercentage).toFixed(1)}% boosted` : "";
+      if (count && boost) return `${count} ${ARROW} ${boost}`;
+      if (count || boost) return count || boost;
     }
     if (ability.includes("SeedFinder") && data.speciesId) return payloadItemName(data.speciesId);
     if (growSlot?.species) return payloadItemName(growSlot.species);
@@ -2242,13 +2261,16 @@ ${groups}
     if (data.targetPet) return payloadItemName(data.targetPet);
     if (data.cropsRefunded) return payloadItemList(data.cropsRefunded);
     if (data.petsAffected) return payloadItemList(data.petsAffected);
-    if (data.eggsAffected) return payloadItemList(data.eggsAffected);
-    if (data.growSlotsAffected) return payloadItemList(data.growSlotsAffected);
+    if (data.eggsAffected) return withReduction(countLabel(payloadItemCount(data.eggsAffected), "egg"), data.secondsReduced);
+    if (data.growSlotsAffected) return withReduction(countLabel(payloadItemCount(data.growSlotsAffected), "plant"), data.secondsReduced);
     if (data.eggId) return payloadItemName(data.eggId);
     if (data.coinsFound != null) return `${Number(data.coinsFound).toLocaleString()} coins`;
     if (data.bonusCoins != null) return `+${Number(data.bonusCoins).toLocaleString()} coins`;
     if (data.bonusXp != null) return `+${Number(data.bonusXp).toLocaleString()} XP`;
-    if (data.secondsReduced != null) return `${Number(data.secondsReduced).toLocaleString()}s reduced`;
+    if (data.secondsReduced != null) {
+      const saved = `${formatReduction(data.secondsReduced)} reduced`;
+      return data.numPlantsAffected != null ? `${countLabel(Number(data.numPlantsAffected), "plant")} ${ARROW} ${saved}` : saved;
+    }
     if (data.numPlantsAffected != null) return `${Number(data.numPlantsAffected).toLocaleString()} plants`;
     if (data.hungerRestoreAmount != null) return `${Number(data.hungerRestoreAmount).toLocaleString()} hunger`;
     if (data.sellPrice != null) return `${Number(data.sellPrice).toLocaleString()} coins`;
@@ -2266,6 +2288,12 @@ ${groups}
     }
     if (family === "Hunger Restore" && data.hungerRestoreAmount != null) {
       return `Hunger gained: ${Number(data.hungerRestoreAmount).toLocaleString()}`;
+    }
+    if (data.eggsAffected) return payloadItemList(data.eggsAffected);
+    if (data.growSlotsAffected) return payloadItemList(data.growSlotsAffected);
+    if (family === "Crop Size Boost") {
+      const species = payloadRecord(data.growSlot)?.species;
+      if (species) return payloadItemName(species);
     }
     return "";
   }
@@ -2308,7 +2336,8 @@ ${groups}
       if (!isVisibleAbility(log.ability)) return false;
       if (!search) return true;
       const name = ABILITY_DETAILS[log.ability]?.name || humanize(log.ability);
-      return `${log.pet} ${name} ${procOutcome(log.ability, log.data)}`.toLowerCase().includes(search);
+      const detail = procOutcomeTooltip(log.ability, log.data);
+      return `${log.pet} ${name} ${procOutcome(log.ability, log.data)} ${detail}`.toLowerCase().includes(search);
     });
     const recent = matched.slice(0, LOG_VISIBLE_ROWS);
     if (!recent.length) return search ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";

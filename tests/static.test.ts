@@ -186,7 +186,7 @@ assert.match(companionSource, /data-log-search/, 'the ability log cannot be sear
 assert.match(companionSource, /data: snapshotPayload\(entry\.parameters \|\| \{\}\)/, 'ability result payload is not snapshotted');
 assert.match(companionSource, /ability\.includes\('SeedFinder'\) && data\.speciesId[\s\S]*payloadItemName\(data\.speciesId\)/, 'seed finder result is not placed on the main line');
 assert.match(companionSource, /growSlot\?\.species[\s\S]*payloadItemName\(growSlot\.species\)/, 'mutation granter target is not placed on the main line');
-assert.match(companionSource, /ABILITY_GROUP_BY_ID\.get\(ability\) === 'Crop Size Boost'[\s\S]*scaleIncreasePercentage[\s\S]*toFixed\(1\).*% size/, 'Crop Size Boost payload omits its scale increase');
+assert.match(companionSource, /ABILITY_GROUP_BY_ID\.get\(ability\) === 'Crop Size Boost'[\s\S]*scaleIncreasePercentage[\s\S]*toFixed\(1\).*% boosted/, 'Crop Size Boost payload omits its scale increase');
 assert.match(companionSource, /family === 'XP Boost'[\s\S]*XP gained:[\s\S]*family === 'Hunger Restore'[\s\S]*Hunger gained:/, 'XP and hunger proc amounts are missing from payload tooltips');
 assert.match(companionSource, /gc-ability-log-payload[\s\S]*tooltip \? ` title=[\s\S]*data-detail/, 'ability payload hover details are not rendered');
 assert.match(companionSource, /gc-ability-log-row[\s\S]*gc-ability-log-pet[\s\S]*gc-ability-log-name[\s\S]*gc-ability-log-payload/, 'Pet Ability rows do not show the pet, ability, and payload');
@@ -434,6 +434,18 @@ assert.doesNotMatch(silenceSource, /(?<!TRACKED_)ABILITY_CATALOG\.map/, 'silence
 assert.match(companionSource, /abilityFilterInteracting/, 'ability dropdown redraw guard missing');
 assert.match(companionSource, /function refreshAbilityFilterUi/, 'the ability filter has no in-place refresh');
 assert.match(companionSource, /refreshAbilityFilterUi\(main\)/, 'ability filter selections still require a full panel redraw');
+// Growth savings arrive as raw seconds, and the egg boost reports its eggs and its time together.
+assert.match(abilityLogSource, /const saved = `\$\{formatReduction\(data\.secondsReduced\)\} reduced`;/, 'growth savings are still shown as raw seconds');
+// Boost rows read as what was affected, then what it got, rather than facts joined by a pipe.
+assert.match(abilityLogSource, /const ARROW = '->';/, 'boost outcomes no longer point from the amount to its effect');
+assert.match(abilityLogSource, /return `\$\{count\} \$\{ARROW\} \$\{boost\}`;/, 'crop size boost does not read as plants then gain');
+assert.doesNotMatch(abilityLogSource, /parts\.join\(' \| '\)/, 'a boost outcome still joins its parts with a pipe');
+// Plant growth reports numPlantsAffected, a count rather than a list, and it is checked last.
+assert.match(abilityLogSource, /return data\.numPlantsAffected != null \? `\$\{countLabel\(Number\(data\.numPlantsAffected\), 'plant'\)\} \$\{ARROW\} \$\{saved\}` : saved;/, 'the plant growth boost reports its time without saying how many plants it hit');
+assert.match(abilityLogSource, /if \(data\.eggsAffected\) return withReduction\(countLabel\(payloadItemCount\(data\.eggsAffected\), 'egg'\), data\.secondsReduced\);/, 'the egg growth boost hides the time it saved, or still lists every egg in the row');
+assert.match(abilityLogSource, /if \(data\.growSlotsAffected\) return withReduction\(countLabel\(payloadItemCount\(data\.growSlotsAffected\), 'plant'\), data\.secondsReduced\);/, 'the plant growth boost does not report how many plants it touched');
+// The breakdown moved to a tooltip, so the filter has to look there or those names become unfindable.
+assert.match(abilityLogSource, /const detail = procOutcomeTooltip\(log\.ability, log\.data\);[\s\S]*\$\{detail\}`\.toLowerCase\(\)\.includes\(search\)/, 'ability log search cannot reach detail held in a tooltip');
 const abilityFilterEvents = abilityLogSource.slice(abilityLogSource.indexOf("const abilityFilter = main.querySelector('[data-ability-filter]')"));
 assert.doesNotMatch(abilityFilterEvents, /renderPanel\(\)/, 'ability filter selection closes the dropdown by redrawing the panel');
 assert.match(companionSource, /panelRefreshTimer = setTimeout[\s\S]*panelRefreshBlocked\(panel\)/, 'queued panel refresh does not re-check the open ability dropdown');
