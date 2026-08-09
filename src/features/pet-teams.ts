@@ -262,12 +262,27 @@ function teamMemberTile(member: { petId: string; petSpecies: string; name?: stri
   return `<span class="gc-team-pet${owned ? '' : ' is-missing'}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
 }
 
+/**
+ * Teams are ordered by their position in the game's own list, which is what the keybinds and the
+ * cycle shortcut walk through, so the order is worth controlling rather than being whatever order
+ * they happened to be saved in.
+ */
+export function moveTeam(teamId: string, offset: number): void {
+  const order = teams();
+  const index = order.findIndex(team => team.id === teamId);
+  const target = index + offset;
+  if (index < 0 || target < 0 || target >= order.length) return;
+  pendingTeamOrder = order.map(team => team.id).join(',');
+  send({ type: 'MovePetTeam', movePetTeamId: teamId, toPetTeamIndex: target });
+}
+
 export function renderTeams(): string {
   const full = teams().length >= MAX_PET_TEAMS;
   const active = activeTeamId();
   const owned = new Map(allPets().map(pet => [pet.id, pet]));
-  const cards = teams().map(team => {
+  const cards = teams().map((team, index, order) => {
     const isActive = team.id === active;
+    const reorder = `<span class="gc-team-order"><button data-move-team="${escapeHtml(team.id)}" data-move-offset="-1" title="Move up" aria-label="Move up" ${index === 0 ? 'disabled' : ''}>&#9650;</button><button data-move-team="${escapeHtml(team.id)}" data-move-offset="1" title="Move down" aria-label="Move down" ${index === order.length - 1 ? 'disabled' : ''}>&#9660;</button></span>`;
     const filled = team.members.map(member => teamMemberTile(member, owned.get(member.petId))).join('');
     const empty = Array.from({ length: Math.max(0, MAX_TEAM_PETS - team.members.length) },
       () => '<span class="gc-team-pet is-empty"><i>+</i><span><b>Empty slot</b></span></span>').join('');
@@ -275,7 +290,7 @@ export function renderTeams(): string {
       ? `<span class="gc-team-delete-confirm"><b>Delete this team?</b><button data-cancel-delete-team>Cancel</button><button class="gc-danger" data-confirm-delete-team="${escapeHtml(team.id)}">Delete team</button></span>`
       : `<button class="gc-danger" data-delete-team="${escapeHtml(team.id)}">Delete</button>`;
     const keybind = config.teamKeybinds[team.id];
-    return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : '<span class="gc-team-emblem is-empty">--</span>'}<span class="gc-team-title"><h3>${escapeHtml(team.name)}</h3><small>${team.members.length} pet${team.members.length === 1 ? '' : 's'}${keybind ? ` | key ${escapeHtml(keybind)}` : ''}</small></span>${isActive ? '<span class="gc-team-active">Active</span>' : ''}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-team-actions"><button data-edit-team="${escapeHtml(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml(team.id)}" ${isActive ? 'disabled' : ''}>${isActive ? 'Activated' : 'Activate'}</button></div></div><div class="gc-team-pets">${filled}${empty}</div><div class="gc-team-foot">${deleteControls}</div></article>`;
+    return `<article class="gc-card gc-team-card" data-team-card="${escapeHtml(team.id)}" data-active="${isActive}"><div class="gc-team-head">${team.emblem ? emblemChip(team.emblem) : '<span class="gc-team-emblem is-empty">--</span>'}<span class="gc-team-title"><h3>${escapeHtml(team.name)}</h3><small>${team.members.length} pet${team.members.length === 1 ? '' : 's'}${keybind ? ` | key ${escapeHtml(keybind)}` : ''}</small></span>${isActive ? '<span class="gc-team-active">Active</span>' : ''}<span class="gc-team-size">${team.members.length}/${MAX_TEAM_PETS}</span><div class="gc-team-actions">${reorder}<button data-edit-team="${escapeHtml(team.id)}">Edit</button><button class="gc-primary" data-apply-team="${escapeHtml(team.id)}" ${isActive ? 'disabled' : ''}>${isActive ? 'Activated' : 'Activate'}</button></div></div><div class="gc-team-pets">${filled}${empty}</div><div class="gc-team-foot">${deleteControls}</div></article>`;
   }).join('');
   const activeName = teams().find(team => team.id === active)?.name;
   const summary = teams().length
@@ -286,6 +301,7 @@ export function renderTeams(): string {
 
 /** Redraw key for the Pet Teams tab, so a live refresh only rebuilds when something visible moved. */
 export function teamsSignature(): string {
+  // The array order is part of the key, so a reorder redraws even though nothing else changed.
   return JSON.stringify([confirmDeleteTeamId, teams().map(team =>
     [team.id, team.name, emblemKey(team.emblem), team.members.map(member => `${member.petId}:${member.name || ''}`)])]);
 }
@@ -315,6 +331,22 @@ export function refreshCompletedTeamSave(): void {
   pendingTeamSave = null;
   const panel = document.getElementById('gc-panel');
   if (panel && !panel.hidden && panelActions.activeTab() === 'teams') panelActions.renderPanel();
+}
+
+let pendingTeamOrder: string | null = null;
+
+/**
+ * A reorder is only real once the game sends the new order back, and by then the pointer is sitting
+ * over the team list, which is exactly when the live refresh stands down so a scroll is not yanked.
+ * So the redraw is forced here instead, when the order we asked for actually arrives.
+ */
+export function refreshCompletedTeamMove(): void {
+  if (pendingTeamOrder === null) return;
+  const order = teams().map(team => team.id).join(',');
+  if (order === pendingTeamOrder) return;
+  pendingTeamOrder = null;
+  const panel = document.getElementById('gc-panel');
+  if (panel && !panel.hidden && panelActions.activeTab() === 'teams') panelActions.renderPanelPreservingScroll();
 }
 
 export function refreshCompletedTeamDelete(): void {
@@ -361,6 +393,13 @@ export function bindPetTeamEvents(main: HTMLElement): void {
     toast('Team activation requested.', 'success');
     button.disabled = true;
     button.textContent = 'Activating...';
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-move-team]').forEach(button => button.onclick = () => {
+    // Disabled straight away: the reorder only lands when the game echoes the new order back, and
+    // a second click before then would be measured against a list that has not moved yet.
+    button.disabled = true;
+    try { moveTeam(button.dataset.moveTeam!, Number(button.dataset.moveOffset)); }
+    catch (error) { toast((error as Error).message, 'error'); }
   });
   main.querySelectorAll<HTMLButtonElement>('[data-delete-team]').forEach(button => button.onclick = () => askDeleteConfirmation(button.dataset.deleteTeam ?? null));
   main.querySelector('[data-cancel-delete-team]')?.addEventListener('click', () => askDeleteConfirmation(null));

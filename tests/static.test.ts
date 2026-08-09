@@ -485,6 +485,14 @@ assert.match(companionSource, /Press Escape while recording to clear it/, 'keybi
 assert.match(companionSource, /Press keys\.\.\. Esc cancels/, 'pet team key capture does not show Escape guidance');
 assert.match(companionSource, /pet\.name[\s\S]*pet\.petSpecies[\s\S]*ABILITY_DETAILS\[ability\]\?\.name[\s\S]*\.toLowerCase\(\)/, 'team pet filter does not include names, species, and abilities');
 assert.match(petTeamsSource, /bindListSearch\(picker\.querySelector\('\[data-team-search\]'\)\)/, 'team pet filter is not bound');
+// Team order drives the keybinds and the cycle shortcut, so it is worth being able to set.
+assert.match(petTeamsSource, /send\(\{ type: 'MovePetTeam', movePetTeamId: teamId, toPetTeamIndex: target \}\)/, 'teams cannot be reordered');
+assert.match(petTeamsSource, /if \(index < 0 \|\| target < 0 \|\| target >= order\.length\) return;/, 'a team can be moved outside the list');
+// The pointer is over the team list when the new order lands, which is when live refresh stands down.
+assert.match(petTeamsSource, /function refreshCompletedTeamMove[\s\S]*panelActions\.renderPanelPreservingScroll\(\)/, 'a reordered team list is not redrawn when the new order arrives');
+assert.match(companionSource, /refreshCompletedTeamMove\(\);/, 'the reorder redraw is never given a chance to run');
+// #gc-panel button sets padding and font, so the arrows need matching specificity to size at all.
+assert.match(styleSource, /#gc-panel \.gc-team-order button \{[^}]*padding:0/, 'the team reorder arrows overflow their buttons');
 assert.doesNotMatch(petTeamsSource.slice(petTeamsSource.indexOf('function petPickerRows('), petTeamsSource.indexOf('export function activeTeamId()')), /hungerDisplay\(pet\)/, 'team creation still shows hunger');
 assert.match(companionSource, /SavePetTeam', teamId, name/, 'saved teams cannot be updated');
 assert.match(companionSource, /data-edit-team/, 'saved team edit control missing');

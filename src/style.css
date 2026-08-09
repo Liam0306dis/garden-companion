@@ -323,7 +323,11 @@
 .gc-team-title { min-width:0;flex:1;display:flex;flex-direction:column;gap:1px; }
 .gc-team-title h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px; }
 .gc-team-title small { color:var(--gc-muted);font-size:10px; }
-.gc-team-actions { flex:0 0 auto;display:flex;gap:6px; }
+.gc-team-actions { flex:0 0 auto;display:flex;align-items:center;gap:6px; }
+.gc-team-order { display:flex;flex-direction:column;gap:3px; }
+/* #gc-panel button sets its own padding and font, so this has to match that specificity to win. */
+#gc-panel .gc-team-order button { width:24px;height:16px;min-height:0;box-sizing:border-box;padding:0;display:grid;place-items:center;border-radius:5px;font:600 7px/1 system-ui,sans-serif; }
+#gc-panel .gc-team-order button:disabled { opacity:.28;cursor:default;border-color:var(--gc-line);background:rgba(255,255,255,.04);color:#d4d4d8; }
 .gc-team-active { padding:3px 8px;border-radius:20px;color:#6ee7b7;background:rgba(52,211,153,.13);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase; }
 .gc-team-size { flex:0 0 auto;padding:3px 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-muted);font-size:10px;font-weight:700; }
 .gc-team-pets { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px; }

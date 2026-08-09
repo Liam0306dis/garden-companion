@@ -59,6 +59,7 @@ import {
   closeTeamPicker,
   bindPetTeamEvents,
   refreshCompletedTeamDelete,
+  refreshCompletedTeamMove,
   refreshCompletedTeamSave,
   refreshTeamActiveMarkers,
   renderTeams,
@@ -193,6 +194,7 @@ export function initCompanion(): void {
       page.__gardenCompanionState = state;
       refreshCompletedTeamSave();
       refreshCompletedTeamDelete();
+      refreshCompletedTeamMove();
       processActivities();
       processShops();
       renderPetFood();
