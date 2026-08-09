@@ -184,6 +184,21 @@ function hookAtom(match, key, attempt = 0) {
       if (key === 'selectedSlotId') state.selectedSlotId = value as string | number | null;
       return value;
     };
+    // A derived atom is read whenever anything depends on it, but a primitive one holds its value
+    // and the store need never call read at all - mySelectedSlotIdAtom is `atom(0)`, so cycling
+    // slots only ever showed up as a write. Reading it back after the write keeps both kinds live.
+    if (typeof atom.write === 'function') {
+      const originalWrite = atom.write;
+      atom.write = function(get, set, ...args) {
+        const result = originalWrite.call(this, get, set, ...args);
+        try {
+          const value = (get as (target: JotaiAtom) => unknown)(atom);
+          (state as unknown as Record<string, unknown>)[key] = value;
+          if (key === 'selectedSlotId') state.selectedSlotId = value as string | number | null;
+        } catch {}
+        return result;
+      };
+    }
     atom[flag] = true;
     return;
   }

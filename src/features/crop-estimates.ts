@@ -47,10 +47,25 @@ function eggRate(pets) {
 const VALUE_PREFIX = '🪙 ';
 const GROWTH_PREFIX = '🐢 ';
 
+/**
+ * Which crop the game's own card is showing. It resolves the selected id the same way, and the
+ * fallback is the point: harvesting leaves gaps in the slot ids, so an id that is no longer present
+ * resolves to the next one above it rather than to whichever crop happens to be first in the array.
+ * Picking the first element instead put our estimate on a different crop to the one on screen.
+ */
+function selectedCrop(crops: PlantSlot[]): PlantSlot | null {
+  if (!crops.length) return null;
+  const selected = Number(state.selectedSlotId) || 0;
+  const exact = crops.find(slot => Number(slot?.slotId) === selected);
+  if (exact) return exact;
+  const bySlotId = [...crops].sort((left, right) => Number(left?.slotId) - Number(right?.slotId));
+  return bySlotId.find(slot => Number(slot?.slotId) >= selected) ?? bySlotId[0] ?? null;
+}
+
 function turtleLines() {
   const pets = state.slot?.data?.petSlots || [];
   const crops = Array.isArray(state.currentCrop) ? state.currentCrop : [];
-  const crop = crops.find(slot => String(slot?.slotId) === String(state.selectedSlotId)) || crops[0] || null;
+  const crop = selectedCrop(crops);
   const egg = state.currentEgg || (crop?.species?.endsWith('Egg') ? crop : null);
   if (egg) {
     const end = Number(egg.maturedAt || egg.endTime || 0);

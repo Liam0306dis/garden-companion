@@ -506,6 +506,11 @@ assert.match(companionSource, /const VALUE_PREFIX = '🪙 ';/, 'crop value label
 assert.match(companionSource, /const GROWTH_PREFIX = '🐢 ';/, 'growth estimate label is incorrect');
 assert.match(companionSource, /`\$\{VALUE_PREFIX\}\$\{Math\.round/, 'crop value line does not use the coin prefix');
 assert.match(companionSource, /`\$\{GROWTH_PREFIX\}\$\{formatDuration/, 'growth estimate line does not use the turtle prefix');
+// The estimate has to land on the crop the game's own card is showing, gaps in slot ids and all.
+assert.match(companionSource, /const bySlotId = \[\.\.\.crops\]\.sort\(\(left, right\) => Number\(left\?\.slotId\) - Number\(right\?\.slotId\)\);/, 'crop estimates pick a slot by array order rather than by slot id');
+assert.match(companionSource, /bySlotId\.find\(slot => Number\(slot\?\.slotId\) >= selected\) \?\? bySlotId\[0\]/, 'a harvested slot id no longer falls through to the next crop');
+// mySelectedSlotIdAtom is a primitive atom, so its value only ever moves through a write.
+assert.match(companionSource, /if \(typeof atom\.write === 'function'\) \{\s*\n\s*const originalWrite = atom\.write;/, 'a primitive game atom changes value without the panel noticing');
 assert.match(companionSource, /endsWith\('\/quinoaEngineAtom'\)/, 'game engine capture does not use the engine atom');
 assert.match(companionSource, /engine\.getSystem\('gardenInfoCard'\)\?\.view/, 'garden card system is not captured from the game engine');
 assert.match(companionSource, /key: 'time',[\s\S]*gardenCompanionEstimate: true/, 'estimates are not inserted as native garden card attributes');

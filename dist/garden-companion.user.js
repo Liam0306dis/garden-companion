@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.92
+// @version      0.7.93
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -1797,10 +1797,18 @@ ${groups}
   }
   var VALUE_PREFIX = "🪙 ";
   var GROWTH_PREFIX = "🐢 ";
+  function selectedCrop(crops) {
+    if (!crops.length) return null;
+    const selected = Number(state.selectedSlotId) || 0;
+    const exact = crops.find((slot) => Number(slot?.slotId) === selected);
+    if (exact) return exact;
+    const bySlotId = [...crops].sort((left, right) => Number(left?.slotId) - Number(right?.slotId));
+    return bySlotId.find((slot) => Number(slot?.slotId) >= selected) ?? bySlotId[0] ?? null;
+  }
   function turtleLines() {
     const pets = state.slot?.data?.petSlots || [];
     const crops = Array.isArray(state.currentCrop) ? state.currentCrop : [];
-    const crop = crops.find((slot) => String(slot?.slotId) === String(state.selectedSlotId)) || crops[0] || null;
+    const crop = selectedCrop(crops);
     const egg = state.currentEgg || (crop?.species?.endsWith("Egg") ? crop : null);
     if (egg) {
       const end2 = Number(egg.maturedAt || egg.endTime || 0);
@@ -2763,6 +2771,19 @@ ${rows}</div>`;
         if (key === "selectedSlotId") state.selectedSlotId = value;
         return value;
       };
+      if (typeof atom.write === "function") {
+        const originalWrite = atom.write;
+        atom.write = function(get, set, ...args) {
+          const result = originalWrite.call(this, get, set, ...args);
+          try {
+            const value = get(atom);
+            state[key] = value;
+            if (key === "selectedSlotId") state.selectedSlotId = value;
+          } catch {
+          }
+          return result;
+        };
+      }
       atom[flag] = true;
       return;
     }
