@@ -210,5 +210,7 @@ export function installAtomHooks() {
   hookAtom('myCurrentEggAtom', 'currentEgg');
   hookAtom('myOwnCurrentDirtTileIndexAtom', 'dirtTileIndex');
   hookAtom('mySelectedSlotIdAtom', 'selectedSlotId');
+  hookAtom('mySelectedItemIdAtom', 'selectedItemId');
+  hookAtom('isInPreservationModeAtom', 'preservationMode');
   hookAtom('data/action/actionAtom.ts/actionAtom', 'currentAction');
 }

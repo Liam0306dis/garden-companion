@@ -1,3 +1,5 @@
+import { MUTATION_CATALOG } from './constants.js';
+
 /**
  * Coin multipliers for crop mutations. A crop carries at most one colour, one weather and one time
  * mutation; some weather/time pairs are worth more together than either alone, so the combination
@@ -7,6 +9,19 @@ const COLOR_MULT = { Gold: 25, Rainbow: 50 };
 const WEATHER_MULT = { Wet: 2, Chilled: 2, Frozen: 6, Thunderstruck: 5, Thundercharged: 7 };
 const TIME_MULT = { Dawnlit: 4, Dawnbound: 7, Dawncharged: 7, Ambershine: 6, Amberbound: 10, Ambercharged: 10 };
 const COMBO_MULT = { 'Wet+Dawnlit': 5, 'Chilled+Dawnlit': 5, 'Wet+Ambershine': 7, 'Chilled+Ambershine': 7, 'Frozen+Dawnlit': 9, 'Frozen+Dawnbound': 12, 'Frozen+Dawncharged': 12, 'Frozen+Ambershine': 11, 'Frozen+Amberbound': 15, 'Frozen+Ambercharged': 15, 'Thunderstruck+Dawnlit': 8, 'Thunderstruck+Dawnbound': 11, 'Thunderstruck+Dawncharged': 11, 'Thunderstruck+Ambershine': 10, 'Thunderstruck+Amberbound': 14, 'Thunderstruck+Ambercharged': 14, 'Thundercharged+Dawnlit': 10, 'Thundercharged+Dawnbound': 13, 'Thundercharged+Dawncharged': 13, 'Thundercharged+Ambershine': 12, 'Thundercharged+Amberbound': 16, 'Thundercharged+Ambercharged': 16 };
+
+/**
+ * The game's own multiplier, read straight from its mutation catalog: the growth mutation scales
+ * the crop, and every other mutation adds its multiplier less one. The table above is a
+ * hand-maintained shorthand for the same thing; use this wherever the number has to match the
+ * game's arithmetic exactly, such as a price the server is about to charge.
+ */
+export function catalogMutationMultiplier(mutations: readonly string[]): number {
+  const growth = mutations.find(id => MUTATION_CATALOG[id]?.group === 'Growth');
+  const others = mutations.filter(id => MUTATION_CATALOG[id] && MUTATION_CATALOG[id].group !== 'Growth');
+  const added = others.reduce((sum, id) => sum + MUTATION_CATALOG[id].coinMultiplier, 0);
+  return (growth ? MUTATION_CATALOG[growth].coinMultiplier : 1) * (1 + added - others.length);
+}
 
 export function mutationMultiplier(mutations) {
   const color = Math.max(1, ...mutations.map(value => COLOR_MULT[value] || 1));

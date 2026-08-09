@@ -92,6 +92,7 @@ export interface PlayerData {
   playerId?: string;
   databaseUserId?: string;
   userId?: string;
+  coinsCount?: number;
   petSlots?: Pet[];
   petTeams?: PetTeam[];
   activityLogs?: ActivityLogEntry[];

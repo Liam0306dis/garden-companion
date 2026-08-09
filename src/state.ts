@@ -19,6 +19,8 @@ export interface CompanionState {
   currentEgg: PlantSlot | null;
   dirtTileIndex: string | number | null;
   selectedSlotId: string | number | null;
+  selectedItemId: string | null;
+  preservationMode: boolean;
   currentAction: string | null;
   lastShopSignature: string;
   initializedShops: boolean;
@@ -51,6 +53,8 @@ export const state: CompanionState = {
   currentEgg: null,
   dirtTileIndex: null,
   selectedSlotId: null,
+  selectedItemId: null,
+  preservationMode: false,
   currentAction: null,
   lastShopSignature: '',
   initializedShops: false,

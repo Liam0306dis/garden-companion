@@ -77,6 +77,8 @@ const RECONNECT_SETTLE_MS_VALUE = Number(shopAlarmsSource.match(/const RECONNECT
 const gardenDefenceSource = await readSource('src', 'features', 'garden-defence.ts');
 const petsSource = await readSource('src', 'pets.ts');
 const dragSource = await readSource('src', 'draggable.ts');
+const mutationValueSource = await readSource('src', 'mutation-value.ts');
+const preserveAllSource = await readSource('src', 'features', 'preserve-all.ts');
 const packageJson = JSON.parse(await readSource('package.json')) as { version: string };
 const packageLock = JSON.parse(await readSource('package-lock.json')) as { version: string; packages: Record<string, { version: string }> };
 
@@ -621,7 +623,22 @@ assert.match(companionSource, /return Boolean\(scrollable\?\.matches\(':hover'\)
 assert.match(companionSource, /const owned = new Map\((?:services\.)?allPets\(\)\.map\(pet => \[pet\.id, pet\]\)\)/, 'team member sprites rescan every pet per tile');
 assert.match(companionSource, /const CALCULATOR_TABS = \[\['dust', 'Dust'\], \['value', 'Crop Value'\], \['food', 'Food'\], \['granter', 'Granters'\]\]/, 'calculator sub-tabs are missing');
 // The crop value calculator has to match the game's own sums, not an approximation of them.
-assert.match(calculatorsSource, /return growthMultiplier \* \(1 \+ added - others\.length\);/, 'crop mutation value no longer stacks the way the game does');
+assert.match(mutationValueSource, /return \(growth \? MUTATION_CATALOG\[growth\]\.coinMultiplier : 1\) \* \(1 \+ added - others\.length\);/, 'crop mutation value no longer stacks the way the game does');
+assert.match(calculatorsSource, /const mutation = catalogMutationMultiplier\(selected\);/, 'the crop value calculator no longer uses the shared catalog multiplier');
+// Preserve All spends real coins per slot, so it must copy the game's own preserve rules exactly.
+assert.match(preserveAllSource, /Math\.round\(base \* \(Number\(targetScale\) \|\| 1\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
+assert.match(preserveAllSource, /if \(!slot \|\| slot\.preserved === true \|\| slot\.slotId == null\) continue;\s+if \(Number\(slot\.endTime \|\| 0\) > now\) continue;/, 'preserve all no longer skips preserved or still-growing slots');
+assert.match(preserveAllSource, /const card = findPixiCard\(\);/, 'preserve all no longer anchors to the game crop card');
+// The bar sits over the world, so only the button itself may take clicks away from the game.
+assert.match(styleSource, /#gc-preserve-all \{[^}]*pointer-events:none;/, 'the preserve all bar swallows clicks meant for the game');
+assert.match(styleSource, /#gc-preserve-all button \{ pointer-events:auto;/, 'the preserve all button cannot be clicked');
+assert.match(preserveAllSource, /if \(!state\.preservationMode\) \{ cancelHold\(\); return; \}/, 'a hold started at the station can still fire after the plant is put down');
+assert.match(preserveAllSource, /if \(!state\.preservationMode \|\| rows\.length < 2\) return;/, 'preserve all can fire against the garden tile underfoot');
+assert.match(preserveAllSource, /const progress = Math\.min\(1, \(performance\.now\(\) - holdStartedAt\) \/ HOLD_MS\);/, 'preserve all no longer needs a press and hold before spending coins');
+assert.match(preserveAllSource, /if \(progress < 1\) \{ holdFrame = requestAnimationFrame\(tick\); return; \}\s*cancelHold\(\);\s*run\(\);/, 'preserve all can send before the hold completes');
+assert.match(preserveAllSource, /const live = eligibleSlots\(\)\.find\(candidate => String\(candidate\.slotId\) === String\(row\.slotId\)\);/, 'preserve all no longer rechecks each slot as the batch runs');
+assert.match(gameAtomsSource, /hookAtom\('isInPreservationModeAtom', 'preservationMode'\);/, 'the preservation station is no longer tracked');
+assert.match(indexSource, /initPreserveAll\(\);/, 'preserve all is not started');
 assert.match(calculatorsSource, /const each = Math\.round\(base \* scale \* mutation\);\s*\n\s*return \{[^}]*total: Math\.round\(each \* friend\)/, 'crop value no longer rounds before and after the room bonus');
 assert.match(calculatorsSource, /Math\.min\(FRIEND_CAP, 1 \+ Math\.max\(0, Math\.floor\(friends\)\) \* FRIEND_STEP\)/, 'the room bonus is no longer capped the way the game caps it');
 assert.match(calculatorsSource, /<span>Players<\/span><select data-value-friends>/, 'the room bonus selector is not labelled as total players');

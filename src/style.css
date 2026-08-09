@@ -468,6 +468,18 @@ body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
 .gc-journal-group-head { display:flex;align-items:center;gap:6px;margin:0;color:var(--gc-muted);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase; }
 .gc-journal-group-head .gc-shop-sprite img { max-width:16px;max-height:16px; }
 .gc-journal-list[data-incomplete-only=true] .gc-journal-group:not(:has(.gc-journal-row[data-complete=false])) { display:none; }
+/* Deliberately matched to the game's own action button: the same pill, weight and green, so the
+   two read as one control rather than a companion panel parked next to it. */
+#gc-preserve-all { position:fixed;left:50%;transform:translateX(-50%);bottom:230px;z-index:99989;display:flex;flex-direction:column;align-items:center;gap:3px;box-sizing:border-box;pointer-events:none;font:14px/1.2 system-ui,sans-serif;user-select:none; }
+#gc-preserve-all[hidden] { display:none; }
+#gc-preserve-all small { color:#fff;font-size:11px;font-weight:800;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.55),0 0 6px rgba(0,0,0,.5);white-space:nowrap; }
+#gc-preserve-all [data-preserve-caption] { font-size:10px;opacity:.82; }
+#gc-preserve-all button { pointer-events:auto;position:relative;overflow:hidden;isolation:isolate;padding:11px 20px;border:0;border-radius:15px;color:#fff;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d);box-shadow:0 5px 0 #0d7466,0 12px 24px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28);cursor:pointer;font:800 17px/1 system-ui,sans-serif;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.35);white-space:nowrap; }
+#gc-preserve-all button:hover:not(:disabled) { filter:brightness(1.06); }
+#gc-preserve-all button:disabled { cursor:not-allowed;background:linear-gradient(180deg,#8a9490,#6b7570);box-shadow:0 5px 0 #4a524e,0 12px 24px rgba(0,0,0,.4); }
+#gc-preserve-all[data-holding=true] button { transform:translateY(2px);box-shadow:0 3px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28); }
+#gc-preserve-all [data-preserve-fill] { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399);box-shadow:0 0 14px rgba(167,243,208,.5); }
+#gc-preserve-all [data-preserve-label] { position:relative; }
 #gc-lunar[data-dragging=true] { opacity:.9; }
 #gc-lunar button { cursor:pointer; }
 button.gc-pet-potions { width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left; }

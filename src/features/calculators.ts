@@ -2,6 +2,7 @@ import type { Pet } from '../types.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG } from '../constants.js';
 import { bindListSearch } from '../list-search.js';
+import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
 import { activePets, allPets, mutationSprite, petDiet, petMetrics, petSprite, produceSprite } from '../pets.js';
@@ -130,14 +131,6 @@ function mutationsInGroup(group: string): string[] {
   return Object.keys(MUTATION_CATALOG).filter(id => MUTATION_CATALOG[id]?.group === group);
 }
 
-function mutationMultiplierFor(selected: string[]): number {
-  const growth = selected.find(id => MUTATION_CATALOG[id]?.group === 'Growth');
-  const others = selected.filter(id => MUTATION_CATALOG[id] && MUTATION_CATALOG[id].group !== 'Growth');
-  const growthMultiplier = growth ? MUTATION_CATALOG[growth].coinMultiplier : 1;
-  const added = others.reduce((sum, id) => sum + MUTATION_CATALOG[id].coinMultiplier, 0);
-  return growthMultiplier * (1 + added - others.length);
-}
-
 function friendMultiplier(friends: number): number {
   return Math.min(FRIEND_CAP, 1 + Math.max(0, Math.floor(friends)) * FRIEND_STEP);
 }
@@ -149,7 +142,7 @@ function cropValueFor(species: string, sizeFraction: number, selected: string[],
   const base = Number(crop?.baseSellPrice) || 0;
   const maxScale = Number(crop?.maxScale) || 1;
   const scale = 1 + Math.max(0, Math.min(1, sizeFraction)) * (maxScale - 1);
-  const mutation = mutationMultiplierFor(selected);
+  const mutation = catalogMutationMultiplier(selected);
   const friend = friendMultiplier(friends);
   // The game rounds the crop before the room bonus, then rounds the bonused total.
   const each = Math.round(base * scale * mutation);
