@@ -297,7 +297,9 @@ export function initCompanion(): void {
       const tile = state.slot?.data?.garden?.tileObjects?.[String(state.dirtTileIndex)];
       if (!tile?.slots?.length) return;
       const now = Date.now();
-      const qualifies = slot => Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
+      // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
+      // which is exactly what this key skips, so a preserved slot is never a candidate here.
+      const qualifies = slot => slot?.preserved !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
       let index = tile.slots.findIndex(slot => String(slot.slotId) === String(state.selectedSlotId));
       if (index >= 0 && !qualifies(tile.slots[index])) return;
       if (index < 0) index = tile.slots.findIndex(qualifies);

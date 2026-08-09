@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.96
+// @version      0.7.97
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -3864,7 +3864,7 @@ ${rows}</div>`;
         const tile = state.slot?.data?.garden?.tileObjects?.[String(state.dirtTileIndex)];
         if (!tile?.slots?.length) return;
         const now = Date.now();
-        const qualifies = (slot2) => Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow");
+        const qualifies = (slot2) => slot2?.preserved !== true && Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow");
         let index = tile.slots.findIndex((slot2) => String(slot2.slotId) === String(state.selectedSlotId));
         if (index >= 0 && !qualifies(tile.slots[index])) return;
         if (index < 0) index = tile.slots.findIndex(qualifies);

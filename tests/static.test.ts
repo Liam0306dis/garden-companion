@@ -628,6 +628,7 @@ assert.match(calculatorsSource, /const mutation = catalogMutationMultiplier\(sel
 // Preserve All spends real coins per slot, so it must copy the game's own preserve rules exactly.
 assert.match(preserveAllSource, /Math\.round\(base \* \(Number\(targetScale\) \|\| 1\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
 assert.match(preserveAllSource, /if \(!slot \|\| slot\.preserved === true \|\| slot\.slotId == null\) continue;\s+if \(Number\(slot\.endTime \|\| 0\) > now\) continue;/, 'preserve all no longer skips preserved or still-growing slots');
+assert.match(companionSource, /const qualifies = slot => slot\?\.preserved !== true &&/, 'instant harvest can destroy a preserved crop');
 assert.match(preserveAllSource, /const card = findPixiCard\(\);/, 'preserve all no longer anchors to the game crop card');
 // The bar sits over the world, so only the button itself may take clicks away from the game.
 assert.match(styleSource, /#gc-preserve-all \{[^}]*pointer-events:none;/, 'the preserve all bar swallows clicks meant for the game');
