@@ -135,8 +135,20 @@ function friendMultiplier(friends: number): number {
   return Math.min(FRIEND_CAP, 1 + Math.max(0, Math.floor(friends)) * FRIEND_STEP);
 }
 
-interface CropValue { base: number; scale: number; maxScale: number; mutation: number; friend: number; each: number; total: number }
+/**
+ * The game's own size percentage. It is not the scale as a share of the maximum: scale 1 is the
+ * smallest a crop can be whatever its maximum, and the game calls that 50%, so the range every crop
+ * is shown on runs 50 to 100. Floored, and pinned at both ends, exactly as the game does it.
+ */
+function sizePercentFor(scale: number, maxScale: number): number {
+  if (scale <= 1) return 50;
+  if (scale >= maxScale) return 100;
+  return Math.floor(50 + 50 * (scale - 1) / (maxScale - 1));
+}
 
+interface CropValue { base: number; scale: number; maxScale: number; weight: number; sizePercent: number; mutation: number; friend: number; each: number; total: number }
+
+/** Size, weight and value are all the numbers the game itself prints on a crop's card. */
 function cropValueFor(species: string, sizeFraction: number, selected: string[], friends: number): CropValue {
   const crop = cropCatalog(species);
   const base = Number(crop?.baseSellPrice) || 0;
@@ -146,7 +158,27 @@ function cropValueFor(species: string, sizeFraction: number, selected: string[],
   const friend = friendMultiplier(friends);
   // The game rounds the crop before the room bonus, then rounds the bonused total.
   const each = Math.round(base * scale * mutation);
-  return { base, scale, maxScale, mutation, friend, each, total: Math.round(each * friend) };
+  return {
+    base, scale, maxScale, mutation, friend, each,
+    weight: scale * (Number(crop?.baseWeight) || 0),
+    sizePercent: sizePercentFor(scale, maxScale),
+    total: Math.round(each * friend),
+  };
+}
+
+/** The game's own weight formatting: enough decimals to stay readable at any crop size. */
+function formatWeight(weight: number): string {
+  if (weight <= 0) return '-';
+  const digits = weight < 1 ? 2 : weight < 10 ? 1 : 0;
+  return weight.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/** Spells out how the total was reached, so a surprising number can be traced rather than trusted. */
+function valueBreakdown(value: CropValue): string {
+  const parts = [`${value.base.toLocaleString()} base`, `${value.sizePercent}% size`];
+  if (value.mutation !== 1) parts.push(`x${Number(value.mutation.toFixed(2))} mutations`);
+  const each = `${parts.join(' x ')} = ${value.each.toLocaleString()}`;
+  return value.friend === 1 ? each : `${each} each, x${Number(value.friend.toFixed(2))} for players`;
 }
 
 export function setValueSpecies(species: string): void {
@@ -248,12 +280,15 @@ function renderValueCalculator(): string {
   const friendOptions = Array.from({ length: MAX_FRIENDS + 1 }, (_, count) =>
     `<option value="${count}" ${count === valueFriends ? 'selected' : ''}>${count + 1} (+${Math.round((friendMultiplier(count) - 1) * 100)}%)</option>`).join('');
   const atMax = value.scale >= value.maxScale - .0001;
+  const weightLabel = cropCatalog(species)?.baseWeight ? `<b data-value-weight>${escapeHtml(formatWeight(value.weight))}</b><i>weight</i>` : '';
   return `<section class="gc-card gc-value-card">
 <div class="gc-value-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><select data-value-species>${options}</select></div>
-<label class="gc-value-size"><span>Size<b data-value-scale>${value.scale.toFixed(2)}x</b><em data-value-max ${atMax ? '' : 'hidden'}>max</em></span><input type="range" min="0" max="1000" step="1" value="${Math.round(valueSizeFraction * 1000)}" data-value-size></label>
+<label class="gc-value-size"><span>Size<b data-value-size-percent>${value.sizePercent}%</b>${weightLabel}<em data-value-max ${atMax ? '' : 'hidden'}>max</em></span><input type="range" min="0" max="1000" step="1" value="${Math.round(valueSizeFraction * 1000)}" data-value-size></label>
+<div class="gc-value-readout"><b data-value-each>${value.each.toLocaleString()}</b><span>coins each</span></div>
 ${groups}
 <div class="gc-value-foot"><label><span>Players</span><select data-value-friends>${friendOptions}</select></label><button data-value-clear>Clear</button></div>
 <div class="gc-value-result"><b data-value-total>${value.total.toLocaleString()}</b><small>coins</small></div>
+<p class="gc-value-breakdown" data-value-breakdown>${escapeHtml(valueBreakdown(value))}</p>
 </section>`;
 }
 
@@ -262,10 +297,15 @@ export function updateValueSection(main: HTMLElement): void {
   const species = currentValueSpecies();
   if (!species) return;
   const value = cropValueFor(species, valueSizeFraction, selectedValueMutations(), valueFriends);
-  const total = main.querySelector<HTMLElement>('[data-value-total]');
-  if (total) total.textContent = value.total.toLocaleString();
-  const scale = main.querySelector<HTMLElement>('[data-value-scale]');
-  if (scale) scale.textContent = `${value.scale.toFixed(2)}x`;
+  const write = (selector: string, text: string) => {
+    const node = main.querySelector<HTMLElement>(selector);
+    if (node) node.textContent = text;
+  };
+  write('[data-value-total]', value.total.toLocaleString());
+  write('[data-value-each]', value.each.toLocaleString());
+  write('[data-value-weight]', formatWeight(value.weight));
+  write('[data-value-size-percent]', `${value.sizePercent}%`);
+  write('[data-value-breakdown]', valueBreakdown(value));
   const max = main.querySelector<HTMLElement>('[data-value-max]');
   if (max) max.hidden = value.scale < value.maxScale - .0001;
 }

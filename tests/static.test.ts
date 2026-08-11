@@ -625,6 +625,12 @@ assert.match(companionSource, /const CALCULATOR_TABS = \[\['dust', 'Dust'\], \['
 // The crop value calculator has to match the game's own sums, not an approximation of them.
 assert.match(mutationValueSource, /return \(growth \? MUTATION_CATALOG\[growth\]\.coinMultiplier : 1\) \* \(1 \+ added - others\.length\);/, 'crop mutation value no longer stacks the way the game does');
 assert.match(calculatorsSource, /const mutation = catalogMutationMultiplier\(selected\);/, 'the crop value calculator no longer uses the shared catalog multiplier');
+// The crop value calculator speaks in the numbers the game prints on a crop, not the raw scale.
+assert.match(calculatorsSource, /weight: scale \* \(Number\(crop\?\.baseWeight\) \|\| 0\)/, 'crop weight is no longer taken from the catalog');
+assert.match(calculatorsSource, /if \(scale <= 1\) return 50;\s*if \(scale >= maxScale\) return 100;\s*return Math\.floor\(50 \+ 50 \* \(scale - 1\) \/ \(maxScale - 1\)\);/, 'crop size percent no longer matches the game');
+assert.match(calculatorsSource, /write\('\[data-value-weight\]', formatWeight\(value\.weight\)\);/, 'weight does not follow the size slider');
+assert.match(calculatorsSource, /write\('\[data-value-breakdown\]', valueBreakdown\(value\)\);/, 'the value breakdown does not follow the size slider');
+assert.match(buildSource, /baseWeight:\(\[0-9\.e\+-\]\+\)/, 'the plant catalog no longer carries base weights');
 // Preserve All spends real coins per slot, so it must copy the game's own preserve rules exactly.
 assert.match(preserveAllSource, /Math\.round\(base \* \(Number\(targetScale\) \|\| 1\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
 assert.match(preserveAllSource, /if \(!slot \|\| slot\.preserved === true \|\| slot\.slotId == null\) continue;\s+if \(Number\(slot\.endTime \|\| 0\) > now\) continue;/, 'preserve all no longer skips preserved or still-growing slots');

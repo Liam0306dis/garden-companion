@@ -71,7 +71,7 @@ function absorb(candidate: Row, keys: string[]): void {
       const seed = isObject(row.seed) ? row.seed as Row : {};
       const offsets = Array.isArray(plant.slotOffsets) ? plant.slotOffsets.length : 0;
       return {
-        crop: { baseSellPrice: Number(crop.baseSellPrice) || 0, maxScale: Number(crop.maxScale) || 1 },
+        crop: { baseSellPrice: Number(crop.baseSellPrice) || 0, baseWeight: Number(crop.baseWeight) || 0, maxScale: Number(crop.maxScale) || 1 },
         slots: Math.max(1, Number(plant.slotCapacity) || offsets || 1),
         regrows: String(plant.harvestType || '').toLowerCase().includes('multiple'),
         rarity: rarityOf(seed.rarity),
