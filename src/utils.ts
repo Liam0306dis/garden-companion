@@ -7,6 +7,10 @@ export function escapeHtml(value: unknown): string {
 /**
  * Ids whose split-on-capitals name is not what the thing is actually called. Kept here because
  * every display path funnels through humanize, so an override applies everywhere at once.
+ *
+ * Plant names now come from the catalog first, so these are the fallback for before it loads, plus
+ * the two the game words for its own card: it calls them Dawnbinder Bulb and Moonbinder Bulb, which
+ * is a mouthful in a list of plants.
  */
 export const NAME_OVERRIDES: Record<string, string> = {
   ThunderCelestialShroomPlant: 'Stormcap',

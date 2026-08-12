@@ -1,5 +1,5 @@
 import type { PlantSlot } from '../types.js';
-import { PLANT_CATALOG } from '../constants.js';
+import { PLANT_CATALOG, plantName } from '../constants.js';
 import { page } from '../page.js';
 import { findPixiCard } from '../pixi.js';
 import { sendQuinoaCommand } from '../game-connection.js';
@@ -65,7 +65,7 @@ function coins(): number {
 
 function cropLabel(rows: EligibleSlot[]): string {
   const species = [...new Set(rows.map(row => row.species))];
-  return species.length === 1 ? humanize(species[0]) : `${species.length} crops`;
+  return species.length === 1 ? plantName(species[0]) : `${species.length} crops`;
 }
 
 function panel(): HTMLElement | null {

@@ -13,7 +13,7 @@ interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
-  plants: Record<string, { crop: { baseSellPrice: number; baseWeight: number; maxScale: number; sprite: string }; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
+  plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxScale: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number> }>;
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
@@ -51,7 +51,7 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
         }));
         const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+),rarity:[A-Za-z_$]+\.([A-Za-z]+).{0,300}?diet:\[([^\]]*)\]/g)];
         if (!petMatches.length) continue;
-        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),.*?baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
         const eggMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.[A-Za-z0-9_]+,name:`([^`]+)`,.*?faunaSpawnWeights:\{([^}]*)\}/g)];
         if (!eggMatches.length) continue;
@@ -75,7 +75,12 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
             slotSpecies: [...plantBlock.matchAll(/\{x:[^{}]*?\}/g)]
               .map(offset => offset[0].match(/speciesOverride:`([A-Za-z0-9_]+)`/)?.[1] || ''),
             entry: {
-              crop: { baseSellPrice: Number(match[5]), baseWeight: Number(match[6]), maxScale: Number(match[7]), sprite: match[4] },
+              // The crop's own display name, which is often not its species id: DawnCelestial is
+              // a Dawnbinder Bulb and ThunderCelestialShroomPlant is a Stormcap.
+              crop: { name: match[5], baseSellPrice: Number(match[6]), baseWeight: Number(match[7]), maxScale: Number(match[8]), sprite: match[4] },
+              // What the game calls the plant rather than its crop, which is the only name a patch
+              // has: a daisy patch grows daisies and purple daisies, and neither crop names the tile.
+              plantLabel: plantBlock.match(/name:`([^`]+)`/)?.[1] || '',
               // The growing plant is a different atlas frame from its harvested crop, and some
               // callers want the plant: a Starweaver crop looks nothing like a Starweaver.
               plantSprite: plantBlock.match(/sprite:[A-Za-z_$]+\.Plant\.([A-Za-z0-9_]+)/)?.[1] || '',

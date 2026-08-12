@@ -1,5 +1,5 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
-import { PET_CATALOG, PLANT_CATALOG } from '../constants.js';
+import { PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { NAME_OVERRIDES, NUMBER_LOCALE } from '../utils.js';
 
 interface PlantCatalogEntry {
@@ -44,6 +44,17 @@ const PANEL_ID = 'gc-overview-panel';
 const BUTTON_ID = 'gc-overview-button';
 const MUTATION_KEY = 'gardenCompanion.overviewMutations.v2';
 const VIEW_KEY = 'gardenCompanion.overviewView.v1';
+const OPEN_FAMILIES_KEY = 'gardenCompanion.overviewOpenFamilies.v1';
+
+/** Which patch rows are expanded to show the species inside them. Remembered between sessions. */
+const openFamilies = new Set<string>((() => {
+  try { return JSON.parse(localStorage.getItem(OPEN_FAMILIES_KEY) || '[]') as string[]; }
+  catch { return []; }
+})());
+
+function saveOpenFamilies(): void {
+  try { localStorage.setItem(OPEN_FAMILIES_KEY, JSON.stringify([...openFamilies])); } catch {}
+}
 const FOCUS_KEY = 'gardenCompanion.overviewFocus.v1';
 const ALARM_TARGETS_KEY = 'gardenCompanion.overviewAlarmTargets.v1';
 const SHORTCUT_KEY = 'gardenCompanion.overviewShortcut.v1';
@@ -430,8 +441,46 @@ function escapeHtml(value: unknown): string {
   })[character] ?? character);
 }
 
+/**
+ * Crops defer to the shared name, which knows the game calls DawnCelestial a Dawnbinder and drops
+ * the trailing Fruit off a Starweaver. Anything else here is a mutation or an alarm target, which
+ * only ever needs its id split on capitals.
+ */
 function displayName(value: string): string {
+  if (PLANT_CATALOG[value]) return plantName(value);
   return NAME_OVERRIDES[value] ?? value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+}
+
+interface PlantRow { label: string; value: string; child: boolean; family?: string; open?: boolean }
+
+/**
+ * Tiles are counted per patch family, crops per species. A purple daisy grows in the same patch as
+ * a daisy and either can seed it, so no single species owns the tile; counting the family keeps the
+ * tiles column equal to the dirt tiles actually occupied. A family with only one of its species in
+ * the garden stays a single row, since there is nothing to disambiguate.
+ */
+function plantRowList(rows: readonly SpeciesStats[]): PlantRow[] {
+  const groups = new Map<string, SpeciesStats[]>();
+  for (const row of rows) {
+    const key = PATCH_FAMILY_OF[row.species] ?? row.species;
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  const count = (value: number) => value.toLocaleString(NUMBER_LOCALE);
+  const list: PlantRow[] = [];
+  for (const [key, members] of groups) {
+    const present = members.filter(member => member.crops > 0 || member.plants > 0);
+    const shown = present.length ? present : members;
+    const tiles = shown.reduce((sum, member) => sum + member.plants, 0);
+    const crops = shown.reduce((sum, member) => sum + member.crops, 0);
+    if (shown.length < 2) {
+      list.push({ label: displayName(shown[0]?.species ?? key), value: `${count(tiles)} &middot; ${count(crops)}`, child: false });
+      continue;
+    }
+    const open = openFamilies.has(key);
+    list.push({ label: patchName(key), value: `${count(tiles)} &middot; ${count(crops)}`, child: false, family: key, open });
+    if (open) for (const member of shown) list.push({ label: displayName(member.species), value: count(member.crops), child: true });
+  }
+  return list;
 }
 
 function mutationMultiplier(mutations: readonly string[]): number {
@@ -662,6 +711,11 @@ function injectStyles(): void {
     #${PANEL_ID} .go-eta-done{border-color:rgba(52,211,153,.28);background:rgba(52,211,153,.07)}#${PANEL_ID} .go-eta-done span i{background:var(--gc-green,#34d399)}#${PANEL_ID} .go-eta-done b{color:var(--gc-green,#34d399);font:700 11px system-ui,sans-serif}
     #${PANEL_ID} .go-plants{padding-left:10px}#${PANEL_ID} .go-plant-row{display:flex;justify-content:space-between;padding:3px 0;color:var(--gc-text,#e4e4e7);font-size:12px}
     #${PANEL_ID} .go-plant-row b{font-weight:700}
+    #${PANEL_ID} .go-plant-row[data-child=true]{padding-left:14px;color:var(--gc-muted,#a1a1aa)}
+    #${PANEL_ID} .go-plant-family{cursor:pointer}
+    #${PANEL_ID} .go-plant-family:hover{color:#fff}
+    #${PANEL_ID} .go-plant-units{padding-bottom:1px;color:var(--gc-muted,#a1a1aa);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    #${PANEL_ID} .go-plant-units b{font-weight:700}
     #${PANEL_ID} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,0,0,.18);border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72))}
     #${PANEL_ID} .go-footer span{display:flex;align-items:center;gap:8px}#${PANEL_ID} .go-footer span small{padding:2px 7px;border-radius:5px;border:1px solid var(--gc-line,rgba(255,255,255,.075));background:rgba(255,255,255,.03);color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px}#${PANEL_ID} .go-footer b{color:var(--gc-gold,#fbbf24);font-size:19px}
     #${PANEL_ID} .go-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:250px;margin:8px 0 12px;overflow:auto}#${PANEL_ID} .go-filter label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-text,#e4e4e7);cursor:pointer}
@@ -863,9 +917,10 @@ export function initGardenOverview(): void {
       const percent = row.total ? have / row.total * 100 : 0;
       return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b>${have}<em>/${row.total}</em></b></div><u><i style="width:${percent.toFixed(1)}%;background:${color}"></i></u>${summary}</div>`;
     }).join('');
-    const plantCount = (plants: number, crops: number) => plants > 0 && plants !== crops ? `${plants} <small>(${crops})</small>` : `${crops}`;
-    const plantRows = stats.species.map(row => `<div class="go-plant-row"><span>${escapeHtml(displayName(row.species))}</span><b>${plantCount(row.plants, row.crops)}</b></div>`).join('');
-    const totalPlants = plantCount(stats.plants, stats.crops);
+    const plantRows = plantRowList(stats.species).map(row => row.family
+      ? `<div class="go-plant-row go-plant-family" data-family="${escapeHtml(row.family)}" title="Show the crops in this patch"><span>${row.open ? '&#9662;' : '&#9656;'} ${escapeHtml(row.label)}</span><b>${row.value}</b></div>`
+      : `<div class="go-plant-row"${row.child ? ' data-child="true"' : ''}><span>${escapeHtml(row.label)}</span><b>${row.value}</b></div>`).join('');
+    const totalPlants = `${stats.plants.toLocaleString(NUMBER_LOCALE)} &middot; ${stats.crops.toLocaleString(NUMBER_LOCALE)}`;
     const growing = Math.max(0, stats.crops - stats.mature);
     const growth = growing === 0 && stats.notMaxSize === 0
       ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>'
@@ -873,7 +928,7 @@ export function initGardenOverview(): void {
         ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>`
       : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ''}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
     const bonus = Math.round((stats.friendBonus - 1) * 100);
-    return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? 'Disable' : 'Enable'} completion alarm">${view.alarm ? '&#128276;' : '&#128277;'}</button></div></div>${etaRows}</section>` : ''}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? '&#9662;' : '&#9656;'}</span></div><div data-section="mutations" ${view.mutationsOpen ? '' : 'hidden'}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? '&#9662;' : '&#9656;'}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? '' : 'hidden'}><div class="go-plant-row"><span>Total</span><b>${totalPlants}</b></div>${plantRows || '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ''}</span><b>${compactNumber(stats.value)}</b></div>`;
+    return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? 'Disable' : 'Enable'} completion alarm">${view.alarm ? '&#128276;' : '&#128277;'}</button></div></div>${etaRows}</section>` : ''}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? '&#9662;' : '&#9656;'}</span></div><div data-section="mutations" ${view.mutationsOpen ? '' : 'hidden'}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? '&#9662;' : '&#9656;'}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? '' : 'hidden'}><div class="go-plant-row go-plant-units"><span></span><b>tiles &middot; crops</b></div><div class="go-plant-row"><span>Total</span><b>${totalPlants}</b></div>${plantRows || '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ''}</span><b>${compactNumber(stats.value)}</b></div>`;
   }
 
   function installDrag(card: HTMLElement, header: HTMLElement, save: ((left: number, top: number) => void) | null = null): void {
@@ -1025,6 +1080,13 @@ export function initGardenOverview(): void {
     if (focusInvert) focusInvert.onchange = () => { focus.invert = focusInvert.checked; saveFocusControls(); focusInvert.blur(); };
     const focusOpacity = panel.querySelector<HTMLInputElement>('[data-focus-opacity]');
     if (focusOpacity) focusOpacity.oninput = () => { focus.opacity = Number(focusOpacity.value) / 100; const label = panel.querySelector<HTMLElement>('[data-opacity-value]'); if (label) label.textContent = `${focusOpacity.value}%`; saveFocusControls(); };
+    panel.querySelectorAll<HTMLElement>('[data-family]').forEach(row => row.onclick = () => {
+      const key = row.dataset.family!;
+      if (openFamilies.has(key)) openFamilies.delete(key);
+      else openFamilies.add(key);
+      saveOpenFamilies();
+      render(true);
+    });
     panel.querySelectorAll<HTMLElement>('[data-collapse]').forEach(toggle => toggle.onclick = () => {
       const key = toggle.dataset.collapse;
       if (key === 'mutations') view.mutationsOpen = !view.mutationsOpen;

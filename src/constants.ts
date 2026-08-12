@@ -1,4 +1,4 @@
-import { humanize, NUMBER_LOCALE } from './utils.js';
+import { humanize, NAME_OVERRIDES, NUMBER_LOCALE } from './utils.js';
 
 /** Storage keys, remote endpoints, and the game catalogs baked in at build time. */
 
@@ -139,3 +139,39 @@ export const PROC_RULES: Record<string, { chance: number; tick: boolean; effect:
 export const MAX_PET_TEAMS = 25;
 export const MAX_TEAM_PETS = 3;
 export const XP_PER_POTION = 20_000;
+
+/**
+ * Species that share one dirt tile. Either member can seed the patch and both can then grow in it,
+ * so neither is the host: a purple daisy tile is as real as a daisy one. Thunderspire is the same
+ * shape from the other direction, growing thunderpeels and stormcaps on the tile it seeds.
+ */
+export const PATCH_FAMILIES: ReadonlyArray<readonly string[]> = [
+  ['Daisy', 'PurpleDaisy'],
+  ['Clover', 'FourLeafClover'],
+  ['Snowdrop', 'SnowdropDouble'],
+  ['Cattail', 'VariegatedCattail'],
+  ['ThunderCelestial', 'ThunderCelestialShroomPlant'],
+];
+
+/** Species to the family it shares a tile with, keyed by the family's first member. */
+export const PATCH_FAMILY_OF: Record<string, string> = Object.fromEntries(
+  PATCH_FAMILIES.flatMap(family => family.map(species => [species, family[0]])));
+
+/**
+ * What the game calls a crop, which is regularly not its species id: DawnCelestial is a Dawnbinder,
+ * ThunderCelestialShroomPlant is a Stormcap, and OrangeTulip is just a Tulip. Overrides win so the
+ * few the game words for its own card ("Dawnbinder Bulb") can be trimmed for a list.
+ */
+export function plantName(species: string): string {
+  const name = NAME_OVERRIDES[species] ?? PLANT_CATALOG[species]?.crop?.name;
+  if (!name) return humanize(species);
+  // The game tails a few crops with Fruit where the word is the plant, not the crop: a Cacao Fruit
+  // is just a cacao. Species whose id already ends in Fruit genuinely are called that, so a dragon
+  // fruit keeps its name.
+  return species.endsWith('Fruit') ? name : name.replace(/ Fruit$/, '');
+}
+
+/** What the game calls the plant. A patch is named for the plant, since its crops disagree. */
+export function patchName(species: string): string {
+  return PLANT_CATALOG[species]?.plantLabel || plantName(species);
+}

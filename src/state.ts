@@ -14,6 +14,10 @@ export interface CompanionState {
   game: GameState | null;
   slot: PlayerSlot | null;
   slotIndex: number | null;
+  /** Our own slot index, straight from the game's myUserSlotIdxAtom. */
+  userSlotIndex: number | null;
+  /** The game's playerIdAtom, which starts empty and is seeded from the Welcome frame. */
+  atomPlayerId: string | null;
   playerId: string | null;
   currentCrop: PlantSlot[] | null;
   currentEgg: PlantSlot | null;
@@ -48,6 +52,8 @@ export const state: CompanionState = {
   game: null,
   slot: null,
   slotIndex: null,
+  userSlotIndex: null,
+  atomPlayerId: null,
   playerId: null,
   currentCrop: null,
   currentEgg: null,

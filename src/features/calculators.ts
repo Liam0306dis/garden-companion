@@ -1,6 +1,6 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG } from '../constants.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
@@ -262,7 +262,7 @@ function renderValueCalculator(): string {
   const value = cropValueFor(species, valueSizeFraction, selected, valueFriends);
   const sprite = produceSprite(species);
   const options = valueSpeciesList()
-    .map(id => `<option value="${escapeHtml(id)}" ${id === species ? 'selected' : ''}>${escapeHtml(humanize(id))}</option>`)
+    .map(id => `<option value="${escapeHtml(id)}" ${id === species ? 'selected' : ''}>${escapeHtml(plantName(id))}</option>`)
     .join('');
   const groups = VALUE_GROUPS.map(group => {
     const ids = mutationsInGroup(group);
@@ -464,7 +464,7 @@ function renderFoodCalculator(): string {
       cover = `${Math.ceil(need)} seeds/hr`;
       output = `${tiles} tile${tiles === 1 ? '' : 's'} replanted continuously`;
     }
-    return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(humanize(crop))}</td><td><b>${need.toFixed(1)}</b>/hr</td><td>${escapeHtml(cover)}<small>${escapeHtml(output)}</small></td></tr>`;
+    return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(plantName(crop))}</td><td><b>${need.toFixed(1)}</b>/hr</td><td>${escapeHtml(cover)}<small>${escapeHtml(output)}</small></td></tr>`;
   }).join('');
   const petOptions = Object.keys(PET_CATALOG).filter(species => petDiet(species).length)
     .sort((left, right) => (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));

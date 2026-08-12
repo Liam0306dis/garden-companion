@@ -1,4 +1,4 @@
-import { MUTATION_CATALOG, PLANT_CATALOG } from '../constants.js';
+import { MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
 import { send } from '../game-connection.js';
 import { page } from '../page.js';
@@ -43,12 +43,6 @@ function mutationLabel(id: string): string {
   return MUTATION_CATALOG[id]?.name || humanize(id);
 }
 
-function cropName(species: string): string {
-  if (species === 'DawnCelestial') return 'Dawnbinder';
-  if (species === 'MoonCelestial') return 'Moonbinder';
-  return humanize(species);
-}
-
 function mutationBadge(id: string): string {
   const label = mutationLabel(id);
   const sprite = mutationSprite(id);
@@ -82,8 +76,8 @@ function matchingRows(): CleanserRow[] {
     }
   }
   return rows.sort((left, right) => {
-    const leftName = humanize(left.species);
-    const rightName = humanize(right.species);
+    const leftName = plantName(left.species);
+    const rightName = plantName(right.species);
     return leftName.localeCompare(rightName) || String(left.key).localeCompare(String(right.key), undefined, { numeric: true });
   });
 }
@@ -159,7 +153,7 @@ function render(): void {
     const mutations = row.mutations.filter(id => CLEANSEABLE.has(id));
     const cleansed = cleansedRows.has(row.key);
     const disabled = cleaners <= 0 || cleansed;
-    return `<tr><td><b>${escapeHtml(cropName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join('')}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}" ${disabled ? 'disabled' : ''}>${cleansed ? 'Cleansed' : 'Cleanse'}</button></td></tr>`;
+    return `<tr><td><b>${escapeHtml(plantName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join('')}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}" ${disabled ? 'disabled' : ''}>${cleansed ? 'Cleansed' : 'Cleanse'}</button></td></tr>`;
   }).join('');
   body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString(NUMBER_LOCALE)}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
   body.querySelectorAll<HTMLButtonElement>('[data-cleanser-mutation]').forEach(button => button.onclick = () => {
@@ -189,7 +183,7 @@ function render(): void {
       optimisticCountUntil = Date.now() + 2_000;
       button.textContent = 'Cleansed';
       updateCleanserControls(body);
-      toast(`Crop Cleanser requested for ${cropName(live.species)}.`, 'success');
+      toast(`Crop Cleanser requested for ${plantName(live.species)}.`, 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
     }

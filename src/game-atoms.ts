@@ -166,6 +166,15 @@ page.__gardenCompanionSetCinematic = (enabled: boolean, owner = 'default') => {
   } catch { return false; }
 };
 
+/**
+ * Atoms are found by debugLabel, which the game sets to a bare name. A plain endsWith would let one
+ * label swallow another - lastCurrencyTransactionAtom ends with actionAtom - and which of the two
+ * won would come down to Map order, so a match is either exact or a whole path segment.
+ */
+function labelMatches(label: string, match: string): boolean {
+  return label === match || label.endsWith(`/${match}`);
+}
+
 function hookAtom(match, key, attempt = 0) {
   const map = atomMap();
   if (!map || typeof map.values !== 'function') {
@@ -174,7 +183,7 @@ function hookAtom(match, key, attempt = 0) {
   }
   for (const atom of map.values()) {
     const label = String(atom?.debugLabel || '');
-    if (!label.endsWith(match) || typeof atom.read !== 'function') continue;
+    if (!labelMatches(label, match) || typeof atom.read !== 'function') continue;
     const flag = `__gardenCompanion:${key}`;
     if (atom[flag]) return;
     const original = atom.read;
@@ -212,5 +221,11 @@ export function installAtomHooks() {
   hookAtom('mySelectedSlotIdAtom', 'selectedSlotId');
   hookAtom('mySelectedItemIdAtom', 'selectedItemId');
   hookAtom('isInPreservationModeAtom', 'preservationMode');
-  hookAtom('data/action/actionAtom.ts/actionAtom', 'currentAction');
+  // Which slot in userSlots is ours. Nothing in the room state says so any more, and the socket url
+  // no longer carries a playerId, so the game's own answer is the only reliable one.
+  hookAtom('myUserSlotIdxAtom', 'userSlotIndex');
+  // Kept apart from state.playerId: this atom starts as an empty string, and writing that
+  // straight in would wipe the id the Welcome frame already gave us.
+  hookAtom('playerIdAtom', 'atomPlayerId');
+  hookAtom('actionAtom', 'currentAction');
 }

@@ -1,5 +1,5 @@
 import type { CompanionPage, GardenTile } from '../types.js';
-import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG } from '../constants.js';
+import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 
 /**
  * Layout planner. Nothing is sent to the game server: planned plants are fed to the
@@ -552,7 +552,7 @@ export function initGardenPlanner(): void {
     const options = sortedSpecies().map(name => {
       const sprite = page.__gardenCompanionProduceSprites?.[name] || page.__gardenCompanionShopSprites?.[name] || '';
       const slots = Math.max(1, Number(PLANTS[name]?.slots || 1));
-      const label = `${name} (${PLANTS[name]?.rarity || 'Common'}${slots > 1 ? `, ${slots} per tile` : ''})`;
+      const label = `${plantName(name)} (${PLANTS[name]?.rarity || 'Common'}${slots > 1 ? `, ${slots} per tile` : ''})`;
       return `<button data-plan-species="${name}" data-rarity="${PLANTS[name]?.rarity || 'Common'}" data-active="${name === planner.species}" title="${label}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${name.slice(0, 1)}</i>`}</button>`;
     }).join('');
     const mutations = MUTATION_GROUPS.map(group => {
@@ -583,7 +583,7 @@ ${decorMode && DECOR[planner.decorId]?.mountable
   ? `<div class="gc-planner-row"><b>Display crop</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-mount="" data-active="${!planner.mountedSpecies}">None</button></div></div></div>
 <div class="gc-planner-grid gc-planner-mount">${sortedSpecies().map(name => {
   const sprite = page.__gardenCompanionProduceSprites?.[name] || page.__gardenCompanionShopSprites?.[name] || '';
-  return `<button data-plan-mount="${name}" data-rarity="${PLANTS[name]?.rarity || 'Common'}" data-active="${name === planner.mountedSpecies}" title="${name}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${name.slice(0, 1)}</i>`}</button>`;
+  return `<button data-plan-mount="${name}" data-rarity="${PLANTS[name]?.rarity || 'Common'}" data-active="${name === planner.mountedSpecies}" title="${plantName(name)}">${sprite ? `<img src="${sprite}" alt="">` : `<i>${name.slice(0, 1)}</i>`}</button>`;
 }).join('')}</div>
 <div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`
   : ''}

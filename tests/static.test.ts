@@ -77,6 +77,7 @@ const RECONNECT_SETTLE_MS_VALUE = Number(shopAlarmsSource.match(/const RECONNECT
 const gardenDefenceSource = await readSource('src', 'features', 'garden-defence.ts');
 const petsSource = await readSource('src', 'pets.ts');
 const dragSource = await readSource('src', 'draggable.ts');
+const constantsSource = await readSource('src', 'constants.ts');
 const mutationValueSource = await readSource('src', 'mutation-value.ts');
 const preserveAllSource = await readSource('src', 'features', 'preserve-all.ts');
 const packageJson = JSON.parse(await readSource('package.json')) as { version: string };
@@ -359,7 +360,17 @@ assert.doesNotMatch(cropCleanserSource, /currentSignature|setInterval\([^)]*rend
 assert.match(cropCleanserSource, /reconcileCleanserCount[\s\S]*heldToolCount\('CropCleanser'\)[\s\S]*updateCleanserControls/, 'Crop Cleanser inventory does not reconcile while the helper is open');
 assert.match(cropCleanserSource, /live === lastLiveCleanserCount && live === displayedCleanserCount/, 'rejected Crop Cleanser requests leave the displayed inventory stale');
 assert.match(cropCleanserSource, /optimisticCountUntil = Date\.now\(\) \+ 2_000/, 'Crop Cleanser optimistic inventory has no reconciliation grace period');
-assert.match(cropCleanserSource, /DawnCelestial.*Dawnbinder[\s\S]*MoonCelestial.*Moonbinder/, 'Crop Cleanser helper does not use the celestial crop names');
+assert.match(cropCleanserSource, /plantName\(row\.species\)/, 'Crop Cleanser helper does not use the shared crop names');
+// Species ids are regularly not what the game calls the crop, so every list of plants asks the
+// catalog rather than prettifying the id.
+assert.ok(constantsSource.includes("const name = NAME_OVERRIDES[species] ?? PLANT_CATALOG[species]?.crop?.name;"), 'crop names no longer come from the game catalog');
+assert.ok(constantsSource.includes("return species.endsWith('Fruit') ? name : name.replace(/ Fruit$/, '');"), 'a trailing Fruit is no longer trimmed from crop names');
+assert.ok(constantsSource.includes('PLANT_CATALOG[species]?.plantLabel || plantName(species)'), 'patch rows no longer use the plant name');
+assert.ok(buildSource.includes('crop: { name: match[5]'), 'the plant catalog no longer carries crop names');
+assert.match(overviewSource, /const key = PATCH_FAMILY_OF\[row\.species\] \?\? row\.species;/, 'the overview no longer groups patch families onto one row');
+assert.match(overviewSource, /if \(PLANT_CATALOG\[value\]\) return plantName\(value\);/, 'the overview names crops itself instead of using the shared name');
+assert.match(overviewSource, /const open = openFamilies\.has\(key\);/, 'patch rows no longer expand to show their species');
+assert.match(constantsSource, /\['Daisy', 'PurpleDaisy'\][\s\S]*\['ThunderCelestial', 'ThunderCelestialShroomPlant'\]/, 'a patch family is missing');
 assert.match(cropCleanserSource, /startCountReconciliation\(\)[\s\S]*stopCountReconciliation\(\)/, 'Crop Cleanser inventory polling is not scoped to the open panel');
 assert.doesNotMatch(cropCleanserSource, /initCropCleanserHelper\(\)[\s\S]*setInterval/, 'Crop Cleanser inventory polling runs for the page lifetime');
 assert.match(companionSource, /Crop Cleanser Helper.*data-interface-key="\$\{CROP_CLEANSER_KEY\.id\}"/s, 'Crop Cleanser keybind is missing from the Keybinds tab');
@@ -620,6 +631,19 @@ assert.match(companionSource, /refreshTeamActiveMarkers\(\);\s*refreshOpenPanel\
 assert.doesNotMatch(petTeamsSource.slice(petTeamsSource.indexOf('export function teamsSignature()'), petTeamsSource.indexOf('export function requestTeamDelete(')), /activeTeamId\(\)/, 'the active team still forces a full Pet Teams redraw');
 assert.match(companionSource, /const signature = tabRefreshSignature\(\);\s*if \(signature && signature === lastTabSignature\) return;/, 'an unchanged tab still schedules a redraw');
 assert.match(companionSource, /return Boolean\(scrollable\?\.matches\(':hover'\)\)/, 'a redraw can interrupt scrolling in the Pet Teams and Pet Food tabs');
+// An absent id equals an absent id, so a slot must never be matched on one: that handed us
+// another player's slot in a lobby where the ids had not filled in yet.
+// Two independent sources for who we are: the game's own slot atom, and the Welcome frame it
+// seeds that atom from. Losing either must not put the panel back on another player's data.
+assert.match(companionSource, /if \(typeof data !== 'string' \|\| !data\.includes\('"selfPlayerId"'\)\) return;/, 'the Welcome frame is no longer read for our player id');
+// Welcome is the first frame after a socket opens, so the listener goes on at construction rather
+// than being polled for, reusing the wrapper the update detector already installs.
+assert.match(companionSource, /socket\.addEventListener\('close', handleGameSocketClose\);\s*listenForWelcome\(socket\);/, 'the Welcome listener can miss the frame it exists to read');
+assert.match(companionSource, /state\.playerId = welcomePlayerId \|\|/, 'the Welcome player id is no longer preferred');
+assert.match(companionSource, /if \(playerId\) \{\s*let slot = slots\.find/, 'a cached slot index can override a live id match');
+assert.match(gameAtomsSource, /hookAtom\('playerIdAtom', 'atomPlayerId'\);/, "the game's empty starting player id can overwrite ours");
+assert.match(companionSource, /const own = state\.userSlotIndex;\s*if \(typeof own === 'number' && own >= 0 && slots\[own\]\) return \{ slot: slots\[own\], index: own \};\s*return \{ slot: null, index: null \};/, 'a missing player id still guesses a user slot');
+assert.match(companionSource, /if \(databaseId\) slot = slots\.find\(/, 'a missing database id still matches a user slot');
 assert.match(companionSource, /const owned = new Map\((?:services\.)?allPets\(\)\.map\(pet => \[pet\.id, pet\]\)\)/, 'team member sprites rescan every pet per tile');
 assert.match(companionSource, /const CALCULATOR_TABS = \[\['dust', 'Dust'\], \['value', 'Crop Value'\], \['food', 'Food'\], \['granter', 'Granters'\]\]/, 'calculator sub-tabs are missing');
 // The crop value calculator has to match the game's own sums, not an approximation of them.
@@ -649,6 +673,8 @@ assert.match(buildSource, /baseWeight:\(\[0-9\.e\+-\]\+\)/, 'the plant catalog n
 assert.match(preserveAllSource, /Math\.round\(base \* \(Number\(targetScale\) \|\| 1\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
 assert.match(preserveAllSource, /if \(!slot \|\| slot\.preserved === true \|\| slot\.slotId == null\) continue;\s+if \(Number\(slot\.endTime \|\| 0\) > now\) continue;/, 'preserve all no longer skips preserved or still-growing slots');
 assert.match(companionSource, /const qualifies = slot => slot\?\.preserved !== true &&/, 'instant harvest can destroy a preserved crop');
+assert.match(companionSource, /'harvest', 'rainbowHarvest', 'goldHarvest', 'rarePatchHarvest'/, 'a rare patch crop under the cursor blocks instant harvest on the rest of the tile');
+assert.doesNotMatch(companionSource, /'preservedHarvest'/, 'instant harvest accepts the preserved harvest action');
 assert.match(preserveAllSource, /const card = findPixiCard\(\);/, 'preserve all no longer anchors to the game crop card');
 // The bar sits over the world, so only the button itself may take clicks away from the game.
 assert.match(styleSource, /#gc-preserve-all \{[^}]*pointer-events:none;/, 'the preserve all bar swallows clicks meant for the game');
@@ -659,6 +685,11 @@ assert.match(preserveAllSource, /const progress = Math\.min\(1, \(performance\.n
 assert.match(preserveAllSource, /if \(progress < 1\) \{ holdFrame = requestAnimationFrame\(tick\); return; \}\s*cancelHold\(\);\s*run\(\);/, 'preserve all can send before the hold completes');
 assert.match(preserveAllSource, /const live = eligibleSlots\(\)\.find\(candidate => String\(candidate\.slotId\) === String\(row\.slotId\)\);/, 'preserve all no longer rechecks each slot as the batch runs');
 assert.match(gameAtomsSource, /hookAtom\('isInPreservationModeAtom', 'preservationMode'\);/, 'the preservation station is no longer tracked');
+assert.match(gameAtomsSource, /hookAtom\('myUserSlotIdxAtom', 'userSlotIndex'\);/, 'our own user slot index is no longer read from the game');
+// debugLabels are bare names, so a hook written as a path never binds, and a bare endsWith would
+// let lastCurrencyTransactionAtom answer to actionAtom.
+assert.match(gameAtomsSource, /return label === match \|\| label\.endsWith\(`\/\$\{match\}`\);/, 'atom labels are matched loosely enough for one to swallow another');
+assert.doesNotMatch(gameAtomsSource, /hookAtom\('[^']*\/[^']*'/, 'an atom hook is written as a path, which no debugLabel ever is');
 assert.match(indexSource, /initPreserveAll\(\);/, 'preserve all is not started');
 assert.match(calculatorsSource, /const each = Math\.round\(base \* scale \* mutation\);\s*\n\s*return \{[^}]*total: Math\.round\(each \* friend\)/, 'crop value no longer rounds before and after the room bonus');
 assert.match(calculatorsSource, /Math\.min\(FRIEND_CAP, 1 \+ Math\.max\(0, Math\.floor\(friends\)\) \* FRIEND_STEP\)/, 'the room bonus is no longer capped the way the game caps it');

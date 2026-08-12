@@ -104,11 +104,17 @@ export function initCompanion(): void {
     if (event.code === 4710 || event.reason.toLowerCase() === 'version expired') handleGameUpdateDetected('WebSocket');
   }
 
+  /**
+   * Also where the Welcome frame is caught. Every socket the game opens comes through here already,
+   * and a listener added at construction is on before the connection can deliver anything, so this
+   * is the one place that cannot miss the first frame.
+   */
   function installGameUpdateSocketDetector(): void {
     const OriginalWebSocket = page.WebSocket as typeof WebSocket;
     const GardenCompanionWebSocket = function(...args: ConstructorParameters<typeof WebSocket>): WebSocket {
       const socket = new OriginalWebSocket(...args);
       socket.addEventListener('close', handleGameSocketClose);
+      listenForWelcome(socket);
       return socket;
     } as unknown as typeof WebSocket;
     Object.setPrototypeOf(GardenCompanionWebSocket, OriginalWebSocket);
@@ -160,6 +166,46 @@ export function initCompanion(): void {
 
   installBackgroundMode();
 
+  /**
+   * Our own player id, read straight off the socket. The game's Welcome frame is the only place on
+   * the wire that carries it - the room state has no self id and the socket url dropped its
+   * playerId parameter - and the game seeds its own playerIdAtom from exactly this. Taking it here
+   * as well means the panel keeps working if that atom is ever renamed.
+   *
+   * Frames are plain JSON strings. Nothing is parsed unless it mentions selfPlayerId, which no
+   * patch frame does, so this costs one substring scan per message and one parse per connection.
+   */
+  let welcomePlayerId: string | null = null;
+
+  function readWelcome(event: Event): void {
+    const data = (event as MessageEvent).data;
+    if (typeof data !== 'string' || !data.includes('"selfPlayerId"')) return;
+    try {
+      const id = (JSON.parse(data) as { selfPlayerId?: unknown })?.selfPlayerId;
+      if (typeof id === 'string' && id) welcomePlayerId = id;
+    } catch {}
+  }
+
+  function listenForWelcome(socket: WebSocket & { __gardenCompanionWelcome?: boolean }): void {
+    if (socket.__gardenCompanionWelcome) return;
+    socket.__gardenCompanionWelcome = true;
+    socket.addEventListener('message', readWelcome);
+  }
+
+  /**
+   * Sockets are caught as they are constructed, so this only has to cover one case: a socket that
+   * already existed when we loaded, which happens when the script updates mid-session. Its Welcome
+   * is long gone, and only the next reconnect can supply another.
+   */
+  function watchWelcome(): void {
+    const attach = () => {
+      const socket = page.MagicCircle_RoomConnection?.currentWebSocket;
+      if (socket) listenForWelcome(socket);
+    };
+    attach();
+    setInterval(attach, 1000);
+  }
+
   function readPlayerId(): string | null {
     try {
       let value = new URL(page.MagicCircle_RoomConnection?.currentWebSocket?.url || '').searchParams.get('playerId');
@@ -168,14 +214,29 @@ export function initCompanion(): void {
     } catch { return null; }
   }
 
+  /**
+   * Which user slot is ours, matched by id against the slots in the patch we were just handed. The
+   * id comes from the Welcome frame, which is wire truth and outlives any atom being renamed; the
+   * game's own myUserSlotIdxAtom is only consulted when we have no id at all, and a cached index is
+   * never allowed to override a live match, since after a room change it can point at somebody else.
+   *
+   * Nothing is guessed. Every id compared here can legitimately be absent on a slot, and an absent
+   * id equals an absent id, so matching on one used to select whoever happened to sit in slot zero -
+   * which is why a busy lobby showed another player's pets and teams.
+   */
   function pickSlot(game: GameState | null, room: RoomState | null, playerId: string | null): { slot: PlayerSlot | null; index: number | null } {
     const slots = Array.isArray(game?.userSlots) ? game.userSlots : [];
-    let slot = slots.find(item => item?.playerId === playerId || item?.data?.playerId === playerId);
-    if (!slot) {
-      const databaseId = room?.players?.find(item => item?.id === playerId)?.databaseUserId;
-      slot = slots.find(item => item?.data?.databaseUserId === databaseId || item?.data?.userId === databaseId);
+    if (playerId) {
+      let slot = slots.find(item => item?.playerId === playerId || item?.data?.playerId === playerId);
+      if (!slot) {
+        const databaseId = room?.players?.find(item => item?.id === playerId)?.databaseUserId;
+        if (databaseId) slot = slots.find(item => item?.data?.databaseUserId === databaseId || item?.data?.userId === databaseId);
+      }
+      return { slot: slot || null, index: slot ? slots.indexOf(slot) : null };
     }
-    return { slot: slot || null, index: slot ? slots.indexOf(slot) : null };
+    const own = state.userSlotIndex;
+    if (typeof own === 'number' && own >= 0 && slots[own]) return { slot: slots[own], index: own };
+    return { slot: null, index: null };
   }
 
   function subscribeToState(attempt = 0) {
@@ -187,7 +248,7 @@ export function initCompanion(): void {
     connection.subscribeToPatches((_patches: unknown[], fullState: FullState) => {
       state.room = fullState?.data || null;
       state.game = fullState?.child?.data || null;
-      state.playerId = fullState?.selfPlayerId || state.room?.selfPlayerId || state.playerId || readPlayerId();
+      state.playerId = welcomePlayerId || fullState?.selfPlayerId || state.room?.selfPlayerId || state.atomPlayerId || state.playerId || readPlayerId();
       const picked = pickSlot(state.game, state.room, state.playerId);
       state.slot = picked.slot;
       state.slotIndex = picked.index;
@@ -293,7 +354,14 @@ export function initCompanion(): void {
     window.addEventListener('keydown', event => {
       // Any minigame holding the farm owns the keyboard too, or space harvests behind the scene.
       if (!feature('instantHarvest') || worldSceneActive() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
-      if (state.currentAction && state.currentAction !== 'none' && !['harvest', 'rainbowHarvest', 'goldHarvest'].includes(state.currentAction)) return;
+      // Only a guard against harvesting while busy elsewhere - at a shop, the trough, the preserve
+      // station. Which crop is eligible is decided below, so every flavour of harvest passes here.
+      // rarePatchHarvest earns its place because the action describes the selected slot: once
+      // harvesting has left gaps in the slot ids that selection often matches nothing on the tile,
+      // and the scan below then settles on a crop the action was never describing.
+      // preservedHarvest is deliberately absent: preserving is permanent and the game guards it
+      // behind a press and hold, which is the one thing this key exists to skip.
+      if (state.currentAction && state.currentAction !== 'none' && !['harvest', 'rainbowHarvest', 'goldHarvest', 'rarePatchHarvest'].includes(state.currentAction)) return;
       const tile = state.slot?.data?.garden?.tileObjects?.[String(state.dirtTileIndex)];
       if (!tile?.slots?.length) return;
       const now = Date.now();
@@ -726,6 +794,7 @@ export function initCompanion(): void {
   }
 
   installGameModalAccess();
+  watchWelcome();
   subscribeToState();
   installAtomHooks();
   installInstantHarvest();

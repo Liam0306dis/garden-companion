@@ -1,5 +1,5 @@
 import { abilityChips } from '../ability-chips.js';
-import { EGG_CATALOG, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, RARITY_ORDER, rarityRank } from '../constants.js';
+import { EGG_CATALOG, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName, RARITY_ORDER, rarityRank } from '../constants.js';
 import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
@@ -132,7 +132,7 @@ function plantRows(): { rows: string; have: number; total: number } {
       have += PRODUCE_VARIANTS.filter(variant => logged.has(variant)).length;
       return speciesRow({
         id: name,
-        name: humanize(name),
+        name: plantName(name),
         sprite: produceSprite(name),
         variants: PRODUCE_VARIANTS,
         logged,
@@ -140,7 +140,7 @@ function plantRows(): { rows: string; have: number; total: number } {
         kind: 'plants',
       });
     }).join('');
-    return speciesGroup(rarity, '', inRarity.map(name => humanize(name)).concat(inRarity), markup);
+    return speciesGroup(rarity, '', inRarity.map(name => plantName(name)).concat(inRarity), markup);
   }).join('');
 
   return { rows, have, total: species.length * PRODUCE_VARIANTS.length };
