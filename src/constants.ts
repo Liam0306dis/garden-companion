@@ -1,4 +1,4 @@
-import { humanize } from './utils.js';
+import { humanize, NUMBER_LOCALE } from './utils.js';
 
 /** Storage keys, remote endpoints, and the game catalogs baked in at build time. */
 
@@ -123,9 +123,9 @@ export const PROC_RULES: Record<string, { chance: number; tick: boolean; effect:
   PetHatchSizeBoost: { chance: 12, tick: false, effect: strength => `Max STR boost: +${(2.4 * strength / 100).toFixed(2)}%` },
   PetHatchSizeBoostII: { chance: 14, tick: false, effect: strength => `Max STR boost: +${(3.5 * strength / 100).toFixed(2)}%` },
   PetHatchSizeBoostIII: { chance: 16, tick: false, effect: strength => `Max STR boost: +${(4.6 * strength / 100).toFixed(2)}%` },
-  PetAgeBoost: { chance: 50, tick: false, effect: strength => `Bonus XP: +${Math.floor(8000 * strength / 100).toLocaleString()}` },
-  PetAgeBoostII: { chance: 60, tick: false, effect: strength => `Bonus XP: +${Math.floor(12000 * strength / 100).toLocaleString()}` },
-  PetAgeBoostIII: { chance: 70, tick: false, effect: strength => `Bonus XP: +${Math.floor(16000 * strength / 100).toLocaleString()}` },
+  PetAgeBoost: { chance: 50, tick: false, effect: strength => `Bonus XP: +${Math.floor(8000 * strength / 100).toLocaleString(NUMBER_LOCALE)}` },
+  PetAgeBoostII: { chance: 60, tick: false, effect: strength => `Bonus XP: +${Math.floor(12000 * strength / 100).toLocaleString(NUMBER_LOCALE)}` },
+  PetAgeBoostIII: { chance: 70, tick: false, effect: strength => `Bonus XP: +${Math.floor(16000 * strength / 100).toLocaleString(NUMBER_LOCALE)}` },
   SeedFinderI: { chance: 40, tick: true, effect: () => 'Finds Common or Uncommon seeds' },
   SeedFinderII: { chance: 20, tick: true, effect: () => 'Finds Rare or Legendary seeds' },
   SeedFinderIII: { chance: 10, tick: true, effect: () => 'Finds Mythical seeds' },

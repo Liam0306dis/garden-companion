@@ -6,7 +6,7 @@ import { sendQuinoaCommand } from '../game-connection.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
-import { humanize } from '../utils.js';
+import { humanize, NUMBER_LOCALE } from '../utils.js';
 
 /**
  * Preserving a whole potted plant in one go. The game preserves the selected slot only, so standing
@@ -146,7 +146,7 @@ function run(): void {
   if (!state.preservationMode || rows.length < 2) return;
   const total = rows.reduce((sum, row) => sum + row.cost, 0);
   if (total > coins()) {
-    toast(`Preserving all ${rows.length} slots costs ${total.toLocaleString()} coins, which is more than you have.`, 'error');
+    toast(`Preserving all ${rows.length} slots costs ${total.toLocaleString(NUMBER_LOCALE)} coins, which is more than you have.`, 'error');
     return;
   }
   const itemId = state.selectedItemId;
@@ -223,7 +223,7 @@ function render(force = false): void {
   element.querySelector('[data-preserve-caption]')!.textContent =
     `${cropLabel(rows)} - ${rows.length} ready slot${rows.length === 1 ? '' : 's'}`;
   element.querySelector('[data-preserve-hint]')!.textContent = sending ? 'Preserving...' : holding ? 'Keep holding...' : 'Press & Hold';
-  element.querySelector('[data-preserve-label]')!.textContent = `Preserve All 🪙 ${total.toLocaleString()}`;
+  element.querySelector('[data-preserve-label]')!.textContent = `Preserve All 🪙 ${total.toLocaleString(NUMBER_LOCALE)}`;
   const button = element.querySelector<HTMLButtonElement>('[data-preserve-run]')!;
   button.disabled = sending || !affordable;
   button.title = affordable ? '' : 'Not enough coins to preserve every ready slot.';

@@ -5,7 +5,7 @@ import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
 import { produceSprite } from '../pets.js';
 import { state } from '../state.js';
-import { escapeHtml, humanize } from '../utils.js';
+import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 
 /**
  * A flat view of the game's own journal. The game stores which variants of each species you have
@@ -212,7 +212,7 @@ export function renderJournal(): string {
     .map(([id, label]) => `<button data-journal-tab="${id}" class="${id === journalTab ? 'active' : ''}">${label}</button>`).join('');
   return `<p class="gc-note">Every variant the game has logged for you, laid out at once. Hover a chip for its name and the date it was found.</p>
 <div class="gc-shop-tabs">${tabs}</div>
-<section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString()}</b> of ${total.toLocaleString()} logged</span><span class="gc-pill">${percent}%</span></section>
+<section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString(NUMBER_LOCALE)}</b> of ${total.toLocaleString(NUMBER_LOCALE)} logged</span><span class="gc-pill">${percent}%</span></section>
 <div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === 'pets' ? 'pets' : 'plants'}" value="${escapeHtml(journalSearch)}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? 'Show every species again' : 'Hide species you have already completed'}">${incompleteOnly ? 'All' : 'Missing'}</button></div>
 <div class="gc-journal-list gc-filter-list" data-incomplete-only="${incompleteOnly}">${rows || '<p class="gc-empty">No journal data yet.</p>'}</div>`;
 }

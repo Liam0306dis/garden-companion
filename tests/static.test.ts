@@ -627,6 +627,20 @@ assert.match(mutationValueSource, /return \(growth \? MUTATION_CATALOG\[growth\]
 assert.match(calculatorsSource, /const mutation = catalogMutationMultiplier\(selected\);/, 'the crop value calculator no longer uses the shared catalog multiplier');
 // The crop value calculator speaks in the numbers the game prints on a crop, not the raw scale.
 assert.match(calculatorsSource, /weight: scale \* \(Number\(crop\?\.baseWeight\) \|\| 0\)/, 'crop weight is no longer taken from the catalog');
+// Locale digit grouping turns 13,200,193 into 1,32,00,193 on an Indian locale, which reads as a
+// corrupted number. Every printed number is pinned instead.
+const numberSources = await Promise.all([
+  ['src', 'companion.ts'], ['src', 'constants.ts'], ['src', 'pets.ts'],
+  ['src', 'features', 'ability-log.ts'], ['src', 'features', 'calculators.ts'],
+  ['src', 'features', 'crop-cleanser-helper.ts'], ['src', 'features', 'crop-estimates.ts'],
+  ['src', 'features', 'fishing.ts'], ['src', 'features', 'garden-defence.ts'],
+  ['src', 'features', 'garden-overview.ts'], ['src', 'features', 'journal.ts'],
+  ['src', 'features', 'preserve-all.ts'],
+].map(parts => readSource(...parts)));
+for (const source of numberSources) {
+  assert.doesNotMatch(source, /toLocaleString\(\)/, 'a number is printed in the browser locale instead of the pinned one');
+}
+assert.match(await readSource('src', 'utils.ts'), /export const NUMBER_LOCALE = 'en-US';/, 'the pinned number locale is gone');
 assert.match(calculatorsSource, /if \(scale <= 1\) return 50;\s*if \(scale >= maxScale\) return 100;\s*return Math\.floor\(50 \+ 50 \* \(scale - 1\) \/ \(maxScale - 1\)\);/, 'crop size percent no longer matches the game');
 assert.match(calculatorsSource, /write\('\[data-value-weight\]', formatWeight\(value\.weight\)\);/, 'weight does not follow the size slider');
 assert.match(calculatorsSource, /write\('\[data-value-breakdown\]', valueBreakdown\(value\)\);/, 'the value breakdown does not follow the size slider');

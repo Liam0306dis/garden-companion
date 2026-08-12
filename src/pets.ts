@@ -4,7 +4,7 @@ import { mutationMultiplier } from './mutation-value.js';
 import { send } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
-import { escapeHtml, humanize } from './utils.js';
+import { escapeHtml, humanize, NUMBER_LOCALE } from './utils.js';
 
 /** Everything derived from the player's pets: where they are, how they look, and how strong they are. */
 
@@ -135,7 +135,7 @@ export function hungerDisplay(pet: Pet): string {
   const value = Math.max(0, Number(pet.hunger || 0));
   const percent = maximum > 0 ? Math.min(100, value / maximum * 100) : value > 0 ? 100 : 0;
   const tone = percent < 20 ? 'low' : percent < 50 ? 'medium' : 'good';
-  return `<div class="gc-hunger" title="${value.toLocaleString()} / ${maximum.toLocaleString()}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
+  return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
 }
 
 export function petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null {

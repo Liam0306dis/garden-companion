@@ -21,6 +21,13 @@ export function humanize(value: unknown): string {
     ?? id.replace(/_NEW$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Za-z])([IVX]+)$/g, '$1 $2');
 }
 
+/**
+ * Number grouping is pinned rather than left to the browser: a player on an Indian locale sees
+ * 13,200,193 written 1,32,00,193, which reads as a corrupted value next to every screenshot and
+ * wiki page. Every number the companion prints goes through here.
+ */
+export const NUMBER_LOCALE = 'en-US';
+
 export function formatDuration(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000));
   const hours = Math.floor(total / 3600);

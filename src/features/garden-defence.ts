@@ -2,7 +2,7 @@ import { page } from '../page.js';
 import { makeDraggable } from '../draggable.js';
 import { createWorldScene, readyImage, type WorldBounds, type WorldGeometry } from '../world-scene.js';
 import { PLANT_CATALOG } from '../constants.js';
-import { escapeHtml, loadLocal, saveLocal } from '../utils.js';
+import { escapeHtml, loadLocal, NUMBER_LOCALE, saveLocal } from '../utils.js';
 
 /**
  * A lane defence minigame played on the player's own farm tiles. Like fishing it never talks to the
@@ -772,7 +772,7 @@ export function initGardenDefence(): void {
       `<div class="gd-seeds">${seedsHtml()}</div>` +
       devHtml() +
       `<div class="gd-status" data-status></div>` +
-      `<div class="gd-detail">Best wave ${record.best} - runs ${record.runs} - sun collected ${record.sun.toLocaleString()}</div>` +
+      `<div class="gd-detail">Best wave ${record.best} - runs ${record.runs} - sun collected ${record.sun.toLocaleString(NUMBER_LOCALE)}</div>` +
       `</div>`;
     bindDevButtons(card);
     card.querySelector<HTMLButtonElement>('[data-close]')!.onclick = close;

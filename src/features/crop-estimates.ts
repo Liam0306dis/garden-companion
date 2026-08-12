@@ -7,7 +7,7 @@ import { activePets } from '../pets.js';
 import { findPixiCard } from '../pixi.js';
 import { onQuinoaEngine, quinoaEngine } from '../quinoa-engine.js';
 import { state } from '../state.js';
-import { formatDuration } from '../utils.js';
+import { formatDuration, NUMBER_LOCALE } from '../utils.js';
 
 /**
  * Crop and egg estimates on the game's own info card: what the selected crop is worth and how long
@@ -75,7 +75,7 @@ function turtleLines() {
   if (!crop) return [];
   const lines = [];
   const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-  if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString()}`);
+  if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
   const end = Number(crop.endTime || 0), rate = turtleRate(pets);
   if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
   return lines;

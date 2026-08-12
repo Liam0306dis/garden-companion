@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.7.98
+// @version      0.7.99
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://magiccircle.gg/r/*
@@ -58,6 +58,7 @@
     const id = String(value || "");
     return NAME_OVERRIDES[id] ?? id.replace(/_NEW$/, "").replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Za-z])([IVX]+)$/g, "$1 $2");
   }
+  var NUMBER_LOCALE = "en-US";
   function formatDuration(ms) {
     const total = Math.max(0, Math.ceil(ms / 1e3));
     const hours = Math.floor(total / 3600);
@@ -219,9 +220,9 @@
     PetHatchSizeBoost: { chance: 12, tick: false, effect: (strength) => `Max STR boost: +${(2.4 * strength / 100).toFixed(2)}%` },
     PetHatchSizeBoostII: { chance: 14, tick: false, effect: (strength) => `Max STR boost: +${(3.5 * strength / 100).toFixed(2)}%` },
     PetHatchSizeBoostIII: { chance: 16, tick: false, effect: (strength) => `Max STR boost: +${(4.6 * strength / 100).toFixed(2)}%` },
-    PetAgeBoost: { chance: 50, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(8e3 * strength / 100).toLocaleString()}` },
-    PetAgeBoostII: { chance: 60, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(12e3 * strength / 100).toLocaleString()}` },
-    PetAgeBoostIII: { chance: 70, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(16e3 * strength / 100).toLocaleString()}` },
+    PetAgeBoost: { chance: 50, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(8e3 * strength / 100).toLocaleString(NUMBER_LOCALE)}` },
+    PetAgeBoostII: { chance: 60, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(12e3 * strength / 100).toLocaleString(NUMBER_LOCALE)}` },
+    PetAgeBoostIII: { chance: 70, tick: false, effect: (strength) => `Bonus XP: +${Math.floor(16e3 * strength / 100).toLocaleString(NUMBER_LOCALE)}` },
     SeedFinderI: { chance: 40, tick: true, effect: () => "Finds Common or Uncommon seeds" },
     SeedFinderII: { chance: 20, tick: true, effect: () => "Finds Rare or Legendary seeds" },
     SeedFinderIII: { chance: 10, tick: true, effect: () => "Finds Mythical seeds" },
@@ -647,7 +648,7 @@
     const value = Math.max(0, Number(pet.hunger || 0));
     const percent = maximum > 0 ? Math.min(100, value / maximum * 100) : value > 0 ? 100 : 0;
     const tone2 = percent < 20 ? "low" : percent < 50 ? "medium" : "good";
-    return `<div class="gc-hunger" title="${value.toLocaleString()} / ${maximum.toLocaleString()}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone2}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
+    return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone2}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
   }
   function petMetrics(pet) {
     const info = PET_CATALOG[pet?.petSpecies || ""];
@@ -916,12 +917,12 @@
   function formatWeight(weight) {
     if (weight <= 0) return "-";
     const digits = weight < 1 ? 2 : weight < 10 ? 1 : 0;
-    return weight.toLocaleString(void 0, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    return weight.toLocaleString(NUMBER_LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
   function valueBreakdown(value) {
-    const parts = [`${value.base.toLocaleString()} base`, `${value.sizePercent}% size`];
+    const parts = [`${value.base.toLocaleString(NUMBER_LOCALE)} base`, `${value.sizePercent}% size`];
     if (value.mutation !== 1) parts.push(`x${Number(value.mutation.toFixed(2))} mutations`);
-    const each = `${parts.join(" x ")} = ${value.each.toLocaleString()}`;
+    const each = `${parts.join(" x ")} = ${value.each.toLocaleString(NUMBER_LOCALE)}`;
     return value.friend === 1 ? each : `${each} each, x${Number(value.friend.toFixed(2))} for players`;
   }
   function setValueSpecies(species) {
@@ -964,7 +965,7 @@
   function updateDustTotal(main) {
     const total = allPets().filter((pet) => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
     const label = main.querySelector("[data-dust-total]");
-    if (label) label.textContent = `${total.toLocaleString()} dust`;
+    if (label) label.textContent = `${total.toLocaleString(NUMBER_LOCALE)} dust`;
   }
   function calculatorsSignature() {
     const pets = allPets().map((pet) => [
@@ -1008,10 +1009,10 @@
     return `<section class="gc-card gc-value-card">
 <div class="gc-value-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><select data-value-species>${options}</select></div>
 <label class="gc-value-size"><span>Size<b data-value-size-percent>${value.sizePercent}%</b>${weightLabel}<em data-value-max ${atMax ? "" : "hidden"}>max</em></span><input type="range" min="0" max="1000" step="1" value="${Math.round(valueSizeFraction * 1e3)}" data-value-size></label>
-<div class="gc-value-readout"><b data-value-each>${value.each.toLocaleString()}</b><span>coins each</span></div>
+<div class="gc-value-readout"><b data-value-each>${value.each.toLocaleString(NUMBER_LOCALE)}</b><span>coins each</span></div>
 ${groups}
 <div class="gc-value-foot"><label><span>Players</span><select data-value-friends>${friendOptions}</select></label><button data-value-clear>Clear</button></div>
-<div class="gc-value-result"><b data-value-total>${value.total.toLocaleString()}</b><small>coins</small></div>
+<div class="gc-value-result"><b data-value-total>${value.total.toLocaleString(NUMBER_LOCALE)}</b><small>coins</small></div>
 <p class="gc-value-breakdown" data-value-breakdown>${escapeHtml(valueBreakdown(value))}</p>
 </section>`;
   }
@@ -1023,8 +1024,8 @@ ${groups}
       const node = main.querySelector(selector);
       if (node) node.textContent = text;
     };
-    write("[data-value-total]", value.total.toLocaleString());
-    write("[data-value-each]", value.each.toLocaleString());
+    write("[data-value-total]", value.total.toLocaleString(NUMBER_LOCALE));
+    write("[data-value-each]", value.each.toLocaleString(NUMBER_LOCALE));
     write("[data-value-weight]", formatWeight(value.weight));
     write("[data-value-size-percent]", `${value.sizePercent}%`);
     write("[data-value-breakdown]", valueBreakdown(value));
@@ -1036,7 +1037,7 @@ ${groups}
     const eggRows = eggs.map(({ eggId, quantity }) => {
       const range = eggDustRange(eggId);
       const sprite = page.__gardenCompanionShopSprites?.[eggId];
-      return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span>${escapeHtml(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString()}</td><td>${Math.round(range.average).toLocaleString()}</td><td><b>${Math.round(range.average * quantity).toLocaleString()}</b><small>${Math.round(range.low * quantity).toLocaleString()} to ${Math.round(range.high * quantity).toLocaleString()}</small></td></tr>`;
+      return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span>${escapeHtml(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString(NUMBER_LOCALE)}</td><td>${Math.round(range.average).toLocaleString(NUMBER_LOCALE)}</td><td><b>${Math.round(range.average * quantity).toLocaleString(NUMBER_LOCALE)}</b><small>${Math.round(range.low * quantity).toLocaleString(NUMBER_LOCALE)} to ${Math.round(range.high * quantity).toLocaleString(NUMBER_LOCALE)}</small></td></tr>`;
     }).join("");
     const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
     const pets = allPets().map((pet) => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
@@ -1045,11 +1046,11 @@ ${groups}
       const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
       const metrics = petMetrics(pet);
       const mutations = (pet.mutations || []).filter((mutation) => mutation === "Gold" || mutation === "Rainbow");
-      return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(" "))}` : ""}${metrics ? ` | max STR ${metrics.maxStrength}` : ""}</small></span><b class="gc-dust-value">${dust.toLocaleString()}</b></label>`;
+      return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(" "))}` : ""}${metrics ? ` | max STR ${metrics.maxStrength}` : ""}</small></span><b class="gc-dust-value">${dust.toLocaleString(NUMBER_LOCALE)}</b></label>`;
     }).join("");
     return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
-<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
   }
   function granterOptions() {
     return Object.entries(ABILITY_DETAILS).filter(([id, details]) => typeof details.baseProbability === "number" && !EXCLUDED_TRACKED_ABILITIES.has(id)).map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability })).sort((left, right) => left.label.localeCompare(right.label));
@@ -1853,7 +1854,7 @@ ${groups}
     if (!crop) return [];
     const lines = [];
     const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...crop.mutations || []]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * 0.1)).toLocaleString()}`);
+    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...crop.mutations || []]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * 0.1)).toLocaleString(NUMBER_LOCALE)}`);
     const end = Number(crop.endTime || 0), rate = turtleRate(pets);
     if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
     return lines;
@@ -2279,7 +2280,7 @@ ${groups}
     return seconds != null ? `${text} ${ARROW} ${formatReduction(seconds)} reduced` : text;
   }
   function countLabel(count, noun) {
-    return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+    return `${count.toLocaleString(NUMBER_LOCALE)} ${noun}${count === 1 ? "" : "s"}`;
   }
   function procOutcome(ability, data) {
     const growSlot = payloadRecord(data.growSlot);
@@ -2299,18 +2300,18 @@ ${groups}
     if (data.eggsAffected) return withReduction(countLabel(payloadItemCount(data.eggsAffected), "egg"), data.secondsReduced);
     if (data.growSlotsAffected) return withReduction(countLabel(payloadItemCount(data.growSlotsAffected), "plant"), data.secondsReduced);
     if (data.eggId) return payloadItemName(data.eggId);
-    if (data.coinsFound != null) return `${Number(data.coinsFound).toLocaleString()} coins`;
-    if (data.bonusCoins != null) return `+${Number(data.bonusCoins).toLocaleString()} coins`;
-    if (data.bonusXp != null) return `+${Number(data.bonusXp).toLocaleString()} XP`;
+    if (data.coinsFound != null) return `${Number(data.coinsFound).toLocaleString(NUMBER_LOCALE)} coins`;
+    if (data.bonusCoins != null) return `+${Number(data.bonusCoins).toLocaleString(NUMBER_LOCALE)} coins`;
+    if (data.bonusXp != null) return `+${Number(data.bonusXp).toLocaleString(NUMBER_LOCALE)} XP`;
     if (data.secondsReduced != null) {
       const saved = `${formatReduction(data.secondsReduced)} reduced`;
       return data.numPlantsAffected != null ? `${countLabel(Number(data.numPlantsAffected), "plant")} ${ARROW} ${saved}` : saved;
     }
-    if (data.numPlantsAffected != null) return `${Number(data.numPlantsAffected).toLocaleString()} plants`;
-    if (data.hungerRestoreAmount != null) return `${Number(data.hungerRestoreAmount).toLocaleString()} hunger`;
-    if (data.sellPrice != null) return `${Number(data.sellPrice).toLocaleString()} coins`;
-    if (data.strengthIncrease != null) return `+${Number(data.strengthIncrease).toLocaleString()} STR`;
-    if (data.scaleIncreasePercentage != null) return `+${Number(data.scaleIncreasePercentage).toLocaleString()}% size`;
+    if (data.numPlantsAffected != null) return `${Number(data.numPlantsAffected).toLocaleString(NUMBER_LOCALE)} plants`;
+    if (data.hungerRestoreAmount != null) return `${Number(data.hungerRestoreAmount).toLocaleString(NUMBER_LOCALE)} hunger`;
+    if (data.sellPrice != null) return `${Number(data.sellPrice).toLocaleString(NUMBER_LOCALE)} coins`;
+    if (data.strengthIncrease != null) return `+${Number(data.strengthIncrease).toLocaleString(NUMBER_LOCALE)} STR`;
+    if (data.scaleIncreasePercentage != null) return `+${Number(data.scaleIncreasePercentage).toLocaleString(NUMBER_LOCALE)}% size`;
     if (data.mutation || data.targetMutation) return payloadItemName(data.mutation || data.targetMutation);
     const fallback = Object.entries(data).find(([key, value]) => !["pet", "sourcePet"].includes(key) && ["string", "number", "boolean"].includes(typeof value));
     return fallback ? `${humanize(fallback[0])}: ${String(fallback[1])}` : "Proc recorded";
@@ -2319,10 +2320,10 @@ ${groups}
     const family = ABILITY_GROUP_BY_ID.get(ability);
     if (family === "XP Boost") {
       const gained = data.bonusXp ?? data.xpGranted;
-      if (gained != null) return `XP gained: +${Math.floor(Number(gained)).toLocaleString()} XP`;
+      if (gained != null) return `XP gained: +${Math.floor(Number(gained)).toLocaleString(NUMBER_LOCALE)} XP`;
     }
     if (family === "Hunger Restore" && data.hungerRestoreAmount != null) {
-      return `Hunger gained: ${Number(data.hungerRestoreAmount).toLocaleString()}`;
+      return `Hunger gained: ${Number(data.hungerRestoreAmount).toLocaleString(NUMBER_LOCALE)}`;
     }
     if (data.eggsAffected) return payloadItemList(data.eggsAffected);
     if (data.growSlotsAffected) return payloadItemList(data.growSlotsAffected);
@@ -2607,7 +2608,7 @@ ${rows}</div>`;
     const tabs = [["plants", "Plants"], ["pets", "Pets"]].map(([id, label]) => `<button data-journal-tab="${id}" class="${id === journalTab ? "active" : ""}">${label}</button>`).join("");
     return `<p class="gc-note">Every variant the game has logged for you, laid out at once. Hover a chip for its name and the date it was found.</p>
 <div class="gc-shop-tabs">${tabs}</div>
-<section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString()}</b> of ${total.toLocaleString()} logged</span><span class="gc-pill">${percent}%</span></section>
+<section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString(NUMBER_LOCALE)}</b> of ${total.toLocaleString(NUMBER_LOCALE)} logged</span><span class="gc-pill">${percent}%</span></section>
 <div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === "pets" ? "pets" : "plants"}" value="${escapeHtml(journalSearch)}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? "Show every species again" : "Hide species you have already completed"}">${incompleteOnly ? "All" : "Missing"}</button></div>
 <div class="gc-journal-list gc-filter-list" data-incomplete-only="${incompleteOnly}">${rows || '<p class="gc-empty">No journal data yet.</p>'}</div>`;
   }
@@ -3818,7 +3819,7 @@ ${rows}</div>`;
       if (GRANTER_MUTATIONS[ability]) return `Applies the ${GRANTER_MUTATIONS[ability]} mutation`;
       const values = parameters ?? {};
       const scaled = (key) => Number(values[key] || 0) * strength / 100;
-      const percent = (value) => Number(value.toFixed(2)).toLocaleString();
+      const percent = (value) => Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE);
       if (values.hungerRefundPercentage != null) return `Reduces hunger depletion by ${percent(scaled("hungerRefundPercentage"))}%`;
       if (values.hungerRestorePercentage != null) return `Restores ${percent(scaled("hungerRestorePercentage"))}% hunger per proc`;
       if (values.mutationChanceIncreasePercentage != null) return `Mutation chance increase: +${percent(scaled("mutationChanceIncreasePercentage"))}%`;
@@ -3826,8 +3827,8 @@ ${rows}</div>`;
       if (values.cropSellPriceIncreasePercentage != null) return `Sell bonus: +${percent(scaled("cropSellPriceIncreasePercentage"))}% coins`;
       if (values.plantGrowthReductionMinutes != null) return `Growth reduction: ${scaled("plantGrowthReductionMinutes").toFixed(1)}m per proc`;
       if (values.eggGrowthTimeReductionMinutes != null) return `Hatch reduction: ${scaled("eggGrowthTimeReductionMinutes").toFixed(1)}m per proc`;
-      if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.floor(scaled("baseMaxCoinsFindable")).toLocaleString()} per proc`;
-      if (values.bonusXp != null) return `Bonus XP: +${Math.floor(scaled("bonusXp")).toLocaleString()} per proc`;
+      if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.floor(scaled("baseMaxCoinsFindable")).toLocaleString(NUMBER_LOCALE)} per proc`;
+      if (values.bonusXp != null) return `Bonus XP: +${Math.floor(scaled("bonusXp")).toLocaleString(NUMBER_LOCALE)} per proc`;
       if (values.maxStrengthIncreasePercentage != null) return `Max STR boost: +${percent(scaled("maxStrengthIncreasePercentage"))}%`;
       if (values.plantAbilityChanceBoostPercentage != null) return `Active pet ability chance: +${percent(scaled("plantAbilityChanceBoostPercentage"))}%`;
       if (values.mutationChancePerMinute != null) return `Mutation chance: ${percent(scaled("mutationChancePerMinute"))}% per minute`;
@@ -3880,7 +3881,7 @@ ${rows}</div>`;
             const base = Number(ABILITY_DETAILS[entry.ability]?.baseParameters?.[passiveGroup.parameter] || 0);
             return sum + base * strength / 100;
           }, 0);
-          const amount = Number(total.toFixed(2)).toLocaleString();
+          const amount = Number(total.toFixed(2)).toLocaleString(NUMBER_LOCALE);
           if (passiveGroup.key === "HungerBoost") effect = `Reduces hunger depletion by ${amount}% combined`;
           else if (passiveGroup.key === "WeatherMutationBoost") effect = `Weather mutation chance increase: +${amount}% combined`;
           else if (passiveGroup.key === "PetMutationBoost") effect = `Egg mutation chance increase: +${amount}% combined`;
@@ -4203,12 +4204,12 @@ ${rows}</div>`;
         const metrics = petMetrics(pet);
         const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : "Max STR reached" : "Strength estimate unavailable";
         const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
-        const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString()} XP potion${potionsToMax === 1 ? "" : "s"} to max` : "";
+        const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString(NUMBER_LOCALE)} XP potion${potionsToMax === 1 ? "" : "s"} to max` : "";
         const potionRow = potionText ? held > 0 ? `<button class="gc-pet-potions" data-xp-potion="${escapeHtml(pet.id)}" title="Spend one XP Potion on this pet. ${held} held.">${escapeHtml(potionText)}<i>Use one</i></button>` : `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : "";
         return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : "STR unavailable"}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
       }).join("");
       const abilityRows = combinedAbilityRows(active);
-      return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? "" : "s"}</b><span>${Math.round(xpRate).toLocaleString()} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
+      return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? "" : "s"}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
     }
     function renderSilence() {
       const selected = new Set(config.silencedAbilities || []);
@@ -4963,7 +4964,7 @@ ${rows}</div>`;
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
     if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-    return Math.round(value).toLocaleString();
+    return Math.round(value).toLocaleString(NUMBER_LOCALE);
   }
   function durationUntil(timestamp) {
     if (!timestamp) return "Ready";
@@ -5168,7 +5169,7 @@ ${rows}</div>`;
       const plantRows2 = stats.species.map((row) => `<div class="go-plant-row"><span>${escapeHtml2(displayName(row.species))}</span><b>${plantCount(row.plants, row.crops)}</b></div>`).join("");
       const totalPlants = plantCount(stats.plants, stats.crops);
       const growing = Math.max(0, stats.crops - stats.mature);
-      const growth = growing === 0 && stats.notMaxSize === 0 ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>' : growing === 0 ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString()}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ""}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString()}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
+      const growth = growing === 0 && stats.notMaxSize === 0 ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>' : growing === 0 ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ""}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
       const bonus = Math.round((stats.friendBonus - 1) * 100);
       return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? "&#9662;" : "&#9656;"}</span></div><div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? "&#9662;" : "&#9656;"}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}><div class="go-plant-row"><span>Total</span><b>${totalPlants}</b></div>${plantRows2 || '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
     }
@@ -6946,7 +6947,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const tierTotal = FISH.filter((fish) => fish.rarity === rarity).length;
         return `<div class="gf-tier" style="color:${RARITIES[rarity].colour}"><span>${RARITIES[rarity].label}</span><span>${tierFound}/${tierTotal}</span></div>${rows}`;
       }).join("");
-      return `<div class="gf-body"><p class="gf-note">Fish with a weather listed bite in that weather and no other. Caught fish are recorded in this browser only - nothing here touches your garden.</p><div class="gf-totals"><div><small>Caught</small><b>${record.caught.toLocaleString()}</b></div><div><small>Species</small><b>${found}/${FISH.length}</b></div><div><small>Casts</small><b>${record.casts.toLocaleString()}</b></div></div>${sections}<div class="gf-reset"><button data-reset>Reset record</button></div></div>`;
+      return `<div class="gf-body"><p class="gf-note">Fish with a weather listed bite in that weather and no other. Caught fish are recorded in this browser only - nothing here touches your garden.</p><div class="gf-totals"><div><small>Caught</small><b>${record.caught.toLocaleString(NUMBER_LOCALE)}</b></div><div><small>Species</small><b>${found}/${FISH.length}</b></div><div><small>Casts</small><b>${record.casts.toLocaleString(NUMBER_LOCALE)}</b></div></div>${sections}<div class="gf-reset"><button data-reset>Reset record</button></div></div>`;
     }
     function equipmentHtml() {
       const level = fishingLevel(record.xp);
@@ -6959,14 +6960,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           let action = "";
           if (equipped) action = "<button disabled>Equipped</button>";
           else if (owned) action = `<button data-equip="${item.id}">Equip</button>`;
-          else if (item.price) action = `<button data-buy="${item.id}" ${record.coins < item.price ? "disabled" : ""}>${item.price.toLocaleString()} coins</button>`;
+          else if (item.price) action = `<button data-buy="${item.id}" ${record.coins < item.price ? "disabled" : ""}>${item.price.toLocaleString(NUMBER_LOCALE)} coins</button>`;
           else action = `<button disabled>Find</button>`;
           const acquisition = sourceFish && !owned ? `Caught from ${sourceFish}` : item.detail;
           return `<div class="gf-gear" data-locked="${!owned && !item.price}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(acquisition)}</small></span>${action}</div>`;
         }).join("");
         return `<div class="gf-tier"><span>${slotNames[slot]}</span><span>${record.equipped[slot] ? escapeHtml(EQUIPMENT_BY_ID.get(record.equipped[slot])?.name ?? "") : "Empty"}</span></div><div class="gf-gear-grid">${rows}</div>`;
       }).join("");
-      return `<div class="gf-body"><div class="gf-totals"><div><small>Fishing level</small><b>${level.level}</b></div><div><small>Fishing XP</small><b>${record.xp.toLocaleString()}</b></div><div><small>Fishing coins</small><b>${record.coins.toLocaleString()}</b></div></div><div class="gf-progress-line"><i style="width:${level.current / level.needed * 100}%"></i></div><p class="gf-note" style="margin-top:8px">${level.current.toLocaleString()} / ${level.needed.toLocaleString()} XP to the next level. Each level adds 0.5% catch progress, up to 12%. Fishing coins, XP and equipment belong only to this minigame.</p>${sections}</div>`;
+      return `<div class="gf-body"><div class="gf-totals"><div><small>Fishing level</small><b>${level.level}</b></div><div><small>Fishing XP</small><b>${record.xp.toLocaleString(NUMBER_LOCALE)}</b></div><div><small>Fishing coins</small><b>${record.coins.toLocaleString(NUMBER_LOCALE)}</b></div></div><div class="gf-progress-line"><i style="width:${level.current / level.needed * 100}%"></i></div><p class="gf-note" style="margin-top:8px">${level.current.toLocaleString(NUMBER_LOCALE)} / ${level.needed.toLocaleString(NUMBER_LOCALE)} XP to the next level. Each level adds 0.5% catch progress, up to 12%. Fishing coins, XP and equipment belong only to this minigame.</p>${sections}</div>`;
     }
     function benchHtml() {
       const tiers = RARITY_ORDER2.map((rarity) => {
@@ -7746,7 +7747,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const card = host.querySelector(".gd-card");
       if (!card) return;
       const overCard = over ? `<div class="gd-over"><b>The garden was overrun</b><small>You held ${wave} wave${wave === 1 ? "" : "s"}.${dev ? " Tuning runs are not recorded." : ` Best is ${record.best}.`}</small></div>` : "";
-      card.innerHTML = `<header><h2>&#127807; Garden Defence</h2><div><button data-close aria-label="Close">&#10005;</button></div></header><div class="gd-body">${overCard}<div class="gd-top"><span class="gd-sun">&#9728; <span data-sun>${dev ? "&#8734;" : sun}</span></span><span class="gd-wave" data-wave></span><div><button data-shovel data-active="${shovel}">${shovel ? "Digging" : "Shovel"}</button><button data-restart>${over || !running ? "Start" : "Restart"}</button></div></div><div class="gd-seeds">${seedsHtml()}</div>` + devHtml() + `<div class="gd-status" data-status></div><div class="gd-detail">Best wave ${record.best} - runs ${record.runs} - sun collected ${record.sun.toLocaleString()}</div></div>`;
+      card.innerHTML = `<header><h2>&#127807; Garden Defence</h2><div><button data-close aria-label="Close">&#10005;</button></div></header><div class="gd-body">${overCard}<div class="gd-top"><span class="gd-sun">&#9728; <span data-sun>${dev ? "&#8734;" : sun}</span></span><span class="gd-wave" data-wave></span><div><button data-shovel data-active="${shovel}">${shovel ? "Digging" : "Shovel"}</button><button data-restart>${over || !running ? "Start" : "Restart"}</button></div></div><div class="gd-seeds">${seedsHtml()}</div>` + devHtml() + `<div class="gd-status" data-status></div><div class="gd-detail">Best wave ${record.best} - runs ${record.runs} - sun collected ${record.sun.toLocaleString(NUMBER_LOCALE)}</div></div>`;
       bindDevButtons(card);
       card.querySelector("[data-close]").onclick = close;
       card.querySelector("[data-restart]").onclick = () => {
@@ -9503,7 +9504,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function updateCleanserControls(body) {
     const count = body.querySelector(".gc-cleanser-summary b");
-    if (count) count.textContent = displayedCleanserCount.toLocaleString();
+    if (count) count.textContent = displayedCleanserCount.toLocaleString(NUMBER_LOCALE);
     body.querySelectorAll("[data-cleanse-row]").forEach((button) => {
       const key = button.dataset.cleanseRow || "";
       button.disabled = displayedCleanserCount <= 0 || cleansedRows.has(key) || changedRows.has(key);
@@ -9547,7 +9548,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const disabled = cleaners <= 0 || cleansed;
       return `<tr><td><b>${escapeHtml(cropName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join("")}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}" ${disabled ? "disabled" : ""}>${cleansed ? "Cleansed" : "Cleanse"}</button></td></tr>`;
     }).join("");
-    body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString()}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
+    body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString(NUMBER_LOCALE)}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
       selectedMutation = button.dataset.cleanserMutation || "";
       refreshSnapshot();
@@ -9707,7 +9708,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (!state.preservationMode || rows.length < 2) return;
     const total = rows.reduce((sum, row) => sum + row.cost, 0);
     if (total > coins()) {
-      toast(`Preserving all ${rows.length} slots costs ${total.toLocaleString()} coins, which is more than you have.`, "error");
+      toast(`Preserving all ${rows.length} slots costs ${total.toLocaleString(NUMBER_LOCALE)} coins, which is more than you have.`, "error");
       return;
     }
     const itemId2 = state.selectedItemId;
@@ -9774,7 +9775,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     lastSignature = signature;
     element.querySelector("[data-preserve-caption]").textContent = `${cropLabel(rows)} - ${rows.length} ready slot${rows.length === 1 ? "" : "s"}`;
     element.querySelector("[data-preserve-hint]").textContent = sending ? "Preserving..." : holding ? "Keep holding..." : "Press & Hold";
-    element.querySelector("[data-preserve-label]").textContent = `Preserve All 🪙 ${total.toLocaleString()}`;
+    element.querySelector("[data-preserve-label]").textContent = `Preserve All 🪙 ${total.toLocaleString(NUMBER_LOCALE)}`;
     const button = element.querySelector("[data-preserve-run]");
     button.disabled = sending || !affordable;
     button.title = affordable ? "" : "Not enough coins to preserve every ready slot.";

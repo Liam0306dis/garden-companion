@@ -2,7 +2,7 @@ import { page } from '../page.js';
 import { state } from '../state.js';
 import { makeDraggable } from '../draggable.js';
 import { createWorldScene, readyImage, type WorldBounds } from '../world-scene.js';
-import { escapeHtml, loadLocal, saveLocal } from '../utils.js';
+import { escapeHtml, loadLocal, NUMBER_LOCALE, saveLocal } from '../utils.js';
 import { fishingMuted, playBite, playCast, playCatch, playEscape, playReelClick, primeFishingAudio, setFishingMuted } from './fishing-audio.js';
 
 /**
@@ -919,7 +919,7 @@ export function initFishing(): void {
       const tierTotal = FISH.filter(fish => fish.rarity === rarity).length;
       return `<div class="gf-tier" style="color:${RARITIES[rarity].colour}"><span>${RARITIES[rarity].label}</span><span>${tierFound}/${tierTotal}</span></div>${rows}`;
     }).join('');
-    return `<div class="gf-body"><p class="gf-note">Fish with a weather listed bite in that weather and no other. Caught fish are recorded in this browser only - nothing here touches your garden.</p><div class="gf-totals"><div><small>Caught</small><b>${record.caught.toLocaleString()}</b></div><div><small>Species</small><b>${found}/${FISH.length}</b></div><div><small>Casts</small><b>${record.casts.toLocaleString()}</b></div></div>${sections}<div class="gf-reset"><button data-reset>Reset record</button></div></div>`;
+    return `<div class="gf-body"><p class="gf-note">Fish with a weather listed bite in that weather and no other. Caught fish are recorded in this browser only - nothing here touches your garden.</p><div class="gf-totals"><div><small>Caught</small><b>${record.caught.toLocaleString(NUMBER_LOCALE)}</b></div><div><small>Species</small><b>${found}/${FISH.length}</b></div><div><small>Casts</small><b>${record.casts.toLocaleString(NUMBER_LOCALE)}</b></div></div>${sections}<div class="gf-reset"><button data-reset>Reset record</button></div></div>`;
   }
 
   function equipmentHtml(): string {
@@ -933,14 +933,14 @@ export function initFishing(): void {
         let action = '';
         if (equipped) action = '<button disabled>Equipped</button>';
         else if (owned) action = `<button data-equip="${item.id}">Equip</button>`;
-        else if (item.price) action = `<button data-buy="${item.id}" ${record.coins < item.price ? 'disabled' : ''}>${item.price.toLocaleString()} coins</button>`;
+        else if (item.price) action = `<button data-buy="${item.id}" ${record.coins < item.price ? 'disabled' : ''}>${item.price.toLocaleString(NUMBER_LOCALE)} coins</button>`;
         else action = `<button disabled>Find</button>`;
         const acquisition = sourceFish && !owned ? `Caught from ${sourceFish}` : item.detail;
         return `<div class="gf-gear" data-locked="${!owned && !item.price}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(acquisition)}</small></span>${action}</div>`;
       }).join('');
       return `<div class="gf-tier"><span>${slotNames[slot]}</span><span>${record.equipped[slot] ? escapeHtml(EQUIPMENT_BY_ID.get(record.equipped[slot])?.name ?? '') : 'Empty'}</span></div><div class="gf-gear-grid">${rows}</div>`;
     }).join('');
-    return `<div class="gf-body"><div class="gf-totals"><div><small>Fishing level</small><b>${level.level}</b></div><div><small>Fishing XP</small><b>${record.xp.toLocaleString()}</b></div><div><small>Fishing coins</small><b>${record.coins.toLocaleString()}</b></div></div><div class="gf-progress-line"><i style="width:${level.current / level.needed * 100}%"></i></div><p class="gf-note" style="margin-top:8px">${level.current.toLocaleString()} / ${level.needed.toLocaleString()} XP to the next level. Each level adds 0.5% catch progress, up to 12%. Fishing coins, XP and equipment belong only to this minigame.</p>${sections}</div>`;
+    return `<div class="gf-body"><div class="gf-totals"><div><small>Fishing level</small><b>${level.level}</b></div><div><small>Fishing XP</small><b>${record.xp.toLocaleString(NUMBER_LOCALE)}</b></div><div><small>Fishing coins</small><b>${record.coins.toLocaleString(NUMBER_LOCALE)}</b></div></div><div class="gf-progress-line"><i style="width:${level.current / level.needed * 100}%"></i></div><p class="gf-note" style="margin-top:8px">${level.current.toLocaleString(NUMBER_LOCALE)} / ${level.needed.toLocaleString(NUMBER_LOCALE)} XP to the next level. Each level adds 0.5% catch progress, up to 12%. Fishing coins, XP and equipment belong only to this minigame.</p>${sections}</div>`;
   }
 
   /**

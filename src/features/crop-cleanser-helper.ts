@@ -5,7 +5,7 @@ import { page } from '../page.js';
 import { heldToolCount, mutationSprite } from '../pets.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
-import { escapeHtml, humanize } from '../utils.js';
+import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 
 const POSITION_KEY = 'gardenCompanion.cropCleanserPosition.v1';
 const MUTATIONS = [
@@ -113,7 +113,7 @@ function panel(): HTMLElement | null {
 
 function updateCleanserControls(body: HTMLElement): void {
   const count = body.querySelector<HTMLElement>('.gc-cleanser-summary b');
-  if (count) count.textContent = displayedCleanserCount.toLocaleString();
+  if (count) count.textContent = displayedCleanserCount.toLocaleString(NUMBER_LOCALE);
   body.querySelectorAll<HTMLButtonElement>('[data-cleanse-row]').forEach(button => {
     const key = button.dataset.cleanseRow || '';
     button.disabled = displayedCleanserCount <= 0 || cleansedRows.has(key) || changedRows.has(key);
@@ -161,7 +161,7 @@ function render(): void {
     const disabled = cleaners <= 0 || cleansed;
     return `<tr><td><b>${escapeHtml(cropName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join('')}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}" ${disabled ? 'disabled' : ''}>${cleansed ? 'Cleansed' : 'Cleanse'}</button></td></tr>`;
   }).join('');
-  body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString()}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
+  body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString(NUMBER_LOCALE)}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
   body.querySelectorAll<HTMLButtonElement>('[data-cleanser-mutation]').forEach(button => button.onclick = () => {
     selectedMutation = button.dataset.cleanserMutation || '';
     refreshSnapshot();

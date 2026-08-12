@@ -6,7 +6,7 @@ import { saveAbilityLog, state, trimAbilityLogs, type AbilityLogRow } from '../s
 import { panelActions } from '../panel-actions.js';
 import { LOG_KEY } from '../constants.js';
 import type { Pet } from '../types.js';
-import { saveLocal } from '../utils.js';
+import { NUMBER_LOCALE, saveLocal } from '../utils.js';
 import { escapeHtml, humanize } from '../utils.js';
 
 let abilityLogSearch = '';
@@ -117,7 +117,7 @@ function withReduction(text: string, seconds: unknown): string {
 }
 
 function countLabel(count: number, noun: string): string {
-  return `${count.toLocaleString()} ${noun}${count === 1 ? '' : 's'}`;
+  return `${count.toLocaleString(NUMBER_LOCALE)} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 export function procOutcome(ability: string, data: Record<string, unknown>): string {
@@ -142,20 +142,20 @@ export function procOutcome(ability: string, data: Record<string, unknown>): str
   if (data.eggsAffected) return withReduction(countLabel(payloadItemCount(data.eggsAffected), 'egg'), data.secondsReduced);
   if (data.growSlotsAffected) return withReduction(countLabel(payloadItemCount(data.growSlotsAffected), 'plant'), data.secondsReduced);
   if (data.eggId) return payloadItemName(data.eggId);
-  if (data.coinsFound != null) return `${Number(data.coinsFound).toLocaleString()} coins`;
-  if (data.bonusCoins != null) return `+${Number(data.bonusCoins).toLocaleString()} coins`;
-  if (data.bonusXp != null) return `+${Number(data.bonusXp).toLocaleString()} XP`;
+  if (data.coinsFound != null) return `${Number(data.coinsFound).toLocaleString(NUMBER_LOCALE)} coins`;
+  if (data.bonusCoins != null) return `+${Number(data.bonusCoins).toLocaleString(NUMBER_LOCALE)} coins`;
+  if (data.bonusXp != null) return `+${Number(data.bonusXp).toLocaleString(NUMBER_LOCALE)} XP`;
   // Plant growth reports a plain count rather than a list of slots, and the count came second, so
   // the time alone was winning here and the number of plants was never reached.
   if (data.secondsReduced != null) {
     const saved = `${formatReduction(data.secondsReduced)} reduced`;
     return data.numPlantsAffected != null ? `${countLabel(Number(data.numPlantsAffected), 'plant')} ${ARROW} ${saved}` : saved;
   }
-  if (data.numPlantsAffected != null) return `${Number(data.numPlantsAffected).toLocaleString()} plants`;
-  if (data.hungerRestoreAmount != null) return `${Number(data.hungerRestoreAmount).toLocaleString()} hunger`;
-  if (data.sellPrice != null) return `${Number(data.sellPrice).toLocaleString()} coins`;
-  if (data.strengthIncrease != null) return `+${Number(data.strengthIncrease).toLocaleString()} STR`;
-  if (data.scaleIncreasePercentage != null) return `+${Number(data.scaleIncreasePercentage).toLocaleString()}% size`;
+  if (data.numPlantsAffected != null) return `${Number(data.numPlantsAffected).toLocaleString(NUMBER_LOCALE)} plants`;
+  if (data.hungerRestoreAmount != null) return `${Number(data.hungerRestoreAmount).toLocaleString(NUMBER_LOCALE)} hunger`;
+  if (data.sellPrice != null) return `${Number(data.sellPrice).toLocaleString(NUMBER_LOCALE)} coins`;
+  if (data.strengthIncrease != null) return `+${Number(data.strengthIncrease).toLocaleString(NUMBER_LOCALE)} STR`;
+  if (data.scaleIncreasePercentage != null) return `+${Number(data.scaleIncreasePercentage).toLocaleString(NUMBER_LOCALE)}% size`;
   if (data.mutation || data.targetMutation) return payloadItemName(data.mutation || data.targetMutation);
   const fallback = Object.entries(data).find(([key, value]) => !['pet', 'sourcePet'].includes(key) && ['string', 'number', 'boolean'].includes(typeof value));
   return fallback ? `${humanize(fallback[0])}: ${String(fallback[1])}` : 'Proc recorded';
@@ -165,10 +165,10 @@ export function procOutcomeTooltip(ability: string, data: Record<string, unknown
   const family = ABILITY_GROUP_BY_ID.get(ability);
   if (family === 'XP Boost') {
     const gained = data.bonusXp ?? data.xpGranted;
-    if (gained != null) return `XP gained: +${Math.floor(Number(gained)).toLocaleString()} XP`;
+    if (gained != null) return `XP gained: +${Math.floor(Number(gained)).toLocaleString(NUMBER_LOCALE)} XP`;
   }
   if (family === 'Hunger Restore' && data.hungerRestoreAmount != null) {
-    return `Hunger gained: ${Number(data.hungerRestoreAmount).toLocaleString()}`;
+    return `Hunger gained: ${Number(data.hungerRestoreAmount).toLocaleString(NUMBER_LOCALE)}`;
   }
   // The row only has room for a count, so what was actually boosted lives here.
   if (data.eggsAffected) return payloadItemList(data.eggsAffected);

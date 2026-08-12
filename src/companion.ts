@@ -69,7 +69,7 @@ import {
 import { bindShopEvents, processShops, renderShops } from './features/shop-alarms.js';
 import { toast } from './toast.js';
 import { state } from './state.js';
-import { escapeHtml, formatDuration, humanize, loadLocal, saveLocal } from './utils.js';
+import { escapeHtml, formatDuration, humanize, loadLocal, NUMBER_LOCALE, saveLocal } from './utils.js';
 
 export function initCompanion(): void {
   'use strict';
@@ -214,7 +214,7 @@ export function initCompanion(): void {
     if (GRANTER_MUTATIONS[ability]) return `Applies the ${GRANTER_MUTATIONS[ability]} mutation`;
     const values = parameters ?? {};
     const scaled = (key: string) => Number(values[key] || 0) * strength / 100;
-    const percent = (value: number) => Number(value.toFixed(2)).toLocaleString();
+    const percent = (value: number) => Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE);
     if (values.hungerRefundPercentage != null) return `Reduces hunger depletion by ${percent(scaled('hungerRefundPercentage'))}%`;
     if (values.hungerRestorePercentage != null) return `Restores ${percent(scaled('hungerRestorePercentage'))}% hunger per proc`;
     if (values.mutationChanceIncreasePercentage != null) return `Mutation chance increase: +${percent(scaled('mutationChanceIncreasePercentage'))}%`;
@@ -222,8 +222,8 @@ export function initCompanion(): void {
     if (values.cropSellPriceIncreasePercentage != null) return `Sell bonus: +${percent(scaled('cropSellPriceIncreasePercentage'))}% coins`;
     if (values.plantGrowthReductionMinutes != null) return `Growth reduction: ${scaled('plantGrowthReductionMinutes').toFixed(1)}m per proc`;
     if (values.eggGrowthTimeReductionMinutes != null) return `Hatch reduction: ${scaled('eggGrowthTimeReductionMinutes').toFixed(1)}m per proc`;
-    if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.floor(scaled('baseMaxCoinsFindable')).toLocaleString()} per proc`;
-    if (values.bonusXp != null) return `Bonus XP: +${Math.floor(scaled('bonusXp')).toLocaleString()} per proc`;
+    if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.floor(scaled('baseMaxCoinsFindable')).toLocaleString(NUMBER_LOCALE)} per proc`;
+    if (values.bonusXp != null) return `Bonus XP: +${Math.floor(scaled('bonusXp')).toLocaleString(NUMBER_LOCALE)} per proc`;
     if (values.maxStrengthIncreasePercentage != null) return `Max STR boost: +${percent(scaled('maxStrengthIncreasePercentage'))}%`;
     if (values.plantAbilityChanceBoostPercentage != null) return `Active pet ability chance: +${percent(scaled('plantAbilityChanceBoostPercentage'))}%`;
     if (values.mutationChancePerMinute != null) return `Mutation chance: ${percent(scaled('mutationChancePerMinute'))}% per minute`;
@@ -277,7 +277,7 @@ export function initCompanion(): void {
           const base = Number(ABILITY_DETAILS[entry.ability]?.baseParameters?.[passiveGroup.parameter] || 0);
           return sum + base * strength / 100;
         }, 0);
-        const amount = Number(total.toFixed(2)).toLocaleString();
+        const amount = Number(total.toFixed(2)).toLocaleString(NUMBER_LOCALE);
         if (passiveGroup.key === 'HungerBoost') effect = `Reduces hunger depletion by ${amount}% combined`;
         else if (passiveGroup.key === 'WeatherMutationBoost') effect = `Weather mutation chance increase: +${amount}% combined`;
         else if (passiveGroup.key === 'PetMutationBoost') effect = `Egg mutation chance increase: +${amount}% combined`;
@@ -637,7 +637,7 @@ export function initCompanion(): void {
       const metrics = petMetrics(pet);
       const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : 'Max STR reached' : 'Strength estimate unavailable';
       const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
-      const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString()} XP potion${potionsToMax === 1 ? '' : 's'} to max` : '';
+      const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString(NUMBER_LOCALE)} XP potion${potionsToMax === 1 ? '' : 's'} to max` : '';
       // The button only appears when a potion is actually held, so it can never send a doomed request.
       const potionRow = potionText
         ? held > 0
@@ -647,7 +647,7 @@ export function initCompanion(): void {
       return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
     }).join('');
     const abilityRows = combinedAbilityRows(active);
-    return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString()} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
+    return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
   }
 
   function renderSilence() {

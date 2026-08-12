@@ -1,6 +1,6 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
 import { PET_CATALOG, PLANT_CATALOG } from '../constants.js';
-import { NAME_OVERRIDES } from '../utils.js';
+import { NAME_OVERRIDES, NUMBER_LOCALE } from '../utils.js';
 
 interface PlantCatalogEntry {
   crop?: { baseSellPrice?: number; maxScale?: number };
@@ -682,7 +682,7 @@ function compactNumber(value: number): string {
   if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
   if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return Math.round(value).toLocaleString();
+  return Math.round(value).toLocaleString(NUMBER_LOCALE);
 }
 
 function durationUntil(timestamp: number | null): string {
@@ -871,7 +871,7 @@ export function initGardenOverview(): void {
       ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>'
       : growing === 0
         ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>`
-      : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString()}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ''}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString()}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
+      : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ''}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
     const bonus = Math.round((stats.friendBonus - 1) * 100);
     return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? 'Disable' : 'Enable'} completion alarm">${view.alarm ? '&#128276;' : '&#128277;'}</button></div></div>${etaRows}</section>` : ''}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? '&#9662;' : '&#9656;'}</span></div><div data-section="mutations" ${view.mutationsOpen ? '' : 'hidden'}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? '&#9662;' : '&#9656;'}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? '' : 'hidden'}><div class="go-plant-row"><span>Total</span><b>${totalPlants}</b></div>${plantRows || '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ''}</span><b>${compactNumber(stats.value)}</b></div>`;
   }

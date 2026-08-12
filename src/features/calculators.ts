@@ -7,7 +7,7 @@ import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
 import { activePets, allPets, mutationSprite, petDiet, petMetrics, petSprite, produceSprite } from '../pets.js';
 import { state } from '../state.js';
-import { escapeHtml, formatDuration, humanize } from '../utils.js';
+import { escapeHtml, formatDuration, humanize, NUMBER_LOCALE } from '../utils.js';
 
 /** The Dust, Food and Granter calculators. */
 
@@ -170,14 +170,14 @@ function cropValueFor(species: string, sizeFraction: number, selected: string[],
 function formatWeight(weight: number): string {
   if (weight <= 0) return '-';
   const digits = weight < 1 ? 2 : weight < 10 ? 1 : 0;
-  return weight.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return weight.toLocaleString(NUMBER_LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 /** Spells out how the total was reached, so a surprising number can be traced rather than trusted. */
 function valueBreakdown(value: CropValue): string {
-  const parts = [`${value.base.toLocaleString()} base`, `${value.sizePercent}% size`];
+  const parts = [`${value.base.toLocaleString(NUMBER_LOCALE)} base`, `${value.sizePercent}% size`];
   if (value.mutation !== 1) parts.push(`x${Number(value.mutation.toFixed(2))} mutations`);
-  const each = `${parts.join(' x ')} = ${value.each.toLocaleString()}`;
+  const each = `${parts.join(' x ')} = ${value.each.toLocaleString(NUMBER_LOCALE)}`;
   return value.friend === 1 ? each : `${each} each, x${Number(value.friend.toFixed(2))} for players`;
 }
 
@@ -234,7 +234,7 @@ export function setFoodSlot(index: number, slot: { species: string; food: string
 export function updateDustTotal(main: HTMLElement): void {
   const total = allPets().filter(pet => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
   const label = main.querySelector<HTMLElement>('[data-dust-total]');
-  if (label) label.textContent = `${total.toLocaleString()} dust`;
+  if (label) label.textContent = `${total.toLocaleString(NUMBER_LOCALE)} dust`;
 }
 
 /** Redraw only when data used by the visible calculator has changed. */
@@ -284,10 +284,10 @@ function renderValueCalculator(): string {
   return `<section class="gc-card gc-value-card">
 <div class="gc-value-head"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><select data-value-species>${options}</select></div>
 <label class="gc-value-size"><span>Size<b data-value-size-percent>${value.sizePercent}%</b>${weightLabel}<em data-value-max ${atMax ? '' : 'hidden'}>max</em></span><input type="range" min="0" max="1000" step="1" value="${Math.round(valueSizeFraction * 1000)}" data-value-size></label>
-<div class="gc-value-readout"><b data-value-each>${value.each.toLocaleString()}</b><span>coins each</span></div>
+<div class="gc-value-readout"><b data-value-each>${value.each.toLocaleString(NUMBER_LOCALE)}</b><span>coins each</span></div>
 ${groups}
 <div class="gc-value-foot"><label><span>Players</span><select data-value-friends>${friendOptions}</select></label><button data-value-clear>Clear</button></div>
-<div class="gc-value-result"><b data-value-total>${value.total.toLocaleString()}</b><small>coins</small></div>
+<div class="gc-value-result"><b data-value-total>${value.total.toLocaleString(NUMBER_LOCALE)}</b><small>coins</small></div>
 <p class="gc-value-breakdown" data-value-breakdown>${escapeHtml(valueBreakdown(value))}</p>
 </section>`;
 }
@@ -301,8 +301,8 @@ export function updateValueSection(main: HTMLElement): void {
     const node = main.querySelector<HTMLElement>(selector);
     if (node) node.textContent = text;
   };
-  write('[data-value-total]', value.total.toLocaleString());
-  write('[data-value-each]', value.each.toLocaleString());
+  write('[data-value-total]', value.total.toLocaleString(NUMBER_LOCALE));
+  write('[data-value-each]', value.each.toLocaleString(NUMBER_LOCALE));
   write('[data-value-weight]', formatWeight(value.weight));
   write('[data-value-size-percent]', `${value.sizePercent}%`);
   write('[data-value-breakdown]', valueBreakdown(value));
@@ -315,7 +315,7 @@ function renderDustCalculator(): string {
   const eggRows = eggs.map(({ eggId, quantity }) => {
     const range = eggDustRange(eggId);
     const sprite = page.__gardenCompanionShopSprites?.[eggId];
-    return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString()}</td><td>${Math.round(range.average).toLocaleString()}</td><td><b>${Math.round(range.average * quantity).toLocaleString()}</b><small>${Math.round(range.low * quantity).toLocaleString()} to ${Math.round(range.high * quantity).toLocaleString()}</small></td></tr>`;
+    return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(EGG_CATALOG[eggId]?.name || humanize(eggId))}</td><td>${quantity.toLocaleString(NUMBER_LOCALE)}</td><td>${Math.round(range.average).toLocaleString(NUMBER_LOCALE)}</td><td><b>${Math.round(range.average * quantity).toLocaleString(NUMBER_LOCALE)}</b><small>${Math.round(range.low * quantity).toLocaleString(NUMBER_LOCALE)} to ${Math.round(range.high * quantity).toLocaleString(NUMBER_LOCALE)}</small></td></tr>`;
   }).join('');
   const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
   const pets = allPets().map(pet => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
@@ -324,11 +324,11 @@ function renderDustCalculator(): string {
     const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
     const metrics = petMetrics(pet);
     const mutations = (pet.mutations || []).filter(mutation => mutation === 'Gold' || mutation === 'Rainbow');
-    return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(' '))}` : ''}${metrics ? ` | max STR ${metrics.maxStrength}` : ''}</small></span><b class="gc-dust-value">${dust.toLocaleString()}</b></label>`;
+    return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(' '))}` : ''}${metrics ? ` | max STR ${metrics.maxStrength}` : ''}</small></span><b class="gc-dust-value">${dust.toLocaleString(NUMBER_LOCALE)}</b></label>`;
   }).join('');
   return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
-<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString()} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString()} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
 }
 
 function granterOptions(): Array<{ id: string; label: string; probability: number }> {
