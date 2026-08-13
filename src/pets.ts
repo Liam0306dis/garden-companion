@@ -102,7 +102,7 @@ function renderMutatedPetSprite(key: string, source: string, mutation: string): 
 }
 
 /** A pet carries at most one colour mutation, and Rainbow wins when both are somehow present. */
-function petOverlay(pet: Pet): string {
+export function petOverlay(pet: Pet): string {
   const mutations = pet.mutations || [];
   return mutations.includes('Rainbow') ? 'rainbow' : mutations.includes('Gold') ? 'gold' : '';
 }

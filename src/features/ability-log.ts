@@ -1,7 +1,7 @@
 import { feature } from '../config.js';
-import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUP_BY_ID, ABILITY_GROUPS, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS } from '../constants.js';
+import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUP_BY_ID, ABILITY_GROUPS, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS, PET_CATALOG } from '../constants.js';
 import { config, saveConfig } from '../config.js';
-import { allPets, petSprite } from '../pets.js';
+import { allPets, petOverlay, petSpriteSource } from '../pets.js';
 import { saveAbilityLog, state, trimAbilityLogs, type AbilityLogRow } from '../state.js';
 import { panelActions } from '../panel-actions.js';
 import { LOG_KEY } from '../constants.js';
@@ -193,10 +193,28 @@ function abilityFilterSummary(selectedFilters: Set<string>): string {
   return selectedFilters.size === ABILITY_FILTER_OPTIONS.length ? 'All abilities' : selectedFilters.size === 0 ? 'No abilities' : selectedFilters.size === 1 ? ABILITY_FILTER_OPTIONS.find(option => selectedFilters.has(option.key))?.label || 'No abilities' : `${selectedFilters.size} selections`;
 }
 
-function triggeringPet(log: AbilityLogRow): Pet | null {
+/**
+ * Indexed once per render. triggeringPet used to reach for allPets() itself, which rebuilds the
+ * whole list - every active, stored and inventory pet spread into a new object - and it did that
+ * for each of up to four hundred rows, on every keystroke.
+ */
+interface OwnedPets { byId: Map<string, Pet>; byName: Map<string, Pet> }
+
+function indexOwnedPets(): OwnedPets {
+  const byId = new Map<string, Pet>();
+  const byName = new Map<string, Pet>();
+  for (const pet of allPets()) {
+    if (pet.id) byId.set(pet.id, pet);
+    // First wins, matching the find() this replaced.
+    if (pet.name && !byName.has(pet.name)) byName.set(pet.name, pet);
+  }
+  return { byId, byName };
+}
+
+function triggeringPet(log: AbilityLogRow, owners: OwnedPets): Pet | null {
   const raw = payloadRecord(log.data.pet) || payloadRecord(log.data.sourcePet);
   const id = String(raw?.id || '');
-  const owned = allPets().find(pet => id ? pet.id === id : pet.name === log.pet);
+  const owned = id ? owners.byId.get(id) : owners.byName.get(log.pet);
   const petSpecies = String(raw?.petSpecies || raw?.species || owned?.petSpecies || '');
   if (!petSpecies) return null;
   return {
@@ -208,11 +226,19 @@ function triggeringPet(log: AbilityLogRow): Pet | null {
   };
 }
 
+/**
+ * Held rather than made per call: passing options to toLocaleDateString builds a formatter every
+ * time, and the log draws hundreds of rows on every keystroke. The locale is left to the browser,
+ * since a date in the reader's own format is right where a grouped number would not be.
+ */
+const LOG_DATE_FORMAT = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+const LOG_TIME_FORMAT = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
 function procDateParts(timestamp: number): { date: string; time: string; iso: string } {
   const value = new Date(timestamp);
   return {
-    date: value.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }),
-    time: value.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    date: LOG_DATE_FORMAT.format(value),
+    time: LOG_TIME_FORMAT.format(value),
     iso: value.toISOString(),
   };
 }
@@ -248,6 +274,35 @@ function searchText(log: AbilityLogRow): string {
   return text;
 }
 
+/**
+ * A pet sprite is a decoded PNG carried inline as a data url, and the same few pets account for
+ * hundreds of rows. Writing one into every row means megabytes of markup to build and parse on each
+ * keystroke, so rows carry a key and the sources are attached afterwards, where identical rows
+ * share one string rather than repeating it.
+ */
+const logSpriteSources = new Map<string, string>();
+
+function logSprite(pet: Pet | null): string {
+  if (!pet) return '<span class="gc-pet-sprite"><i>?</i></span>';
+  const source = petSpriteSource(pet);
+  if (!source) return `<span class="gc-pet-sprite"><i>${escapeHtml((PET_CATALOG[pet.petSpecies]?.name || pet.petSpecies || '?').slice(0, 1))}</i></span>`;
+  const overlay = petOverlay(pet);
+  const key = `${pet.petSpecies}:${overlay}`;
+  logSpriteSources.set(key, source);
+  // Gold and Rainbow tints are rendered on a canvas in the background and swapped into any sprite
+  // already on the page by this key, so the rows keep carrying it.
+  const mutation = overlay ? ` data-pet-mutation-key="${escapeHtml(key)}"` : '';
+  return `<span class="gc-pet-sprite"><img data-log-sprite="${escapeHtml(key)}" alt="${escapeHtml(pet.petSpecies)}"${mutation}></span>`;
+}
+
+/** Rows are markup until this runs, so it has to follow every path that writes them into the page. */
+function hydrateAbilityLogSprites(root: HTMLElement): void {
+  root.querySelectorAll<HTMLImageElement>('img[data-log-sprite]').forEach(image => {
+    const source = logSpriteSources.get(image.dataset.logSprite || '');
+    if (source && image.src !== source) image.src = source;
+  });
+}
+
 export function renderAbilityLogRows(selectedFilters: Set<string>): string {
   const visible = visibleAbilities(selectedFilters);
   const search = abilityLogSearch.trim().toLowerCase();
@@ -255,10 +310,12 @@ export function renderAbilityLogRows(selectedFilters: Set<string>): string {
   const recent = matched.slice(0, LOG_VISIBLE_ROWS);
   if (!recent.length) return search ? '<p>Nothing matches that search.</p>' : '<p>No ability procs recorded yet.</p>';
   const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : '';
+  const owners = indexOwnedPets();
+  logSpriteSources.clear();
   return recent.map(log => {
     const when = procDateParts(log.at);
-    const pet = triggeringPet(log);
-    const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
+    const pet = triggeringPet(log, owners);
+    const sprite = logSprite(pet);
     const tooltip = procOutcomeTooltip(log.ability, log.data);
     return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip ? ` title="${escapeHtml(tooltip)}" data-detail` : ''}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
   }).join('') + more;
@@ -278,6 +335,7 @@ export function refreshAbilityFilterUi(main: HTMLElement): void {
   if (log) {
     const scrollTop = log.scrollTop;
     log.innerHTML = renderAbilityLogRows(selectedFilters);
+    hydrateAbilityLogSprites(log);
     log.scrollTop = scrollTop;
   }
 }
@@ -290,6 +348,8 @@ export function renderAbilityLog() {
 }
 
 export function bindAbilityLogEvents(main: HTMLElement): void {
+  // The panel writes the rows itself, so this is the other path that has to attach the sources.
+  hydrateAbilityLogSprites(main);
   main.querySelector('[data-clear-log]')?.addEventListener('click', () => { state.abilityLog = []; saveLocal(LOG_KEY, []); panelActions.renderPanel(); });
   // Only the rows are redrawn, so the field keeps its focus and caret while typing.
   main.querySelector('[data-log-search]')?.addEventListener('input', event => {

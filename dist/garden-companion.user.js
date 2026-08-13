@@ -662,6 +662,14 @@
     const mutations = pet.mutations || [];
     return mutations.includes("Rainbow") ? "rainbow" : mutations.includes("Gold") ? "gold" : "";
   }
+  function petSpriteSource(pet) {
+    const source = page.__gardenCompanionPetSprites?.[pet.petSpecies];
+    const overlay = petOverlay(pet);
+    if (!source || !overlay) return source;
+    const key = `${pet.petSpecies}:${overlay}`;
+    renderMutatedPetSprite(key, source, overlay);
+    return mutatedPetSprites.get(key) || source;
+  }
   function petSprite(pet) {
     const source = page.__gardenCompanionPetSprites?.[pet.petSpecies];
     const overlay = petOverlay(pet);
@@ -2512,10 +2520,19 @@ ${groups}
   function abilityFilterSummary(selectedFilters) {
     return selectedFilters.size === ABILITY_FILTER_OPTIONS.length ? "All abilities" : selectedFilters.size === 0 ? "No abilities" : selectedFilters.size === 1 ? ABILITY_FILTER_OPTIONS.find((option) => selectedFilters.has(option.key))?.label || "No abilities" : `${selectedFilters.size} selections`;
   }
-  function triggeringPet(log) {
+  function indexOwnedPets() {
+    const byId = /* @__PURE__ */ new Map();
+    const byName = /* @__PURE__ */ new Map();
+    for (const pet of allPets()) {
+      if (pet.id) byId.set(pet.id, pet);
+      if (pet.name && !byName.has(pet.name)) byName.set(pet.name, pet);
+    }
+    return { byId, byName };
+  }
+  function triggeringPet(log, owners) {
     const raw = payloadRecord(log.data.pet) || payloadRecord(log.data.sourcePet);
     const id = String(raw?.id || "");
-    const owned = allPets().find((pet) => id ? pet.id === id : pet.name === log.pet);
+    const owned = id ? owners.byId.get(id) : owners.byName.get(log.pet);
     const petSpecies = String(raw?.petSpecies || raw?.species || owned?.petSpecies || "");
     if (!petSpecies) return null;
     return {
@@ -2526,11 +2543,13 @@ ${groups}
       mutations: Array.isArray(raw?.mutations) ? raw.mutations.filter((value) => typeof value === "string") : owned?.mutations
     };
   }
+  var LOG_DATE_FORMAT = new Intl.DateTimeFormat(void 0, { day: "2-digit", month: "short", year: "numeric" });
+  var LOG_TIME_FORMAT = new Intl.DateTimeFormat(void 0, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   function procDateParts(timestamp) {
     const value = new Date(timestamp);
     return {
-      date: value.toLocaleDateString(void 0, { day: "2-digit", month: "short", year: "numeric" }),
-      time: value.toLocaleTimeString(void 0, { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      date: LOG_DATE_FORMAT.format(value),
+      time: LOG_TIME_FORMAT.format(value),
       iso: value.toISOString()
     };
   }
@@ -2551,6 +2570,23 @@ ${groups}
     searchTextCache.set(log, text);
     return text;
   }
+  var logSpriteSources = /* @__PURE__ */ new Map();
+  function logSprite(pet) {
+    if (!pet) return '<span class="gc-pet-sprite"><i>?</i></span>';
+    const source = petSpriteSource(pet);
+    if (!source) return `<span class="gc-pet-sprite"><i>${escapeHtml((PET_CATALOG[pet.petSpecies]?.name || pet.petSpecies || "?").slice(0, 1))}</i></span>`;
+    const overlay = petOverlay(pet);
+    const key = `${pet.petSpecies}:${overlay}`;
+    logSpriteSources.set(key, source);
+    const mutation = overlay ? ` data-pet-mutation-key="${escapeHtml(key)}"` : "";
+    return `<span class="gc-pet-sprite"><img data-log-sprite="${escapeHtml(key)}" alt="${escapeHtml(pet.petSpecies)}"${mutation}></span>`;
+  }
+  function hydrateAbilityLogSprites(root) {
+    root.querySelectorAll("img[data-log-sprite]").forEach((image) => {
+      const source = logSpriteSources.get(image.dataset.logSprite || "");
+      if (source && image.src !== source) image.src = source;
+    });
+  }
   function renderAbilityLogRows(selectedFilters) {
     const visible = visibleAbilities(selectedFilters);
     const search = abilityLogSearch.trim().toLowerCase();
@@ -2558,10 +2594,12 @@ ${groups}
     const recent = matched.slice(0, LOG_VISIBLE_ROWS);
     if (!recent.length) return search ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
     const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : "";
+    const owners = indexOwnedPets();
+    logSpriteSources.clear();
     return recent.map((log) => {
       const when = procDateParts(log.at);
-      const pet = triggeringPet(log);
-      const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
+      const pet = triggeringPet(log, owners);
+      const sprite = logSprite(pet);
       const tooltip = procOutcomeTooltip(log.ability, log.data);
       return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip ? ` title="${escapeHtml(tooltip)}" data-detail` : ""}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
     }).join("") + more;
@@ -2580,6 +2618,7 @@ ${groups}
     if (log) {
       const scrollTop = log.scrollTop;
       log.innerHTML = renderAbilityLogRows(selectedFilters);
+      hydrateAbilityLogSprites(log);
       log.scrollTop = scrollTop;
     }
   }
@@ -2590,6 +2629,7 @@ ${groups}
     return `<section class="gc-card gc-ability-log-card"><div class="gc-ability-log-toolbar"><div><h3>Pet ability history</h3><small>Up to ${LOG_PER_ABILITY} entries are stored per ability.</small></div><div class="gc-ability-log-actions"><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search history" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><details class="gc-ability-filter" data-ability-filter ${abilityFilterMenuOpen ? "open" : ""}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><button data-clear-log>Clear</button></div></div><div class="gc-ability-log-columns"><span>Time &amp; date</span><span>Pet</span><span>Ability</span><span>Payload</span></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
   }
   function bindAbilityLogEvents(main) {
+    hydrateAbilityLogSprites(main);
     main.querySelector("[data-clear-log]")?.addEventListener("click", () => {
       state.abilityLog = [];
       saveLocal(LOG_KEY, []);

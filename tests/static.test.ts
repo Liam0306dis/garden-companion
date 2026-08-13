@@ -196,7 +196,7 @@ assert.match(companionSource, /ABILITY_GROUP_BY_ID\.get\(ability\) === 'Crop Siz
 assert.match(companionSource, /family === 'XP Boost'[\s\S]*XP gained:[\s\S]*family === 'Hunger Restore'[\s\S]*Hunger gained:/, 'XP and hunger proc amounts are missing from payload tooltips');
 assert.match(companionSource, /gc-ability-log-payload[\s\S]*tooltip \? ` title=[\s\S]*data-detail/, 'ability payload hover details are not rendered');
 assert.match(companionSource, /gc-ability-log-row[\s\S]*gc-ability-log-pet[\s\S]*gc-ability-log-name[\s\S]*gc-ability-log-payload/, 'Pet Ability rows do not show the pet, ability, and payload');
-assert.match(companionSource, /toLocaleDateString[\s\S]*toLocaleTimeString/, 'Pet Ability rows do not show both date and time');
+assert.match(abilityLogSource, /date: LOG_DATE_FORMAT\.format\(value\),\s*time: LOG_TIME_FORMAT\.format\(value\),/, 'Pet Ability rows do not show both date and time');
 assert.match(companionSource, /when\.time[\s\S]*when\.date/, 'Pet Ability rows do not emphasize time before date');
 assert.match(companionSource, /triggeringPet[\s\S]*petSprite\(pet\)/, 'Pet Ability rows do not show the triggering pet sprite');
 assert.doesNotMatch(companionSource, /gc-ability-log-pet[^`]*<small>/, 'Pet Ability rows still repeat the pet name beside its sprite');
@@ -466,6 +466,16 @@ assert.match(abilityLogSource, /procOutcome\(log\.ability, log\.data\)} \$\{proc
 // per-row work that scales with the filter options or rebuild formatted text on every keystroke.
 assert.match(abilityLogSource, /const visible = visibleAbilities\(selectedFilters\);/, 'the ability filter is resolved per row again');
 assert.match(abilityLogSource, /const searchTextCache = new WeakMap<AbilityLogRow, string>\(\);/, 'ability log search text is rebuilt for every keystroke');
+assert.match(abilityLogSource, /const owners = indexOwnedPets\(\);/, 'the ability log rebuilds the pet list for every row it draws');
+// A sprite data url written into every row is megabytes of markup per keystroke.
+assert.match(abilityLogSource, /<img data-log-sprite="\$\{escapeHtml\(key\)}"/, 'ability log rows carry a full sprite data url again');
+assert.match(abilityLogSource, /hydrateAbilityLogSprites\(log\);/, 'filtered ability rows never get their sprites');
+assert.match(abilityLogSource, /hydrateAbilityLogSprites\(main\);/, 'ability rows drawn with the panel never get their sprites');
+// Options passed to toLocaleDateString build a formatter per call, and the log draws hundreds of
+// rows per keystroke.
+assert.match(abilityLogSource, /const LOG_DATE_FORMAT = new Intl\.DateTimeFormat\(undefined, /, 'the ability log builds a date formatter for every row');
+assert.doesNotMatch(abilityLogSource, /toLocaleDateString\(undefined, \{/, 'the ability log formats dates the slow way again');
+assert.doesNotMatch(abilityLogSource, /allPets\(\)\.find/, 'the ability log scans every pet per row again');
 const abilityFilterEvents = abilityLogSource.slice(abilityLogSource.indexOf("const abilityFilter = main.querySelector('[data-ability-filter]')"));
 assert.doesNotMatch(abilityFilterEvents, /renderPanel\(\)/, 'ability filter selection closes the dropdown by redrawing the panel');
 assert.match(companionSource, /panelRefreshTimer = setTimeout[\s\S]*panelRefreshBlocked\(panel\)/, 'queued panel refresh does not re-check the open ability dropdown');
