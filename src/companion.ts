@@ -35,6 +35,7 @@ import {
   setAbilityFilterInteracting,
   setAbilityFilterMenuOpen,
 } from './features/ability-log.js';
+import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
@@ -105,9 +106,27 @@ export function initCompanion(): void {
   }
 
   /**
-   * Also where the Welcome frame is caught. Every socket the game opens comes through here already,
-   * and a listener added at construction is on before the connection can deliver anything, so this
-   * is the one place that cannot miss the first frame.
+   * Crop Protection drops a harvest on its way out. Wrapping send on the socket is the only point
+   * every route into a harvest passes through - the game's button, its hotkey, and ours - and it is
+   * the last moment at which nothing has happened yet.
+   *
+   * A dropped command is answered rather than left hanging. The game waits five seconds for a reply
+   * before giving up, and the giving up is a rejection, which skips the handler that undoes the
+   * optimistic harvest; a refusal delivered now settles it immediately and lets the game tidy up.
+   */
+  function guardOutgoingHarvests(socket: WebSocket): void {
+    const originalSend = socket.send;
+    socket.send = function(data: Parameters<WebSocket['send']>[0]) {
+      const blocked = blockOutgoingHarvest(data);
+      if (!blocked) return originalSend.call(this, data);
+      if (blocked.requestId) refuseCommand(socket, blocked.requestId);
+    };
+  }
+
+  /**
+   * Also where the Welcome frame is caught, and where outgoing harvests are guarded. Every socket
+   * the game opens comes through here already, and a listener added at construction is on before
+   * the connection can deliver anything, so this is the one place that cannot miss the first frame.
    */
   function installGameUpdateSocketDetector(): void {
     const OriginalWebSocket = page.WebSocket as typeof WebSocket;
@@ -115,6 +134,7 @@ export function initCompanion(): void {
       const socket = new OriginalWebSocket(...args);
       socket.addEventListener('close', handleGameSocketClose);
       listenForWelcome(socket);
+      guardOutgoingHarvests(socket);
       return socket;
     } as unknown as typeof WebSocket;
     Object.setPrototypeOf(GardenCompanionWebSocket, OriginalWebSocket);
@@ -353,7 +373,8 @@ export function initCompanion(): void {
   function installInstantHarvest() {
     window.addEventListener('keydown', event => {
       // Any minigame holding the farm owns the keyboard too, or space harvests behind the scene.
-      if (!feature('instantHarvest') || worldSceneActive() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
+      // Crop Protection exists to stop harvests this key exists to fire, so it wins outright.
+      if (!feature('instantHarvest') || feature('cropProtection') || worldSceneActive() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
       // Only a guard against harvesting while busy elsewhere - at a shop, the trough, the preserve
       // station. Which crop is eligible is decided below, so every flavour of harvest passes here.
       // rarePatchHarvest earns its place because the action describes the selected slot: once
@@ -639,7 +660,7 @@ export function initCompanion(): void {
     }, 1000);
   }
 
-  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts'], ['journal', 'Journal'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['features', 'Features']];
+  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts'], ['journal', 'Journal'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['protection', 'Crop Protection'], ['features', 'Features']];
 
   function renderPanel() {
     cancelKeybindCapture?.();
@@ -680,6 +701,7 @@ export function initCompanion(): void {
     if (activeTab === 'rooms') return renderRooms();
     if (activeTab === 'shops') return renderShops();
     if (activeTab === 'silence') return renderSilence();
+    if (activeTab === 'protection') return renderCropProtection();
     if (activeTab === 'journal') return renderJournal();
     return '';
   }
@@ -690,7 +712,7 @@ export function initCompanion(): void {
       ['keepPlanterPotSelected', 'Keep Planter Pot selected', 'Do not switch to the picked-up plant after using a Planter Pot'],
       ['turtleTimer', 'Crop and egg estimates', 'Values and pet-adjusted timing'],
       ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
-      ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops'],
+      ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
     ];
@@ -724,7 +746,15 @@ export function initCompanion(): void {
   }
 
   function bindTabEvents(main: HTMLElement): void {
-    main.querySelectorAll<HTMLInputElement>('[data-feature]').forEach(input => input.onchange = () => { config[input.dataset.feature!] = input.checked; saveConfig(); updateLunarTimer(); renderPetFood(); });
+    main.querySelectorAll<HTMLInputElement>('[data-feature]').forEach(input => input.onchange = () => {
+      config[input.dataset.feature!] = input.checked;
+      // Instant harvest and Crop Protection pull in opposite directions on the same crops, so
+      // turning one on stands the other down rather than letting both claim the same harvest.
+      if (input.dataset.feature === 'instantHarvest' && input.checked) config.cropProtection = false;
+      saveConfig();
+      updateLunarTimer();
+      renderPetFood();
+    });
     main.querySelector('[data-open-planner]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionTogglePlanner?.(); });
     main.querySelector('[data-open-celestial-layout]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionToggleCelestialLayout?.(); });
     main.querySelector('[data-open-crop-cleanser]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionToggleCropCleanser?.(); });
@@ -747,6 +777,7 @@ export function initCompanion(): void {
     bindAbilityLogEvents(main);
     bindShopEvents(main);
     bindJournalEvents(main);
+    bindCropProtectionEvents(main);
     bindRoomEvents(main);
     bindKeybindEvents(main);
   }

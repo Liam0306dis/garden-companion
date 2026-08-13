@@ -219,6 +219,10 @@ export interface CompanionConfig {
   turtleTimer: boolean;
   petFood: boolean;
   instantHarvest: boolean;
+  cropProtection: boolean;
+  protectMaxSize: boolean;
+  protectedMutations: string[];
+  protectedSpecies: Record<string, boolean>;
   interfaceShortcuts: boolean;
   backgroundMode: boolean;
   autoRefreshGameUpdates: boolean;

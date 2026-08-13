@@ -1,6 +1,7 @@
 import type { PlantSlot } from '../types.js';
 import { feature } from '../config.js';
 import { PET_CATALOG } from '../constants.js';
+import { protectionReason } from './crop-protection.js';
 import { mutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
 import { activePets } from '../pets.js';
@@ -46,6 +47,7 @@ function eggRate(pets) {
 
 const VALUE_PREFIX = '🪙 ';
 const GROWTH_PREFIX = '🐢 ';
+const LOCK = '🔒';
 
 /**
  * Which crop the game's own card is showing. It resolves the selected id the same way, and the
@@ -113,8 +115,25 @@ function cleanGardenCardState(nextState: GardenCardState): GardenCardState {
   };
 }
 
+/**
+ * A padlock on the card whenever the crop under you is protected, so the rule shows where the
+ * harvest would happen rather than only in the panel. It rides the same card hook as the estimates
+ * but is independent of them: protection has nothing to do with the turtle timer being on.
+ */
+function protectionLines(): string[] {
+  const crops = Array.isArray(state.currentCrop) ? state.currentCrop : [];
+  const crop = selectedCrop(crops);
+  if (!crop) return [];
+  // Just the padlock. Which rule caught it belongs in the panel, not on a card you walk past.
+  return protectionReason(crop, crop.species || '') ? [LOCK] : [];
+}
+
+function cardLines(): string[] {
+  return [...protectionLines(), ...(feature('turtleTimer') ? turtleLines() : [])];
+}
+
 function nativeEstimateSignature(): string {
-  return feature('turtleTimer') ? turtleLines().join('\n') : '';
+  return cardLines().join('\n');
 }
 
 function decorateGardenCardState(nextState: GardenCardState, signature = nativeEstimateSignature()): GardenCardState {
@@ -125,7 +144,7 @@ function decorateGardenCardState(nextState: GardenCardState, signature = nativeE
   const estimateAttributes = lines.map((text, index) => ({
     key: 'time',
     text,
-    color: index === 0 && text.startsWith(VALUE_PREFIX) ? 0xffd84d : 0xa9efff,
+    color: text.startsWith(LOCK) ? 0xfca5a5 : index === 0 && text.startsWith(VALUE_PREFIX) ? 0xffd84d : 0xa9efff,
     gardenCompanionEstimate: true,
   }));
   return {
@@ -221,9 +240,12 @@ function refreshNativeGardenCard(): boolean {
 export function renderTurtleOverlay() {
   if (refreshNativeGardenCard()) return;
   let overlay = document.getElementById('gc-turtle');
-  const bounds = feature('turtleTimer') ? findPixiCard() : null;
-  const lines = bounds ? turtleLines() : [];
+  // Lines first: finding the card walks the scene graph, and this runs four times a second, so
+  // there is no reason to look for a card when nothing wants to be drawn on it.
+  const lines = cardLines();
   if (!lines.length) { overlay?.remove(); return; }
+  const bounds = findPixiCard();
+  if (!bounds) { overlay?.remove(); return; }
   if (!overlay) { overlay = document.createElement('div'); overlay.id = 'gc-turtle'; document.body.appendChild(overlay); }
   overlay.replaceChildren(...lines.map(text => Object.assign(document.createElement('div'), { textContent: text })));
   overlay.style.left = `${Math.round(bounds.centerX)}px`;

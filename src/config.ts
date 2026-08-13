@@ -15,6 +15,10 @@ export const DEFAULTS: CompanionConfig = {
   turtleTimer: true,
   petFood: true,
   instantHarvest: false,
+  cropProtection: false,
+  protectMaxSize: false,
+  protectedMutations: [],
+  protectedSpecies: {},
   interfaceShortcuts: true,
   backgroundMode: true,
   autoRefreshGameUpdates: true,
@@ -63,6 +67,18 @@ export function pruneStaleConfig(): void {
     return shop !== 'tool' || !EXCLUDED_TOOL_ALERTS.has(itemId);
   }));
   const savedFoodChoices = config.petFoodChoices && typeof config.petFoodChoices === 'object' ? config.petFoodChoices : {};
-  config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices).filter(([species, crop]) => PET_CATALOG[species]?.diet?.includes(crop)));
-  if (config.silencedAbilities.length !== savedSilencedAbilities.length || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length) saveConfig();
+  // A pet the baked catalog has never heard of is passed over rather than dropped: this runs before
+  // the game's own catalog is captured, so judging a species newer than our last build would clear
+  // a choice the player had made on every load.
+  config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices)
+    .filter(([species, crop]) => !PET_CATALOG[species] || PET_CATALOG[species].diet?.includes(crop)));
+  const savedProtectedSpecies = config.protectedSpecies && typeof config.protectedSpecies === 'object' ? config.protectedSpecies : {};
+  // Only the protected ones are worth keeping: an unticked species reads the same as an absent one.
+  // Membership of the catalog is deliberately not checked - this runs before the game's own catalog
+  // has been captured, so a species newer than our last build would be unticked on every load, and
+  // a species the game has dropped can never match a crop anyway.
+  config.protectedSpecies = Object.fromEntries(Object.entries(savedProtectedSpecies).filter(([, on]) => on === true));
+  if (config.silencedAbilities.length !== savedSilencedAbilities.length
+    || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length
+    || Object.keys(config.protectedSpecies).length !== Object.keys(savedProtectedSpecies).length) saveConfig();
 }

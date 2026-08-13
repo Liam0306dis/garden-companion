@@ -77,6 +77,9 @@ const RECONNECT_SETTLE_MS_VALUE = Number(shopAlarmsSource.match(/const RECONNECT
 const gardenDefenceSource = await readSource('src', 'features', 'garden-defence.ts');
 const petsSource = await readSource('src', 'pets.ts');
 const dragSource = await readSource('src', 'draggable.ts');
+const protectionSource = await readSource('src', 'features', 'crop-protection.ts');
+const configSource = await readSource('src', 'config.ts');
+const estimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
 const constantsSource = await readSource('src', 'constants.ts');
 const mutationValueSource = await readSource('src', 'mutation-value.ts');
 const preserveAllSource = await readSource('src', 'features', 'preserve-all.ts');
@@ -424,7 +427,7 @@ assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter est
 assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, 'overview still displays empty mutation rows');
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
 assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
-assert.match(companionSource, /\['abilities', 'Active Pets'\], \['abilityLog', 'Pet Abilities'\], \['teams', 'Pet Teams'\], \['petFood', 'Pet Food'\], \['calculators', 'Calculators'\], \['shops', 'Shop Alarms'\], \['silence', 'Ignore Alerts'\], \['journal', 'Journal'\], \['rooms', 'Rooms'\], \['keybinds', 'Keybinds'\], \['features', 'Features'\]/, 'tab order is incorrect');
+assert.match(companionSource, /\['abilities', 'Active Pets'\], \['abilityLog', 'Pet Abilities'\], \['teams', 'Pet Teams'\], \['petFood', 'Pet Food'\], \['calculators', 'Calculators'\], \['shops', 'Shop Alarms'\], \['silence', 'Ignore Alerts'\], \['journal', 'Journal'\], \['rooms', 'Rooms'\], \['keybinds', 'Keybinds'\], \['protection', 'Crop Protection'\], \['features', 'Features'\]/, 'tab order is incorrect');
 assert.match(companionSource, /\[4, 5\]\.includes\(Number\(room\.players_count\)\)/, 'rooms are not restricted to 4 or 5 players');
 assert.match(companionSource, /sort\(\(left, right\) => Number\(right\.players_count\) - Number\(left\.players_count\)\)/, '5-player rooms are not sorted above 4-player rooms');
 assert.match(companionSource, /Public rooms with one or two open slots\./, 'room description is incorrect');
@@ -673,6 +676,29 @@ assert.match(buildSource, /baseWeight:\(\[0-9\.e\+-\]\+\)/, 'the plant catalog n
 assert.match(preserveAllSource, /Math\.round\(base \* \(Number\(targetScale\) \|\| 1\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
 assert.match(preserveAllSource, /if \(!slot \|\| slot\.preserved === true \|\| slot\.slotId == null\) continue;\s+if \(Number\(slot\.endTime \|\| 0\) > now\) continue;/, 'preserve all no longer skips preserved or still-growing slots');
 assert.match(companionSource, /const qualifies = slot => slot\?\.preserved !== true &&/, 'instant harvest can destroy a preserved crop');
+// Crop Protection blocks the harvests instant harvest fires, so the two are mutually exclusive in
+// config and again at the moment the key is pressed.
+assert.match(companionSource, /if \(!feature\('instantHarvest'\) \|\| feature\('cropProtection'\) \|\|/, 'instant harvest still fires while Crop Protection is on');
+assert.match(companionSource, /if \(input\.dataset\.feature === 'instantHarvest' && input\.checked\) config\.cropProtection = false;/, 'both harvest features can be enabled at once');
+assert.match(protectionSource, /if \(enabled\.checked\) config\.instantHarvest = false;/, 'enabling Crop Protection leaves instant harvest on');
+// The block has to happen on the way out, so every route into a harvest is covered.
+assert.match(companionSource, /const blocked = blockOutgoingHarvest\(data\);\s*if \(!blocked\) return originalSend\.call\(this, data\);/, 'harvests are no longer blocked on the socket');
+// A dropped command must be answered: the game's own five second timeout rejects, which skips
+// the branch that undoes the harvest it already started drawing.
+assert.match(companionSource, /if \(blocked\.requestId\) refuseCommand\(socket, blocked\.requestId\);/, 'a blocked harvest is left to time out');
+assert.match(protectionSource, /type: 'QuinoaCommandResult', requestId, ok: false, code: 'garden_companion_blocked'/, 'the refusal no longer settles the game request');
+// A harvest cannot be taken back, so an unknown garden holds rather than waves crops through.
+assert.match(protectionSource, /if \(!garden\) return announce\(target, 'Harvest held/, 'harvests pass unprotected before the garden has loaded');
+assert.match(protectionSource, /else delete next\[input\.dataset\.protectSpecies!\];/, 'unticked species are stored rather than dropped');
+// The prune runs before the game's catalog is captured, so it must not test membership of it.
+assert.match(configSource, /\.filter\(\(\[, on\]\) => on === true\)/, 'unticked species are no longer pruned');
+assert.match(configSource, /!PET_CATALOG\[species\] \|\| PET_CATALOG\[species\]\.diet\?\.includes\(crop\)/, 'a pet food choice is dropped for a species newer than the baked catalog');
+assert.doesNotMatch(configSource, /PLANT_CATALOG\[species\]/, 'pruning drops species the baked catalog has not caught up with');
+assert.doesNotMatch(protectionSource, /'Gold'|'Rainbow'/, 'Gold and Rainbow are protected despite having their own hold to harvest');
+assert.match(protectionSource, /MUTATION_CATALOG\[id\]\?\.group !== 'Growth'/, 'the colour mutations are no longer excluded from protection');
+// Mutations and size are checked before the species list so an unticked species cannot expose them.
+assert.match(protectionSource, /if \(matched\) return MUTATION_CATALOG[\s\S]*return 'max size';[\s\S]*if \(protectedSpecies\(\)\[species\] === true\)/, 'species protection no longer comes after the mutation rules');
+assert.match(estimatesSource, /return protectionReason\(crop, crop\.species \|\| ''\) \? \[LOCK\] : \[\];/, 'the crop card padlock says more than that the crop is locked');
 assert.match(companionSource, /'harvest', 'rainbowHarvest', 'goldHarvest', 'rarePatchHarvest'/, 'a rare patch crop under the cursor blocks instant harvest on the rest of the tile');
 assert.doesNotMatch(companionSource, /'preservedHarvest'/, 'instant harvest accepts the preserved harvest action');
 assert.match(preserveAllSource, /const card = findPixiCard\(\);/, 'preserve all no longer anchors to the game crop card');
