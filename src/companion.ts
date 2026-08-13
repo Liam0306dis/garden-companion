@@ -660,7 +660,7 @@ export function initCompanion(): void {
     }, 1000);
   }
 
-  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts'], ['journal', 'Journal'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['protection', 'Crop Protection'], ['features', 'Features']];
+  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['protection', 'Crop Protection'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts'], ['journal', 'Journal'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['features', 'Features']];
 
   function renderPanel() {
     cancelKeybindCapture?.();

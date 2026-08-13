@@ -217,19 +217,41 @@ function procDateParts(timestamp: number): { date: string; time: string; iso: st
   };
 }
 
+/**
+ * The abilities the current filter admits, gathered once. Asking the question per row instead meant
+ * scanning every filter option and its abilities for each entry, and the history runs to hundreds
+ * of rows per ability.
+ */
+function visibleAbilities(selectedFilters: Set<string>): Set<string> {
+  const visible = new Set<string>();
+  for (const option of ABILITY_FILTER_OPTIONS) {
+    if (!selectedFilters.has(option.key)) continue;
+    for (const ability of option.abilities) if (ABILITY_SET.has(ability)) visible.add(ability);
+  }
+  return visible;
+}
+
+/**
+ * Searching covers the pet, the ability name and the outcome, plus whatever the row moved into its
+ * tooltip: a growth boost shows only a count, and the species it touched are still worth being able
+ * to find. Building that costs two payload formatters, and a row never changes once recorded, so it
+ * is kept rather than rebuilt for every keystroke over the whole history.
+ */
+const searchTextCache = new WeakMap<AbilityLogRow, string>();
+
+function searchText(log: AbilityLogRow): string {
+  const cached = searchTextCache.get(log);
+  if (cached !== undefined) return cached;
+  const name = ABILITY_DETAILS[log.ability]?.name || humanize(log.ability);
+  const text = `${log.pet} ${name} ${procOutcome(log.ability, log.data)} ${procOutcomeTooltip(log.ability, log.data)}`.toLowerCase();
+  searchTextCache.set(log, text);
+  return text;
+}
+
 export function renderAbilityLogRows(selectedFilters: Set<string>): string {
-  const isVisibleAbility = (ability: string) => ABILITY_SET.has(ability) && ABILITY_FILTER_OPTIONS.some(option => selectedFilters.has(option.key) && option.abilities.includes(ability));
+  const visible = visibleAbilities(selectedFilters);
   const search = abilityLogSearch.trim().toLowerCase();
-  const matched = state.abilityLog.filter(log => {
-    if (!isVisibleAbility(log.ability)) return false;
-    if (!search) return true;
-    // Searching covers the pet, the ability name and the outcome, plus whatever the row moved into
-    // its tooltip: a growth boost shows only a count, and the species it touched are still worth
-    // being able to find.
-    const name = ABILITY_DETAILS[log.ability]?.name || humanize(log.ability);
-    const detail = procOutcomeTooltip(log.ability, log.data);
-    return `${log.pet} ${name} ${procOutcome(log.ability, log.data)} ${detail}`.toLowerCase().includes(search);
-  });
+  const matched = state.abilityLog.filter(log => visible.has(log.ability) && (!search || searchText(log).includes(search)));
   const recent = matched.slice(0, LOG_VISIBLE_ROWS);
   if (!recent.length) return search ? '<p>Nothing matches that search.</p>' : '<p>No ability procs recorded yet.</p>';
   const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : '';

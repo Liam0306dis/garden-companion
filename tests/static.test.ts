@@ -186,7 +186,7 @@ assert.match(companionSource, /if \(enabled\) \{[\s\S]{0,200}showSelectedShopAla
 assert.match(companionSource, /if \(enabled\) \{[\s\S]{0,200}armAlarmAudio\(\)/, 'alarm audio is not armed by the settings gesture');
 assert.doesNotMatch(companionSource, /alarm\?\.audio\?\.close/, 'alarm stop closes the reusable audio context');
 assert.match(companionSource, /count >= perAbility/, 'per-ability history limit missing');
-assert.match(companionSource, /const LOG_PER_ABILITY = 400/, 'ability history no longer keeps a deep log');
+assert.match(companionSource, /const LOG_PER_ABILITY = 100/, 'the ability history cap has moved');
 assert.match(companionSource, /if \(saveLocalOrFail\(LOG_KEY, state\.abilityLog\)\) return;/, 'a full storage quota silently stops persisting the log');
 assert.match(companionSource, /data-log-search/, 'the ability log cannot be searched');
 assert.match(companionSource, /data: snapshotPayload\(entry\.parameters \|\| \{\}\)/, 'ability result payload is not snapshotted');
@@ -427,7 +427,7 @@ assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter est
 assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, 'overview still displays empty mutation rows');
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
 assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
-assert.match(companionSource, /\['abilities', 'Active Pets'\], \['abilityLog', 'Pet Abilities'\], \['teams', 'Pet Teams'\], \['petFood', 'Pet Food'\], \['calculators', 'Calculators'\], \['shops', 'Shop Alarms'\], \['silence', 'Ignore Alerts'\], \['journal', 'Journal'\], \['rooms', 'Rooms'\], \['keybinds', 'Keybinds'\], \['protection', 'Crop Protection'\], \['features', 'Features'\]/, 'tab order is incorrect');
+assert.match(companionSource, /\['abilities', 'Active Pets'\], \['abilityLog', 'Pet Abilities'\], \['teams', 'Pet Teams'\], \['petFood', 'Pet Food'\], \['protection', 'Crop Protection'\], \['calculators', 'Calculators'\], \['shops', 'Shop Alarms'\], \['silence', 'Ignore Alerts'\], \['journal', 'Journal'\], \['rooms', 'Rooms'\], \['keybinds', 'Keybinds'\], \['features', 'Features'\]/, 'tab order is incorrect');
 assert.match(companionSource, /\[4, 5\]\.includes\(Number\(room\.players_count\)\)/, 'rooms are not restricted to 4 or 5 players');
 assert.match(companionSource, /sort\(\(left, right\) => Number\(right\.players_count\) - Number\(left\.players_count\)\)/, '5-player rooms are not sorted above 4-player rooms');
 assert.match(companionSource, /Public rooms with one or two open slots\./, 'room description is incorrect');
@@ -461,7 +461,11 @@ assert.match(abilityLogSource, /return data\.numPlantsAffected != null \? `\$\{c
 assert.match(abilityLogSource, /if \(data\.eggsAffected\) return withReduction\(countLabel\(payloadItemCount\(data\.eggsAffected\), 'egg'\), data\.secondsReduced\);/, 'the egg growth boost hides the time it saved, or still lists every egg in the row');
 assert.match(abilityLogSource, /if \(data\.growSlotsAffected\) return withReduction\(countLabel\(payloadItemCount\(data\.growSlotsAffected\), 'plant'\), data\.secondsReduced\);/, 'the plant growth boost does not report how many plants it touched');
 // The breakdown moved to a tooltip, so the filter has to look there or those names become unfindable.
-assert.match(abilityLogSource, /const detail = procOutcomeTooltip\(log\.ability, log\.data\);[\s\S]*\$\{detail\}`\.toLowerCase\(\)\.includes\(search\)/, 'ability log search cannot reach detail held in a tooltip');
+assert.match(abilityLogSource, /procOutcome\(log\.ability, log\.data\)} \$\{procOutcomeTooltip\(log\.ability, log\.data\)}`\.toLowerCase\(\)/, 'ability log search cannot reach detail held in a tooltip');
+// The history runs to hundreds of rows per ability, so neither the filter nor the search may do
+// per-row work that scales with the filter options or rebuild formatted text on every keystroke.
+assert.match(abilityLogSource, /const visible = visibleAbilities\(selectedFilters\);/, 'the ability filter is resolved per row again');
+assert.match(abilityLogSource, /const searchTextCache = new WeakMap<AbilityLogRow, string>\(\);/, 'ability log search text is rebuilt for every keystroke');
 const abilityFilterEvents = abilityLogSource.slice(abilityLogSource.indexOf("const abilityFilter = main.querySelector('[data-ability-filter]')"));
 assert.doesNotMatch(abilityFilterEvents, /renderPanel\(\)/, 'ability filter selection closes the dropdown by redrawing the panel');
 assert.match(companionSource, /panelRefreshTimer = setTimeout[\s\S]*panelRefreshBlocked\(panel\)/, 'queued panel refresh does not re-check the open ability dropdown');

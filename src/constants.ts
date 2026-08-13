@@ -10,7 +10,9 @@ export const OVERVIEW_SHORTCUT_KEY = 'gardenCompanion.overviewShortcut.v1';
 export const UPDATE_URL = 'https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js';
 
 // History is kept per exact ability rather than overall so a chatty ability cannot crowd out a rare one.
-export const LOG_PER_ABILITY = 400;
+// A hundred each still covers every ability many times over, and keeps the tab quick to filter: the
+// search and the redraw both walk the whole history, not just the rows on screen.
+export const LOG_PER_ABILITY = 100;
 export const LOG_VISIBLE_ROWS = 400;
 
 export const ABILITY_CATALOG = __ABILITY_CATALOG__;

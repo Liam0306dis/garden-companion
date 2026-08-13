@@ -95,7 +95,7 @@
   var LUNAR_MINIMISED_KEY = "gardenCompanion.lunarMinimised.v1";
   var OVERVIEW_SHORTCUT_KEY = "gardenCompanion.overviewShortcut.v1";
   var UPDATE_URL = "https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js";
-  var LOG_PER_ABILITY = 400;
+  var LOG_PER_ABILITY = 100;
   var LOG_VISIBLE_ROWS = 400;
   var ABILITY_CATALOG = define_ABILITY_CATALOG_default;
   var ABILITY_DETAILS = define_ABILITY_DETAILS_default;
@@ -2534,16 +2534,27 @@ ${groups}
       iso: value.toISOString()
     };
   }
+  function visibleAbilities(selectedFilters) {
+    const visible = /* @__PURE__ */ new Set();
+    for (const option of ABILITY_FILTER_OPTIONS) {
+      if (!selectedFilters.has(option.key)) continue;
+      for (const ability of option.abilities) if (ABILITY_SET.has(ability)) visible.add(ability);
+    }
+    return visible;
+  }
+  var searchTextCache = /* @__PURE__ */ new WeakMap();
+  function searchText(log) {
+    const cached = searchTextCache.get(log);
+    if (cached !== void 0) return cached;
+    const name = ABILITY_DETAILS[log.ability]?.name || humanize(log.ability);
+    const text = `${log.pet} ${name} ${procOutcome(log.ability, log.data)} ${procOutcomeTooltip(log.ability, log.data)}`.toLowerCase();
+    searchTextCache.set(log, text);
+    return text;
+  }
   function renderAbilityLogRows(selectedFilters) {
-    const isVisibleAbility = (ability) => ABILITY_SET.has(ability) && ABILITY_FILTER_OPTIONS.some((option) => selectedFilters.has(option.key) && option.abilities.includes(ability));
+    const visible = visibleAbilities(selectedFilters);
     const search = abilityLogSearch.trim().toLowerCase();
-    const matched = state.abilityLog.filter((log) => {
-      if (!isVisibleAbility(log.ability)) return false;
-      if (!search) return true;
-      const name = ABILITY_DETAILS[log.ability]?.name || humanize(log.ability);
-      const detail = procOutcomeTooltip(log.ability, log.data);
-      return `${log.pet} ${name} ${procOutcome(log.ability, log.data)} ${detail}`.toLowerCase().includes(search);
-    });
+    const matched = state.abilityLog.filter((log) => visible.has(log.ability) && (!search || searchText(log).includes(search)));
     const recent = matched.slice(0, LOG_VISIBLE_ROWS);
     if (!recent.length) return search ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
     const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : "";
@@ -4353,7 +4364,7 @@ ${rows}</div>`;
         if (nextMain) nextMain.scrollTop = scrollTop;
       }, 1e3);
     }
-    const TABS = [["abilities", "Active Pets"], ["abilityLog", "Pet Abilities"], ["teams", "Pet Teams"], ["petFood", "Pet Food"], ["calculators", "Calculators"], ["shops", "Shop Alarms"], ["silence", "Ignore Alerts"], ["journal", "Journal"], ["rooms", "Rooms"], ["keybinds", "Keybinds"], ["protection", "Crop Protection"], ["features", "Features"]];
+    const TABS = [["abilities", "Active Pets"], ["abilityLog", "Pet Abilities"], ["teams", "Pet Teams"], ["petFood", "Pet Food"], ["protection", "Crop Protection"], ["calculators", "Calculators"], ["shops", "Shop Alarms"], ["silence", "Ignore Alerts"], ["journal", "Journal"], ["rooms", "Rooms"], ["keybinds", "Keybinds"], ["features", "Features"]];
     function renderPanel() {
       cancelKeybindCapture?.();
       const panel3 = document.getElementById("gc-panel");
