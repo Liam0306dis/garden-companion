@@ -79,6 +79,7 @@ const petsSource = await readSource('src', 'pets.ts');
 const dragSource = await readSource('src', 'draggable.ts');
 const protectionSource = await readSource('src', 'features', 'crop-protection.ts');
 const configSource = await readSource('src', 'config.ts');
+const autoStoreSource = await readSource('src', 'features', 'auto-store.ts');
 const estimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
 const constantsSource = await readSource('src', 'constants.ts');
 const mutationValueSource = await readSource('src', 'mutation-value.ts');
@@ -1157,3 +1158,23 @@ assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = essentialRequ
 assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = deferredRequest\(\);/, 'the deferred decode does not use the request set the cache key was built from');
 
 console.log('Static checks passed');
+// Auto-store only tops up a stack the storage already holds, and the silo and shed key their
+// contents by species and decor id rather than by an item id.
+assert.match(autoStoreSource, /if \(!key \|\| !stored\.has\(key\)\) continue;/, 'auto-store files items the storage has never held');
+assert.match(autoStoreSource, /storageId: 'SeedSilo', itemType: 'Seed', key: item => item\.species/, 'the seed silo rule no longer keys on species');
+assert.match(autoStoreSource, /storageId: 'DecorShed', itemType: 'Decor', key: item => item\.decorId/, 'the decor shed rule no longer keys on decor id');
+assert.match(autoStoreSource, /send\(\{ type: 'PutItemInStorage', itemId: next\.key, storageId: next\.rule\.storageId \}\)/, 'auto-store no longer sends the command the game sends');
+// A whole inventory of eligible items must not leave as one burst, and the toggle can be turned
+// off while the queue is still draining.
+assert.match(autoStoreSource, /drainTimer = window\.setTimeout\(\(\) => \{ drainTimer = 0; drain\(\); \}, SEND_INTERVAL_MS\);/, 'auto-store sends every eligible move in one tick');
+assert.match(autoStoreSource, /if \(next\.rule\.enabled\(\)\) \{/, 'a draining queue ignores the toggle being turned off');
+assert.match(autoStoreSource, /if \(sentAt\.has\(pending\) \|\| queued\.has\(pending\)\) continue;/, 'auto-store resends a move before the server has echoed it');
+// The grace has to start when the move leaves, not when it joins the queue: a queue longer than the
+// grace would otherwise let the same key be queued twice.
+assert.match(autoStoreSource, /send\(\{ type: 'PutItemInStorage', itemId: next\.key, storageId: next\.rule\.storageId \}\);\s*sentAt\.set\(next\.pending, Date\.now\(\)\);/, 'the resend grace starts before the move is sent');
+// Patches arrive whatever the player is doing, so an item the server will not accept must not be
+// sent again every few seconds forever.
+assert.match(autoStoreSource, /if \(signature === lastQueuedSignature\) return;/, 'auto-store retries a stuck item for as long as the tab is open');
+assert.match(autoStoreSource, /if \(queuedAny\) lastQueuedSignature = signature;/, 'a flush that queued nothing still blocks the next one');
+assert.match(companionSource, /autoStoreSeeds: false,\s*autoStoreDecor: false,/, 'auto-store is on by default');
+assert.match(companionSource, /processAutoStore\(\);/, 'auto-store never runs');

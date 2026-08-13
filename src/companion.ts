@@ -35,6 +35,7 @@ import {
   setAbilityFilterInteracting,
   setAbilityFilterMenuOpen,
 } from './features/ability-log.js';
+import { processAutoStore } from './features/auto-store.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
@@ -278,6 +279,7 @@ export function initCompanion(): void {
       refreshCompletedTeamMove();
       processActivities();
       processShops();
+      processAutoStore();
       renderPetFood();
       refreshTeamActiveMarkers();
       refreshOpenPanel();
@@ -713,6 +715,8 @@ export function initCompanion(): void {
       ['turtleTimer', 'Crop and egg estimates', 'Values and pet-adjusted timing'],
       ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
+      ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
+      ['autoStoreDecor', 'Auto-store decor', 'Move decor into the Decor Shed when it already holds that item'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
     ];

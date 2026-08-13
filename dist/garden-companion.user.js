@@ -421,6 +421,8 @@
     turtleTimer: true,
     petFood: true,
     instantHarvest: false,
+    autoStoreSeeds: false,
+    autoStoreDecor: false,
     cropProtection: false,
     protectMaxSize: false,
     protectedMutations: [],
@@ -2685,6 +2687,86 @@ ${groups}
     });
   }
 
+  // src/features/auto-store.ts
+  var RULES = [
+    { storageId: "SeedSilo", itemType: "Seed", key: (item) => item.species ?? "", enabled: () => feature("autoStoreSeeds") },
+    { storageId: "DecorShed", itemType: "Decor", key: (item) => item.decorId ?? "", enabled: () => feature("autoStoreDecor") }
+  ];
+  var DEBOUNCE_MS = 1e3;
+  var RESEND_GRACE_MS = 5e3;
+  var SEND_INTERVAL_MS = 200;
+  var flushTimer = 0;
+  var drainTimer = 0;
+  var queue = [];
+  var queued = /* @__PURE__ */ new Set();
+  var sentAt = /* @__PURE__ */ new Map();
+  var lastQueuedSignature = "";
+  function inventoryItems() {
+    return state.slot?.data?.inventory?.items ?? [];
+  }
+  function storedKeys(rule) {
+    const storage = (state.slot?.data?.inventory?.storages ?? []).find((entry) => entry.decorId === rule.storageId);
+    const items = storage?.items ?? [];
+    const keys = /* @__PURE__ */ new Set();
+    for (const item of items) {
+      const key = rule.key(item);
+      if (key) keys.add(key);
+    }
+    return keys;
+  }
+  function inventorySignature() {
+    return inventoryItems().filter((item) => RULES.some((rule) => rule.itemType === item.itemType)).map((item) => `${item.itemType}:${item.species ?? item.decorId ?? ""}:${item.quantity ?? ""}`).join("|");
+  }
+  function flush() {
+    const now = Date.now();
+    for (const [key, at] of sentAt) if (now - at > RESEND_GRACE_MS) sentAt.delete(key);
+    const signature = inventorySignature();
+    if (signature === lastQueuedSignature) return;
+    let queuedAny = false;
+    for (const rule of RULES) {
+      if (!rule.enabled()) continue;
+      const stored = storedKeys(rule);
+      if (!stored.size) continue;
+      for (const item of inventoryItems()) {
+        if (item.itemType !== rule.itemType) continue;
+        const key = rule.key(item);
+        if (!key || !stored.has(key)) continue;
+        const pending = `${rule.storageId}:${key}`;
+        if (sentAt.has(pending) || queued.has(pending)) continue;
+        queued.add(pending);
+        queue.push({ rule, key, pending });
+        queuedAny = true;
+      }
+    }
+    if (queuedAny) lastQueuedSignature = signature;
+    drain();
+  }
+  function drain() {
+    if (drainTimer || !queue.length) return;
+    const next = queue.shift();
+    queued.delete(next.pending);
+    if (next.rule.enabled()) {
+      try {
+        send({ type: "PutItemInStorage", itemId: next.key, storageId: next.rule.storageId });
+        sentAt.set(next.pending, Date.now());
+      } catch {
+      }
+    }
+    if (!queue.length) return;
+    drainTimer = window.setTimeout(() => {
+      drainTimer = 0;
+      drain();
+    }, SEND_INTERVAL_MS);
+  }
+  function processAutoStore() {
+    if (!RULES.some((rule) => rule.enabled())) return;
+    if (flushTimer) return;
+    flushTimer = window.setTimeout(() => {
+      flushTimer = 0;
+      flush();
+    }, DEBOUNCE_MS);
+  }
+
   // src/features/journal.ts
   var KNOWN_PRODUCE_VARIANTS = [
     "Normal",
@@ -4061,6 +4143,7 @@ ${rows}</div>`;
         refreshCompletedTeamMove();
         processActivities();
         processShops();
+        processAutoStore();
         renderPetFood();
         refreshTeamActiveMarkers();
         refreshOpenPanel();
@@ -4455,6 +4538,8 @@ ${rows}</div>`;
         ["turtleTimer", "Crop and egg estimates", "Values and pet-adjusted timing"],
         ["petFood", "Pet food panel", "Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab"],
         ["instantHarvest", "Instant harvest key", "Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on"],
+        ["autoStoreSeeds", "Auto-store seeds", "Move seeds into the Seed Silo when it already holds that species"],
+        ["autoStoreDecor", "Auto-store decor", "Move decor into the Decor Shed when it already holds that item"],
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
@@ -7289,11 +7374,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const tiers = RARITY_ORDER2.map((rarity) => {
         const rule = RARITIES[rarity];
         const fill = rule.fill * FIGHT_PACE;
-        const drain = rule.drain * FIGHT_PACE;
-        const breakEven = Math.round(drain / (fill + drain) * 100);
+        const drain2 = rule.drain * FIGHT_PACE;
+        const breakEven = Math.round(drain2 / (fill + drain2) * 100);
         const perfect = ((1 - START_PROGRESS) / fill).toFixed(1);
         const buttons = FISH.filter((fish) => fish.rarity === rarity).map((fish) => `<button class="gf-bench-fish" data-fight="${escapeHtml(fish.id)}">${escapeHtml(fish.name)}${fish.weather ? `<small>${escapeHtml(weatherLabel(fish.weather))}</small>` : ""}</button>`).join("");
-        return `<div class="gf-tier" style="color:${rule.colour}"><span>${rule.label}</span><span>hold ${breakEven}% to break even</span></div><div class="gf-bench-stats"><span>Zone <b>${Math.round(rule.zone * 100)}%</b></span><span>Fish <b>${fishTravelSpeed(rule.speed).toFixed(2)}/s</b></span><span>Lift <b>${((ZONE_LIFT - ZONE_GRAVITY) / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Drop <b>${(ZONE_GRAVITY / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Fill <b>${fill.toFixed(3)}/s</b></span><span>Drain <b>${drain.toFixed(3)}/s</b></span><span>Flawless <b>${perfect}s</b></span></div><div class="gf-bench-grid">${buttons}</div>`;
+        return `<div class="gf-tier" style="color:${rule.colour}"><span>${rule.label}</span><span>hold ${breakEven}% to break even</span></div><div class="gf-bench-stats"><span>Zone <b>${Math.round(rule.zone * 100)}%</b></span><span>Fish <b>${fishTravelSpeed(rule.speed).toFixed(2)}/s</b></span><span>Lift <b>${((ZONE_LIFT - ZONE_GRAVITY) / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Drop <b>${(ZONE_GRAVITY / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Fill <b>${fill.toFixed(3)}/s</b></span><span>Drain <b>${drain2.toFixed(3)}/s</b></span><span>Flawless <b>${perfect}s</b></span></div><div class="gf-bench-grid">${buttons}</div>`;
       }).join("");
       return `<div class="gf-body"><p class="gf-note">Pick any fish to fight it straight away, skipping the cast and its weather. Bench fights are never added to your record. Pace ${FIGHT_PACE}, start ${START_PROGRESS}, floor ${LOSE_FLOOR}, limit ${REEL_LIMIT / 1e3}s.</p>${tiers}<div class="gf-reset"><button data-view="bench">Back to the pond</button></div></div>`;
     }
@@ -7585,7 +7670,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let wave = 0;
     let waveTimer = FIRST_WAVE_DELAY;
     let skyTimer = SKY_SUN_INTERVAL;
-    let queued = [];
+    let queued2 = [];
     let spawnTimer = 0;
     let selected = null;
     let shovel = false;
@@ -7678,7 +7763,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       wave = 0;
       waveTimer = FIRST_WAVE_DELAY;
       skyTimer = SKY_SUN_INTERVAL;
-      queued = [];
+      queued2 = [];
       spawnTimer = 0;
       over = false;
       running = true;
@@ -7770,7 +7855,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function startWave() {
       wave++;
       const count = Math.min(24, 2 + Math.floor(wave * 1.35));
-      queued = Array.from({ length: count }, () => weightedPest(wave));
+      queued2 = Array.from({ length: count }, () => weightedPest(wave));
       spawnTimer = 0;
       status = `Wave ${wave} incoming.`;
       renderChrome();
@@ -7804,15 +7889,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       if (!wavesHeld) {
         waveTimer -= delta;
-        if (waveTimer <= 0 && !queued.length) {
+        if (waveTimer <= 0 && !queued2.length) {
           startWave();
           waveTimer = WAVE_INTERVAL;
         }
       }
-      if (queued.length) {
+      if (queued2.length) {
         spawnTimer -= delta;
         if (spawnTimer <= 0) {
-          spawnPest(queued.shift());
+          spawnPest(queued2.shift());
           spawnTimer = Math.max(0.5, 2.4 - wave * 0.08);
         }
       }
@@ -8041,7 +8126,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const statusNode = host.querySelector("[data-status]");
       if (sunNode) sunNode.textContent = String(sun);
       if (waveNode) {
-        waveNode.textContent = over ? `Overrun on wave ${wave}` : wave === 0 ? `First wave in ${Math.max(0, Math.ceil(waveTimer))}s` : queued.length ? `Wave ${wave} - ${queued.length} left to arrive` : `Wave ${wave} - next in ${Math.max(0, Math.ceil(waveTimer))}s`;
+        waveNode.textContent = over ? `Overrun on wave ${wave}` : wave === 0 ? `First wave in ${Math.max(0, Math.ceil(waveTimer))}s` : queued2.length ? `Wave ${wave} - ${queued2.length} left to arrive` : `Wave ${wave} - next in ${Math.max(0, Math.ceil(waveTimer))}s`;
       }
       if (statusNode) statusNode.textContent = status;
       for (const button of host.querySelectorAll("[data-seed]")) {
@@ -8108,7 +8193,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       card.querySelector("[data-clear-pests]").onclick = () => {
         for (const pest of pests) removePest(pest);
         pests = [];
-        queued = [];
+        queued2 = [];
         status = "Cleared every pest.";
         renderStatus();
       };

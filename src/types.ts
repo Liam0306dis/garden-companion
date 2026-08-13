@@ -219,6 +219,8 @@ export interface CompanionConfig {
   turtleTimer: boolean;
   petFood: boolean;
   instantHarvest: boolean;
+  autoStoreSeeds: boolean;
+  autoStoreDecor: boolean;
   cropProtection: boolean;
   protectMaxSize: boolean;
   protectedMutations: string[];
