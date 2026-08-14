@@ -36,6 +36,7 @@ import {
   setAbilityFilterMenuOpen,
 } from './features/ability-log.js';
 import { processAutoStore } from './features/auto-store.js';
+import { noteWeatherChange } from './features/weather-timer.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
@@ -280,6 +281,7 @@ export function initCompanion(): void {
       processActivities();
       processShops();
       processAutoStore();
+      noteWeatherChange();
       renderPetFood();
       refreshTeamActiveMarkers();
       refreshOpenPanel();

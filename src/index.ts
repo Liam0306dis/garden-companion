@@ -10,6 +10,7 @@ import { initPlanterPotSelection } from './features/planter-pot-selection.js';
 import { initCelestialLayoutGuide } from './features/celestial-layout-guide.js';
 import { initCropCleanserHelper } from './features/crop-cleanser-helper.js';
 import { initPreserveAll } from './features/preserve-all.js';
+import { initWeatherTimer } from './features/weather-timer.js';
 import { installPetSpriteLoader } from './pet-sprites-injector.js';
 import type { CompanionPage } from './types.js';
 
@@ -29,3 +30,4 @@ initGardenPlanner();
 initFishing();
 initGardenDefence();
 initPreserveAll();
+initWeatherTimer();

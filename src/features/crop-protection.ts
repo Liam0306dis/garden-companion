@@ -145,7 +145,7 @@ export function renderCropProtection(): string {
       return `<label class="gc-check" data-filter-text="${escapeHtml(`${plantName(id)} ${id}`.toLowerCase())}"><input type="checkbox" data-protect-species="${escapeHtml(id)}" ${species[id] === true ? 'checked' : ''}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small>${where}</small></span></label>`;
     }).join('');
   return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Gold and Rainbow are left out on purpose - the game already asks you to hold the button for those. Crop Protection and the instant harvest key cannot both be on.</p>
-<div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Drop harvest commands aimed at a protected crop</small></span><input type="checkbox" data-protect-enabled ${on ? 'checked' : ''}><i></i></label></div>
+<div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Block harvest commands aimed at a protected crop</small></span><input type="checkbox" data-protect-enabled ${on ? 'checked' : ''}><i></i></label></div>
 <section class="gc-card"><div class="gc-row"><h3>Mutations and size</h3></div><p class="gc-note">A crop matching any of these stays protected even when its species is switched off below.</p><div class="gc-check-grid">${mutationRows}</div></section>
 <section class="gc-card"><div class="gc-row"><h3>Species</h3></div><input class="gc-search" data-protect-search placeholder="Search plants"><div class="gc-check-grid gc-filter-list">${speciesRows}</div></section>`;
 }

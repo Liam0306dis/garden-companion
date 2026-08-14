@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.04
+// @version      0.8.05
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1937,7 +1937,7 @@ ${groups}
       return `<label class="gc-check" data-filter-text="${escapeHtml(`${plantName(id)} ${id}`.toLowerCase())}"><input type="checkbox" data-protect-species="${escapeHtml(id)}" ${species[id] === true ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small>${where}</small></span></label>`;
     }).join("");
     return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Gold and Rainbow are left out on purpose - the game already asks you to hold the button for those. Crop Protection and the instant harvest key cannot both be on.</p>
-<div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Drop harvest commands aimed at a protected crop</small></span><input type="checkbox" data-protect-enabled ${on ? "checked" : ""}><i></i></label></div>
+<div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Block harvest commands aimed at a protected crop</small></span><input type="checkbox" data-protect-enabled ${on ? "checked" : ""}><i></i></label></div>
 <section class="gc-card"><div class="gc-row"><h3>Mutations and size</h3></div><p class="gc-note">A crop matching any of these stays protected even when its species is switched off below.</p><div class="gc-check-grid">${mutationRows}</div></section>
 <section class="gc-card"><div class="gc-row"><h3>Species</h3></div><input class="gc-search" data-protect-search placeholder="Search plants"><div class="gc-check-grid gc-filter-list">${speciesRows}</div></section>`;
   }
@@ -2604,8 +2604,8 @@ ${groups}
       const when = procDateParts(log.at);
       const pet = triggeringPet(log, owners);
       const sprite = logSprite(pet);
-      const tooltip = procOutcomeTooltip(log.ability, log.data);
-      return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip ? ` title="${escapeHtml(tooltip)}" data-detail` : ""}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
+      const tooltip2 = procOutcomeTooltip(log.ability, log.data);
+      return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip2 ? ` title="${escapeHtml(tooltip2)}" data-detail` : ""}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
     }).join("") + more;
   }
   function refreshAbilityFilterUi(main) {
@@ -2767,6 +2767,189 @@ ${groups}
       flushTimer = 0;
       flush();
     }, DEBOUNCE_MS);
+  }
+
+  // src/features/weather-timer.ts
+  var TOOLTIP_ID = "gc-weather-timer";
+  var STYLE_ID = "gc-weather-timer-style";
+  var WEATHER_MS = 10 * 60 * 1e3;
+  var DROP_PX = 8;
+  var WEATHER_NAMES = {
+    Rain: "Rain",
+    Frost: "Snow",
+    Thunderstorm: "Thunderstorm",
+    Dawn: "Dawn",
+    AmberMoon: "Amber Moon"
+  };
+  var seenWeather;
+  var seenAt = 0;
+  var boundaryEnd = 0;
+  var lastBoundaryAt = 0;
+  function noteWeatherChange() {
+    const now = Date.now();
+    const weather = currentWeather();
+    const boundary = now + nextBoundaryMs(now);
+    if (weather !== seenWeather) {
+      const first = seenWeather === void 0;
+      seenWeather = weather;
+      seenAt = first ? 0 : now;
+      boundaryEnd = 0;
+      lastBoundaryAt = boundary;
+      return;
+    }
+    if (lastBoundaryAt && boundary > lastBoundaryAt + 1e3) boundaryEnd = boundary;
+    lastBoundaryAt = boundary;
+  }
+  var pointer = { x: -1, y: -1 };
+  function currentWeather() {
+    return state.game?.weather || "";
+  }
+  function weatherLabel() {
+    const weather = currentWeather();
+    return WEATHER_NAMES[weather] ?? humanize(weather);
+  }
+  var SLOT_MS = 5 * 60 * 1e3;
+  var DAY_MS = 24 * 60 * 60 * 1e3;
+  var LUNAR_SLOTS = [0, 48, 96, 144, 192, 240];
+  var LUNAR_WEATHER = /* @__PURE__ */ new Set(["Dawn", "AmberMoon"]);
+  var WEATHER_SHOPS = { Frost: "snow", Thunderstorm: "thunder", Dawn: "dawn" };
+  function shopSecondsLeft(weather) {
+    const shop = WEATHER_SHOPS[weather];
+    const seconds = shop ? Number(state.game?.shops?.[shop]?.secondsUntilRestock) : 0;
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  }
+  function lunarStart(now) {
+    const midnight = now - now % DAY_MS;
+    for (const slot of [...LUNAR_SLOTS].reverse()) {
+      const start = midnight + slot * SLOT_MS;
+      if (start <= now && now - start < WEATHER_MS) return start;
+    }
+    return null;
+  }
+  function nextBoundaryMs(now) {
+    const seconds = Number(state.game?.shops?.seed?.secondsUntilRestock);
+    if (Number.isFinite(seconds) && seconds > 0 && seconds <= SLOT_MS / 1e3) return seconds * 1e3;
+    return SLOT_MS - now % SLOT_MS;
+  }
+  function remaining(now) {
+    const weather = currentWeather();
+    const shopLeft = shopSecondsLeft(weather) * 1e3;
+    if (shopLeft) return { low: shopLeft, high: shopLeft };
+    if (seenAt && now - seenAt < WEATHER_MS) {
+      const left = WEATHER_MS - (now - seenAt);
+      return { low: left, high: left };
+    }
+    if (boundaryEnd > now) return { low: boundaryEnd - now, high: boundaryEnd - now };
+    if (LUNAR_WEATHER.has(weather)) {
+      const start = lunarStart(now);
+      if (start !== null) {
+        const left = WEATHER_MS - (now - start);
+        return { low: left, high: left };
+      }
+    }
+    const toBoundary = nextBoundaryMs(now);
+    return { low: toBoundary, high: toBoundary + SLOT_MS };
+  }
+  function tooltipRect() {
+    const surface = pixiSurface();
+    if (!surface) return null;
+    const popup = findVisiblePixiNodes(surface, ["TooltipPopup"]).get("TooltipPopup");
+    if (!popup || typeof popup.getBounds !== "function") return null;
+    try {
+      const bounds = popup.getBounds();
+      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0) return null;
+      return {
+        left: surface.toScreenX(bounds.x),
+        right: surface.toScreenX(bounds.x + bounds.width),
+        bottom: surface.toScreenY(bounds.y + bounds.height)
+      };
+    } catch {
+      return null;
+    }
+  }
+  function buttonRect() {
+    const surface = pixiSurface();
+    const rail = quinoaEngine()?.getSystem?.("rightSideRail");
+    const container = rail?.weatherButton?.viewContainer;
+    if (!surface || !container || container.destroyed || typeof container.getBounds !== "function") return null;
+    try {
+      const bounds = container.getBounds();
+      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0) return null;
+      return {
+        left: surface.toScreenX(bounds.x),
+        right: surface.toScreenX(bounds.x + bounds.width),
+        top: surface.toScreenY(bounds.y),
+        bottom: surface.toScreenY(bounds.y + bounds.height)
+      };
+    } catch {
+      return null;
+    }
+  }
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `
+#${TOOLTIP_ID} { position:fixed;z-index:99993;pointer-events:none;transform:translateX(-50%);
+  padding:6px 10px;border-radius:9px;border:1px solid rgba(125,211,252,.16);
+  background:linear-gradient(145deg,#10151a,#090b0f 72%);box-shadow:0 12px 32px rgba(0,0,0,.6);
+  color:#e4e4e7;font:600 12px/1.25 system-ui,sans-serif;white-space:nowrap; }
+#${TOOLTIP_ID}[hidden] { display:none; }
+#${TOOLTIP_ID} b { color:#a9efff;font-weight:700; }
+#${TOOLTIP_ID} small { display:block;margin-top:2px;color:var(--gc-muted,#a1a1aa);font-size:10px;font-weight:600; }`;
+    document.head.appendChild(style);
+  }
+  function tooltip() {
+    ensureStyle();
+    let root = document.getElementById(TOOLTIP_ID);
+    if (!root) {
+      root = document.createElement("div");
+      root.id = TOOLTIP_ID;
+      root.hidden = true;
+      document.body.appendChild(root);
+    }
+    return root;
+  }
+  function render() {
+    const now = Date.now();
+    const root = document.getElementById(TOOLTIP_ID);
+    const rect = buttonRect();
+    const hovering = rect && pointer.x >= rect.left && pointer.x <= rect.right && pointer.y >= rect.top && pointer.y <= rect.bottom;
+    if (!rect || !hovering || !currentWeather()) {
+      if (root) root.hidden = true;
+      return;
+    }
+    const element = tooltip();
+    const { low, high } = remaining(now);
+    const left = low === high ? `<b>${escapeHtml(formatDuration(low))}</b> left` : `<b>${escapeHtml(formatDuration(low))} or ${escapeHtml(formatDuration(high))}</b> left<small>started before you arrived</small>`;
+    element.innerHTML = `${escapeHtml(weatherLabel())} ${left}`;
+    element.hidden = false;
+    const under = tooltipRect() ?? rect;
+    element.style.left = `${Math.round((under.left + under.right) / 2)}px`;
+    element.style.top = `${Math.round(under.bottom + DROP_PX)}px`;
+  }
+  function initWeatherTimer() {
+    let ticking = 0;
+    const stopTicking = () => {
+      if (ticking) {
+        clearInterval(ticking);
+        ticking = 0;
+      }
+    };
+    const update = () => {
+      render();
+      const showing = !document.getElementById(TOOLTIP_ID)?.hidden;
+      if (showing && !ticking) ticking = window.setInterval(update, 1e3);
+      else if (!showing) stopTicking();
+    };
+    page.addEventListener("pointermove", (event) => {
+      pointer = { x: event.clientX, y: event.clientY };
+      update();
+    }, true);
+    page.addEventListener("pointerleave", () => {
+      pointer = { x: -1, y: -1 };
+      update();
+    }, true);
   }
 
   // src/features/journal.ts
@@ -3184,7 +3367,7 @@ ${rows}</div>`;
   }
 
   // src/features/pet-swap-toss.ts
-  var STYLE_ID = "gc-pet-toss-style";
+  var STYLE_ID2 = "gc-pet-toss-style";
   var LAYER_ID = "gc-pet-toss-layer";
   var TOSS_TIMEOUT_MS = 2400;
   var SETTLE_MS = 700;
@@ -3316,10 +3499,10 @@ ${rows}</div>`;
   function activePetIds() {
     return (state.slot?.data?.petSlots ?? []).map((pet) => pet.id).sort().join(",");
   }
-  function ensureStyle() {
-    if (document.getElementById(STYLE_ID)) return;
+  function ensureStyle2() {
+    if (document.getElementById(STYLE_ID2)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID;
+    style.id = STYLE_ID2;
     style.textContent = `
 #${LAYER_ID} { position:fixed;inset:0;z-index:99994;pointer-events:none; }
 #${LAYER_ID} .gc-toss-egg { position:absolute;left:0;top:0;width:38px;height:38px;margin:-19px 0 0 -19px;object-fit:contain;
@@ -3338,7 +3521,7 @@ ${rows}</div>`;
     document.head.appendChild(style);
   }
   function layer() {
-    ensureStyle();
+    ensureStyle2();
     let root = document.getElementById(LAYER_ID);
     if (!root) {
       root = document.createElement("div");
@@ -4122,8 +4305,8 @@ ${rows}</div>`;
     for (const [shop, data] of Object.entries(state.game?.shops || {})) {
       for (const item of Array.isArray(data?.inventory) ? data.inventory : []) {
         const id = itemId(item);
-        const remaining = Math.max(0, Number(item.initialStock || 0) - purchasedCount(shop, id));
-        if (id && remaining > 0 && !(shop === "tool" && EXCLUDED_TOOL_ALERTS.has(id))) output.push({ shop, id, item, remaining });
+        const remaining2 = Math.max(0, Number(item.initialStock || 0) - purchasedCount(shop, id));
+        if (id && remaining2 > 0 && !(shop === "tool" && EXCLUDED_TOOL_ALERTS.has(id))) output.push({ shop, id, item, remaining: remaining2 });
       }
     }
     return output;
@@ -4465,6 +4648,7 @@ ${rows}</div>`;
         processActivities();
         processShops();
         processAutoStore();
+        noteWeatherChange();
         renderPetFood();
         refreshTeamActiveMarkers();
         refreshOpenPanel();
@@ -4530,12 +4714,12 @@ ${rows}</div>`;
         if (baseChance != null) {
           const tick = details?.trigger ? details.trigger === "continuous" : proc?.tick !== false;
           if (tick) {
-            const tickRate = 1 - strengths.reduce((remaining, strength) => remaining * Math.pow(1 - baseChance * strength / 1e4, 1 / 60), 1);
+            const tickRate = 1 - strengths.reduce((remaining2, strength) => remaining2 * Math.pow(1 - baseChance * strength / 1e4, 1 / 60), 1);
             const perMinute = (1 - Math.pow(1 - tickRate, 60)) * 100;
             const mean = tickRate > 0 ? 1 / tickRate : null;
             chance = `<div class="gc-ability-rate"><b>${Math.floor(perMinute * 100) / 100}%/min</b>${mean ? `<small>avg ~${formatEstimate(mean)}</small><small>95% within ${formatEstimate(Math.log(20) * mean)}</small>` : ""}</div>`;
           } else {
-            const combined = (1 - strengths.reduce((remaining, strength) => remaining * (1 - baseChance * strength / 1e4), 1)) * 100;
+            const combined = (1 - strengths.reduce((remaining2, strength) => remaining2 * (1 - baseChance * strength / 1e4), 1)) * 100;
             chance = `<div class="gc-ability-rate"><b>${combined.toFixed(1)}%</b><small>per trigger</small></div>`;
           }
         }
@@ -4602,12 +4786,12 @@ ${rows}</div>`;
       const mini = document.getElementById("gc-lunar-mini");
       if (!root) return;
       const shown = feature("lunarTimer") && !page.__gardenCompanionCinematicFromGame?.();
-      const remaining = formatDuration(nextLunarAt() - Date.now());
+      const remaining2 = formatDuration(nextLunarAt() - Date.now());
       root.hidden = !shown || lunarMinimised;
-      root.querySelector("strong").textContent = remaining;
+      root.querySelector("strong").textContent = remaining2;
       if (mini) {
         mini.hidden = !shown || !lunarMinimised;
-        mini.title = `Next lunar event in ${remaining}`;
+        mini.title = `Next lunar event in ${remaining2}`;
       }
     }
     let socketStatus = "connecting";
@@ -5037,7 +5221,7 @@ ${rows}</div>`;
 
   // src/features/garden-overview.ts
   var FILTER_KEY = "gardenCompanion.overviewSpecies.v1";
-  var STYLE_ID2 = "gc-overview-style";
+  var STYLE_ID3 = "gc-overview-style";
   var PANEL_ID = "gc-overview-panel";
   var BUTTON_ID = "gc-overview-button";
   var MUTATION_KEY = "gardenCompanion.overviewMutations.v2";
@@ -5564,9 +5748,9 @@ ${rows}</div>`;
       const abilities = Array.isArray(ability) ? ability : [ability];
       const pets = activePets2.filter((pet) => pet.hunger > 0 && pet.abilities?.some((name) => abilities.includes(name)));
       if (!pets.length) return;
-      const combinedTickRate = 1 - pets.reduce((remaining, pet) => {
+      const combinedTickRate = 1 - pets.reduce((remaining2, pet) => {
         const chancePerMinute = chance * petStrength2(pet) / 100;
-        return remaining * (1 - (1 - Math.pow(1 - chancePerMinute / 100, 1 / 60)));
+        return remaining2 * (1 - (1 - Math.pow(1 - chancePerMinute / 100, 1 / 60)));
       }, 1);
       if (combinedTickRate <= 0) return;
       const meanSeconds = 1 / combinedTickRate;
@@ -5604,9 +5788,9 @@ ${rows}</div>`;
     return result;
   }
   function injectStyles() {
-    if (document.getElementById(STYLE_ID2)) return;
+    if (document.getElementById(STYLE_ID3)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID2;
+    style.id = STYLE_ID3;
     style.textContent = `
     #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-raised,#121219);color:var(--gc-text,#e4e4e7);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
     /* Layered over the solid base rather than replacing it: this button sits on the game canvas,
@@ -5927,7 +6111,7 @@ ${rows}</div>`;
         });
       };
     }
-    function render3(force = false) {
+    function render4(force = false) {
       const panel3 = document.getElementById(PANEL_ID);
       if (!panel3 || panel3.hidden && !view.alarm) return;
       const stats = calculateStats(runtime(), getCatalog(), filter, trackedMutations, view.ignorePreserved, mutationConfig);
@@ -5960,24 +6144,24 @@ ${rows}</div>`;
       panel3.querySelector("[data-close]").onclick = close;
       panel3.querySelector("[data-config-close]")?.addEventListener("click", () => {
         configMode = null;
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-species-config]").onclick = () => {
         configMode = configMode === "species" ? null : "species";
-        render3(true);
+        render4(true);
       };
       panel3.querySelector("[data-focus-config]").onclick = () => {
         configMode = configMode === "focus" ? null : "focus";
-        render3(true);
+        render4(true);
       };
       panel3.querySelector("[data-mutation-config]").onclick = () => {
         configMode = configMode === "mutations" ? null : "mutations";
-        render3(true);
+        render4(true);
       };
       const alarmConfigButton = panel3.querySelector("[data-alarm-config]");
       if (alarmConfigButton) alarmConfigButton.onclick = () => {
         configMode = configMode === "alarms" ? null : "alarms";
-        render3(true);
+        render4(true);
       };
       const alarmButton = panel3.querySelector("[data-alarm]");
       if (alarmButton) alarmButton.onclick = () => {
@@ -5987,36 +6171,36 @@ ${rows}</div>`;
           ensureRefreshTimer();
         } else stopCompletionAlarm();
         saveView(view);
-        render3(true);
+        render4(true);
       };
       panel3.querySelector("[data-zoom]").onclick = () => {
         const values = [1, 1.25, 1.5];
         view.zoom = values[(values.indexOf(view.zoom) + 1) % values.length];
         saveView(view);
-        render3(true);
+        render4(true);
       };
       panel3.querySelector("[data-all]")?.addEventListener("click", () => {
         filter = null;
         localStorage.removeItem(FILTER_KEY);
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-none]")?.addEventListener("click", () => {
         filter = /* @__PURE__ */ new Set();
         saveFilter(filter);
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-owned]")?.addEventListener("click", () => {
         filter = new Set(filter ?? []);
         for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === "plant" && tile.species) filter.add(tile.species);
         saveFilter(filter);
-        render3(true);
+        render4(true);
       });
       panel3.querySelectorAll("[data-species-toggle]").forEach((button) => button.onclick = () => {
         const name = button.dataset.speciesToggle ?? "";
         filter = new Set(filter ?? species);
         filter.has(name) ? filter.delete(name) : filter.add(name);
         saveFilter(filter);
-        render3(true);
+        render4(true);
       });
       panel3.querySelectorAll("[data-mutation-key]").forEach((button) => button.onclick = () => {
         const key = button.dataset.mutationKey;
@@ -6026,7 +6210,7 @@ ${rows}</div>`;
         trackedMutations = selectedMutations(mutationConfig);
         saveMutationConfig(mutationConfig);
         saveView(view);
-        render3(true);
+        render4(true);
       });
       const syncAlarmTargetControls = () => {
         panel3.querySelectorAll("[data-alarm-target]").forEach((button) => {
@@ -6087,12 +6271,12 @@ ${rows}</div>`;
         selected.has(mutation) ? selected.delete(mutation) : selected.add(mutation);
         focus.mutations = [...selected];
         saveFocusControls();
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-focus-clear]")?.addEventListener("click", () => {
         focus.mutations = [];
         saveFocusControls();
-        render3(true);
+        render4(true);
       });
       const focusMaxSize = panel3.querySelector("[data-focus-max-size]");
       if (focusMaxSize) focusMaxSize.onchange = () => {
@@ -6118,14 +6302,14 @@ ${rows}</div>`;
         if (openFamilies.has(key)) openFamilies.delete(key);
         else openFamilies.add(key);
         saveOpenFamilies();
-        render3(true);
+        render4(true);
       });
       panel3.querySelectorAll("[data-collapse]").forEach((toggle3) => toggle3.onclick = () => {
         const key = toggle3.dataset.collapse;
         if (key === "mutations") view.mutationsOpen = !view.mutationsOpen;
         if (key === "plants") view.plantsOpen = !view.plantsOpen;
         saveView(view);
-        render3(true);
+        render4(true);
       });
       bindSearch(panel3.querySelector("[data-species-search]"));
       installDrag(panel3.querySelector(".go-card"), panel3.querySelector(".go-card > header"), (left, top) => {
@@ -6143,7 +6327,7 @@ ${rows}</div>`;
       if (!panel3) return;
       panel3.hidden = false;
       lastSignature2 = "";
-      render3(true);
+      render4(true);
       ensureRefreshTimer();
     }
     function close() {
@@ -6155,7 +6339,7 @@ ${rows}</div>`;
       }
     }
     function ensureRefreshTimer() {
-      if (!refreshTimer) refreshTimer = setInterval(() => render3(false), 1e3);
+      if (!refreshTimer) refreshTimer = setInterval(() => render4(false), 1e3);
     }
     function toggle2() {
       const panel3 = document.getElementById(PANEL_ID);
@@ -6920,7 +7104,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/fishing.ts
-  var STYLE_ID3 = "gc-fishing-style";
+  var STYLE_ID4 = "gc-fishing-style";
   var PANEL_ID2 = "gc-fishing-panel";
   var RECORD_KEY = "gardenCompanion.fishing.v1";
   var POSITION_KEY2 = "gardenCompanion.fishingPosition.v1";
@@ -7050,14 +7234,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function fishingLevel(xp) {
     let level = 1;
-    let remaining = Number.isFinite(xp) ? Math.max(0, xp) : 0;
+    let remaining2 = Number.isFinite(xp) ? Math.max(0, xp) : 0;
     let needed = 60;
-    while (remaining >= needed) {
-      remaining -= needed;
+    while (remaining2 >= needed) {
+      remaining2 -= needed;
       level++;
       needed = Math.round(60 * Math.pow(level, 1.35));
     }
-    return { level, current: remaining, needed };
+    return { level, current: remaining2, needed };
   }
   function weightedPick(items, weight) {
     const total = items.reduce((sum, item) => sum + weight(item), 0);
@@ -7079,7 +7263,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const tier = pool.filter((fish) => fish.rarity === rarity);
     return weightedPick(tier, (fish) => fish.weather ? WEATHER_FISH_WEIGHT : 1);
   }
-  function weatherLabel(weather) {
+  function weatherLabel2(weather) {
     if (!weather) return "Clear skies";
     return weather === "AmberMoon" ? "Amber Moon" : weather;
   }
@@ -7087,9 +7271,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return kilos >= 10 ? `${kilos.toFixed(1)} kg` : `${kilos.toFixed(2)} kg`;
   }
   function injectStyles2() {
-    if (document.getElementById(STYLE_ID3)) return;
+    if (document.getElementById(STYLE_ID4)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID3;
+    style.id = STYLE_ID4;
     style.textContent = `
     #${PANEL_ID2}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID2}[hidden]{display:none}
@@ -7417,7 +7601,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         status.textContent = message;
         status.style.color = resultColour;
       }
-      if (weatherNode) weatherNode.textContent = weatherLabel(weather());
+      if (weatherNode) weatherNode.textContent = weatherLabel2(weather());
       if (progressNode) {
         progressNode.style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
         progressNode.style.background = hooked ? RARITIES[hooked.rarity].colour : "#34d399";
@@ -7662,7 +7846,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const sections = RARITY_ORDER2.map((rarity) => {
         const rows = FISH.filter((fish) => fish.rarity === rarity).map((fish) => {
           const entry = record.fish[fish.id];
-          const gate = fish.weather ? `${weatherLabel(fish.weather)} only` : "";
+          const gate = fish.weather ? `${weatherLabel2(fish.weather)} only` : "";
           const detail = entry ? [gate, fish.note].filter(Boolean).join(" · ") : gate || "Not caught yet";
           return `<div class="gf-row" data-found="${Boolean(entry)}"><i style="background:${RARITIES[rarity].colour}"></i><span><b>${escapeHtml(fish.name)}</b><small>${escapeHtml(detail)}</small></span><em>${entry ? `${entry.count}x &middot; ${escapeHtml(formatWeight2(entry.best))}` : "&mdash;"}</em></div>`;
         }).join("");
@@ -7699,7 +7883,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const drain2 = rule.drain * FIGHT_PACE;
         const breakEven = Math.round(drain2 / (fill + drain2) * 100);
         const perfect = ((1 - START_PROGRESS) / fill).toFixed(1);
-        const buttons = FISH.filter((fish) => fish.rarity === rarity).map((fish) => `<button class="gf-bench-fish" data-fight="${escapeHtml(fish.id)}">${escapeHtml(fish.name)}${fish.weather ? `<small>${escapeHtml(weatherLabel(fish.weather))}</small>` : ""}</button>`).join("");
+        const buttons = FISH.filter((fish) => fish.rarity === rarity).map((fish) => `<button class="gf-bench-fish" data-fight="${escapeHtml(fish.id)}">${escapeHtml(fish.name)}${fish.weather ? `<small>${escapeHtml(weatherLabel2(fish.weather))}</small>` : ""}</button>`).join("");
         return `<div class="gf-tier" style="color:${rule.colour}"><span>${rule.label}</span><span>hold ${breakEven}% to break even</span></div><div class="gf-bench-stats"><span>Zone <b>${Math.round(rule.zone * 100)}%</b></span><span>Fish <b>${fishTravelSpeed(rule.speed).toFixed(2)}/s</b></span><span>Lift <b>${((ZONE_LIFT - ZONE_GRAVITY) / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Drop <b>${(ZONE_GRAVITY / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Fill <b>${fill.toFixed(3)}/s</b></span><span>Drain <b>${drain2.toFixed(3)}/s</b></span><span>Flawless <b>${perfect}s</b></span></div><div class="gf-bench-grid">${buttons}</div>`;
       }).join("");
       return `<div class="gf-body"><p class="gf-note">Pick any fish to fight it straight away, skipping the cast and its weather. Bench fights are never added to your record. Pace ${FIGHT_PACE}, start ${START_PROGRESS}, floor ${LOSE_FLOOR}, limit ${REEL_LIMIT / 1e3}s.</p>${tiers}<div class="gf-reset"><button data-view="bench">Back to the pond</button></div></div>`;
@@ -7711,7 +7895,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const item = lastCatch.item ? `<small class="gf-catch-item">Equipment found: ${escapeHtml(lastCatch.item.name)}</small>` : "";
         return `<div class="gf-catch" style="--catch-colour:${rule.colour}"><div class="gf-catch-fish">&#128031;</div><div><h3>${escapeHtml(lastCatch.fish.name)}</h3><p>${rule.label}${lastCatch.fresh ? " - New species" : ""}</p><small>${escapeHtml(formatWeight2(lastCatch.weight))} - ${escapeHtml(fightLength())}</small><div class="gf-catch-rewards">${rewards}</div>${item}</div></div>`;
       })() : "";
-      return `<div class="gf-game">${catchCard}<div class="gf-game-main"><button data-reel>${phase === "reel" ? "Hold to reel" : phase === "bite" ? "Set hook" : phase === "waiting" ? "Reel in" : "Cast line"}</button><div class="gf-game-copy"><b data-fishing-status style="color:${resultColour}">${escapeHtml(message)}</b><small data-fishing-weather>${escapeHtml(weatherLabel(weather()))}</small></div></div><div class="gf-fight"><i class="gf-fight-progress"></i><i class="gf-fight-zone"></i><i class="gf-fight-fish"></i></div></div>`;
+      return `<div class="gf-game">${catchCard}<div class="gf-game-main"><button data-reel>${phase === "reel" ? "Hold to reel" : phase === "bite" ? "Set hook" : phase === "waiting" ? "Reel in" : "Cast line"}</button><div class="gf-game-copy"><b data-fishing-status style="color:${resultColour}">${escapeHtml(message)}</b><small data-fishing-weather>${escapeHtml(weatherLabel2(weather()))}</small></div></div><div class="gf-fight"><i class="gf-fight-progress"></i><i class="gf-fight-zone"></i><i class="gf-fight-fish"></i></div></div>`;
     }
     function renderChrome() {
       const host = panel3();
@@ -8359,7 +8543,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         graphic.rect(x - barWidth / 2, top, barWidth * Math.max(0, pest.hp / pest.maxHp), barHeight).fill({ color: 16281969, alpha: 0.95 });
       }
     }
-    function render3(now) {
+    function render4(now) {
       const geometry = scene.sync();
       const entities = scene.layer("entities");
       if (!geometry || !lawn || !entities) return;
@@ -8411,7 +8595,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const delta = Math.min(0.05, gap / 1e3 || 0);
       try {
         advance(delta, now / 1e3);
-        render3(now);
+        render4(now);
         if (now - chromeAt > 250) {
           chromeAt = now;
           renderStatus();
@@ -10249,7 +10433,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     window.clearInterval(reconcileTimer);
     reconcileTimer = null;
   }
-  function render() {
+  function render2() {
     const root = panel();
     if (!root) return;
     const body = root.querySelector("[data-cleanser-body]");
@@ -10270,7 +10454,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
       selectedMutation = button.dataset.cleanserMutation || "";
       refreshSnapshot();
-      render();
+      render2();
     });
     body.querySelectorAll("[data-cleanse-row]").forEach((button) => button.onclick = () => {
       const row = rows.find((candidate) => candidate.key === button.dataset.cleanseRow);
@@ -10320,7 +10504,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     root.hidden = !root.hidden;
     if (!root.hidden) {
       refreshSnapshot();
-      render();
+      render2();
       startCountReconciliation();
     } else {
       stopCountReconciliation();
@@ -10407,14 +10591,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       run();
     };
     holdFrame = requestAnimationFrame(tick);
-    render2(true);
+    render3(true);
   }
   function cancelHold() {
     if (!holdStartedAt) return;
     holdStartedAt = 0;
     cancelAnimationFrame(holdFrame);
     paintHold(0);
-    render2(true);
+    render3(true);
   }
   function paintHold(progress) {
     const fill = panel2()?.querySelector("[data-preserve-fill]");
@@ -10441,7 +10625,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (index >= rows.length) {
         sending = false;
         toast(sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : "Nothing was left to preserve.", sent ? "success" : "error");
-        render2();
+        render3();
         return;
       }
       const row = rows[index++];
@@ -10456,7 +10640,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           return;
         }
       }
-      render2();
+      render3();
       window.setTimeout(step, SEND_INTERVAL);
     };
     step();
@@ -10471,7 +10655,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     element.style.bottom = "auto";
     element.style.transform = "none";
   }
-  function render2(force = false) {
+  function render3(force = false) {
     const root = panel2();
     const rows = eligibleSlots();
     const active = state.preservationMode && rows.length >= 2 && !page.__gardenCompanionCinematicFromGame?.();
@@ -10501,8 +10685,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     anchorAboveCard(element);
   }
   function initPreserveAll() {
-    window.setInterval(render2, 300);
-    render2();
+    window.setInterval(render3, 300);
+    render3();
   }
 
   // src/pet-sprites-injector.ts
@@ -10594,4 +10778,5 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   initFishing();
   initGardenDefence();
   initPreserveAll();
+  initWeatherTimer();
 })();
