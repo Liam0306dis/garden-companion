@@ -5,6 +5,15 @@ import { escapeHtml } from '../utils.js';
 
 let roomRows = null, roomError = '', roomLoading = false;
 
+/**
+ * The Discord activity serves the game from its own origin with no room in the path, and there is
+ * no command to move between rooms - joining is a navigation the activity cannot make. Listing
+ * rooms nobody can join would only be a row of dead buttons, so the tab says so instead.
+ */
+function inDiscordActivity(): boolean {
+  try { return location.hostname.endsWith('discordsays.com'); } catch { return false; }
+}
+
 function safeImageUrl(value: unknown): string {
   if (typeof value !== 'string' || !value.trim()) return '';
   try {
@@ -25,6 +34,9 @@ function roomAvatars(slots: Array<{ name?: string; avatar_url?: string }>): stri
 }
 
 export function renderRooms() {
+  if (inDiscordActivity()) {
+    return '<p class="gc-note">Room browsing is not available in the Discord activity: it has no way to move between rooms. Open the game in a browser to join another room.</p>';
+  }
   if (!roomRows && !roomLoading && !roomError) void reloadRooms();
   const body = roomLoading ? '<p class="gc-empty">Loading rooms...</p>' : roomError ? `<p class="gc-empty">${escapeHtml(roomError)}</p>` : (roomRows || []).map(room => {
     const slots = Array.isArray(room.user_slots) ? room.user_slots : [];

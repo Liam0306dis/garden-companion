@@ -24,13 +24,29 @@ function spritesDisabled(): boolean {
   try { return localStorage.getItem(DISABLE_KEY) === '1'; } catch { return false; }
 }
 
+/** Set by the injected source itself, so whether it ran can be checked rather than assumed. */
+const RAN_FLAG = '__gardenCompanionSpriteLoaderRan';
+
 function inject(): void {
   if (injected || spritesDisabled()) return;
   injected = true;
-  const script = document.createElement('script');
-  script.textContent = __PET_SPRITE_LOADER__;
-  (document.head || document.documentElement).appendChild(script);
-  script.remove();
+  const source = `window.${RAN_FLAG}=1;${__PET_SPRITE_LOADER__}`;
+  const inline = document.createElement('script');
+  inline.textContent = source;
+  (document.head || document.documentElement).appendChild(inline);
+  inline.remove();
+  if ((page as unknown as Record<string, unknown>)[RAN_FLAG]) return;
+  /**
+   * A strict content policy refuses an inline script outright and raises no error to catch, so the
+   * flag above is what tells us it never ran. The same code from a blob url is a route those
+   * policies do allow, and an inline script runs synchronously, so by here we already know.
+   */
+  const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+  const external = document.createElement('script');
+  external.src = url;
+  external.onload = () => { URL.revokeObjectURL(url); external.remove(); };
+  external.onerror = () => URL.revokeObjectURL(url);
+  (document.head || document.documentElement).appendChild(external);
 }
 
 /**
@@ -43,7 +59,28 @@ function whenIdle(run: () => void): void {
   else setTimeout(run, 5000);
 }
 
+/**
+ * The loader runs in the page, where GM_xmlhttpRequest does not exist, and a page bound by a strict
+ * content policy cannot reach the host its libraries live on. This hands the fetch back to the
+ * userscript, which is not bound by that policy, and returns the source through a callback rather
+ * than a promise so nothing has to cross the realm boundary but a string.
+ */
+function installVendorBridge(): void {
+  page.__gardenCompanionVendorSource = (url: string, done: (source: string | null) => void) => {
+    try {
+      if (typeof GM_xmlhttpRequest !== 'function') { done(null); return; }
+      GM_xmlhttpRequest({
+        method: 'GET',
+        url,
+        onload: response => done(response.status >= 200 && response.status < 300 ? response.responseText : null),
+        onerror: () => done(null),
+      });
+    } catch { done(null); }
+  };
+}
+
 export function installPetSpriteLoader(): void {
+  installVendorBridge();
   // Published so anything that actually needs a sprite can stop waiting and pull the loader in.
   page.__gardenCompanionLoadSprites = inject;
   page.__gardenCompanionDisableSprites = (disabled = true) => {

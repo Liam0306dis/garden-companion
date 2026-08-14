@@ -98,19 +98,32 @@ function normaliseKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9/]/g, '');
 }
 
-async function detectAssetsBase(): Promise<string | null> {
+/**
+ * Where the game's assets are, in the order worth trying.
+ *
+ * The page's own scripts come first, whatever host and path they were served from. That matters
+ * inside the Discord activity, where the game runs on discordsays.com and everything it needs is
+ * served through that origin - fetching magicgarden.gg from there is blocked, so a hardcoded host
+ * fetched nothing and no sprites ever appeared. The known host stays as a fallback for a page whose
+ * scripts live somewhere the assets do not.
+ */
+async function detectAssetBases(): Promise<string[]> {
   for (let attempt = 0; attempt < 60; attempt++) {
     const sources = [
       ...Array.from(document.scripts).map(script => script.src),
       ...Array.from(document.querySelectorAll<HTMLLinkElement>('link[href]')).map(link => link.href),
     ];
     for (const source of sources) {
-      const match = source.match(/\/version\/([^/]+)\//);
-      if (match?.[1]) return `https://magicgarden.gg/version/${match[1]}/assets/`;
+      // Everything up to and including /version/<v>/, so any prefix the host puts in front of it -
+      // a proxy path, for instance - is kept rather than assumed away.
+      const rooted = source.match(/^(.*\/version\/([^/]+)\/)/);
+      if (!rooted) continue;
+      const candidates = [`${rooted[1]}assets/`, `https://magicgarden.gg/version/${rooted[2]}/assets/`];
+      return [...new Set(candidates)];
     }
     await new Promise(resolve => setTimeout(resolve, 250));
   }
-  return null;
+  return [];
 }
 
 async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[]; petRiveUrl: string | null }> {
@@ -136,15 +149,44 @@ async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[];
   }
 }
 
+/**
+ * The page's own network policy can forbid the host these libraries live on. A Discord activity
+ * allows connections to its own origin and nothing else, so unpkg is unreachable from the page and
+ * the sprite pipeline stops before it starts. GM_xmlhttpRequest runs outside that policy, so the
+ * source is fetched through it and handed back as a blob url, which those same policies do allow.
+ *
+ * Only used when the direct load fails, so nothing changes anywhere it already works.
+ */
+async function blobUrlFor(url: string): Promise<string> {
+  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
+  const source = await new Promise<string>((resolve, reject) => {
+    const bridge = page.__gardenCompanionVendorSource;
+    if (typeof bridge === 'function') {
+      bridge(url, text => (text ? resolve(text) : reject(new Error(`${url} could not be fetched.`))));
+      return;
+    }
+    if (typeof GM_xmlhttpRequest !== 'function') {
+      reject(new Error('No way to fetch outside the page policy.'));
+      return;
+    }
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url,
+      onload: response => (response.status >= 200 && response.status < 300
+        ? resolve(response.responseText)
+        : reject(new Error(`${url} returned ${response.status}`))),
+      onerror: () => reject(new Error(`${url} could not be fetched.`)),
+    });
+  });
+  return URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+}
+
 let riveRuntimePromise: Promise<RiveRuntime> | null = null;
 
-function riveRuntime(): Promise<RiveRuntime> {
-  const existing = (window as unknown as { rive?: RiveRuntime }).rive;
-  if (existing?.Rive) return Promise.resolve(existing);
-  if (riveRuntimePromise) return riveRuntimePromise;
-  riveRuntimePromise = new Promise((resolve, reject) => {
+function riveFrom(source: string): Promise<RiveRuntime> {
+  return new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = RIVE_RUNTIME_URL;
+    script.src = source;
     script.onload = () => {
       const runtime = (window as unknown as { rive?: RiveRuntime }).rive;
       runtime?.Rive ? resolve(runtime) : reject(new Error('Rive runtime did not initialise.'));
@@ -152,6 +194,13 @@ function riveRuntime(): Promise<RiveRuntime> {
     script.onerror = () => reject(new Error('Rive runtime could not be loaded.'));
     (document.head || document.documentElement).appendChild(script);
   });
+}
+
+function riveRuntime(): Promise<RiveRuntime> {
+  const existing = (window as unknown as { rive?: RiveRuntime }).rive;
+  if (existing?.Rive) return Promise.resolve(existing);
+  if (riveRuntimePromise) return riveRuntimePromise;
+  riveRuntimePromise = riveFrom(RIVE_RUNTIME_URL).catch(async () => riveFrom(await blobUrlFor(RIVE_RUNTIME_URL)));
   return riveRuntimePromise;
 }
 
@@ -386,7 +435,9 @@ async function basisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: numbe
   const binary = atob(__PET_WASM_B64__.replace(/\s/g, ''));
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-  const module = await import(TRANSCODER_URL) as BasisModule;
+  // Same fallback as the Rive runtime: the direct import first, then through the userscript
+  // manager when the page will not allow the request itself.
+  const module = await import(TRANSCODER_URL).catch(async () => import(await blobUrlFor(TRANSCODER_URL))) as BasisModule;
   const basis = await module.BasisUniversal.getInstance(imports => WebAssembly.instantiate(bytes.buffer, imports as WebAssembly.Imports));
   return { basis, rgbaFormat: module.TranscoderTextureFormat.cTFRGBA32 };
 }
@@ -498,7 +549,15 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
 
 export async function initPetSprites(): Promise<void> {
   const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
-  const assetsBase = await detectAssetsBase();
+  // The first base whose manifest actually answers wins, so a wrong guess costs one failed fetch
+  // rather than every sprite on the page.
+  const bases = await detectAssetBases();
+  let assetsBase: string | null = null;
+  let sources: { atlasPaths: string[]; petRiveUrl: string | null } | null = null;
+  for (const base of bases) {
+    const found = await assetSources(base);
+    if (found.atlasPaths.length || found.petRiveUrl) { assetsBase = base; sources = found; break; }
+  }
   if (!assetsBase) return;
   const version = assetsBase.match(/\/version\/([^/]+)\//)?.[1] ?? 'unknown';
   const species = Object.keys(__PET_CATALOG__);
@@ -532,7 +591,6 @@ export async function initPetSprites(): Promise<void> {
     page.__gardenCompanionPetSpritesReady?.();
   }
 
-  let sources: { atlasPaths: string[]; petRiveUrl: string | null } | null = null;
   async function loadSources(): Promise<{ atlasPaths: string[]; petRiveUrl: string | null }> {
     return sources ??= await assetSources(assetsBase!);
   }

@@ -171,6 +171,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionOnCinematicChange?: (listener: () => void) => void;
   __gardenCompanionPlannerOpen?: () => boolean;
   __gardenCompanionPetSpritesReady?: () => void;
+  __gardenCompanionVendorSource?: (url: string, done: (source: string | null) => void) => void;
   __gardenCompanionLoadSprites?: () => void;
   __gardenCompanionLoadSpriteGroup?: (group?: string) => void;
   __gardenCompanionDisableSprites?: (disabled?: boolean) => boolean;

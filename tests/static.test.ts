@@ -52,6 +52,7 @@ const petTeamsSource = await readSource('src', 'features', 'pet-teams.ts');
 const shopAlarmsSource = await readSource('src', 'features', 'shop-alarms.ts');
 const journalSource = await readSource('src', 'features', 'journal.ts');
 const searchSource = await readSource('src', 'list-search.ts');
+const roomsSource = await readSource('src', 'features', 'rooms.ts');
 const catalogSource = await readSource('src', 'game-catalogs.ts');
 const gameAtomsSource = await readSource('src', 'game-atoms.ts');
 const calculatorsSource = await readSource('src', 'features', 'calculators.ts');
@@ -322,7 +323,11 @@ assert.match(companionSource, /shop === 'tool' && EXCLUDED_TOOL_ALERTS\.has\(id\
 assert.match(companionSource, /shopAlarmTab !== 'tool' \|\| !EXCLUDED_TOOL_ALERTS\.has\(id\)/, 'excluded tools remain in the alarm list');
 assert.match(companionSource, /\['teams', 'abilities', 'shops', 'petFood', 'calculators'\]\.includes\(activeTab\)/, 'an open sprite-backed tab does not refresh when sprites load');
 for (const shopSpriteGroup of ["seed", "egg", "tool"]) assert.match(petSpriteSource, new RegExp(`${shopSpriteGroup}: \\[`), `missing ${shopSpriteGroup} sprite group`);
-assert.match(petSpriteInjector, /script\.textContent = __PET_SPRITE_LOADER__/, 'pet atlas loader is not injected into the game page');
+assert.match(petSpriteInjector, /inline\.textContent = source;/, 'pet atlas loader is not injected into the game page');
+// A strict content policy refuses an inline script and raises no error, so the fallback needs a
+// positive check that it ran rather than an error to catch.
+assert.match(petSpriteInjector, /if \(\(page as unknown as Record<string, unknown>\)\[RAN_FLAG\]\) return;/, 'a blocked inline loader is never noticed');
+assert.match(petSpriteInjector, /const url = URL\.createObjectURL\(new Blob\(\[source\], \{ type: 'text\/javascript' \}\)\);/, 'there is no route for the loader when inline scripts are refused');
 // The game ships most days but its atlases rarely change, so the cache is keyed on the artwork.
 assert.match(petSpriteSource, /await fetch\(`\$\{assetsBase\}\$\{path\}`, \{ method: 'HEAD' \}\)/, 'sprite cache does not fingerprint the atlases it decoded');
 assert.match(petSpriteSource, /if \(stamps\.some\(value => !value\)\) return version;/, 'a missing atlas header silently produces a fingerprint that cannot be trusted');
@@ -1215,3 +1220,6 @@ assert.match(tossSource, /riddenByPlayerId/, 'a ridden pet is aimed at where it 
 assert.match(tossSource, /window\.setTimeout\(finish, TOSS_TIMEOUT_MS\);/, 'an animation that never settles holds the swap forever');
 assert.match(petTeamsSource, /if \(activeTeamIds\(\)\.includes\(teamId\)\) commit\(\);\s*else runPetSwapToss\(commit\);/, 'a team already out still plays the toss');
 assert.doesNotMatch(keybindsSource, /ApplyPetTeam/, 'a keybind swap bypasses the shared apply');
+// The activity cannot move between rooms, so the tab must not offer buttons that do nothing.
+assert.match(roomsSource, /if \(inDiscordActivity\(\)\) \{/, 'the Rooms tab still lists rooms where none can be joined');
+assert.match(roomsSource, /location\.hostname\.endsWith\('discordsays\.com'\)/, 'the Discord activity is no longer detected');
