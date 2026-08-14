@@ -1,6 +1,6 @@
 import { config, feature, saveConfig } from './config.js';
 import { OVERVIEW_SHORTCUT_KEY } from './constants.js';
-import { activeTeamIds, teams } from './features/pet-teams.js';
+import { activeTeamIds, applyPetTeam, teams } from './features/pet-teams.js';
 import { GAME_INTERFACES, openGameInterface } from './game-atoms.js';
 import { send } from './game-connection.js';
 import { page } from './page.js';
@@ -121,7 +121,7 @@ function installShortcutListener(): void {
   const team = teams().find(item => config.teamKeybinds[item.id] === combo);
   if (!team) return;
   event.preventDefault(); event.stopPropagation();
-  send({ type: 'ApplyPetTeam', teamId: team.id });
+  applyPetTeam(team.id);
   toast(`Switching to ${team.name}.`, 'success');
   }, true);
 }
@@ -148,7 +148,7 @@ export function cyclePetTeam(step: number): void {
   const next = list[(((current < 0 ? -step : current + step) % list.length) + list.length) % list.length];
   if (!next) return;
   lastCycledTeamId = next.id;
-  send({ type: 'ApplyPetTeam', teamId: next.id });
+  applyPetTeam(next.id);
   toast(`Switching to ${next.name}.`, 'success');
 }
 

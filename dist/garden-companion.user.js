@@ -421,6 +421,7 @@
     turtleTimer: true,
     petFood: true,
     instantHarvest: false,
+    petSwapToss: false,
     autoStoreSeeds: false,
     autoStoreDecor: false,
     cropProtection: false,
@@ -3171,6 +3172,310 @@ ${rows}</div>`;
     hookAtom("actionAtom", "currentAction");
   }
 
+  // src/features/pet-swap-toss.ts
+  var STYLE_ID = "gc-pet-toss-style";
+  var LAYER_ID = "gc-pet-toss-layer";
+  var TOSS_TIMEOUT_MS = 2400;
+  var SETTLE_MS = 700;
+  var THROW_MS = 360;
+  var STAGGER_MS = 110;
+  var WOBBLE_MS = 420;
+  var FLASH_MS = 260;
+  var CATCH_DELAY_MS = 220;
+  var BALL_KINDS = ["poke", "great", "ultra", "master"];
+  function randomBallKind() {
+    return BALL_KINDS[Math.floor(Math.random() * BALL_KINDS.length)];
+  }
+  var STYLE_KEY = "gardenCompanion.tossStyle.v1";
+  var TOSS_EGGS = [
+    "CommonEgg",
+    "UncommonEgg",
+    "RareEgg",
+    "LegendaryEgg",
+    "MythicalEgg",
+    "HorseEgg",
+    "DawnEgg",
+    "SnowEgg",
+    "ThunderEgg"
+  ];
+  var tossStyle = loadLocal(STYLE_KEY, "ball") === "egg" ? "egg" : "ball";
+  page.__gardenCompanionTossStyle = (style) => {
+    if (style === "egg" || style === "ball") {
+      tossStyle = style;
+      saveLocal(STYLE_KEY, style);
+      if (style === "egg" && !randomEggSprite()) page.__gardenCompanionLoadSpriteGroup?.();
+    }
+    return tossStyle;
+  };
+  function randomEggSprite() {
+    const sprites = page.__gardenCompanionShopSprites ?? {};
+    const available = TOSS_EGGS.filter((egg) => sprites[egg]);
+    return available.length ? sprites[available[Math.floor(Math.random() * available.length)]] : "";
+  }
+  function createProjectile() {
+    const egg = tossStyle === "egg" ? randomEggSprite() : "";
+    if (egg) {
+      const image = document.createElement("img");
+      image.className = "gc-toss-egg";
+      image.src = egg;
+      return image;
+    }
+    const ball = document.createElement("i");
+    ball.className = "gc-toss-ball";
+    ball.dataset.kind = randomBallKind();
+    return ball;
+  }
+  function screenCentre(surface, display) {
+    if (!display || display.destroyed || typeof display.getBounds !== "function") return null;
+    try {
+      const bounds = display.getBounds();
+      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0) return null;
+      return { x: surface.toScreenX(bounds.x + bounds.width / 2), y: surface.toScreenY(bounds.y + bounds.height / 2) };
+    } catch {
+      return null;
+    }
+  }
+  function petSystem() {
+    return page.__gardenCompanionFarmSystems?.petSystem;
+  }
+  function petScreen(surface, id) {
+    const views = petSystem()?.views;
+    return views instanceof Map ? screenCentre(surface, views.get(id)?.displayObject) : null;
+  }
+  function throwOrigin(surface) {
+    const fallback = { x: window.innerWidth / 2, y: window.innerHeight + 40 };
+    const views = quinoaEngine()?.getSystem?.("avatar")?.views;
+    const container = state.playerId && views instanceof Map ? views.get(state.playerId)?.container : void 0;
+    if (!container || container.destroyed || typeof container.getGlobalPosition !== "function") return fallback;
+    try {
+      const position = container.getGlobalPosition();
+      if (!Number.isFinite(position?.x) || !Number.isFinite(position?.y)) return fallback;
+      const origin = { x: surface.toScreenX(position.x), y: surface.toScreenY(position.y) };
+      const onScreen = origin.x > -40 && origin.x < window.innerWidth + 40 && origin.y > -40 && origin.y < window.innerHeight + 40;
+      return onScreen ? origin : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  function tossTargets() {
+    const surface = pixiSurface();
+    const system = petSystem();
+    const views = system?.views;
+    if (!surface || !(views instanceof Map)) return [];
+    const active = new Set((state.slot?.data?.petSlots ?? []).map((pet) => pet.id));
+    const targets = [];
+    for (const [id, petView] of views) {
+      if (!active.has(id) || system?.petInfoById?.get?.(id)?.riddenByPlayerId) continue;
+      const display = petView?.displayObject;
+      if (!display?.position || !screenCentre(surface, display)) continue;
+      targets.push({ id, hold: { x: Number(display.x), y: Number(display.y) } });
+    }
+    return targets;
+  }
+  function holdPets(targets) {
+    const system = petSystem();
+    const caught = /* @__PURE__ */ new Set();
+    if (!system || typeof system.draw !== "function") return { catch: () => void 0, release: () => void 0 };
+    const original = system.draw;
+    const held = new Map(targets.map((target) => [target.id, target.hold]));
+    const wrapper = function(...args) {
+      const result = original.apply(this, args);
+      for (const [id, position] of held) {
+        const display = this.views?.get?.(id)?.displayObject;
+        if (!display?.position || display.destroyed) continue;
+        display.position.set(position.x, position.y);
+        if (caught.has(id)) display.visible = false;
+      }
+      return result;
+    };
+    system.draw = wrapper;
+    return {
+      catch: (id) => caught.add(id),
+      release: () => {
+        if (system.draw === wrapper) system.draw = original;
+        const stillOut = new Set((state.slot?.data?.petSlots ?? []).map((pet) => pet.id));
+        for (const id of caught) {
+          if (!stillOut.has(id)) continue;
+          const display = system.views?.get?.(id)?.displayObject;
+          if (display && !display.destroyed) display.visible = true;
+        }
+      }
+    };
+  }
+  function activePetIds() {
+    return (state.slot?.data?.petSlots ?? []).map((pet) => pet.id).sort().join(",");
+  }
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `
+#${LAYER_ID} { position:fixed;inset:0;z-index:99994;pointer-events:none; }
+#${LAYER_ID} .gc-toss-egg { position:absolute;left:0;top:0;width:38px;height:38px;margin:-19px 0 0 -19px;object-fit:contain;
+  image-rendering:auto;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
+#${LAYER_ID} .gc-toss-ball { position:absolute;left:0;top:0;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;
+  --top:#ee3f3f; --band:#111;
+  background:linear-gradient(var(--top) 0 47%,var(--band) 47% 57%,#f6f6f6 57% 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.5),inset -4px -5px 9px rgba(0,0,0,.35),inset 4px 4px 7px rgba(255,255,255,.35); }
+#${LAYER_ID} .gc-toss-ball[data-kind=great] { --top:#2f6fd0; }
+#${LAYER_ID} .gc-toss-ball[data-kind=ultra] { --top:#33302e; --band:#e8c02a; }
+#${LAYER_ID} .gc-toss-ball[data-kind=master] { --top:#7b3fb5; }
+#${LAYER_ID} .gc-toss-ball::after { content:'';position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;
+  border-radius:50%;background:#f6f6f6;border:3px solid #111;box-sizing:border-box; }
+#${LAYER_ID} .gc-toss-flash { position:absolute;left:0;top:0;width:70px;height:70px;margin:-35px 0 0 -35px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.95),rgba(255,214,102,.5) 45%,transparent 70%); }`;
+    document.head.appendChild(style);
+  }
+  function layer() {
+    ensureStyle();
+    let root = document.getElementById(LAYER_ID);
+    if (!root) {
+      root = document.createElement("div");
+      root.id = LAYER_ID;
+      document.body.appendChild(root);
+    }
+    return root;
+  }
+  function place(element, x, y, extra) {
+    element.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) ${extra}`;
+  }
+  var tossing = false;
+  function runPetSwapToss(commit) {
+    let done = false;
+    const once = () => {
+      if (!done) {
+        done = true;
+        commit();
+      }
+    };
+    if (!feature("petSwapToss") || tossing || typeof document === "undefined") {
+      once();
+      return;
+    }
+    let targets = [];
+    try {
+      targets = tossTargets();
+    } catch {
+      targets = [];
+    }
+    if (!targets.length) {
+      once();
+      return;
+    }
+    tossing = true;
+    let hold = { catch: () => void 0, release: () => void 0 };
+    let frame = 0;
+    const flights = [];
+    const finish = () => {
+      cancelAnimationFrame(frame);
+      for (const flight of flights) {
+        flight.ball.remove();
+        flight.flash?.remove();
+      }
+      hold.release();
+      tossing = false;
+      once();
+    };
+    const guard = window.setTimeout(finish, TOSS_TIMEOUT_MS);
+    try {
+      const root = layer();
+      const started = performance.now();
+      const surface = pixiSurface();
+      const fallbackOrigin = { x: window.innerWidth / 2, y: window.innerHeight + 40 };
+      for (const [index, target] of targets.entries()) {
+        const ball = createProjectile();
+        root.appendChild(ball);
+        const start = surface ? petScreen(surface, target.id) ?? fallbackOrigin : fallbackOrigin;
+        const rest = Math.random() * 40 - 20;
+        const turns = 1 + Math.floor(Math.random() * 2);
+        const spin = (Math.random() < 0.5 ? -1 : 1) * turns * 360 + rest;
+        const size = 0.7 + Math.random() * 0.7;
+        flights.push({ ball, flash: null, petId: target.id, delay: index * STAGGER_MS, landedAt: 0, caught: false, spin, rest, size, target: start });
+      }
+      hold = holdPets(targets);
+      const petsAtStart = activePetIds();
+      let committedAt = 0;
+      const step = () => {
+        const now = performance.now();
+        const live = pixiSurface();
+        const from = live ? throwOrigin(live) : fallbackOrigin;
+        let active = false;
+        for (const flight of flights) {
+          const target = live && petScreen(live, flight.petId) || flight.target;
+          flight.target = target;
+          const elapsed = now - started - flight.delay;
+          if (elapsed < 0) {
+            flight.ball.style.opacity = "0";
+            active = true;
+            continue;
+          }
+          flight.ball.style.opacity = "1";
+          if (elapsed < THROW_MS) {
+            const progress = elapsed / THROW_MS;
+            const lift = Math.max(50, Math.min(150, Math.hypot(target.x - from.x, target.y - from.y) * 0.45));
+            const x = from.x + (target.x - from.x) * progress;
+            const y = from.y + (target.y - from.y) * progress - Math.sin(progress * Math.PI) * lift;
+            place(flight.ball, x, y, `rotate(${Math.round(progress * flight.spin)}deg) scale(${flight.size.toFixed(2)})`);
+            active = true;
+            continue;
+          }
+          if (!flight.landedAt) {
+            flight.landedAt = now;
+            flight.flash = document.createElement("i");
+            flight.flash.className = "gc-toss-flash";
+            root.appendChild(flight.flash);
+          }
+          const settled = now - flight.landedAt;
+          if (!flight.caught && settled >= CATCH_DELAY_MS) {
+            flight.caught = true;
+            hold.catch(flight.petId);
+          }
+          const wobble = settled < WOBBLE_MS ? Math.sin(settled / WOBBLE_MS * Math.PI * 3) * 18 * (1 - settled / WOBBLE_MS) : 0;
+          place(flight.ball, target.x, target.y, `rotate(${(flight.rest + wobble).toFixed(1)}deg) scale(${flight.size.toFixed(2)})`);
+          if (flight.flash) {
+            const age = settled / FLASH_MS;
+            if (age >= 1) {
+              flight.flash.remove();
+              flight.flash = null;
+            } else {
+              flight.flash.style.opacity = String(0.9 * (1 - age));
+              place(flight.flash, target.x, target.y, `scale(${(0.4 + age * 0.9).toFixed(2)})`);
+            }
+          }
+          if (settled < WOBBLE_MS) active = true;
+          else {
+            flight.ball.remove();
+            flight.flash?.remove();
+            flight.flash = null;
+          }
+        }
+        if (!committedAt && flights.every((flight) => flight.caught)) {
+          committedAt = now;
+          once();
+        }
+        if (committedAt && !active) {
+          const swapped = activePetIds() !== petsAtStart;
+          if (swapped || now - committedAt > SETTLE_MS) {
+            window.clearTimeout(guard);
+            finish();
+            return;
+          }
+          active = true;
+        }
+        if (!active) {
+          window.clearTimeout(guard);
+          finish();
+          return;
+        }
+        frame = requestAnimationFrame(step);
+      };
+      frame = requestAnimationFrame(step);
+    } catch {
+      window.clearTimeout(guard);
+      finish();
+    }
+  }
+
   // src/features/pet-teams.ts
   function teams() {
     return state.slot?.data?.petTeams || [];
@@ -3396,6 +3701,11 @@ ${rows}</div>`;
     const meta = owned ? `${humanize(member.petSpecies)}${strength ? ` | STR ${strength}` : ""}` : "Missing pet";
     return `<span class="gc-team-pet${owned ? "" : " is-missing"}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
   }
+  function applyPetTeam(teamId) {
+    const commit = () => send({ type: "ApplyPetTeam", teamId });
+    if (activeTeamIds().includes(teamId)) commit();
+    else runPetSwapToss(commit);
+  }
   function moveTeam(teamId, offset) {
     const order = teams();
     const index = order.findIndex((team) => team.id === teamId);
@@ -3496,7 +3806,7 @@ ${rows}</div>`;
     main.querySelector("[data-open-team-picker]")?.addEventListener("click", () => openTeamPicker(null));
     main.querySelectorAll("[data-edit-team]").forEach((button) => button.onclick = () => openTeamPicker(button.dataset.editTeam));
     main.querySelectorAll("[data-apply-team]").forEach((button) => button.onclick = () => {
-      send({ type: "ApplyPetTeam", teamId: button.dataset.applyTeam });
+      applyPetTeam(button.dataset.applyTeam);
       toast("Team activation requested.", "success");
       button.disabled = true;
       button.textContent = "Activating...";
@@ -3628,7 +3938,7 @@ ${rows}</div>`;
       if (!team) return;
       event.preventDefault();
       event.stopPropagation();
-      send({ type: "ApplyPetTeam", teamId: team.id });
+      applyPetTeam(team.id);
       toast(`Switching to ${team.name}.`, "success");
     }, true);
   }
@@ -3645,7 +3955,7 @@ ${rows}</div>`;
     const next = list[((current < 0 ? -step : current + step) % list.length + list.length) % list.length];
     if (!next) return;
     lastCycledTeamId = next.id;
-    send({ type: "ApplyPetTeam", teamId: next.id });
+    applyPetTeam(next.id);
     toast(`Switching to ${next.name}.`, "success");
   }
   function renderKeybinds() {
@@ -3701,7 +4011,7 @@ ${rows}</div>`;
 
   // src/draggable.ts
   function makeDraggable(element, storageKey) {
-    function place(point) {
+    function place2(point) {
       const rect = element.getBoundingClientRect();
       const left = Math.min(Math.max(0, point.left), Math.max(0, window.innerWidth - rect.width));
       const top = Math.min(Math.max(0, point.top), Math.max(0, window.innerHeight - rect.height));
@@ -3711,7 +4021,7 @@ ${rows}</div>`;
       element.style.bottom = "auto";
     }
     const saved = loadLocal(storageKey, null);
-    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) place(saved);
+    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) place2(saved);
     let dragging = false;
     let startX = 0, startY = 0, originLeft = 0, originTop = 0;
     element.addEventListener("pointerdown", (event) => {
@@ -3731,7 +4041,7 @@ ${rows}</div>`;
     });
     element.addEventListener("pointermove", (event) => {
       if (!dragging) return;
-      place({ left: originLeft + event.clientX - startX, top: originTop + event.clientY - startY });
+      place2({ left: originLeft + event.clientX - startX, top: originTop + event.clientY - startY });
     });
     function stop(event) {
       if (!dragging) return;
@@ -3749,7 +4059,7 @@ ${rows}</div>`;
     window.addEventListener("resize", () => {
       if (!element.style.left) return;
       const rect = element.getBoundingClientRect();
-      place({ left: rect.left, top: rect.top });
+      place2({ left: rect.left, top: rect.top });
     });
   }
 
@@ -4538,6 +4848,7 @@ ${rows}</div>`;
         ["turtleTimer", "Crop and egg estimates", "Values and pet-adjusted timing"],
         ["petFood", "Pet food panel", "Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab"],
         ["instantHarvest", "Instant harvest key", "Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on"],
+        ["petSwapToss", "Pet swap toss", "Throw a ball at each active pet and catch them before a team swap - delays it about a second"],
         ["autoStoreSeeds", "Auto-store seeds", "Move seeds into the Seed Silo when it already holds that species"],
         ["autoStoreDecor", "Auto-store decor", "Move decor into the Decor Shed when it already holds that item"],
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
@@ -4715,7 +5026,7 @@ ${rows}</div>`;
 
   // src/features/garden-overview.ts
   var FILTER_KEY = "gardenCompanion.overviewSpecies.v1";
-  var STYLE_ID = "gc-overview-style";
+  var STYLE_ID2 = "gc-overview-style";
   var PANEL_ID = "gc-overview-panel";
   var BUTTON_ID = "gc-overview-button";
   var MUTATION_KEY = "gardenCompanion.overviewMutations.v2";
@@ -5282,9 +5593,9 @@ ${rows}</div>`;
     return result;
   }
   function injectStyles() {
-    if (document.getElementById(STYLE_ID)) return;
+    if (document.getElementById(STYLE_ID2)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID;
+    style.id = STYLE_ID2;
     style.textContent = `
     #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-raised,#121219);color:var(--gc-text,#e4e4e7);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
     /* Layered over the solid base rather than replacing it: this button sits on the game canvas,
@@ -6065,7 +6376,7 @@ ${rows}</div>`;
       const label = document.querySelector("#gc-planner [data-plan-count]");
       if (label) label.textContent = `${planner.tiles.size} planned`;
     }
-    function place(localIndex, fill = false) {
+    function place2(localIndex, fill = false) {
       if (planner.mode === "decor") {
         planner.tiles.set(localIndex, plannedDecor());
       } else {
@@ -6099,7 +6410,7 @@ ${rows}</div>`;
         erase(localIndex);
       } else if (event.button === 0) {
         planner.painting = true;
-        place(localIndex, event.shiftKey);
+        place2(localIndex, event.shiftKey);
       }
     }
     function onPointerMove(event) {
@@ -6109,7 +6420,7 @@ ${rows}</div>`;
       if (planner.erasing) {
         if (planner.tiles.has(localIndex)) erase(localIndex);
       } else if (planner.mode === "decor" ? planner.tiles.get(localIndex)?.decorId !== planner.decorId : !sharesPatch(planner.tiles.get(localIndex)?.species ?? "", planner.species)) {
-        place(localIndex, true);
+        place2(localIndex, true);
       }
     }
     function onPointerUp() {
@@ -6598,7 +6909,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/fishing.ts
-  var STYLE_ID2 = "gc-fishing-style";
+  var STYLE_ID3 = "gc-fishing-style";
   var PANEL_ID2 = "gc-fishing-panel";
   var RECORD_KEY = "gardenCompanion.fishing.v1";
   var POSITION_KEY2 = "gardenCompanion.fishingPosition.v1";
@@ -6765,9 +7076,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return kilos >= 10 ? `${kilos.toFixed(1)} kg` : `${kilos.toFixed(2)} kg`;
   }
   function injectStyles2() {
-    if (document.getElementById(STYLE_ID2)) return;
+    if (document.getElementById(STYLE_ID3)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID2;
+    style.id = STYLE_ID3;
     style.textContent = `
     #${PANEL_ID2}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID2}[hidden]{display:none}
@@ -7787,7 +8098,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function plantAt(lane, column) {
       return plants.find((plant) => plant.lane === lane && plant.column === column);
     }
-    function place(lane, column) {
+    function place2(lane, column) {
       if (!running || over) return;
       const existing = plantAt(lane, column);
       if (shovel) {
@@ -7850,7 +8161,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const column = Math.floor((point.x - lawn.left) / cellWidth);
       const lane = Math.floor((point.y - lawn.top) / cellHeight);
       if (column < 0 || column >= columns || lane < 0 || lane >= lanes) return;
-      place(lane, column);
+      place2(lane, column);
     }
     function startWave() {
       wave++;

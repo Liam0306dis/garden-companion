@@ -80,6 +80,8 @@ const dragSource = await readSource('src', 'draggable.ts');
 const protectionSource = await readSource('src', 'features', 'crop-protection.ts');
 const configSource = await readSource('src', 'config.ts');
 const autoStoreSource = await readSource('src', 'features', 'auto-store.ts');
+const tossSource = await readSource('src', 'features', 'pet-swap-toss.ts');
+const keybindsSource = await readSource('src', 'keybinds.ts');
 const estimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
 const constantsSource = await readSource('src', 'constants.ts');
 const mutationValueSource = await readSource('src', 'mutation-value.ts');
@@ -1178,3 +1180,38 @@ assert.match(autoStoreSource, /if \(signature === lastQueuedSignature\) return;/
 assert.match(autoStoreSource, /if \(queuedAny\) lastQueuedSignature = signature;/, 'a flush that queued nothing still blocks the next one');
 assert.match(companionSource, /autoStoreSeeds: false,\s*autoStoreDecor: false,/, 'auto-store is on by default');
 assert.match(companionSource, /processAutoStore\(\);/, 'auto-store never runs');
+
+// The toss is decoration: a swap must never be lost to it, and every route into a swap goes through
+// the one place that plays it.
+assert.match(tossSource, /const once = \(\) => \{ if \(!done\) \{ done = true; commit\(\); \} \};/, 'a pet swap can be sent twice or not at all');
+assert.match(tossSource, /if \(!targets\.length\) \{ once\(\); return; \}/, 'a swap waits on an animation with nothing to animate');
+// Thrown at the pets on the farm, not their portraits in the dock.
+assert.match(tossSource, /return views instanceof Map \? screenCentre\(surface, views\.get\(id\)\?\.displayObject\) : null;/, 'the toss aims at the pet dock rather than the world sprites');
+// Screen positions taken once at the start drift away from the world as the camera follows the
+// player, so every frame re-reads where the pet and the player actually are.
+assert.match(tossSource, /const target = \(live && petScreen\(live, flight\.petId\)\) \|\| flight\.target;/, 'the balls stop tracking the pets when the camera moves');
+assert.match(tossSource, /const from = live \? throwOrigin\(live\) : fallbackOrigin;/, 'the throw origin is frozen while the player walks');
+// Thrown from the player, and a different egg each time.
+assert.match(tossSource, /const position = container\.getGlobalPosition\(\);/, 'the throw origin uses bounds the batch renderer makes meaningless');
+assert.match(tossSource, /return onScreen \? origin : fallback;/, 'a throw can start from off the screen');
+// Animating the separate scale property alongside an inline transform loses the translate.
+assert.ok(tossSource.includes('place(flight.flash, target.x, target.y, `scale(${(.4 + age * .9).toFixed(2)})`);'), 'the impact flash positions itself outside its own transform');
+assert.match(tossSource, /BALL_KINDS\[Math\.floor\(Math\.random\(\) \* BALL_KINDS\.length\)\]/, 'every throw uses the same ball');
+// A pet that wanders mid-throw would be hit on a tile it has left.
+assert.match(tossSource, /display\.position\.set\(position\.x, position\.y\);/, 'pets are not held still while the ball is in the air');
+assert.match(tossSource, /if \(system\.draw === wrapper\) system\.draw = original;/, 'the pet hold is never released, or clobbers a later hook');
+// Releasing the hold the moment the swap is sent let the old pets pop back for the round trip.
+assert.match(tossSource, /if \(caught\.has\(id\)\) display\.visible = false;/, 'a caught pet is left standing while the swap crosses the wire');
+assert.match(tossSource, /if \(!flight\.caught && settled >= CATCH_DELAY_MS\)/, 'the pet vanishes the instant the ball touches it');
+assert.match(tossSource, /const spin = \(Math\.random\(\) < \.5 \? -1 : 1\) \* turns \* 360 \+ rest;/, 'every ball spins the same way by the same amount');
+// The spin has to land on the resting tilt, or the ball snaps upright as it arrives.
+assert.ok(tossSource.includes('rotate(${(flight.rest + wobble).toFixed(1)}deg) scale(${flight.size.toFixed(2)})'), 'balls all come to rest perfectly upright');
+assert.match(tossSource, /const size = \.7 \+ Math\.random\(\) \* \.7;/, 'every ball is thrown at the same size');
+assert.match(tossSource, /const swapped = activePetIds\(\) !== petsAtStart;/, 'the settle never ends early when the swap has landed');
+assert.match(tossSource, /if \(display && !display\.destroyed\) display\.visible = true;/, 'a refused swap leaves pets hidden for good');
+// Showing a pet the swap already took flashes it back for the frame before the game removes it.
+assert.match(tossSource, /if \(!stillOut\.has\(id\)\) continue;/, 'a swapped out pet is shown again on release');
+assert.match(tossSource, /riddenByPlayerId/, 'a ridden pet is aimed at where it is not drawn');
+assert.match(tossSource, /window\.setTimeout\(finish, TOSS_TIMEOUT_MS\);/, 'an animation that never settles holds the swap forever');
+assert.match(petTeamsSource, /if \(activeTeamIds\(\)\.includes\(teamId\)\) commit\(\);\s*else runPetSwapToss\(commit\);/, 'a team already out still plays the toss');
+assert.doesNotMatch(keybindsSource, /ApplyPetTeam/, 'a keybind swap bypasses the shared apply');

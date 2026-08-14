@@ -163,6 +163,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionGardenDefenceDev?: (enabled?: boolean) => boolean;
   __gardenCompanionToggleCelestialLayout?: () => void;
   __gardenCompanionToggleCropCleanser?: () => void;
+  __gardenCompanionTossStyle?: (style?: string) => string;
   __gardenCompanionFishingBench?: () => void;
   __gardenCompanionFishingOpen?: () => boolean;
   __gardenCompanionSetCinematic?: (enabled: boolean, owner?: string) => boolean;
@@ -219,6 +220,7 @@ export interface CompanionConfig {
   turtleTimer: boolean;
   petFood: boolean;
   instantHarvest: boolean;
+  petSwapToss: boolean;
   autoStoreSeeds: boolean;
   autoStoreDecor: boolean;
   cropProtection: boolean;

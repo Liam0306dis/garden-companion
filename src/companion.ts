@@ -715,6 +715,7 @@ export function initCompanion(): void {
       ['turtleTimer', 'Crop and egg estimates', 'Values and pet-adjusted timing'],
       ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
+      ['petSwapToss', 'Pet swap toss', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
       ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
       ['autoStoreDecor', 'Auto-store decor', 'Move decor into the Decor Shed when it already holds that item'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],

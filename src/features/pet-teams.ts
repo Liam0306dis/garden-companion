@@ -1,4 +1,5 @@
 import type { Pet, PetTeamEmblem } from '../types.js';
+import { runPetSwapToss } from './pet-swap-toss.js';
 import { abilityChips } from '../ability-chips.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, MAX_PET_TEAMS, MAX_TEAM_PETS, PET_CATALOG } from '../constants.js';
@@ -263,6 +264,19 @@ function teamMemberTile(member: { petId: string; petSpecies: string; name?: stri
 }
 
 /**
+ * Every route into a team swap goes through here, so the toss plays wherever the swap came from -
+ * the panel button, a team keybind, or cycling. Remove the toss by calling send directly again.
+ *
+ * A team that is already out is applied without it. Nothing is being swapped, and a keybind pressed
+ * twice should not cost a second of animation to change nothing.
+ */
+export function applyPetTeam(teamId: string): void {
+  const commit = () => send({ type: 'ApplyPetTeam', teamId });
+  if (activeTeamIds().includes(teamId)) commit();
+  else runPetSwapToss(commit);
+}
+
+/**
  * Teams are ordered by their position in the game's own list, which is what the keybinds and the
  * cycle shortcut walk through, so the order is worth controlling rather than being whatever order
  * they happened to be saved in.
@@ -389,7 +403,7 @@ export function bindPetTeamEvents(main: HTMLElement): void {
   main.querySelector('[data-open-team-picker]')?.addEventListener('click', () => openTeamPicker(null));
   main.querySelectorAll<HTMLButtonElement>('[data-edit-team]').forEach(button => button.onclick = () => openTeamPicker(button.dataset.editTeam));
   main.querySelectorAll<HTMLButtonElement>('[data-apply-team]').forEach(button => button.onclick = () => {
-    send({ type: 'ApplyPetTeam', teamId: button.dataset.applyTeam });
+    applyPetTeam(button.dataset.applyTeam!);
     toast('Team activation requested.', 'success');
     button.disabled = true;
     button.textContent = 'Activating...';
