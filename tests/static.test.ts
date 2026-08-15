@@ -251,15 +251,37 @@ assert.match(styleSource, /#gc-lunar::before[\s\S]*linear-gradient/, 'lunar time
 assert.doesNotMatch(companionSource, /slice\(0, 500\)/, 'legacy global ability history limit found');
 assert.match(overviewSource, /structureSignature/, 'overview structural refresh guard missing');
 assert.match(overviewSource, /installPlantFocus/, 'overview plant focus missing');
-assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*focusEnabled\.blur\(\)/, 'plant focus enabled checkbox keeps keyboard focus');
-assert.match(overviewSource, /focusInvert\.onchange[\s\S]*focusInvert\.blur\(\)/, 'plant focus invert checkbox keeps keyboard focus');
+assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*focus\.enabled = focusEnabled\.checked[\s\S]*refreshFocusSummary\(\)/, 'plant focus enabled checkbox must update the summary');
+// A redraw replaces the panel, so controls a keyboard can sit on must not trigger one blindly.
+assert.match(overviewSource, /focusScope\.onchange = \(\) => \{[^}]*refreshFocusSummary\(\); releaseUnlessTyping\(focusScope\); \}/, 'changing focus scope must not redraw the select out from under the keyboard');
+assert.doesNotMatch(overviewSource, /focusScope\.onchange = \(\) => \{[^}]*render\(true\)/, 'changing focus scope must not force a redraw');
+// A control left focused inside the panel eats the keys the game needs, so a click must release it.
+// Deferred, or a label-forwarded click refocuses the checkbox straight after the change event.
+assert.match(overviewSource, /const releaseUnlessTyping = \(element: HTMLElement\) => \{\s*if \(keyboardDriven\) return;\s*setTimeout\(\(\) => \{ if \(!keyboardDriven\) element\.blur\(\); \}, 0\);/, 'panel controls must hand keyboard control back to the game after a click');
+assert.match(overviewSource, /focusOpacity\.onpointerup = \(\) => releaseUnlessTyping\(focusOpacity\)/, 'the opacity slider must release focus even when the drag changes nothing');
+assert.match(overviewSource, /const renderAndRefocus = \(selector: string\) => \{\s*render\(true\);\s*if \(keyboardDriven\) panel\.querySelector<HTMLElement>\(selector\)\?\.focus\(\);/, 'redraws must only hand focus back when the keyboard is driving');
+assert.match(overviewSource, /focusOpacity\.onchange = \(\) => releaseUnlessTyping\(focusOpacity\)/, 'the opacity slider must release focus when the drag ends');
+assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*releaseUnlessTyping\(focusEnabled\)/, 'the enabled checkbox must release keyboard control after a click');
+assert.match(overviewSource, /panel\.addEventListener\('pointerdown', \(\) => \{ keyboardDriven = false; \}, true\)/, 'pointer use must mark the panel as not keyboard driven');
+assert.match(overviewSource, /if \(migrating && !config\.mutations\.length && !config\.maxSize\) config\.mode = 'highlight';/, 'an inverted setup with no conditions must not migrate into a garden-wide fade');
+assert.match(overviewSource, /data-focus-mode="\$\{value\}"/, 'plant focus highlight/hide mode pills are missing');
+assert.match(overviewSource, /mode: stored\.mode \?\? \(stored\.invert \? 'hide' : 'highlight'\)/, 'saved invert setups must migrate to hide mode');
+assert.match(overviewSource, /config\.mode === 'hide' \? !result : result/, 'plant focus hide mode must flip the match');
 assert.match(overviewSource, /data-focus-max-size/, 'plant focus max-size toggle is missing');
 assert.match(overviewSource, /if \(config\.maxSize\) conditions\.push\(\(tile\.slots \|\| \[\]\)\.some/, 'plant focus max-size rule must inspect the whole plant');
 assert.match(overviewSource, /config\.mutationRule === 'any' \? conditions\.some\(Boolean\)/, 'plant focus max-size rule must participate in Any matching');
 assert.match(overviewSource, /config\.mutationRule === 'none' \? conditions\.every\(match => !match\)/, 'plant focus max-size rule must participate in None matching');
 assert.match(overviewSource, /if \(Number\(tile\.maturedAt \?\? 0\) > now\) \{[\s\S]*fade\(plantVisual\?\.container[\s\S]*crops\.forEach\(\(crop: any\) => fade\(cropContainer\(crop\)/, 'growing base plants and their slots must always remain faded');
 assert.match(overviewSource, /button\.go-pill i\{width:9px;flex:0 0 9px/, 'overview selection buttons must reserve checkmark space');
-assert.match(overviewSource, /focusMaxSize\.onchange[\s\S]*focus\.maxSize = focusMaxSize\.checked[\s\S]*focusMaxSize\.blur\(\)/, 'plant focus max-size toggle is not saved or releases keyboard focus incorrectly');
+assert.match(overviewSource, /focusMaxSize\.onclick = \(\) => \{ focus\.maxSize = !focus\.maxSize; saveFocusControls\(\); renderAndRefocus\('\[data-focus-max-size\]'\); \}/, 'plant focus max-size pill is not saved');
+assert.match(overviewSource, /const ruleMatches = !conditions\.length\s*\|\|/, 'no conditions must mean the scope is the only filter');
+assert.match(overviewSource, /const enforceGroupExclusivity[\s\S]*if \(focus\.mutationRule !== 'all'\) return;/, 'mutation groups must stay exclusive under the all-of-these rule');
+assert.match(overviewSource, /go-focus-summary/, 'plant focus plain-English summary is missing');
+assert.match(overviewSource, /page\.__gardenCompanionLoadSpriteGroup\?\.\('deferred'\)/, 'the overview must request the deferred atlas its mutation icons live in');
+assert.match(overviewSource, /onSpritesReady\(\(\) => \{ if \(configMode === 'focus'\) render\(true\); \}\)/, 'the focus picker must redraw when mutation icons arrive');
+// One page-level hook, many listeners: whoever subscribed first must not be replaced by the next.
+assert.match(companionSource, /export function onSpritesReady[\s\S]*if \(spriteReadyListeners\.size > 1\) return;/, 'sprite-ready listeners must fan out from a single hook');
+assert.match(companionSource, /onSpritesReady\(\(\) => \{\s*const panel = document\.getElementById\('gc-panel'\)/, 'the companion panel must subscribe rather than claim the sprite-ready hook');
 assert.match(overviewSource, /if \(activeDrag\) \{ updateCountdowns\(panel, stats\); return; \}/, 'garden overview must not replace a panel while it is being dragged');
 assert.doesNotMatch(overviewSource, /const saveFocusControls = \(\) => \{[^}]*lastSignature = ''/, 'plant focus controls must not schedule a popup-replacing redraw');
 assert.match(overviewSource, /PageObject\.defineProperty\(prototype, 'tileViews'/, 'plant focus direct tile-view capture missing');

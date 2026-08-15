@@ -53,6 +53,7 @@ import {
   heldProduce,
   heldToolCount,
   hungerDisplay,
+  onSpritesReady,
   petMetrics,
   petSprite,
   teamXpPerHour,
@@ -808,12 +809,12 @@ export function initCompanion(): void {
     lunarMini.innerHTML = '<i class="gc-lunar-mark"></i>';
     lunarMini.onclick = () => setLunarMinimised(false);
     document.body.appendChild(lunarMini);
-    page.__gardenCompanionPetSpritesReady = () => {
+    onSpritesReady(() => {
       const panel = document.getElementById('gc-panel');
       if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood', 'calculators'].includes(activeTab)) renderPanel();
       resetPetFoodSignature();
       renderPetFood();
-    };
+    });
     // Reacting to the write rather than the next tick, so entering cinematic mode is not a second
     // of the timer sitting in the shot.
     page.__gardenCompanionOnCinematicChange?.(updateLunarTimer);

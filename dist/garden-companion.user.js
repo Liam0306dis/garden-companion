@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.05
+// @version      0.8.06
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -607,6 +607,21 @@
   }
   function mutationSprite(mutation) {
     return page.__gardenCompanionMutationSprites?.[mutation] || "";
+  }
+  var spriteReadyListeners = /* @__PURE__ */ new Set();
+  function onSpritesReady(listener) {
+    spriteReadyListeners.add(listener);
+    if (spriteReadyListeners.size > 1) return;
+    const previous = page.__gardenCompanionPetSpritesReady;
+    page.__gardenCompanionPetSpritesReady = () => {
+      previous?.();
+      for (const notify of spriteReadyListeners) {
+        try {
+          notify();
+        } catch {
+        }
+      }
+    };
   }
   var mutatedPetSprites = /* @__PURE__ */ new Map();
   var pendingPetSprites = /* @__PURE__ */ new Set();
@@ -5150,12 +5165,12 @@ ${rows}</div>`;
       lunarMini.innerHTML = '<i class="gc-lunar-mark"></i>';
       lunarMini.onclick = () => setLunarMinimised(false);
       document.body.appendChild(lunarMini);
-      page.__gardenCompanionPetSpritesReady = () => {
+      onSpritesReady(() => {
         const panel3 = document.getElementById("gc-panel");
         if (panel3 && !panel3.hidden && ["teams", "abilities", "shops", "petFood", "calculators"].includes(activeTab)) renderPanel();
         resetPetFoodSignature();
         renderPetFood();
-      };
+      });
       page.__gardenCompanionOnCinematicChange?.(updateLunarTimer);
       updateLunarTimer();
       watchSocketHealth();
@@ -5326,11 +5341,19 @@ ${rows}</div>`;
     } catch {
     }
   }
+  function focusDefaults() {
+    return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", maxSize: false, mode: "highlight", opacity: 0.2 };
+  }
   function loadFocus() {
     try {
-      return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", maxSize: false, invert: false, opacity: 0.2, ...JSON.parse(localStorage.getItem(FOCUS_KEY) || "{}") };
+      const stored = JSON.parse(localStorage.getItem(FOCUS_KEY) || "{}");
+      const migrating = stored.mode === void 0 && Boolean(stored.invert);
+      const config2 = { ...focusDefaults(), ...stored, mode: stored.mode ?? (stored.invert ? "hide" : "highlight") };
+      if (migrating && !config2.mutations.length && !config2.maxSize) config2.mode = "highlight";
+      delete config2.invert;
+      return config2;
     } catch {
-      return { enabled: false, scope: "tracked", mutations: [], mutationRule: "all", maxSize: false, invert: false, opacity: 0.2 };
+      return focusDefaults();
     }
   }
   function saveFocus(config2) {
@@ -5402,9 +5425,9 @@ ${rows}</div>`;
         const maximumScale = PLANT_CATALOG[candidate.species ?? tile.species]?.crop?.maxScale;
         return Boolean(maximumScale && Number(candidate.targetScale ?? 1) >= maximumScale);
       }));
-      const ruleMatches = conditions.length ? config2.mutationRule === "none" ? conditions.every((match) => !match) : config2.mutationRule === "any" ? conditions.some(Boolean) : conditions.every(Boolean) : mutations.length === 0;
+      const ruleMatches = !conditions.length || (config2.mutationRule === "none" ? conditions.every((match) => !match) : config2.mutationRule === "any" ? conditions.some(Boolean) : conditions.every(Boolean));
       const result = scopeMatches && ruleMatches;
-      return config2.invert ? !result : result;
+      return config2.mode === "hide" ? !result : result;
     }
     function capture(system) {
       if (!system?.tileViews || !system?.map?.globalTileIdxToDirtTile || system === tileSystem) return;
@@ -5539,6 +5562,14 @@ ${rows}</div>`;
     Amberbound: 10,
     Ambercharged: 10
   };
+  var MUTATION_GROUP_ORDER = ["Growth", "Hydro", "Lunar"];
+  var MUTATION_GROUP_LABELS = { Growth: "Colour", Hydro: "Weather", Lunar: "Lunar" };
+  function mutationGroupOf(mutation) {
+    return MUTATION_CATALOG[mutation]?.group ?? null;
+  }
+  function mutationLabel(mutation) {
+    return MUTATION_CATALOG[mutation]?.name || displayName(mutation);
+  }
   var COMBINED_MULTIPLIERS = {
     "Wet+Dawnlit": 5,
     "Chilled+Dawnlit": 5,
@@ -5855,7 +5886,23 @@ ${rows}</div>`;
     #${PANEL_ID} button.go-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);font-size:10px;white-space:nowrap}#${PANEL_ID} button.go-pill.on{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}#${PANEL_ID} button.go-pill i{width:9px;flex:0 0 9px;color:var(--gc-accent,#a78bfa);font-size:9px;font-style:normal;text-align:center}#${PANEL_ID} button.go-pill small{opacity:.5;font-size:9px}
     #${PANEL_ID} .go-search:focus{border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09)}#${PANEL_ID} .go-collapsible{cursor:pointer;margin:0}#${PANEL_ID} .go-muted{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;opacity:.7}
     #${PANEL_ID} .go-config-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
+    #${PANEL_ID} .go-config-row:first-child{border-top:none}
     #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:#08080c;color:var(--gc-text,#e4e4e7);font:11px system-ui,sans-serif;cursor:pointer}
+    #${PANEL_ID} .go-config-row input[type=range]{width:130px;flex:0 0 130px;accent-color:var(--gc-accent,#a78bfa)}
+    #${PANEL_ID} .go-pill-choice{display:flex;gap:4px}
+    #${PANEL_ID} button.go-pill.go-pill-icon{width:34px;height:34px;padding:0;justify-content:center}
+    #${PANEL_ID} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.5}
+    #${PANEL_ID} button.go-pill.go-pill-icon span{max-width:30px;overflow:hidden;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-weight:700;text-overflow:ellipsis}
+    #${PANEL_ID} button.go-pill.go-pill-icon:hover img{opacity:.8}
+    #${PANEL_ID} button.go-pill.go-pill-icon.on img{opacity:1}
+    #${PANEL_ID} button.go-pill.go-pill-icon.on span{color:#ddd6fe}
+    #${PANEL_ID} .go-pill-section>b em{color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-style:normal;font-weight:400;letter-spacing:.04em;text-transform:none;opacity:.75}
+    #${PANEL_ID} .go-focus-heading{display:flex;align-items:center;justify-content:space-between;margin:12px 0 2px;padding-top:9px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    #${PANEL_ID} .go-focus-heading button{padding:3px 8px;font-size:9px;text-transform:none}
+    #${PANEL_ID} .go-focus-summary{margin:8px 0 2px;padding:9px 10px;border:1px solid rgba(167,139,250,.3);border-radius:8px;background:rgba(167,139,250,.09);color:var(--gc-text,#e4e4e7);font-size:11px;line-height:1.45}
+    #${PANEL_ID} .go-focus-summary b{color:#ddd6fe;font-weight:700}
+    #${PANEL_ID} .go-focus-summary[data-off]{border-color:var(--gc-line,rgba(255,255,255,.075));background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-muted,rgba(255,255,255,.72))}
+    #${PANEL_ID} .go-focus-summary[data-off] b{color:var(--gc-text,#e4e4e7)}
     @media(max-width:760px){#${PANEL_ID}{padding:6px}#${PANEL_ID} .go-stage{max-height:100%;flex-direction:column;overflow:auto}#${PANEL_ID} .go-card{width:min(344px,94vw)}#${PANEL_ID} .go-config-card{width:min(300px,94vw)}#${PANEL_ID} header{padding:10px}#${PANEL_ID} header .go-actions{gap:2px}}
   `;
     document.head.appendChild(style);
@@ -5897,6 +5944,7 @@ ${rows}</div>`;
     let configMode = null;
     let refreshTimer = null;
     let activeDrag = false;
+    let keyboardDriven = false;
     let lastSignature2 = "";
     const previousMissing = /* @__PURE__ */ new Map();
     function keyCombo(event) {
@@ -5964,6 +6012,17 @@ ${rows}</div>`;
         configMode
       });
     }
+    function focusConditionNames() {
+      return [...focus.mutations.map(mutationLabel), ...focus.maxSize ? ["Max size"] : []];
+    }
+    function focusSummaryHtml() {
+      if (!focus.enabled) return "Plant focus is <b>off</b> &mdash; nothing in your garden is faded yet.";
+      const scopeLabel = focus.scope === "all" ? "all plants" : focus.scope === "tracked" ? "tracked plants" : displayName(focus.scope);
+      const conditionNames = focusConditionNames();
+      const rulePhrase = conditionNames.length ? ` carrying <b>${focus.mutationRule === "all" ? "all" : focus.mutationRule === "any" ? "any" : "none"}</b> of ${escapeHtml2(conditionNames.join(", "))}` : "";
+      const percent = Math.round(focus.opacity * 100);
+      return focus.mode === "hide" ? `<b>Faded to <span data-opacity-value>${percent}%</span>:</b> ${escapeHtml2(scopeLabel)}${rulePhrase}.` : `<b>Highlighted:</b> ${escapeHtml2(scopeLabel)}${rulePhrase}.`;
+    }
     function updateCountdowns(panel3, stats) {
       const next = panel3.querySelector("[data-live=next]");
       const all = panel3.querySelector("[data-live=all]");
@@ -5994,7 +6053,27 @@ ${rows}</div>`;
         const foundMutations = new Set(DEFAULT_TARGETS);
         for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) for (const slot of tile.slots ?? []) for (const mutation of slot.mutations ?? []) foundMutations.add(mutation);
         for (const mutation of focus.mutations) foundMutations.add(mutation);
-        return `<section class="go-section"><div class="go-section-title"><span>Plant focus</span><span>Fade non-matching crops</span></div><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? "checked" : ""}></label><label class="go-config-row"><span>Show</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label><label class="go-config-row"><span>Mutation rule</span><select data-focus-rule>${[["all", "All selected"], ["any", "Any selected"], ["none", "None selected"]].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><div class="go-pill-section"><b>Mutations (${focus.mutations.length}) <button data-focus-clear>Clear</button></b><div>${[...foundMutations].map((name) => `<button class="go-pill ${focus.mutations.includes(name) ? "on" : ""}" data-focus-mutation="${escapeHtml2(name)}"><i>${focus.mutations.includes(name) ? "&#10003;" : ""}</i><span>${escapeHtml2(displayName(name))}</span></button>`).join("")}</div></div><label class="go-config-row"><span>Max size only</span><input type="checkbox" data-focus-max-size ${focus.maxSize ? "checked" : ""}></label><label class="go-config-row"><span>Invert match</span><input type="checkbox" data-focus-invert ${focus.invert ? "checked" : ""}></label><label class="go-config-row"><span>Faded opacity <b data-opacity-value>${Math.round(focus.opacity * 100)}%</b></span><input type="range" min="5" max="60" step="5" value="${Math.round(focus.opacity * 100)}" data-focus-opacity></label></section>`;
+        const conditionNames = focusConditionNames();
+        const percent = Math.round(focus.opacity * 100);
+        const pillGroup = (label, hint, body) => `<div class="go-pill-section"><b><span>${escapeHtml2(label)}</span>${hint ? `<em>${escapeHtml2(hint)}</em>` : ""}</b><div>${body}</div></div>`;
+        const mutationPill = (name) => {
+          const sprite = mutationSprite(name);
+          const label = mutationLabel(name);
+          const face = sprite ? `<img src="${escapeHtml2(sprite)}" alt="${escapeHtml2(label)}">` : `<span>${escapeHtml2(label)}</span>`;
+          return `<button class="go-pill go-pill-icon ${focus.mutations.includes(name) ? "on" : ""}" title="${escapeHtml2(label)}" data-focus-mutation="${escapeHtml2(name)}">${face}</button>`;
+        };
+        const grouped = /* @__PURE__ */ new Set();
+        const groupHint = focus.mutationRule === "all" ? "pick one" : "";
+        const conditionGroups = MUTATION_GROUP_ORDER.map((group) => {
+          const members = [...foundMutations].filter((name) => mutationGroupOf(name) === group);
+          members.forEach((name) => grouped.add(name));
+          return members.length ? pillGroup(MUTATION_GROUP_LABELS[group] ?? group, groupHint, members.map(mutationPill).join("")) : "";
+        }).join("");
+        const ungrouped = [...foundMutations].filter((name) => !grouped.has(name));
+        const otherGroup = ungrouped.length ? pillGroup("Other", "", ungrouped.map(mutationPill).join("")) : "";
+        const sizeGroup = pillGroup("Size", "", `<button class="go-pill go-pill-icon ${focus.maxSize ? "on" : ""}" title="Max size" data-focus-max-size><span>MAX</span></button>`);
+        const modePill = (value, label) => `<button class="go-pill ${focus.mode === value ? "on" : ""}" data-focus-mode="${value}"><i>${focus.mode === value ? "&#10003;" : ""}</i><span>${label}</span></button>`;
+        return `<section class="go-section"><label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? "checked" : ""}></label><div class="go-config-row"><span>Matches</span><div class="go-pill-choice">${modePill("highlight", "Highlighted")}${modePill("hide", "Faded out")}</div></div><label class="go-config-row"><span>Applies to</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label><label class="go-config-row"><span>Crop must have</span><select data-focus-rule>${[["all", "All of these"], ["any", "At least one of these"], ["none", "None of these"]].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><div class="go-focus-heading"><span>Conditions (${conditionNames.length})</span><button data-focus-clear>Clear</button></div>${conditionGroups}${otherGroup}${sizeGroup}<label class="go-config-row"><span>Faded crops sit at <b data-opacity-value>${percent}%</b></span><input type="range" min="5" max="60" step="5" value="${percent}" data-focus-opacity></label><p class="go-focus-summary"${focus.enabled ? "" : " data-off"}>${focusSummaryHtml()}</p></section>`;
       }
       return "";
     }
@@ -6249,54 +6328,108 @@ ${rows}</div>`;
         const focusButton = panel3.querySelector("[data-focus-config]");
         if (focusButton) focusButton.dataset.active = String(focus.enabled);
       };
+      const enforceGroupExclusivity = (keep) => {
+        if (focus.mutationRule !== "all") return;
+        const claimed = /* @__PURE__ */ new Map();
+        if (keep) {
+          const group = mutationGroupOf(keep);
+          if (group) claimed.set(group, keep);
+        }
+        focus.mutations = focus.mutations.filter((name) => {
+          const group = mutationGroupOf(name);
+          if (!group) return true;
+          if (claimed.has(group)) return claimed.get(group) === name;
+          claimed.set(group, name);
+          return true;
+        });
+      };
+      const refreshFocusSummary = () => {
+        const node = panel3.querySelector(".go-focus-summary");
+        if (!node) return;
+        node.toggleAttribute("data-off", !focus.enabled);
+        node.innerHTML = focusSummaryHtml();
+      };
+      const releaseUnlessTyping = (element) => {
+        if (keyboardDriven) return;
+        setTimeout(() => {
+          if (!keyboardDriven) element.blur();
+        }, 0);
+      };
+      const renderAndRefocus = (selector) => {
+        render4(true);
+        if (keyboardDriven) panel3.querySelector(selector)?.focus();
+      };
+      const releaseOnCommit = (select) => {
+        select.onkeydown = (event) => {
+          if (event.key === "Enter" || event.key === "Escape") select.blur();
+        };
+      };
       const focusEnabled = panel3.querySelector("[data-focus-enabled]");
       if (focusEnabled) focusEnabled.onchange = () => {
         focus.enabled = focusEnabled.checked;
         saveFocusControls();
-        focusEnabled.blur();
+        refreshFocusSummary();
+        releaseUnlessTyping(focusEnabled);
       };
+      panel3.querySelectorAll("[data-focus-mode]").forEach((button) => button.onclick = () => {
+        focus.mode = button.dataset.focusMode;
+        saveFocusControls();
+        renderAndRefocus(`[data-focus-mode="${button.dataset.focusMode}"]`);
+      });
       const focusScope = panel3.querySelector("[data-focus-scope]");
-      if (focusScope) focusScope.onchange = () => {
-        focus.scope = focusScope.value;
-        saveFocusControls();
-      };
+      if (focusScope) {
+        focusScope.onchange = () => {
+          focus.scope = focusScope.value;
+          saveFocusControls();
+          refreshFocusSummary();
+          releaseUnlessTyping(focusScope);
+        };
+        releaseOnCommit(focusScope);
+      }
       const focusRule = panel3.querySelector("[data-focus-rule]");
-      if (focusRule) focusRule.onchange = () => {
-        focus.mutationRule = focusRule.value;
-        saveFocusControls();
-      };
+      if (focusRule) {
+        focusRule.onchange = () => {
+          focus.mutationRule = focusRule.value;
+          enforceGroupExclusivity();
+          saveFocusControls();
+          renderAndRefocus("[data-focus-rule]");
+        };
+        releaseOnCommit(focusRule);
+      }
       panel3.querySelectorAll("[data-focus-mutation]").forEach((button) => button.onclick = () => {
-        const selected = new Set(focus.mutations);
         const mutation = button.dataset.focusMutation ?? "";
-        selected.has(mutation) ? selected.delete(mutation) : selected.add(mutation);
+        const selected = new Set(focus.mutations);
+        const adding = !selected.has(mutation);
+        adding ? selected.add(mutation) : selected.delete(mutation);
         focus.mutations = [...selected];
+        enforceGroupExclusivity(adding ? mutation : void 0);
         saveFocusControls();
-        render4(true);
+        renderAndRefocus(`[data-focus-mutation="${mutation}"]`);
       });
       panel3.querySelector("[data-focus-clear]")?.addEventListener("click", () => {
         focus.mutations = [];
+        focus.maxSize = false;
         saveFocusControls();
-        render4(true);
+        renderAndRefocus("[data-focus-clear]");
       });
       const focusMaxSize = panel3.querySelector("[data-focus-max-size]");
-      if (focusMaxSize) focusMaxSize.onchange = () => {
-        focus.maxSize = focusMaxSize.checked;
+      if (focusMaxSize) focusMaxSize.onclick = () => {
+        focus.maxSize = !focus.maxSize;
         saveFocusControls();
-        focusMaxSize.blur();
-      };
-      const focusInvert = panel3.querySelector("[data-focus-invert]");
-      if (focusInvert) focusInvert.onchange = () => {
-        focus.invert = focusInvert.checked;
-        saveFocusControls();
-        focusInvert.blur();
+        renderAndRefocus("[data-focus-max-size]");
       };
       const focusOpacity = panel3.querySelector("[data-focus-opacity]");
-      if (focusOpacity) focusOpacity.oninput = () => {
-        focus.opacity = Number(focusOpacity.value) / 100;
-        const label = panel3.querySelector("[data-opacity-value]");
-        if (label) label.textContent = `${focusOpacity.value}%`;
-        saveFocusControls();
-      };
+      if (focusOpacity) {
+        focusOpacity.oninput = () => {
+          focus.opacity = Number(focusOpacity.value) / 100;
+          panel3.querySelectorAll("[data-opacity-value]").forEach((label) => {
+            label.textContent = `${focusOpacity.value}%`;
+          });
+          saveFocusControls();
+        };
+        focusOpacity.onpointerup = () => releaseUnlessTyping(focusOpacity);
+        focusOpacity.onchange = () => releaseUnlessTyping(focusOpacity);
+      }
       panel3.querySelectorAll("[data-family]").forEach((row) => row.onclick = () => {
         const key = row.dataset.family;
         if (openFamilies.has(key)) openFamilies.delete(key);
@@ -6327,6 +6460,7 @@ ${rows}</div>`;
       if (!panel3) return;
       panel3.hidden = false;
       lastSignature2 = "";
+      page3.__gardenCompanionLoadSpriteGroup?.("deferred");
       render4(true);
       ensureRefreshTimer();
     }
@@ -6357,11 +6491,20 @@ ${rows}</div>`;
       const panel3 = document.createElement("div");
       panel3.id = PANEL_ID;
       panel3.hidden = true;
+      panel3.addEventListener("keydown", () => {
+        keyboardDriven = true;
+      }, true);
+      panel3.addEventListener("pointerdown", () => {
+        keyboardDriven = false;
+      }, true);
       document.body.append(button, panel3);
       page3.__gardenCompanionOnCinematicChange?.(() => {
         button.hidden = Boolean(page3.__gardenCompanionCinematicFromGame?.());
       });
       if (view.alarm) ensureRefreshTimer();
+      onSpritesReady(() => {
+        if (configMode === "focus") render4(true);
+      });
       window.addEventListener("keydown", (event) => {
         if (!shortcut || event.repeat || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) return;
         if (keyCombo(event) !== shortcut) return;
@@ -10346,11 +10489,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var reconcileTimer = null;
   var cleansedRows = /* @__PURE__ */ new Set();
   var changedRows = /* @__PURE__ */ new Set();
-  function mutationLabel(id) {
+  function mutationLabel2(id) {
     return MUTATION_CATALOG[id]?.name || humanize(id);
   }
   function mutationBadge(id) {
-    const label = mutationLabel(id);
+    const label = mutationLabel2(id);
     const sprite = mutationSprite(id);
     return `<span class="gc-cleanser-mutation">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}${escapeHtml(label)}</span>`;
   }
@@ -10450,7 +10593,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const disabled = cleaners <= 0 || cleansed;
       return `<tr><td><b>${escapeHtml(plantName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join("")}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}" ${disabled ? "disabled" : ""}>${cleansed ? "Cleansed" : "Cleanse"}</button></td></tr>`;
     }).join("");
-    body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString(NUMBER_LOCALE)}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
+    body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString(NUMBER_LOCALE)}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel2(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
       selectedMutation = button.dataset.cleanserMutation || "";
       refreshSnapshot();

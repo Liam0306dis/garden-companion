@@ -44,6 +44,25 @@ export function mutationSprite(mutation: string): string {
   return page.__gardenCompanionMutationSprites?.[mutation] || '';
 }
 
+const spriteReadyListeners = new Set<() => void>();
+
+/**
+ * Atlases decode well after the page loads, so anything drawn before then falls back to plain text
+ * and has to be redrawn once the art lands. The loader only calls one page-level hook, so features
+ * subscribe here rather than each claiming that hook and silently replacing the last one.
+ */
+export function onSpritesReady(listener: () => void): void {
+  spriteReadyListeners.add(listener);
+  if (spriteReadyListeners.size > 1) return;
+  const previous = page.__gardenCompanionPetSpritesReady;
+  page.__gardenCompanionPetSpritesReady = () => {
+    previous?.();
+    for (const notify of spriteReadyListeners) {
+      try { notify(); } catch {}
+    }
+  };
+}
+
 const mutatedPetSprites = new Map<string, string>();
 const pendingPetSprites = new Set<string>();
 
