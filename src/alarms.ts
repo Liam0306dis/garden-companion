@@ -57,10 +57,14 @@ function clearActiveAlarm(): void {
   alarm = null;
 }
 
+/**
+ * The queue line keeps its space when empty rather than being removed from the flow, so the banner
+ * is the same size and its buttons sit in the same place whether one item alarmed or five did.
+ */
 function updateAlarmQueueCount(): void {
   const count = document.querySelector<HTMLElement>('#gc-alarm [data-alarm-queue]');
   if (!count) return;
-  count.hidden = alarmQueue.length === 0;
+  count.style.visibility = alarmQueue.length ? 'visible' : 'hidden';
   count.textContent = alarmQueue.length === 1 ? '1 more alarm queued' : `${alarmQueue.length} more alarms queued`;
 }
 
@@ -99,7 +103,7 @@ function renderAlarmBanner(options: CompanionAlarmOptions): void {
   banner.id = 'gc-alarm';
   const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : '';
   const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : '';
-  banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue hidden></em></div>${action}<button data-stop>Stop alarm</button>`;
+  banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
   document.body.appendChild(banner);
   banner.querySelector<HTMLButtonElement>('[data-stop]')!.onclick = dismissCurrentAlarm;
   const actionButton = banner.querySelector<HTMLButtonElement>('[data-buy]');

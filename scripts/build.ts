@@ -49,7 +49,9 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
             ...(Object.keys(baseParameters).length ? { baseParameters } : {}),
           }];
         }));
-        const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+),rarity:[A-Za-z_$]+\.([A-Za-z]+).{0,300}?diet:\[([^\]]*)\]/g)];
+        // The leading sprite field comes and goes between releases and nothing here reads it, so a
+        // pet entry is matched with or without it.
+        const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{(?:sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),)?name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+),rarity:[A-Za-z_$]+\.([A-Za-z]+).{0,300}?diet:\[([^\]]*)\]/g)];
         if (!petMatches.length) continue;
         const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
@@ -148,13 +150,23 @@ async function abilityColoursFromBundle(directory: string): Promise<Record<strin
   for (const file of files) {
     const chunk = await readFile(resolve(directory, file), 'utf8');
     const colours: Record<string, string> = {};
-    // Most abilities return a hex colour, but a few (Rainbow and Gold granters) return a CSS gradient.
-    // The game keeps only the hex stops and always paints them corner to corner, from the top left
-    // to the bottom right, so the declared angle and stop positions are rewritten to match.
-    for (const match of chunk.matchAll(/((?:case`[A-Za-z0-9_]+`:)+)return`(#[0-9A-Fa-f]{6}|linear-gradient\([^`]+\))`/g)) {
-      const stops = match[2].startsWith('linear-gradient')
-        ? `linear-gradient(135deg, ${(match[2].match(/#[0-9A-Fa-f]{6}/g) || []).join(', ')})`
-        : match[2];
+    // The gradient abilities (the Rainbow and Gold granters) hold their stops in a hoisted constant
+    // that the switch returns by name, so those are collected first and resolved below.
+    const gradients: Record<string, string> = {};
+    for (const match of chunk.matchAll(/([A-Za-z_$][A-Za-z0-9_$]*)=\{solid:`#[0-9A-Fa-f]{6}`,gradient:\{angleDegrees:[0-9.]+,colorStops:\[([^\]]*)\]\}\}/g)) {
+      gradients[match[1]] = `linear-gradient(135deg, ${(match[2].match(/#[0-9A-Fa-f]{6}/g) || []).join(', ')})`;
+    }
+    // A colour is either an object with a hex `solid`, one of those gradient constants, or - on
+    // older bundles - a bare string. The game always paints a gradient corner to corner from the top
+    // left, so the declared angle and stop positions are rewritten to match.
+    for (const match of chunk.matchAll(/((?:case`[A-Za-z0-9_]+`:)+)return\s*(?:\{solid:`(#[0-9A-Fa-f]{6})`\}|`(#[0-9A-Fa-f]{6}|linear-gradient\([^`]+\))`|([A-Za-z_$][A-Za-z0-9_$]*))/g)) {
+      const literal = match[2] ?? match[3];
+      const stops = literal
+        ? literal.startsWith('linear-gradient')
+          ? `linear-gradient(135deg, ${(literal.match(/#[0-9A-Fa-f]{6}/g) || []).join(', ')})`
+          : literal
+        : gradients[match[4]];
+      if (!stops) continue;
       for (const name of match[1].matchAll(/case`([A-Za-z0-9_]+)`/g)) colours[name[1]] = stops;
     }
     if (Object.keys(colours).length >= 40) return colours;

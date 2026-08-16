@@ -613,6 +613,13 @@ assert.match(styleSource, /\.gc-pet-sprite img \{[^}]*image-rendering:auto/s, 'p
 assert.match(styleSource, /\.gc-shop-sprite img \{[^}]*image-rendering:auto/s, 'shop sprites are not smoothly scaled');
 assert.match(styleSource, /#gc-panel img,#gc-alarm img,#gc-turtle img,#gc-overview-panel img \{ image-rendering:auto!important; \}/, 'smooth scaling is not applied to every companion-owned image');
 assert.doesNotMatch(styleSource, /image-rendering:pixelated/, 'companion sprites still force pixelated scaling');
+// The alarm banner must be the same size however many items alarmed, so its buttons never move.
+assert.match(companionSource, /count\.style\.visibility = alarmQueue\.length \? 'visible' : 'hidden'/, 'the queued-alarm line must keep its space rather than collapse');
+assert.doesNotMatch(companionSource, /<em data-alarm-queue hidden>/, 'the queued-alarm line must not start out removed from the flow');
+assert.match(styleSource, /#gc-alarm \{[^}]*width:430px/, 'the alarm banner must not resize with the length of its text');
+assert.doesNotMatch(styleSource, /#gc-alarm \{[^}]*min-width:430px/, 'the alarm banner must not be free to grow past its base width');
+assert.match(styleSource, /#gc-alarm small,#gc-alarm strong,#gc-alarm span,#gc-alarm \[data-alarm-queue\] \{[^}]*white-space:nowrap/, 'alarm banner lines must not wrap and change the banner height');
+assert.match(styleSource, /#gc-alarm button\[data-buy\] \{ min-width:88px; \}/, 'the buy button must not resize when its label changes');
 assert.match(companionSource, /function renderMutatedPetSprite/, 'per-species pet mutation rendering is missing');
 assert.match(companionSource, /pixels\[\(y \* canvas\.width \+ x\) \* 4 \+ 3\] < 8/, 'rainbow gradient does not inspect visible pet pixels');
 assert.match(companionSource, /createLinearGradient\(minimum \/ 2, minimum \/ 2, maximum \/ 2, maximum \/ 2\)/, 'rainbow gradient is not fitted to each pet body');
