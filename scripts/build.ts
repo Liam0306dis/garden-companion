@@ -143,6 +143,21 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
 }
 
 
+function formatPercent(offset: number): string {
+  return `${Number((offset * 100).toFixed(2))}%`;
+}
+
+/**
+ * The game builds its gradient line the same way CSS does - clockwise from "to top", through the
+ * centre, length |w sin0| + |h cos0| - so an angle carries straight over. It first mirrors any angle
+ * whose sine and cosine share a sign, which is what collapses the rainbow granter's declared 45
+ * degrees onto the same top-left to bottom-right diagonal as everything else.
+ */
+function gradientAngle(angleDegrees: number): number {
+  const radians = angleDegrees * Math.PI / 180;
+  return Math.sin(radians) * Math.cos(radians) > 1e-6 ? 180 - angleDegrees : angleDegrees;
+}
+
 // The game colours each ability chip through a switch in its store chunk.
 // Read it from the captured bundle so our chips match the game exactly.
 async function abilityColoursFromBundle(directory: string): Promise<Record<string, string>> {
@@ -153,12 +168,13 @@ async function abilityColoursFromBundle(directory: string): Promise<Record<strin
     // The gradient abilities (the Rainbow and Gold granters) hold their stops in a hoisted constant
     // that the switch returns by name, so those are collected first and resolved below.
     const gradients: Record<string, string> = {};
-    for (const match of chunk.matchAll(/([A-Za-z_$][A-Za-z0-9_$]*)=\{solid:`#[0-9A-Fa-f]{6}`,gradient:\{angleDegrees:[0-9.]+,colorStops:\[([^\]]*)\]\}\}/g)) {
-      gradients[match[1]] = `linear-gradient(135deg, ${(match[2].match(/#[0-9A-Fa-f]{6}/g) || []).join(', ')})`;
+    for (const match of chunk.matchAll(/([A-Za-z_$][A-Za-z0-9_$]*)=\{solid:`#[0-9A-Fa-f]{6}`,gradient:\{angleDegrees:([0-9.]+),colorStops:\[([^\]]*)\]\}\}/g)) {
+      const stops = [...match[3].matchAll(/color:`(#[0-9A-Fa-f]{6})`,offset:([0-9.]+)(?:\/([0-9.]+))?/g)]
+        .map(stop => `${stop[1]} ${formatPercent(Number(stop[2]) / (stop[3] ? Number(stop[3]) : 1))}`);
+      if (stops.length) gradients[match[1]] = `linear-gradient(${gradientAngle(Number(match[2]))}deg, ${stops.join(', ')})`;
     }
     // A colour is either an object with a hex `solid`, one of those gradient constants, or - on
-    // older bundles - a bare string. The game always paints a gradient corner to corner from the top
-    // left, so the declared angle and stop positions are rewritten to match.
+    // older bundles - a bare string carrying the stops with no angle or offsets of its own.
     for (const match of chunk.matchAll(/((?:case`[A-Za-z0-9_]+`:)+)return\s*(?:\{solid:`(#[0-9A-Fa-f]{6})`\}|`(#[0-9A-Fa-f]{6}|linear-gradient\([^`]+\))`|([A-Za-z_$][A-Za-z0-9_$]*))/g)) {
       const literal = match[2] ?? match[3];
       const stops = literal
@@ -171,7 +187,9 @@ async function abilityColoursFromBundle(directory: string): Promise<Record<strin
     }
     if (Object.keys(colours).length >= 40) return colours;
   }
-  return {};
+  // Loudly, because the switch has changed shape before and shipping colourless chips looks like a
+  // styling bug rather than a build that quietly found nothing.
+  throw new Error('No ability colours were found in the captured game bundles.');
 }
 
 const header = `// ==UserScript==
