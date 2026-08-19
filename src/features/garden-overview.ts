@@ -737,6 +737,9 @@ function injectStyles(): void {
     #${PANEL_ID} .go-collapsible:hover .go-chevron{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
     #${PANEL_ID} .go-collapsible:hover>span>small{background:rgba(167,139,250,.16);color:#ddd6fe}
     #${PANEL_ID} .go-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0}
+    #${PANEL_ID} .go-summary[data-tiles="3"]{grid-template-columns:repeat(3,1fr)}
+    #${PANEL_ID} .go-metric small{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    #${PANEL_ID} .go-metric b{white-space:nowrap}
     #${PANEL_ID} .go-metric{padding:8px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
     #${PANEL_ID} .go-metric small{display:block;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;text-transform:uppercase;letter-spacing:.08em}#${PANEL_ID} .go-metric b{color:var(--gc-green,#34d399);font:700 15px/1.3 system-ui,sans-serif}
     #${PANEL_ID} .go-metric.go-growing b{color:var(--gc-gold,#fbbf24);font-size:17px}#${PANEL_ID} .go-metric.go-size b{color:#fb923c;font-size:17px}
@@ -1140,7 +1143,17 @@ export function initGardenOverview(): void {
       ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>'
       : growing === 0
         ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>`
-      : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ''}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
+      : (() => {
+        const metrics = [
+          `<div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>`,
+          // Only worth a tile while nothing has matured; once something is ready it says nothing.
+          ...(stats.mature === 0 ? [`<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>`] : []),
+          `<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div>`,
+          `<div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div>`,
+        ];
+        // Three tiles share one row; a fourth would not fit beside them, so it falls back to 2x2.
+        return `<div class="go-summary" data-tiles="${metrics.length}">${metrics.join('')}</div>`;
+      })();
     const bonus = Math.round((stats.friendBonus - 1) * 100);
     // The chevron is a real control rather than a bare glyph, and the badge saves opening a section
     // just to find out whether it holds anything.

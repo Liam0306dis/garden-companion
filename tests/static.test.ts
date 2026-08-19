@@ -306,6 +306,9 @@ assert.match(overviewSource, /\[\['species', 'Plants'\], \['mutations', 'Mutatio
 assert.match(overviewSource, /data-focus-toggle\]'\)!\.onclick = \(\) => \{ focus\.enabled = !focus\.enabled/, 'the header must toggle plant focus directly');
 assert.doesNotMatch(overviewSource, /data-species-config|data-mutation-config|data-focus-config/, 'the merged settings card replaces the separate header buttons');
 assert.match(overviewSource, /grid-template-columns:minmax\(0,1fr\) 42px 42px/, 'the plants table must give tiles and crops their own columns');
+// Three growth tiles fit one row at 344px; a fourth does not, so the column count follows the count.
+assert.match(overviewSource, /\.go-summary\[data-tiles="3"\]\{grid-template-columns:repeat\(3,1fr\)\}/, 'three growth metrics must share a single row');
+assert.match(overviewSource, /<div class="go-summary" data-tiles="\$\{metrics\.length\}">/, 'the growth grid must report how many tiles it holds');
 // A collapsible section has to look collapsible, and say what is inside without being opened.
 assert.match(overviewSource, /const collapsible = \(key: string, label: string, total: number, open: boolean\)/, 'collapsible section headers must be built from one helper');
 assert.match(overviewSource, /<u class="go-chevron">\$\{open \? '&#9650;' : '&#9660;'\}<\/u>/, 'collapsible sections must show an up/down chevron');
