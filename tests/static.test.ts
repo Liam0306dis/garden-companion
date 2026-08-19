@@ -302,7 +302,10 @@ assert.match(overviewSource, /combineRainbow.*Rainbow \+ Gold/s, 'overview combi
 assert.match(overviewSource, /mergeRow\('granterAllGarden', 'Whole garden'/, 'overview estimate scope control missing');
 // Plants, mutations and focus share one card, so the header no longer carries a button each.
 assert.match(overviewSource, /data-config-tab="\$\{tab\}"/, 'the settings card must offer its tabs');
-assert.match(overviewSource, /\[\['species', 'Plants'\], \['mutations', 'Mutations'\], \['focus', 'Focus'\]\]/, 'the settings card must cover plants, mutations and focus');
+assert.match(overviewSource, /\[\['species', 'Plants'\], \['mutations', 'Mutations'\], \['focus', 'Focus'\], \['panel', 'Panel'\]\]/, 'the settings card must cover plants, mutations, focus and the panel itself');
+// Zoom is a panel-wide setting, so it lives in the settings card rather than the header.
+assert.match(overviewSource, /choiceRow\('Zoom', 'data-zoom-level', ZOOM_LEVELS\.map/, 'zoom must be offered in the panel settings tab');
+assert.doesNotMatch(overviewSource, /button data-zoom title="Cycle zoom"/, 'the header must no longer carry the zoom cycler');
 assert.match(overviewSource, /data-focus-toggle\]'\)!\.onclick = \(\) => \{ focus\.enabled = !focus\.enabled/, 'the header must toggle plant focus directly');
 assert.doesNotMatch(overviewSource, /data-species-config|data-mutation-config|data-focus-config/, 'the merged settings card replaces the separate header buttons');
 assert.match(overviewSource, /grid-template-columns:minmax\(0,1fr\) 42px 42px/, 'the plants table must give tiles and crops their own columns');

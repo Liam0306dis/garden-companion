@@ -394,6 +394,7 @@ const TIME_MULTIPLIERS: Record<string, number> = {
 // A crop only ever carries one mutation from each catalog group, which is why the value maths above
 // takes the best of each. The focus picker reuses that to stop people asking for combinations no
 // crop can satisfy. Labels match the value calculator so the two pickers read the same.
+const ZOOM_LEVELS = [1, 1.25, 1.5];
 const MUTATION_GROUP_ORDER = ['Growth', 'Hydro', 'Lunar'];
 const MUTATION_GROUP_LABELS: Record<string, string> = { Growth: 'Colour', Hydro: 'Weather', Lunar: 'Lunar' };
 function mutationGroupOf(mutation: string): string | null {
@@ -720,7 +721,6 @@ function injectStyles(): void {
     #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:4px}
     #${PANEL_ID} header button,#${PANEL_ID} button{padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);cursor:pointer;font:700 10px system-ui,sans-serif}
     #${PANEL_ID} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
-    #${PANEL_ID} header button[data-zoom]{width:34px;font-size:9px}
     #${PANEL_ID} header button[data-close]{border-radius:50%;color:var(--gc-muted,rgba(255,255,255,.72));background:transparent}
     #${PANEL_ID} header button[data-close]:hover{color:#fff;background:rgba(255,255,255,.07)}
     #${PANEL_ID} header button:hover,#${PANEL_ID} button:hover{color:#ddd6fe;border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.1)}
@@ -861,8 +861,8 @@ export function initGardenOverview(): void {
   let position: { left: number; top: number } | null = null;
   let configPosition: { left: number; top: number } | null = null;
   try { position = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null'); } catch {}
-  let configMode: 'species' | 'mutations' | 'focus' | 'alarms' | null = null;
-  let lastConfigTab: 'species' | 'mutations' | 'focus' = 'species';
+  let configMode: 'species' | 'mutations' | 'focus' | 'panel' | 'alarms' | null = null;
+  let lastConfigTab: 'species' | 'mutations' | 'focus' | 'panel' = 'species';
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
   let activeDrag = false;
   // A focused control inside the panel swallows the keys the game needs to move, so focus is handed
@@ -1025,6 +1025,13 @@ export function initGardenOverview(): void {
         + `${mergeRow('combineRainbow', 'Rainbow + Gold')}${mergeRow('combineFrozenThunderstruck', 'Frozen + Thunderstruck')}${mergeRow('combineAmberDawn', 'Amberlit + Dawnlit')}${mergeRow('combineDawnAmbercharged', 'Dawnbound + Amberbound')}`
         + settingsHead('Counting')
         + `${mergeRow('granterAllGarden', 'Whole garden', 'Estimate from every plant, not just tracked ones')}${mergeRow('ignorePreserved', 'Ignore preserved', 'Leave preserved crops out of every count')}`
+        + `</section>`;
+    }
+    if (configMode === 'panel') {
+      return `<section class="go-section">`
+        + `<p class="go-muted">How the overview itself is drawn. Drag the panel by its header to move it.</p>`
+        + settingsHead('Size')
+        + choiceRow('Zoom', 'data-zoom-level', ZOOM_LEVELS.map(level => [String(level), `${level}x`]), String(view.zoom))
         + `</section>`;
     }
     if (configMode === 'alarms') {
@@ -1225,12 +1232,12 @@ export function initGardenOverview(): void {
     // Plants, mutations and focus are one card with tabs: they are all "what the overview watches",
     // and three separate header buttons made the player hunt for which one held a given setting.
     const configTabs = configMode === 'alarms' ? '' : `<div class="go-config-tabs">${
-      ([['species', 'Plants'], ['mutations', 'Mutations'], ['focus', 'Focus']] as const)
+      ([['species', 'Plants'], ['mutations', 'Mutations'], ['focus', 'Focus'], ['panel', 'Panel']] as const)
         .map(([tab, label]) => `<button data-config-tab="${tab}" data-active="${configMode === tab}">${label}</button>`).join('')
     }</div>`;
     const configTitle = configMode === 'alarms' ? 'Alarm Config' : 'Overview Settings';
     const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : '';
-    panel.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== 'alarms'}" title="Settings">&#9881;</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? 'Turn plant focus off' : 'Turn plant focus on'}">&#9680;</button><button data-zoom title="Cycle zoom">${view.zoom}x</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
+    panel.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== 'alarms'}" title="Settings">&#9881;</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? 'Turn plant focus off' : 'Turn plant focus on'}">&#9680;</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
     const nextBody = panel.querySelector<HTMLElement>('.go-body');
     if (nextBody) nextBody.scrollTop = scrollTop;
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = close;
@@ -1255,7 +1262,11 @@ export function initGardenOverview(): void {
       saveView(view);
       render(true);
     };
-    panel.querySelector<HTMLButtonElement>('[data-zoom]')!.onclick = () => { const values = [1, 1.25, 1.5]; view.zoom = values[(values.indexOf(view.zoom) + 1) % values.length]; saveView(view); render(true); };
+    panel.querySelectorAll<HTMLButtonElement>('[data-zoom-level]').forEach(button => button.onclick = () => {
+      view.zoom = Number(button.dataset.zoomLevel);
+      saveView(view);
+      renderAndRefocus(`[data-zoom-level="${button.dataset.zoomLevel}"]`);
+    });
     panel.querySelector<HTMLButtonElement>('[data-all]')?.addEventListener('click', () => { filter = null; localStorage.removeItem(FILTER_KEY); render(true); });
     panel.querySelector<HTMLButtonElement>('[data-none]')?.addEventListener('click', () => { filter = new Set(); saveFilter(filter); render(true); });
     panel.querySelector<HTMLButtonElement>('[data-owned]')?.addEventListener('click', () => {

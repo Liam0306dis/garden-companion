@@ -5595,6 +5595,7 @@ ${rows}</div>`;
     Amberbound: 10,
     Ambercharged: 10
   };
+  var ZOOM_LEVELS = [1, 1.25, 1.5];
   var MUTATION_GROUP_ORDER = ["Growth", "Hydro", "Lunar"];
   var MUTATION_GROUP_LABELS = { Growth: "Colour", Hydro: "Weather", Lunar: "Lunar" };
   function mutationGroupOf(mutation) {
@@ -5881,7 +5882,6 @@ ${rows}</div>`;
     #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:4px}
     #${PANEL_ID} header button,#${PANEL_ID} button{padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);cursor:pointer;font:700 10px system-ui,sans-serif}
     #${PANEL_ID} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
-    #${PANEL_ID} header button[data-zoom]{width:34px;font-size:9px}
     #${PANEL_ID} header button[data-close]{border-radius:50%;color:var(--gc-muted,rgba(255,255,255,.72));background:transparent}
     #${PANEL_ID} header button[data-close]:hover{color:#fff;background:rgba(255,255,255,.07)}
     #${PANEL_ID} header button:hover,#${PANEL_ID} button:hover{color:#ddd6fe;border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.1)}
@@ -6152,6 +6152,9 @@ ${rows}</div>`;
         const mergeRow = (key, label, hint = "") => switchRow("data-mutation-check", key, label, hint, Boolean(mutationConfig[key]));
         return `<section class="go-section"><p class="go-muted">Tracked mutations get a progress bar and a granter estimate.</p>` + settingsHead("Tracked mutations", `<em>${trackedMutations.size}</em>`) + `${groups}${otherGroup}` + settingsHead("Show as one bar") + `${mergeRow("combineRainbow", "Rainbow + Gold")}${mergeRow("combineFrozenThunderstruck", "Frozen + Thunderstruck")}${mergeRow("combineAmberDawn", "Amberlit + Dawnlit")}${mergeRow("combineDawnAmbercharged", "Dawnbound + Amberbound")}` + settingsHead("Counting") + `${mergeRow("granterAllGarden", "Whole garden", "Estimate from every plant, not just tracked ones")}${mergeRow("ignorePreserved", "Ignore preserved", "Leave preserved crops out of every count")}</section>`;
       }
+      if (configMode === "panel") {
+        return `<section class="go-section"><p class="go-muted">How the overview itself is drawn. Drag the panel by its header to move it.</p>` + settingsHead("Size") + choiceRow("Zoom", "data-zoom-level", ZOOM_LEVELS.map((level) => [String(level), `${level}x`]), String(view.zoom)) + `</section>`;
+      }
       if (configMode === "alarms") {
         const buttons = ALARM_TARGETS.map((target) => `<button class="go-pill ${alarmTargets.has(target) ? "on" : ""}" data-alarm-target="${escapeHtml2(target)}"><i>${alarmTargets.has(target) ? "&#10003;" : ""}</i><span>${escapeHtml2(displayName(target))}</span></button>`).join("");
         return `<section class="go-section"><div class="go-section-title"><span>Completion alarms</span><span data-alarm-count>${alarmTargets.size}/${ALARM_TARGETS.length} selected</span></div><p class="go-muted">Choose which granter targets may trigger the Garden alarm.</p><div class="go-tools"><button data-alarm-all>All</button><button data-alarm-none>None</button></div><div class="go-pill-section"><div>${buttons}</div></div></section>`;
@@ -6344,10 +6347,10 @@ ${rows}</div>`;
       const species = knownSpecies();
       const placement = position ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position.top))}px;` : "";
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
-      const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"]].map(([tab, label]) => `<button data-config-tab="${tab}" data-active="${configMode === tab}">${label}</button>`).join("")}</div>`;
+      const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"], ["panel", "Panel"]].map(([tab, label]) => `<button data-config-tab="${tab}" data-active="${configMode === tab}">${label}</button>`).join("")}</div>`;
       const configTitle = configMode === "alarms" ? "Alarm Config" : "Overview Settings";
       const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml2(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : "";
-      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">&#9881;</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">&#9680;</button><button data-zoom title="Cycle zoom">${view.zoom}x</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
+      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">&#9881;</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">&#9680;</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
       const nextBody = panel3.querySelector(".go-body");
       if (nextBody) nextBody.scrollTop = scrollTop;
       panel3.querySelector("[data-close]").onclick = close;
@@ -6385,12 +6388,11 @@ ${rows}</div>`;
         saveView(view);
         render4(true);
       };
-      panel3.querySelector("[data-zoom]").onclick = () => {
-        const values = [1, 1.25, 1.5];
-        view.zoom = values[(values.indexOf(view.zoom) + 1) % values.length];
+      panel3.querySelectorAll("[data-zoom-level]").forEach((button) => button.onclick = () => {
+        view.zoom = Number(button.dataset.zoomLevel);
         saveView(view);
-        render4(true);
-      };
+        renderAndRefocus(`[data-zoom-level="${button.dataset.zoomLevel}"]`);
+      });
       panel3.querySelector("[data-all]")?.addEventListener("click", () => {
         filter = null;
         localStorage.removeItem(FILTER_KEY);
