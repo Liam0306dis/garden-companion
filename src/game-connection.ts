@@ -5,61 +5,36 @@ import { page } from './page.js';
  * `invalid_message` without one - which is how buying, preserving, potting and harvesting stopped
  * working while everything sent through the game's other sender carried on fine.
  *
- * The game's counter is private to one of its modules, so we cannot read it, and running a second
- * counter alongside it does not work: the game never learns that we consumed a number, so its next
- * command reuses one of ours and the server drops one of the pair. That is intermittent breakage of
- * the player's own actions, which is worse than the bug being fixed.
+ * The game seeds its counter from the Welcome frame and takes one number per command:
  *
- * So instead of numbering only our own commands, every outgoing command is renumbered from one
- * counter as it leaves. Two senders can then never choose the same number, because there is only
- * one chooser. The game matches replies by requestId rather than sequence, so renumbering is
- * invisible to it.
+ *     var K = 1;  function seed(e) { K = e + 1 }   // seed(welcome.executedCommandSequence)
+ *     function next() { let n = K; return K++, n }
+ *
+ * We seed from the same frame, which also means a reconnect needs no special handling: every
+ * Welcome re-seeds. What we cannot do is keep a second counter beside the game's, because it never
+ * learns we consumed a number and its next command reuses ours. So the counter is applied to every
+ * command on its way out, the game's included - one counter, one chooser, no collisions. A command
+ * that gets blocked before it is stamped simply takes no number, which is what keeps the run
+ * contiguous; the server rejects a gap with `invalid_sequence` and never recovers from one.
  */
 let sequence = -1;
-let executedSeen = -1;
 
-/**
- * The server requires the sequence to be contiguous, not merely increasing: a number it never
- * received makes every later command `invalid_sequence`. Crop protection creates exactly that hole
- * - the game's counter advances for a harvest we then swallow - so the numbering cannot be left to
- * the game. Renumbering every command as it leaves closes the hole, because a blocked command
- * simply never takes a number and the next one continues the run unbroken.
- */
-export function noteFrameSequence(data: unknown): void {
-  if (typeof data !== 'string' || !data.includes('executedCommandSequence')) return;
-  try {
-    const frame = JSON.parse(data) as { executedCommandSequence?: unknown };
-    const executed = Number(frame?.executedCommandSequence);
-    if (Number.isFinite(executed) && executed > executedSeen) executedSeen = executed;
-  } catch {}
-}
-
-/** A reconnect restarts the game's counter, so ours has to be seeded again rather than carried. */
-export function resetCommandSequence(): void {
-  sequence = -1;
-  executedSeen = -1;
+/** Welcome reports what the server has executed; the next command is that plus one. */
+export function seedCommandSequence(executedCommandSequence: unknown): void {
+  const executed = Number(executedCommandSequence);
+  if (Number.isFinite(executed)) sequence = executed + 1;
 }
 
 /**
- * Stamps an outgoing frame with the next sequence. Everything that leaves goes through here - the
- * game's commands as well as ours - which is what keeps the run single and unbroken. The first
- * command keeps whatever number the game chose, so the run starts where the server expects; after
- * that the count is ours and the game's own number is deliberately ignored.
+ * Stamps an outgoing frame with the next sequence. Frames that are not commands, and anything sent
+ * before Welcome has seeded us, are handed back untouched.
  */
 export function renumberOutgoingCommand(data: unknown): unknown {
-  if (typeof data !== 'string' || !data.includes('QuinoaCommand')) return data;
+  if (sequence < 0 || typeof data !== 'string' || !data.includes('QuinoaCommand')) return data;
   try {
     const frame = JSON.parse(data) as Record<string, unknown>;
     if (frame?.type !== 'QuinoaCommand') return data;
-    if (sequence < 0) {
-      // Continue from what the server has actually received, never from what the game believes it
-      // has sent: after a blocked command those two disagree, and the server's view is the one that
-      // decides. Its own claim is only a fallback for before any frame has been seen.
-      const claimed = Number(frame.commandSequence);
-      sequence = executedSeen >= 0 ? executedSeen : (Number.isFinite(claimed) ? claimed - 1 : -1);
-    }
-    sequence += 1;
-    frame.commandSequence = sequence;
+    frame.commandSequence = sequence++;
     return JSON.stringify(frame);
   } catch { return data; }
 }

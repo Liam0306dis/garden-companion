@@ -23,7 +23,7 @@ import {
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
-import { noteFrameSequence, renumberOutgoingCommand, sendQuinoaCommand } from './game-connection.js';
+import { renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
 import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -209,8 +209,10 @@ export function initCompanion(): void {
     const data = (event as MessageEvent).data;
     if (typeof data !== 'string' || !data.includes('"selfPlayerId"')) return;
     try {
-      const id = (JSON.parse(data) as { selfPlayerId?: unknown })?.selfPlayerId;
-      if (typeof id === 'string' && id) welcomePlayerId = id;
+      const frame = JSON.parse(data) as { selfPlayerId?: unknown; executedCommandSequence?: unknown };
+      if (typeof frame?.selfPlayerId === 'string' && frame.selfPlayerId) welcomePlayerId = frame.selfPlayerId;
+      // The same frame seeds the command counter, exactly as the game seeds its own.
+      seedCommandSequence(frame?.executedCommandSequence);
     } catch {}
   }
 
@@ -218,9 +220,6 @@ export function initCompanion(): void {
     if (socket.__gardenCompanionWelcome) return;
     socket.__gardenCompanionWelcome = true;
     socket.addEventListener('message', readWelcome);
-    // Room frames echo the executed sequence, which seeds our numbering before the player has
-    // done anything at all - otherwise a first action on a quiet farm would have nothing to go on.
-    socket.addEventListener('message', event => noteFrameSequence((event as MessageEvent).data));
   }
 
   /**

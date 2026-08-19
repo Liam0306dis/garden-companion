@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.10
+// @version      0.8.11
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -531,31 +531,16 @@
 
   // src/game-connection.ts
   var sequence = -1;
-  var executedSeen = -1;
-  function noteFrameSequence(data) {
-    if (typeof data !== "string" || !data.includes("executedCommandSequence")) return;
-    try {
-      const frame = JSON.parse(data);
-      const executed = Number(frame?.executedCommandSequence);
-      if (Number.isFinite(executed) && executed > executedSeen) executedSeen = executed;
-    } catch {
-    }
-  }
-  function resetCommandSequence() {
-    sequence = -1;
-    executedSeen = -1;
+  function seedCommandSequence(executedCommandSequence) {
+    const executed = Number(executedCommandSequence);
+    if (Number.isFinite(executed)) sequence = executed + 1;
   }
   function renumberOutgoingCommand(data) {
-    if (typeof data !== "string" || !data.includes("QuinoaCommand")) return data;
+    if (sequence < 0 || typeof data !== "string" || !data.includes("QuinoaCommand")) return data;
     try {
       const frame = JSON.parse(data);
       if (frame?.type !== "QuinoaCommand") return data;
-      if (sequence < 0) {
-        const claimed = Number(frame.commandSequence);
-        sequence = executedSeen >= 0 ? executedSeen : Number.isFinite(claimed) ? claimed - 1 : -1;
-      }
-      sequence += 1;
-      frame.commandSequence = sequence;
+      frame.commandSequence = sequence++;
       return JSON.stringify(frame);
     } catch {
       return data;
@@ -4308,7 +4293,6 @@ ${rows}</div>`;
   var roomSocketOpens = 0;
   var listeners2 = /* @__PURE__ */ new Set();
   function emit() {
-    resetCommandSequence();
     for (const listener of listeners2) {
       try {
         listener();
@@ -4638,8 +4622,9 @@ ${rows}</div>`;
       const data = event.data;
       if (typeof data !== "string" || !data.includes('"selfPlayerId"')) return;
       try {
-        const id = JSON.parse(data)?.selfPlayerId;
-        if (typeof id === "string" && id) welcomePlayerId = id;
+        const frame = JSON.parse(data);
+        if (typeof frame?.selfPlayerId === "string" && frame.selfPlayerId) welcomePlayerId = frame.selfPlayerId;
+        seedCommandSequence(frame?.executedCommandSequence);
       } catch {
       }
     }
@@ -4647,7 +4632,6 @@ ${rows}</div>`;
       if (socket.__gardenCompanionWelcome) return;
       socket.__gardenCompanionWelcome = true;
       socket.addEventListener("message", readWelcome);
-      socket.addEventListener("message", (event) => noteFrameSequence(event.data));
     }
     function watchWelcome() {
       const attach = () => {

@@ -177,17 +177,18 @@ assert.match(buildSource, /if \(!plantMatches\.length\) continue;/, 'build can r
 assert.match(buildSource, /__PLANT_CATALOG__: JSON\.stringify\(catalogs\.plants\)/, 'plant catalog is not embedded into the userscript');
 assert.ok(!/setInterval\([^)]*(PurchaseShopItem|HarvestCrop|ApplyPetTeam)/s.test(built), 'unattended command loop found');
 assert.ok(!built.includes('vendor/'), 'vendored source reference found');
-// The envelope needs a commandSequence, and the server wants the run contiguous rather than merely
-// increasing: a number it never receives makes every later command `invalid_sequence`. Crop
-// protection creates exactly that hole, because the game's counter advances for a harvest we then
-// swallow. So every outgoing command is renumbered as it leaves and a blocked one takes no number.
-assert.match(companionSource, /frame\.commandSequence = sequence;/, 'outgoing commands are not renumbered from one counter');
-assert.match(companionSource, /sequence = executedSeen >= 0 \? executedSeen : \(Number\.isFinite\(claimed\) \? claimed - 1 : -1\);/, 'the run is seeded from what the game claims rather than what the server received');
+// The envelope needs a commandSequence and the server wants the run contiguous: a number it never
+// receives makes every later command `invalid_sequence`, and it never recovers. The game seeds its
+// counter from Welcome and takes one per command, so we seed from the same frame - which also means
+// a reconnect needs no special handling, because every Welcome re-seeds.
+assert.match(companionSource, /sequence = executed \+ 1;/, 'the counter is not seeded the way the game seeds its own');
+assert.match(companionSource, /seedCommandSequence\(frame\?\.executedCommandSequence\)/, 'the Welcome frame does not seed the command counter');
+// A second counter cannot work: the game never learns we consumed a number and its next command
+// reuses ours, so every command is stamped on the way out instead - one counter, one chooser.
+assert.match(companionSource, /frame\.commandSequence = sequence\+\+;/, 'outgoing commands are not renumbered from one counter');
 assert.match(companionSource, /return originalSend\.call\(this, renumberOutgoingCommand\(data\)/, 'the socket does not renumber what it sends');
-// Blocking must happen before the stamp, so a swallowed command never consumes a number.
+// Blocking must happen before the stamp, so a swallowed command never takes a number and leaves a hole.
 assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);') < companionSource.indexOf('renumberOutgoingCommand(data)'), 'a blocked command still takes a sequence number, leaving a hole');
-// A reconnect restarts the game's counter, so ours cannot carry over.
-assert.match(connectionStateSource, /resetCommandSequence\(\);/, 'the command sequence survives a reconnect, so the run starts out of step');
 // Both senders leave the sequence off; the stamp on the way out is the only writer.
 assert.match(companionSource, /send\(\{ type: 'QuinoaCommand', requestId, command \}\)/, 'Quinoa command envelope missing');
 assert.match(plantDragSource, /requestId,\s*command: \{ type: 'PotPlant', slot \}/, 'potting a plant sets its own sequence instead of being stamped');
