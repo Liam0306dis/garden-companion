@@ -23,7 +23,7 @@ import {
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
-import { send } from './game-connection.js';
+import { noteFrameSequence, renumberOutgoingCommand, sendQuinoaCommand } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
 import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -121,8 +121,13 @@ export function initCompanion(): void {
     const originalSend = socket.send;
     socket.send = function(data: Parameters<WebSocket['send']>[0]) {
       const blocked = blockOutgoingHarvest(data);
-      if (!blocked) return originalSend.call(this, data);
-      if (blocked.requestId) refuseCommand(socket, blocked.requestId);
+      if (blocked) {
+        if (blocked.requestId) refuseCommand(socket, blocked.requestId);
+        return;
+      }
+      // Renumbered on the way out so one counter covers the game's commands and ours, which is the
+      // only way two senders can share a sequence without ever picking the same number.
+      return originalSend.call(this, renumberOutgoingCommand(data) as Parameters<WebSocket['send']>[0]);
     };
   }
 
@@ -213,6 +218,9 @@ export function initCompanion(): void {
     if (socket.__gardenCompanionWelcome) return;
     socket.__gardenCompanionWelcome = true;
     socket.addEventListener('message', readWelcome);
+    // Room frames echo the executed sequence, which seeds our numbering before the player has
+    // done anything at all - otherwise a first action on a quiet farm would have nothing to go on.
+    socket.addEventListener('message', event => noteFrameSequence((event as MessageEvent).data));
   }
 
   /**
@@ -250,12 +258,16 @@ export function initCompanion(): void {
   function pickSlot(game: GameState | null, room: RoomState | null, playerId: string | null): { slot: PlayerSlot | null; index: number | null } {
     const slots = Array.isArray(game?.userSlots) ? game.userSlots : [];
     if (playerId) {
-      let slot = slots.find(item => item?.playerId === playerId || item?.data?.playerId === playerId);
+      // A slot's own id moved from playerId to userId and carries the same value, so a build that
+      // only knew the old name matched nothing and left the panel on no slot at all.
+      let slot = slots.find(item => item?.userId === playerId || item?.playerId === playerId || item?.data?.playerId === playerId);
       if (!slot) {
         const databaseId = room?.players?.find(item => item?.id === playerId)?.databaseUserId;
         if (databaseId) slot = slots.find(item => item?.data?.databaseUserId === databaseId || item?.data?.userId === databaseId);
       }
-      return { slot: slot || null, index: slot ? slots.indexOf(slot) : null };
+      // A miss falls through to the game's own index rather than returning nothing: the next rename
+      // should cost a stale slot at worst, not a panel with no data and no harvesting.
+      if (slot) return { slot, index: slots.indexOf(slot) };
     }
     const own = state.userSlotIndex;
     if (typeof own === 'number' && own >= 0 && slots[own]) return { slot: slots[own], index: own };
@@ -400,7 +412,9 @@ export function initCompanion(): void {
       if (index < 0) return;
       event.preventDefault(); event.stopImmediatePropagation();
       const slot = tile.slots[index];
-      send({ type: 'HarvestCrop', slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
+      // Harvest is one of the commands the game sends inside the QuinoaCommand envelope, so it
+      // needs the sequence too - sent raw the server rejects it and the crop simply stays put.
+      sendQuinoaCommand({ type: 'HarvestCrop', slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
       toast('Harvest requested.', 'success');
     }, true);
   }

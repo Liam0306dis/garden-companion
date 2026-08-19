@@ -1,3 +1,4 @@
+import { resetCommandSequence } from './game-connection.js';
 /**
  * A reconnect does not hand the world back in one piece. The socket reopens and the first patches
  * can carry an empty shop list, a garden with no tiles, or a restock clock that has jumped forward
@@ -12,6 +13,8 @@ let roomSocketOpens = 0;
 const listeners = new Set<() => void>();
 
 function emit(): void {
+  // The game's command counter restarts with the connection, so ours must not carry over.
+  resetCommandSequence();
   for (const listener of listeners) {
     try { listener(); } catch (error) { console.warn('[Garden Companion] A reconnect listener failed.', error); }
   }

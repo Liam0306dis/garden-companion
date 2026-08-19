@@ -595,6 +595,8 @@ export function initPlantDragMove(): void {
 
     function sendPotPlant(slot) {
         const requestId = pageWindow.crypto.randomUUID();
+        // No sequence here: it is stamped on the way out of the socket, from the same counter the
+        // game's own commands are renumbered by.
         sendMessage({
             scopePath: ['Room', 'Quinoa'],
             type: 'QuinoaCommand',

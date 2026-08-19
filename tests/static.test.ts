@@ -87,6 +87,7 @@ const estimatesSource = await readSource('src', 'features', 'crop-estimates.ts')
 const constantsSource = await readSource('src', 'constants.ts');
 const mutationValueSource = await readSource('src', 'mutation-value.ts');
 const preserveAllSource = await readSource('src', 'features', 'preserve-all.ts');
+const cropProtectionSource = await readSource('src', 'features', 'crop-protection.ts');
 const packageJson = JSON.parse(await readSource('package.json')) as { version: string };
 const packageLock = JSON.parse(await readSource('package-lock.json')) as { version: string; packages: Record<string, { version: string }> };
 
@@ -176,7 +177,20 @@ assert.match(buildSource, /if \(!plantMatches\.length\) continue;/, 'build can r
 assert.match(buildSource, /__PLANT_CATALOG__: JSON\.stringify\(catalogs\.plants\)/, 'plant catalog is not embedded into the userscript');
 assert.ok(!/setInterval\([^)]*(PurchaseShopItem|HarvestCrop|ApplyPetTeam)/s.test(built), 'unattended command loop found');
 assert.ok(!built.includes('vendor/'), 'vendored source reference found');
+// The envelope needs a commandSequence, and the server wants the run contiguous rather than merely
+// increasing: a number it never receives makes every later command `invalid_sequence`. Crop
+// protection creates exactly that hole, because the game's counter advances for a harvest we then
+// swallow. So every outgoing command is renumbered as it leaves and a blocked one takes no number.
+assert.match(companionSource, /frame\.commandSequence = sequence;/, 'outgoing commands are not renumbered from one counter');
+assert.match(companionSource, /sequence = executedSeen >= 0 \? executedSeen : \(Number\.isFinite\(claimed\) \? claimed - 1 : -1\);/, 'the run is seeded from what the game claims rather than what the server received');
+assert.match(companionSource, /return originalSend\.call\(this, renumberOutgoingCommand\(data\)/, 'the socket does not renumber what it sends');
+// Blocking must happen before the stamp, so a swallowed command never consumes a number.
+assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);') < companionSource.indexOf('renumberOutgoingCommand(data)'), 'a blocked command still takes a sequence number, leaving a hole');
+// A reconnect restarts the game's counter, so ours cannot carry over.
+assert.match(connectionStateSource, /resetCommandSequence\(\);/, 'the command sequence survives a reconnect, so the run starts out of step');
+// Both senders leave the sequence off; the stamp on the way out is the only writer.
 assert.match(companionSource, /send\(\{ type: 'QuinoaCommand', requestId, command \}\)/, 'Quinoa command envelope missing');
+assert.match(plantDragSource, /requestId,\s*command: \{ type: 'PotPlant', slot \}/, 'potting a plant sets its own sequence instead of being stamped');
 assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'PurchaseShopItem', shop: live\.shop, item: itemPayload\(live\.item, live\.shop\) \}\)/, 'purchase does not use Quinoa envelope');
 assert.doesNotMatch(companionSource, /send\(\{ type: 'PurchaseShopItem'/, 'unwrapped purchase command found');
 assert.doesNotMatch(companionSource, /send\(\{ type: 'Ping'/, 'redundant game Ping sender found');
@@ -748,7 +762,16 @@ assert.match(companionSource, /if \(typeof data !== 'string' \|\| !data\.include
 // than being polled for, reusing the wrapper the update detector already installs.
 assert.match(companionSource, /socket\.addEventListener\('close', handleGameSocketClose\);\s*listenForWelcome\(socket\);/, 'the Welcome listener can miss the frame it exists to read');
 assert.match(companionSource, /state\.playerId = welcomePlayerId \|\|/, 'the Welcome player id is no longer preferred');
-assert.match(companionSource, /if \(playerId\) \{\s*let slot = slots\.find/, 'a cached slot index can override a live id match');
+// Ordering, not adjacency: the live id match has to be tried before the cached index, or a stale
+// index from a previous room wins and the panel shows another player's data.
+const pickSlotSource = companionSource.slice(companionSource.indexOf('function pickSlot'), companionSource.indexOf('function subscribeToState'));
+assert.ok(pickSlotSource.includes('if (playerId)') && pickSlotSource.includes('state.userSlotIndex'), 'pickSlot no longer has both an id match and a cached index');
+assert.ok(pickSlotSource.indexOf('if (playerId)') < pickSlotSource.indexOf('state.userSlotIndex'), 'a cached slot index can override a live id match');
+// The game renamed a slot's own id from playerId to userId, which matched nothing and left the
+// panel with no slot: no active pets, and harvesting held because the garden looked unloaded.
+assert.match(pickSlotSource, /item\?\.userId === playerId/, 'a slot is not matched on the userId that replaced playerId');
+// A miss must fall through to the game's own index, so the next rename costs a stale slot at worst.
+assert.match(pickSlotSource, /if \(slot\) return \{ slot, index: slots\.indexOf\(slot\) \};[\s\S]*const own = state\.userSlotIndex;/, 'a failed id match returns nothing instead of falling through to the games own index');
 assert.match(gameAtomsSource, /hookAtom\('playerIdAtom', 'atomPlayerId'\);/, "the game's empty starting player id can overwrite ours");
 assert.match(companionSource, /const own = state\.userSlotIndex;\s*if \(typeof own === 'number' && own >= 0 && slots\[own\]\) return \{ slot: slots\[own\], index: own \};\s*return \{ slot: null, index: null \};/, 'a missing player id still guesses a user slot');
 assert.match(companionSource, /if \(databaseId\) slot = slots\.find\(/, 'a missing database id still matches a user slot');
@@ -787,7 +810,7 @@ assert.match(companionSource, /if \(!feature\('instantHarvest'\) \|\| feature\('
 assert.match(companionSource, /if \(input\.dataset\.feature === 'instantHarvest' && input\.checked\) config\.cropProtection = false;/, 'both harvest features can be enabled at once');
 assert.match(protectionSource, /if \(enabled\.checked\) config\.instantHarvest = false;/, 'enabling Crop Protection leaves instant harvest on');
 // The block has to happen on the way out, so every route into a harvest is covered.
-assert.match(companionSource, /const blocked = blockOutgoingHarvest\(data\);\s*if \(!blocked\) return originalSend\.call\(this, data\);/, 'harvests are no longer blocked on the socket');
+assert.match(companionSource, /const blocked = blockOutgoingHarvest\(data\);\s*if \(blocked\) \{[\s\S]*return;\s*\}/, 'harvests are no longer blocked on the socket');
 // A dropped command must be answered: the game's own five second timeout rejects, which skips
 // the branch that undoes the harvest it already started drawing.
 assert.match(companionSource, /if \(blocked\.requestId\) refuseCommand\(socket, blocked\.requestId\);/, 'a blocked harvest is left to time out');
@@ -1246,6 +1269,16 @@ assert.match(petSpriteSource, /existing\.startsWith\(stalePrefix\)/, 'a supersed
 // Both halves of the key have to come from the same place the decode does, or they drift apart.
 assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = essentialRequest\(\);/, 'the essential decode does not use the request set the cache key was built from');
 assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = deferredRequest\(\);/, 'the deferred decode does not use the request set the cache key was built from');
+
+// The game splits its commands across two senders, and only one of them takes the envelope. Getting
+// a command on the wrong side of that line fails silently: the server drops it and nothing is said.
+// HarvestCrop, PotPlant, Preserve and PurchaseShopItem are the envelope ones.
+assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'HarvestCrop'/, 'harvest is sent raw, which the server rejects');
+assert.match(preserveAllSource, /sendQuinoaCommand\(\{ type: 'Preserve'/, 'preserve is sent raw, which the server rejects');
+assert.match(shopAlarmsSource, /sendQuinoaCommand\(\{ type: 'PurchaseShopItem'/, 'buying is sent raw, which the server rejects');
+// Crop protection reads outgoing harvests, so it has to understand both shapes or moving harvest
+// into the envelope would quietly stop it guarding anything.
+assert.match(cropProtectionSource, /message\.type === 'QuinoaCommand' \? message\.command : message/, 'the harvest guard only understands one envelope shape');
 
 console.log('Static checks passed');
 // Auto-store only tops up a stack the storage already holds, and the silo and shed key their

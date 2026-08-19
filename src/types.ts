@@ -107,7 +107,9 @@ export interface PlayerData {
 }
 
 export interface PlayerSlot {
+  /** Superseded by userId, which now carries the same value. Kept for older game builds. */
   playerId?: string;
+  userId?: string;
   data?: PlayerData;
 }
 

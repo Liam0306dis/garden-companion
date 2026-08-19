@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.09
+// @version      0.8.10
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -530,6 +530,37 @@
   }
 
   // src/game-connection.ts
+  var sequence = -1;
+  var executedSeen = -1;
+  function noteFrameSequence(data) {
+    if (typeof data !== "string" || !data.includes("executedCommandSequence")) return;
+    try {
+      const frame = JSON.parse(data);
+      const executed = Number(frame?.executedCommandSequence);
+      if (Number.isFinite(executed) && executed > executedSeen) executedSeen = executed;
+    } catch {
+    }
+  }
+  function resetCommandSequence() {
+    sequence = -1;
+    executedSeen = -1;
+  }
+  function renumberOutgoingCommand(data) {
+    if (typeof data !== "string" || !data.includes("QuinoaCommand")) return data;
+    try {
+      const frame = JSON.parse(data);
+      if (frame?.type !== "QuinoaCommand") return data;
+      if (sequence < 0) {
+        const claimed = Number(frame.commandSequence);
+        sequence = executedSeen >= 0 ? executedSeen : Number.isFinite(claimed) ? claimed - 1 : -1;
+      }
+      sequence += 1;
+      frame.commandSequence = sequence;
+      return JSON.stringify(frame);
+    } catch {
+      return data;
+    }
+  }
   function send(command) {
     const connection = page.MagicCircle_RoomConnection;
     if (!connection || typeof connection.sendMessage !== "function") throw new Error("The game connection is not ready.");
@@ -4277,6 +4308,7 @@ ${rows}</div>`;
   var roomSocketOpens = 0;
   var listeners2 = /* @__PURE__ */ new Set();
   function emit() {
+    resetCommandSequence();
     for (const listener of listeners2) {
       try {
         listener();
@@ -4541,8 +4573,11 @@ ${rows}</div>`;
       const originalSend = socket.send;
       socket.send = function(data) {
         const blocked = blockOutgoingHarvest(data);
-        if (!blocked) return originalSend.call(this, data);
-        if (blocked.requestId) refuseCommand(socket, blocked.requestId);
+        if (blocked) {
+          if (blocked.requestId) refuseCommand(socket, blocked.requestId);
+          return;
+        }
+        return originalSend.call(this, renumberOutgoingCommand(data));
       };
     }
     function installGameUpdateSocketDetector() {
@@ -4612,6 +4647,7 @@ ${rows}</div>`;
       if (socket.__gardenCompanionWelcome) return;
       socket.__gardenCompanionWelcome = true;
       socket.addEventListener("message", readWelcome);
+      socket.addEventListener("message", (event) => noteFrameSequence(event.data));
     }
     function watchWelcome() {
       const attach = () => {
@@ -4633,12 +4669,12 @@ ${rows}</div>`;
     function pickSlot(game, room, playerId) {
       const slots = Array.isArray(game?.userSlots) ? game.userSlots : [];
       if (playerId) {
-        let slot = slots.find((item) => item?.playerId === playerId || item?.data?.playerId === playerId);
+        let slot = slots.find((item) => item?.userId === playerId || item?.playerId === playerId || item?.data?.playerId === playerId);
         if (!slot) {
           const databaseId = room?.players?.find((item) => item?.id === playerId)?.databaseUserId;
           if (databaseId) slot = slots.find((item) => item?.data?.databaseUserId === databaseId || item?.data?.userId === databaseId);
         }
-        return { slot: slot || null, index: slot ? slots.indexOf(slot) : null };
+        if (slot) return { slot, index: slots.indexOf(slot) };
       }
       const own = state.userSlotIndex;
       if (typeof own === "number" && own >= 0 && slots[own]) return { slot: slots[own], index: own };
@@ -4774,7 +4810,7 @@ ${rows}</div>`;
         event.preventDefault();
         event.stopImmediatePropagation();
         const slot = tile.slots[index];
-        send({ type: "HarvestCrop", slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
+        sendQuinoaCommand({ type: "HarvestCrop", slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
         toast("Harvest requested.", "success");
       }, true);
     }
