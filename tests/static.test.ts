@@ -476,7 +476,16 @@ assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter est
 assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, 'overview still displays empty mutation rows');
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
 assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
-assert.match(companionSource, /\['abilities', 'Active Pets'\], \['abilityLog', 'Pet Abilities'\], \['teams', 'Pet Teams'\], \['petFood', 'Pet Food'\], \['protection', 'Crop Protection'\], \['calculators', 'Calculators'\], \['shops', 'Shop Alarms'\], \['silence', 'Ignore Alerts'\], \['journal', 'Journal'\], \['rooms', 'Rooms'\], \['keybinds', 'Keybinds'\], \['features', 'Features'\]/, 'tab order is incorrect');
+// Tabs live in named groups now; TABS is still the flat order the header title resolves against.
+assert.match(companionSource, /\['Pets', \[\['abilities', 'Active Pets'\], \['abilityLog', 'Pet Abilities'\], \['teams', 'Pet Teams'\], \['petFood', 'Pet Food'\]\]\]/, 'tab order is incorrect');
+assert.match(companionSource, /\['Crops', \[\['protection', 'Crop Protection'\], \['journal', 'Journal'\]\]\]/, 'crop tabs must be grouped together');
+assert.match(companionSource, /\['Alerts', \[\['shops', 'Shop Alarms'\], \['silence', 'Ignore Alerts'\]\]\]/, 'alert tabs must be grouped together');
+assert.match(companionSource, /const TABS = TAB_GROUPS\.flatMap\(\(\[, tabs\]\) => tabs\)/, 'the flat tab list must come from the groups');
+// A collapsed group still has to reveal the tab you are on.
+assert.match(companionSource, /const holdsActive = tabs\.some\(\(\[id\]\) => id === activeTab\);\s*const open = holdsActive \|\| !collapsedNavGroups\.has\(group\)/, 'the group holding the active tab must stay open');
+assert.match(companionSource, /GARDEN COMPANION <em class="gc-version">v\$\{escapeHtml\(currentScriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
+assert.match(styleSource, /\.gc-food-options \{ display:grid;grid-auto-flow:column;grid-auto-columns:minmax\(0,1fr\)/, 'pet foods must all sit on one row');
+assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss must be presented as Pokemon Mode');
 assert.match(companionSource, /\[4, 5\]\.includes\(Number\(room\.players_count\)\)/, 'rooms are not restricted to 4 or 5 players');
 assert.match(companionSource, /sort\(\(left, right\) => Number\(right\.players_count\) - Number\(left\.players_count\)\)/, '5-player rooms are not sorted above 4-player rooms');
 assert.match(companionSource, /Public rooms with one or two open slots\./, 'room description is incorrect');

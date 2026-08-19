@@ -199,7 +199,9 @@ export function renderPetFoodTab() {
     const options = petDiet(name).map(crop => {
       const sprite = produceSprite(crop);
       const held = counts.get(crop) || 0;
-      return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(crop)}" data-active="${crop === chosen}"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(crop))}</b><small>${held} held</small></span></button>`;
+      // Five foods share one row, so the longest names ellipsise and lean on the tooltip.
+      const label = humanize(crop);
+      return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(crop)}" data-active="${crop === chosen}" title="${escapeHtml(label)} - ${held} held"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(label)}</b><small>${held} held</small></span></button>`;
     }).join('');
     return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? 'Active' : 'Owned'}</span></div><div class="gc-food-options">${options}</div></article>`;
   }).join('');

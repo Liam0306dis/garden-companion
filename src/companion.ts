@@ -665,13 +665,38 @@ export function initCompanion(): void {
     }, 1000);
   }
 
-  const TABS = [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food'], ['protection', 'Crop Protection'], ['calculators', 'Calculators'], ['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts'], ['journal', 'Journal'], ['rooms', 'Rooms'], ['keybinds', 'Keybinds'], ['features', 'Features']];
+  // Grouped rather than one flat list of twelve: the tabs fall into obvious families, and a heading
+  // per family means you look in one place instead of reading every label.
+  const TAB_GROUPS: Array<[string, Array<[string, string]>]> = [
+    ['Pets', [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food']]],
+    ['Crops', [['protection', 'Crop Protection'], ['journal', 'Journal']]],
+    ['Alerts', [['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts']]],
+    ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
+    ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
+  ];
+  const TABS = TAB_GROUPS.flatMap(([, tabs]) => tabs);
+  const NAV_COLLAPSED_KEY = 'gardenCompanion.navCollapsed.v1';
+  let collapsedNavGroups = new Set<string>();
+  try { collapsedNavGroups = new Set(JSON.parse(localStorage.getItem(NAV_COLLAPSED_KEY) || '[]')); } catch {}
+  function saveCollapsedNavGroups(): void {
+    try { localStorage.setItem(NAV_COLLAPSED_KEY, JSON.stringify([...collapsedNavGroups])); } catch {}
+  }
+  function navHtml(): string {
+    return TAB_GROUPS.map(([group, tabs]) => {
+      // The group holding the open tab always shows it, so the panel can never hide where you are.
+      const holdsActive = tabs.some(([id]) => id === activeTab);
+      const open = holdsActive || !collapsedNavGroups.has(group);
+      return `<div class="gc-nav-group"><button class="gc-nav-head" data-nav-group="${escapeHtml(group)}" aria-expanded="${open}">`
+        + `<span>${escapeHtml(group)}</span><i>${open ? '&#9650;' : '&#9660;'}</i></button>`
+        + `<div class="gc-nav-items"${open ? '' : ' hidden'}>${tabs.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${label}</button>`).join('')}</div></div>`;
+    }).join('');
+  }
 
   function renderPanel() {
     cancelKeybindCapture?.();
     const panel = document.getElementById('gc-panel');
     if (!panel) return;
-    panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${label}</button>`).join('')}</nav><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></div></div>`;
+    panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION <em class="gc-version">v${escapeHtml(currentScriptVersion())}</em></small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${navHtml()}</nav><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></div></div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = closePanel;
@@ -682,6 +707,12 @@ export function initCompanion(): void {
         selectPanelTab(button.dataset.tab);
       };
       button.onclick = () => selectPanelTab(button.dataset.tab);
+    });
+    panel.querySelectorAll<HTMLButtonElement>('[data-nav-group]').forEach(button => button.onclick = () => {
+      const group = button.dataset.navGroup ?? '';
+      collapsedNavGroups.has(group) ? collapsedNavGroups.delete(group) : collapsedNavGroups.add(group);
+      saveCollapsedNavGroups();
+      renderPanelPreservingScroll();
     });
     bindTabEvents(main);
     lastTabSignature = tabRefreshSignature();
@@ -718,7 +749,7 @@ export function initCompanion(): void {
       ['turtleTimer', 'Crop and egg estimates', 'Values and pet-adjusted timing'],
       ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
-      ['petSwapToss', 'Pet swap toss', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
+      ['petSwapToss', 'Pokemon Mode', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
       ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
       ['autoStoreDecor', 'Auto-store decor', 'Move decor into the Decor Shed when it already holds that item'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],

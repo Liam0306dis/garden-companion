@@ -43,12 +43,17 @@
 #gc-panel[hidden] { display:none; }
 .gc-shell { width:min(880px,96vw);height:min(720px,92vh);overflow:hidden;display:flex;flex-direction:column;pointer-events:auto;background:var(--gc-bg);border:1px solid var(--gc-line);border-radius:12px;box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035); }
 .gc-shell > header { min-height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line); }
-.gc-shell header small { color:var(--gc-muted);font-size:9px;font-weight:700;letter-spacing:.18em; }
+.gc-shell header small { display:flex;align-items:center;gap:7px;color:var(--gc-muted);font-size:9px;font-weight:700;letter-spacing:.18em; }
+.gc-shell header .gc-version { padding:1px 6px;border:1px solid var(--gc-line);border-radius:999px;background:rgba(255,255,255,.04);color:var(--gc-text);font-size:9px;font-style:normal;letter-spacing:.04em; }
 .gc-shell header h2 { margin:3px 0 0;color:#fafafa;font-size:19px;line-height:1.1;letter-spacing:.02em; }
 .gc-shell header button { width:28px;height:28px;padding:0;border:1px solid var(--gc-line);border-radius:50%;color:var(--gc-muted);background:transparent;cursor:pointer; }
 .gc-shell header button:hover { color:#fff;background:rgba(255,255,255,.07); }
 .gc-layout { min-height:0;flex:1;display:grid;grid-template-columns:148px minmax(0,1fr); }
-.gc-layout nav { padding:12px 9px;background:#09090d;border-right:1px solid var(--gc-line); }
+.gc-layout nav { overflow:auto;padding:12px 9px;background:#09090d;border-right:1px solid var(--gc-line);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent; }
+.gc-nav-group + .gc-nav-group { margin-top:7px; }
+.gc-nav-head { width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 6px;margin:0 0 2px;border:0;border-radius:6px;background:transparent;color:var(--gc-muted);cursor:pointer;font:800 9px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase; }
+.gc-nav-head:hover { color:#d4d4d8;background:var(--gc-soft); }
+.gc-nav-head i { font-size:7px;font-style:normal;opacity:.7; }
 .gc-layout nav button { width:100%;padding:9px 10px;margin:1px 0;border:1px solid transparent;border-radius:7px;text-align:left;color:var(--gc-muted);background:transparent;cursor:pointer;font:600 11px system-ui,sans-serif; }
 .gc-layout nav button:hover { color:#d4d4d8;background:var(--gc-soft); }
 .gc-layout nav button.active { color:#ddd6fe;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.1);box-shadow:inset 2px 0 var(--gc-accent); }
@@ -376,10 +381,14 @@
 .gc-petfood-options:hover { color:#ede9fe;border-color:rgba(167,139,250,.6); }
 .gc-food-card .gc-food-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }
 .gc-food-card .gc-food-head span { color:var(--gc-muted);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
-.gc-food-options { display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px;margin-top:8px; }
+/* Every food for a species on one row, however many it has - five used to wrap onto a second line. */
+.gc-food-options { display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;margin-top:8px; }
 .gc-food-options button { display:flex!important;align-items:center;gap:7px;padding:5px 7px!important;text-align:left!important; }
 .gc-food-options button > span:last-child { min-width:0;display:flex;flex-direction:column; }
+.gc-food-options button b,.gc-food-options button small { overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }
 .gc-food-options button small { color:var(--gc-muted);font-size:9px; }
+.gc-food-options .gc-shop-sprite { width:26px;height:26px; }
+.gc-food-options .gc-shop-sprite img { width:24px;height:24px; }
 .gc-food-options button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.4)!important;background:rgba(167,139,250,.15)!important; }
 #gc-toast { position:fixed;left:50%;top:20px;z-index:1000000;transform:translate(-50%,-12px);padding:9px 14px;color:#fff;background:#17171f;border:1px solid rgba(52,211,153,.35);border-radius:7px;opacity:0;pointer-events:none;transition:.2s;font:12px system-ui,sans-serif; }
 #gc-toast.is-visible { opacity:1;transform:translate(-50%,0); } #gc-toast[data-tone=error] { border-color:rgba(248,113,113,.5); }
