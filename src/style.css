@@ -51,11 +51,13 @@
 .gc-layout { min-height:0;flex:1;display:grid;grid-template-columns:148px minmax(0,1fr); }
 .gc-layout nav { overflow:auto;padding:12px 9px;background:#09090d;border-right:1px solid var(--gc-line);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent; }
 .gc-nav-group + .gc-nav-group { margin-top:7px; }
-.gc-nav-head { width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 6px;margin:0 0 2px;border:0;border-radius:6px;background:transparent;color:var(--gc-muted);cursor:pointer;font:800 9px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase; }
-.gc-nav-head:hover { color:#d4d4d8;background:var(--gc-soft); }
-.gc-nav-head i { font-size:7px;font-style:normal;opacity:.7; }
+/* Scoped past `.gc-layout nav button`, which is more specific than a lone class and would otherwise
+   give these headings the size and padding of the tabs they sit above. */
+.gc-layout nav .gc-nav-head { width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 6px;margin:0 0 2px;border:0;border-radius:6px;background:transparent;color:var(--gc-muted);cursor:pointer;font:800 9px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase; }
+.gc-layout nav .gc-nav-head:hover { color:#d4d4d8;background:var(--gc-soft); }
+.gc-layout nav .gc-nav-head i { font-size:7px;font-style:normal;opacity:.7; }
 /* Collapsed but holding the tab you are on - marked so the nav still tells you where you are. */
-.gc-nav-head[data-holds-active=true] { color:#ddd6fe;background:rgba(167,139,250,.1);box-shadow:inset 2px 0 var(--gc-accent); }
+.gc-layout nav .gc-nav-head[data-holds-active=true] { color:#ddd6fe;background:rgba(167,139,250,.1);box-shadow:inset 2px 0 var(--gc-accent); }
 .gc-layout nav button { width:100%;padding:9px 10px;margin:1px 0;border:1px solid transparent;border-radius:7px;text-align:left;color:var(--gc-muted);background:transparent;cursor:pointer;font:600 11px system-ui,sans-serif; }
 .gc-layout nav button:hover { color:#d4d4d8;background:var(--gc-soft); }
 .gc-layout nav button.active { color:#ddd6fe;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.1);box-shadow:inset 2px 0 var(--gc-accent); }

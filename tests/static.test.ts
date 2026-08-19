@@ -300,6 +300,12 @@ assert.match(overviewSource, /h2\{[^}]*white-space:nowrap/, 'overview title can 
 assert.match(overviewSource, /data-owned>Track owned/, 'overview Track owned control missing');
 assert.match(overviewSource, /combineRainbow.*Rainbow \+ Gold/s, 'overview combined mutation controls missing');
 assert.match(overviewSource, /mergeRow\('granterAllGarden', 'Whole garden'/, 'overview estimate scope control missing');
+// A mutation the catalog stops grouping must keep a pill, or it is tracked with no way to stop it.
+assert.match(overviewSource, /const ungrouped = \(Object\.keys\(MUTATION_IDS\)[^;]*\)\.filter\(key => !grouped\.has\(key\)\)/, 'ungrouped mutations must still be offered');
+assert.match(overviewSource, /\$\{ungrouped\.map\(key => trackPill\(key, MUTATION_IDS\[key\]\)\)\.join\(''\)\}/, 'the Other group must render ungrouped mutation pills');
+// Colouring the name cell directly would beat the muted child row and the family hover.
+assert.match(overviewSource, /\.go-plant-row:not\(\[data-child=true\]\)>span\{color:#c4b5fd\}/, 'only non-child plant names take the accent colour');
+assert.match(overviewSource, /\.go-plant-family:hover>span\{color:#fff\}/, 'hovering a patch family must still brighten its name');
 // Plants, mutations and focus share one card, so the header no longer carries a button each.
 assert.match(overviewSource, /data-config-tab="\$\{tab\}"/, 'the settings card must offer its tabs');
 assert.match(overviewSource, /\[\['species', 'Plants'\], \['mutations', 'Mutations'\], \['focus', 'Focus'\], \['panel', 'Panel'\]\]/, 'the settings card must cover plants, mutations, focus and the panel itself');
@@ -489,7 +495,10 @@ assert.match(companionSource, /tabs\.map\(\(\[id, title, navLabel\]\) =>[^)]*\$\
 // Collapsing must take effect on the click, not once you navigate away from the group.
 assert.match(companionSource, /const open = !collapsedNavGroups\.has\(group\);/, 'collapsing a group must apply immediately');
 assert.match(companionSource, /data-holds-active="\$\{holdsActive && !open\}"/, 'a collapsed group holding the active tab must be marked');
-assert.match(styleSource, /\.gc-nav-head\[data-holds-active=true\] \{[^}]*box-shadow:inset 2px 0 var\(--gc-accent\)/, 'the marked group heading needs the active accent');
+assert.match(styleSource, /\.gc-layout nav \.gc-nav-head\[data-holds-active=true\] \{[^}]*box-shadow:inset 2px 0 var\(--gc-accent\)/, 'the marked group heading needs the active accent');
+// `.gc-layout nav button` outranks a lone class, so the heading rules have to be scoped past it.
+assert.match(styleSource, /\.gc-layout nav \.gc-nav-head \{[^}]*font:800 9px/, 'nav group headings must outrank the tab button rule');
+assert.doesNotMatch(styleSource, /\n\.gc-nav-head[ :[]/, 'nav heading rules must not be left at class-only specificity');
 assert.match(companionSource, /GARDEN COMPANION <em class="gc-version">v\$\{escapeHtml\(currentScriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
 assert.match(styleSource, /\.gc-food-options \{ display:grid;grid-auto-flow:column;grid-auto-columns:minmax\(0,1fr\)/, 'pet foods must all sit on one row');
 assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss must be presented as Pokemon Mode');

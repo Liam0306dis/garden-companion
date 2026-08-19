@@ -773,7 +773,9 @@ function injectStyles(): void {
     #${PANEL_ID} .go-plant-row[data-child=true]>span{padding-left:15px}
     #${PANEL_ID} .go-plant-family{cursor:pointer}
     #${PANEL_ID} .go-plant-family:hover{color:#fff}
-    #${PANEL_ID} .go-plant-row>span{color:#c4b5fd}
+    /* Only on rows that are not children: a child inherits the muted row colour instead. */
+    #${PANEL_ID} .go-plant-row:not([data-child=true])>span{color:#c4b5fd}
+    #${PANEL_ID} .go-plant-family:hover>span{color:#fff}
     #${PANEL_ID} .go-plant-row>b:nth-of-type(1){color:var(--gc-muted,#a1a1aa);font-weight:400}
     #${PANEL_ID} .go-plant-units{padding:0 9px 3px;color:var(--gc-muted,#a1a1aa);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
     #${PANEL_ID} .go-plant-units>b,#${PANEL_ID} .go-plant-units>b:nth-of-type(1){color:var(--gc-muted,#a1a1aa);font-weight:700}
@@ -1011,11 +1013,17 @@ export function initGardenOverview(): void {
         const face = sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(label)}">` : `<span>${escapeHtml(label)}</span>`;
         return `<button class="go-pill go-pill-icon ${mutationConfig[key] ? 'on' : ''}" title="${escapeHtml(label)}" data-mutation-key="${key}">${face}</button>`;
       };
+      const grouped = new Set<keyof typeof MUTATION_IDS>();
       const groups = MUTATION_GROUP_ORDER.map(group => {
         const keys = (Object.keys(MUTATION_IDS) as Array<keyof typeof MUTATION_IDS>).filter(key => mutationGroupOf(MUTATION_IDS[key]) === group);
+        keys.forEach(key => grouped.add(key));
         return keys.length ? `<div class="go-pill-section"><b><span>${escapeHtml(MUTATION_GROUP_LABELS[group] ?? group)}</span></b><div>${keys.map(key => trackPill(key, MUTATION_IDS[key])).join('')}</div></div>` : '';
       }).join('');
-      const otherGroup = `<div class="go-pill-section"><b><span>Other</span></b><div><button class="go-pill go-pill-icon ${mutationConfig.none ? 'on' : ''}" title="Unmutated crops" data-mutation-key="none"><span>NONE</span></button></div></div>`;
+      // A mutation the catalog no longer groups still gets a pill here. Dropping it would leave it
+      // tracked, drawing a bar and an estimate, with nothing left in the UI to switch it off.
+      const ungrouped = (Object.keys(MUTATION_IDS) as Array<keyof typeof MUTATION_IDS>).filter(key => !grouped.has(key));
+      const otherGroup = `<div class="go-pill-section"><b><span>Other</span></b><div>${ungrouped.map(key => trackPill(key, MUTATION_IDS[key])).join('')}`
+        + `<button class="go-pill go-pill-icon ${mutationConfig.none ? 'on' : ''}" title="Unmutated crops" data-mutation-key="none"><span>NONE</span></button></div></div>`;
       const mergeRow = (key: keyof MutationConfig, label: string, hint = '') => switchRow('data-mutation-check', key, label, hint, Boolean(mutationConfig[key]));
       return `<section class="go-section">`
         + `<p class="go-muted">Tracked mutations get a progress bar and a granter estimate.</p>`
