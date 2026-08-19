@@ -5859,6 +5859,11 @@ ${rows}</div>`;
     #${PANEL_ID} .go-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
     #${PANEL_ID} .go-section-title::after{content:'';height:1px;flex:1;margin-left:8px;background:var(--gc-line,rgba(255,255,255,.075))}
     #${PANEL_ID} .go-section-title>span:last-child{order:2;margin-left:8px;white-space:nowrap;font-size:9px;font-weight:400;letter-spacing:0}
+    #${PANEL_ID} .go-section-title>span>small{margin-left:6px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--gc-text,#e4e4e7);font-size:9px;font-weight:700;letter-spacing:0}
+    /* A bordered control rather than a loose glyph, so it reads as something you can press. */
+    #${PANEL_ID} .go-chevron{order:2;display:grid;place-items:center;width:22px;height:22px;flex:0 0 22px;margin-left:8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.04);color:var(--gc-accent,#a78bfa);font-size:9px;text-decoration:none}
+    #${PANEL_ID} .go-collapsible:hover .go-chevron{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
+    #${PANEL_ID} .go-collapsible:hover>span>small{background:rgba(167,139,250,.16);color:#ddd6fe}
     #${PANEL_ID} .go-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0}
     #${PANEL_ID} .go-metric{padding:8px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
     #${PANEL_ID} .go-metric small{display:block;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;text-transform:uppercase;letter-spacing:.08em}#${PANEL_ID} .go-metric b{color:var(--gc-green,#34d399);font:700 15px/1.3 system-ui,sans-serif}
@@ -5885,15 +5890,21 @@ ${rows}</div>`;
     #${PANEL_ID} .go-plant-row>span{display:flex;min-width:0;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
     #${PANEL_ID} .go-plant-row>b{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
     #${PANEL_ID} .go-plant-row img,#${PANEL_ID} .go-plant-blank{width:18px;height:18px;flex:0 0 18px;object-fit:contain;image-rendering:auto}
-    #${PANEL_ID} .go-plant-row>span>u{width:9px;flex:0 0 9px;color:var(--gc-muted,#a1a1aa);font-size:9px;text-decoration:none}
+    #${PANEL_ID} .go-plant-row>span>u{display:grid;place-items:center;width:14px;height:14px;flex:0 0 14px;border-radius:4px;color:var(--gc-muted,#a1a1aa);font-size:8px;text-decoration:none}
+    #${PANEL_ID} .go-plant-family>span>u{border:1px solid var(--gc-line,rgba(255,255,255,.075));background:rgba(255,255,255,.05);color:var(--gc-accent,#a78bfa)}
+    #${PANEL_ID} .go-plant-family:hover>span>u{border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.2);color:#ddd6fe}
     /* Indenting the name cell rather than the row, so the tiles and crops columns stay aligned. */
     #${PANEL_ID} .go-plant-row[data-child=true]{color:var(--gc-muted,#a1a1aa)}
     #${PANEL_ID} .go-plant-row[data-child=true]>span{padding-left:15px}
     #${PANEL_ID} .go-plant-family{cursor:pointer}
     #${PANEL_ID} .go-plant-family:hover{color:#fff}
-    #${PANEL_ID} .go-plant-units{margin-bottom:2px;padding-bottom:4px;border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,#a1a1aa);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-    #${PANEL_ID} .go-plant-units>b{color:var(--gc-muted,#a1a1aa);font-weight:700}
-    #${PANEL_ID} .go-plant-total{margin-top:3px;padding-top:5px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075));font-weight:700}
+    #${PANEL_ID} .go-plant-row>span{color:#c4b5fd}
+    #${PANEL_ID} .go-plant-row>b:nth-of-type(1){color:var(--gc-muted,#a1a1aa);font-weight:400}
+    #${PANEL_ID} .go-plant-units{padding:0 9px 3px;color:var(--gc-muted,#a1a1aa);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    #${PANEL_ID} .go-plant-units>b,#${PANEL_ID} .go-plant-units>b:nth-of-type(1){color:var(--gc-muted,#a1a1aa);font-weight:700}
+    #${PANEL_ID} .go-plant-total{margin-bottom:5px;padding:7px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
+    #${PANEL_ID} .go-plant-total>span{color:var(--gc-text,#e4e4e7);font-weight:700}
+    #${PANEL_ID} .go-plant-row:not(.go-plant-units):not(.go-plant-total){padding-left:9px;padding-right:9px}
     #${PANEL_ID} .go-config-tabs{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:4px;position:sticky;top:0;z-index:1;padding:10px 0 9px;background:var(--gc-bg,#0c0c11)}
     #${PANEL_ID} .go-config-tabs button{padding:7px 4px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:rgba(255,255,255,.03);color:var(--gc-muted,rgba(255,255,255,.72));font-size:11px;font-weight:700}
     #${PANEL_ID} .go-config-tabs button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
@@ -6178,10 +6189,11 @@ ${rows}</div>`;
         return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b>${have}<em>/${row.total}</em></b></div><u><i style="width:${percent.toFixed(1)}%;background:${color}"></i></u>${summary}</div>`;
       }).join("");
       const count = (value) => value.toLocaleString(NUMBER_LOCALE);
-      const plantRows2 = plantRowList(stats.species).map((row) => {
+      const plantList = plantRowList(stats.species);
+      const plantRows2 = plantList.map((row) => {
         const sprite = produceSprite(row.species);
         const icon = sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : '<i class="go-plant-blank"></i>';
-        const chevron = row.child ? "" : `<u>${row.family ? row.open ? "&#9662;" : "&#9656;" : ""}</u>`;
+        const chevron = row.child ? "" : `<u>${row.family ? row.open ? "&#9650;" : "&#9660;" : ""}</u>`;
         const name = `<span>${chevron}${icon}${escapeHtml2(row.label)}</span>`;
         const cells = `<b>${row.tiles ? count(row.tiles) : ""}</b><b>${count(row.crops)}</b>`;
         return row.family ? `<div class="go-plant-row go-plant-family" data-family="${escapeHtml2(row.family)}" title="Show the crops in this patch">${name}${cells}</div>` : `<div class="go-plant-row"${row.child ? ' data-child="true"' : ""}>${name}${cells}</div>`;
@@ -6189,7 +6201,8 @@ ${rows}</div>`;
       const growing = Math.max(0, stats.crops - stats.mature);
       const growth = growing === 0 && stats.notMaxSize === 0 ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>' : growing === 0 ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ""}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
       const bonus = Math.round((stats.friendBonus - 1) * 100);
-      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? "&#9662;" : "&#9656;"}</span></div><div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? "&#9662;" : "&#9656;"}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}>${plantRows2 ? `<div class="go-plant-row go-plant-units"><span>Plant</span><b>Tiles</b><b>Crops</b></div>${plantRows2}<div class="go-plant-row go-plant-total"><span>Total</span><b>${count(stats.plants)}</b><b>${count(stats.crops)}</b></div>` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
+      const collapsible = (key, label, total, open2) => `<div class="go-section-title go-collapsible" data-collapse="${key}" title="${open2 ? "Hide" : "Show"} ${escapeHtml2(label.toLowerCase())}"><span>${escapeHtml2(label)}<small>${total}</small></span><u class="go-chevron">${open2 ? "&#9650;" : "&#9660;"}</u></div>`;
+      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section">${collapsible("mutations", "Mutations", rows.filter(([, , value]) => value > 0).length, view.mutationsOpen)}<div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section">${collapsible("plants", "Plants", plantList.filter((row) => !row.child).length, view.plantsOpen)}<div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}>${plantRows2 ? `<div class="go-plant-row go-plant-units"><span></span><b>Tiles</b><b>Crops</b></div><div class="go-plant-row go-plant-total"><span>Total</span><b>${count(stats.plants)}</b><b>${count(stats.crops)}</b></div>${plantRows2}` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
     }
     function installDrag(card, header, save = null) {
       header.onpointerdown = (event) => {

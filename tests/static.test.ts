@@ -301,6 +301,11 @@ assert.match(overviewSource, /\[\['species', 'Plants'\], \['mutations', 'Mutatio
 assert.match(overviewSource, /data-focus-toggle\]'\)!\.onclick = \(\) => \{ focus\.enabled = !focus\.enabled/, 'the header must toggle plant focus directly');
 assert.doesNotMatch(overviewSource, /data-species-config|data-mutation-config|data-focus-config/, 'the merged settings card replaces the separate header buttons');
 assert.match(overviewSource, /grid-template-columns:minmax\(0,1fr\) 42px 42px/, 'the plants table must give tiles and crops their own columns');
+// A collapsible section has to look collapsible, and say what is inside without being opened.
+assert.match(overviewSource, /const collapsible = \(key: string, label: string, total: number, open: boolean\)/, 'collapsible section headers must be built from one helper');
+assert.match(overviewSource, /<u class="go-chevron">\$\{open \? '&#9650;' : '&#9660;'\}<\/u>/, 'collapsible sections must show an up/down chevron');
+assert.match(overviewSource, /\.go-chevron\{order:2;display:grid[^}]*border:1px solid/, 'the collapse chevron must be drawn as a pressable control');
+assert.match(overviewSource, /\.go-section-title>span>small\{[^}]*border-radius:999px/, 'collapsible sections must carry a count badge');
 assert.match(overviewSource, /installDrag\(panel\.querySelector\('\.go-card'\)!.*\(left, top\)/s, 'overview position is not isolated from config window dragging');
 assert.match(overviewSource, /const configPlacement = configPosition \? `style="position:fixed;left:/, 'overview config position is not restored during redraws');
 assert.match(overviewSource, /installDrag\(configCard, configHeader, \(left, top\) => \{ configPosition = \{ left, top \}; \}\)/, 'overview config drag position is not retained');
