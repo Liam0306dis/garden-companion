@@ -264,7 +264,12 @@ assert.match(overviewSource, /focusOpacity\.onchange = \(\) => releaseUnlessTypi
 assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*releaseUnlessTyping\(focusEnabled\)/, 'the enabled checkbox must release keyboard control after a click');
 assert.match(overviewSource, /panel\.addEventListener\('pointerdown', \(\) => \{ keyboardDriven = false; \}, true\)/, 'pointer use must mark the panel as not keyboard driven');
 assert.match(overviewSource, /if \(migrating && !config\.mutations\.length && !config\.maxSize\) config\.mode = 'highlight';/, 'an inverted setup with no conditions must not migrate into a garden-wide fade');
-assert.match(overviewSource, /data-focus-mode="\$\{value\}"/, 'plant focus highlight/hide mode pills are missing');
+assert.match(overviewSource, /choiceRow\('Matches are', 'data-focus-mode', \[\['highlight', 'Highlighted'\], \['hide', 'Faded out'\]\]/, 'plant focus highlight/hide mode pills are missing');
+// One vocabulary across the settings card: a head, a switch row, a pill.
+assert.match(overviewSource, /function switchRow\(attribute: string, key: string, label: string, hint: string, on: boolean\)/, 'settings booleans must share one switch row');
+assert.match(overviewSource, /\.go-switch\{appearance:none[^}]*border-radius:999px/, 'settings switches must be drawn as switches, not bare checkboxes');
+assert.match(overviewSource, /function settingsHead\(label: string, trailing = ''\)/, 'settings sections must share one heading');
+assert.doesNotMatch(overviewSource, /go-focus-heading/, 'the focus-only heading style must be gone');
 assert.match(overviewSource, /mode: stored\.mode \?\? \(stored\.invert \? 'hide' : 'highlight'\)/, 'saved invert setups must migrate to hide mode');
 assert.match(overviewSource, /config\.mode === 'hide' \? !result : result/, 'plant focus hide mode must flip the match');
 assert.match(overviewSource, /data-focus-max-size/, 'plant focus max-size toggle is missing');
@@ -294,7 +299,7 @@ assert.match(overviewSource, /stopImmediatePropagation\(\); toggle\(\);/, 'overv
 assert.match(overviewSource, /h2\{[^}]*white-space:nowrap/, 'overview title can wrap');
 assert.match(overviewSource, /data-owned>Track owned/, 'overview Track owned control missing');
 assert.match(overviewSource, /combineRainbow.*Rainbow \+ Gold/s, 'overview combined mutation controls missing');
-assert.match(overviewSource, /mergeRow\('granterAllGarden', 'Estimate from the whole garden'\)/, 'overview estimate scope control missing');
+assert.match(overviewSource, /mergeRow\('granterAllGarden', 'Whole garden'/, 'overview estimate scope control missing');
 // Plants, mutations and focus share one card, so the header no longer carries a button each.
 assert.match(overviewSource, /data-config-tab="\$\{tab\}"/, 'the settings card must offer its tabs');
 assert.match(overviewSource, /\[\['species', 'Plants'\], \['mutations', 'Mutations'\], \['focus', 'Focus'\]\]/, 'the settings card must cover plants, mutations and focus');

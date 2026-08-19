@@ -798,8 +798,25 @@ function injectStyles(): void {
     #${PANEL_ID} button.go-pill.go-pill-icon.on img{opacity:1}
     #${PANEL_ID} button.go-pill.go-pill-icon.on span{color:#ddd6fe}
     #${PANEL_ID} .go-pill-section>b em{color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-style:normal;font-weight:400;letter-spacing:.04em;text-transform:none;opacity:.75}
-    #${PANEL_ID} .go-focus-heading{display:flex;align-items:center;justify-content:space-between;margin:12px 0 2px;padding-top:9px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-    #${PANEL_ID} .go-focus-heading button{padding:3px 8px;font-size:9px;text-transform:none}
+    #${PANEL_ID} .go-pill-group:first-child .go-settings-head{margin-top:4px;padding-top:0;border-top:none}
+    #${PANEL_ID} .go-settings-head{display:flex;align-items:center;gap:8px;margin:13px 0 3px;padding-top:10px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    #${PANEL_ID} .go-settings-head::after{content:'';height:1px;flex:1;background:var(--gc-line,rgba(255,255,255,.075))}
+    #${PANEL_ID} .go-settings-head>em,#${PANEL_ID} .go-settings-head>button{order:2;flex:0 0 auto;font-style:normal}
+    #${PANEL_ID} .go-settings-head>em{color:var(--gc-text,#e4e4e7);font-size:9px;font-weight:700;letter-spacing:0}
+    #${PANEL_ID} .go-settings-head>button{padding:3px 8px;font-size:9px;text-transform:none}
+    /* One switch everywhere a setting is on or off, instead of checkboxes next to check-marked pills. */
+    #${PANEL_ID} .go-switch{appearance:none;-webkit-appearance:none;position:relative;width:34px;height:20px;flex:0 0 34px;margin:0;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:999px;background:rgba(255,255,255,.06);cursor:pointer;transition:background .15s,border-color .15s}
+    #${PANEL_ID} .go-switch::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--gc-muted,#a1a1aa);transition:transform .15s,background .15s}
+    #${PANEL_ID} .go-switch:checked{border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.35)}
+    #${PANEL_ID} .go-switch:checked::after{transform:translateX(14px);background:#ddd6fe}
+    #${PANEL_ID} .go-switch:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(167,139,250,.35)}
+    #${PANEL_ID} .go-config-row>span>small{display:block;margin-top:2px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:400;letter-spacing:0;opacity:.8}
+    #${PANEL_ID} .go-config-row:has(.go-switch){cursor:pointer}
+    #${PANEL_ID} button.go-pill.go-pill-plant{max-width:100%;padding:4px 8px 4px 5px}
+    #${PANEL_ID} button.go-pill.go-pill-plant img,#${PANEL_ID} button.go-pill.go-pill-plant .go-plant-blank{width:18px;height:18px;flex:0 0 18px;object-fit:contain;image-rendering:auto;opacity:.75}
+    #${PANEL_ID} button.go-pill.go-pill-plant.on img{opacity:1}
+    #${PANEL_ID} button.go-pill.go-pill-plant>span{overflow:hidden;text-overflow:ellipsis}
+    #${PANEL_ID} button.go-pill.go-pill-plant>small{padding:1px 5px;border-radius:999px;background:rgba(255,255,255,.08);opacity:1}
     #${PANEL_ID} .go-focus-summary{margin:8px 0 2px;padding:9px 10px;border:1px solid rgba(167,139,250,.3);border-radius:8px;background:rgba(167,139,250,.09);color:var(--gc-text,#e4e4e7);font-size:11px;line-height:1.45}
     #${PANEL_ID} .go-focus-summary b{color:#ddd6fe;font-weight:700}
     #${PANEL_ID} .go-focus-summary[data-off]{border-color:var(--gc-line,rgba(255,255,255,.075));background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-muted,rgba(255,255,255,.72))}
@@ -941,16 +958,46 @@ export function initGardenOverview(): void {
     if (all) all.textContent = durationUntil(stats.allMatureAt);
   }
 
+  /** One heading, one switch row, one pill: the settings card only speaks in these three shapes. */
+  function settingsHead(label: string, trailing = ''): string {
+    return `<div class="go-settings-head"><span>${escapeHtml(label)}</span>${trailing}</div>`;
+  }
+
+  function switchRow(attribute: string, key: string, label: string, hint: string, on: boolean): string {
+    return `<label class="go-config-row"><span>${escapeHtml(label)}${hint ? `<small>${escapeHtml(hint)}</small>` : ''}</span>`
+      + `<input class="go-switch" type="checkbox" ${attribute}="${escapeHtml(key)}" ${on ? 'checked' : ''}></label>`;
+  }
+
+  function choiceRow(label: string, attribute: string, options: Array<[string, string]>, current: string): string {
+    return `<div class="go-config-row"><span>${escapeHtml(label)}</span><div class="go-pill-choice">${
+      options.map(([value, text]) => `<button class="go-pill ${current === value ? 'on' : ''}" ${attribute}="${escapeHtml(value)}">${escapeHtml(text)}</button>`).join('')
+    }</div></div>`;
+  }
+
   function configHtml(species: string[]): string {
     if (configMode === 'species') {
       const selected = filter ?? new Set(species);
       const counts = new Map<string, number>();
       for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === 'plant' && tile.species) counts.set(tile.species, (counts.get(tile.species) ?? 0) + 1);
-      const section = (label: string, names: string[]) => names.length ? `<div class="go-pill-section"><b>${label} (${names.length})</b><div>${names.map(name => `<button class="go-pill ${selected.has(name) ? 'on' : ''}" data-species-toggle="${escapeHtml(name)}" data-filter-text="${escapeHtml(displayName(name).toLowerCase())}"><i>${selected.has(name) ? '&#10003;' : ''}</i><span>${escapeHtml(displayName(name))}</span>${counts.has(name) ? `<small>&middot;${counts.get(name)}</small>` : ''}</button>`).join('')}</div></div>` : '';
+      // The crop sprite does the recognising, so a wall of sixty names becomes something you scan.
+      const plantPill = (name: string) => {
+        const label = displayName(name);
+        const sprite = produceSprite(name);
+        return `<button class="go-pill go-pill-plant ${selected.has(name) ? 'on' : ''}" data-species-toggle="${escapeHtml(name)}" data-filter-text="${escapeHtml(label.toLowerCase())}" title="${escapeHtml(label)}">`
+          + `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '<i class="go-plant-blank"></i>'}<span>${escapeHtml(label)}</span>`
+          + `${counts.has(name) ? `<small>${counts.get(name)}</small>` : ''}</button>`;
+      };
+      const section = (label: string, names: string[]) => names.length
+        ? `<div class="go-pill-group">${settingsHead(label, `<em>${names.length}</em>`)}<div class="go-pill-section"><div>${names.map(plantPill).join('')}</div></div></div>`
+        : '';
       const tracked = species.filter(name => selected.has(name));
       const owned = species.filter(name => !selected.has(name) && counts.has(name));
       const rest = species.filter(name => !selected.has(name) && !counts.has(name));
-      return `<section class="go-section"><div class="go-section-title"><span>Tracked plants</span><span>${selected.size}/${species.length}</span></div><input class="go-search" data-species-search placeholder="Search plants"><div class="go-tools"><button data-all>All</button><button data-none>None</button><button data-owned>Track owned</button></div><div class="go-pill-list">${section('Tracked', tracked)}${section('In your garden', owned)}${section('All plants', rest)}</div></section>`;
+      return `<section class="go-section">`
+        + `<p class="go-muted">Only tracked plants are counted in the overview and its estimates.</p>`
+        + `<input class="go-search" data-species-search placeholder="Search plants">`
+        + `<div class="go-tools"><button data-all>All</button><button data-none>None</button><button data-owned>Track owned</button></div>`
+        + `<div class="go-pill-list">${section('Tracked', tracked)}${section('In your garden', owned)}${section('Everything else', rest)}</div></section>`;
     }
     if (configMode === 'mutations') {
       // The same icons the focus picker uses, grouped by the same catalog groups, so the two
@@ -966,15 +1013,15 @@ export function initGardenOverview(): void {
         return keys.length ? `<div class="go-pill-section"><b><span>${escapeHtml(MUTATION_GROUP_LABELS[group] ?? group)}</span></b><div>${keys.map(key => trackPill(key, MUTATION_IDS[key])).join('')}</div></div>` : '';
       }).join('');
       const otherGroup = `<div class="go-pill-section"><b><span>Other</span></b><div><button class="go-pill go-pill-icon ${mutationConfig.none ? 'on' : ''}" title="Unmutated crops" data-mutation-key="none"><span>NONE</span></button></div></div>`;
-      const mergeRow = (key: keyof MutationConfig, label: string) => `<label class="go-config-row"><span>${escapeHtml(label)}</span><input type="checkbox" data-mutation-check="${key}" ${mutationConfig[key] ? 'checked' : ''}></label>`;
+      const mergeRow = (key: keyof MutationConfig, label: string, hint = '') => switchRow('data-mutation-check', key, label, hint, Boolean(mutationConfig[key]));
       return `<section class="go-section">`
-        + `<div class="go-section-title"><span>Tracked mutations</span><span>${trackedMutations.size} selected</span></div>`
-        + `<p class="go-muted">Picked mutations get a progress bar and a granter estimate.</p>`
+        + `<p class="go-muted">Tracked mutations get a progress bar and a granter estimate.</p>`
+        + settingsHead('Tracked mutations', `<em>${trackedMutations.size}</em>`)
         + `${groups}${otherGroup}`
-        + `<div class="go-focus-heading"><span>Show as one bar</span></div>`
+        + settingsHead('Show as one bar')
         + `${mergeRow('combineRainbow', 'Rainbow + Gold')}${mergeRow('combineFrozenThunderstruck', 'Frozen + Thunderstruck')}${mergeRow('combineAmberDawn', 'Amberlit + Dawnlit')}${mergeRow('combineDawnAmbercharged', 'Dawnbound + Amberbound')}`
-        + `<div class="go-focus-heading"><span>Counting</span></div>`
-        + `${mergeRow('granterAllGarden', 'Estimate from the whole garden')}${mergeRow('ignorePreserved', 'Ignore preserved crops')}`
+        + settingsHead('Counting')
+        + `${mergeRow('granterAllGarden', 'Whole garden', 'Estimate from every plant, not just tracked ones')}${mergeRow('ignorePreserved', 'Ignore preserved', 'Leave preserved crops out of every count')}`
         + `</section>`;
     }
     if (configMode === 'alarms') {
@@ -1007,16 +1054,18 @@ export function initGardenOverview(): void {
       const otherGroup = ungrouped.length ? pillGroup('Other', '', ungrouped.map(mutationPill).join('')) : '';
       // Max size has no sprite of its own, so it borrows the MAX chip used elsewhere in the mod.
       const sizeGroup = pillGroup('Size', '', `<button class="go-pill go-pill-icon ${focus.maxSize ? 'on' : ''}" title="Max size" data-focus-max-size><span>MAX</span></button>`);
-      const modePill = (value: string, label: string) => `<button class="go-pill ${focus.mode === value ? 'on' : ''}" data-focus-mode="${value}"><i>${focus.mode === value ? '&#10003;' : ''}</i><span>${label}</span></button>`;
-      // No section heading: the config card's own header already says Plant Focus.
+      // Split so the card answers two questions in order: which crops match, and what happens to
+      // them. The old layout interleaved the two and left people guessing which control did what.
       return `<section class="go-section">`
-        + `<label class="go-config-row"><span>Enabled</span><input type="checkbox" data-focus-enabled ${focus.enabled ? 'checked' : ''}></label>`
-        + `<div class="go-config-row"><span>Matches</span><div class="go-pill-choice">${modePill('highlight', 'Highlighted')}${modePill('hide', 'Faded out')}</div></div>`
-        + `<label class="go-config-row"><span>Applies to</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml(value)}" ${focus.scope === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>`
-        + `<label class="go-config-row"><span>Crop must have</span><select data-focus-rule>${[['all', 'All of these'], ['any', 'At least one of these'], ['none', 'None of these']].map(([value, label]) => `<option value="${value}" ${focus.mutationRule === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`
-        + `<div class="go-focus-heading"><span>Conditions (${conditionNames.length})</span><button data-focus-clear>Clear</button></div>`
+        + switchRow('data-focus-enabled', 'enabled', 'Plant focus', 'Dim the crops you are not looking for', focus.enabled)
+        + settingsHead('Which crops match')
+        + `<label class="go-config-row"><span>Look at</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml(value)}" ${focus.scope === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>`
+        + choiceRow('Must have', 'data-focus-rule-pill', [['all', 'All'], ['any', 'Any'], ['none', 'None']], focus.mutationRule)
+        + settingsHead('Conditions', `${conditionNames.length ? `<button data-focus-clear>Clear</button>` : `<em>none</em>`}`)
         + `${conditionGroups}${otherGroup}${sizeGroup}`
-        + `<label class="go-config-row"><span>Faded crops sit at <b data-opacity-value>${percent}%</b></span><input type="range" min="5" max="60" step="5" value="${percent}" data-focus-opacity></label>`
+        + settingsHead('What happens to them')
+        + choiceRow('Matches are', 'data-focus-mode', [['highlight', 'Highlighted'], ['hide', 'Faded out']], focus.mode)
+        + `<label class="go-config-row"><span>${focus.mode === 'hide' ? 'Matches sit at' : 'Everything else sits at'} <b data-opacity-value>${percent}%</b></span><input type="range" min="5" max="60" step="5" value="${percent}" data-focus-opacity></label>`
         // Last in the section so its height changing never shifts the controls above it.
         + `<p class="go-focus-summary"${focus.enabled ? '' : ' data-off'}>${focusSummaryHtml()}</p></section>`;
     }
@@ -1134,7 +1183,13 @@ export function initGardenOverview(): void {
     if (!input) return;
     input.oninput = () => {
       const query = input.value.trim().toLowerCase();
-      input.parentElement?.querySelectorAll<HTMLElement>('[data-filter-text]').forEach(row => { row.hidden = Boolean(query && !row.dataset.filterText?.includes(query)); });
+      const scope = input.parentElement;
+      scope?.querySelectorAll<HTMLElement>('[data-filter-text]').forEach(row => { row.hidden = Boolean(query && !row.dataset.filterText?.includes(query)); });
+      // A group whose every pill is filtered out hides its heading too, rather than leaving a
+      // labelled divider with nothing under it.
+      scope?.querySelectorAll<HTMLElement>('.go-pill-group').forEach(group => {
+        group.hidden = ![...group.querySelectorAll<HTMLElement>('[data-filter-text]')].some(row => !row.hidden);
+      });
     };
   }
 
@@ -1301,11 +1356,13 @@ export function initGardenOverview(): void {
       focusScope.onchange = () => { focus.scope = focusScope.value; saveFocusControls(); refreshFocusSummary(); releaseUnlessTyping(focusScope); };
       releaseOnCommit(focusScope);
     }
-    const focusRule = panel.querySelector<HTMLSelectElement>('[data-focus-rule]');
-    if (focusRule) {
-      focusRule.onchange = () => { focus.mutationRule = focusRule.value as FocusConfig['mutationRule']; enforceGroupExclusivity(); saveFocusControls(); renderAndRefocus('[data-focus-rule]'); };
-      releaseOnCommit(focusRule);
-    }
+    panel.querySelectorAll<HTMLButtonElement>('[data-focus-rule-pill]').forEach(button => button.onclick = () => {
+      const rule = button.dataset.focusRulePill as FocusConfig['mutationRule'];
+      focus.mutationRule = rule;
+      enforceGroupExclusivity();
+      saveFocusControls();
+      renderAndRefocus(`[data-focus-rule-pill="${rule}"]`);
+    });
     panel.querySelectorAll<HTMLButtonElement>('[data-focus-mutation]').forEach(button => button.onclick = () => {
       const mutation = button.dataset.focusMutation ?? '';
       const selected = new Set(focus.mutations);
