@@ -294,7 +294,13 @@ assert.match(overviewSource, /stopImmediatePropagation\(\); toggle\(\);/, 'overv
 assert.match(overviewSource, /h2\{[^}]*white-space:nowrap/, 'overview title can wrap');
 assert.match(overviewSource, /data-owned>Track owned/, 'overview Track owned control missing');
 assert.match(overviewSource, /combineRainbow.*Rainbow \+ Gold/s, 'overview combined mutation controls missing');
-assert.match(overviewSource, /granterAllGarden.*Whole garden/s, 'overview estimate scope control missing');
+assert.match(overviewSource, /mergeRow\('granterAllGarden', 'Estimate from the whole garden'\)/, 'overview estimate scope control missing');
+// Plants, mutations and focus share one card, so the header no longer carries a button each.
+assert.match(overviewSource, /data-config-tab="\$\{tab\}"/, 'the settings card must offer its tabs');
+assert.match(overviewSource, /\[\['species', 'Plants'\], \['mutations', 'Mutations'\], \['focus', 'Focus'\]\]/, 'the settings card must cover plants, mutations and focus');
+assert.match(overviewSource, /data-focus-toggle\]'\)!\.onclick = \(\) => \{ focus\.enabled = !focus\.enabled/, 'the header must toggle plant focus directly');
+assert.doesNotMatch(overviewSource, /data-species-config|data-mutation-config|data-focus-config/, 'the merged settings card replaces the separate header buttons');
+assert.match(overviewSource, /grid-template-columns:minmax\(0,1fr\) 42px 42px/, 'the plants table must give tiles and crops their own columns');
 assert.match(overviewSource, /installDrag\(panel\.querySelector\('\.go-card'\)!.*\(left, top\)/s, 'overview position is not isolated from config window dragging');
 assert.match(overviewSource, /const configPlacement = configPosition \? `style="position:fixed;left:/, 'overview config position is not restored during redraws');
 assert.match(overviewSource, /installDrag\(configCard, configHeader, \(left, top\) => \{ configPosition = \{ left, top \}; \}\)/, 'overview config drag position is not retained');

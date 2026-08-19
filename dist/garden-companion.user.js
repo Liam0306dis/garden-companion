@@ -5642,20 +5642,31 @@ ${rows}</div>`;
       const key = PATCH_FAMILY_OF[row.species] ?? row.species;
       groups.set(key, [...groups.get(key) ?? [], row]);
     }
-    const count = (value) => value.toLocaleString(NUMBER_LOCALE);
+    const bySize = (left, right) => right.crops - left.crops || right.tiles - left.tiles || left.label.localeCompare(right.label);
     const list = [];
+    const families = [];
     for (const [key, members] of groups) {
       const present = members.filter((member) => member.crops > 0 || member.plants > 0);
       const shown = present.length ? present : members;
       const tiles = shown.reduce((sum, member) => sum + member.plants, 0);
       const crops = shown.reduce((sum, member) => sum + member.crops, 0);
       if (shown.length < 2) {
-        list.push({ label: displayName(shown[0]?.species ?? key), value: `${count(tiles)} &middot; ${count(crops)}`, child: false });
+        const species = shown[0]?.species ?? key;
+        families.push({ row: { label: displayName(species), species, tiles, crops, child: false }, children: [] });
         continue;
       }
       const open = openFamilies.has(key);
-      list.push({ label: patchName(key), value: `${count(tiles)} &middot; ${count(crops)}`, child: false, family: key, open });
-      if (open) for (const member of shown) list.push({ label: displayName(member.species), value: count(member.crops), child: true });
+      families.push({
+        row: { label: patchName(key), species: shown[0]?.species ?? key, tiles, crops, child: false, family: key, open },
+        // A patch member holds no tiles of its own unless it seeded them, so its tile count is left
+        // blank rather than printed as a zero that reads like a missing value.
+        children: shown.map((member) => ({ label: displayName(member.species), species: member.species, tiles: member.plants, crops: member.crops, child: true })).sort(bySize)
+      });
+    }
+    families.sort((left, right) => bySize(left.row, right.row));
+    for (const family of families) {
+      list.push(family.row);
+      if (family.row.open) list.push(...family.children);
     }
     return list;
   }
@@ -5870,13 +5881,22 @@ ${rows}</div>`;
     #${PANEL_ID} .go-eta-detail>u i{display:block;height:100%;border-radius:2px}
     #${PANEL_ID} .go-eta-detail>small{display:block;margin-top:6px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;opacity:.62}
     #${PANEL_ID} .go-eta-done{border-color:rgba(52,211,153,.28);background:rgba(52,211,153,.07)}#${PANEL_ID} .go-eta-done span i{background:var(--gc-green,#34d399)}#${PANEL_ID} .go-eta-done b{color:var(--gc-green,#34d399);font:700 11px system-ui,sans-serif}
-    #${PANEL_ID} .go-plants{padding-left:10px}#${PANEL_ID} .go-plant-row{display:flex;justify-content:space-between;padding:3px 0;color:var(--gc-text,#e4e4e7);font-size:12px}
-    #${PANEL_ID} .go-plant-row b{font-weight:700}
-    #${PANEL_ID} .go-plant-row[data-child=true]{padding-left:14px;color:var(--gc-muted,#a1a1aa)}
+    #${PANEL_ID} .go-plant-row{display:grid;grid-template-columns:minmax(0,1fr) 42px 42px;align-items:center;gap:6px;padding:3px 0;color:var(--gc-text,#e4e4e7);font-size:12px}
+    #${PANEL_ID} .go-plant-row>span{display:flex;min-width:0;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    #${PANEL_ID} .go-plant-row>b{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-plant-row img,#${PANEL_ID} .go-plant-blank{width:18px;height:18px;flex:0 0 18px;object-fit:contain;image-rendering:auto}
+    #${PANEL_ID} .go-plant-row>span>u{width:9px;flex:0 0 9px;color:var(--gc-muted,#a1a1aa);font-size:9px;text-decoration:none}
+    /* Indenting the name cell rather than the row, so the tiles and crops columns stay aligned. */
+    #${PANEL_ID} .go-plant-row[data-child=true]{color:var(--gc-muted,#a1a1aa)}
+    #${PANEL_ID} .go-plant-row[data-child=true]>span{padding-left:15px}
     #${PANEL_ID} .go-plant-family{cursor:pointer}
     #${PANEL_ID} .go-plant-family:hover{color:#fff}
-    #${PANEL_ID} .go-plant-units{padding-bottom:1px;color:var(--gc-muted,#a1a1aa);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-    #${PANEL_ID} .go-plant-units b{font-weight:700}
+    #${PANEL_ID} .go-plant-units{margin-bottom:2px;padding-bottom:4px;border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,#a1a1aa);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    #${PANEL_ID} .go-plant-units>b{color:var(--gc-muted,#a1a1aa);font-weight:700}
+    #${PANEL_ID} .go-plant-total{margin-top:3px;padding-top:5px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075));font-weight:700}
+    #${PANEL_ID} .go-config-tabs{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:4px;position:sticky;top:0;z-index:1;padding:10px 0 9px;background:var(--gc-bg,#0c0c11)}
+    #${PANEL_ID} .go-config-tabs button{padding:7px 4px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:rgba(255,255,255,.03);color:var(--gc-muted,rgba(255,255,255,.72));font-size:11px;font-weight:700}
+    #${PANEL_ID} .go-config-tabs button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
     #${PANEL_ID} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,0,0,.18);border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72))}
     #${PANEL_ID} .go-footer span{display:flex;align-items:center;gap:8px}#${PANEL_ID} .go-footer span small{padding:2px 7px;border-radius:5px;border:1px solid var(--gc-line,rgba(255,255,255,.075));background:rgba(255,255,255,.03);color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px}#${PANEL_ID} .go-footer b{color:var(--gc-gold,#fbbf24);font-size:19px}
     #${PANEL_ID} .go-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:250px;margin:8px 0 12px;overflow:auto}#${PANEL_ID} .go-filter label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-text,#e4e4e7);cursor:pointer}
@@ -5942,6 +5962,7 @@ ${rows}</div>`;
     } catch {
     }
     let configMode = null;
+    let lastConfigTab = "species";
     let refreshTimer = null;
     let activeDrag = false;
     let keyboardDriven = false;
@@ -6041,8 +6062,19 @@ ${rows}</div>`;
         return `<section class="go-section"><div class="go-section-title"><span>Tracked plants</span><span>${selected.size}/${species.length}</span></div><input class="go-search" data-species-search placeholder="Search plants"><div class="go-tools"><button data-all>All</button><button data-none>None</button><button data-owned>Track owned</button></div><div class="go-pill-list">${section("Tracked", tracked)}${section("In your garden", owned)}${section("All plants", rest)}</div></section>`;
       }
       if (configMode === "mutations") {
-        const group = (label, pairs) => `<div class="go-pill-section"><b>${label}</b><div>${pairs.map(([key, name]) => `<button class="go-pill ${mutationConfig[key] ? "on" : ""}" data-mutation-key="${key}"><i>${mutationConfig[key] ? "&#10003;" : ""}</i><span>${name}</span></button>`).join("")}</div></div>`;
-        return `<section class="go-section"><div class="go-section-title"><span>Mutation tracking</span><span>${trackedMutations.size} selected</span></div><div class="go-pill-list">${group("Color", [["rainbow", "Rainbow"], ["gold", "Gold"]])}${group("Weather", [["frozen", "Frozen"], ["thunderstruck", "Thunderstruck"], ["thundercharged", "Thundercharged"], ["wet", "Wet"], ["chilled", "Chilled"]])}${group("Time", [["amberlit", "Amberlit"], ["dawnlit", "Dawnlit"], ["dawncharged", "Dawnbound"], ["ambercharged", "Amberbound"]])}${group("Other", [["none", "None"]])}${group("Combine bars", [["combineRainbow", "Rainbow + Gold"], ["combineAmberDawn", "Amberlit + Dawnlit"], ["combineDawnAmbercharged", "Dawnbound + Amberbound"], ["combineFrozenThunderstruck", "Frozen + Thunderstruck"]])}${group("Estimate scope", [["granterAllGarden", "Whole garden"], ["ignorePreserved", "Ignore preserved"]])}</div></section>`;
+        const trackPill = (key, mutation) => {
+          const label = mutationLabel(mutation);
+          const sprite = mutationSprite(mutation);
+          const face = sprite ? `<img src="${escapeHtml2(sprite)}" alt="${escapeHtml2(label)}">` : `<span>${escapeHtml2(label)}</span>`;
+          return `<button class="go-pill go-pill-icon ${mutationConfig[key] ? "on" : ""}" title="${escapeHtml2(label)}" data-mutation-key="${key}">${face}</button>`;
+        };
+        const groups = MUTATION_GROUP_ORDER.map((group) => {
+          const keys = Object.keys(MUTATION_IDS).filter((key) => mutationGroupOf(MUTATION_IDS[key]) === group);
+          return keys.length ? `<div class="go-pill-section"><b><span>${escapeHtml2(MUTATION_GROUP_LABELS[group] ?? group)}</span></b><div>${keys.map((key) => trackPill(key, MUTATION_IDS[key])).join("")}</div></div>` : "";
+        }).join("");
+        const otherGroup = `<div class="go-pill-section"><b><span>Other</span></b><div><button class="go-pill go-pill-icon ${mutationConfig.none ? "on" : ""}" title="Unmutated crops" data-mutation-key="none"><span>NONE</span></button></div></div>`;
+        const mergeRow = (key, label) => `<label class="go-config-row"><span>${escapeHtml2(label)}</span><input type="checkbox" data-mutation-check="${key}" ${mutationConfig[key] ? "checked" : ""}></label>`;
+        return `<section class="go-section"><div class="go-section-title"><span>Tracked mutations</span><span>${trackedMutations.size} selected</span></div><p class="go-muted">Picked mutations get a progress bar and a granter estimate.</p>${groups}${otherGroup}<div class="go-focus-heading"><span>Show as one bar</span></div>${mergeRow("combineRainbow", "Rainbow + Gold")}${mergeRow("combineFrozenThunderstruck", "Frozen + Thunderstruck")}${mergeRow("combineAmberDawn", "Amberlit + Dawnlit")}${mergeRow("combineDawnAmbercharged", "Dawnbound + Amberbound")}<div class="go-focus-heading"><span>Counting</span></div>${mergeRow("granterAllGarden", "Estimate from the whole garden")}${mergeRow("ignorePreserved", "Ignore preserved crops")}</section>`;
       }
       if (configMode === "alarms") {
         const buttons = ALARM_TARGETS.map((target) => `<button class="go-pill ${alarmTargets.has(target) ? "on" : ""}" data-alarm-target="${escapeHtml2(target)}"><i>${alarmTargets.has(target) ? "&#10003;" : ""}</i><span>${escapeHtml2(displayName(target))}</span></button>`).join("");
@@ -6104,10 +6136,10 @@ ${rows}</div>`;
         if (mutationConfig.ambercharged) rows.push(["Amberbound", "Ambercharged", stats.targetProgress.Ambercharged ?? 0]);
       }
       if (mutationConfig.none) rows.push(["None", "Dawnlit", stats.unmutated]);
-      const mutationRows = rows.filter(([, , count]) => count > 0).map(([label, colorKey, count]) => {
-        const percent = stats.crops ? Math.min(100, count / stats.crops * 100) : 0;
+      const mutationRows = rows.filter(([, , count2]) => count2 > 0).map(([label, colorKey, count2]) => {
+        const percent = stats.crops ? Math.min(100, count2 / stats.crops * 100) : 0;
         const color = mutationColors[colorKey] || "#4fc3f7";
-        return `<div class="go-progress"><div><span><i style="background:${color}"></i>${escapeHtml2(label)}</span><b style="color:${color}">${count}<small style="color:#444;font-weight:normal">/${stats.crops}</small></b></div><i><u style="width:${percent.toFixed(2)}%;background:${color}"></u></i></div>`;
+        return `<div class="go-progress"><div><span><i style="background:${color}"></i>${escapeHtml2(label)}</span><b style="color:${color}">${count2}<small style="color:#444;font-weight:normal">/${stats.crops}</small></b></div><i><u style="width:${percent.toFixed(2)}%;background:${color}"></u></i></div>`;
       }).join("");
       function etaDuration(seconds) {
         const minutes = Math.round(seconds / 60);
@@ -6145,12 +6177,19 @@ ${rows}</div>`;
         const percent = row.total ? have / row.total * 100 : 0;
         return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b>${have}<em>/${row.total}</em></b></div><u><i style="width:${percent.toFixed(1)}%;background:${color}"></i></u>${summary}</div>`;
       }).join("");
-      const plantRows2 = plantRowList(stats.species).map((row) => row.family ? `<div class="go-plant-row go-plant-family" data-family="${escapeHtml2(row.family)}" title="Show the crops in this patch"><span>${row.open ? "&#9662;" : "&#9656;"} ${escapeHtml2(row.label)}</span><b>${row.value}</b></div>` : `<div class="go-plant-row"${row.child ? ' data-child="true"' : ""}><span>${escapeHtml2(row.label)}</span><b>${row.value}</b></div>`).join("");
-      const totalPlants = `${stats.plants.toLocaleString(NUMBER_LOCALE)} &middot; ${stats.crops.toLocaleString(NUMBER_LOCALE)}`;
+      const count = (value) => value.toLocaleString(NUMBER_LOCALE);
+      const plantRows2 = plantRowList(stats.species).map((row) => {
+        const sprite = produceSprite(row.species);
+        const icon = sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : '<i class="go-plant-blank"></i>';
+        const chevron = row.child ? "" : `<u>${row.family ? row.open ? "&#9662;" : "&#9656;" : ""}</u>`;
+        const name = `<span>${chevron}${icon}${escapeHtml2(row.label)}</span>`;
+        const cells = `<b>${row.tiles ? count(row.tiles) : ""}</b><b>${count(row.crops)}</b>`;
+        return row.family ? `<div class="go-plant-row go-plant-family" data-family="${escapeHtml2(row.family)}" title="Show the crops in this patch">${name}${cells}</div>` : `<div class="go-plant-row"${row.child ? ' data-child="true"' : ""}>${name}${cells}</div>`;
+      }).join("");
       const growing = Math.max(0, stats.crops - stats.mature);
       const growth = growing === 0 && stats.notMaxSize === 0 ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>' : growing === 0 ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : `<div class="go-summary"><div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>${stats.mature === 0 ? `<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>` : ""}<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div><div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div></div>`;
       const bonus = Math.round((stats.friendBonus - 1) * 100);
-      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? "&#9662;" : "&#9656;"}</span></div><div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? "&#9662;" : "&#9656;"}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}><div class="go-plant-row go-plant-units"><span></span><b>tiles &middot; crops</b></div><div class="go-plant-row"><span>Total</span><b>${totalPlants}</b></div>${plantRows2 || '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
+      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section"><div class="go-section-title go-collapsible" data-collapse="mutations"><span>Mutations</span><span>${view.mutationsOpen ? "&#9662;" : "&#9656;"}</span></div><div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section"><div class="go-section-title go-collapsible" data-collapse="plants"><span>Plants</span><span>${view.plantsOpen ? "&#9662;" : "&#9656;"}</span></div><div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}>${plantRows2 ? `<div class="go-plant-row go-plant-units"><span>Plant</span><b>Tiles</b><b>Crops</b></div>${plantRows2}<div class="go-plant-row go-plant-total"><span>Total</span><b>${count(stats.plants)}</b><b>${count(stats.crops)}</b></div>` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
     }
     function installDrag(card, header, save = null) {
       header.onpointerdown = (event) => {
@@ -6215,9 +6254,10 @@ ${rows}</div>`;
       const species = knownSpecies();
       const placement = position ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position.top))}px;` : "";
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
-      const configTitle = configMode === "species" ? "Tracked Plants" : configMode === "mutations" ? "Mutation Config" : configMode === "alarms" ? "Alarm Config" : "Plant Focus";
-      const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml2(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configHtml(species)}</div></div>` : "";
-      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-species-config title="Configure tracked plants">&#x1F33F;</button><button data-focus-config data-active="${focus.enabled}" title="Configure plant focus">&#9680;</button><button data-mutation-config title="Configure tracked mutations">&#128295;</button><button data-zoom title="Cycle zoom">${view.zoom}x</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
+      const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"]].map(([tab, label]) => `<button data-config-tab="${tab}" data-active="${configMode === tab}">${label}</button>`).join("")}</div>`;
+      const configTitle = configMode === "alarms" ? "Alarm Config" : "Overview Settings";
+      const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml2(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : "";
+      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">&#9881;</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">&#9680;</button><button data-zoom title="Cycle zoom">${view.zoom}x</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
       const nextBody = panel3.querySelector(".go-body");
       if (nextBody) nextBody.scrollTop = scrollTop;
       panel3.querySelector("[data-close]").onclick = close;
@@ -6225,16 +6265,19 @@ ${rows}</div>`;
         configMode = null;
         render4(true);
       });
-      panel3.querySelector("[data-species-config]").onclick = () => {
-        configMode = configMode === "species" ? null : "species";
+      panel3.querySelector("[data-open-config]").onclick = () => {
+        configMode = configMode && configMode !== "alarms" ? null : lastConfigTab;
         render4(true);
       };
-      panel3.querySelector("[data-focus-config]").onclick = () => {
-        configMode = configMode === "focus" ? null : "focus";
+      panel3.querySelectorAll("[data-config-tab]").forEach((button) => button.onclick = () => {
+        configMode = button.dataset.configTab;
+        if (configMode && configMode !== "alarms") lastConfigTab = configMode;
         render4(true);
-      };
-      panel3.querySelector("[data-mutation-config]").onclick = () => {
-        configMode = configMode === "mutations" ? null : "mutations";
+      });
+      panel3.querySelector("[data-focus-toggle]").onclick = () => {
+        focus.enabled = !focus.enabled;
+        saveFocus(focus);
+        applyPlantFocus();
         render4(true);
       };
       const alarmConfigButton = panel3.querySelector("[data-alarm-config]");
@@ -6281,15 +6324,33 @@ ${rows}</div>`;
         saveFilter(filter);
         render4(true);
       });
-      panel3.querySelectorAll("[data-mutation-key]").forEach((button) => button.onclick = () => {
-        const key = button.dataset.mutationKey;
-        mutationConfig[key] = !mutationConfig[key];
+      const releaseUnlessTyping = (element) => {
+        if (keyboardDriven) return;
+        setTimeout(() => {
+          if (!keyboardDriven) element.blur();
+        }, 0);
+      };
+      const renderAndRefocus = (selector) => {
+        render4(true);
+        if (keyboardDriven) panel3.querySelector(selector)?.focus();
+      };
+      const applyMutationKey = (key, value) => {
+        mutationConfig[key] = value;
         mutationConfig.ignorePreserved = Boolean(mutationConfig.ignorePreserved);
         view.ignorePreserved = mutationConfig.ignorePreserved;
         trackedMutations = selectedMutations(mutationConfig);
         saveMutationConfig(mutationConfig);
         saveView(view);
-        render4(true);
+      };
+      panel3.querySelectorAll("[data-mutation-key]").forEach((button) => button.onclick = () => {
+        const key = button.dataset.mutationKey;
+        applyMutationKey(key, !mutationConfig[key]);
+        renderAndRefocus(`[data-mutation-key="${key}"]`);
+      });
+      panel3.querySelectorAll("[data-mutation-check]").forEach((input) => input.onchange = () => {
+        const key = input.dataset.mutationCheck;
+        applyMutationKey(key, input.checked);
+        renderAndRefocus(`[data-mutation-check="${key}"]`);
       });
       const syncAlarmTargetControls = () => {
         panel3.querySelectorAll("[data-alarm-target]").forEach((button) => {
@@ -6325,7 +6386,7 @@ ${rows}</div>`;
       const saveFocusControls = () => {
         saveFocus(focus);
         applyPlantFocus();
-        const focusButton = panel3.querySelector("[data-focus-config]");
+        const focusButton = panel3.querySelector("[data-focus-toggle]");
         if (focusButton) focusButton.dataset.active = String(focus.enabled);
       };
       const enforceGroupExclusivity = (keep) => {
@@ -6348,16 +6409,6 @@ ${rows}</div>`;
         if (!node) return;
         node.toggleAttribute("data-off", !focus.enabled);
         node.innerHTML = focusSummaryHtml();
-      };
-      const releaseUnlessTyping = (element) => {
-        if (keyboardDriven) return;
-        setTimeout(() => {
-          if (!keyboardDriven) element.blur();
-        }, 0);
-      };
-      const renderAndRefocus = (selector) => {
-        render4(true);
-        if (keyboardDriven) panel3.querySelector(selector)?.focus();
       };
       const releaseOnCommit = (select) => {
         select.onkeydown = (event) => {
