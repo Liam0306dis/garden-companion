@@ -5289,6 +5289,7 @@ ${rows}</div>`;
     }
   }
   var FOCUS_KEY = "gardenCompanion.overviewFocus.v1";
+  var FOCUS_PRESETS_KEY = "gardenCompanion.overviewFocusPresets.v1";
   var ALARM_TARGETS_KEY = "gardenCompanion.overviewAlarmTargets.v1";
   var SHORTCUT_KEY = "gardenCompanion.overviewShortcut.v1";
   var POSITION_KEY = "gardenCompanion.overviewPosition.v1";
@@ -5392,6 +5393,35 @@ ${rows}</div>`;
   function saveFocus(config2) {
     try {
       localStorage.setItem(FOCUS_KEY, JSON.stringify(config2));
+    } catch {
+    }
+  }
+  var PRESET_NAME_LIMIT = 28;
+  var PRESET_LIMIT = 24;
+  function presetConfigOf(config2) {
+    const { enabled, ...rest } = config2;
+    void enabled;
+    return { ...rest, mutations: [...rest.mutations] };
+  }
+  function loadFocusPresets() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(FOCUS_PRESETS_KEY) || "[]");
+      if (!Array.isArray(stored)) return [];
+      const seen = /* @__PURE__ */ new Set();
+      return stored.flatMap((entry) => {
+        const row = entry;
+        const name = typeof row?.name === "string" ? row.name.trim().slice(0, PRESET_NAME_LIMIT) : "";
+        if (!name || seen.has(name)) return [];
+        seen.add(name);
+        return [{ name, config: presetConfigOf({ ...focusDefaults(), ...row?.config ?? {} }) }];
+      }).slice(0, PRESET_LIMIT);
+    } catch {
+      return [];
+    }
+  }
+  function saveFocusPresets(presets) {
+    try {
+      localStorage.setItem(FOCUS_PRESETS_KEY, JSON.stringify(presets));
     } catch {
     }
   }
@@ -5957,6 +5987,9 @@ ${rows}</div>`;
     #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:#08080c;color:var(--gc-text,#e4e4e7);font:11px system-ui,sans-serif;cursor:pointer}
     #${PANEL_ID} .go-config-row input[type=range]{width:130px;flex:0 0 130px;accent-color:var(--gc-accent,#a78bfa)}
     #${PANEL_ID} .go-pill-choice{display:flex;gap:4px}
+    #${PANEL_ID} .go-preset-row{display:flex;align-items:center;gap:4px;margin:6px 0 2px}
+    #${PANEL_ID} .go-preset-row .go-search{flex:1;min-width:0;height:30px;margin:0}
+    #${PANEL_ID} .go-preset-row button{flex:0 0 auto;height:30px}
     #${PANEL_ID} button.go-pill.go-pill-icon{width:34px;height:34px;padding:0;justify-content:center}
     #${PANEL_ID} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.5}
     #${PANEL_ID} button.go-pill.go-pill-icon span{max-width:30px;overflow:hidden;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-weight:700;text-overflow:ellipsis}
@@ -6027,6 +6060,8 @@ ${rows}</div>`;
     }
     let configMode = null;
     let lastConfigTab = "species";
+    let focusPresets = loadFocusPresets();
+    let selectedPreset = "";
     let refreshTimer = null;
     let activeDrag = false;
     let keyboardDriven = false;
@@ -6188,7 +6223,7 @@ ${rows}</div>`;
         const ungrouped = [...foundMutations].filter((name) => !grouped.has(name));
         const otherGroup = ungrouped.length ? pillGroup("Other", "", ungrouped.map(mutationPill).join("")) : "";
         const sizeGroup = pillGroup("Size", "", `<button class="go-pill go-pill-icon ${focus.maxSize ? "on" : ""}" title="Max size" data-focus-max-size><span>MAX</span></button>`);
-        return `<section class="go-section">` + switchRow("data-focus-enabled", "enabled", "Plant focus", "Dim the crops you are not looking for", focus.enabled) + settingsHead("Which crops match") + `<label class="go-config-row"><span>Look at</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label>` + choiceRow("Must have", "data-focus-rule-pill", [["all", "All"], ["any", "Any"], ["none", "None"]], focus.mutationRule) + settingsHead("Conditions", `${conditionNames.length ? `<button data-focus-clear>Clear</button>` : `<em>none</em>`}`) + `${conditionGroups}${otherGroup}${sizeGroup}` + settingsHead("What happens to them") + choiceRow("Matches are", "data-focus-mode", [["highlight", "Highlighted"], ["hide", "Faded out"]], focus.mode) + `<label class="go-config-row"><span>${focus.mode === "hide" ? "Matches sit at" : "Everything else sits at"} <b data-opacity-value>${percent}%</b></span><input type="range" min="5" max="60" step="5" value="${percent}" data-focus-opacity></label><p class="go-focus-summary"${focus.enabled ? "" : " data-off"}>${focusSummaryHtml()}</p></section>`;
+        return `<section class="go-section">` + switchRow("data-focus-enabled", "enabled", "Plant focus", "Dim the crops you are not looking for", focus.enabled) + settingsHead("Presets", focusPresets.length ? `<em>${focusPresets.length}</em>` : "") + `<div class="go-config-row"><span>Load</span><select data-focus-preset ${focusPresets.length ? "" : "disabled"}><option value="">${focusPresets.length ? "Choose a preset" : "No presets saved"}</option>${focusPresets.map((preset) => `<option value="${escapeHtml2(preset.name)}" ${preset.name === selectedPreset ? "selected" : ""}>${escapeHtml2(preset.name)}</option>`).join("")}</select></div><div class="go-preset-row"><input class="go-search" data-preset-name maxlength="${PRESET_NAME_LIMIT}" placeholder="Name this setup" value="${escapeHtml2(selectedPreset)}"><button data-preset-save>Save</button>${selectedPreset ? `<button data-preset-delete title="Delete ${escapeHtml2(selectedPreset)}">&#10005;</button>` : ""}</div>` + settingsHead("Which crops match") + `<label class="go-config-row"><span>Look at</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label>` + choiceRow("Must have", "data-focus-rule-pill", [["all", "All"], ["any", "Any"], ["none", "None"]], focus.mutationRule) + settingsHead("Conditions", `${conditionNames.length ? `<button data-focus-clear>Clear</button>` : `<em>none</em>`}`) + `${conditionGroups}${otherGroup}${sizeGroup}` + settingsHead("What happens to them") + choiceRow("Matches are", "data-focus-mode", [["highlight", "Highlighted"], ["hide", "Faded out"]], focus.mode) + `<label class="go-config-row"><span>${focus.mode === "hide" ? "Matches sit at" : "Everything else sits at"} <b data-opacity-value>${percent}%</b></span><input type="range" min="5" max="60" step="5" value="${percent}" data-focus-opacity></label><p class="go-focus-summary"${focus.enabled ? "" : " data-off"}>${focusSummaryHtml()}</p></section>`;
       }
       return "";
     }
@@ -6483,6 +6518,7 @@ ${rows}</div>`;
       const saveFocusControls = () => {
         saveFocus(focus);
         applyPlantFocus();
+        selectedPreset = "";
         const focusButton = panel3.querySelector("[data-focus-toggle]");
         if (focusButton) focusButton.dataset.active = String(focus.enabled);
       };
@@ -6503,9 +6539,14 @@ ${rows}</div>`;
       };
       const refreshFocusSummary = () => {
         const node = panel3.querySelector(".go-focus-summary");
-        if (!node) return;
-        node.toggleAttribute("data-off", !focus.enabled);
-        node.innerHTML = focusSummaryHtml();
+        if (node) {
+          node.toggleAttribute("data-off", !focus.enabled);
+          node.innerHTML = focusSummaryHtml();
+        }
+        const select = panel3.querySelector("[data-focus-preset]");
+        if (select) select.value = selectedPreset;
+        const remove = panel3.querySelector("[data-preset-delete]");
+        if (remove) remove.hidden = !selectedPreset;
       };
       const releaseOnCommit = (select) => {
         select.onkeydown = (event) => {
@@ -6514,8 +6555,10 @@ ${rows}</div>`;
       };
       const focusEnabled = panel3.querySelector("[data-focus-enabled]");
       if (focusEnabled) focusEnabled.onchange = () => {
+        const loaded = selectedPreset;
         focus.enabled = focusEnabled.checked;
         saveFocusControls();
+        selectedPreset = loaded;
         refreshFocusSummary();
         releaseUnlessTyping(focusEnabled);
       };
@@ -6534,6 +6577,50 @@ ${rows}</div>`;
         };
         releaseOnCommit(focusScope);
       }
+      const presetSelect = panel3.querySelector("[data-focus-preset]");
+      if (presetSelect) {
+        presetSelect.onchange = () => {
+          const preset = focusPresets.find((entry) => entry.name === presetSelect.value);
+          if (!preset) {
+            selectedPreset = "";
+            renderAndRefocus("[data-focus-preset]");
+            return;
+          }
+          Object.assign(focus, presetConfigOf({ ...focus, ...preset.config }));
+          saveFocusControls();
+          selectedPreset = preset.name;
+          renderAndRefocus("[data-focus-preset]");
+        };
+        releaseOnCommit(presetSelect);
+      }
+      const presetName = panel3.querySelector("[data-preset-name]");
+      panel3.querySelector("[data-preset-save]")?.addEventListener("click", () => {
+        const name = (presetName?.value ?? "").trim().slice(0, PRESET_NAME_LIMIT);
+        if (!name) {
+          presetName?.focus();
+          return;
+        }
+        const config2 = presetConfigOf(focus);
+        const existing = focusPresets.findIndex((entry) => entry.name === name);
+        if (existing >= 0) focusPresets = focusPresets.map((entry, index) => index === existing ? { name, config: config2 } : entry);
+        else if (focusPresets.length >= PRESET_LIMIT) {
+          toast(`Only ${PRESET_LIMIT} presets can be saved.`, "error");
+          return;
+        } else focusPresets = [...focusPresets, { name, config: config2 }];
+        saveFocusPresets(focusPresets);
+        selectedPreset = name;
+        toast(`Saved "${name}".`, "success");
+        render4(true);
+      });
+      panel3.querySelector("[data-preset-delete]")?.addEventListener("click", () => {
+        const removed = selectedPreset;
+        if (!removed) return;
+        focusPresets = focusPresets.filter((entry) => entry.name !== removed);
+        saveFocusPresets(focusPresets);
+        selectedPreset = "";
+        toast(`Deleted "${removed}".`, "success");
+        render4(true);
+      });
       panel3.querySelectorAll("[data-focus-rule-pill]").forEach((button) => button.onclick = () => {
         const rule = button.dataset.focusRulePill;
         focus.mutationRule = rule;

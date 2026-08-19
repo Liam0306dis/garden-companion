@@ -1,6 +1,7 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
 import { MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { mutationSprite, onSpritesReady, produceSprite } from '../pets.js';
+import { toast } from '../toast.js';
 import { NAME_OVERRIDES, NUMBER_LOCALE } from '../utils.js';
 
 interface PlantCatalogEntry {
@@ -57,6 +58,7 @@ function saveOpenFamilies(): void {
   try { localStorage.setItem(OPEN_FAMILIES_KEY, JSON.stringify([...openFamilies])); } catch {}
 }
 const FOCUS_KEY = 'gardenCompanion.overviewFocus.v1';
+const FOCUS_PRESETS_KEY = 'gardenCompanion.overviewFocusPresets.v1';
 const ALARM_TARGETS_KEY = 'gardenCompanion.overviewAlarmTargets.v1';
 const SHORTCUT_KEY = 'gardenCompanion.overviewShortcut.v1';
 const POSITION_KEY = 'gardenCompanion.overviewPosition.v1';
@@ -169,6 +171,42 @@ function loadFocus(): FocusConfig {
 
 function saveFocus(config: FocusConfig): void {
   try { localStorage.setItem(FOCUS_KEY, JSON.stringify(config)); } catch {}
+}
+
+/** Everything but `enabled`: loading a preset changes what focus looks for, not whether it is on. */
+type FocusPresetConfig = Omit<FocusConfig, 'enabled'>;
+interface FocusPreset { name: string; config: FocusPresetConfig }
+
+const PRESET_NAME_LIMIT = 28;
+const PRESET_LIMIT = 24;
+
+function presetConfigOf(config: FocusConfig): FocusPresetConfig {
+  const { enabled, ...rest } = config;
+  void enabled;
+  return { ...rest, mutations: [...rest.mutations] };
+}
+
+/**
+ * Rebuilt field by field rather than trusted wholesale: these come back from storage, where a half
+ * written entry or an older shape would otherwise flow straight into the matcher.
+ */
+function loadFocusPresets(): FocusPreset[] {
+  try {
+    const stored = JSON.parse(localStorage.getItem(FOCUS_PRESETS_KEY) || '[]');
+    if (!Array.isArray(stored)) return [];
+    const seen = new Set<string>();
+    return stored.flatMap((entry: unknown) => {
+      const row = entry as { name?: unknown; config?: Partial<FocusConfig> } | null;
+      const name = typeof row?.name === 'string' ? row.name.trim().slice(0, PRESET_NAME_LIMIT) : '';
+      if (!name || seen.has(name)) return [];
+      seen.add(name);
+      return [{ name, config: presetConfigOf({ ...focusDefaults(), ...(row?.config ?? {}) }) }];
+    }).slice(0, PRESET_LIMIT);
+  } catch { return []; }
+}
+
+function saveFocusPresets(presets: readonly FocusPreset[]): void {
+  try { localStorage.setItem(FOCUS_PRESETS_KEY, JSON.stringify(presets)); } catch {}
 }
 
 function installPlantFocus(
@@ -796,6 +834,9 @@ function injectStyles(): void {
     #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:#08080c;color:var(--gc-text,#e4e4e7);font:11px system-ui,sans-serif;cursor:pointer}
     #${PANEL_ID} .go-config-row input[type=range]{width:130px;flex:0 0 130px;accent-color:var(--gc-accent,#a78bfa)}
     #${PANEL_ID} .go-pill-choice{display:flex;gap:4px}
+    #${PANEL_ID} .go-preset-row{display:flex;align-items:center;gap:4px;margin:6px 0 2px}
+    #${PANEL_ID} .go-preset-row .go-search{flex:1;min-width:0;height:30px;margin:0}
+    #${PANEL_ID} .go-preset-row button{flex:0 0 auto;height:30px}
     #${PANEL_ID} button.go-pill.go-pill-icon{width:34px;height:34px;padding:0;justify-content:center}
     #${PANEL_ID} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.5}
     #${PANEL_ID} button.go-pill.go-pill-icon span{max-width:30px;overflow:hidden;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-weight:700;text-overflow:ellipsis}
@@ -865,6 +906,9 @@ export function initGardenOverview(): void {
   try { position = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null'); } catch {}
   let configMode: 'species' | 'mutations' | 'focus' | 'panel' | 'alarms' | null = null;
   let lastConfigTab: 'species' | 'mutations' | 'focus' | 'panel' = 'species';
+  let focusPresets = loadFocusPresets();
+  // Cleared by any manual edit, so the dropdown never claims a preset the settings no longer match.
+  let selectedPreset = '';
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
   let activeDrag = false;
   // A focused control inside the panel swallows the keys the game needs to move, so focus is handed
@@ -1076,6 +1120,14 @@ export function initGardenOverview(): void {
       // them. The old layout interleaved the two and left people guessing which control did what.
       return `<section class="go-section">`
         + switchRow('data-focus-enabled', 'enabled', 'Plant focus', 'Dim the crops you are not looking for', focus.enabled)
+        + settingsHead('Presets', focusPresets.length ? `<em>${focusPresets.length}</em>` : '')
+        + `<div class="go-config-row"><span>Load</span><select data-focus-preset ${focusPresets.length ? '' : 'disabled'}>`
+        + `<option value="">${focusPresets.length ? 'Choose a preset' : 'No presets saved'}</option>`
+        + `${focusPresets.map(preset => `<option value="${escapeHtml(preset.name)}" ${preset.name === selectedPreset ? 'selected' : ''}>${escapeHtml(preset.name)}</option>`).join('')}`
+        + `</select></div>`
+        + `<div class="go-preset-row"><input class="go-search" data-preset-name maxlength="${PRESET_NAME_LIMIT}" placeholder="Name this setup" value="${escapeHtml(selectedPreset)}">`
+        + `<button data-preset-save>Save</button>`
+        + `${selectedPreset ? `<button data-preset-delete title="Delete ${escapeHtml(selectedPreset)}">&#10005;</button>` : ''}</div>`
         + settingsHead('Which crops match')
         + `<label class="go-config-row"><span>Look at</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml(value)}" ${focus.scope === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>`
         + choiceRow('Must have', 'data-focus-rule-pill', [['all', 'All'], ['any', 'Any'], ['none', 'None']], focus.mutationRule)
@@ -1351,6 +1403,8 @@ export function initGardenOverview(): void {
     const saveFocusControls = () => {
       saveFocus(focus);
       applyPlantFocus();
+      // Any hand edit means the settings are no longer the preset that was loaded.
+      selectedPreset = '';
       const focusButton = panel.querySelector<HTMLButtonElement>('[data-focus-toggle]');
       if (focusButton) focusButton.dataset.active = String(focus.enabled);
     };
@@ -1372,22 +1426,76 @@ export function initGardenOverview(): void {
     // the whole panel and would drop the control the keyboard is on mid-interaction.
     const refreshFocusSummary = () => {
       const node = panel.querySelector<HTMLElement>('.go-focus-summary');
-      if (!node) return;
-      node.toggleAttribute('data-off', !focus.enabled);
-      node.innerHTML = focusSummaryHtml();
+      if (node) {
+        node.toggleAttribute('data-off', !focus.enabled);
+        node.innerHTML = focusSummaryHtml();
+      }
+      // These controls are updated in place too: a hand edit drops the loaded preset, and without
+      // this the dropdown would keep naming a preset the settings no longer match.
+      const select = panel.querySelector<HTMLSelectElement>('[data-focus-preset]');
+      if (select) select.value = selectedPreset;
+      const remove = panel.querySelector<HTMLElement>('[data-preset-delete]');
+      if (remove) remove.hidden = !selectedPreset;
     };
     // Enter and Escape are how someone on the keyboard says they are done with a dropdown.
     const releaseOnCommit = (select: HTMLSelectElement) => {
       select.onkeydown = event => { if (event.key === 'Enter' || event.key === 'Escape') select.blur(); };
     };
     const focusEnabled = panel.querySelector<HTMLInputElement>('[data-focus-enabled]');
-    if (focusEnabled) focusEnabled.onchange = () => { focus.enabled = focusEnabled.checked; saveFocusControls(); refreshFocusSummary(); releaseUnlessTyping(focusEnabled); };
+    // Whether focus is on is not part of a preset, so toggling it must not drop the loaded one.
+    if (focusEnabled) focusEnabled.onchange = () => {
+      const loaded = selectedPreset;
+      focus.enabled = focusEnabled.checked;
+      saveFocusControls();
+      selectedPreset = loaded;
+      refreshFocusSummary();
+      releaseUnlessTyping(focusEnabled);
+    };
     panel.querySelectorAll<HTMLButtonElement>('[data-focus-mode]').forEach(button => button.onclick = () => { focus.mode = button.dataset.focusMode as FocusConfig['mode']; saveFocusControls(); renderAndRefocus(`[data-focus-mode="${button.dataset.focusMode}"]`); });
     const focusScope = panel.querySelector<HTMLSelectElement>('[data-focus-scope]');
     if (focusScope) {
       focusScope.onchange = () => { focus.scope = focusScope.value; saveFocusControls(); refreshFocusSummary(); releaseUnlessTyping(focusScope); };
       releaseOnCommit(focusScope);
     }
+    const presetSelect = panel.querySelector<HTMLSelectElement>('[data-focus-preset]');
+    if (presetSelect) {
+      presetSelect.onchange = () => {
+        const preset = focusPresets.find(entry => entry.name === presetSelect.value);
+        // The placeholder option clears the selection rather than applying anything.
+        if (!preset) { selectedPreset = ''; renderAndRefocus('[data-focus-preset]'); return; }
+        Object.assign(focus, presetConfigOf({ ...focus, ...preset.config }));
+        saveFocusControls();
+        // Set after saveFocusControls, which clears it for hand edits.
+        selectedPreset = preset.name;
+        renderAndRefocus('[data-focus-preset]');
+      };
+      releaseOnCommit(presetSelect);
+    }
+    const presetName = panel.querySelector<HTMLInputElement>('[data-preset-name]');
+    panel.querySelector<HTMLButtonElement>('[data-preset-save]')?.addEventListener('click', () => {
+      const name = (presetName?.value ?? '').trim().slice(0, PRESET_NAME_LIMIT);
+      if (!name) { presetName?.focus(); return; }
+      const config = presetConfigOf(focus);
+      const existing = focusPresets.findIndex(entry => entry.name === name);
+      // Saving over a name replaces it rather than leaving two entries that look identical.
+      if (existing >= 0) focusPresets = focusPresets.map((entry, index) => index === existing ? { name, config } : entry);
+      else if (focusPresets.length >= PRESET_LIMIT) { toast(`Only ${PRESET_LIMIT} presets can be saved.`, 'error'); return; }
+      else focusPresets = [...focusPresets, { name, config }];
+      saveFocusPresets(focusPresets);
+      selectedPreset = name;
+      toast(`Saved "${name}".`, 'success');
+      render(true);
+    });
+    panel.querySelector<HTMLButtonElement>('[data-preset-delete]')?.addEventListener('click', () => {
+      const removed = selectedPreset;
+      // The button can outlive its selection: a hand edit clears it without a redraw.
+      if (!removed) return;
+      focusPresets = focusPresets.filter(entry => entry.name !== removed);
+      saveFocusPresets(focusPresets);
+      selectedPreset = '';
+      toast(`Deleted "${removed}".`, 'success');
+      render(true);
+    });
     panel.querySelectorAll<HTMLButtonElement>('[data-focus-rule-pill]').forEach(button => button.onclick = () => {
       const rule = button.dataset.focusRulePill as FocusConfig['mutationRule'];
       focus.mutationRule = rule;

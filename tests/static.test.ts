@@ -282,6 +282,13 @@ assert.match(overviewSource, /focusMaxSize\.onclick = \(\) => \{ focus\.maxSize 
 assert.match(overviewSource, /const ruleMatches = !conditions\.length\s*\|\|/, 'no conditions must mean the scope is the only filter');
 assert.match(overviewSource, /const enforceGroupExclusivity[\s\S]*if \(focus\.mutationRule !== 'all'\) return;/, 'mutation groups must stay exclusive under the all-of-these rule');
 assert.match(overviewSource, /go-focus-summary/, 'plant focus plain-English summary is missing');
+// Presets carry what focus looks for, never whether it is switched on.
+assert.match(overviewSource, /type FocusPresetConfig = Omit<FocusConfig, 'enabled'>/, 'a preset must not carry the enabled flag');
+assert.match(overviewSource, /return \{ \.\.\.rest, mutations: \[\.\.\.rest\.mutations\] \}/, 'a preset must copy the mutation list rather than alias it');
+assert.match(overviewSource, /const loaded = selectedPreset;[\s\S]*focus\.enabled = focusEnabled\.checked;[\s\S]*selectedPreset = loaded;/, 'toggling focus on or off must not drop the loaded preset');
+assert.match(overviewSource, /if \(!removed\) return;/, 'deleting with no preset selected must do nothing');
+assert.match(overviewSource, /if \(select\) select\.value = selectedPreset;/, 'the preset dropdown must follow a hand edit that clears the selection');
+assert.match(overviewSource, /stored\.flatMap\(\(entry: unknown\) =>/, 'stored presets must be rebuilt field by field');
 assert.match(overviewSource, /page\.__gardenCompanionLoadSpriteGroup\?\.\('deferred'\)/, 'the overview must request the deferred atlas its mutation icons live in');
 assert.match(overviewSource, /onSpritesReady\(\(\) => \{ if \(configMode === 'focus'\) render\(true\); \}\)/, 'the focus picker must redraw when mutation icons arrive');
 // One page-level hook, many listeners: whoever subscribed first must not be replaced by the next.
