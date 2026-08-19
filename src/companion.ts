@@ -667,10 +667,12 @@ export function initCompanion(): void {
 
   // Grouped rather than one flat list of twelve: the tabs fall into obvious families, and a heading
   // per family means you look in one place instead of reading every label.
-  const TAB_GROUPS: Array<[string, Array<[string, string]>]> = [
-    ['Pets', [['abilities', 'Active Pets'], ['abilityLog', 'Pet Abilities'], ['teams', 'Pet Teams'], ['petFood', 'Pet Food']]],
-    ['Crops', [['protection', 'Crop Protection'], ['journal', 'Journal']]],
-    ['Alerts', [['shops', 'Shop Alarms'], ['silence', 'Ignore Alerts']]],
+  // Third entry is the nav label where the group heading already carries a word the tab would repeat.
+  // The panel title keeps the full name, which has to stand on its own.
+  const TAB_GROUPS: Array<[string, Array<[string, string, string?]>]> = [
+    ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food']]],
+    ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
+    ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['silence', 'Ignore Alerts', 'Ignored']]],
     ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
   ];
@@ -683,12 +685,14 @@ export function initCompanion(): void {
   }
   function navHtml(): string {
     return TAB_GROUPS.map(([group, tabs]) => {
-      // The group holding the open tab always shows it, so the panel can never hide where you are.
+      // Collapsing is honoured straight away even when the open tab lives here - waiting until you
+      // navigate away made the click feel broken. The heading is marked instead, so a collapsed
+      // group still shows which one you are inside.
       const holdsActive = tabs.some(([id]) => id === activeTab);
-      const open = holdsActive || !collapsedNavGroups.has(group);
-      return `<div class="gc-nav-group"><button class="gc-nav-head" data-nav-group="${escapeHtml(group)}" aria-expanded="${open}">`
+      const open = !collapsedNavGroups.has(group);
+      return `<div class="gc-nav-group"><button class="gc-nav-head" data-nav-group="${escapeHtml(group)}" aria-expanded="${open}" data-holds-active="${holdsActive && !open}">`
         + `<span>${escapeHtml(group)}</span><i>${open ? '&#9650;' : '&#9660;'}</i></button>`
-        + `<div class="gc-nav-items"${open ? '' : ' hidden'}>${tabs.map(([id, label]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${label}</button>`).join('')}</div></div>`;
+        + `<div class="gc-nav-items"${open ? '' : ' hidden'}>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${navLabel ?? title}</button>`).join('')}</div></div>`;
     }).join('');
   }
 

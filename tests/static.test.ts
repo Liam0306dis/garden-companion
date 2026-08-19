@@ -477,12 +477,16 @@ assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, '
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
 assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
 // Tabs live in named groups now; TABS is still the flat order the header title resolves against.
-assert.match(companionSource, /\['Pets', \[\['abilities', 'Active Pets'\], \['abilityLog', 'Pet Abilities'\], \['teams', 'Pet Teams'\], \['petFood', 'Pet Food'\]\]\]/, 'tab order is incorrect');
-assert.match(companionSource, /\['Crops', \[\['protection', 'Crop Protection'\], \['journal', 'Journal'\]\]\]/, 'crop tabs must be grouped together');
-assert.match(companionSource, /\['Alerts', \[\['shops', 'Shop Alarms'\], \['silence', 'Ignore Alerts'\]\]\]/, 'alert tabs must be grouped together');
+assert.match(companionSource, /\['Pets', \[\['abilities', 'Active Pets', 'Active'\], \['abilityLog', 'Pet Abilities', 'Abilities'\], \['teams', 'Pet Teams', 'Teams'\], \['petFood', 'Pet Food', 'Food'\]\]\]/, 'tab order is incorrect');
+assert.match(companionSource, /\['Crops', \[\['protection', 'Crop Protection', 'Protection'\], \['journal', 'Journal'\]\]\]/, 'crop tabs must be grouped together');
+assert.match(companionSource, /\['Alerts', \[\['shops', 'Shop Alarms', 'Shops'\], \['silence', 'Ignore Alerts', 'Ignored'\]\]\]/, 'alert tabs must be grouped together');
 assert.match(companionSource, /const TABS = TAB_GROUPS\.flatMap\(\(\[, tabs\]\) => tabs\)/, 'the flat tab list must come from the groups');
-// A collapsed group still has to reveal the tab you are on.
-assert.match(companionSource, /const holdsActive = tabs\.some\(\(\[id\]\) => id === activeTab\);\s*const open = holdsActive \|\| !collapsedNavGroups\.has\(group\)/, 'the group holding the active tab must stay open');
+// The panel title takes the full name; only the nav uses the shortened one.
+assert.match(companionSource, /tabs\.map\(\(\[id, title, navLabel\]\) =>[^)]*\$\{navLabel \?\? title\}/, 'the nav must prefer the short label and fall back to the full one');
+// Collapsing must take effect on the click, not once you navigate away from the group.
+assert.match(companionSource, /const open = !collapsedNavGroups\.has\(group\);/, 'collapsing a group must apply immediately');
+assert.match(companionSource, /data-holds-active="\$\{holdsActive && !open\}"/, 'a collapsed group holding the active tab must be marked');
+assert.match(styleSource, /\.gc-nav-head\[data-holds-active=true\] \{[^}]*box-shadow:inset 2px 0 var\(--gc-accent\)/, 'the marked group heading needs the active accent');
 assert.match(companionSource, /GARDEN COMPANION <em class="gc-version">v\$\{escapeHtml\(currentScriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
 assert.match(styleSource, /\.gc-food-options \{ display:grid;grid-auto-flow:column;grid-auto-columns:minmax\(0,1fr\)/, 'pet foods must all sit on one row');
 assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss must be presented as Pokemon Mode');
