@@ -288,6 +288,9 @@ assert.match(overviewSource, /return \{ \.\.\.rest, mutations: \[\.\.\.rest\.mut
 assert.match(overviewSource, /const loaded = selectedPreset;[\s\S]*focus\.enabled = focusEnabled\.checked;[\s\S]*selectedPreset = loaded;/, 'toggling focus on or off must not drop the loaded preset');
 assert.match(overviewSource, /if \(!removed\) return;/, 'deleting with no preset selected must do nothing');
 assert.match(overviewSource, /if \(select\) select\.value = selectedPreset;/, 'the preset dropdown must follow a hand edit that clears the selection');
+// Every condition click redraws the card, so the typed name cannot live only in the DOM.
+assert.match(overviewSource, /placeholder="Name this setup" value="\$\{escapeHtml\(presetDraft\)\}"/, 'the preset name box must render from the draft, not the selection');
+assert.match(overviewSource, /presetName\.oninput = \(\) => \{ presetDraft = presetName\.value; \}/, 'typing a preset name must be remembered across redraws');
 assert.match(overviewSource, /stored\.flatMap\(\(entry: unknown\) =>/, 'stored presets must be rebuilt field by field');
 assert.match(overviewSource, /page\.__gardenCompanionLoadSpriteGroup\?\.\('deferred'\)/, 'the overview must request the deferred atlas its mutation icons live in');
 assert.match(overviewSource, /onSpritesReady\(\(\) => \{ if \(configMode === 'focus'\) render\(true\); \}\)/, 'the focus picker must redraw when mutation icons arrive');

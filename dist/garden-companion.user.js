@@ -6062,6 +6062,7 @@ ${rows}</div>`;
     let lastConfigTab = "species";
     let focusPresets = loadFocusPresets();
     let selectedPreset = "";
+    let presetDraft = "";
     let refreshTimer = null;
     let activeDrag = false;
     let keyboardDriven = false;
@@ -6223,7 +6224,7 @@ ${rows}</div>`;
         const ungrouped = [...foundMutations].filter((name) => !grouped.has(name));
         const otherGroup = ungrouped.length ? pillGroup("Other", "", ungrouped.map(mutationPill).join("")) : "";
         const sizeGroup = pillGroup("Size", "", `<button class="go-pill go-pill-icon ${focus.maxSize ? "on" : ""}" title="Max size" data-focus-max-size><span>MAX</span></button>`);
-        return `<section class="go-section">` + switchRow("data-focus-enabled", "enabled", "Plant focus", "Dim the crops you are not looking for", focus.enabled) + settingsHead("Presets", focusPresets.length ? `<em>${focusPresets.length}</em>` : "") + `<div class="go-config-row"><span>Load</span><select data-focus-preset ${focusPresets.length ? "" : "disabled"}><option value="">${focusPresets.length ? "Choose a preset" : "No presets saved"}</option>${focusPresets.map((preset) => `<option value="${escapeHtml2(preset.name)}" ${preset.name === selectedPreset ? "selected" : ""}>${escapeHtml2(preset.name)}</option>`).join("")}</select></div><div class="go-preset-row"><input class="go-search" data-preset-name maxlength="${PRESET_NAME_LIMIT}" placeholder="Name this setup" value="${escapeHtml2(selectedPreset)}"><button data-preset-save>Save</button>${selectedPreset ? `<button data-preset-delete title="Delete ${escapeHtml2(selectedPreset)}">&#10005;</button>` : ""}</div>` + settingsHead("Which crops match") + `<label class="go-config-row"><span>Look at</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label>` + choiceRow("Must have", "data-focus-rule-pill", [["all", "All"], ["any", "Any"], ["none", "None"]], focus.mutationRule) + settingsHead("Conditions", `${conditionNames.length ? `<button data-focus-clear>Clear</button>` : `<em>none</em>`}`) + `${conditionGroups}${otherGroup}${sizeGroup}` + settingsHead("What happens to them") + choiceRow("Matches are", "data-focus-mode", [["highlight", "Highlighted"], ["hide", "Faded out"]], focus.mode) + `<label class="go-config-row"><span>${focus.mode === "hide" ? "Matches sit at" : "Everything else sits at"} <b data-opacity-value>${percent}%</b></span><input type="range" min="5" max="60" step="5" value="${percent}" data-focus-opacity></label><p class="go-focus-summary"${focus.enabled ? "" : " data-off"}>${focusSummaryHtml()}</p></section>`;
+        return `<section class="go-section">` + switchRow("data-focus-enabled", "enabled", "Plant focus", "Dim the crops you are not looking for", focus.enabled) + settingsHead("Presets", focusPresets.length ? `<em>${focusPresets.length}</em>` : "") + `<div class="go-config-row"><span>Load</span><select data-focus-preset ${focusPresets.length ? "" : "disabled"}><option value="">${focusPresets.length ? "Choose a preset" : "No presets saved"}</option>${focusPresets.map((preset) => `<option value="${escapeHtml2(preset.name)}" ${preset.name === selectedPreset ? "selected" : ""}>${escapeHtml2(preset.name)}</option>`).join("")}</select></div><div class="go-preset-row"><input class="go-search" data-preset-name maxlength="${PRESET_NAME_LIMIT}" placeholder="Name this setup" value="${escapeHtml2(presetDraft)}"><button data-preset-save>Save</button>${selectedPreset ? `<button data-preset-delete title="Delete ${escapeHtml2(selectedPreset)}">&#10005;</button>` : ""}</div>` + settingsHead("Which crops match") + `<label class="go-config-row"><span>Look at</span><select data-focus-scope>${scopes.map(([value, label]) => `<option value="${escapeHtml2(value)}" ${focus.scope === value ? "selected" : ""}>${escapeHtml2(label)}</option>`).join("")}</select></label>` + choiceRow("Must have", "data-focus-rule-pill", [["all", "All"], ["any", "Any"], ["none", "None"]], focus.mutationRule) + settingsHead("Conditions", `${conditionNames.length ? `<button data-focus-clear>Clear</button>` : `<em>none</em>`}`) + `${conditionGroups}${otherGroup}${sizeGroup}` + settingsHead("What happens to them") + choiceRow("Matches are", "data-focus-mode", [["highlight", "Highlighted"], ["hide", "Faded out"]], focus.mode) + `<label class="go-config-row"><span>${focus.mode === "hide" ? "Matches sit at" : "Everything else sits at"} <b data-opacity-value>${percent}%</b></span><input type="range" min="5" max="60" step="5" value="${percent}" data-focus-opacity></label><p class="go-focus-summary"${focus.enabled ? "" : " data-off"}>${focusSummaryHtml()}</p></section>`;
       }
       return "";
     }
@@ -6589,11 +6590,15 @@ ${rows}</div>`;
           Object.assign(focus, presetConfigOf({ ...focus, ...preset.config }));
           saveFocusControls();
           selectedPreset = preset.name;
+          presetDraft = preset.name;
           renderAndRefocus("[data-focus-preset]");
         };
         releaseOnCommit(presetSelect);
       }
       const presetName = panel3.querySelector("[data-preset-name]");
+      if (presetName) presetName.oninput = () => {
+        presetDraft = presetName.value;
+      };
       panel3.querySelector("[data-preset-save]")?.addEventListener("click", () => {
         const name = (presetName?.value ?? "").trim().slice(0, PRESET_NAME_LIMIT);
         if (!name) {
@@ -6609,6 +6614,7 @@ ${rows}</div>`;
         } else focusPresets = [...focusPresets, { name, config: config2 }];
         saveFocusPresets(focusPresets);
         selectedPreset = name;
+        presetDraft = name;
         toast(`Saved "${name}".`, "success");
         render4(true);
       });
@@ -6618,6 +6624,7 @@ ${rows}</div>`;
         focusPresets = focusPresets.filter((entry) => entry.name !== removed);
         saveFocusPresets(focusPresets);
         selectedPreset = "";
+        if (presetDraft === removed) presetDraft = "";
         toast(`Deleted "${removed}".`, "success");
         render4(true);
       });

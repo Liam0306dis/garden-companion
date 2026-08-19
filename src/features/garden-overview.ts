@@ -909,6 +909,9 @@ export function initGardenOverview(): void {
   let focusPresets = loadFocusPresets();
   // Cleared by any manual edit, so the dropdown never claims a preset the settings no longer match.
   let selectedPreset = '';
+  // What is typed in the name box, kept apart from the selection so that building a setup up out of
+  // condition clicks - each of which redraws the card - does not wipe the name half way through.
+  let presetDraft = '';
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
   let activeDrag = false;
   // A focused control inside the panel swallows the keys the game needs to move, so focus is handed
@@ -1125,7 +1128,7 @@ export function initGardenOverview(): void {
         + `<option value="">${focusPresets.length ? 'Choose a preset' : 'No presets saved'}</option>`
         + `${focusPresets.map(preset => `<option value="${escapeHtml(preset.name)}" ${preset.name === selectedPreset ? 'selected' : ''}>${escapeHtml(preset.name)}</option>`).join('')}`
         + `</select></div>`
-        + `<div class="go-preset-row"><input class="go-search" data-preset-name maxlength="${PRESET_NAME_LIMIT}" placeholder="Name this setup" value="${escapeHtml(selectedPreset)}">`
+        + `<div class="go-preset-row"><input class="go-search" data-preset-name maxlength="${PRESET_NAME_LIMIT}" placeholder="Name this setup" value="${escapeHtml(presetDraft)}">`
         + `<button data-preset-save>Save</button>`
         + `${selectedPreset ? `<button data-preset-delete title="Delete ${escapeHtml(selectedPreset)}">&#10005;</button>` : ''}</div>`
         + settingsHead('Which crops match')
@@ -1465,13 +1468,16 @@ export function initGardenOverview(): void {
         if (!preset) { selectedPreset = ''; renderAndRefocus('[data-focus-preset]'); return; }
         Object.assign(focus, presetConfigOf({ ...focus, ...preset.config }));
         saveFocusControls();
-        // Set after saveFocusControls, which clears it for hand edits.
+        // Set after saveFocusControls, which clears it for hand edits. The name box follows, so
+        // Save re-saves over the preset you just loaded rather than silently making a second one.
         selectedPreset = preset.name;
+        presetDraft = preset.name;
         renderAndRefocus('[data-focus-preset]');
       };
       releaseOnCommit(presetSelect);
     }
     const presetName = panel.querySelector<HTMLInputElement>('[data-preset-name]');
+    if (presetName) presetName.oninput = () => { presetDraft = presetName.value; };
     panel.querySelector<HTMLButtonElement>('[data-preset-save]')?.addEventListener('click', () => {
       const name = (presetName?.value ?? '').trim().slice(0, PRESET_NAME_LIMIT);
       if (!name) { presetName?.focus(); return; }
@@ -1483,6 +1489,7 @@ export function initGardenOverview(): void {
       else focusPresets = [...focusPresets, { name, config }];
       saveFocusPresets(focusPresets);
       selectedPreset = name;
+      presetDraft = name;
       toast(`Saved "${name}".`, 'success');
       render(true);
     });
@@ -1493,6 +1500,7 @@ export function initGardenOverview(): void {
       focusPresets = focusPresets.filter(entry => entry.name !== removed);
       saveFocusPresets(focusPresets);
       selectedPreset = '';
+      if (presetDraft === removed) presetDraft = '';
       toast(`Deleted "${removed}".`, 'success');
       render(true);
     });
