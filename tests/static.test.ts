@@ -510,6 +510,17 @@ assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter est
 assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, 'overview still displays empty mutation rows');
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
 assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
+// One hungry pet is normal; the whole team at zero is the state worth interrupting someone for.
+assert.match(companionSource, /return pets\.length > 0 && pets\.every\(petIsStarving\)/, 'the hunger alarm must need every active pet at zero');
+// Hunger that has not arrived is unknown, not empty - reading it as zero would alarm over nothing.
+assert.match(companionSource, /const hunger = Number\(pet\?\.hunger\);\s*return Number\.isFinite\(hunger\) && hunger <= 0;/, 'absent hunger data must not count as starving');
+assert.match(companionSource, /if \(hungerAlarmRaised\) return;\s*hungerAlarmRaised = true;/, 'the hunger alarm must fire once per starvation, not per state update');
+assert.match(companionSource, /if \(!starving\) \{\s*if \(hungerAlarmRaised\) \{ stopAlarm\(HUNGER_ALARM_OWNER\); hungerAlarmRaised = false; \}/, 'feeding a pet must clear and re-arm the hunger alarm');
+assert.match(companionSource, /const wantsAlarms = \(\) => feature\('shopAlarms'\) \|\| feature\('petHungerAlarm'\)/, 'every alarm feature must arm the audio, or its alarm is silent');
+assert.match(companionSource, /if \(input\.dataset\.feature === 'petHungerAlarm'\) processPetHunger\(\)/, 'switching the hunger alarm on must check immediately');
+assert.match(companionSource, /data-feature="petHungerAlarm"/, 'the hunger alarm toggle must live on the Active Pets tab');
+// Stop must hold until a pet is fed, so the banner needs no action of its own.
+assert.doesNotMatch(companionSource, /actionLabel: 'Open Pet Food'/, 'the hunger alarm must not offer a panel it cannot feed from');
 // Tabs live in named groups now; TABS is still the flat order the header title resolves against.
 assert.match(companionSource, /\['Pets', \[\['abilities', 'Active Pets', 'Active'\], \['abilityLog', 'Pet Abilities', 'Abilities'\], \['teams', 'Pet Teams', 'Teams'\], \['petFood', 'Pet Food', 'Food'\]\]\]/, 'tab order is incorrect');
 assert.match(companionSource, /\['Crops', \[\['protection', 'Crop Protection', 'Protection'\], \['journal', 'Journal'\]\]\]/, 'crop tabs must be grouped together');

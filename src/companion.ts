@@ -21,7 +21,7 @@ import {
   XP_PER_POTION,
 } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
-import { installAlarms } from './alarms.js';
+import { installAlarms, showAlarmBanner, stopAlarm } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
 import { renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
@@ -48,6 +48,8 @@ import { page } from './page.js';
 import { setPanelActions } from './panel-actions.js';
 import { installPixiCapture } from './pixi.js';
 import {
+  activePets,
+  allActivePetsStarving,
   allPets,
   formatEstimate,
   heldProduce,
@@ -292,11 +294,41 @@ export function initCompanion(): void {
       refreshCompletedTeamMove();
       processActivities();
       processShops();
+      processPetHunger();
       processAutoStore();
       noteWeatherChange();
       renderPetFood();
       refreshTeamActiveMarkers();
       refreshOpenPanel();
+    });
+  }
+
+  const HUNGER_ALARM_OWNER = 'pets:hunger';
+  let hungerAlarmRaised = false;
+
+  /**
+   * Fires once per starvation, not once per state update. It re-arms only after a pet is fed, so a
+   * team left at zero overnight does not queue an alarm behind every frame the game sends.
+   */
+  function processPetHunger(): void {
+    if (!feature('petHungerAlarm')) {
+      if (hungerAlarmRaised) { stopAlarm(HUNGER_ALARM_OWNER); hungerAlarmRaised = false; }
+      return;
+    }
+    const starving = allActivePetsStarving();
+    if (!starving) {
+      if (hungerAlarmRaised) { stopAlarm(HUNGER_ALARM_OWNER); hungerAlarmRaised = false; }
+      return;
+    }
+    if (hungerAlarmRaised) return;
+    hungerAlarmRaised = true;
+    const count = activePets().filter(pet => pet?.id).length;
+    showAlarmBanner({
+      owner: HUNGER_ALARM_OWNER,
+      label: 'PET ALARM | HUNGER',
+      title: `All ${count} pets have zero hunger`,
+      // No detail or action button: the title says it, feeding happens on the docked pet food
+      // buttons rather than in a panel, and Stop holds until something is actually fed.
     });
   }
 
@@ -793,7 +825,11 @@ export function initCompanion(): void {
       return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
     }).join('');
     const abilityRows = combinedAbilityRows(active);
-    return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
+    const starving = allActivePetsStarving();
+    const hungerToggle = `<label class="gc-toggle"><span><b>Alarm when every pet has zero hunger</b><small>${
+      starving ? 'All active pets are at zero right now.' : 'Sounds once the whole team hits zero hunger, not for a single hungry pet.'
+    }</small></span><input type="checkbox" data-feature="petHungerAlarm" ${feature('petHungerAlarm') ? 'checked' : ''}><i></i></label>`;
+    return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><div class="gc-list">${hungerToggle}</div><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
   }
 
   function renderSilence() {
@@ -808,6 +844,9 @@ export function initCompanion(): void {
       // turning one on stands the other down rather than letting both claim the same harvest.
       if (input.dataset.feature === 'instantHarvest' && input.checked) config.cropProtection = false;
       saveConfig();
+      // Checked while the team is already starving, the alarm should sound now rather than waiting
+      // for the next state frame to notice.
+      if (input.dataset.feature === 'petHungerAlarm') processPetHunger();
       updateLunarTimer();
       renderPetFood();
     });

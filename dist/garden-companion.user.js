@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.11
+// @version      0.8.12
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -421,6 +421,7 @@
     shopAlarms: true,
     turtleTimer: true,
     petFood: true,
+    petHungerAlarm: false,
     instantHarvest: false,
     petSwapToss: false,
     autoStoreSeeds: false,
@@ -719,6 +720,14 @@
     const percent = maximum > 0 ? Math.min(100, value / maximum * 100) : value > 0 ? 100 : 0;
     const tone2 = percent < 20 ? "low" : percent < 50 ? "medium" : "good";
     return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone2}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
+  }
+  function petIsStarving(pet) {
+    const hunger = Number(pet?.hunger);
+    return Number.isFinite(hunger) && hunger <= 0;
+  }
+  function allActivePetsStarving() {
+    const pets = activePets().filter((pet) => pet?.id);
+    return pets.length > 0 && pets.every(petIsStarving);
   }
   function petMetrics(pet) {
     const info = PET_CATALOG[pet?.petSpecies || ""];
@@ -1419,11 +1428,12 @@ ${groups}
     renderAlarmBanner(options);
   }
   function installAlarms() {
+    const wantsAlarms = () => feature("shopAlarms") || feature("petHungerAlarm");
     page.addEventListener("pointerdown", () => {
-      if (feature("shopAlarms")) armAlarmAudio();
+      if (wantsAlarms()) armAlarmAudio();
     }, true);
     page.addEventListener("keydown", () => {
-      if (feature("shopAlarms")) armAlarmAudio();
+      if (wantsAlarms()) armAlarmAudio();
     }, true);
     page.__gardenCompanionArmAlarm = armAlarmAudio;
     page.__gardenCompanionStopAlarm = stopAlarm;
@@ -4683,11 +4693,41 @@ ${rows}</div>`;
         refreshCompletedTeamMove();
         processActivities();
         processShops();
+        processPetHunger();
         processAutoStore();
         noteWeatherChange();
         renderPetFood();
         refreshTeamActiveMarkers();
         refreshOpenPanel();
+      });
+    }
+    const HUNGER_ALARM_OWNER = "pets:hunger";
+    let hungerAlarmRaised = false;
+    function processPetHunger() {
+      if (!feature("petHungerAlarm")) {
+        if (hungerAlarmRaised) {
+          stopAlarm(HUNGER_ALARM_OWNER);
+          hungerAlarmRaised = false;
+        }
+        return;
+      }
+      const starving = allActivePetsStarving();
+      if (!starving) {
+        if (hungerAlarmRaised) {
+          stopAlarm(HUNGER_ALARM_OWNER);
+          hungerAlarmRaised = false;
+        }
+        return;
+      }
+      if (hungerAlarmRaised) return;
+      hungerAlarmRaised = true;
+      const count = activePets().filter((pet) => pet?.id).length;
+      showAlarmBanner({
+        owner: HUNGER_ALARM_OWNER,
+        label: "PET ALARM | HUNGER",
+        title: `All ${count} pets have zero hunger`
+        // No detail or action button: the title says it, feeding happens on the docked pet food
+        // buttons rather than in a panel, and Stop holds until something is actually fed.
       });
     }
     const GRANTER_MUTATIONS = {
@@ -5132,7 +5172,9 @@ ${rows}</div>`;
         return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : "STR unavailable"}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
       }).join("");
       const abilityRows = combinedAbilityRows(active);
-      return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? "" : "s"}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
+      const starving = allActivePetsStarving();
+      const hungerToggle = `<label class="gc-toggle"><span><b>Alarm when every pet has zero hunger</b><small>${starving ? "All active pets are at zero right now." : "Sounds once the whole team hits zero hunger, not for a single hungry pet."}</small></span><input type="checkbox" data-feature="petHungerAlarm" ${feature("petHungerAlarm") ? "checked" : ""}><i></i></label>`;
+      return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? "" : "s"}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><div class="gc-list">${hungerToggle}</div><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
     }
     function renderSilence() {
       const selected = new Set(config.silencedAbilities || []);
@@ -5143,6 +5185,7 @@ ${rows}</div>`;
         config[input.dataset.feature] = input.checked;
         if (input.dataset.feature === "instantHarvest" && input.checked) config.cropProtection = false;
         saveConfig();
+        if (input.dataset.feature === "petHungerAlarm") processPetHunger();
         updateLunarTimer();
         renderPetFood();
       });

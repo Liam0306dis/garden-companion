@@ -128,8 +128,10 @@ export function showAlarmBanner(options: CompanionAlarmOptions): void {
  * arm the context. Without this the first alarm of a session would be silent.
  */
 export function installAlarms(): void {
-  page.addEventListener('pointerdown', () => { if (feature('shopAlarms')) armAlarmAudio(); }, true);
-  page.addEventListener('keydown', () => { if (feature('shopAlarms')) armAlarmAudio(); }, true);
+  // Any feature that can raise a banner has to arm the audio, or its alarm shows up silent.
+  const wantsAlarms = () => feature('shopAlarms') || feature('petHungerAlarm');
+  page.addEventListener('pointerdown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);
+  page.addEventListener('keydown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);
   page.__gardenCompanionArmAlarm = armAlarmAudio;
   page.__gardenCompanionStopAlarm = stopAlarm;
   page.__gardenCompanionShowAlarm = showAlarmBanner;

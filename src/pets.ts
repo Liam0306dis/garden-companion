@@ -157,6 +157,24 @@ export function hungerDisplay(pet: Pet): string {
   return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
 }
 
+/**
+ * A pet whose hunger has not arrived is not starving, it is unknown. Elsewhere an absent value can
+ * safely read as zero and draw an empty bar; here it would raise an alarm over nothing.
+ */
+export function petIsStarving(pet: Pet): boolean {
+  const hunger = Number(pet?.hunger);
+  return Number.isFinite(hunger) && hunger <= 0;
+}
+
+/**
+ * True only once every active pet has run out. A single hungry pet is normal and self-correcting;
+ * the whole team at zero is the state where abilities have stopped and nothing will restart them.
+ */
+export function allActivePetsStarving(): boolean {
+  const pets = activePets().filter(pet => pet?.id);
+  return pets.length > 0 && pets.every(petIsStarving);
+}
+
 export function petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null {
   const info = PET_CATALOG[pet?.petSpecies || ''];
   if (!pet) return null;

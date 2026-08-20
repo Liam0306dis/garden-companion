@@ -14,6 +14,7 @@ export const DEFAULTS: CompanionConfig = {
   shopAlarms: true,
   turtleTimer: true,
   petFood: true,
+  petHungerAlarm: false,
   instantHarvest: false,
   petSwapToss: false,
   autoStoreSeeds: false,

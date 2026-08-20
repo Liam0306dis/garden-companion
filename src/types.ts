@@ -222,6 +222,7 @@ export interface CompanionConfig {
   shopAlarms: boolean;
   turtleTimer: boolean;
   petFood: boolean;
+  petHungerAlarm: boolean;
   instantHarvest: boolean;
   petSwapToss: boolean;
   autoStoreSeeds: boolean;
