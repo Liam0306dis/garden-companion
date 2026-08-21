@@ -75,7 +75,7 @@ import {
 import { bindShopEvents, processShops, renderShops } from './features/shop-alarms.js';
 import { toast } from './toast.js';
 import { state } from './state.js';
-import { escapeHtml, formatDuration, humanize, loadLocal, NUMBER_LOCALE, saveLocal } from './utils.js';
+import { escapeHtml, formatDuration, humanize, loadLocal, NUMBER_LOCALE, saveLocal, scriptVersion } from './utils.js';
 
 export function initCompanion(): void {
   'use strict';
@@ -563,10 +563,6 @@ export function initCompanion(): void {
       : updateStatus === 'failed' ? 'Update check failed. Click to retry.' : 'Click to check for updates.';
   }
 
-  function currentScriptVersion(): string {
-    try { return GM_info.script.version || '0.0.0'; } catch { return '0.0.0'; }
-  }
-
   function checkForUpdate(): void {
     updateStatus = 'checking';
     renderUpdateStatus();
@@ -578,7 +574,7 @@ export function initCompanion(): void {
         const match = response.responseText.match(/^\/\/\s*@version\s+([^\s]+)\s*$/m);
         availableVersion = match?.[1] ?? '';
         updateStatus = response.status >= 200 && response.status < 300 && availableVersion
-          ? isNewerVersion(availableVersion, currentScriptVersion()) ? 'available' : 'current'
+          ? isNewerVersion(availableVersion, scriptVersion()) ? 'available' : 'current'
           : 'failed';
         renderUpdateStatus();
       },
@@ -745,7 +741,7 @@ export function initCompanion(): void {
     cancelKeybindCapture?.();
     const panel = document.getElementById('gc-panel');
     if (!panel) return;
-    panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION <em class="gc-version">v${escapeHtml(currentScriptVersion())}</em></small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${navHtml()}</nav><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></div></div>`;
+    panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION <em class="gc-version">v${escapeHtml(scriptVersion())}</em></small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${navHtml()}</nav><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></div></div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = closePanel;

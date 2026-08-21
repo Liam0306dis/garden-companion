@@ -539,7 +539,11 @@ assert.match(styleSource, /\.gc-layout nav \.gc-nav-head\[data-holds-active=true
 // `.gc-layout nav button` outranks a lone class, so the heading rules have to be scoped past it.
 assert.match(styleSource, /\.gc-layout nav \.gc-nav-head \{[^}]*font:800 9px/, 'nav group headings must outrank the tab button rule');
 assert.doesNotMatch(styleSource, /\n\.gc-nav-head[ :[]/, 'nav heading rules must not be left at class-only specificity');
-assert.match(companionSource, /GARDEN COMPANION <em class="gc-version">v\$\{escapeHtml\(currentScriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
+assert.match(companionSource, /GARDEN COMPANION <em class="gc-version">v\$\{escapeHtml\(scriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
+// One reader of GM_info, so the header, the update check and the shared state cannot disagree.
+assert.match(companionSource, /export function scriptVersion\(\): string \{\s*try \{ return GM_info\.script\.version \|\| '0\.0\.0'; \}/, 'the script version must come from one shared helper');
+assert.match(companionSource, /version: scriptVersion\(\),/, 'the shared state must carry the running version');
+assert.doesNotMatch(companionSource, /function currentScriptVersion/, 'the panel must not keep its own copy of the version lookup');
 assert.match(styleSource, /\.gc-food-options \{ display:grid;grid-auto-flow:column;grid-auto-columns:minmax\(0,1fr\)/, 'pet foods must all sit on one row');
 assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss must be presented as Pokemon Mode');
 assert.match(companionSource, /\[4, 5\]\.includes\(Number\(room\.players_count\)\)/, 'rooms are not restricted to 4 or 5 players');

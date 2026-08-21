@@ -1,5 +1,14 @@
 /** Small formatting and storage helpers shared across the panel and its features. */
 
+/**
+ * The installed script version, straight from the userscript manager. Everything that reports a
+ * version reads it from here, so the panel header, the update check and the shared state cannot
+ * disagree about which build is running.
+ */
+export function scriptVersion(): string {
+  try { return GM_info.script.version || '0.0.0'; } catch { return '0.0.0'; }
+}
+
 export function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 }

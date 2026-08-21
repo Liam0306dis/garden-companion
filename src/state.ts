@@ -1,6 +1,6 @@
 import type { GameState, PlantSlot, PlayerSlot, RoomState } from './types.js';
 import { LOG_KEY, LOG_PER_ABILITY } from './constants.js';
-import { loadLocal, saveLocalOrFail } from './utils.js';
+import { loadLocal, saveLocalOrFail, scriptVersion } from './utils.js';
 
 export interface AbilityLogRow {
   at: number;
@@ -10,6 +10,8 @@ export interface AbilityLogRow {
 }
 
 export interface CompanionState {
+  /** The running script version, so anything reading the shared state can report which build it is. */
+  version: string;
   room: RoomState | null;
   game: GameState | null;
   slot: PlayerSlot | null;
@@ -48,6 +50,7 @@ export function trimAbilityLogs(logs: AbilityLogRow[], perAbility = LOG_PER_ABIL
  * game reports new state, so the object itself is stable and safe to import anywhere.
  */
 export const state: CompanionState = {
+  version: scriptVersion(),
   room: null,
   game: null,
   slot: null,
