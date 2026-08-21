@@ -340,6 +340,10 @@ assert.doesNotMatch(overviewSource, /button data-zoom title="Cycle zoom"/, 'the 
 assert.match(overviewSource, /data-focus-toggle\]'\)!\.onclick = \(\) => \{ focus\.enabled = !focus\.enabled/, 'the header must toggle plant focus directly');
 assert.doesNotMatch(overviewSource, /data-species-config|data-mutation-config|data-focus-config/, 'the merged settings card replaces the separate header buttons');
 assert.match(overviewSource, /grid-template-columns:minmax\(0,1fr\) 42px 42px/, 'the plants table must give tiles and crops their own columns');
+// A rare variant lives on the slot, so a tile-only walk never sees a four leaf clover or stormcap.
+assert.match(overviewSource, /const name = slot\?\.species \?\? tile\.species;/, 'owned species must be read from the slot, not just the tile');
+assert.match(overviewSource, /for \(const name of ownedSpeciesCounts\(\)\.keys\(\)\) filter\.add\(name\)/, 'Track owned must use the same walk as the owned list');
+assert.doesNotMatch(overviewSource, /if \(tile\.objectType === 'plant' && tile\.species\) filter\.add\(tile\.species\)/, 'Track owned must not fall back to a tile-only walk');
 // Three growth tiles fit one row at 344px; a fourth does not, so the column count follows the count.
 assert.match(overviewSource, /\.go-summary\[data-tiles="3"\]\{grid-template-columns:repeat\(3,1fr\)\}/, 'three growth metrics must share a single row');
 assert.match(overviewSource, /<div class="go-summary" data-tiles="\$\{metrics\.length\}">/, 'the growth grid must report how many tiles it holds');

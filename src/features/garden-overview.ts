@@ -1026,11 +1026,29 @@ export function initGardenOverview(): void {
     }</div></div>`;
   }
 
+  /**
+   * Counted per slot, because a rare variant lives on the slot rather than the tile: a four leaf
+   * clover sits in a clover patch and a stormcap in a Thunderspire, so a tile-only walk never sees
+   * them and both the owned list and Track owned would skip the very plants worth tracking.
+   */
+  function ownedSpeciesCounts(): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) {
+      if (tile.objectType !== 'plant' || !tile.species) continue;
+      const slots: PlantSlot[] = Array.isArray(tile.slots) ? tile.slots : [];
+      if (!slots.length) { counts.set(tile.species, (counts.get(tile.species) ?? 0) + 1); continue; }
+      for (const slot of slots) {
+        const name = slot?.species ?? tile.species;
+        counts.set(name, (counts.get(name) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }
+
   function configHtml(species: string[]): string {
     if (configMode === 'species') {
       const selected = filter ?? new Set(species);
-      const counts = new Map<string, number>();
-      for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === 'plant' && tile.species) counts.set(tile.species, (counts.get(tile.species) ?? 0) + 1);
+      const counts = ownedSpeciesCounts();
       // The crop sprite does the recognising, so a wall of sixty names becomes something you scan.
       const plantPill = (name: string) => {
         const label = displayName(name);
@@ -1334,7 +1352,7 @@ export function initGardenOverview(): void {
     panel.querySelector<HTMLButtonElement>('[data-none]')?.addEventListener('click', () => { filter = new Set(); saveFilter(filter); render(true); });
     panel.querySelector<HTMLButtonElement>('[data-owned]')?.addEventListener('click', () => {
       filter = new Set(filter ?? []);
-      for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === 'plant' && tile.species) filter.add(tile.species);
+      for (const name of ownedSpeciesCounts().keys()) filter.add(name);
       saveFilter(filter); render(true);
     });
     panel.querySelectorAll<HTMLButtonElement>('[data-species-toggle]').forEach(button => button.onclick = () => {

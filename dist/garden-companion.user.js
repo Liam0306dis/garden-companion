@@ -6222,11 +6222,26 @@ ${rows}</div>`;
     function choiceRow(label, attribute, options, current) {
       return `<div class="go-config-row"><span>${escapeHtml2(label)}</span><div class="go-pill-choice">${options.map(([value, text]) => `<button class="go-pill ${current === value ? "on" : ""}" ${attribute}="${escapeHtml2(value)}">${escapeHtml2(text)}</button>`).join("")}</div></div>`;
     }
+    function ownedSpeciesCounts() {
+      const counts = /* @__PURE__ */ new Map();
+      for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) {
+        if (tile.objectType !== "plant" || !tile.species) continue;
+        const slots = Array.isArray(tile.slots) ? tile.slots : [];
+        if (!slots.length) {
+          counts.set(tile.species, (counts.get(tile.species) ?? 0) + 1);
+          continue;
+        }
+        for (const slot of slots) {
+          const name = slot?.species ?? tile.species;
+          counts.set(name, (counts.get(name) ?? 0) + 1);
+        }
+      }
+      return counts;
+    }
     function configHtml(species) {
       if (configMode === "species") {
         const selected = filter ?? new Set(species);
-        const counts = /* @__PURE__ */ new Map();
-        for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === "plant" && tile.species) counts.set(tile.species, (counts.get(tile.species) ?? 0) + 1);
+        const counts = ownedSpeciesCounts();
         const plantPill = (name) => {
           const label = displayName(name);
           const sprite = produceSprite(name);
@@ -6509,7 +6524,7 @@ ${rows}</div>`;
       });
       panel3.querySelector("[data-owned]")?.addEventListener("click", () => {
         filter = new Set(filter ?? []);
-        for (const tile of Object.values(runtime().slot?.data?.garden?.tileObjects ?? {})) if (tile.objectType === "plant" && tile.species) filter.add(tile.species);
+        for (const name of ownedSpeciesCounts().keys()) filter.add(name);
         saveFilter(filter);
         render4(true);
       });
