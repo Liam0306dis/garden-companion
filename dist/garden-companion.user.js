@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.13
+// @version      0.8.14
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -4350,6 +4350,13 @@ ${rows}</div>`;
     const purchases = state.slot?.data?.shopPurchases?.[shop]?.purchases || {};
     return Number(purchases[id] || 0);
   }
+  function shopStateReady() {
+    if (!state.playerId) return false;
+    if (!Array.isArray(state.slot?.data?.inventory?.items)) return false;
+    const shops = state.game?.shops;
+    if (!shops) return false;
+    return Object.values(shops).some((shop) => Array.isArray(shop?.inventory));
+  }
   function availableShopItems() {
     const output = [];
     for (const [shop, data] of Object.entries(state.game?.shops || {})) {
@@ -4404,6 +4411,10 @@ ${rows}</div>`;
     initialShopTimer = window.setTimeout(() => {
       initialShopTimer = 0;
       if (!feature("shopAlarms") || state.initializedShops) return;
+      if (!shopStateReady()) {
+        pendingInitialSignature = "";
+        return;
+      }
       const available = availableShopItems();
       const latestSignature = shopSignature(available);
       if (latestSignature !== pendingInitialSignature) {
@@ -4432,6 +4443,10 @@ ${rows}</div>`;
     resettleSignature = signature;
     resettleTimer = window.setTimeout(() => {
       resettleTimer = 0;
+      if (!shopStateReady()) {
+        resettleSignature = "";
+        return;
+      }
       const available = availableShopItems();
       const settled = shopSignature(available);
       if (settled !== resettleSignature) {
@@ -4453,6 +4468,7 @@ ${rows}</div>`;
   onRoomConnectionInterrupted(beginResettle);
   function processShops() {
     if (!feature("shopAlarms")) return;
+    if (!shopStateReady()) return;
     if (resettling) {
       settleAfterReconnect(shopSignature(availableShopItems()));
       return;

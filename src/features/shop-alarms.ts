@@ -49,6 +49,24 @@ function purchasedCount(shop, id) {
   return Number(purchases[id] || 0);
 }
 
+/**
+ * The world does not arrive in one piece. `state.game.shops` lands before `state.slot`, which is
+ * only picked once the Welcome frame has named the player - and purchases live on the slot. Read in
+ * that window every item looks untouched and fully in stock, including the ones already bought out,
+ * and the settle timer happily agrees because the half-built picture holds still. So no snapshot is
+ * trusted, baselined or alarmed on until both halves are in hand.
+ */
+function shopStateReady(): boolean {
+  if (!state.playerId) return false;
+  // Inventory stands in for the slot being fully delivered rather than a stub: every field on the
+  // payload is optional, so `data` existing proves nothing about `shopPurchases` having arrived,
+  // and a slot carrying its inventory has carried its purchases with it.
+  if (!Array.isArray(state.slot?.data?.inventory?.items)) return false;
+  const shops = state.game?.shops;
+  if (!shops) return false;
+  return Object.values(shops).some(shop => Array.isArray((shop as { inventory?: unknown })?.inventory));
+}
+
 function availableShopItems(): AvailableShopItem[] {
   const output: AvailableShopItem[] = [];
   for (const [shop, data] of Object.entries(state.game?.shops || {})) {
@@ -111,6 +129,9 @@ function settleInitialShops(signature: string): void {
   initialShopTimer = window.setTimeout(() => {
     initialShopTimer = 0;
     if (!feature('shopAlarms') || state.initializedShops) return;
+    // The slot can still go away between arming this and it firing; dropping the pending signature
+    // leaves the next update to arm it again rather than baselining half a world.
+    if (!shopStateReady()) { pendingInitialSignature = ''; return; }
     const available = availableShopItems();
     const latestSignature = shopSignature(available);
     if (latestSignature !== pendingInitialSignature) {
@@ -149,6 +170,7 @@ function settleAfterReconnect(signature: string): void {
   resettleSignature = signature;
   resettleTimer = window.setTimeout(() => {
     resettleTimer = 0;
+    if (!shopStateReady()) { resettleSignature = ''; return; }
     const available = availableShopItems();
     const settled = shopSignature(available);
     if (settled !== resettleSignature) {
@@ -172,6 +194,8 @@ onRoomConnectionInterrupted(beginResettle);
 
 export function processShops(): void {
   if (!feature('shopAlarms')) return;
+  // Ahead of everything else, so a partial world is never diffed, baselined or settled against.
+  if (!shopStateReady()) return;
   if (resettling) {
     settleAfterReconnect(shopSignature(availableShopItems()));
     return;

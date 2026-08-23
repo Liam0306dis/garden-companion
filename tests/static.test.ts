@@ -374,6 +374,14 @@ assert.match(companionSource, /function updateAlarmDetail[\s\S]*alarmQueue[\s\S]
 assert.match(companionSource, /const owner = `shop:\$\{row\.shop\}:\$\{row\.id\}`[\s\S]*showAlarmBanner\(\{[\s\S]*owner,/, 'shop alarms do not have item-specific owners');
 assert.match(companionSource, /data-shop-alert[\s\S]{0,200}toggleShopAlert\(/, 'the shop alert toggle is not wired up');
 assert.match(shopAlarmsSource, /if \(enabled\) \{[\s\S]*showSelectedShopAlarm\(key\);[\s\S]*\} else stopAlarm\(`shop:\$\{key\}`\)/, 'disabling a shop item does not remove its active and queued alarms');
+// Shops land before the slot that holds purchases; read between the two, everything looks in stock.
+assert.match(shopAlarmsSource, /function shopStateReady\(\): boolean \{\s*if \(!state\.playerId\) return false;/, 'a half-loaded world must not be trusted for shop alarms');
+// Every PlayerData field is optional, so `data` existing does not mean shopPurchases has landed.
+assert.match(shopAlarmsSource, /if \(!Array\.isArray\(state\.slot\?\.data\?\.inventory\?\.items\)\) return false;/, 'a stub slot must not pass as a fully delivered one');
+assert.match(shopAlarmsSource, /return Object\.values\(shops\)\.some\(shop => Array\.isArray\(\(shop as \{ inventory\?: unknown \}\)\?\.inventory\)\)/, 'shop readiness must require real inventory, not just a shops object');
+assert.match(shopAlarmsSource, /if \(!feature\('shopAlarms'\)\) return;\s*\/\/[^\n]*\n\s*if \(!shopStateReady\(\)\) return;\s*if \(resettling\)/, 'the readiness gate must come before the reconnect and diff paths');
+assert.match(shopAlarmsSource, /if \(!shopStateReady\(\)\) \{ pendingInitialSignature = ''; return; \}/, 'the initial settle must re-arm rather than baseline a half-loaded world');
+assert.match(shopAlarmsSource, /if \(!shopStateReady\(\)\) \{ resettleSignature = ''; return; \}/, 'the reconnect settle must re-arm rather than baseline a half-loaded world');
 assert.match(shopAlarmsSource, /function settleInitialShops\(signature: string\)[\s\S]*setTimeout\([\s\S]*INITIAL_SHOP_SETTLE_MS\)/, 'initial shop alarms are not delayed for a stable startup snapshot');
 assert.match(shopAlarmsSource, /latestSignature !== pendingInitialSignature[\s\S]*settleInitialShops\(latestSignature\)/, 'a changed startup shop snapshot is not allowed to settle again');
 assert.match(shopAlarmsSource, /if \(!state\.initializedShops\) \{[\s\S]*settleInitialShops\(signature\);[\s\S]*return;/, 'partial startup shop state can still trigger alarms immediately');
