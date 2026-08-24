@@ -59,6 +59,7 @@ import {
   onSpritesReady,
   petMetrics,
   petSprite,
+  refreshHungerDisplay,
   teamXpPerHour,
   useXpPotion,
 } from './pets.js';
@@ -667,7 +668,9 @@ export function initCompanion(): void {
     if (panel.querySelector<HTMLDetailsElement>('[data-ability-filter]')?.open) return true;
     const abilityLog = activeTab === 'abilityLog' ? panel.querySelector<HTMLElement>('.gc-log') : null;
     if (abilityLog && (abilityLog.matches(':hover') || abilityLog.scrollTop > 0)) return true;
-    const scrollable = ['teams', 'petFood', 'calculators', 'journal'].includes(activeTab) ? panel.querySelector<HTMLElement>('main') : null;
+    // Active Pets belongs here too: hunger changes every tick, and redrawing under the pointer takes
+    // the hovered element with it, so its native tooltip blinks out mid-read.
+    const scrollable = ['abilities', 'teams', 'petFood', 'calculators', 'journal'].includes(activeTab) ? panel.querySelector<HTMLElement>('main') : null;
     return Boolean(scrollable?.matches(':hover'));
   }
 
@@ -854,6 +857,9 @@ export function initCompanion(): void {
     main.querySelector('[data-open-planner]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionTogglePlanner?.(); });
     main.querySelector('[data-open-celestial-layout]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionToggleCelestialLayout?.(); });
     main.querySelector('[data-open-crop-cleanser]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionToggleCropCleanser?.(); });
+    // Refreshed as the pointer arrives, so the tooltip that follows it carries current numbers even
+    // though the tab itself is holding still underneath.
+    main.querySelectorAll<HTMLElement>('[data-hunger-pet]').forEach(node => node.onpointerenter = () => refreshHungerDisplay(node));
     main.querySelectorAll<HTMLButtonElement>('[data-xp-potion]').forEach(button => button.onclick = () => {
       try {
         useXpPotion(button.dataset.xpPotion!);

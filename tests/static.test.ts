@@ -522,6 +522,11 @@ assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter est
 assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, 'overview still displays empty mutation rows');
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
 assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
+// Redrawing under the pointer destroys the hovered element, taking its native tooltip with it.
+assert.match(companionSource, /\['abilities', 'teams', 'petFood', 'calculators', 'journal'\]\.includes\(activeTab\)/, 'a live tab must not redraw while the pointer rests on it');
+// Holding still would leave stale numbers, so a hovered block is rewritten in place instead.
+assert.match(companionSource, /node\.onpointerenter = \(\) => refreshHungerDisplay\(node\)/, 'hunger values must refresh as the pointer arrives');
+assert.match(companionSource, /export function refreshHungerDisplay\(node: HTMLElement\)[\s\S]*node\.title = parts\.title;/, 'the hunger block must be rewritten rather than replaced');
 // One hungry pet is normal; the whole team at zero is the state worth interrupting someone for.
 assert.match(companionSource, /return pets\.length > 0 && pets\.every\(petIsStarving\)/, 'the hunger alarm must need every active pet at zero');
 // Hunger that has not arrived is unknown, not empty - reading it as zero would alarm over nothing.

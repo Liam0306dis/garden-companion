@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.15
+// @version      0.8.16
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -789,25 +789,53 @@
     if (!maximum || !minutes || !Number.isFinite(value)) return null;
     if (value <= 0) return 0;
     const fraction = Math.min(1, value / maximum);
-    const drainPerSecond = 1 / (minutes * 60 * (1 + teamHungerBoostPercent(team) / 100));
+    const drainPerSecond = Math.max(0, 1 - teamHungerBoostPercent(team) / 100) / (minutes * 60);
     const activeCount = Math.max(1, team.filter((member) => member?.id).length);
     const netPerSecond = drainPerSecond - teamHungerRestoreFractionPerSecond(team) / activeCount;
     if (netPerSecond <= 0) return Infinity;
     return fraction / netPerSecond;
   }
-  function hungerDisplay(pet, team) {
+  function hungerParts(pet, team) {
     const maximum = Number(PET_CATALOG[pet.petSpecies]?.maxHunger || 0);
     const value = Math.max(0, Number(pet.hunger || 0));
     const percent = maximum > 0 ? Math.min(100, value / maximum * 100) : value > 0 ? 100 : 0;
-    const tone2 = percent < 20 ? "low" : percent < 50 ? "medium" : "good";
     const seconds = team ? hungerSecondsRemaining(pet, team) : null;
-    let eta = "";
-    if (seconds != null) {
-      const label = seconds === Infinity ? "Sustained" : seconds <= 0 ? "Empty" : `Lasts ~${formatEstimate(seconds)}`;
-      const etaTone = seconds === Infinity ? "good" : seconds <= 0 ? "low" : seconds < 600 ? "low" : seconds < 1800 ? "medium" : "good";
-      eta = `<small class="gc-hunger-eta" data-tone="${etaTone}">${label}</small>`;
+    return {
+      // Hunger is fractional, and toLocaleString shows three decimals by default - 1458.723 then reads
+      // as a number in the millions at a glance. The fraction is noise next to a 1500 point bar.
+      title: `${Math.round(value).toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}`,
+      percent: `${Math.round(percent)}%`,
+      width: `${percent.toFixed(2)}%`,
+      tone: percent < 20 ? "low" : percent < 50 ? "medium" : "good",
+      eta: seconds == null ? null : {
+        label: seconds === Infinity ? "Sustained" : seconds <= 0 ? "Empty" : `Lasts ~${formatEstimate(seconds)}`,
+        tone: seconds === Infinity ? "good" : seconds <= 0 ? "low" : seconds < 600 ? "low" : seconds < 1800 ? "medium" : "good"
+      }
+    };
+  }
+  function hungerDisplay(pet, team) {
+    const parts = hungerParts(pet, team);
+    const eta = parts.eta ? `<small class="gc-hunger-eta" data-tone="${parts.eta.tone}">${parts.eta.label}</small>` : "";
+    return `<div class="gc-hunger" data-hunger-pet="${escapeHtml(pet.id)}" title="${escapeHtml(parts.title)}"><div><span>Hunger</span><b>${parts.percent}</b></div><i><u data-tone="${parts.tone}" style="width:${parts.width}"></u></i>${eta}</div>`;
+  }
+  function refreshHungerDisplay(node) {
+    const team = activePets();
+    const pet = team.find((member) => member?.id === node.dataset.hungerPet);
+    if (!pet) return;
+    const parts = hungerParts(pet, team);
+    node.title = parts.title;
+    const percent = node.querySelector("b");
+    if (percent) percent.textContent = parts.percent;
+    const fill = node.querySelector("u");
+    if (fill) {
+      fill.style.width = parts.width;
+      fill.dataset.tone = parts.tone;
     }
-    return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone2}" style="width:${percent.toFixed(2)}%"></u></i>${eta}</div>`;
+    const eta = node.querySelector(".gc-hunger-eta");
+    if (eta && parts.eta) {
+      eta.textContent = parts.eta.label;
+      eta.dataset.tone = parts.eta.tone;
+    }
   }
   function petIsStarving(pet) {
     const hunger = Number(pet?.hunger);
@@ -5095,7 +5123,7 @@ ${rows}</div>`;
       if (panel3.querySelector("[data-ability-filter]")?.open) return true;
       const abilityLog = activeTab === "abilityLog" ? panel3.querySelector(".gc-log") : null;
       if (abilityLog && (abilityLog.matches(":hover") || abilityLog.scrollTop > 0)) return true;
-      const scrollable = ["teams", "petFood", "calculators", "journal"].includes(activeTab) ? panel3.querySelector("main") : null;
+      const scrollable = ["abilities", "teams", "petFood", "calculators", "journal"].includes(activeTab) ? panel3.querySelector("main") : null;
       return Boolean(scrollable?.matches(":hover"));
     }
     const LIVE_REFRESH_TABS = ["abilities", "abilityLog", "petFood", "teams", "calculators", "journal"];
@@ -5272,6 +5300,7 @@ ${rows}</div>`;
         closePanel();
         page.__gardenCompanionToggleCropCleanser?.();
       });
+      main.querySelectorAll("[data-hunger-pet]").forEach((node) => node.onpointerenter = () => refreshHungerDisplay(node));
       main.querySelectorAll("[data-xp-potion]").forEach((button) => button.onclick = () => {
         try {
           useXpPotion(button.dataset.xpPotion);

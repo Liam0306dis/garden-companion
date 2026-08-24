@@ -173,11 +173,11 @@ function teamHungerBoostPercent(team: Pet[]): number {
 }
 
 /**
- * Fraction of a full bar the team's Hunger Restore procs top up each second, summed across the team
- * as if every proc fed one bar. Each ability rolls once per game tick; the per-second proc chance
- * uses the same model as the ability panel, and a proc restores its hungerRestorePercentage (scaled
- * by strength) of the fed pet's bar. A proc feeds a random active pet, so the caller divides this
- * total by the number of active pets to get the share landing on any one of them.
+ * Fraction of a full bar the team's Hunger Restore procs top up each second. Each ability rolls on
+ * its own, so two pets carrying Restore II do not make a proc worth more - there are simply twice as
+ * many of them, which is why the rates are added rather than combined. Expectation is linear, so the
+ * sum holds even on a tick where both fire. The per-second chance uses the same model as the ability
+ * panel, and a proc restores its hungerRestorePercentage (scaled by strength) of the fed pet's bar.
  */
 function teamHungerRestoreFractionPerSecond(team: Pet[]): number {
   let total = 0;
@@ -210,30 +210,67 @@ export function hungerSecondsRemaining(pet: Pet, team: Pet[]): number | null {
   if (value <= 0) return 0;
   // Work in fractions of a full bar per second, so the pet's own max cancels out of both terms.
   const fraction = Math.min(1, value / maximum);
-  // Hunger Boost stretches the bar's lifetime: 48% combined boost makes a 60-minute bar last 88.8
-  // minutes (60 * 1.48), so the drain rate is the base rate divided by (1 + boost).
-  const drainPerSecond = 1 / (minutes * 60 * (1 + teamHungerBoostPercent(team) / 100));
-  // A restore proc feeds one random active pet, so the team's total restore is split evenly and only
-  // this pet's share is subtracted from its own drain.
+  // The game calls this a hunger refund and describes it as reducing the depletion rate, so the
+  // boost is taken off the rate rather than added to the lifetime: refunding 60% of what is eaten
+  // leaves 40% being spent, which makes a 60-minute bar last 150 minutes rather than 96. The two
+  // readings barely differ at 10% and are miles apart by 90%, which is as high as three pets can
+  // stack it - a ceiling that only means anything if 100% would be a bar that never empties.
+  const drainPerSecond = Math.max(0, 1 - teamHungerBoostPercent(team) / 100) / (minutes * 60);
+  // A proc feeds one whole pet, never a share of one - but it picks uniformly among the active pets,
+  // so across three of them this one is fed by roughly every third proc. Dividing the team's proc
+  // rate by the active count is that long-run average, which is the only thing a single ETA can
+  // show; the real bar jumps by a third of itself when a proc lands and drains untouched otherwise.
   const activeCount = Math.max(1, team.filter(member => member?.id).length);
   const netPerSecond = drainPerSecond - teamHungerRestoreFractionPerSecond(team) / activeCount;
   if (netPerSecond <= 0) return Infinity;
   return fraction / netPerSecond;
 }
 
-export function hungerDisplay(pet: Pet, team?: Pet[]): string {
+interface HungerParts { title: string; percent: string; width: string; tone: string; eta: { label: string; tone: string } | null }
+
+function hungerParts(pet: Pet, team?: Pet[]): HungerParts {
   const maximum = Number(PET_CATALOG[pet.petSpecies]?.maxHunger || 0);
   const value = Math.max(0, Number(pet.hunger || 0));
   const percent = maximum > 0 ? Math.min(100, value / maximum * 100) : value > 0 ? 100 : 0;
-  const tone = percent < 20 ? 'low' : percent < 50 ? 'medium' : 'good';
   const seconds = team ? hungerSecondsRemaining(pet, team) : null;
-  let eta = '';
-  if (seconds != null) {
-    const label = seconds === Infinity ? 'Sustained' : seconds <= 0 ? 'Empty' : `Lasts ~${formatEstimate(seconds)}`;
-    const etaTone = seconds === Infinity ? 'good' : seconds <= 0 ? 'low' : seconds < 600 ? 'low' : seconds < 1800 ? 'medium' : 'good';
-    eta = `<small class="gc-hunger-eta" data-tone="${etaTone}">${label}</small>`;
-  }
-  return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i>${eta}</div>`;
+  return {
+    // Hunger is fractional, and toLocaleString shows three decimals by default - 1458.723 then reads
+    // as a number in the millions at a glance. The fraction is noise next to a 1500 point bar.
+    title: `${Math.round(value).toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}`,
+    percent: `${Math.round(percent)}%`,
+    width: `${percent.toFixed(2)}%`,
+    tone: percent < 20 ? 'low' : percent < 50 ? 'medium' : 'good',
+    eta: seconds == null ? null : {
+      label: seconds === Infinity ? 'Sustained' : seconds <= 0 ? 'Empty' : `Lasts ~${formatEstimate(seconds)}`,
+      tone: seconds === Infinity ? 'good' : seconds <= 0 ? 'low' : seconds < 600 ? 'low' : seconds < 1800 ? 'medium' : 'good',
+    },
+  };
+}
+
+export function hungerDisplay(pet: Pet, team?: Pet[]): string {
+  const parts = hungerParts(pet, team);
+  const eta = parts.eta ? `<small class="gc-hunger-eta" data-tone="${parts.eta.tone}">${parts.eta.label}</small>` : '';
+  return `<div class="gc-hunger" data-hunger-pet="${escapeHtml(pet.id)}" title="${escapeHtml(parts.title)}"><div><span>Hunger</span><b>${parts.percent}</b></div><i><u data-tone="${parts.tone}" style="width:${parts.width}"></u></i>${eta}</div>`;
+}
+
+/**
+ * Rewrites one hunger block from live state without replacing it. The panel holds still while the
+ * pointer is on it - redrawing under the cursor takes the hovered element and its tooltip with it -
+ * so the values are refreshed in place as each block is entered, and the tooltip that follows the
+ * hover is built from what the game reports right now rather than from the last full draw.
+ */
+export function refreshHungerDisplay(node: HTMLElement): void {
+  const team = activePets();
+  const pet = team.find(member => member?.id === node.dataset.hungerPet);
+  if (!pet) return;
+  const parts = hungerParts(pet, team);
+  node.title = parts.title;
+  const percent = node.querySelector('b');
+  if (percent) percent.textContent = parts.percent;
+  const fill = node.querySelector<HTMLElement>('u');
+  if (fill) { fill.style.width = parts.width; fill.dataset.tone = parts.tone; }
+  const eta = node.querySelector<HTMLElement>('.gc-hunger-eta');
+  if (eta && parts.eta) { eta.textContent = parts.eta.label; eta.dataset.tone = parts.eta.tone; }
 }
 
 /**
