@@ -48,6 +48,7 @@ import { page } from './page.js';
 import { setPanelActions } from './panel-actions.js';
 import { installPixiCapture } from './pixi.js';
 import {
+  abilityActiveInWeather,
   activePets,
   allActivePetsStarving,
   allPets,
@@ -384,8 +385,13 @@ export function initCompanion(): void {
       const passiveGroup = STACKED_PASSIVE_BY_ABILITY.get(ability);
       const proc = PROC_RULES[ability];
       const baseChance = passiveGroup ? undefined : details?.baseProbability ?? proc?.chance ?? GRANTER_CHANCES[ability];
+      const requiredWeather = PASSIVE_REQUIRED_WEATHER.get(ability);
       let chance = '';
-      if (baseChance != null) {
+      // A weather-gated proc does not fire outside its weather, so show that rather than a live rate
+      // the ETA (which gates the same abilities) would disagree with.
+      if (baseChance != null && !abilityActiveInWeather(ability)) {
+        chance = `<div class="gc-ability-rate"><b>--</b><small>needs ${escapeHtml(humanize(requiredWeather || ''))}</small></div>`;
+      } else if (baseChance != null) {
         const tick = details?.trigger ? details.trigger === 'continuous' : proc?.tick !== false;
         if (tick) {
           const tickRate = 1 - strengths.reduce((remaining, strength) => remaining * Math.pow(1 - baseChance * strength / 10000, 1 / 60), 1);
@@ -400,8 +406,7 @@ export function initCompanion(): void {
       let effect: string;
       if (passiveGroup) {
         const total = entries.reduce((sum, entry) => {
-          const requiredWeather = PASSIVE_REQUIRED_WEATHER.get(entry.ability);
-          if (entry.pet.hunger <= 0 || requiredWeather && state.game?.weather !== requiredWeather) return sum;
+          if (entry.pet.hunger <= 0 || !abilityActiveInWeather(entry.ability)) return sum;
           const strength = petMetrics(entry.pet)?.strength ?? 100;
           const base = Number(ABILITY_DETAILS[entry.ability]?.baseParameters?.[passiveGroup.parameter] || 0);
           return sum + base * strength / 100;
@@ -818,7 +823,7 @@ export function initCompanion(): void {
           ? `<button class="gc-pet-potions" data-xp-potion="${escapeHtml(pet.id)}" title="Spend one XP Potion on this pet. ${held} held.">${escapeHtml(potionText)}<i>Use one</i></button>`
           : `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>`
         : '';
-      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
+      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet, active)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
     }).join('');
     const abilityRows = combinedAbilityRows(active);
     const starving = allActivePetsStarving();

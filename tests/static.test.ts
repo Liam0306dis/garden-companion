@@ -617,7 +617,7 @@ assert.match(companionSource, /Reduces hunger depletion by \$\{percent\(scaled\(
 assert.doesNotMatch(companionSource, /Hunger refunded:/, 'Hunger Boost is incorrectly described as refunding hunger');
 for (const passiveFamily of ['HungerBoost', 'WeatherMutationBoost', 'PetMutationBoost', 'DawnbinderBoost']) assert.match(companionSource, new RegExp(`key: '${passiveFamily}'`), `${passiveFamily} is not grouped for stacking`);
 assert.match(companionSource, /return sum \+ base \* strength \/ 100;/, 'passive ability contributions are not stacked using each pet strength');
-assert.match(companionSource, /entry\.pet\.hunger <= 0 \|\| requiredWeather && state\.game\?\.weather !== requiredWeather/, 'inactive passive ability owners are still included');
+assert.match(companionSource, /entry\.pet\.hunger <= 0 \|\| !abilityActiveInWeather\(entry\.ability\)/, 'inactive passive ability owners are still included');
 assert.match(companionSource, /ProduceEater: \{ chance: 60/, 'Crop Eater uses a stale ability id');
 assert.match(companionSource, /SellBoostI: \{ chance: 10/, 'Sell Boost I uses a stale ability id');
 assert.match(companionSource, /PetAgeBoostIII: \{ chance: 70/, 'Hatch XP Boost III calculation is missing');

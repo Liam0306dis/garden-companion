@@ -79,7 +79,7 @@ export const STACKED_PASSIVE_GROUPS = [
 export const STACKED_PASSIVE_BY_ABILITY = new Map(STACKED_PASSIVE_GROUPS.flatMap(group => group.abilities.map(ability => [ability, group] as const)));
 
 export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
-  ['SnowyHungerBoost', 'Frost'], ['SnowyCropMutationBoost', 'Frost'], ['DawnBoost', 'Dawn'],
+  ['SnowyHungerBoost', 'Frost'], ['SnowyHungerRestore', 'Frost'], ['SnowyCropMutationBoost', 'Frost'], ['DawnBoost', 'Dawn'],
   ['AmberMoonBoost', 'AmberMoon'], ['ThunderBoost', 'Thunderstorm'],
 ]);
 
@@ -136,6 +136,14 @@ export const PROC_RULES: Record<string, { chance: number; tick: boolean; effect:
   HungerRestoreII: { chance: 14, tick: true, effect: strength => `Restores ${(35 * strength / 100).toFixed(1)}% hunger` },
   HungerRestoreIII: { chance: 16, tick: true, effect: strength => `Restores ${(40 * strength / 100).toFixed(1)}% hunger` },
   SnowyHungerRestore: { chance: 20, tick: true, effect: strength => `Restores ${(38 * strength / 100).toFixed(1)}% hunger` },
+};
+
+// Minutes a full hunger bar lasts per species. Not present in the game bundle, so these come from
+// the standalone calculators and are shared by the food planner and the active-pet hunger estimate.
+export const HUNGER_MINUTES: Record<string, number> = {
+  Worm: 30, Snail: 60, Bee: 15, Chicken: 60, Bunny: 45, Dragonfly: 15, Pig: 60, Cow: 75, Turkey: 60,
+  SnowFox: 45, Stoat: 60, WhiteCaribou: 75, Squirrel: 30, Turtle: 90, Goat: 60, Sheep: 60, Ostrich: 45,
+  Pony: 60, Horse: 75, FireHorse: 90, Bat: 30, Platypus: 60, ThunderWolf: 60, Butterfly: 30, Peacock: 60, Capybara: 60,
 };
 
 export const MAX_PET_TEAMS = 25;

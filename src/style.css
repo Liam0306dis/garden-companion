@@ -190,6 +190,10 @@
 .gc-hunger > i u { display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#059669,#34d399);text-decoration:none; }
 .gc-hunger > i u[data-tone=medium] { background:linear-gradient(90deg,#d97706,#fbbf24); }
 .gc-hunger > i u[data-tone=low] { background:linear-gradient(90deg,#dc2626,#f87171); }
+.gc-hunger-eta { display:block;margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.02em; }
+.gc-hunger-eta[data-tone=good] { color:#34d399; }
+.gc-hunger-eta[data-tone=medium] { color:#fbbf24; }
+.gc-hunger-eta[data-tone=low] { color:#f87171; }
 .gc-team-abilities { display:block;margin-top:5px;color:#a78bfa;font-size:9px;line-height:1.35; }
 .gc-pet-grid span.gc-ability-chips { flex:0 0 auto;flex-direction:row;flex-wrap:nowrap;margin-top:5px; }
 .gc-pet-str { flex:0 0 auto;align-self:center;padding:3px 7px;border:1px solid var(--gc-line);border-radius:7px;color:#c4b5fd;background:rgba(167,139,250,.08);font-size:12px;line-height:1;white-space:nowrap; }

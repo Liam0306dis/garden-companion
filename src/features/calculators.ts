@@ -1,6 +1,6 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, HUNGER_MINUTES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
@@ -22,13 +22,8 @@ function hatchWeights(): Map<string, number> {
   return weights;
 }
 
-// Minutes a full hunger bar lasts per species, and crop regrow or grow minutes.
-// Neither is present in the game bundle, so both come from the standalone calculators.
-const HUNGER_MINUTES: Record<string, number> = {
-  Worm: 30, Snail: 60, Bee: 15, Chicken: 60, Bunny: 45, Dragonfly: 15, Pig: 60, Cow: 75, Turkey: 60,
-  SnowFox: 45, Stoat: 60, WhiteCaribou: 75, Squirrel: 30, Turtle: 90, Goat: 60, Sheep: 60, Ostrich: 45,
-  Pony: 60, Horse: 75, FireHorse: 90, Bat: 30, Platypus: 60, ThunderWolf: 60, Butterfly: 30, Peacock: 60, Capybara: 60,
-};
+// Crop regrow or grow minutes. Not present in the game bundle, so these come from the standalone
+// calculators. (Full-hunger minutes per species now live in constants as HUNGER_MINUTES.)
 const CROP_REGROW: Record<string, [number, number]> = {
   Cacao: [90, 30], Squash: [15, 5], Date: [180, 60], DragonFruit: [7.5, 2.5], Pepper: [5, 2], Lychee: [15, 5],
   Coconut: [90, 30], Apple: [30, 10], Banana: [112.5, 37.5], Camellia: [135, 45], Chrysanthemum: [270, 90],

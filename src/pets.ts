@@ -1,5 +1,5 @@
 import type { Pet, ProduceItem } from './types.js';
-import { PET_CATALOG } from './constants.js';
+import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
 import { mutationMultiplier } from './mutation-value.js';
 import { send } from './game-connection.js';
 import { page } from './page.js';
@@ -149,12 +149,91 @@ export function petSprite(pet: Pet): string {
   return `<span class="gc-pet-sprite">${displayedSource ? `<img src="${escapeHtml(displayedSource)}" alt="${escapeHtml(pet.petSpecies)}"${mutationKey ? ` data-pet-mutation-key="${escapeHtml(mutationKey)}"` : ''}>` : `<i>${escapeHtml((PET_CATALOG[pet.petSpecies]?.name || pet.petSpecies || '?').slice(0, 1))}</i>`}</span>`;
 }
 
-export function hungerDisplay(pet: Pet): string {
+/**
+ * Some abilities only work in a specific weather (the Snowy/Dawn/Amber/Thunder variants). This is
+ * true for a plain ability with no weather requirement, and only in the matching weather otherwise.
+ */
+export function abilityActiveInWeather(ability: string): boolean {
+  const weather = PASSIVE_REQUIRED_WEATHER.get(ability);
+  return !weather || state.game?.weather === weather;
+}
+
+/** Combined Hunger Boost across the active team, as the percentage the bar's lifetime is extended by. */
+function teamHungerBoostPercent(team: Pet[]): number {
+  let total = 0;
+  for (const pet of team) {
+    if (Number(pet.hunger) <= 0) continue;
+    const strength = petMetrics(pet)?.strength ?? 100;
+    for (const ability of pet.abilities ?? []) {
+      if (STACKED_PASSIVE_BY_ABILITY.get(ability)?.key !== 'HungerBoost' || !abilityActiveInWeather(ability)) continue;
+      total += Number(ABILITY_DETAILS[ability]?.baseParameters?.hungerRefundPercentage || 0) * strength / 100;
+    }
+  }
+  return total;
+}
+
+/**
+ * Fraction of a full bar the team's Hunger Restore procs top up each second, summed across the team
+ * as if every proc fed one bar. Each ability rolls once per game tick; the per-second proc chance
+ * uses the same model as the ability panel, and a proc restores its hungerRestorePercentage (scaled
+ * by strength) of the fed pet's bar. A proc feeds a random active pet, so the caller divides this
+ * total by the number of active pets to get the share landing on any one of them.
+ */
+function teamHungerRestoreFractionPerSecond(team: Pet[]): number {
+  let total = 0;
+  for (const pet of team) {
+    if (Number(pet.hunger) <= 0) continue;
+    const strength = petMetrics(pet)?.strength ?? 100;
+    for (const ability of pet.abilities ?? []) {
+      const restore = ABILITY_DETAILS[ability]?.baseParameters?.hungerRestorePercentage;
+      const chance = ABILITY_DETAILS[ability]?.baseProbability;
+      if (restore == null || !chance || !abilityActiveInWeather(ability)) continue;
+      const perSecondChance = 1 - Math.pow(1 - chance * strength / 10000, 1 / 60);
+      total += perSecondChance * (restore * strength / 100) / 100;
+    }
+  }
+  return total;
+}
+
+/**
+ * Hunger drains at a fixed rate per species (a full bar lasts HUNGER_MINUTES[species] minutes), but
+ * the active team bends that rate: Hunger Boost passively slows depletion and Hunger Restore
+ * periodically tops bars back up. Both are team-wide, so the whole active team is needed. Returns the
+ * seconds this pet's bar will last, Infinity when the team out-restores the drain, or null when the
+ * timing or the hunger value is unknown.
+ */
+export function hungerSecondsRemaining(pet: Pet, team: Pet[]): number | null {
+  const maximum = Number(PET_CATALOG[pet.petSpecies]?.maxHunger || 0);
+  const minutes = HUNGER_MINUTES[pet.petSpecies];
+  const value = Number(pet.hunger);
+  if (!maximum || !minutes || !Number.isFinite(value)) return null;
+  if (value <= 0) return 0;
+  // Work in fractions of a full bar per second, so the pet's own max cancels out of both terms.
+  const fraction = Math.min(1, value / maximum);
+  // Hunger Boost stretches the bar's lifetime: 48% combined boost makes a 60-minute bar last 88.8
+  // minutes (60 * 1.48), so the drain rate is the base rate divided by (1 + boost).
+  const drainPerSecond = 1 / (minutes * 60 * (1 + teamHungerBoostPercent(team) / 100));
+  // A restore proc feeds one random active pet, so the team's total restore is split evenly and only
+  // this pet's share is subtracted from its own drain.
+  const activeCount = Math.max(1, team.filter(member => member?.id).length);
+  const netPerSecond = drainPerSecond - teamHungerRestoreFractionPerSecond(team) / activeCount;
+  if (netPerSecond <= 0) return Infinity;
+  return fraction / netPerSecond;
+}
+
+export function hungerDisplay(pet: Pet, team?: Pet[]): string {
   const maximum = Number(PET_CATALOG[pet.petSpecies]?.maxHunger || 0);
   const value = Math.max(0, Number(pet.hunger || 0));
   const percent = maximum > 0 ? Math.min(100, value / maximum * 100) : value > 0 ? 100 : 0;
   const tone = percent < 20 ? 'low' : percent < 50 ? 'medium' : 'good';
-  return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i></div>`;
+  const seconds = team ? hungerSecondsRemaining(pet, team) : null;
+  let eta = '';
+  if (seconds != null) {
+    const label = seconds === Infinity ? 'Sustained' : seconds <= 0 ? 'Empty' : `Lasts ~${formatEstimate(seconds)}`;
+    const etaTone = seconds === Infinity ? 'good' : seconds <= 0 ? 'low' : seconds < 600 ? 'low' : seconds < 1800 ? 'medium' : 'good';
+    eta = `<small class="gc-hunger-eta" data-tone="${etaTone}">${label}</small>`;
+  }
+  return `<div class="gc-hunger" title="${value.toLocaleString(NUMBER_LOCALE)} / ${maximum.toLocaleString(NUMBER_LOCALE)}"><div><span>Hunger</span><b>${Math.round(percent)}%</b></div><i><u data-tone="${tone}" style="width:${percent.toFixed(2)}%"></u></i>${eta}</div>`;
 }
 
 /**
