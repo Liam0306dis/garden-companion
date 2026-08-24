@@ -4,7 +4,7 @@ import { PET_CATALOG } from '../constants.js';
 import { send } from '../game-connection.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { activePets, allPets, heldProduce, petDiet, petSprite, produceSprite, produceValue } from '../pets.js';
+import { activePets, allPets, heldProduce, heldToolCount, petDiet, petSprite, produceSprite, produceValue, useReplenishPotion } from '../pets.js';
 import { type PixiSurface, findVisiblePixiNodes, pixiNodeVisible, pixiSurface } from '../pixi.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import { toast } from '../toast.js';
@@ -67,20 +67,33 @@ function findPetSlotDock(): { byPet: Map<string, PetDockRow> | null; rows: PetDo
   return { byPet: null, rows: rows.filter((row: PetDockRow) => row.height <= shortest * 1.5), blocked: found.has('PetActionButtons') };
 }
 
+/** Fills a bar outright rather than feeding it, so it is offered to every species alongside crops. */
+export const HUNGER_POTION = 'ReplenishPotion';
+
 interface PetFoodRow {
   pet: Pet;
   choice: string;
   count: number;
   cropItemId: string;
+  potion: boolean;
+}
+
+/** A stored choice is only honoured if it is still something this species can be given. */
+function chosenFood(species: string): string {
+  const stored = config.petFoodChoices?.[species] || '';
+  return stored === HUNGER_POTION || petDiet(species).includes(stored) ? stored : '';
 }
 
 function petFoodRows(): PetFoodRow[] {
   const produce = heldProduce();
   return activePets().filter(pet => pet?.id).map(pet => {
-    const choice = petDiet(pet.petSpecies).includes(config.petFoodChoices?.[pet.petSpecies] || '') ? config.petFoodChoices[pet.petSpecies] : '';
-    const matching = choice ? produce.filter(item => item.species === choice) : [];
+    const choice = chosenFood(pet.petSpecies);
+    const potion = choice === HUNGER_POTION;
+    const matching = choice && !potion ? produce.filter(item => item.species === choice) : [];
     const best = matching.reduce<ProduceItem | null>((chosen, item) => !chosen || produceValue(item) > produceValue(chosen) ? item : chosen, null);
-    return { pet, choice, count: matching.length, cropItemId: best?.id || '' };
+    // Potions live in the tool inventory and are interchangeable, so the count is a plain tally
+    // rather than the pick-the-biggest-crop search a food needs.
+    return { pet, choice, count: potion ? heldToolCount(HUNGER_POTION) : matching.length, cropItemId: best?.id || '', potion };
   });
 }
 
@@ -101,6 +114,12 @@ function createPetFoodPanel(): HTMLElement {
   panel.querySelector('.gc-petfood-list')!.addEventListener('click', event => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-feed-pet]');
     if (!button || button.disabled) return;
+    // A potion is spent on the pet rather than fed to it, so it takes the tool route instead.
+    if (button.dataset.potion === 'true') {
+      try { useReplenishPotion(button.dataset.feedPet!); }
+      catch (error) { toast((error as Error).message, 'error'); }
+      return;
+    }
     feedPet(button.dataset.feedPet!, button.dataset.cropItem!);
   });
   return panel;
@@ -125,11 +144,13 @@ export function renderPetFood(): void {
       const ready = Boolean(row.choice) && row.count > 0;
       const label = !row.choice
         ? `Pick a food for ${humanize(row.pet.petSpecies)} in the Pet Food tab`
-        : row.count > 0 ? `Feed ${humanize(row.choice)} to ${name}` : `No ${humanize(row.choice)} in your inventory`;
+        : row.count === 0 ? `No ${humanize(row.choice)} in your inventory`
+        : row.potion ? `Fill ${name}'s hunger with a ${humanize(row.choice)}`
+        : `Feed ${humanize(row.choice)} to ${name}`;
       const icon = row.choice
         ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>`
         : '<i>?</i>';
-      return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" title="${escapeHtml(label)}" ${ready ? '' : 'disabled'}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ''}</button>`;
+      return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" data-potion="${row.potion}" title="${escapeHtml(label)}" ${ready ? '' : 'disabled'}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ''}</button>`;
     }).join('');
   }
   positionPetFood();
@@ -194,18 +215,23 @@ export function renderPetFoodTab() {
   const species = [...new Set(allPets().map(pet => pet.petSpecies))]
     .filter(name => petDiet(name).length)
     .sort((left, right) => Number(activeSpecies.has(right)) - Number(activeSpecies.has(left)) || humanize(left).localeCompare(humanize(right)));
+  // Offered to every species: a potion fills the bar outright, so it is not tied to any diet.
+  const potionsHeld = heldToolCount(HUNGER_POTION);
   const cards = species.map(name => {
-    const chosen = config.petFoodChoices?.[name] || '';
-    const options = petDiet(name).map(crop => {
-      const sprite = produceSprite(crop);
-      const held = counts.get(crop) || 0;
-      // Five foods share one row, so the longest names ellipsise and lean on the tooltip.
-      const label = humanize(crop);
-      return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(crop)}" data-active="${crop === chosen}" title="${escapeHtml(label)} - ${held} held"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(label)}</b><small>${held} held</small></span></button>`;
-    }).join('');
+    const chosen = chosenFood(name);
+    const option = (id: string, held: number) => {
+      const sprite = produceSprite(id);
+      // Foods share one row, so the longest names ellipsise and lean on the tooltip.
+      const label = humanize(id);
+      return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(id)}" data-active="${id === chosen}" title="${escapeHtml(label)} - ${held} held"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(label)}</b><small>${held} held</small></span></button>`;
+    };
+    const options = [
+      ...petDiet(name).map(crop => option(crop, counts.get(crop) || 0)),
+      option(HUNGER_POTION, potionsHeld),
+    ].join('');
     return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? 'Active' : 'Owned'}</span></div><div class="gc-food-options">${options}</div></article>`;
   }).join('');
-  return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
+  return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Every species can also be given a Replenish Potion, which fills the bar outright instead. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
 }
 
 export function bindPetFoodEvents(main: HTMLElement): void {

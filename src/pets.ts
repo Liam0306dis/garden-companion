@@ -388,3 +388,16 @@ export function useXpPotion(petItemId: string): void {
   send({ type: 'PlayerPosition', position: tile });
   send({ type: 'XPPotion', petItemId });
 }
+
+/**
+ * Fills a pet's hunger with one Replenish Potion. Same standing requirement as the XP Potion, so the
+ * player is moved onto the pet's tile first and left there. The headless client also steps back off
+ * afterwards; that was tried here and the server accepts the potion without it, so the plain move is
+ * all this needs.
+ */
+export function useReplenishPotion(petItemId: string): void {
+  const tile = petTile(petItemId);
+  if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
+  send({ type: 'PlayerPosition', position: tile });
+  send({ type: 'ReplenishPotion', petItemId });
+}

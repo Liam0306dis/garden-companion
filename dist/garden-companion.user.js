@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.16
+// @version      0.8.17
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -923,6 +923,12 @@
     if (!tile) throw new Error("The pet position is not available yet. Try again in a moment.");
     send({ type: "PlayerPosition", position: tile });
     send({ type: "XPPotion", petItemId });
+  }
+  function useReplenishPotion(petItemId) {
+    const tile = petTile(petItemId);
+    if (!tile) throw new Error("The pet position is not available yet. Try again in a moment.");
+    send({ type: "PlayerPosition", position: tile });
+    send({ type: "ReplenishPotion", petItemId });
   }
 
   // src/features/calculators.ts
@@ -2370,13 +2376,19 @@ ${groups}
     const shortest = Math.min(...rows.map((row) => row.height));
     return { byPet: null, rows: rows.filter((row) => row.height <= shortest * 1.5), blocked: found.has("PetActionButtons") };
   }
+  var HUNGER_POTION = "ReplenishPotion";
+  function chosenFood(species) {
+    const stored = config.petFoodChoices?.[species] || "";
+    return stored === HUNGER_POTION || petDiet(species).includes(stored) ? stored : "";
+  }
   function petFoodRows() {
     const produce = heldProduce();
     return activePets().filter((pet) => pet?.id).map((pet) => {
-      const choice = petDiet(pet.petSpecies).includes(config.petFoodChoices?.[pet.petSpecies] || "") ? config.petFoodChoices[pet.petSpecies] : "";
-      const matching = choice ? produce.filter((item) => item.species === choice) : [];
+      const choice = chosenFood(pet.petSpecies);
+      const potion = choice === HUNGER_POTION;
+      const matching = choice && !potion ? produce.filter((item) => item.species === choice) : [];
       const best = matching.reduce((chosen, item) => !chosen || produceValue(item) > produceValue(chosen) ? item : chosen, null);
-      return { pet, choice, count: matching.length, cropItemId: best?.id || "" };
+      return { pet, choice, count: potion ? heldToolCount(HUNGER_POTION) : matching.length, cropItemId: best?.id || "", potion };
     });
   }
   function feedPet(petItemId, cropItemId) {
@@ -2395,6 +2407,14 @@ ${groups}
     panel3.querySelector(".gc-petfood-list").addEventListener("click", (event) => {
       const button = event.target.closest("[data-feed-pet]");
       if (!button || button.disabled) return;
+      if (button.dataset.potion === "true") {
+        try {
+          useReplenishPotion(button.dataset.feedPet);
+        } catch (error) {
+          toast(error.message, "error");
+        }
+        return;
+      }
       feedPet(button.dataset.feedPet, button.dataset.cropItem);
     });
     return panel3;
@@ -2416,9 +2436,9 @@ ${groups}
         const name = row.pet.name || PET_CATALOG[row.pet.petSpecies]?.name || humanize(row.pet.petSpecies);
         const sprite = produceSprite(row.choice);
         const ready = Boolean(row.choice) && row.count > 0;
-        const label = !row.choice ? `Pick a food for ${humanize(row.pet.petSpecies)} in the Pet Food tab` : row.count > 0 ? `Feed ${humanize(row.choice)} to ${name}` : `No ${humanize(row.choice)} in your inventory`;
+        const label = !row.choice ? `Pick a food for ${humanize(row.pet.petSpecies)} in the Pet Food tab` : row.count === 0 ? `No ${humanize(row.choice)} in your inventory` : row.potion ? `Fill ${name}'s hunger with a ${humanize(row.choice)}` : `Feed ${humanize(row.choice)} to ${name}`;
         const icon = row.choice ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>` : "<i>?</i>";
-        return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" title="${escapeHtml(label)}" ${ready ? "" : "disabled"}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
+        return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" data-potion="${row.potion}" title="${escapeHtml(label)}" ${ready ? "" : "disabled"}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
       }).join("");
     }
     positionPetFood();
@@ -2476,17 +2496,21 @@ ${groups}
     for (const item of produce) counts.set(item.species, (counts.get(item.species) || 0) + 1);
     const activeSpecies = new Set(activePets().map((pet) => pet.petSpecies));
     const species = [...new Set(allPets().map((pet) => pet.petSpecies))].filter((name) => petDiet(name).length).sort((left, right) => Number(activeSpecies.has(right)) - Number(activeSpecies.has(left)) || humanize(left).localeCompare(humanize(right)));
+    const potionsHeld = heldToolCount(HUNGER_POTION);
     const cards = species.map((name) => {
-      const chosen = config.petFoodChoices?.[name] || "";
-      const options = petDiet(name).map((crop) => {
-        const sprite = produceSprite(crop);
-        const held = counts.get(crop) || 0;
-        const label = humanize(crop);
-        return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(crop)}" data-active="${crop === chosen}" title="${escapeHtml(label)} - ${held} held"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(label)}</b><small>${held} held</small></span></button>`;
-      }).join("");
+      const chosen = chosenFood(name);
+      const option = (id, held) => {
+        const sprite = produceSprite(id);
+        const label = humanize(id);
+        return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(id)}" data-active="${id === chosen}" title="${escapeHtml(label)} - ${held} held"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(label)}</b><small>${held} held</small></span></button>`;
+      };
+      const options = [
+        ...petDiet(name).map((crop) => option(crop, counts.get(crop) || 0)),
+        option(HUNGER_POTION, potionsHeld)
+      ].join("");
       return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? "Active" : "Owned"}</span></div><div class="gc-food-options">${options}</div></article>`;
     }).join("");
-    return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
+    return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Every species can also be given a Replenish Potion, which fills the bar outright instead. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
   }
   function bindPetFoodEvents(main) {
     main.querySelectorAll("[data-food-choice]").forEach((button) => button.onclick = () => {

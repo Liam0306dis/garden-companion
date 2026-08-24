@@ -558,6 +558,12 @@ assert.match(companionSource, /export function scriptVersion\(\): string \{\s*tr
 assert.match(companionSource, /version: scriptVersion\(\),/, 'the shared state must carry the running version');
 assert.doesNotMatch(companionSource, /function currentScriptVersion/, 'the panel must not keep its own copy of the version lookup');
 assert.match(styleSource, /\.gc-food-options \{ display:grid;grid-auto-flow:column;grid-auto-columns:minmax\(0,1fr\)/, 'pet foods must all sit on one row');
+// A potion fills the bar rather than feeding it, so it is offered to every species and sent as a tool.
+assert.match(companionSource, /export const HUNGER_POTION = 'ReplenishPotion';/, 'the hunger potion must be a named option');
+assert.match(companionSource, /option\(HUNGER_POTION, potionsHeld\),/, 'every species must be offered the hunger potion');
+assert.match(companionSource, /return stored === HUNGER_POTION \|\| petDiet\(species\)\.includes\(stored\)/, 'a stored potion choice must survive the diet check');
+assert.match(companionSource, /if \(button\.dataset\.potion === 'true'\) \{[\s\S]*useReplenishPotion\(button\.dataset\.feedPet!\)/, 'the dock must spend a potion rather than feed it');
+assert.match(companionSource, /send\(\{ type: 'ReplenishPotion', petItemId \}\)/, 'the potion must be sent as the game names it');
 assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss must be presented as Pokemon Mode');
 assert.match(companionSource, /\[4, 5\]\.includes\(Number\(room\.players_count\)\)/, 'rooms are not restricted to 4 or 5 players');
 assert.match(companionSource, /sort\(\(left, right\) => Number\(right\.players_count\) - Number\(left\.players_count\)\)/, '5-player rooms are not sorted above 4-player rooms');
