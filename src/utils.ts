@@ -26,6 +26,7 @@ export const NAME_OVERRIDES: Record<string, string> = {
   ThunderCelestial: 'Thunderpeel',
   MoonCelestial: 'Moonbinder',
   DawnCelestial: 'Dawnbinder',
+  ReplenishPotion: 'Hunger Potion',
 };
 
 export function humanize(value: unknown): string {

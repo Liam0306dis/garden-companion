@@ -231,7 +231,7 @@ export function renderPetFoodTab() {
     ].join('');
     return `<article class="gc-card gc-food-card"><div class="gc-food-head"><h3>${escapeHtml(PET_CATALOG[name]?.name || humanize(name))}</h3><span>${activeSpecies.has(name) ? 'Active' : 'Owned'}</span></div><div class="gc-food-options">${options}</div></article>`;
   }).join('');
-  return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Every species can also be given a Replenish Potion, which fills the bar outright instead. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
+  return `<p class="gc-note">Pick one food per species. The feed button on the pet food panel spends the largest crop of that type you are holding, and stays disabled when you have none. Every species can also be given a Hunger Potion, which fills the bar outright instead. Click a selected food again to clear it.</p><section class="gc-stack">${cards || '<p class="gc-empty">No pet data yet.</p>'}</section>`;
 }
 
 export function bindPetFoodEvents(main: HTMLElement): void {
