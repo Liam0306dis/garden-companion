@@ -527,6 +527,14 @@ assert.match(companionSource, /\['abilities', 'teams', 'petFood', 'calculators',
 // Holding still would leave stale numbers, so a hovered block is rewritten in place instead.
 assert.match(companionSource, /node\.onpointerenter = \(\) => refreshHungerDisplay\(node\)/, 'hunger values must refresh as the pointer arrives');
 assert.match(companionSource, /export function refreshHungerDisplay\(node: HTMLElement\)[\s\S]*node\.title = parts\.title;/, 'the hunger block must be rewritten rather than replaced');
+// A proc cannot overfill a bar, so the top `cap` of one is a zone where procs are cut short. Measured
+// against real play: a near-full turtle averaged a quarter of its cap, a draining bee 94% of its own.
+assert.match(companionSource, /function restorePerProc\(fill: number, cap: number\): number/, 'restore must account for the room left in the bar');
+assert.match(companionSource, /const clipped = Math\.max\(0, fill - \(1 - cap\)\) \/ fill;/, 'the clipped part of the descent must be measured from the cap boundary');
+assert.match(companionSource, /restore\.procsPerSecond \/ activeCount \* restorePerProc\(fraction, restore\.capFraction\)/, 'the estimate must size each proc against this pet');
+// Rate and size are separate because only the caller knows the target.
+assert.match(companionSource, /function teamHungerRestore\(team: Pet\[\]\): \{ procsPerSecond: number; capFraction: number \}/, 'proc rate and proc size must be reported apart');
+assert.doesNotMatch(companionSource, /teamHungerRestoreFractionPerSecond/, 'the unclipped restore total must be gone');
 // One hungry pet is normal; the whole team at zero is the state worth interrupting someone for.
 assert.match(companionSource, /return pets\.length > 0 && pets\.every\(petIsStarving\)/, 'the hunger alarm must need every active pet at zero');
 // Hunger that has not arrived is unknown, not empty - reading it as zero would alarm over nothing.

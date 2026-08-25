@@ -173,14 +173,18 @@ function teamHungerBoostPercent(team: Pet[]): number {
 }
 
 /**
- * Fraction of a full bar the team's Hunger Restore procs top up each second. Each ability rolls on
- * its own, so two pets carrying Restore II do not make a proc worth more - there are simply twice as
- * many of them, which is why the rates are added rather than combined. Expectation is linear, so the
- * sum holds even on a tick where both fire. The per-second chance uses the same model as the ability
- * panel, and a proc restores its hungerRestorePercentage (scaled by strength) of the fed pet's bar.
+ * How often the team's Hunger Restore procs fire, and how big one is as a fraction of the bar it
+ * lands in. Each ability rolls on its own, so two pets carrying Restore II do not make a proc worth
+ * more - there are simply twice as many of them, which is why the rates are added rather than
+ * combined. Expectation is linear, so the sum holds even on a tick where both fire. The per-second
+ * chance uses the same model as the ability panel.
+ *
+ * Rate and size are kept apart because a proc cannot overfill a bar, so how much of it actually
+ * lands depends on the target - which the caller knows and this does not.
  */
-function teamHungerRestoreFractionPerSecond(team: Pet[]): number {
-  let total = 0;
+function teamHungerRestore(team: Pet[]): { procsPerSecond: number; capFraction: number } {
+  let procsPerSecond = 0;
+  let weightedCap = 0;
   for (const pet of team) {
     if (Number(pet.hunger) <= 0) continue;
     const strength = petMetrics(pet)?.strength ?? 100;
@@ -189,10 +193,28 @@ function teamHungerRestoreFractionPerSecond(team: Pet[]): number {
       const chance = ABILITY_DETAILS[ability]?.baseProbability;
       if (restore == null || !chance || !abilityActiveInWeather(ability)) continue;
       const perSecondChance = 1 - Math.pow(1 - chance * strength / 10000, 1 / 60);
-      total += perSecondChance * (restore * strength / 100) / 100;
+      procsPerSecond += perSecondChance;
+      // Weighted by rate, so a team mixing Restore II and III gets the size its procs average out to.
+      weightedCap += perSecondChance * (restore * strength / 100) / 100;
     }
   }
-  return total;
+  return { procsPerSecond, capFraction: procsPerSecond > 0 ? weightedCap / procsPerSecond : 0 };
+}
+
+/**
+ * What one proc is worth to a bar that is `fill` full, averaged over its descent to empty.
+ *
+ * A proc gives its whole share unless the bar lacks the room, so the top `cap` of a bar is a zone
+ * where procs are cut short - a turtle sitting near full throws most of every proc away, which is
+ * why measured procs on one averaged a quarter of their cap while a fast-draining bee got 94% of
+ * its own. Below that zone nothing is lost, so the descent is split at the boundary and the two
+ * parts weighted by how much of the fall each accounts for.
+ */
+function restorePerProc(fill: number, cap: number): number {
+  if (fill <= 0) return 0;
+  const clipped = Math.max(0, fill - (1 - cap)) / fill;
+  const averageRoomWhileClipped = ((1 - fill) + cap) / 2;
+  return clipped * averageRoomWhileClipped + (1 - clipped) * cap;
 }
 
 /**
@@ -221,7 +243,9 @@ export function hungerSecondsRemaining(pet: Pet, team: Pet[]): number | null {
   // rate by the active count is that long-run average, which is the only thing a single ETA can
   // show; the real bar jumps by a third of itself when a proc lands and drains untouched otherwise.
   const activeCount = Math.max(1, team.filter(member => member?.id).length);
-  const netPerSecond = drainPerSecond - teamHungerRestoreFractionPerSecond(team) / activeCount;
+  const restore = teamHungerRestore(team);
+  const restorePerSecond = restore.procsPerSecond / activeCount * restorePerProc(fraction, restore.capFraction);
+  const netPerSecond = drainPerSecond - restorePerSecond;
   if (netPerSecond <= 0) return Infinity;
   return fraction / netPerSecond;
 }

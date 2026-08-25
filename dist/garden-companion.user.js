@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.17
+// @version      0.8.18
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -768,8 +768,9 @@
     }
     return total;
   }
-  function teamHungerRestoreFractionPerSecond(team) {
-    let total = 0;
+  function teamHungerRestore(team) {
+    let procsPerSecond = 0;
+    let weightedCap = 0;
     for (const pet of team) {
       if (Number(pet.hunger) <= 0) continue;
       const strength = petMetrics(pet)?.strength ?? 100;
@@ -778,10 +779,17 @@
         const chance = ABILITY_DETAILS[ability]?.baseProbability;
         if (restore == null || !chance || !abilityActiveInWeather(ability)) continue;
         const perSecondChance = 1 - Math.pow(1 - chance * strength / 1e4, 1 / 60);
-        total += perSecondChance * (restore * strength / 100) / 100;
+        procsPerSecond += perSecondChance;
+        weightedCap += perSecondChance * (restore * strength / 100) / 100;
       }
     }
-    return total;
+    return { procsPerSecond, capFraction: procsPerSecond > 0 ? weightedCap / procsPerSecond : 0 };
+  }
+  function restorePerProc(fill, cap) {
+    if (fill <= 0) return 0;
+    const clipped = Math.max(0, fill - (1 - cap)) / fill;
+    const averageRoomWhileClipped = (1 - fill + cap) / 2;
+    return clipped * averageRoomWhileClipped + (1 - clipped) * cap;
   }
   function hungerSecondsRemaining(pet, team) {
     const maximum = Number(PET_CATALOG[pet.petSpecies]?.maxHunger || 0);
@@ -792,7 +800,9 @@
     const fraction = Math.min(1, value / maximum);
     const drainPerSecond = Math.max(0, 1 - teamHungerBoostPercent(team) / 100) / (minutes * 60);
     const activeCount = Math.max(1, team.filter((member) => member?.id).length);
-    const netPerSecond = drainPerSecond - teamHungerRestoreFractionPerSecond(team) / activeCount;
+    const restore = teamHungerRestore(team);
+    const restorePerSecond = restore.procsPerSecond / activeCount * restorePerProc(fraction, restore.capFraction);
+    const netPerSecond = drainPerSecond - restorePerSecond;
     if (netPerSecond <= 0) return Infinity;
     return fraction / netPerSecond;
   }
