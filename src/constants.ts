@@ -146,6 +146,9 @@ export const HUNGER_MINUTES: Record<string, number> = {
   Pony: 60, Horse: 75, FireHorse: 90, Bat: 30, Platypus: 60, ThunderWolf: 60, Butterfly: 30, Peacock: 60, Capybara: 60,
 };
 
+/** The only link in the script that asks anything of anyone, so it lives somewhere obvious. */
+export const KOFI_URL = 'https://ko-fi.com/liam0306';
+
 export const MAX_PET_TEAMS = 25;
 export const MAX_TEAM_PETS = 3;
 export const XP_PER_POTION = 20_000;

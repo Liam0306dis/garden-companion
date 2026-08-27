@@ -540,3 +540,6 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-egg-pity-count { flex:0 0 84px;color:var(--gc-muted);font-size:10px;text-align:right;font-variant-numeric:tabular-nums; }
 .gc-egg-pity[data-due=true] .gc-egg-bar i { background:linear-gradient(90deg,rgba(74,222,128,.55),rgba(74,222,128,.95)); }
 .gc-egg-pity[data-due=true] .gc-egg-pity-count { color:#86efac; }
+
+/* The Ko-fi link is an anchor, not a button, so it borrows the primary button's look. */
+#gc-panel a.gc-kofi { width:132px;flex:0 0 auto;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:7px;text-decoration:none;white-space:nowrap; }

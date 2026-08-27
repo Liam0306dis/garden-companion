@@ -7,19 +7,7 @@ import type {
   RoomState,
 } from './types.js';
 import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
-import {
-  ABILITY_DETAILS,
-  GRANTER_CHANCES,
-  LUNAR_MINIMISED_KEY,
-  LUNAR_POSITION_KEY,
-  PASSIVE_REQUIRED_WEATHER,
-  PET_CATALOG,
-  PROC_RULES,
-  STACKED_PASSIVE_BY_ABILITY,
-  TRACKED_ABILITY_CATALOG,
-  UPDATE_URL,
-  XP_PER_POTION,
-} from './constants.js';
+import { ABILITY_DETAILS, GRANTER_CHANCES, KOFI_URL, LUNAR_MINIMISED_KEY, LUNAR_POSITION_KEY, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PROC_RULES, STACKED_PASSIVE_BY_ABILITY, TRACKED_ABILITY_CATALOG, UPDATE_URL, XP_PER_POTION } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms, showAlarmBanner, stopAlarm } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
@@ -711,11 +699,7 @@ export function initCompanion(): void {
       if (panelRefreshBlocked(panel)) { refreshPending = true; return; }
       const current = tabRefreshSignature();
       if (current && current === lastTabSignature) return;
-      const main = panel.querySelector('main');
-      const scrollTop = main?.scrollTop ?? 0;
-      renderPanel();
-      const nextMain = panel.querySelector('main');
-      if (nextMain) nextMain.scrollTop = scrollTop;
+      renderPanelPreservingScroll();
     }, 1000);
   }
 
@@ -729,6 +713,7 @@ export function initCompanion(): void {
     ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
     ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
+    ['Support', [['supporter', 'Supporter']]],
   ];
   const TABS = TAB_GROUPS.flatMap(([, tabs]) => tabs);
   const NAV_COLLAPSED_KEY = 'gardenCompanion.navCollapsed.v1';
@@ -776,15 +761,24 @@ export function initCompanion(): void {
     lastTabSignature = tabRefreshSignature();
   }
 
+  /**
+   * Both panes are restored, not just the content. The nav scrolls too once there are enough groups
+   * to overflow it, and a redraw landing while you reach for something near the bottom would put it
+   * back at the top - which reads as the window resetting itself under you.
+   */
   function renderPanelPreservingScroll(): void {
     const panel = document.getElementById('gc-panel');
-    const scrollTop = panel?.querySelector('main')?.scrollTop ?? 0;
+    const mainTop = panel?.querySelector('main')?.scrollTop ?? 0;
+    const navTop = panel?.querySelector('nav')?.scrollTop ?? 0;
     renderPanel();
     const main = panel?.querySelector<HTMLElement>('main');
-    if (main) main.scrollTop = scrollTop;
+    if (main) main.scrollTop = mainTop;
+    const nav = panel?.querySelector<HTMLElement>('nav');
+    if (nav) nav.scrollTop = navTop;
   }
 
   function renderTab() {
+    if (activeTab === 'supporter') return renderSupporter();
     if (activeTab === 'features') return renderFeatures();
     if (activeTab === 'teams') return renderTeams();
     if (activeTab === 'petFood') return renderPetFoodTab();
@@ -800,6 +794,16 @@ export function initCompanion(): void {
     if (activeTab === 'journal') return renderJournal();
     if (activeTab === 'eggLuck') return renderEggLuck();
     return '';
+  }
+
+  /**
+   * Nothing here is sold and nothing is gated behind it - the link is the whole tab, kept on one of
+   * its own rather than tucked under a settings list where it would read as a prompt.
+   */
+  function renderSupporter() {
+    return `<p class="gc-note">If any of my mods or tools have saved you some time or helped improved quality of life and you feel like putting something in the tip jar, the link below is the place to do it, thank you</p>
+<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3><p>One-off or monthly, whatever suits. Thank you either way.</p></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
+<p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bugs and ideas are just as welcome as anything else.</p>`;
   }
 
   function renderFeatures() {

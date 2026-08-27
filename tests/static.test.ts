@@ -1481,3 +1481,8 @@ assert.doesNotMatch(weatherAlarmsSource, /feature\('weatherAlarms'\)/, 'the weat
 // from - and an entry admitted in a batch joins the set, so a batch holding it twice counts it once.
 assert.match(activityLogSource, /return `\$\{entry\.timestamp\}:\$\{hash\.toString\(36\)\}`;/, 'the seen window stores whole payloads again, which is 20KB a write');
 assert.match(activityLogSource, /known\.add\(id\);\s*return true;/, 'a duplicate inside one batch is counted twice');
+
+// The nav overflows once there are enough groups, so a redraw has to put both panes back where they
+// were - restoring only the content snapped the nav to the top while you reached for its last item.
+assert.match(companionSource, /const navTop = panel\?\.querySelector\('nav'\)\?\.scrollTop \?\? 0;[\s\S]*?if \(nav\) nav\.scrollTop = navTop;/, 'a redraw resets the nav scroll position');
+assert.doesNotMatch(companionSource, /const nextMain = panel\.querySelector\('main'\)/, 'the live refresh restores its own scroll again, missing the nav');
