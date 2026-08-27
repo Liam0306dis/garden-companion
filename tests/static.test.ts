@@ -1421,3 +1421,7 @@ assert.match(activityLogSource, /seenAtCursor = advanced === cursor \? new Set\(
 // Both stored lists are read at module load, where a throw would take the whole feature with it.
 assert.match(activityLogSource, /Array\.isArray\(savedSeen\)/, 'a non-array seen list throws at module load');
 assert.match(eggLuckSource, /Array\.isArray\(savedCollapsed\)/, 'a non-array collapse list throws at module load');
+
+// An egg the game adds after this build is tracked the moment it is hatched, so it has to be shown
+// too - a catalog-only walk would bank those hatches and never render them.
+assert.match(eggLuckSource, /Object\.keys\(luck\)\.filter\(eggId => !EGG_CATALOG\[eggId\]\)/, 'hatches from an egg newer than the baked catalog are collected but never shown');

@@ -3403,7 +3403,8 @@ ${rows}</div>`;
 <div class="gc-egg-pities">${pity}</div></div></section>`;
   }
   function renderEggLuck() {
-    const eggs = Object.keys(EGG_CATALOG).filter((eggId) => eggId !== "WinterEgg" || luck[eggId]?.hatches);
+    const known = Object.keys(EGG_CATALOG).filter((eggId) => eggId !== "WinterEgg" || luck[eggId]?.hatches);
+    const eggs = [...known, ...Object.keys(luck).filter((eggId) => !EGG_CATALOG[eggId])];
     const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
     return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own.</p>
 <section class="gc-card gc-egg-summary"><span><b>${hatched.toLocaleString(NUMBER_LOCALE)}</b> hatches recorded</span></section>
