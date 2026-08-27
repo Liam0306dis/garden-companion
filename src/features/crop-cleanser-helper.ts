@@ -1,6 +1,6 @@
 import { MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
-import { send } from '../game-connection.js';
+import { sendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
 import { heldToolCount, mutationSprite } from '../pets.js';
 import { state } from '../state.js';
@@ -177,7 +177,7 @@ function render(): void {
       return;
     }
     try {
-      send({ type: 'CropCleanser', tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
+      sendQuinoaCommand({ type: 'CropCleanser', tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
       cleansedRows.add(row.key);
       displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
       optimisticCountUntil = Date.now() + 2_000;

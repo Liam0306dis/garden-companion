@@ -1,7 +1,7 @@
 import type { Pet, ProduceItem } from '../types.js';
 import { config, saveConfig, feature } from '../config.js';
 import { PET_CATALOG } from '../constants.js';
-import { send } from '../game-connection.js';
+import { sendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
 import { activePets, allPets, heldProduce, heldToolCount, petDiet, petSprite, produceSprite, produceValue, useReplenishPotion } from '../pets.js';
@@ -99,7 +99,7 @@ function petFoodRows(): PetFoodRow[] {
 
 export function feedPet(petItemId: string, cropItemId: string): void {
   try {
-    send({ type: 'FeedPet', petItemId, cropItemId });
+    sendQuinoaCommand({ type: 'FeedPet', petItemId, cropItemId });
   } catch (error) {
     toast((error as Error).message, 'error');
   }

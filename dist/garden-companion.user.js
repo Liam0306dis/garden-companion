@@ -958,13 +958,13 @@
     const tile = petTile(petItemId);
     if (!tile) throw new Error("The pet position is not available yet. Try again in a moment.");
     send({ type: "PlayerPosition", position: tile });
-    send({ type: "XPPotion", petItemId });
+    sendQuinoaCommand({ type: "XPPotion", petItemId });
   }
   function useReplenishPotion(petItemId) {
     const tile = petTile(petItemId);
     if (!tile) throw new Error("The pet position is not available yet. Try again in a moment.");
     send({ type: "PlayerPosition", position: tile });
-    send({ type: "ReplenishPotion", petItemId });
+    sendQuinoaCommand({ type: "ReplenishPotion", petItemId });
   }
 
   // src/features/calculators.ts
@@ -2434,7 +2434,7 @@ ${groups}
   }
   function feedPet(petItemId, cropItemId) {
     try {
-      send({ type: "FeedPet", petItemId, cropItemId });
+      sendQuinoaCommand({ type: "FeedPet", petItemId, cropItemId });
     } catch (error) {
       toast(error.message, "error");
     }
@@ -2937,7 +2937,7 @@ ${groups}
     queued.delete(next.pending);
     if (next.rule.enabled()) {
       try {
-        send({ type: "PutItemInStorage", itemId: next.key, storageId: next.rule.storageId });
+        sendQuinoaCommand({ type: "PutItemInStorage", itemId: next.key, storageId: next.rule.storageId });
         sentAt.set(next.pending, Date.now());
       } catch {
       }
@@ -4328,13 +4328,13 @@ ${eggs.map(eggCard).join("")}`;
     return humanize(emblem.icon);
   }
   function setPetTeamEmblem(teamId, emblem) {
-    send({ type: "SetPetTeamEmblem", teamId, emblem });
+    sendQuinoaCommand({ type: "SetPetTeamEmblem", teamId, emblem });
   }
   function saveTeam(name, petIds, teamId = null) {
     if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
     if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
     const isCreate = !teamId;
-    send({ type: "SavePetTeam", teamId: teamId ?? crypto.randomUUID(), isCreate, name: name.trim(), petIds });
+    sendQuinoaCommand({ type: "SavePetTeam", teamId: teamId ?? crypto.randomUUID(), isCreate, name: name.trim(), petIds });
   }
   function closeTeamPicker() {
     teamPickerSelection = null;
@@ -4522,7 +4522,7 @@ ${eggs.map(eggCard).join("")}`;
     return `<span class="gc-team-pet${owned ? "" : " is-missing"}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
   }
   function applyPetTeam(teamId) {
-    const commit = () => send({ type: "ApplyPetTeam", teamId });
+    const commit = () => sendQuinoaCommand({ type: "ApplyPetTeam", teamId });
     if (activeTeamIds().includes(teamId)) commit();
     else runPetSwapToss(commit);
   }
@@ -4532,7 +4532,7 @@ ${eggs.map(eggCard).join("")}`;
     const target = index + offset;
     if (index < 0 || target < 0 || target >= order.length) return;
     pendingTeamOrder = order.map((team) => team.id).join(",");
-    send({ type: "MovePetTeam", movePetTeamId: teamId, toPetTeamIndex: target });
+    sendQuinoaCommand({ type: "MovePetTeam", movePetTeamId: teamId, toPetTeamIndex: target });
   }
   function renderTeams() {
     const full = teams().length >= MAX_PET_TEAMS;
@@ -4560,7 +4560,7 @@ ${eggs.map(eggCard).join("")}`;
   function requestTeamDelete(teamId) {
     pendingTeamDeleteId = teamId;
     confirmDeleteTeamId = null;
-    send({ type: "DeletePetTeam", teamId });
+    sendQuinoaCommand({ type: "DeletePetTeam", teamId });
   }
   function askDeleteConfirmation(teamId) {
     confirmDeleteTeamId = teamId;
@@ -12130,7 +12130,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         return;
       }
       try {
-        send({ type: "CropCleanser", tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
+        sendQuinoaCommand({ type: "CropCleanser", tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
         cleansedRows.add(row.key);
         displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
         optimisticCountUntil = Date.now() + 2e3;

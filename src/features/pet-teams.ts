@@ -3,7 +3,7 @@ import { runPetSwapToss } from './pet-swap-toss.js';
 import { abilityChips } from '../ability-chips.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, MAX_PET_TEAMS, MAX_TEAM_PETS, PET_CATALOG } from '../constants.js';
-import { send } from '../game-connection.js';
+import { sendQuinoaCommand } from '../game-connection.js';
 import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
@@ -53,7 +53,7 @@ function emblemLabel(emblem: PetTeamEmblem | null | undefined): string {
 }
 
 function setPetTeamEmblem(teamId: string, emblem: PetTeamEmblem): void {
-  send({ type: 'SetPetTeamEmblem', teamId, emblem });
+  sendQuinoaCommand({ type: 'SetPetTeamEmblem', teamId, emblem });
 }
 
 /**
@@ -67,7 +67,7 @@ export function saveTeam(name, petIds, teamId = null) {
   if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
   if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
   const isCreate = !teamId;
-  send({ type: 'SavePetTeam', teamId: teamId ?? crypto.randomUUID(), isCreate, name: name.trim(), petIds });
+  sendQuinoaCommand({ type: 'SavePetTeam', teamId: teamId ?? crypto.randomUUID(), isCreate, name: name.trim(), petIds });
 }
 
 export function closeTeamPicker(): void {
@@ -279,7 +279,7 @@ function teamMemberTile(member: { petId: string; petSpecies: string; name?: stri
  * twice should not cost a second of animation to change nothing.
  */
 export function applyPetTeam(teamId: string): void {
-  const commit = () => send({ type: 'ApplyPetTeam', teamId });
+  const commit = () => sendQuinoaCommand({ type: 'ApplyPetTeam', teamId });
   if (activeTeamIds().includes(teamId)) commit();
   else runPetSwapToss(commit);
 }
@@ -295,7 +295,7 @@ export function moveTeam(teamId: string, offset: number): void {
   const target = index + offset;
   if (index < 0 || target < 0 || target >= order.length) return;
   pendingTeamOrder = order.map(team => team.id).join(',');
-  send({ type: 'MovePetTeam', movePetTeamId: teamId, toPetTeamIndex: target });
+  sendQuinoaCommand({ type: 'MovePetTeam', movePetTeamId: teamId, toPetTeamIndex: target });
 }
 
 export function renderTeams(): string {
@@ -331,7 +331,7 @@ export function teamsSignature(): string {
 export function requestTeamDelete(teamId: string): void {
   pendingTeamDeleteId = teamId;
   confirmDeleteTeamId = null;
-  send({ type: 'DeletePetTeam', teamId });
+  sendQuinoaCommand({ type: 'DeletePetTeam', teamId });
 }
 
 export function askDeleteConfirmation(teamId: string | null): void {

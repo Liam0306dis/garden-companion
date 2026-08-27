@@ -1,7 +1,7 @@
 import type { Pet, ProduceItem } from './types.js';
 import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
 import { mutationMultiplier } from './mutation-value.js';
-import { send } from './game-connection.js';
+import { send, sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from './utils.js';
@@ -410,7 +410,7 @@ export function useXpPotion(petItemId: string): void {
   const tile = petTile(petItemId);
   if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
   send({ type: 'PlayerPosition', position: tile });
-  send({ type: 'XPPotion', petItemId });
+  sendQuinoaCommand({ type: 'XPPotion', petItemId });
 }
 
 /**
@@ -423,5 +423,5 @@ export function useReplenishPotion(petItemId: string): void {
   const tile = petTile(petItemId);
   if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
   send({ type: 'PlayerPosition', position: tile });
-  send({ type: 'ReplenishPotion', petItemId });
+  sendQuinoaCommand({ type: 'ReplenishPotion', petItemId });
 }

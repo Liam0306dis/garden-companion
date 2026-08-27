@@ -1,5 +1,5 @@
 import { feature } from '../config.js';
-import { send } from '../game-connection.js';
+import { sendQuinoaCommand } from '../game-connection.js';
 import { state } from '../state.js';
 
 /**
@@ -120,7 +120,7 @@ function drain(): void {
     // Marked only once it is away, so the grace covers waiting for the echo rather than the wait
     // in the queue behind everything else.
     try {
-      send({ type: 'PutItemInStorage', itemId: next.key, storageId: next.rule.storageId });
+      sendQuinoaCommand({ type: 'PutItemInStorage', itemId: next.key, storageId: next.rule.storageId });
       sentAt.set(next.pending, Date.now());
     } catch { /* nothing was sent, so nothing to hold back */ }
   }

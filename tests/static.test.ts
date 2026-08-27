@@ -62,6 +62,7 @@ const overviewSource = await readSource('src', 'features', 'garden-overview.ts')
 const plantDragSource = await readSource('src', 'features', 'plant-drag-move.ts');
 const planterPotSelectionSource = await readSource('src', 'features', 'planter-pot-selection.ts');
 const cropCleanserSource = await readSource('src', 'features', 'crop-cleanser-helper.ts');
+const petFoodSource = await readSource('src', 'features', 'pet-food.ts');
 const celestialLayoutSource = await readSource('src', 'celestial-layout.ts');
 const celestialGuideSource = await readSource('src', 'features', 'celestial-layout-guide.ts');
 const indexSource = await readSource('src', 'index.ts');
@@ -472,10 +473,10 @@ assert.match(indexSource, /initCelestialLayoutGuide\(\);/, 'celestial layout gui
 assert.match(indexSource, /initCropCleanserHelper\(\);/, 'Crop Cleanser helper is not installed');
 assert.match(companionSource, /data-open-crop-cleanser/, 'Crop Cleanser helper launcher is missing from Features');
 assert.match(cropCleanserSource, /Wet.*Chilled.*Frozen.*Thunderstruck.*Thundercharged.*Ambershine.*Dawnlit.*Ambercharged.*Dawncharged/s, 'Crop Cleanser mutation filters are incomplete');
-assert.match(cropCleanserSource, /send\(\{ type: 'CropCleanser', tileObjectIdx: live\.tileObjectIdx, growSlotIdx: live\.growSlotIdx \}\)/, 'Crop Cleanser request does not match the game protocol');
+assert.match(cropCleanserSource, /sendQuinoaCommand\(\{ type: 'CropCleanser', tileObjectIdx: live\.tileObjectIdx, growSlotIdx: live\.growSlotIdx \}\)/, 'Crop Cleanser request does not match the game protocol');
 assert.match(cropCleanserSource, /slot\.preserved === true/, 'Crop Cleanser helper lists preserved crop slots');
 assert.match(cropCleanserSource, /PLANT_CATALOG\[tile\.species \|\| ''\][\s\S]*plant\?\.regrows !== false[\s\S]*maturedAt > Date\.now\(\)/, 'Crop Cleanser helper does not match the native garden-object maturity gate');
-assert.match(cropCleanserSource, /liveRowMatches\(row\)[\s\S]*if \(!live\)[\s\S]*send\(\{ type: 'CropCleanser'/, 'Crop Cleanser target is not revalidated before sending');
+assert.match(cropCleanserSource, /liveRowMatches\(row\)[\s\S]*if \(!live\)[\s\S]*sendQuinoaCommand\(\{ type: 'CropCleanser'/, 'Crop Cleanser target is not revalidated before sending');
 assert.match(cropCleanserSource, /live\.startTime !== snapshot\.startTime/, 'Crop Cleanser replacement crops are not rejected');
 assert.match(cropCleanserSource, /removes all cleanseable weather mutations/, 'Crop Cleanser helper does not explain the native removal scope');
 assert.match(cropCleanserSource, /rowSnapshot = matchingRows\(\);[\s\S]*cleansedRows\.clear\(\)/, 'Crop Cleanser rows are not snapshotted per opening or filter');
@@ -606,7 +607,7 @@ assert.match(companionSource, /export const HUNGER_POTION = 'ReplenishPotion';/,
 assert.match(companionSource, /option\(HUNGER_POTION, potionsHeld\),/, 'every species must be offered the hunger potion');
 assert.match(companionSource, /return stored === HUNGER_POTION \|\| petDiet\(species\)\.includes\(stored\)/, 'a stored potion choice must survive the diet check');
 assert.match(companionSource, /if \(button\.dataset\.potion === 'true'\) \{[\s\S]*useReplenishPotion\(button\.dataset\.feedPet!\)/, 'the dock must spend a potion rather than feed it');
-assert.match(companionSource, /send\(\{ type: 'ReplenishPotion', petItemId \}\)/, 'the potion must be sent as the game names it');
+assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'ReplenishPotion', petItemId \}\)/, 'the potion must be sent as the game names it');
 assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss must be presented as Pokemon Mode');
 assert.match(companionSource, /\[4, 5\]\.includes\(Number\(room\.players_count\)\)/, 'rooms are not restricted to 4 or 5 players');
 assert.match(companionSource, /sort\(\(left, right\) => Number\(right\.players_count\) - Number\(left\.players_count\)\)/, '5-player rooms are not sorted above 4-player rooms');
@@ -708,7 +709,7 @@ assert.match(companionSource, /Press keys\.\.\. Esc cancels/, 'pet team key capt
 assert.match(companionSource, /pet\.name[\s\S]*pet\.petSpecies[\s\S]*ABILITY_DETAILS\[ability\]\?\.name[\s\S]*\.toLowerCase\(\)/, 'team pet filter does not include names, species, and abilities');
 assert.match(petTeamsSource, /bindListSearch\(picker\.querySelector\('\[data-team-search\]'\)\)/, 'team pet filter is not bound');
 // Team order drives the keybinds and the cycle shortcut, so it is worth being able to set.
-assert.match(petTeamsSource, /send\(\{ type: 'MovePetTeam', movePetTeamId: teamId, toPetTeamIndex: target \}\)/, 'teams cannot be reordered');
+assert.match(petTeamsSource, /sendQuinoaCommand\(\{ type: 'MovePetTeam', movePetTeamId: teamId, toPetTeamIndex: target \}\)/, 'teams cannot be reordered');
 assert.match(petTeamsSource, /if \(index < 0 \|\| target < 0 \|\| target >= order\.length\) return;/, 'a team can be moved outside the list');
 // The pointer is over the team list when the new order lands, which is when live refresh stands down.
 assert.match(petTeamsSource, /function refreshCompletedTeamMove[\s\S]*panelActions\.renderPanelPreservingScroll\(\)/, 'a reordered team list is not redrawn when the new order arrives');
@@ -776,7 +777,7 @@ assert.match(companionSource, /createLinearGradient\(minimum \/ 2, minimum \/ 2,
 assert.match(companionSource, /globalCompositeOperation = 'color'/, 'rainbow sprite rendering does not preserve luminosity');
 assert.match(companionSource, /globalCompositeOperation = 'destination-in'/, 'pet mutation rendering is not clipped to sprite transparency');
 assert.doesNotMatch(styleSource, /gc-pet-sprite\[data-overlay=/, 'legacy CSS pet mutation overlay remains');
-assert.match(companionSource, /send\(\{ type: 'FeedPet', petItemId, cropItemId \}\)/, 'pet food panel does not send the game feed command');
+assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'FeedPet', petItemId, cropItemId \}\)/, 'pet food panel does not send the game feed command');
 assert.match(companionSource, /petFood: true/, 'pet food panel is not enabled by default');
 assert.match(companionSource, /item\?\.itemType === 'Produce'/, 'held produce is not read from the inventory');
 assert.match(companionSource, /produceValue\(item\) > produceValue\(chosen\)/, 'feeding does not spend the most valuable matching crop');
@@ -809,7 +810,7 @@ assert.match(companionSource, /referrerpolicy="no-referrer"/, 'avatar requests l
 assert.match(companionSource, /data-open-team-picker/, 'team creation does not open the popout picker');
 assert.match(companionSource, /function openTeamPicker\(teamId: string \| null \| undefined\)/, 'team picker is missing');
 assert.doesNotMatch(petTeamsSource.slice(petTeamsSource.indexOf('export function renderTeams()'), petTeamsSource.indexOf('export function teamsSignature()')), /data-pet-id/, 'the pet chooser is still inline in the Pet Teams tab');
-assert.match(companionSource, /send\(\{ type: 'SetPetTeamEmblem', teamId, emblem \}\)/, 'team emblems are not saved to the game');
+assert.match(petTeamsSource, /sendQuinoaCommand\(\{ type: 'SetPetTeamEmblem', teamId, emblem \}\)/, 'team emblems are not saved to the game');
 assert.match(companionSource, /if \(expected\.emblem && emblemKey\(expected\.emblem\) !== emblemKey\(saved\.emblem\)\) setPetTeamEmblem\(saved\.id, expected\.emblem\)/, 'a new team emblem is not applied once the game assigns an id');
 assert.match(companionSource, /const EMBLEM_ICONS = \['rainbow', 'gold', 'thunder', 'dawn', 'amber', 'wet', 'chilled', 'frozen', 'coin', 'egg'\]/, 'emblem icon list is incomplete');
 assert.match(companionSource, /Array\.from\(\{ length: 26 \}, \(_, index\) => String\.fromCharCode\(65 \+ index\)\)/, 'emblem letters do not cover A to Z');
@@ -1369,7 +1370,7 @@ console.log('Static checks passed');
 assert.match(autoStoreSource, /if \(!key \|\| !stored\.has\(key\)\) continue;/, 'auto-store files items the storage has never held');
 assert.match(autoStoreSource, /storageId: 'SeedSilo', itemType: 'Seed', key: item => item\.species/, 'the seed silo rule no longer keys on species');
 assert.match(autoStoreSource, /storageId: 'DecorShed', itemType: 'Decor', key: item => item\.decorId/, 'the decor shed rule no longer keys on decor id');
-assert.match(autoStoreSource, /send\(\{ type: 'PutItemInStorage', itemId: next\.key, storageId: next\.rule\.storageId \}\)/, 'auto-store no longer sends the command the game sends');
+assert.match(autoStoreSource, /sendQuinoaCommand\(\{ type: 'PutItemInStorage', itemId: next\.key, storageId: next\.rule\.storageId \}\)/, 'auto-store no longer sends the command the game sends');
 // A whole inventory of eligible items must not leave as one burst, and the toggle can be turned
 // off while the queue is still draining.
 assert.match(autoStoreSource, /drainTimer = window\.setTimeout\(\(\) => \{ drainTimer = 0; drain\(\); \}, SEND_INTERVAL_MS\);/, 'auto-store sends every eligible move in one tick');
@@ -1377,7 +1378,7 @@ assert.match(autoStoreSource, /if \(next\.rule\.enabled\(\)\) \{/, 'a draining q
 assert.match(autoStoreSource, /if \(sentAt\.has\(pending\) \|\| queued\.has\(pending\)\) continue;/, 'auto-store resends a move before the server has echoed it');
 // The grace has to start when the move leaves, not when it joins the queue: a queue longer than the
 // grace would otherwise let the same key be queued twice.
-assert.match(autoStoreSource, /send\(\{ type: 'PutItemInStorage', itemId: next\.key, storageId: next\.rule\.storageId \}\);\s*sentAt\.set\(next\.pending, Date\.now\(\)\);/, 'the resend grace starts before the move is sent');
+assert.match(autoStoreSource, /sendQuinoaCommand\(\{ type: 'PutItemInStorage', itemId: next\.key, storageId: next\.rule\.storageId \}\);\s*sentAt\.set\(next\.pending, Date\.now\(\)\);/, 'the resend grace starts before the move is sent');
 // Patches arrive whatever the player is doing, so an item the server will not accept must not be
 // sent again every few seconds forever.
 assert.match(autoStoreSource, /if \(signature === lastQueuedSignature\) return;/, 'auto-store retries a stuck item for as long as the tab is open');
@@ -1596,3 +1597,18 @@ assert.match(petTeamsSource, /teamId: teamId \?\? crypto\.randomUUID\(\), isCrea
 assert.doesNotMatch(planterPotSelectionSource, /myPossiblyNoLongerValidSelectedItemIndexAtom/, 'the keeper requires a write on a derived atom, so it never installs');
 // Our own restore makes the selection read as the pot again, so the index reported at that moment
 // belongs to the new plant - recording it then would overwrite the pot's own slot.
+
+// Build 1029 sends all of these inside the QuinoaCommand envelope, and only PlayerPosition bare.
+// Matching that keeps them predicted client-side, and keeps working when the legacy shape is
+// withdrawn - the devs have said it will be.
+for (const [file, source] of [
+  ['auto-store', autoStoreSource],
+  ['crop-cleanser-helper', cropCleanserSource],
+  ['pet-food', petFoodSource],
+  ['pet-teams', petTeamsSource],
+]) {
+  assert.doesNotMatch(source, /(?<!sendQuinoa)[^A-Za-z]send\(\{ type: '/, `${file} sends a bare command the game now wraps`);
+}
+// PlayerPosition is the exception: the game sends it bare too, and it takes no sequence number.
+assert.match(petsSource, /send\(\{ type: 'PlayerPosition', position: tile \}\)/, 'PlayerPosition is wrapped, which the game does not do');
+assert.doesNotMatch(petsSource, /send\(\{ type: '(XPPotion|ReplenishPotion)'/, 'a potion is sent bare while the game wraps it');
