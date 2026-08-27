@@ -13,18 +13,18 @@ import { escapeHtml, humanize } from '../utils.js';
  * aimed at a protected crop is dropped before it leaves, which is the only place that catches every
  * route into a harvest - the game's own button, its hotkey, and a stray click alike.
  *
- * Gold and Rainbow are deliberately absent from the mutation list: the game already guards those
- * behind its own press and hold, so protecting them here would only add a second nag.
+ * Gold and Rainbow are offered alongside the rest. The game guards those behind a press and hold of
+ * its own, but a hold is still something a slip can complete, and these are the two crops least
+ * worth losing that way, so anyone who wants them locked outright can have it.
  */
 
-/** Colour mutations are the game's own Growth group, which is Gold and Rainbow. */
 function protectableMutations(): string[] {
-  return Object.keys(MUTATION_CATALOG).filter(id => MUTATION_CATALOG[id]?.group !== 'Growth');
+  return Object.keys(MUTATION_CATALOG);
 }
 
 function protectedMutations(): Set<string> {
   const saved = Array.isArray(config.protectedMutations) ? config.protectedMutations : [];
-  return new Set(saved.filter(id => MUTATION_CATALOG[id]?.group !== 'Growth'));
+  return new Set(saved.filter(id => MUTATION_CATALOG[id]));
 }
 
 function protectedSpecies(): Record<string, boolean> {
@@ -123,7 +123,7 @@ export function renderCropProtection(): string {
   const mutations = protectedMutations();
   const species = protectedSpecies();
   // Max size sits with the mutations rather than above them: it is the same kind of rule, and the
-  // nine protectable mutations plus this one fill the two column grid exactly.
+  // eleven protectable mutations plus this one fill the two column grid exactly.
   const mutationRows = protectableMutations().map(id => {
     const sprite = mutationSprite(id);
     const name = MUTATION_CATALOG[id]?.name || humanize(id);
@@ -144,7 +144,7 @@ export function renderCropProtection(): string {
       const where = owned.has(id) ? 'In your garden' : '';
       return `<label class="gc-check" data-filter-text="${escapeHtml(`${plantName(id)} ${id}`.toLowerCase())}"><input type="checkbox" data-protect-species="${escapeHtml(id)}" ${species[id] === true ? 'checked' : ''}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small>${where}</small></span></label>`;
     }).join('');
-  return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Gold and Rainbow are left out on purpose - the game already asks you to hold the button for those. Crop Protection and the instant harvest key cannot both be on.</p>
+  return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Ticking Gold or Rainbow locks them outright, rather than leaving them on the game's own press and hold. Crop Protection and the instant harvest key cannot both be on.</p>
 <div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Block harvest commands aimed at a protected crop</small></span><input type="checkbox" data-protect-enabled ${on ? 'checked' : ''}><i></i></label></div>
 <section class="gc-card"><div class="gc-row"><h3>Mutations and size</h3></div><p class="gc-note">A crop matching any of these stays protected even when its species is switched off below.</p><div class="gc-check-grid">${mutationRows}</div></section>
 <section class="gc-card"><div class="gc-row"><h3>Species</h3></div><input class="gc-search" data-protect-search placeholder="Search plants"><div class="gc-check-grid gc-filter-list">${speciesRows}</div></section>`;

@@ -869,8 +869,9 @@ assert.match(protectionSource, /else delete next\[input\.dataset\.protectSpecies
 assert.match(configSource, /\.filter\(\(\[, on\]\) => on === true\)/, 'unticked species are no longer pruned');
 assert.match(configSource, /!PET_CATALOG\[species\] \|\| PET_CATALOG\[species\]\.diet\?\.includes\(crop\)/, 'a pet food choice is dropped for a species newer than the baked catalog');
 assert.doesNotMatch(configSource, /PLANT_CATALOG\[species\]/, 'pruning drops species the baked catalog has not caught up with');
-assert.doesNotMatch(protectionSource, /'Gold'|'Rainbow'/, 'Gold and Rainbow are protected despite having their own hold to harvest');
-assert.match(protectionSource, /MUTATION_CATALOG\[id\]\?\.group !== 'Growth'/, 'the colour mutations are no longer excluded from protection');
+// Gold and Rainbow are offered like any other mutation, so nothing may filter the group back out.
+assert.doesNotMatch(protectionSource, /group !== 'Growth'/, 'the colour mutations are excluded from protection again');
+assert.match(protectionSource, /function protectableMutations\(\): string\[\] \{\s*return Object\.keys\(MUTATION_CATALOG\);/, 'the mutation list no longer offers the whole catalog');
 // Mutations and size are checked before the species list so an unticked species cannot expose them.
 assert.match(protectionSource, /if \(matched\) return MUTATION_CATALOG[\s\S]*return 'max size';[\s\S]*if \(protectedSpecies\(\)\[species\] === true\)/, 'species protection no longer comes after the mutation rules');
 assert.match(estimatesSource, /return protectionReason\(crop, crop\.species \|\| ''\) \? \[LOCK\] : \[\];/, 'the crop card padlock says more than that the crop is locked');
