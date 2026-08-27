@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.24
+// @version      0.8.25
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -401,10 +401,10 @@
     const target = objectConstructor;
     if (target.__gardenCompanionCatalogHook) return;
     const previous = objectConstructor.keys;
-    const seen2 = /* @__PURE__ */ new WeakSet();
+    const seen3 = /* @__PURE__ */ new WeakSet();
     function scan(value, depth) {
-      if (!isObject(value) || seen2.has(value)) return;
-      seen2.add(value);
+      if (!isObject(value) || seen3.has(value)) return;
+      seen3.add(value);
       let keys;
       try {
         keys = previous(value);
@@ -646,8 +646,8 @@
     const active = (data.petSlots || []).map((pet) => ({ ...pet, location: "Active" }));
     const inventory = (data.inventory?.items || []).filter((item) => item.itemType === "Pet").map((pet) => ({ ...pet, location: "Inventory" }));
     const stored = (data.inventory?.storages || []).flatMap((storage) => (storage.items || []).filter((item) => item.itemType === "Pet").map((pet) => ({ ...pet, location: humanize(storage.decorId || "Storage") })));
-    const seen2 = /* @__PURE__ */ new Set();
-    return [...active, ...inventory, ...stored].filter((pet) => pet.id && !seen2.has(pet.id) && seen2.add(pet.id));
+    const seen3 = /* @__PURE__ */ new Set();
+    return [...active, ...inventory, ...stored].filter((pet) => pet.id && !seen3.has(pet.id) && seen3.add(pet.id));
   }
   function activePets() {
     return state.slot?.data?.petSlots || [];
@@ -1586,11 +1586,11 @@ ${groups}
     const found = /* @__PURE__ */ new Map();
     const wanted = new Set(labels);
     const stack = [surface.stage];
-    const seen2 = /* @__PURE__ */ new WeakSet();
+    const seen3 = /* @__PURE__ */ new WeakSet();
     while (stack.length) {
       const node = stack.pop();
-      if (!node || typeof node !== "object" || seen2.has(node) || !pixiNodeVisible(node)) continue;
-      seen2.add(node);
+      if (!node || typeof node !== "object" || seen3.has(node) || !pixiNodeVisible(node)) continue;
+      seen3.add(node);
       if (typeof node.label === "string" && wanted.has(node.label) && !found.has(node.label)) found.set(node.label, node);
       if (found.size === wanted.size) break;
       if (Array.isArray(node.children)) stack.push(...node.children);
@@ -1647,11 +1647,11 @@ ${groups}
       const surface = pixiSurface();
       if (!surface) return null;
       const stack = [surface.stage];
-      const seen2 = /* @__PURE__ */ new WeakSet();
+      const seen3 = /* @__PURE__ */ new WeakSet();
       while (stack.length) {
         const node = stack.pop();
-        if (!node || typeof node !== "object" || seen2.has(node)) continue;
-        seen2.add(node);
+        if (!node || typeof node !== "object" || seen3.has(node)) continue;
+        seen3.add(node);
         if (predicate(node)) return node;
         if (Array.isArray(node.children)) stack.push(...node.children);
       }
@@ -3226,9 +3226,9 @@ ${groups}
   function variantChip(variant, kind, logged, at) {
     const label = variantLabel(variant, kind);
     const sprite = page.__gardenCompanionMutationSprites?.[variant];
-    const seen2 = logged && at ? `
+    const seen3 = logged && at ? `
 Found at ${new Date(at).toLocaleDateString()}` : "";
-    const title = `${label}${logged ? "" : " - not logged"}${seen2}`;
+    const title = `${label}${logged ? "" : " - not logged"}${seen3}`;
     const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(variant === "Max Weight" ? "MAX" : label.slice(0, 1))}</b>`;
     return `<span class="gc-journal-chip" data-logged="${logged}" title="${escapeHtml(title)}">${inner}</span>`;
   }
@@ -3532,34 +3532,42 @@ ${eggs.map(eggCard).join("")}`;
   }
 
   // src/activity-log.ts
-  var SEEN_KEY = "gardenCompanion.activityCursorSeen";
+  var SEEN_KEY = "gardenCompanion.activitySeen";
+  var SEEN_LIMIT = 64;
+  var LATE_GRACE_MS = 10 * 6e4;
   var savedSeen = loadLocal(SEEN_KEY, []);
-  var seenAtCursor = new Set(Array.isArray(savedSeen) ? savedSeen.filter((entry) => typeof entry === "string") : []);
+  var seen2 = Array.isArray(savedSeen) ? savedSeen.filter((entry) => typeof entry === "string") : [];
   function signature(entry) {
+    let text;
     try {
-      return `${entry.action}|${entry.timestamp}|${JSON.stringify(entry.parameters ?? {})}`;
+      text = `${entry.action}|${entry.timestamp}|${JSON.stringify(entry.parameters ?? {})}`;
     } catch {
-      return `${entry.action}|${entry.timestamp}`;
+      text = `${entry.action}|${entry.timestamp}`;
     }
+    let hash = 5381;
+    for (let index = 0; index < text.length; index++) hash = (hash * 33 ^ text.charCodeAt(index)) >>> 0;
+    return `${entry.timestamp}:${hash.toString(36)}`;
   }
   function processActivityLog() {
     const entries = state.slot?.data?.activityLogs;
     if (!Array.isArray(entries)) return;
     const cursor = state.activityCursor;
+    const known = new Set(seen2);
     const fresh = entries.filter((entry) => {
       const at = Number(entry?.timestamp);
-      if (!Number.isFinite(at) || at < cursor) return false;
-      return at > cursor || !seenAtCursor.has(signature(entry));
-    }).sort((left, right) => left.timestamp - right.timestamp);
+      if (!Number.isFinite(at) || at < cursor - LATE_GRACE_MS) return false;
+      const id = signature(entry);
+      if (known.has(id)) return false;
+      known.add(id);
+      return true;
+    }).sort((left, right) => Number(left.timestamp) - Number(right.timestamp));
     if (!fresh.length) return;
     if (feature("abilities")) recordAbilityActivities(fresh);
     recordEggHatches(fresh);
-    const advanced = Math.max(cursor, ...fresh.map((entry) => Number(entry.timestamp) || 0));
-    const ties = fresh.filter((entry) => Number(entry.timestamp) === advanced).map(signature);
-    seenAtCursor = advanced === cursor ? /* @__PURE__ */ new Set([...seenAtCursor, ...ties]) : new Set(ties);
-    state.activityCursor = advanced;
-    localStorage.setItem("gardenCompanion.activityCursor", String(advanced));
-    saveLocal(SEEN_KEY, [...seenAtCursor]);
+    seen2 = [...seen2, ...fresh.map(signature)].slice(-SEEN_LIMIT);
+    state.activityCursor = Math.max(cursor, ...fresh.map((entry) => Number(entry.timestamp) || 0));
+    localStorage.setItem("gardenCompanion.activityCursor", String(state.activityCursor));
+    saveLocal(SEEN_KEY, seen2);
   }
 
   // src/features/rooms.ts
@@ -5895,12 +5903,12 @@ ${eggs.map(eggCard).join("")}`;
     try {
       const stored = JSON.parse(localStorage.getItem(FOCUS_PRESETS_KEY) || "[]");
       if (!Array.isArray(stored)) return [];
-      const seen2 = /* @__PURE__ */ new Set();
+      const seen3 = /* @__PURE__ */ new Set();
       return stored.flatMap((entry) => {
         const row = entry;
         const name = typeof row?.name === "string" ? row.name.trim().slice(0, PRESET_NAME_LIMIT) : "";
-        if (!name || seen2.has(name)) return [];
-        seen2.add(name);
+        if (!name || seen3.has(name)) return [];
+        seen3.add(name);
         return [{ name, config: presetConfigOf({ ...focusDefaults(), ...row?.config ?? {} }) }];
       }).slice(0, PRESET_LIMIT);
     } catch {
@@ -5929,14 +5937,14 @@ ${eggs.map(eggCard).join("")}`;
     function restoreAll() {
       [...managed].forEach(restore);
     }
-    function fade(display, opacity, seen2) {
+    function fade(display, opacity, seen3) {
       if (!display) return;
       if (!originalAlpha.has(display)) originalAlpha.set(display, Number.isFinite(display.alpha) ? display.alpha : 1);
       managed.add(display);
       const alpha = (originalAlpha.get(display) ?? 1) * opacity;
       desiredAlpha.set(display, alpha);
       display.alpha = alpha;
-      seen2.add(display);
+      seen3.add(display);
     }
     function enforce(display) {
       if (!display || !managed.has(display)) return;
@@ -6066,7 +6074,7 @@ ${eggs.map(eggCard).join("")}`;
         restoreAll();
         return;
       }
-      const seen2 = /* @__PURE__ */ new Set();
+      const seen3 = /* @__PURE__ */ new Set();
       const now = Date.now();
       views.forEach((view, globalIndex) => {
         const dirt = typeof dirtMap.get === "function" ? dirtMap.get(globalIndex) : dirtMap[globalIndex];
@@ -6077,21 +6085,21 @@ ${eggs.map(eggCard).join("")}`;
         const crops = plantVisual?.getCropVisuals?.() || [];
         armView(view);
         if (Number(tile.maturedAt ?? 0) > now) {
-          fade(plantVisual?.container, config2.opacity, seen2);
-          crops.forEach((crop) => fade(cropContainer(crop), config2.opacity, seen2));
+          fade(plantVisual?.container, config2.opacity, seen3);
+          crops.forEach((crop) => fade(cropContainer(crop), config2.opacity, seen3));
           return;
         }
         const visible = new Map(slots.map((slot) => [slot.slotId, matches(tile, slot, config2)]));
         if (![...visible.values()].some(Boolean)) {
-          fade(plantVisual?.container, config2.opacity, seen2);
+          fade(plantVisual?.container, config2.opacity, seen3);
           crops.forEach((crop) => restore(cropContainer(crop)));
         } else {
           restore(plantVisual?.container);
-          crops.forEach((crop) => visible.get(crop?.slotId) === false ? fade(cropContainer(crop), config2.opacity, seen2) : restore(cropContainer(crop)));
+          crops.forEach((crop) => visible.get(crop?.slotId) === false ? fade(cropContainer(crop), config2.opacity, seen3) : restore(cropContainer(crop)));
         }
       });
       [...managed].forEach((display) => {
-        if (!seen2.has(display)) restore(display);
+        if (!seen3.has(display)) restore(display);
       });
     }
     setInterval(apply, 600);
@@ -11066,7 +11074,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         if (!except.has(display)) restoreStyle(display);
       });
     }
-    function stylePlant(tile, tint, alpha, seen2) {
+    function stylePlant(tile, tint, alpha, seen3) {
       const view = tileSystem()?.tileViews?.get?.(tile.globalIndex);
       const display = view?.childView?.plantVisual?.container;
       if (!display || display.destroyed) return;
@@ -11080,7 +11088,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       display.tint = tint;
       display.alpha = original.alpha * alpha;
       styled.add(display);
-      seen2.add(display);
+      seen3.add(display);
     }
     function tileElement(root, localIndex) {
       let element = root.querySelector(`[data-celestial-tile="${CSS.escape(localIndex)}"]`);
