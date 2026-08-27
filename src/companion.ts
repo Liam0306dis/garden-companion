@@ -36,6 +36,7 @@ import {
 } from './features/ability-log.js';
 import { processAutoStore } from './features/auto-store.js';
 import { noteWeatherChange } from './features/weather-timer.js';
+import { bindWeatherAlarmEvents, processWeatherAlarms, renderWeatherAlarms, weatherAlarmSignature } from './features/weather-alarms.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
 import { bindEggLuckEvents, eggLuckSignature, renderEggLuck } from './features/egg-luck.js';
@@ -300,6 +301,7 @@ export function initCompanion(): void {
       processPetHunger();
       processAutoStore();
       noteWeatherChange();
+      processWeatherAlarms();
       renderPetFood();
       refreshTeamActiveMarkers();
       refreshOpenPanel();
@@ -675,7 +677,7 @@ export function initCompanion(): void {
     return Boolean(scrollable?.matches(':hover'));
   }
 
-  const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal', 'eggLuck'];
+  const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal', 'eggLuck', 'weatherAlarms'];
   let lastTabSignature = '';
   let refreshPending = false;
 
@@ -684,6 +686,7 @@ export function initCompanion(): void {
     if (activeTab === 'calculators') return calculatorsSignature();
     if (activeTab === 'journal') return journalSignature();
     if (activeTab === 'eggLuck') return eggLuckSignature();
+    if (activeTab === 'weatherAlarms') return weatherAlarmSignature();
     if (activeTab === 'petFood') {
       const counts = new Map<string, number>();
       for (const item of heldProduce()) counts.set(item.species, (counts.get(item.species) || 0) + 1);
@@ -723,7 +726,7 @@ export function initCompanion(): void {
   const TAB_GROUPS: Array<[string, Array<[string, string, string?]>]> = [
     ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food'], ['eggLuck', 'Egg Luck', 'Eggs']]],
     ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
-    ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['silence', 'Ignore Alerts', 'Ignored']]],
+    ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
     ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
   ];
@@ -791,6 +794,7 @@ export function initCompanion(): void {
     if (activeTab === 'abilityLog') return renderAbilityLog();
     if (activeTab === 'rooms') return renderRooms();
     if (activeTab === 'shops') return renderShops();
+    if (activeTab === 'weatherAlarms') return renderWeatherAlarms();
     if (activeTab === 'silence') return renderSilence();
     if (activeTab === 'protection') return renderCropProtection();
     if (activeTab === 'journal') return renderJournal();
@@ -882,6 +886,7 @@ export function initCompanion(): void {
     bindPetFoodEvents(main);
     bindAbilityLogEvents(main);
     bindShopEvents(main);
+    bindWeatherAlarmEvents(main);
     bindJournalEvents(main);
     bindEggLuckEvents(main);
     bindCropProtectionEvents(main);

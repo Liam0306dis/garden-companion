@@ -32,6 +32,7 @@ export const DEFAULTS: CompanionConfig = {
   silencedAbilities: [],
   trackedAbilities: [...ABILITY_CATALOG],
   shopAlerts: {},
+  weatherAlerts: {},
   petFoodChoices: {},
   teamKeybinds: {},
   interfaceKeybinds: {},

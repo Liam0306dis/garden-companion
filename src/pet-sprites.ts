@@ -102,6 +102,18 @@ function shopSpriteCandidates(group: string, itemId: string): string[] {
 const MUTATION_ICON_CANDIDATES = Object.fromEntries(Object.entries(__MUTATION_CATALOG__)
   .map(([id, mutation]) => [id, `sprite/ui/Mutation${mutation.sprite}`]));
 
+/**
+ * The icon the game draws for each weather in its own interface, which is the only artwork it has
+ * for them - a weather grants a mutation but is not one, so the mutation icons name the wrong thing.
+ */
+const WEATHER_ICON_CANDIDATES: Record<string, string> = {
+  Rain: 'sprite/ui/RainIcon',
+  Frost: 'sprite/ui/FrostIcon',
+  Thunderstorm: 'sprite/ui/ThunderstormIcon',
+  Dawn: 'sprite/ui/DawnIcon',
+  AmberMoon: 'sprite/ui/AmberMoonIcon',
+};
+
 const EMBLEM_ICON_SPRITES: Record<string, string> = {
   rainbow: 'MutationRainbow', gold: 'MutationGold', thunder: 'MutationThundercharged',
   dawn: 'MutationDawnlit', amber: 'MutationAmberlit', wet: 'MutationWet',
@@ -613,6 +625,7 @@ export async function initPetSprites(): Promise<void> {
     if (bundle.plant) page.__gardenCompanionPlantSprites = { ...page.__gardenCompanionPlantSprites, ...bundle.plant };
     if (bundle.emblem) page.__gardenCompanionEmblemSprites = { ...page.__gardenCompanionEmblemSprites, ...bundle.emblem };
     if (bundle.mutation) page.__gardenCompanionMutationSprites = { ...page.__gardenCompanionMutationSprites, ...bundle.mutation };
+    if (bundle.weather) page.__gardenCompanionWeatherSprites = { ...page.__gardenCompanionWeatherSprites, ...bundle.weather };
     page.__gardenCompanionPetSpritesReady?.();
   }
 
@@ -679,6 +692,7 @@ export async function initPetSprites(): Promise<void> {
         ...Object.values(plantCandidates).flat().map(normaliseKey),
         ...Object.values(emblemCandidates).map(normaliseKey),
         ...Object.values(MUTATION_ICON_CANDIDATES).map(normaliseKey),
+        ...Object.values(WEATHER_ICON_CANDIDATES).map(normaliseKey),
         ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
       ]),
     };
@@ -698,6 +712,7 @@ export async function initPetSprites(): Promise<void> {
       plant: mapFrom(plantCandidates, trimmed),
       emblem: mapFrom(Object.fromEntries(Object.entries(emblemCandidates).map(([icon, candidate]) => [icon, [candidate]])), trimmed),
       mutation: mapFrom(Object.fromEntries(Object.entries(MUTATION_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
+      weather: mapFrom(Object.fromEntries(Object.entries(WEATHER_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
     };
   }
 

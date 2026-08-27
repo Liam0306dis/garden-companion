@@ -1,5 +1,5 @@
 import type { CompanionAlarmOptions } from './types.js';
-import { feature } from './config.js';
+import { config, feature } from './config.js';
 import { page } from './page.js';
 import { escapeHtml } from './utils.js';
 
@@ -129,7 +129,9 @@ export function showAlarmBanner(options: CompanionAlarmOptions): void {
  */
 export function installAlarms(): void {
   // Any feature that can raise a banner has to arm the audio, or its alarm shows up silent.
-  const wantsAlarms = () => feature('shopAlarms') || feature('petHungerAlarm');
+  // Read straight off the config rather than through the weather module, which imports this one.
+  const wantsAlarms = () => feature('shopAlarms') || feature('petHungerAlarm')
+    || Object.values(config.weatherAlerts || {}).some(Boolean);
   page.addEventListener('pointerdown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);
   page.addEventListener('keydown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);
   page.__gardenCompanionArmAlarm = armAlarmAudio;

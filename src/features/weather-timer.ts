@@ -72,14 +72,16 @@ export function noteWeatherChange(): void {
 }
 let pointer = { x: -1, y: -1 };
 
-function currentWeather(): string {
+export function currentWeather(): string {
   return state.game?.weather || '';
 }
 
-function weatherLabel(): string {
-  const weather = currentWeather();
+export function weatherLabel(weather = currentWeather()): string {
   return WEATHER_NAMES[weather] ?? humanize(weather);
 }
+
+/** Every weather the game runs, in the order its own tables list them. */
+export const WEATHER_TYPES = Object.keys(WEATHER_NAMES);
 
 const SLOT_MS = 5 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -150,6 +152,19 @@ function remaining(now: number): { low: number; high: number } {
   // than assumed from the clock. Rain ends on that boundary or the one after it.
   const toBoundary = nextBoundaryMs(now);
   return { low: toBoundary, high: toBoundary + SLOT_MS };
+}
+
+/**
+ * How long the running weather has left, phrased as the tooltip phrases it. Rain is scheduled at
+ * random and has no shop counter, so when it started before we arrived the answer is a pair of
+ * possible ends rather than one.
+ */
+export function weatherRemainingText(): string {
+  const { low, high } = remaining(Date.now());
+  // Whole minutes, unlike the tooltip: this one is read from a panel that redraws when it changes,
+  // and a ticking seconds field would rebuild the tab every second to move a digit.
+  const minutes = (ms: number) => `${Math.max(1, Math.ceil(ms / 60_000))}m`;
+  return low === high ? `${minutes(low)} left` : `${minutes(low)} or ${minutes(high)} left`;
 }
 
 /**

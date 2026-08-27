@@ -159,6 +159,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionPlantSprites?: Record<string, string>;
   __gardenCompanionEmblemSprites?: Record<string, string>;
   __gardenCompanionMutationSprites?: Record<string, string>;
+  __gardenCompanionWeatherSprites?: Record<string, string>;
   __gardenCompanionFarmSystems?: FarmSystems;
   __gardenCompanionTogglePlanner?: () => void;
   __gardenCompanionToggleOverview?: () => void;
@@ -242,6 +243,7 @@ export interface CompanionConfig {
   silencedAbilities: string[];
   trackedAbilities: string[];
   shopAlerts: Record<string, boolean>;
+  weatherAlerts: Record<string, boolean>;
   petFoodChoices: Record<string, string>;
   teamKeybinds: Record<string, string>;
   interfaceKeybinds: Record<string, string>;

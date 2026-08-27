@@ -69,6 +69,7 @@ const petSpriteSource = await readSource('src', 'pet-sprites.ts');
 const petSpriteInjector = await readSource('src', 'pet-sprites-injector.ts');
 const eggLuckSource = await readSource('src', 'features', 'egg-luck.ts');
 const cropEstimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
+const weatherAlarmsSource = await readSource('src', 'features', 'weather-alarms.ts');
 const activityLogSource = await readSource('src', 'activity-log.ts');
 const buildSource = await readSource('scripts', 'build.ts');
 const plannerSource = await readSource('src', 'features', 'garden-planner.ts');
@@ -544,7 +545,7 @@ assert.match(companionSource, /return pets\.length > 0 && pets\.every\(petIsStar
 assert.match(companionSource, /const hunger = Number\(pet\?\.hunger\);\s*return Number\.isFinite\(hunger\) && hunger <= 0;/, 'absent hunger data must not count as starving');
 assert.match(companionSource, /if \(hungerAlarmRaised\) return;\s*hungerAlarmRaised = true;/, 'the hunger alarm must fire once per starvation, not per state update');
 assert.match(companionSource, /if \(!starving\) \{\s*if \(hungerAlarmRaised\) \{ stopAlarm\(HUNGER_ALARM_OWNER\); hungerAlarmRaised = false; \}/, 'feeding a pet must clear and re-arm the hunger alarm');
-assert.match(companionSource, /const wantsAlarms = \(\) => feature\('shopAlarms'\) \|\| feature\('petHungerAlarm'\)/, 'every alarm feature must arm the audio, or its alarm is silent');
+assert.match(companionSource, /const wantsAlarms = \(\) => feature\('shopAlarms'\) \|\| feature\('petHungerAlarm'\)\s*\|\| Object\.values\(config\.weatherAlerts \|\| \{\}\)\.some\(Boolean\)/, 'every alarm feature must arm the audio, or its alarm is silent');
 assert.match(companionSource, /if \(input\.dataset\.feature === 'petHungerAlarm'\) processPetHunger\(\)/, 'switching the hunger alarm on must check immediately');
 assert.match(companionSource, /data-feature="petHungerAlarm"/, 'the hunger alarm toggle must live on the Active Pets tab');
 // Stop must hold until a pet is fed, so the banner needs no action of its own.
@@ -552,7 +553,7 @@ assert.doesNotMatch(companionSource, /actionLabel: 'Open Pet Food'/, 'the hunger
 // Tabs live in named groups now; TABS is still the flat order the header title resolves against.
 assert.match(companionSource, /\['Pets', \[\['abilities', 'Active Pets', 'Active'\], \['abilityLog', 'Pet Abilities', 'Abilities'\], \['teams', 'Pet Teams', 'Teams'\], \['petFood', 'Pet Food', 'Food'\], \['eggLuck', 'Egg Luck', 'Eggs'\]\]\]/, 'tab order is incorrect');
 assert.match(companionSource, /\['Crops', \[\['protection', 'Crop Protection', 'Protection'\], \['journal', 'Journal'\]\]\]/, 'crop tabs must be grouped together');
-assert.match(companionSource, /\['Alerts', \[\['shops', 'Shop Alarms', 'Shops'\], \['silence', 'Ignore Alerts', 'Ignored'\]\]\]/, 'alert tabs must be grouped together');
+assert.match(companionSource, /\['Alerts', \[\['shops', 'Shop Alarms', 'Shops'\], \['weatherAlarms', 'Weather Alarms', 'Weather'\], \['silence', 'Ignore Alerts', 'Ignore abilities'\]\]\]/, 'alert tabs must be grouped together');
 assert.match(companionSource, /const TABS = TAB_GROUPS\.flatMap\(\(\[, tabs\]\) => tabs\)/, 'the flat tab list must come from the groups');
 // The panel title takes the full name; only the nav uses the shortened one.
 assert.match(companionSource, /tabs\.map\(\(\[id, title, navLabel\]\) =>[^)]*\$\{navLabel \?\? title\}/, 'the nav must prefer the short label and fall back to the full one');
@@ -750,7 +751,7 @@ assert.match(companionSource, /item\?\.itemType === 'Produce'/, 'held produce is
 assert.match(companionSource, /produceValue\(item\) > produceValue\(chosen\)/, 'feeding does not spend the most valuable matching crop');
 assert.match(companionSource, /PET_CATALOG\[species\]\?\.diet \|\| \[\]/, 'preferred foods are not limited to each species diet');
 assert.match(companionSource, /petFoodSignature = signature/, 'pet food panel redraws without change detection');
-assert.match(companionSource, /const LIVE_REFRESH_TABS = \['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal', 'eggLuck'\]/, 'state-backed tabs do not follow live game changes');
+assert.match(companionSource, /const LIVE_REFRESH_TABS = \['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal', 'eggLuck', 'weatherAlarms'\]/, 'state-backed tabs do not follow live game changes');
 assert.match(companionSource, /activeTab === 'calculators'\) return calculatorsSignature\(\)/, 'the calculator tab lacks change-aware refreshes');
 assert.match(companionSource, /activeTab === 'journal'\) return journalSignature\(\)/, 'the journal tab lacks change-aware refreshes');
 assert.match(companionSource, /gc-petfood-count/, 'produce counts are not overlaid on the food icon');
@@ -1462,3 +1463,14 @@ assert.match(configSource, /\.\.\.DEFAULTS, \.\.\.migrate\(/, 'the saved config 
 // catalogs behind a summary line that looked perfectly healthy. Both are guarded now.
 assert.match(buildSource, /\(\?:sprite\|art\):\(\[A-Za-z_\$\]\+\\.Decor\\.\[A-Za-z0-9_\]\+\|\\{artboardName:/, 'decor is matched on one art field again, so a renamed one drops the whole bundle');
 assert.match(buildSource, /from \$\{catalogs\.source\}/, 'the build no longer says which capture it read, hiding a fallback');
+
+// Arriving during a weather is not the weather arriving: firing on the first report would sound on
+// every reload for as long as it ran. Ticking one on while it runs is the way to be told now.
+assert.match(weatherAlarmsSource, /const first = seen === undefined;[\s\S]*?if \(first \|\| !weather\) return;/, 'a reload during a weather now sets its alarm off');
+// The banner announces something that is running, so it goes when the weather does.
+assert.match(weatherAlarmsSource, /seen = weather;\s*\/\/[\s\S]*?stopAlarm\(OWNER\);/, 'a weather alarm outlives the weather it announced');
+assert.match(weatherAlarmsSource, /if \(currentWeather\(\) === weather\) raise\(weather\);/, 'ticking a weather on while it runs no longer fires straight away');
+
+// A ticked weather is the switch: a master toggle over five checkboxes only added a way to have one
+// selected and hear nothing.
+assert.doesNotMatch(weatherAlarmsSource, /feature\('weatherAlarms'\)/, 'the weather alarms have a redundant master switch again');
