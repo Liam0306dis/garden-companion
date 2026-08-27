@@ -30,38 +30,52 @@ const SEEN_KEY = 'gardenCompanion.activitySeen';
  * Identity settles it where a timestamp cannot. The log itself only holds about 25 entries, so a
  * window a little wider than that covers everything it can still be offering.
  */
-const SEEN_LIMIT = 64;
-/** How far behind the newest entry seen we will still accept one, so an old backlog cannot replay. */
-const LATE_GRACE_MS = 10 * 60_000;
+/**
+ * Never smaller than the log itself, and generous beyond it.
+ *
+ * A fixed 64 was wrong: only an entry the log is still offering can be counted twice, so the window
+ * has to cover the whole log - and the log runs longer than 64 once selling pets fills it. Entries
+ * fell out of the window while still present, and were counted again on the next pass, inflating
+ * every tally and re-applying resets that had already been applied.
+ */
+function seenLimit(logLength: number): number {
+  return Math.max(256, logLength * 4);
+}
 
 const savedSeen = loadLocal<unknown>(SEEN_KEY, []);
 let seen = Array.isArray(savedSeen) ? savedSeen.filter((entry): entry is string => typeof entry === 'string') : [];
 
 /**
- * An entry's identity, hashed. The text it is taken from carries the whole payload - a hatched pet
- * alone runs to about 280 bytes - and the window is written back on every batch, so keeping the
- * text would put 20KB through a synchronous store for something only ever compared for equality.
+ * An entry's identity, from the few fields that name the thing it happened to.
+ *
+ * Serialising the whole payload was the obvious way to do this and the wrong one. The state arrives
+ * as patches, so an entry's object is rebuilt rather than held: its keys can come back in a
+ * different order, and a field inside it can be refreshed in place. Either rewrites the text
+ * without the entry having changed, and an identity that moves is no identity at all - the entry
+ * reads as new on the very next pass and is counted again.
+ *
+ * An id does not move. Entries that carry none fall back to the action and its timestamp, which can
+ * only collide between two of the same action in one millisecond - and none of those feed a tally
+ * that has to be exact.
  */
 function signature(entry: ActivityLogEntry): string {
-  let text: string;
-  try { text = `${entry.action}|${entry.timestamp}|${JSON.stringify(entry.parameters ?? {})}`; }
-  catch { text = `${entry.action}|${entry.timestamp}`; }
-  let hash = 5381;
-  for (let index = 0; index < text.length; index++) hash = (hash * 33 ^ text.charCodeAt(index)) >>> 0;
-  // The timestamp stays in front of the hash: it costs nothing and no two entries of one moment
-  // can then collide, which is exactly where the duplicates being guarded against arise.
-  return `${entry.timestamp}:${hash.toString(36)}`;
+  const parameters = (entry.parameters ?? {}) as Record<string, { id?: unknown } | unknown>;
+  const idOf = (value: unknown): string => {
+    const held = (value && typeof value === 'object' ? (value as { id?: unknown }).id : value);
+    return typeof held === 'string' || typeof held === 'number' ? String(held) : '';
+  };
+  const ids = [parameters.pet, parameters.extraPet, parameters.sourcePet, parameters.eggId, parameters.itemId]
+    .map(idOf).filter(Boolean).join('/');
+  return `${entry.action}|${entry.timestamp}|${ids}`;
 }
 
 export function processActivityLog(): void {
   const entries = state.slot?.data?.activityLogs;
   if (!Array.isArray(entries)) return;
-  const cursor = state.activityCursor;
   const known = new Set(seen);
   const fresh = entries
     .filter(entry => {
-      const at = Number(entry?.timestamp);
-      if (!Number.isFinite(at) || at < cursor - LATE_GRACE_MS) return false;
+      if (!Number.isFinite(Number(entry?.timestamp))) return false;
       const id = signature(entry);
       if (known.has(id)) return false;
       // Added as it passes, so a batch holding the same entry twice is treated the way two frames
@@ -74,10 +88,13 @@ export function processActivityLog(): void {
   if (feature('abilities')) recordAbilityActivities(fresh);
   recordEggHatches(fresh);
 
-  seen = [...seen, ...fresh.map(signature)].slice(-SEEN_LIMIT);
-  // Still tracked, but only to bound how far back the window ever reaches - never to decide on its
-  // own whether an entry is new, which is what dropped them.
-  state.activityCursor = Math.max(cursor, ...fresh.map(entry => Number(entry.timestamp) || 0));
+  // Everything the log is currently offering is remembered, not just what was counted from it. What
+  // has already left the log cannot come back, so the old entries carried alongside are only there
+  // to survive a moment where the log arrives short - a reconnect handing over a partial one would
+  // otherwise empty the window and replay the lot.
+  seen = [...new Set([...seen, ...entries.map(signature)])].slice(-seenLimit(entries.length));
+  // Kept for the ability log's own bookkeeping; it no longer decides what is new.
+  state.activityCursor = Math.max(state.activityCursor, ...fresh.map(entry => Number(entry.timestamp) || 0));
   localStorage.setItem('gardenCompanion.activityCursor', String(state.activityCursor));
   saveLocal(SEEN_KEY, seen);
 }

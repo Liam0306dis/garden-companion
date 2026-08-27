@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.25
+// @version      0.8.27
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3534,29 +3534,26 @@ ${eggs.map(eggCard).join("")}`;
 
   // src/activity-log.ts
   var SEEN_KEY = "gardenCompanion.activitySeen";
-  var SEEN_LIMIT = 64;
-  var LATE_GRACE_MS = 10 * 6e4;
+  function seenLimit(logLength) {
+    return Math.max(256, logLength * 4);
+  }
   var savedSeen = loadLocal(SEEN_KEY, []);
   var seen2 = Array.isArray(savedSeen) ? savedSeen.filter((entry) => typeof entry === "string") : [];
   function signature(entry) {
-    let text;
-    try {
-      text = `${entry.action}|${entry.timestamp}|${JSON.stringify(entry.parameters ?? {})}`;
-    } catch {
-      text = `${entry.action}|${entry.timestamp}`;
-    }
-    let hash = 5381;
-    for (let index = 0; index < text.length; index++) hash = (hash * 33 ^ text.charCodeAt(index)) >>> 0;
-    return `${entry.timestamp}:${hash.toString(36)}`;
+    const parameters = entry.parameters ?? {};
+    const idOf = (value) => {
+      const held = value && typeof value === "object" ? value.id : value;
+      return typeof held === "string" || typeof held === "number" ? String(held) : "";
+    };
+    const ids = [parameters.pet, parameters.extraPet, parameters.sourcePet, parameters.eggId, parameters.itemId].map(idOf).filter(Boolean).join("/");
+    return `${entry.action}|${entry.timestamp}|${ids}`;
   }
   function processActivityLog() {
     const entries = state.slot?.data?.activityLogs;
     if (!Array.isArray(entries)) return;
-    const cursor = state.activityCursor;
     const known = new Set(seen2);
     const fresh = entries.filter((entry) => {
-      const at = Number(entry?.timestamp);
-      if (!Number.isFinite(at) || at < cursor - LATE_GRACE_MS) return false;
+      if (!Number.isFinite(Number(entry?.timestamp))) return false;
       const id = signature(entry);
       if (known.has(id)) return false;
       known.add(id);
@@ -3565,8 +3562,8 @@ ${eggs.map(eggCard).join("")}`;
     if (!fresh.length) return;
     if (feature("abilities")) recordAbilityActivities(fresh);
     recordEggHatches(fresh);
-    seen2 = [...seen2, ...fresh.map(signature)].slice(-SEEN_LIMIT);
-    state.activityCursor = Math.max(cursor, ...fresh.map((entry) => Number(entry.timestamp) || 0));
+    seen2 = [.../* @__PURE__ */ new Set([...seen2, ...entries.map(signature)])].slice(-seenLimit(entries.length));
+    state.activityCursor = Math.max(state.activityCursor, ...fresh.map((entry) => Number(entry.timestamp) || 0));
     localStorage.setItem("gardenCompanion.activityCursor", String(state.activityCursor));
     saveLocal(SEEN_KEY, seen2);
   }

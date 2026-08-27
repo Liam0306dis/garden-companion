@@ -1403,7 +1403,7 @@ assert.match(activityLogSource, /if \(feature\('abilities'\)\) recordAbilityActi
 assert.doesNotMatch(eggLuckSource, /feature\(/, 'a toggle can now switch egg tracking off and desync every counter');
 // The cursor is what stops an entry being counted twice, so it belongs to the shared walk.
 assert.doesNotMatch(abilityLogSource, /activityCursor/, 'the ability log keeps a cursor of its own again');
-assert.match(activityLogSource, /state\.activityCursor = Math\.max\(cursor, \.\.\.fresh\.map/, 'the shared walk no longer advances the cursor');
+assert.match(activityLogSource, /state\.activityCursor = Math\.max\(state\.activityCursor, \.\.\.fresh\.map/, 'the shared walk no longer advances the cursor');
 // A hit resets the game's counter however it was reached, which is also what makes ours exact.
 assert.match(eggLuckSource, /hit \? \{ misses: 0, synced: true \} : \{ misses: existing\.misses \+ 1, synced: existing\.synced \}/, 'a landed outcome must zero the counter and mark it synced');
 assert.match(eggLuckSource, /PITY_THRESHOLDS: Record<string, number> = \{ species: 40, Gold: 200, Rainbow: 2000 \}/, 'the pity thresholds no longer match the game constants');
@@ -1419,11 +1419,15 @@ assert.doesNotMatch(eggLuckSource, /EGG_LUCK_KEY, \[\.\.\.collapsed\]/, 'the fol
 // Two entries can share a millisecond - a Double Hatch makes two - and nothing promises they arrive
 // in one state frame, so a cursor that only admits later timestamps drops the second for good.
 assert.match(activityLogSource, /const id = signature\(entry\);\s*if \(known\.has\(id\)\) return false;/, 'entries are admitted by timestamp again, which drops any that arrive out of order');
-assert.match(activityLogSource, /seen = \[\.\.\.seen, \.\.\.fresh\.map\(signature\)\]\.slice\(-SEEN_LIMIT\)/, 'the seen window no longer keeps every entry it just counted');
+// Only an entry the log still offers can be counted twice, so the window has to cover the whole log.
+// A fixed size smaller than the log let entries slide out while present and be counted again, which
+// bulk-selling produced in seconds - the log is mostly sales.
+assert.match(activityLogSource, /seen = \[\.\.\.new Set\(\[\.\.\.seen, \.\.\.entries\.map\(signature\)\]\)\]\.slice\(-seenLimit\(entries\.length\)\)/, 'the window no longer remembers everything the log is offering');
+assert.match(activityLogSource, /return Math\.max\(256, logLength \* 4\);/, 'the dedupe window is a fixed size again, so a longer log replays entries');
 // Both stored lists are read at module load, where a throw would take the whole feature with it.
 assert.match(activityLogSource, /Array\.isArray\(savedSeen\)/, 'a non-array seen list throws at module load');
 // The cursor may bound how far back we look, but must never be the thing that decides newness.
-assert.match(activityLogSource, /if \(!Number\.isFinite\(at\) \|\| at < cursor - LATE_GRACE_MS\) return false;/, 'the cursor decides newness again, so a reordered entry is lost');
+assert.doesNotMatch(activityLogSource, /at < cursor/, 'the cursor decides newness again, so a reordered entry is lost');
 assert.match(eggLuckSource, /Array\.isArray\(savedCollapsed\)/, 'a non-array collapse list throws at module load');
 
 // An egg the game adds after this build is tracked the moment it is hatched, so it has to be shown
@@ -1479,7 +1483,11 @@ assert.doesNotMatch(weatherAlarmsSource, /feature\('weatherAlarms'\)/, 'the weat
 
 // The window is rewritten on every batch, so it stores a hash rather than the payload it is taken
 // from - and an entry admitted in a batch joins the set, so a batch holding it twice counts it once.
-assert.match(activityLogSource, /return `\$\{entry\.timestamp\}:\$\{hash\.toString\(36\)\}`;/, 'the seen window stores whole payloads again, which is 20KB a write');
+// The state arrives as patches, so an entry's object is rebuilt: keys can come back in a different
+// order and a field can be refreshed in place. An identity taken from the serialised payload moves
+// with either, and an identity that moves makes the entry look new on the very next pass.
+assert.match(activityLogSource, /return `\$\{entry\.action\}\|\$\{entry\.timestamp\}\|\$\{ids\}`;/, 'entry identity is taken from the payload again, which moves when the state is rebuilt');
+assert.doesNotMatch(activityLogSource, /JSON\.stringify\(entry\.parameters/, 'the signature serialises the payload again');
 assert.match(activityLogSource, /known\.add\(id\);\s*return true;/, 'a duplicate inside one batch is counted twice');
 
 // The nav overflows once there are enough groups, so a redraw has to put both panes back where they
