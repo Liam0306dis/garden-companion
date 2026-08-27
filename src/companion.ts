@@ -30,7 +30,6 @@ import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, re
 import {
   abilityLogUiState,
   bindAbilityLogEvents,
-  processActivities,
   renderAbilityLog,
   setAbilityFilterInteracting,
   setAbilityFilterMenuOpen,
@@ -39,6 +38,8 @@ import { processAutoStore } from './features/auto-store.js';
 import { noteWeatherChange } from './features/weather-timer.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
+import { bindEggLuckEvents, eggLuckSignature, renderEggLuck } from './features/egg-luck.js';
+import { processActivityLog } from './activity-log.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
@@ -294,7 +295,7 @@ export function initCompanion(): void {
       refreshCompletedTeamSave();
       refreshCompletedTeamDelete();
       refreshCompletedTeamMove();
-      processActivities();
+      processActivityLog();
       processShops();
       processPetHunger();
       processAutoStore();
@@ -674,7 +675,7 @@ export function initCompanion(): void {
     return Boolean(scrollable?.matches(':hover'));
   }
 
-  const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal'];
+  const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal', 'eggLuck'];
   let lastTabSignature = '';
   let refreshPending = false;
 
@@ -682,6 +683,7 @@ export function initCompanion(): void {
     if (activeTab === 'teams') return teamsSignature();
     if (activeTab === 'calculators') return calculatorsSignature();
     if (activeTab === 'journal') return journalSignature();
+    if (activeTab === 'eggLuck') return eggLuckSignature();
     if (activeTab === 'petFood') {
       const counts = new Map<string, number>();
       for (const item of heldProduce()) counts.set(item.species, (counts.get(item.species) || 0) + 1);
@@ -719,7 +721,7 @@ export function initCompanion(): void {
   // Third entry is the nav label where the group heading already carries a word the tab would repeat.
   // The panel title keeps the full name, which has to stand on its own.
   const TAB_GROUPS: Array<[string, Array<[string, string, string?]>]> = [
-    ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food']]],
+    ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food'], ['eggLuck', 'Egg Luck', 'Eggs']]],
     ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
     ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['silence', 'Ignore Alerts', 'Ignored']]],
     ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
@@ -792,6 +794,7 @@ export function initCompanion(): void {
     if (activeTab === 'silence') return renderSilence();
     if (activeTab === 'protection') return renderCropProtection();
     if (activeTab === 'journal') return renderJournal();
+    if (activeTab === 'eggLuck') return renderEggLuck();
     return '';
   }
 
@@ -879,6 +882,7 @@ export function initCompanion(): void {
     bindAbilityLogEvents(main);
     bindShopEvents(main);
     bindJournalEvents(main);
+    bindEggLuckEvents(main);
     bindCropProtectionEvents(main);
     bindRoomEvents(main);
     bindKeybindEvents(main);

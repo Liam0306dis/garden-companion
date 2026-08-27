@@ -512,3 +512,31 @@ button.gc-pet-potions { width:100%;display:flex;align-items:center;justify-conte
 button.gc-pet-potions i { flex:0 0 auto;padding:2px 7px;border:1px solid rgba(167,139,250,.4);border-radius:5px;color:#ddd6fe;background:rgba(167,139,250,.14);font-size:9px;font-weight:700;font-style:normal; }
 button.gc-pet-potions:hover { border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.09); }
 button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
+
+
+/* Egg Luck: one card per egg, its hatch table, and a bar per guarantee. */
+.gc-egg-summary { margin-bottom:10px;display:flex;align-items:center;justify-content:space-between; }
+.gc-egg-card + .gc-egg-card { margin-top:10px; }
+.gc-egg-card[data-empty=true] { opacity:.55; }
+.gc-egg-card h3 { display:flex;align-items:center;gap:7px;margin:0; }
+.gc-egg-head { width:100%;display:flex;align-items:center;gap:8px;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font:inherit; }
+.gc-egg-head h3 { flex:1 1 auto;min-width:0;font-size:15px; }
+.gc-egg-head i { flex:0 0 auto;color:var(--gc-muted);font-size:9px;font-style:normal; }
+.gc-egg-head:hover h3 { color:#ddd6fe; }
+.gc-egg-due { border-color:rgba(74,222,128,.35)!important;color:#86efac!important;background:rgba(74,222,128,.1)!important; }
+.gc-egg-table { width:100%;margin:9px 0 0;border-collapse:collapse;font-size:11px; }
+.gc-egg-table th { padding:3px 6px;color:var(--gc-muted);font-size:9px;font-weight:600;text-align:right;text-transform:uppercase;letter-spacing:.4px; }
+.gc-egg-table th:first-child,.gc-egg-table td:first-child { text-align:left; }
+.gc-egg-table td { padding:3px 6px;text-align:right;border-top:1px solid var(--gc-line); }
+.gc-egg-table tr.gc-egg-none { opacity:.45; }
+.gc-egg-colours { margin-top:9px;display:flex;align-items:center;gap:6px; }
+.gc-egg-colours button { margin-left:auto;padding:3px 9px;border:1px solid var(--gc-line);border-radius:5px;color:var(--gc-muted);background:transparent;font-size:10px;cursor:pointer; }
+.gc-egg-colours button:hover { border-color:rgba(248,113,113,.45);color:#fca5a5; }
+.gc-egg-pities { margin-top:9px;padding-top:8px;display:grid;gap:6px;border-top:1px solid var(--gc-line); }
+.gc-egg-pity { display:flex;align-items:center;gap:8px;font-size:11px; }
+.gc-egg-pity-label { flex:0 0 92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-egg-bar { flex:1 1 auto;height:6px;overflow:hidden;border-radius:3px;background:rgba(255,255,255,.07); }
+.gc-egg-bar i { display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,rgba(167,139,250,.5),rgba(167,139,250,.9)); }
+.gc-egg-pity-count { flex:0 0 84px;color:var(--gc-muted);font-size:10px;text-align:right;font-variant-numeric:tabular-nums; }
+.gc-egg-pity[data-due=true] .gc-egg-bar i { background:linear-gradient(90deg,rgba(74,222,128,.55),rgba(74,222,128,.95)); }
+.gc-egg-pity[data-due=true] .gc-egg-pity-count { color:#86efac; }

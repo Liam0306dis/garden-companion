@@ -67,6 +67,8 @@ const celestialGuideSource = await readSource('src', 'features', 'celestial-layo
 const indexSource = await readSource('src', 'index.ts');
 const petSpriteSource = await readSource('src', 'pet-sprites.ts');
 const petSpriteInjector = await readSource('src', 'pet-sprites-injector.ts');
+const eggLuckSource = await readSource('src', 'features', 'egg-luck.ts');
+const activityLogSource = await readSource('src', 'activity-log.ts');
 const buildSource = await readSource('scripts', 'build.ts');
 const plannerSource = await readSource('src', 'features', 'garden-planner.ts');
 const fishingSource = await readSource('src', 'features', 'fishing.ts');
@@ -547,7 +549,7 @@ assert.match(companionSource, /data-feature="petHungerAlarm"/, 'the hunger alarm
 // Stop must hold until a pet is fed, so the banner needs no action of its own.
 assert.doesNotMatch(companionSource, /actionLabel: 'Open Pet Food'/, 'the hunger alarm must not offer a panel it cannot feed from');
 // Tabs live in named groups now; TABS is still the flat order the header title resolves against.
-assert.match(companionSource, /\['Pets', \[\['abilities', 'Active Pets', 'Active'\], \['abilityLog', 'Pet Abilities', 'Abilities'\], \['teams', 'Pet Teams', 'Teams'\], \['petFood', 'Pet Food', 'Food'\]\]\]/, 'tab order is incorrect');
+assert.match(companionSource, /\['Pets', \[\['abilities', 'Active Pets', 'Active'\], \['abilityLog', 'Pet Abilities', 'Abilities'\], \['teams', 'Pet Teams', 'Teams'\], \['petFood', 'Pet Food', 'Food'\], \['eggLuck', 'Egg Luck', 'Eggs'\]\]\]/, 'tab order is incorrect');
 assert.match(companionSource, /\['Crops', \[\['protection', 'Crop Protection', 'Protection'\], \['journal', 'Journal'\]\]\]/, 'crop tabs must be grouped together');
 assert.match(companionSource, /\['Alerts', \[\['shops', 'Shop Alarms', 'Shops'\], \['silence', 'Ignore Alerts', 'Ignored'\]\]\]/, 'alert tabs must be grouped together');
 assert.match(companionSource, /const TABS = TAB_GROUPS\.flatMap\(\(\[, tabs\]\) => tabs\)/, 'the flat tab list must come from the groups');
@@ -683,12 +685,12 @@ assert.match(styleSource, /#gc-panel \.gc-team-order button \{[^}]*padding:0/, '
 assert.doesNotMatch(petTeamsSource.slice(petTeamsSource.indexOf('function petPickerRows('), petTeamsSource.indexOf('export function activeTeamId()')), /hungerDisplay\(pet\)/, 'team creation still shows hunger');
 assert.match(companionSource, /SavePetTeam', teamId, name/, 'saved teams cannot be updated');
 assert.match(companionSource, /data-edit-team/, 'saved team edit control missing');
-assert.match(companionSource, /refreshCompletedTeamSave\(\);[\s\S]*processActivities\(\)/, 'saved team state does not trigger a team refresh');
+assert.match(companionSource, /refreshCompletedTeamSave\(\);[\s\S]*processActivityLog\(\)/, 'saved team state does not trigger a team refresh');
 assert.match(companionSource, /pendingTeamSave = \{ teamId, name, petIds, emblem: teamId \? null : emblem \}/, 'team save completion is not tracked');
 assert.doesNotMatch(companionSource, /\b(?:confirm|alert|prompt)\s*\(/, 'blocking browser dialog remains');
 assert.match(companionSource, /data-confirm-delete-team/, 'non-blocking team deletion confirmation is missing');
 assert.match(companionSource, /pendingTeamDeleteId = teamId/, 'team deletion completion is not tracked');
-assert.match(companionSource, /refreshCompletedTeamDelete\(\);[\s\S]*processActivities\(\)/, 'deleted team state does not trigger a team refresh');
+assert.match(companionSource, /refreshCompletedTeamDelete\(\);[\s\S]*processActivityLog\(\)/, 'deleted team state does not trigger a team refresh');
 assert.match(companionSource, /!pendingTeamDeleteId \|\| teams\(\)\.some\(team => team\.id === pendingTeamDeleteId\)/, 'team view refreshes before deletion is confirmed');
 assert.match(companionSource, /data-team-card/, 'saved team cards cannot be updated individually');
 assert.match(companionSource, /if \(deletedCard && cards\.length > 1\) deletedCard\.remove\(\)/, 'deleted team card is not removed in place');
@@ -747,7 +749,7 @@ assert.match(companionSource, /item\?\.itemType === 'Produce'/, 'held produce is
 assert.match(companionSource, /produceValue\(item\) > produceValue\(chosen\)/, 'feeding does not spend the most valuable matching crop');
 assert.match(companionSource, /PET_CATALOG\[species\]\?\.diet \|\| \[\]/, 'preferred foods are not limited to each species diet');
 assert.match(companionSource, /petFoodSignature = signature/, 'pet food panel redraws without change detection');
-assert.match(companionSource, /const LIVE_REFRESH_TABS = \['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal'\]/, 'state-backed tabs do not follow live game changes');
+assert.match(companionSource, /const LIVE_REFRESH_TABS = \['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal', 'eggLuck'\]/, 'state-backed tabs do not follow live game changes');
 assert.match(companionSource, /activeTab === 'calculators'\) return calculatorsSignature\(\)/, 'the calculator tab lacks change-aware refreshes');
 assert.match(companionSource, /activeTab === 'journal'\) return journalSignature\(\)/, 'the journal tab lacks change-aware refreshes');
 assert.match(companionSource, /gc-petfood-count/, 'produce counts are not overlaid on the food icon');
@@ -1392,3 +1394,30 @@ assert.match(roomsSource, /location\.hostname\.endsWith\('discordsays\.com'\)/, 
 // and taking both would decode a second copy of the same frames only to discard it.
 assert.match(petSpriteSource, /const source = bestSource\(asset\.src \?\? \[\]\);/, 'every source variant is walked rather than the best one picked');
 assert.match(petSpriteSource, /if \(resolution <= bestResolution\) continue;/, 'the atlas variants are no longer compared by resolution');
+
+// Egg Luck counts hatches the game will not tell us about, so the count has to survive everything
+// that could quietly skip an entry.
+assert.match(activityLogSource, /if \(feature\('abilities'\)\) recordAbilityActivities\(fresh\);\s*recordEggHatches\(fresh\);/, 'egg hatches are gated behind the abilities feature');
+assert.doesNotMatch(eggLuckSource, /feature\(/, 'a toggle can now switch egg tracking off and desync every counter');
+// The cursor is what stops an entry being counted twice, so it belongs to the shared walk.
+assert.doesNotMatch(abilityLogSource, /activityCursor/, 'the ability log keeps a cursor of its own again');
+assert.match(activityLogSource, /const advanced = Math\.max\(cursor, \.\.\.fresh\.map[\s\S]*state\.activityCursor = advanced;/, 'the shared walk no longer advances the cursor');
+// A hit resets the game's counter however it was reached, which is also what makes ours exact.
+assert.match(eggLuckSource, /hit \? \{ misses: 0, synced: true \} : \{ misses: existing\.misses \+ 1, synced: existing\.synced \}/, 'a landed outcome must zero the counter and mark it synced');
+assert.match(eggLuckSource, /PITY_THRESHOLDS: Record<string, number> = \{ species: 40, Gold: 200, Rainbow: 2000 \}/, 'the pity thresholds no longer match the game constants');
+// The rarest species is the one the game guarantees, so the sort must be ascending by weight.
+assert.match(eggLuckSource, /sort\(\(left, right\) => \(weights\[left\] \|\| 0\) - \(weights\[right\] \|\| 0\)\)\[0\]/, 'the guaranteed species is no longer the rarest one');
+
+// A folded card still has to say a guarantee has come due, or folding hides the one thing worth
+// looking at. The collapsed set is stored apart from the tally so clearing one leaves the other.
+assert.match(eggLuckSource, /const due = dueCount\(eggId, record\);/, 'a folded egg card no longer shows its due guarantees');
+assert.match(eggLuckSource, /saveLocal\(EGG_COLLAPSED_KEY, \[\.\.\.collapsed\]\)/, 'which egg cards are folded is no longer remembered');
+assert.doesNotMatch(eggLuckSource, /EGG_LUCK_KEY, \[\.\.\.collapsed\]/, 'the fold state is being written over the hatch tally');
+
+// Two entries can share a millisecond - a Double Hatch makes two - and nothing promises they arrive
+// in one state frame, so a cursor that only admits later timestamps drops the second for good.
+assert.match(activityLogSource, /return at > cursor \|\| !seenAtCursor\.has\(signature\(entry\)\);/, 'entries tied with the cursor are dropped instead of deduplicated');
+assert.match(activityLogSource, /seenAtCursor = advanced === cursor \? new Set\(\[\.\.\.seenAtCursor, \.\.\.ties\]\) : new Set\(ties\)/, 'the tie set no longer tracks the cursor it belongs to');
+// Both stored lists are read at module load, where a throw would take the whole feature with it.
+assert.match(activityLogSource, /Array\.isArray\(savedSeen\)/, 'a non-array seen list throws at module load');
+assert.match(eggLuckSource, /Array\.isArray\(savedCollapsed\)/, 'a non-array collapse list throws at module load');

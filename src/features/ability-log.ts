@@ -5,7 +5,7 @@ import { allPets, petOverlay, petSpriteSource } from '../pets.js';
 import { saveAbilityLog, state, trimAbilityLogs, type AbilityLogRow } from '../state.js';
 import { panelActions } from '../panel-actions.js';
 import { LOG_KEY } from '../constants.js';
-import type { Pet } from '../types.js';
+import type { ActivityLogEntry, Pet } from '../types.js';
 import { NUMBER_LOCALE, saveLocal } from '../utils.js';
 import { escapeHtml, humanize } from '../utils.js';
 
@@ -35,12 +35,7 @@ export function setAbilityLogSearch(query: string): void {
  * are copied into our own history as they appear.
  */
 
-export function processActivities() {
-  if (!feature('abilities')) return;
-  const entries = state.slot?.data?.activityLogs;
-  if (!Array.isArray(entries)) return;
-  const fresh = entries.filter(entry => Number(entry?.timestamp) > state.activityCursor).sort((a, b) => a.timestamp - b.timestamp);
-  if (!fresh.length) return;
+export function recordAbilityActivities(fresh: ActivityLogEntry[]) {
   for (const entry of fresh) {
     if (!ABILITY_SET.has(entry.action)) continue;
     const pet = (entry.parameters?.pet || entry.parameters?.sourcePet || {}) as Record<string, unknown>;
@@ -52,8 +47,6 @@ export function processActivities() {
     });
   }
   state.abilityLog = trimAbilityLogs(state.abilityLog);
-  state.activityCursor = Math.max(state.activityCursor, ...fresh.map(entry => Number(entry.timestamp) || 0));
-  localStorage.setItem('gardenCompanion.activityCursor', String(state.activityCursor));
   saveAbilityLog();
 }
 
