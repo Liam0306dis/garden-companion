@@ -1452,3 +1452,8 @@ assert.match(cropEstimatesSource, /return \[\.\.\.protectionLines\(\), \.\.\.est
 assert.doesNotMatch(cropEstimatesSource, /feature\('turtleTimer'\) \? /, 'the growth switch still hides the value row with it');
 assert.match(companionSource, /\['cropValues', 'Crop value'/, 'the crop value toggle is missing from the features panel');
 assert.match(configSource, /cropValues: true,/, 'the crop value row is no longer on by default');
+
+// Splitting a switch must not undo a choice already made: someone who turned the combined estimates
+// off wanted the card quiet, and the new switch taking its own default would put the value back.
+assert.match(configSource, /if \(saved\.turtleTimer === false && saved\.cropValues === undefined\) return \{ \.\.\.saved, cropValues: false \};/, 'a disabled estimates toggle no longer carries across the split');
+assert.match(configSource, /\.\.\.DEFAULTS, \.\.\.migrate\(/, 'the saved config reaches the defaults without being migrated');

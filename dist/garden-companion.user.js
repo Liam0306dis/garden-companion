@@ -480,13 +480,17 @@
     teamKeybinds: {},
     interfaceKeybinds: {}
   };
+  function migrate(saved) {
+    if (saved.turtleTimer === false && saved.cropValues === void 0) return { ...saved, cropValues: false };
+    return saved;
+  }
   function readConfig() {
     try {
       const saved = GM_getValue(STORE_KEY, {});
-      return { ...DEFAULTS, ...saved && typeof saved === "object" ? saved : {} };
+      return { ...DEFAULTS, ...migrate(saved && typeof saved === "object" ? saved : {}) };
     } catch {
       try {
-        return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE_KEY) || "{}") };
+        return { ...DEFAULTS, ...migrate(JSON.parse(localStorage.getItem(STORE_KEY) || "{}")) };
       } catch {
         return { ...DEFAULTS };
       }

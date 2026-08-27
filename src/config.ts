@@ -37,12 +37,25 @@ export const DEFAULTS: CompanionConfig = {
   interfaceKeybinds: {},
 };
 
+/**
+ * Carries a setting forward when one switch becomes two.
+ *
+ * Crop value and growth time used to share turtleTimer, so turning it off meant "keep the card
+ * quiet". Splitting them let the new switch take its own default and put the value back on a card
+ * someone had deliberately cleared, undoing a choice they had already made. Only an untouched new
+ * switch is answered for; once it has been set either way it speaks for itself.
+ */
+function migrate(saved: Record<string, unknown>): Record<string, unknown> {
+  if (saved.turtleTimer === false && saved.cropValues === undefined) return { ...saved, cropValues: false };
+  return saved;
+}
+
 function readConfig(): CompanionConfig {
   try {
     const saved = GM_getValue(STORE_KEY, {});
-    return { ...DEFAULTS, ...(saved && typeof saved === 'object' ? saved : {}) } as CompanionConfig;
+    return { ...DEFAULTS, ...migrate((saved && typeof saved === 'object' ? saved : {}) as Record<string, unknown>) } as CompanionConfig;
   } catch {
-    try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE_KEY) || '{}') } as CompanionConfig; }
+    try { return { ...DEFAULTS, ...migrate(JSON.parse(localStorage.getItem(STORE_KEY) || '{}')) } as CompanionConfig; }
     catch { return { ...DEFAULTS }; }
   }
 }
