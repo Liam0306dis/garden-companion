@@ -1425,3 +1425,20 @@ assert.match(eggLuckSource, /Array\.isArray\(savedCollapsed\)/, 'a non-array col
 // An egg the game adds after this build is tracked the moment it is hatched, so it has to be shown
 // too - a catalog-only walk would bank those hatches and never render them.
 assert.match(eggLuckSource, /Object\.keys\(luck\)\.filter\(eggId => !EGG_CATALOG\[eggId\]\)/, 'hatches from an egg newer than the baked catalog are collected but never shown');
+
+// A pet an ability hands over is not a pull: per the game's developers it neither advances nor
+// resets a bad luck counter, and receives no guarantee. Counting one as a pull would zero a counter
+// that should still be climbing, and mark it synced - silently and permanently wrong.
+// Matched on the parameter, never the action name: the ability is tiered, and a preview build logs
+// DoubleHatchII, a name absent from the live bundle - a name match would stop counting on release.
+assert.match(eggLuckSource, /if \(parameters\.extraPet\) \{/, 'the extra pet is no longer separated from pulls');
+assert.doesNotMatch(eggLuckSource, /=== 'DoubleHatch'/, 'ability pets are matched by action name again, which the tiers break');
+assert.doesNotMatch(eggLuckSource.slice(eggLuckSource.indexOf('if (parameters.extraPet) {'), eggLuckSource.indexOf("if (entry.action !== 'hatchEgg')")), /bump\(/, 'an ability pet now moves a bad luck counter');
+assert.match(eggLuckSource, /record\.pulls \+= 1;/, 'pulls are no longer counted apart from hatches');
+// Whether a hatchEgg is also written for the extra pet is not something we get to assume.
+assert.match(eggLuckSource, /if \(petId && \(bonusInBatch\.has\(petId\) \|\| bonusPets\.includes\(petId\)\)\) continue;/, 'an ability pet can be counted a second time as a pull');
+assert.match(eggLuckSource, /pulls: Number\(raw\.pulls \?\? raw\.hatches\) \|\| 0/, 'stores written before pulls existed lose their count');
+
+// sourceEggId is optional, so an extra pet can arrive with no egg to file it under. It still has to
+// be remembered as an ability pet: that is what keeps a later hatchEgg for it from becoming a pull.
+assert.match(eggLuckSource, /if \(!pet\) continue;\s*\/\/[\s\S]*?noteBonusPet\(String\(pet\.id \?\? ''\)\);[\s\S]*?const eggId = typeof pet\.sourceEggId/, 'an extra pet with no source egg is forgotten instead of guarded');

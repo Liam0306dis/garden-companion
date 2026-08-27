@@ -8,6 +8,8 @@ export interface Pet {
   abilities?: string[];
   mutations?: string[];
   itemType?: string;
+  /** The egg this pet hatched from. The game marks it optional, so it can be absent. */
+  sourceEggId?: string;
   /** Added by the companion when listing owned pets: Active, Inventory, or the storage name. */
   location?: string;
 }

@@ -17,6 +17,16 @@ import { escapeHtml, humanize, loadLocal, NUMBER_LOCALE, saveLocal } from '../ut
  * whole pet, mutations included - so a hatch seen while the script is running can be attributed
  * exactly. Hatches that happen while it is not are missed outright and cannot be recovered: the game
  * keeps only the last 25 log entries of any kind, which a minute of watering flushes.
+ *
+ * A pet handed over by an ability is not a pull. Double Hatch's second pet touches no counter at
+ * all - it neither advances one nor resets one, and it receives no guarantee of its own - so it is
+ * counted among the pets you own and kept out of the counters entirely. That is why pulls are
+ * tallied apart from hatches: the bars measure the first, the odds table the second.
+ *
+ * Such a pet is recognised by the `extraPet` it arrives with rather than by the name of the entry
+ * carrying it. The ability is tiered, and a preview build already logs `DoubleHatchII` against a
+ * name that does not appear in the live bundle at all - so matching the name would have quietly
+ * stopped counting those pets the day the tier shipped, while the parameter stays put.
  */
 
 /**
@@ -41,7 +51,10 @@ interface Counter {
 }
 
 interface EggRecord {
+  /** Pets this egg has produced, the ones an ability handed over included. */
   hatches: number;
+  /** Hatches that actually rolled against a bad luck counter, which excludes ability pets. */
+  pulls: number;
   species: Record<string, number>;
   colours: Record<string, number>;
   counters: Record<string, Counter>;
@@ -52,7 +65,7 @@ function emptyCounter(): Counter {
 }
 
 function blankEgg(): EggRecord {
-  return { hatches: 0, species: {}, colours: {}, counters: {} };
+  return { hatches: 0, pulls: 0, species: {}, colours: {}, counters: {} };
 }
 
 /** Repairs whatever a hand-edited or older store is missing, so a render never meets a hole. */
@@ -65,6 +78,9 @@ function normaliseEgg(value: unknown): EggRecord {
   );
   return {
     hatches: Number(raw.hatches) || 0,
+    // Stores written before ability pets were separated counted every hatch as a pull, which is
+    // what they were taken to be at the time, so that is the honest figure to carry forward.
+    pulls: Number(raw.pulls ?? raw.hatches) || 0,
     species: numbers(raw.species),
     colours: numbers(raw.colours),
     counters: Object.fromEntries(Object.entries(counters).map(([key, saved]) => [key, {
@@ -112,23 +128,84 @@ function bump(record: EggRecord, key: string, hit: boolean): void {
   record.counters[key] = hit ? { misses: 0, synced: true } : { misses: existing.misses + 1, synced: existing.synced };
 }
 
+const BONUS_PETS_KEY = 'gardenCompanion.eggLuckBonusPets.v1';
+
+/**
+ * Ids of pets an ability handed over, so one cannot be taken for a pull.
+ *
+ * Double Hatch reports its extra pet on its own log entry, the way Double Harvest reports its extra
+ * crop, so ordinarily no hatchEgg is written for it and nothing here is ever consulted. It is kept
+ * because being wrong about that would corrupt a counter silently and permanently - a bonus pet
+ * taken for a pull would zero a counter that should still be climbing, and mark it synced.
+ */
+const savedBonus = loadLocal<unknown>(BONUS_PETS_KEY, []);
+let bonusPets = Array.isArray(savedBonus) ? savedBonus.filter((id): id is string => typeof id === 'string') : [];
+
+function noteBonusPet(id: string): void {
+  if (!id || bonusPets.includes(id)) return;
+  bonusPets = [...bonusPets.slice(-49), id];
+  saveLocal(BONUS_PETS_KEY, bonusPets);
+}
+
+function petOf(value: unknown): Pet | null {
+  const pet = (value && typeof value === 'object' ? value : null) as Pet | null;
+  return pet?.petSpecies ? pet : null;
+}
+
+/** The pets an egg produced, whether or not they rolled against a counter. */
+function tally(record: EggRecord, pet: Pet): string[] {
+  const mutations = Array.isArray(pet.mutations) ? pet.mutations : [];
+  record.hatches += 1;
+  record.species[pet.petSpecies] = (record.species[pet.petSpecies] || 0) + 1;
+  for (const colour of COLOURS) {
+    if (mutations.includes(colour)) record.colours[colour] = (record.colours[colour] || 0) + 1;
+  }
+  return mutations;
+}
+
 /** Folds every hatch in this batch of log entries into the tally. */
 export function recordEggHatches(entries: ActivityLogEntry[]): void {
   let changed = false;
+  // Whether the extra pet reaches us before or after any hatchEgg written for it is not ours to
+  // choose, so the batch is read for ability pets first and the pulls are matched against them.
+  const bonusInBatch = new Set(entries
+    .map(entry => String(petOf(entry.parameters?.extraPet)?.id ?? ''))
+    .filter(Boolean));
+
   for (const entry of entries) {
-    if (entry.action !== 'hatchEgg') continue;
     const parameters = entry.parameters || {};
-    const eggId = typeof parameters.eggId === 'string' ? parameters.eggId : '';
-    const pet = (parameters.pet && typeof parameters.pet === 'object' ? parameters.pet : null) as Pet | null;
-    if (!eggId || !pet?.petSpecies) continue;
-    const record = luck[eggId] ?? blankEgg();
-    const mutations = Array.isArray(pet.mutations) ? pet.mutations : [];
-    record.hatches += 1;
-    record.species[pet.petSpecies] = (record.species[pet.petSpecies] || 0) + 1;
-    for (const colour of COLOURS) {
-      if (mutations.includes(colour)) record.colours[colour] = (record.colours[colour] || 0) + 1;
-      bump(record, colour, mutations.includes(colour));
+
+    if (parameters.extraPet) {
+      const pet = petOf(parameters.extraPet);
+      if (!pet) continue;
+      // Remembered before anything else can rule the pet out. Which egg it came from decides only
+      // whether it can be tallied; that it was handed over by an ability is true regardless, and
+      // that is the half worth keeping - forgetting it would leave any hatchEgg written for the pet
+      // to be counted as a pull, which is the silent corruption this guards against.
+      noteBonusPet(String(pet.id ?? ''));
+      // The entry names no egg of its own, so an extra pet that has forgotten where it came from
+      // cannot be attributed to one and is left out rather than guessed at.
+      const eggId = typeof pet.sourceEggId === 'string' ? pet.sourceEggId : '';
+      if (!eggId) continue;
+      const record = luck[eggId] ?? blankEgg();
+      tally(record, pet);
+      luck[eggId] = record;
+      changed = true;
+      continue;
     }
+
+    if (entry.action !== 'hatchEgg') continue;
+    const eggId = typeof parameters.eggId === 'string' ? parameters.eggId : '';
+    const pet = petOf(parameters.pet);
+    if (!eggId || !pet) continue;
+    const petId = String(pet.id ?? '');
+    // Already counted as an ability pet, so counting it again would both double the tally and put
+    // a pull against a hatch that never rolled for one.
+    if (petId && (bonusInBatch.has(petId) || bonusPets.includes(petId))) continue;
+    const record = luck[eggId] ?? blankEgg();
+    const mutations = tally(record, pet);
+    record.pulls += 1;
+    for (const colour of COLOURS) bump(record, colour, mutations.includes(colour));
     const rarest = pitySpecies(eggId);
     if (rarest) bump(record, 'species', pet.petSpecies === rarest);
     luck[eggId] = record;
@@ -174,8 +251,8 @@ function pityRow(label: string, sprite: string, record: EggRecord, key: string):
   const { misses, synced } = record.counters[key] ?? emptyCounter();
   const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
   const title = synced
-    ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} hatches ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`
-    : `At least ${misses.toLocaleString(NUMBER_LOCALE)} hatches - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
+    ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`
+    : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
   return `<div class="gc-egg-pity" data-due="${misses >= threshold}" title="${escapeHtml(title)}">`
     + `<span class="gc-shop-sprite">${icon}</span>`
     + `<span class="gc-egg-pity-label">${escapeHtml(label)}</span>`
@@ -189,7 +266,10 @@ function eggCard(eggId: string): string {
   const sprite = page.__gardenCompanionShopSprites?.[eggId] || '';
   const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
   const title = `<span class="gc-shop-sprite">${icon}</span>${escapeHtml(eggName(eggId))}`;
-  const hatched = `<span class="gc-pill">${record.hatches.toLocaleString(NUMBER_LOCALE)} hatched</span>`;
+  // The two only part company once an ability has handed over a pet, so the second figure appears
+  // only when there is a difference to explain.
+  const pullNote = record.pulls === record.hatches ? '' : ` (${record.pulls.toLocaleString(NUMBER_LOCALE)} pulls)`;
+  const hatched = `<span class="gc-pill">${record.hatches.toLocaleString(NUMBER_LOCALE)} hatched${pullNote}</span>`;
   // An egg with nothing recorded is already one line, so it stays a plain heading with nothing to
   // fold - a control that opens an empty card would only invite the click.
   if (!record.hatches) {
@@ -244,7 +324,7 @@ export function renderEggLuck(): string {
   // then never show them - and drop them from the total besides.
   const eggs = [...known, ...Object.keys(luck).filter(eggId => !EGG_CATALOG[eggId])];
   const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
-  return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own.</p>
+  return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own. A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
 <section class="gc-card gc-egg-summary"><span><b>${hatched.toLocaleString(NUMBER_LOCALE)}</b> hatches recorded</span></section>
 ${eggs.map(eggCard).join('')}`;
 }

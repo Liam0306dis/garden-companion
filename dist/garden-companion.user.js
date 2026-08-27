@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.20
+// @version      0.8.21
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3281,7 +3281,7 @@ ${rows}</div>`;
     return { misses: 0, synced: false };
   }
   function blankEgg() {
-    return { hatches: 0, species: {}, colours: {}, counters: {} };
+    return { hatches: 0, pulls: 0, species: {}, colours: {}, counters: {} };
   }
   function normaliseEgg(value) {
     const raw = value && typeof value === "object" ? value : {};
@@ -3291,6 +3291,9 @@ ${rows}</div>`;
     );
     return {
       hatches: Number(raw.hatches) || 0,
+      // Stores written before ability pets were separated counted every hatch as a pull, which is
+      // what they were taken to be at the time, so that is the honest figure to carry forward.
+      pulls: Number(raw.pulls ?? raw.hatches) || 0,
       species: numbers(raw.species),
       colours: numbers(raw.colours),
       counters: Object.fromEntries(Object.entries(counters).map(([key, saved]) => [key, {
@@ -3320,22 +3323,54 @@ ${rows}</div>`;
     const existing = record.counters[key] ?? emptyCounter();
     record.counters[key] = hit ? { misses: 0, synced: true } : { misses: existing.misses + 1, synced: existing.synced };
   }
+  var BONUS_PETS_KEY = "gardenCompanion.eggLuckBonusPets.v1";
+  var savedBonus = loadLocal(BONUS_PETS_KEY, []);
+  var bonusPets = Array.isArray(savedBonus) ? savedBonus.filter((id) => typeof id === "string") : [];
+  function noteBonusPet(id) {
+    if (!id || bonusPets.includes(id)) return;
+    bonusPets = [...bonusPets.slice(-49), id];
+    saveLocal(BONUS_PETS_KEY, bonusPets);
+  }
+  function petOf(value) {
+    const pet = value && typeof value === "object" ? value : null;
+    return pet?.petSpecies ? pet : null;
+  }
+  function tally(record, pet) {
+    const mutations = Array.isArray(pet.mutations) ? pet.mutations : [];
+    record.hatches += 1;
+    record.species[pet.petSpecies] = (record.species[pet.petSpecies] || 0) + 1;
+    for (const colour of COLOURS) {
+      if (mutations.includes(colour)) record.colours[colour] = (record.colours[colour] || 0) + 1;
+    }
+    return mutations;
+  }
   function recordEggHatches(entries) {
     let changed = false;
+    const bonusInBatch = new Set(entries.map((entry) => String(petOf(entry.parameters?.extraPet)?.id ?? "")).filter(Boolean));
     for (const entry of entries) {
-      if (entry.action !== "hatchEgg") continue;
       const parameters = entry.parameters || {};
-      const eggId = typeof parameters.eggId === "string" ? parameters.eggId : "";
-      const pet = parameters.pet && typeof parameters.pet === "object" ? parameters.pet : null;
-      if (!eggId || !pet?.petSpecies) continue;
-      const record = luck[eggId] ?? blankEgg();
-      const mutations = Array.isArray(pet.mutations) ? pet.mutations : [];
-      record.hatches += 1;
-      record.species[pet.petSpecies] = (record.species[pet.petSpecies] || 0) + 1;
-      for (const colour of COLOURS) {
-        if (mutations.includes(colour)) record.colours[colour] = (record.colours[colour] || 0) + 1;
-        bump(record, colour, mutations.includes(colour));
+      if (parameters.extraPet) {
+        const pet2 = petOf(parameters.extraPet);
+        if (!pet2) continue;
+        noteBonusPet(String(pet2.id ?? ""));
+        const eggId2 = typeof pet2.sourceEggId === "string" ? pet2.sourceEggId : "";
+        if (!eggId2) continue;
+        const record2 = luck[eggId2] ?? blankEgg();
+        tally(record2, pet2);
+        luck[eggId2] = record2;
+        changed = true;
+        continue;
       }
+      if (entry.action !== "hatchEgg") continue;
+      const eggId = typeof parameters.eggId === "string" ? parameters.eggId : "";
+      const pet = petOf(parameters.pet);
+      if (!eggId || !pet) continue;
+      const petId = String(pet.id ?? "");
+      if (petId && (bonusInBatch.has(petId) || bonusPets.includes(petId))) continue;
+      const record = luck[eggId] ?? blankEgg();
+      const mutations = tally(record, pet);
+      record.pulls += 1;
+      for (const colour of COLOURS) bump(record, colour, mutations.includes(colour));
       const rarest = pitySpecies(eggId);
       if (rarest) bump(record, "species", pet.petSpecies === rarest);
       luck[eggId] = record;
@@ -3367,7 +3402,7 @@ ${rows}</div>`;
     const threshold = PITY_THRESHOLDS[key] ?? PITY_THRESHOLDS.species;
     const { misses, synced } = record.counters[key] ?? emptyCounter();
     const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-    const title = synced ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} hatches ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.` : `At least ${misses.toLocaleString(NUMBER_LOCALE)} hatches - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
+    const title = synced ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.` : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
     return `<div class="gc-egg-pity" data-due="${misses >= threshold}" title="${escapeHtml(title)}"><span class="gc-shop-sprite">${icon}</span><span class="gc-egg-pity-label">${escapeHtml(label)}</span><span class="gc-egg-bar"><i style="width:${Math.min(100, misses / threshold * 100).toFixed(1)}%"></i></span><span class="gc-egg-pity-count">${synced ? "" : "&#8805;"}${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}</span></div>`;
   }
   function eggCard(eggId) {
@@ -3375,7 +3410,8 @@ ${rows}</div>`;
     const sprite = page.__gardenCompanionShopSprites?.[eggId] || "";
     const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
     const title = `<span class="gc-shop-sprite">${icon}</span>${escapeHtml(eggName(eggId))}`;
-    const hatched = `<span class="gc-pill">${record.hatches.toLocaleString(NUMBER_LOCALE)} hatched</span>`;
+    const pullNote = record.pulls === record.hatches ? "" : ` (${record.pulls.toLocaleString(NUMBER_LOCALE)} pulls)`;
+    const hatched = `<span class="gc-pill">${record.hatches.toLocaleString(NUMBER_LOCALE)} hatched${pullNote}</span>`;
     if (!record.hatches) {
       return `<section class="gc-card gc-egg-card" data-empty="true"><div class="gc-row"><h3>${title}</h3>${hatched}</div><p>No hatches seen yet.</p></section>`;
     }
@@ -3406,7 +3442,7 @@ ${rows}</div>`;
     const known = Object.keys(EGG_CATALOG).filter((eggId) => eggId !== "WinterEgg" || luck[eggId]?.hatches);
     const eggs = [...known, ...Object.keys(luck).filter((eggId) => !EGG_CATALOG[eggId])];
     const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
-    return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own.</p>
+    return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own. A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
 <section class="gc-card gc-egg-summary"><span><b>${hatched.toLocaleString(NUMBER_LOCALE)}</b> hatches recorded</span></section>
 ${eggs.map(eggCard).join("")}`;
   }
