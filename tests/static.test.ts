@@ -1426,11 +1426,10 @@ assert.match(activityLogSource, /const id = signature\(entry\);\s*if \(known\.ha
 // Only an entry the log still offers can be counted twice, so the window has to cover the whole log.
 // A fixed size smaller than the log let entries slide out while present and be counted again, which
 // bulk-selling produced in seconds - the log is mostly sales.
-assert.match(activityLogSource, /seen = \[\.\.\.new Set\(\[\.\.\.seen, \.\.\.entries\.filter\(Boolean\)\.map\(signature\)\]\)\]\.slice\(-seenLimit\(entries\.length\)\)/, 'the window no longer remembers everything the log is offering');
-// The walk above steps around a missing entry, but this one reads every entry the log offers, and a
-// signature taken from nothing throws - out of the walk, and so out of every reader that runs after
-// it on the same frame.
-assert.match(activityLogSource, /entries\.filter\(Boolean\)\.map\(signature\)/, 'a hole in the log throws out of the walk and stops every reader behind it');
+// Holes included: the walk above steps around a missing entry, but this one reads every entry the
+// log offers, and a signature taken from nothing throws - out of the walk, and so out of every
+// reader that runs after it on the same frame.
+assert.match(activityLogSource, /seen = \[\.\.\.new Set\(\[\.\.\.seen, \.\.\.entries\.filter\(Boolean\)\.map\(signature\)\]\)\]\.slice\(-seenLimit\(entries\.length\)\)/, 'the window no longer remembers every entry the log is offering, or takes a signature from a hole');
 // The window is rewritten on every batch that carries anything new, so its size is bytes through a
 // synchronous store on a hot path. It only has to outlast the log: four times over is margin.
 assert.match(activityLogSource, /return Math\.max\(96, logLength \* 4\);/, 'the dedupe window is a fixed size again, so a longer log replays entries');
