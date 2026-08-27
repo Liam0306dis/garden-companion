@@ -23,7 +23,8 @@ import {
   setAbilityFilterMenuOpen,
 } from './features/ability-log.js';
 import { processAutoStore } from './features/auto-store.js';
-import { noteWeatherChange } from './features/weather-timer.js';
+import { noteWeatherChange, weatherLabel } from './features/weather-timer.js';
+import { forecastStatus, forecastTrace, nextWeather } from './weather-forecast.js';
 import { bindWeatherAlarmEvents, processWeatherAlarms, renderWeatherAlarms, weatherAlarmSignature } from './features/weather-alarms.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
@@ -84,6 +85,7 @@ export function initCompanion(): void {
   (window as unknown as CompanionPage).__gardenCompanionFeature = feature;
   page.__gardenCompanionFeature = feature;
   page.__gardenCompanionConfig = () => config;
+  page.__gardenCompanionForecastTrace = forecastTrace;
 
   let gameUpdateDetected = false;
   function handleGameUpdateDetected(source: string): void {
@@ -467,6 +469,19 @@ export function initCompanion(): void {
    * still ticks into its tooltip, so the panel is worth collapsing rather than turning off.
    */
   let lunarMinimised = loadLocal<boolean>(LUNAR_MINIMISED_KEY, false);
+  /**
+   * Which timer is showing. Lunar events are on fixed slots and the weather between them is not, so
+   * the two answer different questions - and the panel only has room to answer one.
+   */
+  const LUNAR_MODE_KEY = 'gardenCompanion.lunarMode.v1';
+  type LunarMode = 'lunar' | 'weather';
+  let lunarMode: LunarMode = loadLocal<LunarMode>(LUNAR_MODE_KEY, 'weather') === 'lunar' ? 'lunar' : 'weather';
+
+  function setLunarMode(mode: LunarMode): void {
+    lunarMode = mode;
+    saveLocal(LUNAR_MODE_KEY, mode);
+    updateLunarTimer();
+  }
 
   function setLunarMinimised(minimised: boolean): void {
     lunarMinimised = minimised;
@@ -482,12 +497,47 @@ export function initCompanion(): void {
     // the player asked for it. Our own scenes claim cinematic as well, and hiding there would take
     // the timer away from the very screens it was opened alongside.
     const shown = feature('lunarTimer') && !page.__gardenCompanionCinematicFromGame?.();
-    const remaining = formatDuration(nextLunarAt() - Date.now());
+    // The game is asked what is coming rather than us working it out, so there is nothing to show
+    // when it has not answered yet - or cannot, which is what a game update would look like.
+    const forecast = lunarMode === 'weather' ? nextWeather() : null;
+    // Unavailable is a settled answer, not a slow one: the borrow reached a game that no longer
+    // offers what it needs. Saying so beats a countdown that would never start moving.
+    const unavailable = lunarMode === 'weather' && forecastStatus() === 'unavailable';
+    // A lunar event is announced as one rather than by name: which of the two it is belongs to the
+    // lunar timer, and naming it here would say more than the game's own station does at a glance.
+    const label = lunarMode === 'weather'
+      ? forecast ? forecast.lunar ? 'Lunar event in' : `${weatherLabel(forecast.weatherId)} in` : 'Next weather'
+      : 'Lunar event in';
+    const remaining = unavailable ? 'Unavailable'
+      : lunarMode === 'weather'
+        ? forecast ? formatDuration(forecast.startsAtMs - Date.now())
+          : forecastStatus() === 'ready' ? 'Not forecast' : '--'
+        : formatDuration(nextLunarAt() - Date.now());
     root.hidden = !shown || lunarMinimised;
+    const countdown = root.querySelector<HTMLElement>('.gc-lunar-countdown');
+    // Marked rather than measured, so the word can be set at a size that fits where the digits sat.
+    if (countdown) countdown.dataset.message = unavailable ? 'true' : '';
     root.querySelector('strong').textContent = remaining;
+    root.querySelector('.gc-lunar-title span').textContent = label;
+    const swap = root.querySelector<HTMLElement>('[data-swap]');
+    if (swap) swap.dataset.mode = lunarMode;
+    // The dial becomes the weather it is counting down to. These decode with the first pass rather
+    // than the deferred one, so they are here without a panel ever being opened; onSpritesReady
+    // redraws the timer for the moment between the first tick and the decode finishing.
+    // Only the weather takes a sprite. A lunar event keeps the mod's dial, since its own icon would
+    // give away which of the two is coming.
+    const sprite = forecast && !forecast.lunar ? page.__gardenCompanionWeatherSprites?.[forecast.weatherId] || '' : '';
+    const mark = root.querySelector<HTMLElement>('.gc-lunar-mark');
+    if (mark) {
+      mark.innerHTML = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
+      // Removed rather than blanked: an empty attribute still answers to [data-weather], which would
+      // strip the dial of its face and leave an empty circle behind.
+      if (sprite) mark.dataset.weather = forecast!.weatherId;
+      else delete mark.dataset.weather;
+    }
     if (mini) {
       mini.hidden = !shown || !lunarMinimised;
-      mini.title = `Next lunar event in ${remaining}`;
+      mini.title = `${label} ${remaining}`;
     }
   }
 
@@ -904,9 +954,10 @@ export function initCompanion(): void {
     document.head.appendChild(style);
     const lunar = document.createElement('div');
     lunar.id = 'gc-lunar';
-    lunar.innerHTML = '<div class="gc-lunar-head"><div class="gc-lunar-title"><i class="gc-lunar-mark"></i><span>Next lunar event</span></div><div id="gc-lunar-head-actions"><button data-minimise aria-label="Minimise the lunar timer" title="Minimise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button><button data-options aria-label="Open Garden Companion options" title="Open Garden Companion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.1 13.5c.1-.5.1-1 0-1.5l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.3-.8L15 4.8h-4l-.4 2.5c-.5.2-.9.5-1.3.8l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.8.6 1.3.8l.4 2.5h4l.4-2.5c.5-.2.9-.5 1.3-.8l2.4 1 2-3.4-2-1.5Z"/></svg></button></div></div><div class="gc-lunar-countdown"><strong>--</strong></div><div class="gc-health"><span id="gc-ws-health" data-status="connecting"><i></i><b>Connecting</b></span><button id="gc-update-health" data-status="checking">Checking update</button></div>';
+    lunar.innerHTML = '<div class="gc-lunar-head"><div class="gc-lunar-title"><i class="gc-lunar-mark"></i><span>Next lunar event</span></div><div id="gc-lunar-head-actions"><button data-swap aria-label="Switch between the lunar and weather timers" title="Switch timer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13l-3.5-3.5"/><path d="M20 15H7l3.5 3.5"/></svg></button><button data-minimise aria-label="Minimise the lunar timer" title="Minimise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button><button data-options aria-label="Open Garden Companion options" title="Open Garden Companion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.1 13.5c.1-.5.1-1 0-1.5l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.3-.8L15 4.8h-4l-.4 2.5c-.5.2-.9.5-1.3.8l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.8.6 1.3.8l.4 2.5h4l.4-2.5c.5-.2.9-.5 1.3-.8l2.4 1 2-3.4-2-1.5Z"/></svg></button></div></div><div class="gc-lunar-countdown"><strong>--</strong></div><div class="gc-health"><span id="gc-ws-health" data-status="connecting"><i></i><b>Connecting</b></span><button id="gc-update-health" data-status="checking">Checking update</button></div>';
     lunar.querySelector<HTMLButtonElement>('[data-options]')!.onclick = togglePanel;
     lunar.querySelector<HTMLButtonElement>('[data-minimise]')!.onclick = () => setLunarMinimised(true);
+    lunar.querySelector<HTMLButtonElement>('[data-swap]')!.onclick = () => setLunarMode(lunarMode === 'lunar' ? 'weather' : 'lunar');
     lunar.querySelector<HTMLButtonElement>('#gc-update-health')!.onclick = handleUpdateClick;
     document.body.appendChild(lunar);
     makeDraggable(lunar, LUNAR_POSITION_KEY);
@@ -922,6 +973,8 @@ export function initCompanion(): void {
       if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood', 'calculators'].includes(activeTab)) renderPanel();
       resetPetFoodSignature();
       renderPetFood();
+      // The forecast sprite is asked for from the timer itself, so this is where it arrives.
+      updateLunarTimer();
     });
     // Reacting to the write rather than the next tick, so entering cinematic mode is not a second
     // of the timer sitting in the shot.

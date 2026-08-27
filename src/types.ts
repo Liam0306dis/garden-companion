@@ -152,6 +152,7 @@ export interface CompanionPage extends Window {
   jotaiAtomCache?: { cache?: Map<unknown, JotaiAtom>; get?: (key: unknown, initial: JotaiAtom) => JotaiAtom; __gardenCompanionWrapped?: boolean } | Map<unknown, JotaiAtom>;
   __gardenCompanionFeature?: (name: string) => boolean;
   __gardenCompanionConfig?: () => CompanionConfig;
+  __gardenCompanionForecastTrace?: () => Record<string, unknown>;
   __gardenCompanionPlantPrice?: (species?: string) => number | undefined;
   __gardenCompanionPetSprites?: Record<string, string>;
   __gardenCompanionShopSprites?: Record<string, string>;

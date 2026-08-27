@@ -708,6 +708,17 @@ export function initPlantDragMove(): void {
             clearPress(activePress);
             return;
         }
+        // Checked here rather than on the press. A move needs a pot; an ordinary click does not, and
+        // the press is only a move once it has been held - so testing it any earlier answered every
+        // click in the game with a toast about a tool the click was never going to use.
+        if (live.inventoryReady && !hasPlanterPot()) {
+            activePress.cancelled = true;
+            showToast('A Planter Pot is required to move plants.', 'error', 4500);
+            log('Move unavailable: no Planter Pot in inventory.');
+            clearPress(activePress);
+            return;
+        }
+
         activePress.activated = true;
         document.documentElement.style.cursor = 'grabbing';
 
@@ -755,12 +766,6 @@ export function initPlantDragMove(): void {
             showToast('Finish the current plant move before starting another.', 'error', 3500);
             return;
         }
-        if (live.inventoryReady && !hasPlanterPot()) {
-            showToast('A Planter Pot is required to move plants.', 'error', 4500);
-            log('Move unavailable: no Planter Pot in inventory.');
-            return;
-        }
-
         const activePress = {
             target: event.target,
             pointerId: event.pointerId,

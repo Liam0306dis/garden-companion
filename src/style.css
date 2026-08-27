@@ -17,18 +17,29 @@
 .gc-lunar-title { min-width:0;display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase; }
 .gc-lunar-mark { position:relative;width:18px;height:18px;flex:0 0 auto;border-radius:50%;background:linear-gradient(145deg,#67e8f9,#8b5cf6);box-shadow:0 0 14px rgba(103,232,249,.2); }
 .gc-lunar-mark::after { content:'';position:absolute;top:2px;left:6px;width:14px;height:14px;border-radius:50%;background:#0d1116; }
-#gc-lunar button[data-options] { width:27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:7px;color:#cbd5e1;background:rgba(255,255,255,.035);cursor:pointer;transition:.15s; }
-#gc-lunar button[data-options] svg { width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8; }
-#gc-lunar button[data-options]:hover,#gc-lunar button[data-minimise]:hover { color:#e0f2fe;border-color:rgba(103,232,249,.3);background:rgba(103,232,249,.08); }
+/* Showing a weather instead, the dial is only a frame for it - the crescent underneath would
+   otherwise read through the sprite's transparent corners. */
+.gc-lunar-mark[data-weather] { background:none;box-shadow:none; }
+.gc-lunar-mark[data-weather]::after { content:none; }
+.gc-lunar-mark img { position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:auto; }
+/* One rule for every control in the header. Naming each button meant a new one arrived with no
+   size, no border and an unstroked icon - present, and invisible. */
+#gc-lunar-head-actions button { width:27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:7px;color:#cbd5e1;background:rgba(255,255,255,.035);cursor:pointer;transition:.15s; }
+#gc-lunar-head-actions button svg { width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+#gc-lunar-head-actions button:hover { color:#e0f2fe;border-color:rgba(103,232,249,.3);background:rgba(103,232,249,.08); }
+/* The swap control is the one that changes what the panel is showing, so it reads as active when
+   the panel is on the borrowed forecast rather than the lunar countdown. */
+#gc-lunar-head-actions button[data-swap][data-mode="weather"] { color:#a78bfa;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.12); }
 #gc-lunar-head-actions { display:flex;align-items:center;gap:5px;flex:0 0 auto; }
-#gc-lunar button[data-minimise] { width:27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:7px;color:#cbd5e1;background:rgba(255,255,255,.035);cursor:pointer;transition:.15s; }
-#gc-lunar button[data-minimise] svg { width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round; }
 /* Sits beside the Garden Overview button, which is 32px at left:10px, so this clears it by 8px. */
 #gc-lunar-mini { position:fixed;left:50px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-raised);color:var(--gc-text);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45); }
 #gc-lunar-mini:hover { border-color:rgba(103,232,249,.35);background:linear-gradient(rgba(103,232,249,.16),rgba(103,232,249,.16)),var(--gc-raised); }
 #gc-lunar-mini .gc-lunar-mark { width:16px;height:16px; }
 #gc-lunar-mini .gc-lunar-mark::after { top:2px;left:5px;width:12px;height:12px; }
 .gc-lunar-countdown { display:flex;align-items:center;justify-content:center;padding:4px 12px 14px; }
+/* A word where the digits go: the countdown face is sized for four monospaced characters, and
+   Unavailable at that size runs off the panel. */
+.gc-lunar-countdown[data-message="true"] strong { font-size:15px;letter-spacing:0;color:var(--gc-muted);text-shadow:none; }
 .gc-lunar-countdown strong { color:#f8fafc;font:650 31px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.035em;text-align:center;text-shadow:0 0 20px rgba(103,232,249,.1); }
 #gc-lunar .gc-health { min-height:30px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:6px 9px 6px 12px;background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.055); }
 #gc-ws-health { min-width:0;display:flex;align-items:center;gap:6px;color:#a8b6c8;font-size:9px;font-weight:650; }

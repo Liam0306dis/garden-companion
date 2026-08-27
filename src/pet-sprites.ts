@@ -658,7 +658,13 @@ export async function initPetSprites(): Promise<void> {
   function essentialRequest(): { wanted: Set<string>; trimmedWanted: Set<string> } {
     return {
       wanted: new Set(species.map(name => normaliseKey(`sprite/pet/${name}`))),
-      trimmedWanted: new Set(Object.values(produceCandidates).flat().map(normaliseKey)),
+      trimmedWanted: new Set([
+        ...Object.values(produceCandidates).flat().map(normaliseKey),
+        // Five icons, decoded with the first pass rather than the deferred one. The weather timer
+        // shows them without any panel being opened, and the deferred stage waits for one - so left
+        // there they were missing for anyone who never opens the panel at all.
+        ...Object.values(WEATHER_ICON_CANDIDATES).map(normaliseKey),
+      ]),
     };
   }
 
@@ -681,6 +687,7 @@ export async function initPetSprites(): Promise<void> {
         return image ? [[name, image]] : [];
       })),
       produce: mapFrom(produceCandidates, trimmed),
+      weather: mapFrom(Object.fromEntries(Object.entries(WEATHER_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
     };
   }
 
@@ -692,7 +699,6 @@ export async function initPetSprites(): Promise<void> {
         ...Object.values(plantCandidates).flat().map(normaliseKey),
         ...Object.values(emblemCandidates).map(normaliseKey),
         ...Object.values(MUTATION_ICON_CANDIDATES).map(normaliseKey),
-        ...Object.values(WEATHER_ICON_CANDIDATES).map(normaliseKey),
         ...Object.entries(shopCandidates).filter(([itemId]) => decorIds.has(itemId)).flatMap(([, candidates]) => candidates).map(normaliseKey),
       ]),
     };
@@ -712,7 +718,6 @@ export async function initPetSprites(): Promise<void> {
       plant: mapFrom(plantCandidates, trimmed),
       emblem: mapFrom(Object.fromEntries(Object.entries(emblemCandidates).map(([icon, candidate]) => [icon, [candidate]])), trimmed),
       mutation: mapFrom(Object.fromEntries(Object.entries(MUTATION_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
-      weather: mapFrom(Object.fromEntries(Object.entries(WEATHER_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
     };
   }
 

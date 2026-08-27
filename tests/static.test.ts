@@ -69,6 +69,7 @@ const petSpriteSource = await readSource('src', 'pet-sprites.ts');
 const petSpriteInjector = await readSource('src', 'pet-sprites-injector.ts');
 const eggLuckSource = await readSource('src', 'features', 'egg-luck.ts');
 const cropEstimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
+const forecastSource = await readSource('src', 'weather-forecast.ts');
 const weatherAlarmsSource = await readSource('src', 'features', 'weather-alarms.ts');
 const activityLogSource = await readSource('src', 'activity-log.ts');
 const stateSource = await readSource('src', 'state.ts');
@@ -253,7 +254,25 @@ assert.match(styleSource, /\.gc-lunar-mark::after/, 'lunar timer crescent mark i
 // Minimised it becomes an icon beside the Garden Overview button, which is 32px wide at left:10px.
 assert.match(styleSource, /#gc-lunar-mini \{[^}]*left:50px;bottom:10px/, 'the minimised lunar icon does not sit beside the overview button');
 assert.match(companionSource, /mini\.hidden = !shown \|\| !lunarMinimised;/, 'the minimised lunar icon ignores the lunar timer feature toggle');
-assert.match(companionSource, /mini\.title = `Next lunar event in \$\{remaining\}`/, 'the minimised lunar icon stops reporting the countdown');
+assert.match(companionSource, /mini\.title = `\$\{label\} \$\{remaining\}`/, 'the minimised lunar icon stops reporting the countdown');
+// The forecast is asked of the game, never worked out here - the schedule algorithm stays out of
+// this source, and nothing can ask it about a day other than today.
+assert.doesNotMatch(forecastSource, /minFrequencyMinutes|dropTable|4022871197/, 'the weather schedule has been reimplemented in the source');
+// Which weathers are lunar is read from the game, never named here: a renamed id would otherwise
+// slip past the guard silently and put Dawn on a timer that is meant to show rain, snow or thunder.
+assert.doesNotMatch(forecastSource, /'Dawn'|'AmberMoon'|'Lunar'|'Hydro'/, 'weather groups are classified by hardcoded name again, which a rename breaks silently');
+assert.match(forecastSource, /\.filter\(\(\[, group\]\) => Array\.isArray\(group\?\.fixedTimeSlots\)\)/, 'the lunar group is identified by something other than the game telling us');
+assert.match(forecastSource, /return next \? \{ \.\.\.next, lunar: fixedSlot\.has\(next\.weatherId\) \} : null;/, 'the next event is no longer flagged by group');
+// The timer names rain, snow and thunder but never which lunar event is coming - that belongs to the
+// lunar timer, and its own icon would give it away too.
+assert.match(companionSource, /forecast\.lunar \? 'Lunar event in' : `\$\{weatherLabel\(forecast\.weatherId\)\} in`/, 'a lunar event is named in the weather timer');
+assert.match(companionSource, /const sprite = forecast && !forecast\.lunar \?/, 'a lunar event takes a sprite that says which one it is');
+assert.match(companionSource, /loadLocal<LunarMode>\(LUNAR_MODE_KEY, 'weather'\) === 'lunar' \? 'lunar' : 'weather'/, 'the timer no longer defaults to the next event of any kind');
+assert.match(forecastSource, /const SHAPE = \/function/, 'the borrowed function is found by name again, which changes almost every release');
+assert.match(forecastSource, /cached\.version === version/, 'the chunk is rediscovered on every load rather than once per game version');
+// A slow load must not read as a broken one.
+assert.match(companionSource, /const unavailable = lunarMode === 'weather' && forecastStatus\(\) === 'unavailable';/, 'a forecast that cannot be read no longer says so');
+assert.match(companionSource, /const remaining = unavailable \? 'Unavailable'/, 'an unreadable forecast still shows a countdown');
 assert.match(companionSource, /saveLocal\(LUNAR_MINIMISED_KEY, minimised\)/, 'a minimised lunar timer is not remembered');
 // Our own scenes claim cinematic too, so the timer must only step aside for the player's own use.
 assert.match(companionSource, /cinematicValue && cinematicOwners\.size === 0/, 'the lunar timer cannot tell the player\'s cinematic mode from our own');
@@ -1503,3 +1522,33 @@ assert.match(activityLogSource, /known\.add\(id\);\s*return true;/, 'a duplicate
 // were - restoring only the content snapped the nav to the top while you reached for its last item.
 assert.match(companionSource, /const navTop = panel\?\.querySelector\('nav'\)\?\.scrollTop \?\? 0;[\s\S]*?if \(nav\) nav\.scrollTop = navTop;/, 'a redraw resets the nav scroll position');
 assert.doesNotMatch(companionSource, /const nextMain = panel\.querySelector\('main'\)/, 'the live refresh restores its own scroll again, missing the nav');
+
+// Naming each header button in the stylesheet meant a new one arrived unsized, unbordered and with
+// an unstroked icon - in the DOM and invisible. One rule covers whatever is in there.
+assert.match(styleSource, /#gc-lunar-head-actions button \{ width:27px;height:27px/, 'the header controls are styled by name again, so a new one renders invisible');
+assert.doesNotMatch(styleSource, /#gc-lunar button\[data-(options|minimise)\] \{/, 'a header button is styled by name again');
+
+// The backoff has to hold whether or not there is an answer to keep. Requiring one meant the
+// deadline set for having none never applied, and the game was asked twice a second forever.
+assert.match(forecastSource, /if \(now < heldUntil\) return held && now < held\.startsAtMs \? held : null;/, 'the forecast backoff only applies when there is an answer, so having none polls every tick');
+// Without a version there is nothing to cache against, and every load rescans megabytes of chunks.
+assert.match(forecastSource, /link\[href\]'\)\)\.map\(link => link\.href\),\s*\];\s*for \(const source of sources\)/, 'the game version is read from scripts alone, so a page without one never caches discovery');
+
+// An empty data attribute still matches [data-weather], which strips the dial's face and leaves an
+// empty circle - so the attribute is removed rather than blanked when the forecast goes away.
+assert.match(companionSource, /if \(sprite\) mark\.dataset\.weather = forecast!\.weatherId;\s*else delete mark\.dataset\.weather;/, 'the weather marker is blanked instead of cleared, so the dial loses its face');
+// The timer shows these without any panel being opened, and the deferred pass waits for one - so
+// they belong in the first pass, where they are decoded on load.
+assert.match(petSpriteSource, /\.\.\.Object\.values\(WEATHER_ICON_CANDIDATES\)\.map\(normaliseKey\),\s*\]\),\s*\};\s*\}\s*async function decodeEssential/, 'the weather icons are back in the deferred pass, so they need a panel opened first');
+assert.doesNotMatch(companionSource, /weatherSpritesRequested/, 'the timer still asks for a deferred group that no longer carries its icons');
+assert.match(companionSource, /renderPetFood\(\);\s*\/\/[^\n]*\n\s*updateLunarTimer\(\);/, 'the timer is not redrawn when the sprites it asked for arrive');
+
+// Discovery reads the modules the page has loaded, so asking before the game has loaded them finds
+// nothing. Memoising that answer made a startup race permanent for the life of the page.
+assert.match(forecastSource, /if \(forecast\) return forecast;\s*if \(Date\.now\(\) < retryAfter\) return Promise\.resolve\(null\);/, 'a failed discovery is cached forever, so a startup race never recovers');
+assert.match(forecastSource, /retryAfter = Date\.now\(\) \+ 30_000;\s*forecast = null;/, 'a failed discovery is not retried, or is retried without a throttle');
+
+// A move needs a Planter Pot; a click does not. Testing for one on the press answered every click in
+// the game with a toast about a tool that click was never going to use.
+assert.match(plantDragSource, /if \(live\.inventoryReady && !hasPlanterPot\(\)\) \{\s*activePress\.cancelled = true;/, 'the Planter Pot check runs on the press again, so every click reports it');
+assert.doesNotMatch(plantDragSource.slice(plantDragSource.indexOf("addEventListener('pointerdown'"), plantDragSource.indexOf("addEventListener('pointermove'")), /hasPlanterPot/, 'the pointerdown handler tests for a Planter Pot before the press is a move');
