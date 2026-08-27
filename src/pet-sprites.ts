@@ -44,13 +44,26 @@ interface AssetManifest {
 }
 
 /**
- * Game build 1019 split each atlas into resolution variants and started listing them as objects
- * rather than bare paths, which threw inside the manifest walk and left every sprite missing. The
- * variants are not copies of one another - the frames are divided between them - so all of them are
- * kept and the frame lookup finds whichever atlas holds the sprite it wants.
+ * Game build 1019 gave each atlas a 1x and a 2x variant and started listing them as objects rather
+ * than bare paths, which threw inside the manifest walk and left every sprite missing.
+ *
+ * The variants hold the same frames at different sizes, so exactly one of them is wanted: the
+ * largest. Taking the 1x pack would halve every sprite and leave it to be blown back up on display,
+ * and taking both would decode a whole second copy of the atlas to throw away. A build that offers
+ * only one variant, as everything before 1019 did, simply has one to choose from.
  */
-function manifestPath(source: ManifestSource): string {
-  return typeof source === 'string' ? source : typeof source?.src === 'string' ? source.src : '';
+function bestSource(sources: ManifestSource[]): string {
+  let best = '';
+  let bestResolution = -Infinity;
+  for (const source of sources) {
+    const path = typeof source === 'string' ? source : source?.src;
+    if (typeof path !== 'string' || !path) continue;
+    const resolution = typeof source === 'string' ? 1 : Number(source.resolution) || 1;
+    if (resolution <= bestResolution) continue;
+    best = path;
+    bestResolution = resolution;
+  }
+  return best;
 }
 
 const TRANSCODER_URL = 'https://unpkg.com/@h00w/basis-universal-transcoder?module';
@@ -147,13 +160,11 @@ async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[];
     let petRiveUrl: string | null = null;
     for (const bundle of manifest.bundles ?? []) {
       for (const asset of bundle.assets ?? []) {
-        for (const entry of asset.src ?? []) {
-          const source = manifestPath(entry);
-          if (!source) continue;
-          if (source.startsWith('atlases/') && source.endsWith('.json')) paths.add(source);
-          if (asset.alias?.some(alias => alias === 'rive/pets.riv' || alias === 'rive/pets')) {
-            petRiveUrl = new URL(source, assetsBase).href;
-          }
+        const source = bestSource(asset.src ?? []);
+        if (!source) continue;
+        if (source.startsWith('atlases/') && source.endsWith('.json')) paths.add(source);
+        if (asset.alias?.some(alias => alias === 'rive/pets.riv' || alias === 'rive/pets')) {
+          petRiveUrl = new URL(source, assetsBase).href;
         }
       }
     }

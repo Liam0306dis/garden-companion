@@ -1387,3 +1387,8 @@ assert.doesNotMatch(keybindsSource, /ApplyPetTeam/, 'a keybind swap bypasses the
 // The activity cannot move between rooms, so the tab must not offer buttons that do nothing.
 assert.match(roomsSource, /if \(inDiscordActivity\(\)\) \{/, 'the Rooms tab still lists rooms where none can be joined');
 assert.match(roomsSource, /location\.hostname\.endsWith\('discordsays\.com'\)/, 'the Discord activity is no longer detected');
+
+// One atlas per asset, at the largest size offered: taking the 1x variant would halve every sprite,
+// and taking both would decode a second copy of the same frames only to discard it.
+assert.match(petSpriteSource, /const source = bestSource\(asset\.src \?\? \[\]\);/, 'every source variant is walked rather than the best one picked');
+assert.match(petSpriteSource, /if \(resolution <= bestResolution\) continue;/, 'the atlas variants are no longer compared by resolution');
