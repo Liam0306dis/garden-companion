@@ -506,13 +506,14 @@ export function initCompanion(): void {
     // A lunar event is announced as one rather than by name: which of the two it is belongs to the
     // lunar timer, and naming it here would say more than the game's own station does at a glance.
     const label = lunarMode === 'weather'
-      ? forecast ? forecast.lunar ? 'Lunar event in' : `${weatherLabel(forecast.weatherId)} in` : 'Next weather'
-      : 'Lunar event in';
+      ? forecast ? forecast.lunar ? 'Lunar event' : weatherLabel(forecast.weatherId) : 'Next weather'
+      : 'Lunar event';
     const remaining = unavailable ? 'Unavailable'
       : lunarMode === 'weather'
         ? forecast ? formatDuration(forecast.startsAtMs - Date.now())
           : forecastStatus() === 'ready' ? 'Not forecast' : '--'
         : formatDuration(nextLunarAt() - Date.now());
+    const countingDown = !unavailable && (lunarMode === 'lunar' || Boolean(forecast));
     root.hidden = !shown || lunarMinimised;
     const countdown = root.querySelector<HTMLElement>('.gc-lunar-countdown');
     // Marked rather than measured, so the word can be set at a size that fits where the digits sat.
@@ -544,7 +545,9 @@ export function initCompanion(): void {
     }
     if (mini) {
       mini.hidden = !shown || !lunarMinimised;
-      mini.title = `${label} ${remaining}`;
+      // The heading drops the "in" because the number sits under it; the tooltip is one line, so it
+      // reads as a sentence - unless the value is a message, which nothing can be "in".
+      mini.title = countingDown ? `${label} in ${remaining}` : `${label} - ${remaining}`;
     }
   }
 

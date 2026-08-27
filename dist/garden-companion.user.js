@@ -5454,8 +5454,9 @@ ${eggs.map(eggCard).join("")}`;
       const shown = feature("lunarTimer") && !page.__gardenCompanionCinematicFromGame?.();
       const forecast2 = lunarMode === "weather" ? nextWeather() : null;
       const unavailable = lunarMode === "weather" && forecastStatus() === "unavailable";
-      const label = lunarMode === "weather" ? forecast2 ? forecast2.lunar ? "Lunar event in" : `${weatherLabel(forecast2.weatherId)} in` : "Next weather" : "Lunar event in";
+      const label = lunarMode === "weather" ? forecast2 ? forecast2.lunar ? "Lunar event" : weatherLabel(forecast2.weatherId) : "Next weather" : "Lunar event";
       const remaining2 = unavailable ? "Unavailable" : lunarMode === "weather" ? forecast2 ? formatDuration(forecast2.startsAtMs - Date.now()) : forecastStatus() === "ready" ? "Not forecast" : "--" : formatDuration(nextLunarAt() - Date.now());
+      const countingDown = !unavailable && (lunarMode === "lunar" || Boolean(forecast2));
       root.hidden = !shown || lunarMinimised;
       const countdown = root.querySelector(".gc-lunar-countdown");
       if (countdown) countdown.dataset.message = unavailable ? "true" : "";
@@ -5475,7 +5476,7 @@ ${eggs.map(eggCard).join("")}`;
       }
       if (mini) {
         mini.hidden = !shown || !lunarMinimised;
-        mini.title = `${label} ${remaining2}`;
+        mini.title = countingDown ? `${label} in ${remaining2}` : `${label} - ${remaining2}`;
       }
     }
     let socketStatus = "connecting";

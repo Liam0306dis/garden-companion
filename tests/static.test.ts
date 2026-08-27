@@ -254,7 +254,7 @@ assert.match(styleSource, /\.gc-lunar-mark::after/, 'lunar timer crescent mark i
 // Minimised it becomes an icon beside the Garden Overview button, which is 32px wide at left:10px.
 assert.match(styleSource, /#gc-lunar-mini \{[^}]*left:50px;bottom:10px/, 'the minimised lunar icon does not sit beside the overview button');
 assert.match(companionSource, /mini\.hidden = !shown \|\| !lunarMinimised;/, 'the minimised lunar icon ignores the lunar timer feature toggle');
-assert.match(companionSource, /mini\.title = `\$\{label\} \$\{remaining\}`/, 'the minimised lunar icon stops reporting the countdown');
+assert.match(companionSource, /mini\.title = countingDown \? `\$\{label\} in \$\{remaining\}` : `\$\{label\} - \$\{remaining\}`/, 'the minimised lunar icon stops reporting the countdown');
 // The forecast is asked of the game, never worked out here - the schedule algorithm stays out of
 // this source, and nothing can ask it about a day other than today.
 assert.doesNotMatch(forecastSource, /minFrequencyMinutes|dropTable|4022871197/, 'the weather schedule has been reimplemented in the source');
@@ -265,7 +265,7 @@ assert.match(forecastSource, /\.filter\(\(\[, group\]\) => Array\.isArray\(group
 assert.match(forecastSource, /return next \? \{ \.\.\.next, lunar: fixedSlot\.has\(next\.weatherId\) \} : null;/, 'the next event is no longer flagged by group');
 // The timer names rain, snow and thunder but never which lunar event is coming - that belongs to the
 // lunar timer, and its own icon would give it away too.
-assert.match(companionSource, /forecast\.lunar \? 'Lunar event in' : `\$\{weatherLabel\(forecast\.weatherId\)\} in`/, 'a lunar event is named in the weather timer');
+assert.match(companionSource, /forecast\.lunar \? 'Lunar event' : weatherLabel\(forecast\.weatherId\)/, 'a lunar event is named in the weather timer');
 assert.match(companionSource, /const sprite = forecast && !forecast\.lunar \?/, 'a lunar event takes a sprite that says which one it is');
 assert.match(companionSource, /loadLocal<LunarMode>\(LUNAR_MODE_KEY, 'weather'\) === 'lunar' \? 'lunar' : 'weather'/, 'the timer no longer defaults to the next event of any kind');
 assert.match(forecastSource, /const SHAPE = \/function/, 'the borrowed function is found by name again, which changes almost every release');
