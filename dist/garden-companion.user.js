@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.29
+// @version      0.8.30
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -589,6 +589,25 @@
       return JSON.stringify(frame);
     } catch {
       return data;
+    }
+  }
+  var commandListeners = /* @__PURE__ */ new Set();
+  function onOutgoingCommand(listener) {
+    commandListeners.add(listener);
+  }
+  function noteOutgoingCommand(data) {
+    if (!commandListeners.size || typeof data !== "string" || !data.includes("QuinoaCommand")) return;
+    try {
+      const frame = JSON.parse(data);
+      const command = frame?.type === "QuinoaCommand" ? frame.command : frame;
+      if (!command || typeof command !== "object") return;
+      for (const listener of commandListeners) {
+        try {
+          listener(command);
+        } catch {
+        }
+      }
+    } catch {
     }
   }
   function send(command) {
@@ -3817,6 +3836,7 @@ ${eggs.map(eggCard).join("")}`;
     wrappedAtomWrites.clear();
   }
   function inspectGameAtom(key, atom) {
+    if (!atom) return atom;
     const atomKey = String(key);
     if (atomKey.endsWith("/activeModalAtom")) activeModalAtom = atom;
     if (atomKey.endsWith("/isCinematicModeAtom")) {
@@ -4313,7 +4333,8 @@ ${eggs.map(eggCard).join("")}`;
   function saveTeam(name, petIds, teamId = null) {
     if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
     if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
-    send({ type: "SavePetTeam", teamId, name: name.trim(), petIds });
+    const isCreate = !teamId;
+    send({ type: "SavePetTeam", teamId: teamId ?? crypto.randomUUID(), isCreate, name: name.trim(), petIds });
   }
   function closeTeamPicker() {
     teamPickerSelection = null;
@@ -5151,6 +5172,7 @@ ${eggs.map(eggCard).join("")}`;
           if (blocked.requestId) refuseCommand(socket, blocked.requestId);
           return;
         }
+        noteOutgoingCommand(data);
         return originalSend.call(this, renumberOutgoingCommand(data));
       };
     }
@@ -10710,11 +10732,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (cache instanceof Map) return cache;
       return cache?.cache ?? null;
     }
-    function hookAtom2(debugLabel, onValue) {
+    function hookAtom2(labels, onValue) {
+      const wanted = Array.isArray(labels) ? labels : [labels];
+      const debugLabel = wanted[0];
       const map = atomMap4();
       if (!map || typeof map.values !== "function") return false;
       for (const atom of map.values()) {
-        if (atom?.debugLabel !== debugLabel || typeof atom.read !== "function") continue;
+        if (!wanted.includes(atom?.debugLabel) || typeof atom.read !== "function") continue;
         const flag = `${WRAPPED_FLAG}:${debugLabel}`;
         if (atom[flag]) return true;
         const originalRead = atom.read;
@@ -10739,14 +10763,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function installAtomHooks2() {
       const hooks = [
-        ["myOptimisticInventoryItemsAtom", (value) => {
+        [["myPredictedInventoryItemsAtom", "myOptimisticInventoryItemsAtom"], (value) => {
           if (Array.isArray(value)) {
             live.inventoryItems = value;
             live.inventoryReady = true;
-            const planterPotCount2 = value.reduce((total, item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" ? total + (item.quantity ?? 1) : total, 0);
-            if (planterPotCount2 !== lastLoggedPlanterPotCount) {
-              lastLoggedPlanterPotCount = planterPotCount2;
-              log(`Planter Pots in inventory: ${planterPotCount2}`);
+            const planterPotCount = value.reduce((total, item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" ? total + (item.quantity ?? 1) : total, 0);
+            if (planterPotCount !== lastLoggedPlanterPotCount) {
+              lastLoggedPlanterPotCount = planterPotCount;
+              log(`Planter Pots in inventory: ${planterPotCount}`);
             }
           }
         }],
@@ -10919,10 +10943,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       activePress.fadeFrame = 0;
     }
     function hasPlanterPot() {
-      return live.inventoryItems.some((item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" && (item?.quantity ?? 1) > 0);
+      return inventoryItems2().some((item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" && (item?.quantity ?? 1) > 0);
     }
-    function inventoryIds() {
-      return new Set(live.inventoryItems.map((item) => item?.id).filter(Boolean));
+    function inventoryItems2() {
+      const items = state.slot?.data?.inventory?.items;
+      return Array.isArray(items) && items.length ? items : live.inventoryItems;
     }
     function isSamePlant(candidate, source) {
       if (candidate?.species !== source?.species) return false;
@@ -10930,8 +10955,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (source?.maturedAt != null && candidate?.maturedAt !== source.maturedAt) return false;
       return true;
     }
-    function findNewPlant(beforeIds, source) {
-      return live.inventoryItems.find((item) => item?.itemType === "Plant" && isSamePlant(item, source) && item?.id && !beforeIds.has(item.id));
+    function findPottedPlant(plantItemId) {
+      return inventoryItems2().find((item) => item?.itemType === "Plant" && item?.id === plantItemId);
     }
     function sendMessage(message) {
       const socket = live.activeSocket;
@@ -10940,13 +10965,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       socket.send(JSON.stringify(message));
     }
-    function sendPotPlant(slot) {
+    function sendPotPlant(slot, plantItemId) {
       const requestId = pageWindow.crypto.randomUUID();
       sendMessage({
         scopePath: ["Room", "Quinoa"],
         type: "QuinoaCommand",
         requestId,
-        command: { type: "PotPlant", slot }
+        command: { type: "PotPlant", slot, plantItemId }
       });
       log(`Sent PotPlant for farm slot ${slot}.`, { requestId });
     }
@@ -10994,10 +11019,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       activePress.destination = destination;
       activePress.phase = "potting";
       const species = activePress.source.object.species;
-      const beforeIds = inventoryIds();
+      const plantItemId = pageWindow.crypto.randomUUID();
       showToast(`Picking up ${species ?? "plant"}...`, "normal", 0);
-      sendPotPlant(activePress.source.localTileIndex);
-      const plantItem = await waitFor(() => findNewPlant(beforeIds, activePress.source.object), POT_TIMEOUT_MS);
+      sendPotPlant(activePress.source.localTileIndex, plantItemId);
+      const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
       restoreSourcePlant(activePress);
       if (!plantItem) throw new Error("The server did not return the potted plant");
       activePress.plantItem = plantItem;
@@ -11018,7 +11043,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         sendPlantGardenPlant(destination.localTileIndex, activePress.plantItem.id);
         const placed = await waitFor(() => {
           const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
-          const itemStillHeld = live.inventoryItems.some((item) => item?.id === activePress.plantItem.id);
+          const itemStillHeld = inventoryItems2().some((item) => item?.id === activePress.plantItem.id);
           return !itemStillHeld && object?.objectType === "plant" && isSamePlant(object, activePress.source.object);
         }, PLACE_TIMEOUT_MS, 150);
         if (placed) {
@@ -11198,6 +11223,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var INSTALL_INTERVAL_MS = 250;
   var MAX_INSTALL_ATTEMPTS = 240;
   var pendingSelection = null;
+  var lastSelectedItemId = null;
+  function trace2(step, detail) {
+    try {
+      if (localStorage.getItem("gcPotDebug") !== "1") return;
+    } catch {
+      return;
+    }
+    console.log("[PotKeeper] " + step, { ...detail, lastSelectedItemId, armed: Boolean(pendingSelection) });
+  }
   function isEnabled() {
     return page.__gardenCompanionFeature?.("keepPlanterPotSelected") === true;
   }
@@ -11212,63 +11246,51 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     return null;
   }
-  function planterPotCount(items) {
-    return items.reduce((total, item) => {
-      if (item?.itemType !== "Tool" || item.toolId !== "PlanterPot") return total;
-      return total + (typeof item.quantity === "number" ? item.quantity : 1);
-    }, 0);
-  }
-  function plantIds(items) {
-    return new Set(
-      items.filter((item) => item?.itemType === "Plant" && typeof item.id === "string").map((item) => item.id)
-    );
-  }
-  function hasItemId(items, itemId2) {
-    return items.some((item) => item?.itemType === "Tool" ? item.toolId === itemId2 : item?.id === itemId2);
-  }
   function installHooks() {
     const map = atomMap3();
     if (!map) return false;
-    const inventoryAtom = findAtom(map, "myOptimisticInventoryItemsAtom");
     const selectedItemAtom = findAtom(map, "mySelectedItemIdAtom");
-    if (!inventoryAtom?.write || !selectedItemAtom?.write) return false;
-    if (wrappedAtoms.has(inventoryAtom) || wrappedAtoms.has(selectedItemAtom)) return true;
-    const originalInventoryWrite = inventoryAtom.write;
+    const explicitItemAtom = findAtom(map, "myLastExplicitlySelectedItemIdAtom");
+    if (!selectedItemAtom?.write || !explicitItemAtom?.write) return false;
+    if (wrappedAtoms.has(selectedItemAtom)) return true;
     const originalSelectedItemWrite = selectedItemAtom.write;
-    inventoryAtom.write = function(get, set, ...args) {
-      const typedGet = get;
-      const previousItems = typedGet(inventoryAtom);
-      const nextItems = args[0];
-      if (isEnabled() && Array.isArray(previousItems) && Array.isArray(nextItems)) {
-        const selectedItemId = typedGet(selectedItemAtom);
-        if (selectedItemId === "PlanterPot" && planterPotCount(previousItems) - planterPotCount(nextItems) === 1) {
-          const previousPlantIds = plantIds(previousItems);
-          const addedPlantIds = new Set([...plantIds(nextItems)].filter((id) => !previousPlantIds.has(id)));
-          if (addedPlantIds.size > 0) {
-            pendingSelection = {
-              addedPlantIds,
-              restoreItemId: hasItemId(nextItems, "PlanterPot") ? "PlanterPot" : null,
-              expiresAt: performance.now() + 2e3
-            };
-          }
-        }
-      }
-      return originalInventoryWrite.call(this, typedGet, set, ...args);
+    const originalExplicitItemWrite = explicitItemAtom.write;
+    explicitItemAtom.write = function(get, set, ...args) {
+      const pending = pendingSelection;
+      const redirecting = Boolean(pending) && performance.now() <= (pending?.expiresAt ?? 0) && typeof args[0] === "string" && Boolean(pending?.addedPlantIds.has(args[0]));
+      trace2("explicit write", { requested: args[0], redirecting });
+      const value = redirecting ? pending.restoreItemId : args[0];
+      return originalExplicitItemWrite.call(this, get, set, value);
     };
+    onOutgoingCommand((command) => {
+      if (command.type === "SetSelectedItem" || command.type === "PotPlant") {
+        trace2("command " + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
+      }
+      if (!isEnabled() || command.type !== "PotPlant" || lastSelectedItemId !== "PlanterPot") return;
+      const plantItemId = command.plantItemId;
+      if (typeof plantItemId !== "string") return;
+      pendingSelection = {
+        addedPlantIds: /* @__PURE__ */ new Set([plantItemId]),
+        restoreItemId: "PlanterPot",
+        expiresAt: performance.now() + 2e3
+      };
+    });
     selectedItemAtom.write = function(get, set, ...args) {
       const pending = pendingSelection;
-      if (!isEnabled()) pendingSelection = null;
-      else if (pending && performance.now() <= pending.expiresAt) {
-        pendingSelection = null;
-        const nextItemId = args[0];
-        if (typeof nextItemId === "string" && pending.addedPlantIds.has(nextItemId)) {
-          return originalSelectedItemWrite.call(this, get, set, pending.restoreItemId);
-        }
-      } else if (pending) pendingSelection = null;
+      if (!isEnabled() || pending && performance.now() > pending.expiresAt) pendingSelection = null;
+      const nextItemId = args[0];
+      const redirecting = Boolean(pendingSelection) && typeof nextItemId === "string" && Boolean(pendingSelection?.addedPlantIds.has(nextItemId));
+      trace2("select write", { requested: nextItemId, redirecting });
+      if (redirecting && pendingSelection) {
+        lastSelectedItemId = pendingSelection.restoreItemId;
+        set(explicitItemAtom, pendingSelection.restoreItemId);
+        return originalSelectedItemWrite.call(this, get, set, pendingSelection.restoreItemId);
+      }
+      lastSelectedItemId = nextItemId;
       return originalSelectedItemWrite.call(this, get, set, ...args);
     };
-    wrappedAtoms.add(inventoryAtom);
     wrappedAtoms.add(selectedItemAtom);
+    wrappedAtoms.add(explicitItemAtom);
     return true;
   }
   function initPlanterPotSelection() {

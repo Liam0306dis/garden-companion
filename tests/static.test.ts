@@ -197,7 +197,11 @@ assert.match(companionSource, /return originalSend\.call\(this, renumberOutgoing
 assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);') < companionSource.indexOf('renumberOutgoingCommand(data)'), 'a blocked command still takes a sequence number, leaving a hole');
 // Both senders leave the sequence off; the stamp on the way out is the only writer.
 assert.match(companionSource, /send\(\{ type: 'QuinoaCommand', requestId, command \}\)/, 'Quinoa command envelope missing');
-assert.match(plantDragSource, /requestId,\s*command: \{ type: 'PotPlant', slot \}/, 'potting a plant sets its own sequence instead of being stamped');
+assert.match(plantDragSource, /requestId,\s*command: \{ type: 'PotPlant', slot, plantItemId \}/, 'potting a plant sets its own sequence instead of being stamped');
+// Build 1029 moved item creation into a reducer both sides run, so the client names the item it is
+// about to be given - sending no id created it under one of undefined, findable by nothing.
+assert.match(plantDragSource, /const plantItemId = pageWindow\.crypto\.randomUUID\(\);/, 'the potted plant is not named on the way out, so the server creates it with no id');
+assert.match(plantDragSource, /item\?\.itemType === 'Plant' && item\?\.id === plantItemId/, 'the potted plant is searched for by shape rather than by the id we gave it');
 assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'PurchaseShopItem', shop: live\.shop, item: itemPayload\(live\.item, live\.shop\) \}\)/, 'purchase does not use Quinoa envelope');
 assert.doesNotMatch(companionSource, /send\(\{ type: 'PurchaseShopItem'/, 'unwrapped purchase command found');
 assert.doesNotMatch(companionSource, /send\(\{ type: 'Ping'/, 'redundant game Ping sender found');
@@ -524,10 +528,17 @@ assert.match(celestialLayoutSource, /Dawnbinders.*plant cannot grant Dawnbound t
 assert.match(celestialLayoutSource, /const deadline = performance\.now\(\) \+ 120/, 'celestial layout search has no blocking-time budget');
 assert.match(celestialLayoutSource, /currentInspection\.met !== currentInspection\.required/, 'celestial layout keeps searching after finding full coverage');
 assert.match(styleSource, /#gc-celestial-overlay/, 'celestial layout overlay styles are missing');
-assert.match(planterPotSelectionSource, /myOptimisticInventoryItemsAtom/, 'selection keeper does not watch inventory changes');
+// The keeper reads no inventory at all now. Build 1029 left no inventory write to intercept, and
+// its read comes too late - the game moves the selection off its own prediction first. The command
+// going out is earlier, and since 1029 it names the plant it is about to create.
+assert.match(planterPotSelectionSource, /onOutgoingCommand\(command => \{[\s\S]*?command\.type !== 'PotPlant'/, 'selection keeper does not watch inventory changes');
+assert.match(planterPotSelectionSource, /addedPlantIds: new Set\(\[plantItemId\]\)/, 'the keeper deduces the potted plant instead of reading the id it was given');
+assert.match(plantDragSource, /\['myPredictedInventoryItemsAtom', 'myOptimisticInventoryItemsAtom'\]/, 'plant drag watches only one name for the inventory atom');
+// The wrapped getter must never throw: the throw comes out of the game's own call site.
+assert.match(gameAtomsSource, /if \(!atom\) return atom;\s*const atomKey = String\(key\);/, 'an unregistered atom throws out of the wrapped cache getter');
 assert.match(planterPotSelectionSource, /mySelectedItemIdAtom/, 'selection keeper does not watch selected items');
-assert.match(planterPotSelectionSource, /selectedItemId === 'PlanterPot'/, 'selection keeper is not limited to Planter Pot use');
-assert.match(planterPotSelectionSource, /pending\.addedPlantIds\.has\(nextItemId\)/, 'selection keeper does not target the newly potted plant');
+assert.match(planterPotSelectionSource, /lastSelectedItemId !== 'PlanterPot'/, 'selection keeper is not limited to Planter Pot use');
+assert.match(planterPotSelectionSource, /pendingSelection\?\.addedPlantIds\.has\(nextItemId\)/, 'selection keeper does not target the newly potted plant');
 assert.match(planterPotSelectionSource, /__gardenCompanionFeature\?\.\('keepPlanterPotSelected'\) === true/, 'selection keeper is not strictly opt-in');
 assert.match(gameAtomsSource, /if \(atom\.write === capture\) atom\.write = original/, 'game atom capture cleanup can remove a later feature hook');
 assert.match(planterPotSelectionSource, /MAX_INSTALL_ATTEMPTS = 240/, 'selection keeper atom retry is not bounded');
@@ -705,7 +716,7 @@ assert.match(companionSource, /refreshCompletedTeamMove\(\);/, 'the reorder redr
 // #gc-panel button sets padding and font, so the arrows need matching specificity to size at all.
 assert.match(styleSource, /#gc-panel \.gc-team-order button \{[^}]*padding:0/, 'the team reorder arrows overflow their buttons');
 assert.doesNotMatch(petTeamsSource.slice(petTeamsSource.indexOf('function petPickerRows('), petTeamsSource.indexOf('export function activeTeamId()')), /hungerDisplay\(pet\)/, 'team creation still shows hunger');
-assert.match(companionSource, /SavePetTeam', teamId, name/, 'saved teams cannot be updated');
+assert.match(petTeamsSource, /SavePetTeam', teamId: teamId \?\? crypto\.randomUUID\(\), isCreate, name/, 'saved teams cannot be updated');
 assert.match(companionSource, /data-edit-team/, 'saved team edit control missing');
 assert.match(companionSource, /refreshCompletedTeamSave\(\);[\s\S]*processActivityLog\(\)/, 'saved team state does not trigger a team refresh');
 assert.match(companionSource, /pendingTeamSave = \{ teamId, name, petIds, emblem: teamId \? null : emblem \}/, 'team save completion is not tracked');
@@ -1552,3 +1563,36 @@ assert.match(forecastSource, /retryAfter = Date\.now\(\) \+ 30_000;\s*forecast =
 // the game with a toast about a tool that click was never going to use.
 assert.match(plantDragSource, /if \(live\.inventoryReady && !hasPlanterPot\(\)\) \{\s*activePress\.cancelled = true;/, 'the Planter Pot check runs on the press again, so every click reports it');
 assert.doesNotMatch(plantDragSource.slice(plantDragSource.indexOf("addEventListener('pointerdown'"), plantDragSource.indexOf("addEventListener('pointermove'")), /hasPlanterPot/, 'the pointerdown handler tests for a Planter Pot before the press is a move');
+
+// Build 1029 made the inventory atom derived: written on every change before, computed from the
+// predicted state now. There is no write left to intercept, so the change is seen on the read.
+// What the interface shows is validated, not stored: the index derives from the selected id and is
+// then discarded unless the item it lands on is the one last explicitly selected. Restoring the id
+// alone failed that test and resolved to null, which is the interface holding nothing.
+assert.match(planterPotSelectionSource, /findAtom\(map, 'myLastExplicitlySelectedItemIdAtom'\)/, 'only half the selection is restored, so validation discards it');
+assert.match(planterPotSelectionSource, /\(set as AtomSetter\)\(explicitItemAtom!, pendingSelection\.restoreItemId\)/, 'the explicit selection is not put back alongside the id');
+assert.match(planterPotSelectionSource, /lastSelectedItemId = nextItemId;/, 'the keeper no longer tracks what is selected, so it cannot tell the pot was in use');
+// The drag reads inventory from reported state: an observer on a derived atom hears nothing while
+// nobody is evaluating it, which left the potted plant unseen.
+assert.match(plantDragSource, /const items = state\.slot\?\.data\?\.inventory\?\.items;/, 'plant drag mirrors inventory through the atom again, which goes stale when nothing reads it');
+
+// Under prediction the game writes the selection twice - once on its own prediction, once on
+// confirmation - so the arming has to survive the first write or the second one undoes the restore.
+assert.match(planterPotSelectionSource, /if \(!isEnabled\(\) \|\| \(pending && performance\.now\(\) > pending\.expiresAt\)\) pendingSelection = null;/, 'the arming is cleared by something other than being disabled or expiring, so it is spent early');
+assert.match(planterPotSelectionSource, /const redirecting = Boolean\(pendingSelection\) && typeof nextItemId === 'string'/, 'the keeper no longer redirects every write in its window');
+// A command goes out before any getter is to hand, so the selection is tracked as it is written.
+assert.match(planterPotSelectionSource, /lastSelectedItemId !== 'PlanterPot'\) return;/, 'the keeper arms even when the pot was not what was in use');
+
+// Build 1029 runs SavePetTeam through a reducer on both sides, and it tells a create from an edit by
+// a flag the client sets - without it every create reads as an edit of a team that does not exist.
+assert.match(petTeamsSource, /const isCreate = !teamId;/, 'a created pet team is not marked as a create, so the reducer discards it');
+assert.match(petTeamsSource, /teamId: teamId \?\? crypto\.randomUUID\(\), isCreate/, 'the id of a new team is left to the server, which no longer assigns one');
+
+// Selecting is two things at once since 1029: an atom the interface reads and an index sent to the
+// server. Restoring only the atom leaves them disagreeing, which shows as nothing in hand.
+// mySelectedItemIdAtom is downstream of the index and the last explicit id: a write to it alone is
+// validated away, which is why restoring only that left the interface holding nothing.
+// The index atom is derived and has no write - requiring one made the whole install fail silently.
+assert.doesNotMatch(planterPotSelectionSource, /myPossiblyNoLongerValidSelectedItemIndexAtom/, 'the keeper requires a write on a derived atom, so it never installs');
+// Our own restore makes the selection read as the pot again, so the index reported at that moment
+// belongs to the new plant - recording it then would overwrite the pot's own slot.

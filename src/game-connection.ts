@@ -39,6 +39,34 @@ export function renumberOutgoingCommand(data: unknown): unknown {
   } catch { return data; }
 }
 
+type CommandListener = (command: Record<string, unknown>) => void;
+
+const commandListeners = new Set<CommandListener>();
+
+/**
+ * Watch commands on their way out, whoever sent them.
+ *
+ * Since build 1029 a command carries the id of the thing it is about to create, so the frame itself
+ * is the earliest and most exact notice that something is coming - earlier than any state it will
+ * later turn up in, which matters when the game acts on its own prediction before the server has
+ * answered.
+ */
+export function onOutgoingCommand(listener: CommandListener): void {
+  commandListeners.add(listener);
+}
+
+export function noteOutgoingCommand(data: unknown): void {
+  if (!commandListeners.size || typeof data !== 'string' || !data.includes('QuinoaCommand')) return;
+  try {
+    const frame = JSON.parse(data) as Record<string, unknown>;
+    const command = frame?.type === 'QuinoaCommand' ? frame.command : frame;
+    if (!command || typeof command !== 'object') return;
+    for (const listener of commandListeners) {
+      try { listener(command as Record<string, unknown>); } catch { /* one watcher must not stop the rest */ }
+    }
+  } catch { /* not a frame we can read */ }
+}
+
 /** Sends a message on the game's own room connection, so the server sees it as the player acting. */
 export function send(command: Record<string, unknown>): void {
   const connection = page.MagicCircle_RoomConnection;

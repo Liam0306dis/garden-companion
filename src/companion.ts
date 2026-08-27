@@ -11,7 +11,7 @@ import { ABILITY_DETAILS, GRANTER_CHANCES, KOFI_URL, LUNAR_MINIMISED_KEY, LUNAR_
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms, showAlarmBanner, stopAlarm } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
-import { renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
+import { noteOutgoingCommand, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
 import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -121,6 +121,7 @@ export function initCompanion(): void {
         if (blocked.requestId) refuseCommand(socket, blocked.requestId);
         return;
       }
+      noteOutgoingCommand(data);
       // Renumbered on the way out so one counter covers the game's commands and ours, which is the
       // only way two senders can share a sequence without ever picking the same number.
       return originalSend.call(this, renumberOutgoingCommand(data) as Parameters<WebSocket['send']>[0]);

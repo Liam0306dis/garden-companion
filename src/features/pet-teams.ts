@@ -56,10 +56,18 @@ function setPetTeamEmblem(teamId: string, emblem: PetTeamEmblem): void {
   send({ type: 'SetPetTeamEmblem', teamId, emblem });
 }
 
+/**
+ * Creating a team and editing one are the same command, told apart by a flag the client sets.
+ *
+ * Build 1029 moved this into a reducer both sides run, and it now takes `isCreate` and expects the
+ * id of a new team to come from the client. Without the flag every create was read as an edit of a
+ * team that did not exist yet, which the reducer answers by doing nothing at all.
+ */
 export function saveTeam(name, petIds, teamId = null) {
   if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
   if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
-  send({ type: 'SavePetTeam', teamId, name: name.trim(), petIds });
+  const isCreate = !teamId;
+  send({ type: 'SavePetTeam', teamId: teamId ?? crypto.randomUUID(), isCreate, name: name.trim(), petIds });
 }
 
 export function closeTeamPicker(): void {

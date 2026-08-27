@@ -1,5 +1,6 @@
 import type { CompanionPage } from '../types.js';
 import { noteRoomSocketClosed, noteRoomSocketOpened } from '../connection-state.js';
+import { state } from '../state.js';
 
 export function initPlantDragMove(): void {
     'use strict';
@@ -327,12 +328,20 @@ export function initPlantDragMove(): void {
         return cache?.cache ?? null;
     }
 
-    function hookAtom(debugLabel, onValue) {
+    /**
+     * The label is a list, not a name. Build 1029 renamed the inventory atom for its prediction and
+     * rollback work - myOptimisticInventoryItemsAtom to myPredictedInventoryItemsAtom - and a hook
+     * that knows one name simply stops firing, which is how a plant move started reporting that
+     * there was no Planter Pot while the inventory was full of them.
+     */
+    function hookAtom(labels, onValue) {
+        const wanted = Array.isArray(labels) ? labels : [labels];
+        const debugLabel = wanted[0];
         const map = atomMap();
         if (!map || typeof map.values !== 'function') return false;
 
         for (const atom of map.values()) {
-            if (atom?.debugLabel !== debugLabel || typeof atom.read !== 'function') continue;
+            if (!wanted.includes(atom?.debugLabel) || typeof atom.read !== 'function') continue;
             const flag = `${WRAPPED_FLAG}:${debugLabel}`;
             if (atom[flag]) return true;
 
@@ -356,7 +365,7 @@ export function initPlantDragMove(): void {
 
     function installAtomHooks() {
         const hooks = [
-            ['myOptimisticInventoryItemsAtom', value => {
+            [['myPredictedInventoryItemsAtom', 'myOptimisticInventoryItemsAtom'], value => {
                 if (Array.isArray(value)) {
                     live.inventoryItems = value;
                     live.inventoryReady = true;
@@ -560,14 +569,24 @@ export function initPlantDragMove(): void {
     }
 
     function hasPlanterPot() {
-        return live.inventoryItems.some(item =>
+        return inventoryItems().some(item =>
             item?.itemType === 'Tool'
             && item?.toolId === 'PlanterPot'
             && (item?.quantity ?? 1) > 0);
     }
 
-    function inventoryIds() {
-        return new Set(live.inventoryItems.map(item => item?.id).filter(Boolean));
+    /**
+     * Read from the state the game reports rather than from the atom mirror.
+     *
+     * Build 1029 turned the inventory atom into a derived one: it used to be written on every
+     * change, and is now computed only when something evaluates it. An observer on its read
+     * therefore stops hearing about changes nobody is currently looking at, which left this
+     * watching a mirror that had gone quiet - the pot went out, the plant came back, and nothing
+     * here ever saw it. The slot state arrives with every patch and cannot go stale that way.
+     */
+    function inventoryItems() {
+        const items = state.slot?.data?.inventory?.items;
+        return Array.isArray(items) && items.length ? items : live.inventoryItems;
     }
 
     function isSamePlant(candidate, source) {
@@ -577,12 +596,9 @@ export function initPlantDragMove(): void {
         return true;
     }
 
-    function findNewPlant(beforeIds, source) {
-        return live.inventoryItems.find(item =>
-            item?.itemType === 'Plant'
-            && isSamePlant(item, source)
-            && item?.id
-            && !beforeIds.has(item.id));
+    /** The item we named on the way out, once it has come back. */
+    function findPottedPlant(plantItemId) {
+        return inventoryItems().find(item => item?.itemType === 'Plant' && item?.id === plantItemId);
     }
 
     function sendMessage(message) {
@@ -593,7 +609,16 @@ export function initPlantDragMove(): void {
         socket.send(JSON.stringify(message));
     }
 
-    function sendPotPlant(slot) {
+    /**
+     * The id of the potted plant is ours to choose, not the server's to report.
+     *
+     * Build 1029 moved item creation into a reducer both sides run, so the client can predict the
+     * result before the server answers - and for that to agree, the client names the item. Sending
+     * no plantItemId meant the plant was created under an id of undefined, which is why nothing that
+     * looked for it afterwards ever found it. Naming it also means there is nothing to search for:
+     * the item that comes back is the one we asked for.
+     */
+    function sendPotPlant(slot, plantItemId) {
         const requestId = pageWindow.crypto.randomUUID();
         // No sequence here: it is stamped on the way out of the socket, from the same counter the
         // game's own commands are renumbered by.
@@ -601,7 +626,7 @@ export function initPlantDragMove(): void {
             scopePath: ['Room', 'Quinoa'],
             type: 'QuinoaCommand',
             requestId,
-            command: { type: 'PotPlant', slot },
+            command: { type: 'PotPlant', slot, plantItemId },
         });
         log(`Sent PotPlant for farm slot ${slot}.`, { requestId });
     }
@@ -656,11 +681,11 @@ export function initPlantDragMove(): void {
         activePress.destination = destination;
         activePress.phase = 'potting';
         const species = activePress.source.object.species;
-        const beforeIds = inventoryIds();
+        const plantItemId = pageWindow.crypto.randomUUID();
         showToast(`Picking up ${species ?? 'plant'}...`, 'normal', 0);
-        sendPotPlant(activePress.source.localTileIndex);
+        sendPotPlant(activePress.source.localTileIndex, plantItemId);
 
-        const plantItem = await waitFor(() => findNewPlant(beforeIds, activePress.source.object), POT_TIMEOUT_MS);
+        const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
         restoreSourcePlant(activePress);
         if (!plantItem) throw new Error('The server did not return the potted plant');
 
@@ -685,7 +710,7 @@ export function initPlantDragMove(): void {
 
             const placed = await waitFor(() => {
                 const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
-                const itemStillHeld = live.inventoryItems.some(item => item?.id === activePress.plantItem.id);
+                const itemStillHeld = inventoryItems().some(item => item?.id === activePress.plantItem.id);
                 return !itemStillHeld && object?.objectType === 'plant'
                     && isSamePlant(object, activePress.source.object);
             }, PLACE_TIMEOUT_MS, 150);

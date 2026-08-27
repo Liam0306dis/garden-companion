@@ -35,6 +35,10 @@ export function restoreAtomWriteCaptures(): void {
 }
 
 export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
+  // The game's own getter answers with whatever it was handed, so a caller asking for a key it has
+  // not registered gets nothing back. Reading a label off that threw, and the throw came straight
+  // out of the getter we wrapped - taking down whichever of the game's modules was mid-initialise.
+  if (!atom) return atom;
   const atomKey = String(key);
   if (atomKey.endsWith('/activeModalAtom')) activeModalAtom = atom;
   if (atomKey.endsWith('/isCinematicModeAtom')) {
