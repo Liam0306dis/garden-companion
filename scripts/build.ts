@@ -10,6 +10,9 @@ const wasmBase64 = wasmSource.match(/window\._WASM_B64\s*=\s*'([A-Za-z0-9+/=]+)'
 if (!wasmBase64) throw new Error('Pet sprite decoder data was not found.');
 
 interface BundleCatalogs {
+  /** Which capture the catalogs came from. Reported on every build: a shape change in the newest
+   * bundle drops silently through to an older one, and the numbers alone look perfectly healthy. */
+  source: string;
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
@@ -123,19 +126,23 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
           /([A-Za-z][A-Za-z0-9_]*):\{name:`([^`]+)`,baseChance:[0-9.e+-]+,coinMultiplier:([0-9.]+),group:`([A-Za-z]+)`(?:,sprite:[A-Za-z_$]+\.Mutation\.([A-Za-z0-9_]+))?/g)]
           .map(match => [match[1], { name: match[2], group: match[4], coinMultiplier: Number(match[3]), sprite: match[5] || match[1] }]));
         if (Object.keys(mutations).length < 8) continue;
+        // Build 1019 renamed decor's sprite field to art, which matched nothing and quietly sent the
+        // whole bundle to the fallback below - so both spellings are accepted. The same build gave
+        // animated decor a Rive artboard in place of an atlas reference, so the field is captured
+        // whole and the id picked out of whichever shape arrived.
         // canDisplayCrop marks decor that can show a harvested crop on top (pedestals, stools).
         const decor = Object.fromEntries([...bundle.matchAll(
-          /([A-Za-z][A-Za-z0-9_]*):\{sprite:[A-Za-z_$]+\.Decor\.([A-Za-z0-9_]+),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`([^{}]*?)rarity:[A-Za-z_$]+\.([A-Za-z]+)([^{}]*)/g)]
+          /([A-Za-z][A-Za-z0-9_]*):\{(?:sprite|art):([A-Za-z_$]+\.Decor\.[A-Za-z0-9_]+|\{artboardName:`[A-Za-z0-9_]+`\}),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`([^{}]*?)rarity:[A-Za-z_$]+\.([A-Za-z]+)([^{}]*)/g)]
           .map(match => [match[1], {
             name: match[4],
             rarity: match[6],
             rotates: Boolean(match[3]),
-            sprite: match[2],
+            sprite: decorSpriteId(match[2]),
             ...(/canDisplayCrop:!0/.test(match[5] + match[7]) ? { mountable: true } : {}),
           }]));
         if (Object.keys(decor).length < 10) continue;
         const abilityColours = await abilityColoursFromBundle(resolve(bundleRoot, directory));
-        return { abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours, mutations, decor };
+        return { source: directory, abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours, mutations, decor };
       }
     }
   }
@@ -160,6 +167,14 @@ function gradientAngle(angleDegrees: number): number {
 
 // The game colours each ability chip through a switch in its store chunk.
 // Read it from the captured bundle so our chips match the game exactly.
+/**
+ * The art id from either shape a decor entry uses: an atlas reference like `NS.Decor.SmallRock`, or
+ * the Rive artboard that animated decor carries instead. Both name the same sprite in the end.
+ */
+function decorSpriteId(descriptor: string): string {
+  return descriptor.match(/artboardName:`([A-Za-z0-9_]+)`/)?.[1] ?? descriptor.split('.').pop() ?? '';
+}
+
 async function abilityColoursFromBundle(directory: string): Promise<Record<string, string>> {
   const files = (await readdir(directory)).filter(name => name.endsWith('.js'));
   for (const file of files) {
@@ -273,4 +288,4 @@ await build({
 
 const output = await readFile(resolve(root, 'dist', 'garden-companion.user.js'), 'utf8');
 if (output.includes('\u2014')) throw new Error('The generated userscript contains an em dash.');
-console.log(`Built dist/garden-companion.user.js${withoutSprites ? ' [--no-sprites]' : ''} (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs, ${Object.keys(catalogs.abilityColours).length} ability colours, ${Object.keys(catalogs.mutations).length} mutations, ${Object.keys(catalogs.decor).length} decor)`);
+console.log(`Built dist/garden-companion.user.js${withoutSprites ? ' [--no-sprites]' : ''} from ${catalogs.source} (${output.length.toLocaleString()} characters, ${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants, ${Object.keys(catalogs.eggs).length} eggs, ${Object.keys(catalogs.abilityColours).length} ability colours, ${Object.keys(catalogs.mutations).length} mutations, ${Object.keys(catalogs.decor).length} decor)`);

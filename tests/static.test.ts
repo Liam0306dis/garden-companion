@@ -1457,3 +1457,8 @@ assert.match(configSource, /cropValues: true,/, 'the crop value row is no longer
 // off wanted the card quiet, and the new switch taking its own default would put the value back.
 assert.match(configSource, /if \(saved\.turtleTimer === false && saved\.cropValues === undefined\) return \{ \.\.\.saved, cropValues: false \};/, 'a disabled estimates toggle no longer carries across the split');
 assert.match(configSource, /\.\.\.DEFAULTS, \.\.\.migrate\(/, 'the saved config reaches the defaults without being migrated');
+
+// A shape change in the newest capture used to drop silently through to an older one, shipping stale
+// catalogs behind a summary line that looked perfectly healthy. Both are guarded now.
+assert.match(buildSource, /\(\?:sprite\|art\):\(\[A-Za-z_\$\]\+\\.Decor\\.\[A-Za-z0-9_\]\+\|\\{artboardName:/, 'decor is matched on one art field again, so a renamed one drops the whole bundle');
+assert.match(buildSource, /from \$\{catalogs\.source\}/, 'the build no longer says which capture it read, hiding a fallback');
