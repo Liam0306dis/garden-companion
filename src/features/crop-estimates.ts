@@ -64,22 +64,33 @@ function selectedCrop(crops: PlantSlot[]): PlantSlot | null {
   return bySlotId.find(slot => Number(slot?.slotId) >= selected) ?? bySlotId[0] ?? null;
 }
 
-function turtleLines() {
+/**
+ * The two estimate rows, each behind its own switch. They answer different questions - what this is
+ * worth, and how long it has left - and someone who wants one on the card rarely wants both, so
+ * neither is allowed to drag the other onto it.
+ */
+function estimateLines(): string[] {
   const pets = state.slot?.data?.petSlots || [];
   const crops = Array.isArray(state.currentCrop) ? state.currentCrop : [];
   const crop = selectedCrop(crops);
   const egg = state.currentEgg || (crop?.species?.endsWith('Egg') ? crop : null);
   if (egg) {
+    // An egg is never worth coins on the card, so it has only the one row to offer.
+    if (!feature('turtleTimer')) return [];
     const end = Number(egg.maturedAt || egg.endTime || 0);
     const rate = eggRate(pets);
     return end > Date.now() && rate > 0 ? [`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`] : [];
   }
   if (!crop) return [];
   const lines = [];
-  const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-  if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
-  const end = Number(crop.endTime || 0), rate = turtleRate(pets);
-  if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
+  if (feature('cropValues')) {
+    const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
+    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
+  }
+  if (feature('turtleTimer')) {
+    const end = Number(crop.endTime || 0), rate = turtleRate(pets);
+    if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
+  }
   return lines;
 }
 
@@ -129,7 +140,7 @@ function protectionLines(): string[] {
 }
 
 function cardLines(): string[] {
-  return [...protectionLines(), ...(feature('turtleTimer') ? turtleLines() : [])];
+  return [...protectionLines(), ...estimateLines()];
 }
 
 function nativeEstimateSignature(): string {

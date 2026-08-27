@@ -223,6 +223,7 @@ export interface CompanionConfig {
   rooms: boolean;
   shopAlarms: boolean;
   turtleTimer: boolean;
+  cropValues: boolean;
   petFood: boolean;
   petHungerAlarm: boolean;
   instantHarvest: boolean;

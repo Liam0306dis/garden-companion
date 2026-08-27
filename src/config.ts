@@ -13,6 +13,7 @@ export const DEFAULTS: CompanionConfig = {
   rooms: true,
   shopAlarms: true,
   turtleTimer: true,
+  cropValues: true,
   petFood: true,
   petHungerAlarm: false,
   instantHarvest: false,

@@ -68,6 +68,7 @@ const indexSource = await readSource('src', 'index.ts');
 const petSpriteSource = await readSource('src', 'pet-sprites.ts');
 const petSpriteInjector = await readSource('src', 'pet-sprites-injector.ts');
 const eggLuckSource = await readSource('src', 'features', 'egg-luck.ts');
+const cropEstimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
 const activityLogSource = await readSource('src', 'activity-log.ts');
 const buildSource = await readSource('scripts', 'build.ts');
 const plannerSource = await readSource('src', 'features', 'garden-planner.ts');
@@ -1442,3 +1443,12 @@ assert.match(eggLuckSource, /pulls: Number\(raw\.pulls \?\? raw\.hatches\) \|\| 
 // sourceEggId is optional, so an extra pet can arrive with no egg to file it under. It still has to
 // be remembered as an ability pet: that is what keeps a later hatchEgg for it from becoming a pull.
 assert.match(eggLuckSource, /if \(!pet\) continue;\s*\/\/[\s\S]*?noteBonusPet\(String\(pet\.id \?\? ''\)\);[\s\S]*?const eggId = typeof pet\.sourceEggId/, 'an extra pet with no source egg is forgotten instead of guarded');
+
+// Value and growth time answer different questions, so each row has its own switch rather than one
+// covering both. An egg has no value row to offer, so it turns only on the growth switch.
+assert.match(cropEstimatesSource, /if \(feature\('cropValues'\)\) \{/, 'the crop value row no longer has a switch of its own');
+assert.match(cropEstimatesSource, /if \(feature\('turtleTimer'\)\) \{/, 'the growth time row no longer has a switch of its own');
+assert.match(cropEstimatesSource, /return \[\.\.\.protectionLines\(\), \.\.\.estimateLines\(\)\];/, 'one switch gates both estimate rows again');
+assert.doesNotMatch(cropEstimatesSource, /feature\('turtleTimer'\) \? /, 'the growth switch still hides the value row with it');
+assert.match(companionSource, /\['cropValues', 'Crop value'/, 'the crop value toggle is missing from the features panel');
+assert.match(configSource, /cropValues: true,/, 'the crop value row is no longer on by default');

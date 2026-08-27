@@ -802,7 +802,8 @@ export function initCompanion(): void {
     const rows = [
       ['dragMove', 'Plant drag move', 'Hold, drag and release a plant - consumes planter pots'],
       ['keepPlanterPotSelected', 'Keep Planter Pot selected', 'Do not switch to the picked-up plant after using a Planter Pot'],
-      ['turtleTimer', 'Crop and egg estimates', 'Values and pet-adjusted timing'],
+      ['cropValues', 'Crop value', 'Show the sell value when standing on a crop'],
+      ['turtleTimer', 'Growth time', 'Show the time left, adjusted for your pets, when standing on a crop or egg'],
       ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
       ['petSwapToss', 'Pokemon Mode', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],

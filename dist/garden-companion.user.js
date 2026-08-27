@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.21
+// @version      0.8.22
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -457,6 +457,7 @@
     rooms: true,
     shopAlarms: true,
     turtleTimer: true,
+    cropValues: true,
     petFood: true,
     petHungerAlarm: false,
     instantHarvest: false,
@@ -2171,22 +2172,27 @@ ${groups}
     const bySlotId = [...crops].sort((left, right) => Number(left?.slotId) - Number(right?.slotId));
     return bySlotId.find((slot) => Number(slot?.slotId) >= selected) ?? bySlotId[0] ?? null;
   }
-  function turtleLines() {
+  function estimateLines() {
     const pets = state.slot?.data?.petSlots || [];
     const crops = Array.isArray(state.currentCrop) ? state.currentCrop : [];
     const crop = selectedCrop(crops);
     const egg = state.currentEgg || (crop?.species?.endsWith("Egg") ? crop : null);
     if (egg) {
-      const end2 = Number(egg.maturedAt || egg.endTime || 0);
-      const rate2 = eggRate(pets);
-      return end2 > Date.now() && rate2 > 0 ? [`${GROWTH_PREFIX}${formatDuration((end2 - Date.now()) / (rate2 + 1))}`] : [];
+      if (!feature("turtleTimer")) return [];
+      const end = Number(egg.maturedAt || egg.endTime || 0);
+      const rate = eggRate(pets);
+      return end > Date.now() && rate > 0 ? [`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`] : [];
     }
     if (!crop) return [];
     const lines = [];
-    const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...crop.mutations || []]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * 0.1)).toLocaleString(NUMBER_LOCALE)}`);
-    const end = Number(crop.endTime || 0), rate = turtleRate(pets);
-    if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
+    if (feature("cropValues")) {
+      const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
+      if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...crop.mutations || []]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * 0.1)).toLocaleString(NUMBER_LOCALE)}`);
+    }
+    if (feature("turtleTimer")) {
+      const end = Number(crop.endTime || 0), rate = turtleRate(pets);
+      if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
+    }
     return lines;
   }
   var nativeGardenCardHook = null;
@@ -2214,7 +2220,7 @@ ${groups}
     return protectionReason(crop, crop.species || "") ? [LOCK] : [];
   }
   function cardLines() {
-    return [...protectionLines(), ...feature("turtleTimer") ? turtleLines() : []];
+    return [...protectionLines(), ...estimateLines()];
   }
   function nativeEstimateSignature() {
     return cardLines().join("\n");
@@ -2256,14 +2262,14 @@ ${groups}
     if (!signature2) return false;
     const card = view.container?.getChildByLabel?.("GardenInfoObjectCard", true);
     if (!card || typeof card.getBounds !== "function") return false;
-    const estimateLines = new Set(signature2.split("\n"));
+    const estimateLines2 = new Set(signature2.split("\n"));
     const estimateChips = [];
     const stack = [...card.children || []];
     while (stack.length) {
       const node = stack.pop();
       if (!node || typeof node !== "object") continue;
       const text = typeof node.text === "string" ? node.text : typeof node._text === "string" ? node._text : "";
-      if (estimateLines.has(text)) {
+      if (estimateLines2.has(text)) {
         const chip = nativeEstimateChip(node);
         if (chip && !estimateChips.includes(chip)) estimateChips.push(chip);
       }
@@ -5492,7 +5498,8 @@ ${eggs.map(eggCard).join("")}`;
       const rows = [
         ["dragMove", "Plant drag move", "Hold, drag and release a plant - consumes planter pots"],
         ["keepPlanterPotSelected", "Keep Planter Pot selected", "Do not switch to the picked-up plant after using a Planter Pot"],
-        ["turtleTimer", "Crop and egg estimates", "Values and pet-adjusted timing"],
+        ["cropValues", "Crop value", "Show the sell value when standing on a crop"],
+        ["turtleTimer", "Growth time", "Show the time left, adjusted for your pets, when standing on a crop or egg"],
         ["petFood", "Pet food panel", "Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab"],
         ["instantHarvest", "Instant harvest key", "Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on"],
         ["petSwapToss", "Pokemon Mode", "Throw a ball at each active pet and catch them before a team swap - delays it about a second"],
