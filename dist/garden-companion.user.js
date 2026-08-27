@@ -5462,7 +5462,10 @@ ${eggs.map(eggCard).join("")}`;
       root.querySelector("strong").textContent = remaining2;
       root.querySelector(".gc-lunar-title span").textContent = label;
       const swap = root.querySelector("[data-swap]");
-      if (swap) swap.dataset.mode = lunarMode;
+      if (swap) {
+        swap.dataset.mode = lunarMode;
+        swap.title = lunarMode === "weather" ? "Showing the next weather event - switch to the lunar timer" : "Showing the lunar timer - switch to the next weather event";
+      }
       const sprite = forecast2 && !forecast2.lunar ? page.__gardenCompanionWeatherSprites?.[forecast2.weatherId] || "" : "";
       const mark = root.querySelector(".gc-lunar-mark");
       if (mark) {
@@ -6416,7 +6419,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       document.head.appendChild(style);
       const lunar = document.createElement("div");
       lunar.id = "gc-lunar";
-      lunar.innerHTML = '<div class="gc-lunar-head"><div class="gc-lunar-title"><i class="gc-lunar-mark"></i><span>Next lunar event</span></div><div id="gc-lunar-head-actions"><button data-swap aria-label="Switch between the lunar and weather timers" title="Switch timer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13l-3.5-3.5"/><path d="M20 15H7l3.5 3.5"/></svg></button><button data-minimise aria-label="Minimise the lunar timer" title="Minimise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button><button data-options aria-label="Open Garden Companion options" title="Open Garden Companion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.1 13.5c.1-.5.1-1 0-1.5l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.3-.8L15 4.8h-4l-.4 2.5c-.5.2-.9.5-1.3.8l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.8.6 1.3.8l.4 2.5h4l.4-2.5c.5-.2.9-.5 1.3-.8l2.4 1 2-3.4-2-1.5Z"/></svg></button></div></div><div class="gc-lunar-countdown"><strong>--</strong></div><div class="gc-health"><span id="gc-ws-health" data-status="connecting"><i></i><b>Connecting</b></span><button id="gc-update-health" data-status="checking">Checking update</button></div>';
+      lunar.innerHTML = '<div class="gc-lunar-head"><div class="gc-lunar-title"><i class="gc-lunar-mark"></i><span>Next lunar event</span></div><div id="gc-lunar-head-actions"><button data-swap aria-label="Switch which timer is shown"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13l-3.5-3.5"/><path d="M20 15H7l3.5 3.5"/></svg></button><button data-minimise aria-label="Minimise the lunar timer" title="Minimise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button><button data-options aria-label="Open Garden Companion options" title="Open Garden Companion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.1 13.5c.1-.5.1-1 0-1.5l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.3-.8L15 4.8h-4l-.4 2.5c-.5.2-.9.5-1.3.8l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.8.6 1.3.8l.4 2.5h4l.4-2.5c.5-.2.9-.5 1.3-.8l2.4 1 2-3.4-2-1.5Z"/></svg></button></div></div><div class="gc-lunar-countdown"><strong>--</strong></div><div class="gc-health"><span id="gc-ws-health" data-status="connecting"><i></i><b>Connecting</b></span><button id="gc-update-health" data-status="checking">Checking update</button></div>';
       lunar.querySelector("[data-options]").onclick = togglePanel;
       lunar.querySelector("[data-minimise]").onclick = () => setLunarMinimised(true);
       lunar.querySelector("[data-swap]").onclick = () => setLunarMode(lunarMode === "lunar" ? "weather" : "lunar");
