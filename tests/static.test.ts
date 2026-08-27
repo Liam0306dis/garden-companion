@@ -71,6 +71,7 @@ const eggLuckSource = await readSource('src', 'features', 'egg-luck.ts');
 const cropEstimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
 const weatherAlarmsSource = await readSource('src', 'features', 'weather-alarms.ts');
 const activityLogSource = await readSource('src', 'activity-log.ts');
+const stateSource = await readSource('src', 'state.ts');
 const buildSource = await readSource('scripts', 'build.ts');
 const plannerSource = await readSource('src', 'features', 'garden-planner.ts');
 const fishingSource = await readSource('src', 'features', 'fishing.ts');
@@ -1401,9 +1402,12 @@ assert.match(petSpriteSource, /if \(resolution <= bestResolution\) continue;/, '
 // that could quietly skip an entry.
 assert.match(activityLogSource, /if \(feature\('abilities'\)\) recordAbilityActivities\(fresh\);\s*recordEggHatches\(fresh\);/, 'egg hatches are gated behind the abilities feature');
 assert.doesNotMatch(eggLuckSource, /feature\(/, 'a toggle can now switch egg tracking off and desync every counter');
-// The cursor is what stops an entry being counted twice, so it belongs to the shared walk.
+// Identity is what stops an entry being counted twice, and it belongs to the shared walk. The
+// high-water cursor that used to sit alongside it decided nothing and was read by nobody, so it is
+// gone rather than kept as a number the next reader has to work out the meaning of.
 assert.doesNotMatch(abilityLogSource, /activityCursor/, 'the ability log keeps a cursor of its own again');
-assert.match(activityLogSource, /state\.activityCursor = Math\.max\(state\.activityCursor, \.\.\.fresh\.map/, 'the shared walk no longer advances the cursor');
+assert.doesNotMatch(activityLogSource, /activityCursor/, 'the walk keeps a cursor nothing reads again');
+assert.doesNotMatch(stateSource, /activityCursor/, 'the state carries a cursor nothing reads again');
 // A hit resets the game's counter however it was reached, which is also what makes ours exact.
 assert.match(eggLuckSource, /hit \? \{ misses: 0, synced: true \} : \{ misses: existing\.misses \+ 1, synced: existing\.synced \}/, 'a landed outcome must zero the counter and mark it synced');
 assert.match(eggLuckSource, /PITY_THRESHOLDS: Record<string, number> = \{ species: 40, Gold: 200, Rainbow: 2000 \}/, 'the pity thresholds no longer match the game constants');
@@ -1422,8 +1426,14 @@ assert.match(activityLogSource, /const id = signature\(entry\);\s*if \(known\.ha
 // Only an entry the log still offers can be counted twice, so the window has to cover the whole log.
 // A fixed size smaller than the log let entries slide out while present and be counted again, which
 // bulk-selling produced in seconds - the log is mostly sales.
-assert.match(activityLogSource, /seen = \[\.\.\.new Set\(\[\.\.\.seen, \.\.\.entries\.map\(signature\)\]\)\]\.slice\(-seenLimit\(entries\.length\)\)/, 'the window no longer remembers everything the log is offering');
-assert.match(activityLogSource, /return Math\.max\(256, logLength \* 4\);/, 'the dedupe window is a fixed size again, so a longer log replays entries');
+assert.match(activityLogSource, /seen = \[\.\.\.new Set\(\[\.\.\.seen, \.\.\.entries\.filter\(Boolean\)\.map\(signature\)\]\)\]\.slice\(-seenLimit\(entries\.length\)\)/, 'the window no longer remembers everything the log is offering');
+// The walk above steps around a missing entry, but this one reads every entry the log offers, and a
+// signature taken from nothing throws - out of the walk, and so out of every reader that runs after
+// it on the same frame.
+assert.match(activityLogSource, /entries\.filter\(Boolean\)\.map\(signature\)/, 'a hole in the log throws out of the walk and stops every reader behind it');
+// The window is rewritten on every batch that carries anything new, so its size is bytes through a
+// synchronous store on a hot path. It only has to outlast the log: four times over is margin.
+assert.match(activityLogSource, /return Math\.max\(96, logLength \* 4\);/, 'the dedupe window is a fixed size again, so a longer log replays entries');
 // Both stored lists are read at module load, where a throw would take the whole feature with it.
 assert.match(activityLogSource, /Array\.isArray\(savedSeen\)/, 'a non-array seen list throws at module load');
 // The cursor may bound how far back we look, but must never be the thing that decides newness.

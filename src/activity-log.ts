@@ -18,7 +18,24 @@ import { loadLocal, saveLocal } from './utils.js';
 const SEEN_KEY = 'gardenCompanion.activitySeen';
 
 /**
- * Entries already counted, by content.
+ * Never smaller than the log itself, and generous beyond it.
+ *
+ * A fixed 64 was wrong: only an entry the log is still offering can be counted twice, so the window
+ * has to cover the whole log - and the log runs longer than 64 once selling pets fills it. Entries
+ * fell out of the window while still present, and were counted again on the next pass, inflating
+ * every tally and re-applying resets that had already been applied.
+ *
+ * The floor sits close to the log rather than far above it. The window is written back on every
+ * batch that carries anything new, so every signature kept is bytes through a synchronous store on
+ * a hot path. Four times the log is already margin enough: an entry has to be pushed out of the log
+ * itself long before that many newer signatures can accumulate behind it.
+ */
+function seenLimit(logLength: number): number {
+  return Math.max(96, logLength * 4);
+}
+
+/**
+ * Entries already counted, by identity.
  *
  * A high-water timestamp was not enough. It admitted only entries newer than the newest one already
  * seen, so an entry that reached us after one stamped later than it was dropped for good - and
@@ -26,22 +43,7 @@ const SEEN_KEY = 'gardenCompanion.activitySeen';
  * together to arrive out of order, which silently lost hatches: a lost one that happened to be the
  * rare species left its bad luck counter climbing through a reset that had really happened, on past
  * the threshold the game guarantees it by.
- *
- * Identity settles it where a timestamp cannot. The log itself only holds about 25 entries, so a
- * window a little wider than that covers everything it can still be offering.
  */
-/**
- * Never smaller than the log itself, and generous beyond it.
- *
- * A fixed 64 was wrong: only an entry the log is still offering can be counted twice, so the window
- * has to cover the whole log - and the log runs longer than 64 once selling pets fills it. Entries
- * fell out of the window while still present, and were counted again on the next pass, inflating
- * every tally and re-applying resets that had already been applied.
- */
-function seenLimit(logLength: number): number {
-  return Math.max(256, logLength * 4);
-}
-
 const savedSeen = loadLocal<unknown>(SEEN_KEY, []);
 let seen = Array.isArray(savedSeen) ? savedSeen.filter((entry): entry is string => typeof entry === 'string') : [];
 
@@ -92,9 +94,10 @@ export function processActivityLog(): void {
   // has already left the log cannot come back, so the old entries carried alongside are only there
   // to survive a moment where the log arrives short - a reconnect handing over a partial one would
   // otherwise empty the window and replay the lot.
-  seen = [...new Set([...seen, ...entries.map(signature)])].slice(-seenLimit(entries.length));
-  // Kept for the ability log's own bookkeeping; it no longer decides what is new.
-  state.activityCursor = Math.max(state.activityCursor, ...fresh.map(entry => Number(entry.timestamp) || 0));
-  localStorage.setItem('gardenCompanion.activityCursor', String(state.activityCursor));
+  //
+  // Emptied of holes first. The walk above steps around a missing entry, but this reads every one
+  // the log offers, and taking a signature from nothing throws - out of here, and so out of every
+  // reader that runs after this one on the same frame.
+  seen = [...new Set([...seen, ...entries.filter(Boolean).map(signature)])].slice(-seenLimit(entries.length));
   saveLocal(SEEN_KEY, seen);
 }

@@ -630,7 +630,6 @@
     currentAction: null,
     lastShopSignature: "",
     initializedShops: false,
-    activityCursor: Number(localStorage.getItem("gardenCompanion.activityCursor") || 0),
     abilityLog: trimAbilityLogs(loadLocal(LOG_KEY, []))
   };
   function saveAbilityLog() {
@@ -3535,7 +3534,7 @@ ${eggs.map(eggCard).join("")}`;
   // src/activity-log.ts
   var SEEN_KEY = "gardenCompanion.activitySeen";
   function seenLimit(logLength) {
-    return Math.max(256, logLength * 4);
+    return Math.max(96, logLength * 4);
   }
   var savedSeen = loadLocal(SEEN_KEY, []);
   var seen2 = Array.isArray(savedSeen) ? savedSeen.filter((entry) => typeof entry === "string") : [];
@@ -3562,9 +3561,7 @@ ${eggs.map(eggCard).join("")}`;
     if (!fresh.length) return;
     if (feature("abilities")) recordAbilityActivities(fresh);
     recordEggHatches(fresh);
-    seen2 = [.../* @__PURE__ */ new Set([...seen2, ...entries.map(signature)])].slice(-seenLimit(entries.length));
-    state.activityCursor = Math.max(state.activityCursor, ...fresh.map((entry) => Number(entry.timestamp) || 0));
-    localStorage.setItem("gardenCompanion.activityCursor", String(state.activityCursor));
+    seen2 = [.../* @__PURE__ */ new Set([...seen2, ...entries.filter(Boolean).map(signature)])].slice(-seenLimit(entries.length));
     saveLocal(SEEN_KEY, seen2);
   }
 

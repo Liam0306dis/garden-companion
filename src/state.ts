@@ -30,7 +30,6 @@ export interface CompanionState {
   currentAction: string | null;
   lastShopSignature: string;
   initializedShops: boolean;
-  activityCursor: number;
   abilityLog: AbilityLogRow[];
 }
 
@@ -67,7 +66,6 @@ export const state: CompanionState = {
   currentAction: null,
   lastShopSignature: '',
   initializedShops: false,
-  activityCursor: Number(localStorage.getItem('gardenCompanion.activityCursor') || 0),
   abilityLog: trimAbilityLogs(loadLocal<AbilityLogRow[]>(LOG_KEY, [])),
 };
 
