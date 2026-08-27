@@ -37,8 +37,20 @@ interface RiveRuntime {
   Alignment: { Center: unknown };
 }
 
+type ManifestSource = string | { src?: string; resolution?: number };
+
 interface AssetManifest {
-  bundles?: Array<{ assets?: Array<{ alias?: string[]; src?: string[] }> }>;
+  bundles?: Array<{ assets?: Array<{ alias?: string[]; src?: ManifestSource[] }> }>;
+}
+
+/**
+ * Game build 1019 split each atlas into resolution variants and started listing them as objects
+ * rather than bare paths, which threw inside the manifest walk and left every sprite missing. The
+ * variants are not copies of one another - the frames are divided between them - so all of them are
+ * kept and the frame lookup finds whichever atlas holds the sprite it wants.
+ */
+function manifestPath(source: ManifestSource): string {
+  return typeof source === 'string' ? source : typeof source?.src === 'string' ? source.src : '';
 }
 
 const TRANSCODER_URL = 'https://unpkg.com/@h00w/basis-universal-transcoder?module';
@@ -135,7 +147,9 @@ async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[];
     let petRiveUrl: string | null = null;
     for (const bundle of manifest.bundles ?? []) {
       for (const asset of bundle.assets ?? []) {
-        for (const source of asset.src ?? []) {
+        for (const entry of asset.src ?? []) {
+          const source = manifestPath(entry);
+          if (!source) continue;
           if (source.startsWith('atlases/') && source.endsWith('.json')) paths.add(source);
           if (asset.alias?.some(alias => alias === 'rive/pets.riv' || alias === 'rive/pets')) {
             petRiveUrl = new URL(source, assetsBase).href;
