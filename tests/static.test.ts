@@ -713,8 +713,12 @@ assert.match(styleSource, /\.gc-ability-log-card \{[^}]*min-height:0[^}]*flex:1[
 assert.match(styleSource, /\.gc-ability-log-tab \.gc-log \{[^}]*max-height:none[^}]*flex:1/s, 'recent proc list remains height-limited');
 assert.match(companionSource, /\['seed', 'Seeds'\], \['dawn', 'Dawn'\], \['thunder', 'Thunder'\], \['snow', 'Snow'\], \['rain', 'Rain'\], \['amber', 'Amber'\], \['egg', 'Eggs'\], \['tool', 'Tools'\], \['decor', 'Decor'\]/, 'shop alarm tab order is incorrect');
 for (const seasonalItem of ['Dawnbreaker', 'DawnCelestial', 'DawnEgg', 'ThunderCelestial', 'ThunderEgg', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'RainWardShard', 'AmberEgg', 'HungerShard', 'Emberbloom']) assert.ok(companionSource.includes(seasonalItem), `seasonal shop item ${seasonalItem} missing`);
-// Every shop the alarm tabs offer needs a name, or its alarms are labelled with a blank.
-for (const shop of ['rain', 'amber']) assert.ok(new RegExp(`${shop}: '`).test(companionSource), `shop ${shop} has a tab but no display name`);
+// Every shop the alarm tabs offer needs a name of its own. The fallback is humanize, which only
+// splits camel case - a single lower case word comes back unchanged, so a missing name reads as
+// 'SHOP ALARM | rain' and 'Search rain shop' rather than as nothing at all.
+for (const [shop, name] of [['rain', 'Rain'], ['amber', 'Amber']]) {
+  assert.ok(companionSource.includes(`${shop}: '${name}'`), `the ${shop} shop has a tab but no display name, so it is labelled in lower case`);
+}
 assert.match(companionSource, /gc-team-abilities/, 'team creation does not show pet abilities');
 assert.match(companionSource, /data-team-search placeholder="Filter by pet name, species, location, or ability"/, 'team pet filter is missing');
 assert.match(companionSource, /Press Escape while recording to clear it/, 'keybind Escape guidance is missing');
