@@ -1667,8 +1667,13 @@ assert.match(petsSource, /return items\.length \+ \(stacks \? 0 : 1\) \+ reserve
 // A Strength Crystal lends every pet ten while it runs. The game adds it to the strength figure and
 // caps nothing, so it must survive the overview's own clamp and stay out of the levelling estimate.
 assert.match(petsSource, /return \{ strength: strength \+ crystalStrengthBonus\(\), maxStrength/, 'the crystal bonus is missing from the strength every calculation reads');
-assert.match(petsSource, /tile\?\.objectType === 'crystal'\s*&& tile\.crystalType === 'Strength'\s*&& Number\(tile\.remainingActiveSeconds\) > 0/, 'the crystal tile is matched with the wrong casing or an expired one still counts - objectType is lower case, crystalType is not');
+assert.match(petsSource, /if \(tile\?\.objectType !== 'crystal' \|\| Number\(tile\.remainingActiveSeconds\) <= 0\) continue;/, 'the crystal tile is matched with the wrong casing or an expired one still counts - objectType is lower case, crystalType is not');
+assert.match(petsSource, /return activeCrystalTypes\(\)\.has\('Strength'\) \? 10 : 0;/, 'the strength crystal is no longer read from the active crystal types');
 assert.match(petsSource, /boardwalkTileObjects/, 'a crystal on the boardwalk is not seen');
+// A Hunger Crystal slows the drain by a tenth. It belongs on the rate, beside the team's own Hunger
+// Boost, rather than added to the bar's lifetime.
+assert.match(petsSource, /export function crystalHungerRateMultiplier\(\): number \{\s*return activeCrystalTypes\(\)\.has\('Hunger'\) \? \.9 : 1;/, 'the hunger crystal is ignored, or applied as something other than a rate');
+assert.match(petsSource, /\* crystalHungerRateMultiplier\(\) \/ \(minutes \* 60\);/, 'the hunger crystal never reaches the drain, so every hunger timer is short');
 assert.match(overviewSource, /return petMetrics\(pet as unknown as Parameters<typeof petMetrics>\[0\]\)\?\.strength/, 'the overview keeps its own copy of the strength formula, so a change has to be made twice');
 // The turtle timer kept a third copy of the strength formula, with the catalog's numbers written out
 // by hand, so the crystal bonus never reached it.

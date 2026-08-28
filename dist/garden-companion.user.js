@@ -848,7 +848,7 @@
     if (!maximum || !minutes || !Number.isFinite(value)) return null;
     if (value <= 0) return 0;
     const fraction = Math.min(1, value / maximum);
-    const drainPerSecond = Math.max(0, 1 - teamHungerBoostPercent(team) / 100) / (minutes * 60);
+    const drainPerSecond = Math.max(0, 1 - teamHungerBoostPercent(team) / 100) * crystalHungerRateMultiplier() / (minutes * 60);
     const activeCount = Math.max(1, team.filter((member) => member?.id).length);
     const restore = teamHungerRestore(team);
     const restorePerSecond = restore.procsPerSecond / activeCount * restorePerProc(fraction, restore.capFraction);
@@ -906,11 +906,21 @@
     const pets = activePets().filter((pet) => pet?.id);
     return pets.length > 0 && pets.every(petIsStarving);
   }
-  function crystalStrengthBonus() {
+  function activeCrystalTypes() {
     const garden = state.slot?.data?.garden;
     const tiles = [...Object.values(garden?.tileObjects || {}), ...Object.values(garden?.boardwalkTileObjects || {})];
-    const active = tiles.some((tile) => tile?.objectType === "crystal" && tile.crystalType === "Strength" && Number(tile.remainingActiveSeconds) > 0);
-    return active ? 10 : 0;
+    const types = /* @__PURE__ */ new Set();
+    for (const tile of tiles) {
+      if (tile?.objectType !== "crystal" || Number(tile.remainingActiveSeconds) <= 0) continue;
+      if (typeof tile.crystalType === "string") types.add(tile.crystalType);
+    }
+    return types;
+  }
+  function crystalStrengthBonus() {
+    return activeCrystalTypes().has("Strength") ? 10 : 0;
+  }
+  function crystalHungerRateMultiplier() {
+    return activeCrystalTypes().has("Hunger") ? 0.9 : 1;
   }
   function petMetrics(pet) {
     const info = PET_CATALOG[pet?.petSpecies || ""];

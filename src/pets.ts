@@ -237,7 +237,8 @@ export function hungerSecondsRemaining(pet: Pet, team: Pet[]): number | null {
   // leaves 40% being spent, which makes a 60-minute bar last 150 minutes rather than 96. The two
   // readings barely differ at 10% and are miles apart by 90%, which is as high as three pets can
   // stack it - a ceiling that only means anything if 100% would be a bar that never empties.
-  const drainPerSecond = Math.max(0, 1 - teamHungerBoostPercent(team) / 100) / (minutes * 60);
+  const drainPerSecond = Math.max(0, 1 - teamHungerBoostPercent(team) / 100)
+    * crystalHungerRateMultiplier() / (minutes * 60);
   // A proc feeds one whole pet, never a share of one - but it picks uniformly among the active pets,
   // so across three of them this one is fed by roughly every third proc. Dividing the team's proc
   // rate by the active count is that long-run average, which is the only thing a single ETA can
@@ -326,15 +327,35 @@ export function allActivePetsStarving(): boolean {
  * The same table lends a Hunger Crystal a 0.9 hunger rate and an XP Crystal a 1.1 XP rate. Those are
  * not applied here; only strength is.
  */
-export function crystalStrengthBonus(): number {
+function activeCrystalTypes(): Set<string> {
   const garden = state.slot?.data?.garden;
   const tiles = [...Object.values(garden?.tileObjects || {}), ...Object.values(garden?.boardwalkTileObjects || {})];
-  // objectType is lower case where crystalType is not - the game writes `crystal` beside
-  // `Strength`, so matching the casing of one against the other finds nothing at all.
-  const active = tiles.some(tile => tile?.objectType === 'crystal'
-    && tile.crystalType === 'Strength'
-    && Number(tile.remainingActiveSeconds) > 0);
-  return active ? 10 : 0;
+  const types = new Set<string>();
+  for (const tile of tiles) {
+    // objectType is lower case where crystalType is not - the game writes `crystal` beside
+    // `Strength`, so matching the casing of one against the other finds nothing at all.
+    if (tile?.objectType !== 'crystal' || Number(tile.remainingActiveSeconds) <= 0) continue;
+    if (typeof tile.crystalType === 'string') types.add(tile.crystalType);
+  }
+  return types;
+}
+
+export function crystalStrengthBonus(): number {
+  return activeCrystalTypes().has('Strength') ? 10 : 0;
+}
+
+/**
+ * How much slower hunger drains while a Hunger Crystal is up.
+ *
+ * A tenth off the rate, which the game applies as a multiplier on the rate rather than as time added
+ * to the bar - so it belongs on the drain, where the team's own Hunger Boost is already applied.
+ *
+ * A second crystal of the same kind adds nothing. The game collects the active types into a set and
+ * asks whether the type is present, so the effect is the same whether one is down or five; placing
+ * another onto it extends how long it runs instead.
+ */
+export function crystalHungerRateMultiplier(): number {
+  return activeCrystalTypes().has('Hunger') ? .9 : 1;
 }
 
 export function petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null {
