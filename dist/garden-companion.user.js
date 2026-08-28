@@ -291,7 +291,10 @@
     ["Clover", "FourLeafClover"],
     ["Snowdrop", "SnowdropDouble"],
     ["Cattail", "VariegatedCattail"],
-    ["ThunderCelestial", "ThunderCelestialShroomPlant"]
+    ["ThunderCelestial", "ThunderCelestialShroomPlant"],
+    // Emberbloom seeds the tile and embercrowns grow in it, which is the clover shape: one seed
+    // sprite between them, capacity on the parent, and the child sold nowhere.
+    ["Emberbloom", "Embercrown"]
   ];
   var PATCH_FAMILY_OF = Object.fromEntries(
     PATCH_FAMILIES.flatMap((family) => family.map((species) => [species, family[0]]))

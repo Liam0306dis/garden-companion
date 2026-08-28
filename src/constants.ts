@@ -175,6 +175,9 @@ export const PATCH_FAMILIES: ReadonlyArray<readonly string[]> = [
   ['Snowdrop', 'SnowdropDouble'],
   ['Cattail', 'VariegatedCattail'],
   ['ThunderCelestial', 'ThunderCelestialShroomPlant'],
+  // Emberbloom seeds the tile and embercrowns grow in it, which is the clover shape: one seed
+  // sprite between them, capacity on the parent, and the child sold nowhere.
+  ['Emberbloom', 'Embercrown'],
 ];
 
 /** Species to the family it shares a tile with, keyed by the family's first member. */
