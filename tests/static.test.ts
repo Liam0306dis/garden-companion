@@ -1609,8 +1609,9 @@ for (const [file, source] of [
 ]) {
   assert.doesNotMatch(source, /(?<!sendQuinoa)[^A-Za-z]send\(\{ type: '/, `${file} sends a bare command the game now wraps`);
 }
-// PlayerPosition is the exception: the game sends it bare too, and it takes no sequence number.
-assert.match(petsSource, /send\(\{ type: 'PlayerPosition', position: tile \}\)/, 'PlayerPosition is wrapped, which the game does not do');
+// Neither potion sends a position any more: the reducer both sides run looks the pet up by id and
+// spends the tool, and the game's own client sends nothing but the pet id.
+assert.doesNotMatch(petsSource, /PlayerPosition/, 'a potion moves the player again, which the game does not require');
 assert.doesNotMatch(petsSource, /send\(\{ type: '(XPPotion|ReplenishPotion)'/, 'a potion is sent bare while the game wraps it');
 
 // Build 1039 added the Tool Shack, which sells in the Tool shop like the other storage buildings -
@@ -1630,9 +1631,4 @@ assert.doesNotMatch(petsSource, /toInventoryIndex/, 'a retrieval names a slot, w
 
 // Fetching from the Tool Shack takes seconds and pets walk, so a tile read before that wait names
 // where the pet used to be - and a potion spent standing in the wrong place is spent on nothing.
-for (const [potion, fn] of [['XPPotion', 'useXpPotion'], ['ReplenishPotion', 'useReplenishPotion']]) {
-  const start = petsSource.indexOf(`export async function ${fn}(`);
-  const body = petsSource.slice(start, petsSource.indexOf('\n}', start));
-  assert.ok(body.indexOf(`ensureToolReady('${potion}')`) < body.indexOf('const tile = petTile(petItemId);'),
-    `${fn} reads the pet tile before waiting on the Tool Shack, so it can send a stale position`);
-}
+

@@ -1,7 +1,7 @@
 import type { Pet, ProduceItem } from './types.js';
 import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
 import { mutationMultiplier } from './mutation-value.js';
-import { send, sendQuinoaCommand } from './game-connection.js';
+import { sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from './utils.js';
@@ -456,61 +456,22 @@ export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots =
   return false;
 }
 
-interface Tile { x: number; y: number }
-
-/** Where a pet currently stands. Walking pets interpolate along their path by elapsed time. */
-function petTileFromMotion(motion: unknown): Tile | null {
-  if (!motion || typeof motion !== 'object') return null;
-  const value = motion as Record<string, unknown>;
-  const round = (tile: unknown): Tile | null => {
-    const point = tile as Record<string, unknown> | undefined;
-    const x = Number(point?.x), y = Number(point?.y);
-    return Number.isFinite(x) && Number.isFinite(y) ? { x: Math.round(x), y: Math.round(y) } : null;
-  };
-  if (value.kind === 'idle') return round(value.at);
-  if (value.kind === 'walking' && Array.isArray(value.path) && value.path.length) {
-    const step = Number(value.stepDurationMs) || 0;
-    const started = Number(value.startedAtMs) || 0;
-    const elapsed = Math.max(0, Date.now() - started);
-    const index = step > 0 ? Math.min(value.path.length - 1, Math.floor(elapsed / step)) : 0;
-    return round(value.path[index]);
-  }
-  return null;
-}
-
-export function petTile(petItemId: string): Tile | null {
-  const infos = (state.slot as unknown as { petSlotInfos?: Record<string, { motion?: unknown }> })?.petSlotInfos;
-  return petTileFromMotion(infos?.[petItemId]?.motion);
-}
-
 /**
- * Spends one XP Potion on a pet. The server only accepts it while the player stands on the pet, so
- * the player is moved onto its tile first. The game applies the catalog xpAmount, so no value is sent.
+ * Spends one XP Potion on a pet.
+ *
+ * No position is sent. This used to move the player onto the pet's tile first, on the belief that
+ * the potion needed it - the game's own client sends nothing but the pet id, and the reducer both
+ * sides run looks the pet up by id and spends the tool without reference to where anyone is
+ * standing. The move was not only unnecessary, it made the potion unusable whenever the pet's
+ * position had not arrived yet.
  */
 export async function useXpPotion(petItemId: string): Promise<void> {
-  if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
   if (!await ensureToolReady('XPPotion')) throw new Error('No XP Potion is available to use.');
-  // Read again after the wait. Taking one out of the Tool Shack can take seconds, pets walk while it
-  // happens, and the potion needs the player standing where the pet is now rather than where it was.
-  const tile = petTile(petItemId);
-  if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
-  send({ type: 'PlayerPosition', position: tile });
   sendQuinoaCommand({ type: 'XPPotion', petItemId });
 }
 
-/**
- * Fills a pet's hunger with one Replenish Potion. Same standing requirement as the XP Potion, so the
- * player is moved onto the pet's tile first and left there. The headless client also steps back off
- * afterwards; that was tried here and the server accepts the potion without it, so the plain move is
- * all this needs.
- */
+/** Fills a pet's hunger with one Hunger Potion. No position, for the reason above. */
 export async function useReplenishPotion(petItemId: string): Promise<void> {
-  if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
   if (!await ensureToolReady('ReplenishPotion')) throw new Error('No Hunger Potion is available to use.');
-  // Read again after the wait, for the same reason as the XP potion: the pet may have walked while
-  // one was being fetched, and standing where it used to be spends the potion on nothing.
-  const tile = petTile(petItemId);
-  if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
-  send({ type: 'PlayerPosition', position: tile });
   sendQuinoaCommand({ type: 'ReplenishPotion', petItemId });
 }
