@@ -2855,8 +2855,8 @@ ${groups}
       const when = procDateParts(log.at);
       const pet = triggeringPet(log, owners);
       const sprite = logSprite(pet);
-      const tooltip2 = procOutcomeTooltip(log.ability, log.data);
-      return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip2 ? ` title="${escapeHtml(tooltip2)}" data-detail` : ""}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
+      const tooltip = procOutcomeTooltip(log.ability, log.data);
+      return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip ? ` title="${escapeHtml(tooltip)}" data-detail` : ""}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
     }).join("") + more;
   }
   function refreshAbilityFilterUi(main) {
@@ -3021,10 +3021,7 @@ ${groups}
   }
 
   // src/features/weather-timer.ts
-  var TOOLTIP_ID = "gc-weather-timer";
-  var STYLE_ID = "gc-weather-timer-style";
   var WEATHER_MS = 10 * 60 * 1e3;
-  var DROP_PX = 8;
   var WEATHER_NAMES = {
     Rain: "Rain",
     Frost: "Snow",
@@ -3051,7 +3048,6 @@ ${groups}
     if (lastBoundaryAt && boundary > lastBoundaryAt + 1e3) boundaryEnd = boundary;
     lastBoundaryAt = boundary;
   }
-  var pointer = { x: -1, y: -1 };
   function currentWeather() {
     return state.game?.weather || "";
   }
@@ -3105,107 +3101,6 @@ ${groups}
     const { low, high } = remaining(Date.now());
     const minutes = (ms) => `${Math.max(1, Math.ceil(ms / 6e4))}m`;
     return low === high ? `${minutes(low)} left` : `${minutes(low)} or ${minutes(high)} left`;
-  }
-  function tooltipRect() {
-    const surface = pixiSurface();
-    if (!surface) return null;
-    const popup = findVisiblePixiNodes(surface, ["TooltipPopup"]).get("TooltipPopup");
-    if (!popup || typeof popup.getBounds !== "function") return null;
-    try {
-      const bounds = popup.getBounds();
-      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0) return null;
-      return {
-        left: surface.toScreenX(bounds.x),
-        right: surface.toScreenX(bounds.x + bounds.width),
-        bottom: surface.toScreenY(bounds.y + bounds.height)
-      };
-    } catch {
-      return null;
-    }
-  }
-  function buttonRect() {
-    const surface = pixiSurface();
-    const rail = quinoaEngine()?.getSystem?.("rightSideRail");
-    const container = rail?.weatherButton?.viewContainer;
-    if (!surface || !container || container.destroyed || typeof container.getBounds !== "function") return null;
-    try {
-      const bounds = container.getBounds();
-      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0) return null;
-      return {
-        left: surface.toScreenX(bounds.x),
-        right: surface.toScreenX(bounds.x + bounds.width),
-        top: surface.toScreenY(bounds.y),
-        bottom: surface.toScreenY(bounds.y + bounds.height)
-      };
-    } catch {
-      return null;
-    }
-  }
-  function ensureStyle() {
-    if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = `
-#${TOOLTIP_ID} { position:fixed;z-index:99993;pointer-events:none;transform:translateX(-50%);
-  padding:6px 10px;border-radius:9px;border:1px solid rgba(125,211,252,.16);
-  background:linear-gradient(145deg,#10151a,#090b0f 72%);box-shadow:0 12px 32px rgba(0,0,0,.6);
-  color:#e4e4e7;font:600 12px/1.25 system-ui,sans-serif;white-space:nowrap; }
-#${TOOLTIP_ID}[hidden] { display:none; }
-#${TOOLTIP_ID} b { color:#a9efff;font-weight:700; }
-#${TOOLTIP_ID} small { display:block;margin-top:2px;color:var(--gc-muted,#a1a1aa);font-size:10px;font-weight:600; }`;
-    document.head.appendChild(style);
-  }
-  function tooltip() {
-    ensureStyle();
-    let root = document.getElementById(TOOLTIP_ID);
-    if (!root) {
-      root = document.createElement("div");
-      root.id = TOOLTIP_ID;
-      root.hidden = true;
-      document.body.appendChild(root);
-    }
-    return root;
-  }
-  function render() {
-    const now = Date.now();
-    const root = document.getElementById(TOOLTIP_ID);
-    const rect = buttonRect();
-    const hovering = rect && pointer.x >= rect.left && pointer.x <= rect.right && pointer.y >= rect.top && pointer.y <= rect.bottom;
-    if (!rect || !hovering || !currentWeather()) {
-      if (root) root.hidden = true;
-      return;
-    }
-    const element = tooltip();
-    const { low, high } = remaining(now);
-    const left = low === high ? `<b>${escapeHtml(formatDuration(low))}</b> left` : `<b>${escapeHtml(formatDuration(low))} or ${escapeHtml(formatDuration(high))}</b> left<small>started before you arrived</small>`;
-    element.innerHTML = `${escapeHtml(weatherLabel())} ${left}`;
-    element.hidden = false;
-    const under = tooltipRect() ?? rect;
-    element.style.left = `${Math.round((under.left + under.right) / 2)}px`;
-    element.style.top = `${Math.round(under.bottom + DROP_PX)}px`;
-  }
-  function initWeatherTimer() {
-    let ticking = 0;
-    const stopTicking = () => {
-      if (ticking) {
-        clearInterval(ticking);
-        ticking = 0;
-      }
-    };
-    const update = () => {
-      render();
-      const showing = !document.getElementById(TOOLTIP_ID)?.hidden;
-      if (showing && !ticking) ticking = window.setInterval(update, 1e3);
-      else if (!showing) stopTicking();
-    };
-    page.addEventListener("pointermove", (event) => {
-      pointer = { x: event.clientX, y: event.clientY };
-      update();
-    }, true);
-    page.addEventListener("pointerleave", () => {
-      pointer = { x: -1, y: -1 };
-      update();
-    }, true);
   }
 
   // src/weather-forecast.ts
@@ -4055,7 +3950,7 @@ ${eggs.map(eggCard).join("")}`;
   }
 
   // src/features/pet-swap-toss.ts
-  var STYLE_ID2 = "gc-pet-toss-style";
+  var STYLE_ID = "gc-pet-toss-style";
   var LAYER_ID = "gc-pet-toss-layer";
   var TOSS_TIMEOUT_MS = 2400;
   var SETTLE_MS = 700;
@@ -4187,10 +4082,10 @@ ${eggs.map(eggCard).join("")}`;
   function activePetIds() {
     return (state.slot?.data?.petSlots ?? []).map((pet) => pet.id).sort().join(",");
   }
-  function ensureStyle2() {
-    if (document.getElementById(STYLE_ID2)) return;
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID2;
+    style.id = STYLE_ID;
     style.textContent = `
 #${LAYER_ID} { position:fixed;inset:0;z-index:99994;pointer-events:none; }
 #${LAYER_ID} .gc-toss-egg { position:absolute;left:0;top:0;width:38px;height:38px;margin:-19px 0 0 -19px;object-fit:contain;
@@ -4209,7 +4104,7 @@ ${eggs.map(eggCard).join("")}`;
     document.head.appendChild(style);
   }
   function layer() {
-    ensureStyle2();
+    ensureStyle();
     let root = document.getElementById(LAYER_ID);
     if (!root) {
       root = document.createElement("div");
@@ -6594,7 +6489,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
 
   // src/features/garden-overview.ts
   var FILTER_KEY = "gardenCompanion.overviewSpecies.v1";
-  var STYLE_ID3 = "gc-overview-style";
+  var STYLE_ID2 = "gc-overview-style";
   var PANEL_ID = "gc-overview-panel";
   var BUTTON_ID = "gc-overview-button";
   var MUTATION_KEY = "gardenCompanion.overviewMutations.v2";
@@ -7219,9 +7114,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     return result;
   }
   function injectStyles() {
-    if (document.getElementById(STYLE_ID3)) return;
+    if (document.getElementById(STYLE_ID2)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID3;
+    style.id = STYLE_ID2;
     style.textContent = `
     #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-raised,#121219);color:var(--gc-text,#e4e4e7);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
     /* Layered over the solid base rather than replacing it: this button sits on the game canvas,
@@ -7703,7 +7598,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         });
       };
     }
-    function render4(force = false) {
+    function render3(force = false) {
       const panel3 = document.getElementById(PANEL_ID);
       if (!panel3 || panel3.hidden && !view.alarm) return;
       const stats = calculateStats(runtime(), getCatalog(), filter, trackedMutations, view.ignorePreserved, mutationConfig);
@@ -7737,27 +7632,27 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       panel3.querySelector("[data-close]").onclick = close;
       panel3.querySelector("[data-config-close]")?.addEventListener("click", () => {
         configMode = null;
-        render4(true);
+        render3(true);
       });
       panel3.querySelector("[data-open-config]").onclick = () => {
         configMode = configMode && configMode !== "alarms" ? null : lastConfigTab;
-        render4(true);
+        render3(true);
       };
       panel3.querySelectorAll("[data-config-tab]").forEach((button) => button.onclick = () => {
         configMode = button.dataset.configTab;
         if (configMode && configMode !== "alarms") lastConfigTab = configMode;
-        render4(true);
+        render3(true);
       });
       panel3.querySelector("[data-focus-toggle]").onclick = () => {
         focus.enabled = !focus.enabled;
         saveFocus(focus);
         applyPlantFocus();
-        render4(true);
+        render3(true);
       };
       const alarmConfigButton = panel3.querySelector("[data-alarm-config]");
       if (alarmConfigButton) alarmConfigButton.onclick = () => {
         configMode = configMode === "alarms" ? null : "alarms";
-        render4(true);
+        render3(true);
       };
       const alarmButton = panel3.querySelector("[data-alarm]");
       if (alarmButton) alarmButton.onclick = () => {
@@ -7767,7 +7662,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
           ensureRefreshTimer();
         } else stopCompletionAlarm();
         saveView(view);
-        render4(true);
+        render3(true);
       };
       panel3.querySelectorAll("[data-zoom-level]").forEach((button) => button.onclick = () => {
         view.zoom = Number(button.dataset.zoomLevel);
@@ -7777,25 +7672,25 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       panel3.querySelector("[data-all]")?.addEventListener("click", () => {
         filter = null;
         localStorage.removeItem(FILTER_KEY);
-        render4(true);
+        render3(true);
       });
       panel3.querySelector("[data-none]")?.addEventListener("click", () => {
         filter = /* @__PURE__ */ new Set();
         saveFilter(filter);
-        render4(true);
+        render3(true);
       });
       panel3.querySelector("[data-owned]")?.addEventListener("click", () => {
         filter = new Set(filter ?? []);
         for (const name of ownedSpeciesCounts().keys()) filter.add(name);
         saveFilter(filter);
-        render4(true);
+        render3(true);
       });
       panel3.querySelectorAll("[data-species-toggle]").forEach((button) => button.onclick = () => {
         const name = button.dataset.speciesToggle ?? "";
         filter = new Set(filter ?? species);
         filter.has(name) ? filter.delete(name) : filter.add(name);
         saveFilter(filter);
-        render4(true);
+        render3(true);
       });
       const releaseUnlessTyping = (element) => {
         if (keyboardDriven) return;
@@ -7804,7 +7699,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         }, 0);
       };
       const renderAndRefocus = (selector) => {
-        render4(true);
+        render3(true);
         if (keyboardDriven) panel3.querySelector(selector)?.focus();
       };
       const applyMutationKey = (key, value) => {
@@ -7956,7 +7851,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         selectedPreset = name;
         presetDraft = name;
         toast(`Saved "${name}".`, "success");
-        render4(true);
+        render3(true);
       });
       panel3.querySelector("[data-preset-delete]")?.addEventListener("click", () => {
         const removed = selectedPreset;
@@ -7966,7 +7861,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         selectedPreset = "";
         if (presetDraft === removed) presetDraft = "";
         toast(`Deleted "${removed}".`, "success");
-        render4(true);
+        render3(true);
       });
       panel3.querySelectorAll("[data-focus-rule-pill]").forEach((button) => button.onclick = () => {
         const rule = button.dataset.focusRulePill;
@@ -8014,14 +7909,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         if (openFamilies.has(key)) openFamilies.delete(key);
         else openFamilies.add(key);
         saveOpenFamilies();
-        render4(true);
+        render3(true);
       });
       panel3.querySelectorAll("[data-collapse]").forEach((toggle3) => toggle3.onclick = () => {
         const key = toggle3.dataset.collapse;
         if (key === "mutations") view.mutationsOpen = !view.mutationsOpen;
         if (key === "plants") view.plantsOpen = !view.plantsOpen;
         saveView(view);
-        render4(true);
+        render3(true);
       });
       bindSearch(panel3.querySelector("[data-species-search]"));
       installDrag(panel3.querySelector(".go-card"), panel3.querySelector(".go-card > header"), (left, top) => {
@@ -8040,7 +7935,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       panel3.hidden = false;
       lastSignature2 = "";
       page3.__gardenCompanionLoadSpriteGroup?.("deferred");
-      render4(true);
+      render3(true);
       ensureRefreshTimer();
     }
     function close() {
@@ -8052,7 +7947,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       }
     }
     function ensureRefreshTimer() {
-      if (!refreshTimer) refreshTimer = setInterval(() => render4(false), 1e3);
+      if (!refreshTimer) refreshTimer = setInterval(() => render3(false), 1e3);
     }
     function toggle2() {
       const panel3 = document.getElementById(PANEL_ID);
@@ -8082,7 +7977,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       });
       if (view.alarm) ensureRefreshTimer();
       onSpritesReady(() => {
-        if (configMode === "focus") render4(true);
+        if (configMode === "focus") render3(true);
       });
       window.addEventListener("keydown", (event) => {
         if (!shortcut || event.repeat || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) return;
@@ -8826,7 +8721,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/fishing.ts
-  var STYLE_ID4 = "gc-fishing-style";
+  var STYLE_ID3 = "gc-fishing-style";
   var PANEL_ID2 = "gc-fishing-panel";
   var RECORD_KEY = "gardenCompanion.fishing.v1";
   var POSITION_KEY2 = "gardenCompanion.fishingPosition.v1";
@@ -8993,9 +8888,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return kilos >= 10 ? `${kilos.toFixed(1)} kg` : `${kilos.toFixed(2)} kg`;
   }
   function injectStyles2() {
-    if (document.getElementById(STYLE_ID4)) return;
+    if (document.getElementById(STYLE_ID3)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID4;
+    style.id = STYLE_ID3;
     style.textContent = `
     #${PANEL_ID2}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID2}[hidden]{display:none}
@@ -10265,7 +10160,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         graphic.rect(x - barWidth / 2, top, barWidth * Math.max(0, pest.hp / pest.maxHp), barHeight).fill({ color: 16281969, alpha: 0.95 });
       }
     }
-    function render4(now) {
+    function render3(now) {
       const geometry = scene.sync();
       const entities = scene.layer("entities");
       if (!geometry || !lawn || !entities) return;
@@ -10317,7 +10212,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const delta = Math.min(0.05, gap / 1e3 || 0);
       try {
         advance(delta, now / 1e3);
-        render4(now);
+        render3(now);
         if (now - chromeAt > 250) {
           chromeAt = now;
           renderStatus();
@@ -12164,7 +12059,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     window.clearInterval(reconcileTimer);
     reconcileTimer = null;
   }
-  function render2() {
+  function render() {
     const root = panel();
     if (!root) return;
     const body = root.querySelector("[data-cleanser-body]");
@@ -12185,7 +12080,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
       selectedMutation = button.dataset.cleanserMutation || "";
       refreshSnapshot();
-      render2();
+      render();
     });
     body.querySelectorAll("[data-cleanse-row]").forEach((button) => button.onclick = async () => {
       const row = rows.find((candidate) => candidate.key === button.dataset.cleanseRow);
@@ -12242,7 +12137,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     root.hidden = !root.hidden;
     if (!root.hidden) {
       refreshSnapshot();
-      render2();
+      render();
       startCountReconciliation();
     } else {
       stopCountReconciliation();
@@ -12329,14 +12224,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       run();
     };
     holdFrame = requestAnimationFrame(tick);
-    render3(true);
+    render2(true);
   }
   function cancelHold() {
     if (!holdStartedAt) return;
     holdStartedAt = 0;
     cancelAnimationFrame(holdFrame);
     paintHold(0);
-    render3(true);
+    render2(true);
   }
   function paintHold(progress) {
     const fill = panel2()?.querySelector("[data-preserve-fill]");
@@ -12363,7 +12258,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (index >= rows.length) {
         sending = false;
         toast(sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : "Nothing was left to preserve.", sent ? "success" : "error");
-        render3();
+        render2();
         return;
       }
       const row = rows[index++];
@@ -12378,7 +12273,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           return;
         }
       }
-      render3();
+      render2();
       window.setTimeout(step, SEND_INTERVAL);
     };
     step();
@@ -12393,7 +12288,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     element.style.bottom = "auto";
     element.style.transform = "none";
   }
-  function render3(force = false) {
+  function render2(force = false) {
     const root = panel2();
     const rows = eligibleSlots();
     const active = state.preservationMode && rows.length >= 2 && !page.__gardenCompanionCinematicFromGame?.();
@@ -12423,8 +12318,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     anchorAboveCard(element);
   }
   function initPreserveAll() {
-    window.setInterval(render3, 300);
-    render3();
+    window.setInterval(render2, 300);
+    render2();
   }
 
   // src/pet-sprites-injector.ts
@@ -12516,5 +12411,4 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   initFishing();
   initGardenDefence();
   initPreserveAll();
-  initWeatherTimer();
 })();
