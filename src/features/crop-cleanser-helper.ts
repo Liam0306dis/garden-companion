@@ -2,7 +2,7 @@ import { MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
-import { heldToolCount, mutationSprite } from '../pets.js';
+import { ensureToolReady, heldToolCount, mutationSprite } from '../pets.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
@@ -161,7 +161,7 @@ function render(): void {
     refreshSnapshot();
     render();
   });
-  body.querySelectorAll<HTMLButtonElement>('[data-cleanse-row]').forEach(button => button.onclick = () => {
+  body.querySelectorAll<HTMLButtonElement>('[data-cleanse-row]').forEach(button => button.onclick = async () => {
     const row = rows.find(candidate => candidate.key === button.dataset.cleanseRow);
     if (!row) return;
     const live = liveRowMatches(row);
@@ -176,7 +176,14 @@ function render(): void {
       toast('No Crop Cleansers are available.', 'error');
       return;
     }
+    // The count above is everything owned, the Tool Shack included, but a cleanser is only usable
+    // once it is out of storage - so one is fetched before the command rather than after it fails.
+    button.disabled = true;
     try {
+      if (!await ensureToolReady('CropCleanser')) {
+        toast('No Crop Cleanser could be taken from the Tool Shack. Make room in your inventory.', 'error');
+        return;
+      }
       sendQuinoaCommand({ type: 'CropCleanser', tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
       cleansedRows.add(row.key);
       displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
@@ -186,6 +193,8 @@ function render(): void {
       toast(`Crop Cleanser requested for ${plantName(live.species)}.`, 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
+    } finally {
+      button.disabled = false;
     }
   });
 }

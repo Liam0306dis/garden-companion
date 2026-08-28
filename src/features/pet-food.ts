@@ -116,8 +116,12 @@ function createPetFoodPanel(): HTMLElement {
     if (!button || button.disabled) return;
     // A potion is spent on the pet rather than fed to it, so it takes the tool route instead.
     if (button.dataset.potion === 'true') {
-      try { useReplenishPotion(button.dataset.feedPet!); }
-      catch (error) { toast((error as Error).message, 'error'); }
+      // Held disabled for the wait, since fetching one from the Tool Shack is not instant and a
+      // second press would spend a second potion.
+      button.disabled = true;
+      void useReplenishPotion(button.dataset.feedPet!)
+        .catch(error => toast((error as Error).message, 'error'))
+        .finally(() => { button.disabled = false; });
       return;
     }
     feedPet(button.dataset.feedPet!, button.dataset.cropItem!);

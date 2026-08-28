@@ -1562,7 +1562,7 @@ assert.match(forecastSource, /retryAfter = Date\.now\(\) \+ 30_000;\s*forecast =
 
 // A move needs a Planter Pot; a click does not. Testing for one on the press answered every click in
 // the game with a toast about a tool that click was never going to use.
-assert.match(plantDragSource, /if \(live\.inventoryReady && !hasPlanterPot\(\)\) \{\s*activePress\.cancelled = true;/, 'the Planter Pot check runs on the press again, so every click reports it');
+assert.match(plantDragSource, /if \(live\.inventoryReady && !canGetPlanterPot\(\)\) \{\s*activePress\.cancelled = true;/, 'the Planter Pot check runs on the press again, so every click reports it');
 assert.doesNotMatch(plantDragSource.slice(plantDragSource.indexOf("addEventListener('pointerdown'"), plantDragSource.indexOf("addEventListener('pointermove'")), /hasPlanterPot/, 'the pointerdown handler tests for a Planter Pot before the press is a move');
 
 // Build 1029 made the inventory atom derived: written on every change before, computed from the
@@ -1612,3 +1612,27 @@ for (const [file, source] of [
 // PlayerPosition is the exception: the game sends it bare too, and it takes no sequence number.
 assert.match(petsSource, /send\(\{ type: 'PlayerPosition', position: tile \}\)/, 'PlayerPosition is wrapped, which the game does not do');
 assert.doesNotMatch(petsSource, /send\(\{ type: '(XPPotion|ReplenishPotion)'/, 'a potion is sent bare while the game wraps it');
+
+// Build 1039 added the Tool Shack, which sells in the Tool shop like the other storage buildings -
+// it is a structure, not a consumable, so it does not belong among the tool alarms.
+assert.match(constantsSource, /EXCLUDED_TOOL_ALERTS = new Set\(\['Shovel', 'FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo', 'ToolShack'\]\)/, 'the Tool Shack is offered as an alarmable tool');
+// Nothing could store a Tool before 1039, so summing every storage was summing zero and reading only
+// the loose inventory was right by accident. The two now answer differently and both are needed.
+assert.match(petsSource, /export function looseToolCount/, 'there is no loose-only count, so a use gate counts tools it cannot use');
+assert.match(petsSource, /export function shackToolCount/, 'nothing reads the Tool Shack');
+assert.match(petsSource, /return looseToolCount\(toolId\) \+ shackToolCount\(toolId\);/, 'the total no longer covers both places');
+// The game refuses a retrieval at a hundred loose slots unless the tool stacks onto one already out.
+assert.match(petsSource, /return items\.length \+ \(stacks \? 0 : 1\) \+ reserveSlots <= INVENTORY_SLOTS;/, 'a retrieval is sent without checking the inventory can take it');
+// Potting hands back a Plant, which stacks onto nothing, so the pot and the plant each need a slot.
+assert.match(plantDragSource, /ensureToolReady\('PlanterPot', 1, 1\)/, 'the potted plant is not given a slot of its own');
+// The index is left off so the game appends and a stackable tool merges into the stack it has.
+assert.doesNotMatch(petsSource, /toInventoryIndex/, 'a retrieval names a slot, which is for dragging onto a particular square');
+
+// Fetching from the Tool Shack takes seconds and pets walk, so a tile read before that wait names
+// where the pet used to be - and a potion spent standing in the wrong place is spent on nothing.
+for (const [potion, fn] of [['XPPotion', 'useXpPotion'], ['ReplenishPotion', 'useReplenishPotion']]) {
+  const start = petsSource.indexOf(`export async function ${fn}(`);
+  const body = petsSource.slice(start, petsSource.indexOf('\n}', start));
+  assert.ok(body.indexOf(`ensureToolReady('${potion}')`) < body.indexOf('const tile = petTile(petItemId);'),
+    `${fn} reads the pet tile before waiting on the Tool Shack, so it can send a stale position`);
+}

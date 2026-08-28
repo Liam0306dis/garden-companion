@@ -933,12 +933,17 @@ export function initCompanion(): void {
     // Refreshed as the pointer arrives, so the tooltip that follows it carries current numbers even
     // though the tab itself is holding still underneath.
     main.querySelectorAll<HTMLElement>('[data-hunger-pet]').forEach(node => node.onpointerenter = () => refreshHungerDisplay(node));
-    main.querySelectorAll<HTMLButtonElement>('[data-xp-potion]').forEach(button => button.onclick = () => {
+    // Disabled while it runs rather than after: taking a potion out of the Tool Shack first means
+    // this can now wait on the server, and a second press in that window spends two.
+    main.querySelectorAll<HTMLButtonElement>('[data-xp-potion]').forEach(button => button.onclick = async () => {
+      button.disabled = true;
       try {
-        useXpPotion(button.dataset.xpPotion!);
-        button.disabled = true;
+        await useXpPotion(button.dataset.xpPotion!);
         toast('XP potion requested.', 'success');
-      } catch (error) { toast((error as Error).message, 'error'); }
+      } catch (error) {
+        button.disabled = false;
+        toast((error as Error).message, 'error');
+      }
     });
     main.querySelector('[data-open-overview]')?.addEventListener('click', () => page.__gardenCompanionToggleOverview?.());
     main.querySelector('[data-open-fishing]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionToggleFishing?.(); });

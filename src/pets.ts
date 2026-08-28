@@ -363,16 +363,97 @@ export function formatEstimate(seconds: number): string {
   return days ? `${days}d ${hours}h` : hours ? `${hours}h ${remainder}m` : `${minutes}m`;
 }
 
-/** How many of a tool the player is holding, across the inventory and its storages. */
-export function heldToolCount(toolId: string): number {
-  const data = state.slot?.data;
-  const rows = [
-    ...(data?.inventory?.items || []),
-    ...((data?.inventory?.storages || []).flatMap(storage => storage.items || [])),
-  ] as unknown as Array<{ itemType?: string; toolId?: string; quantity?: number }>;
+/**
+ * Tools in storage, which since build 1039 is a place they can be.
+ *
+ * The Tool Shack stores tools the way the Seed Silo stores seeds, and nothing before it could hold a
+ * Tool at all - so code that summed every storage was summing zero, and code that read only the
+ * loose inventory was right by accident. Neither is right now, and they want opposite answers: a
+ * count to show the player includes the Shack, a check before using a tool must not, because a tool
+ * can only be used once it is out.
+ */
+const TOOL_SHACK = 'ToolShack';
+/** The game refuses an item at this many loose slots unless it can stack onto one already there. */
+const INVENTORY_SLOTS = 100;
+
+type ToolRow = { itemType?: string; toolId?: string; quantity?: number };
+
+function looseItems(): ToolRow[] {
+  return (state.slot?.data?.inventory?.items || []) as unknown as ToolRow[];
+}
+
+function shackItems(): ToolRow[] {
+  const shack = (state.slot?.data?.inventory?.storages || []).find(storage => storage.decorId === TOOL_SHACK);
+  return (shack?.items || []) as unknown as ToolRow[];
+}
+
+function countTool(rows: ToolRow[], toolId: string): number {
   return rows
     .filter(item => item?.itemType === 'Tool' && item.toolId === toolId)
     .reduce((total, item) => total + Number(item.quantity || 0), 0);
+}
+
+/** Usable right now. A tool in the Shack cannot be used until it has been taken out. */
+export function looseToolCount(toolId: string): number {
+  return countTool(looseItems(), toolId);
+}
+
+/** Waiting in the Tool Shack. */
+export function shackToolCount(toolId: string): number {
+  return countTool(shackItems(), toolId);
+}
+
+/** How many of a tool the player owns, wherever it is. For showing, not for gating. */
+export function heldToolCount(toolId: string): number {
+  return looseToolCount(toolId) + shackToolCount(toolId);
+}
+
+/** Loose slots still open. Nothing stackable needs one, so this is a floor rather than a budget. */
+export function freeInventorySlots(): number {
+  return Math.max(0, INVENTORY_SLOTS - looseItems().length);
+}
+
+/**
+ * Whether a retrieval would be accepted, by the game's own rule: full at a hundred loose slots,
+ * except that a tool with a stack already out merges into it and needs no slot of its own.
+ *
+ * `reserveSlots` is for a caller that is about to be handed something else as well - potting a plant
+ * gives back a Plant item, and a Plant does not stack, so it needs a slot of its very own on top of
+ * whatever the pot costs.
+ */
+function inventoryCanTakeTool(toolId: string, reserveSlots: number): boolean {
+  const items = looseItems();
+  const stacks = items.some(item => item?.itemType === 'Tool' && item.toolId === toolId);
+  return items.length + (stacks ? 0 : 1) + reserveSlots <= INVENTORY_SLOTS;
+}
+
+/**
+ * Takes a tool out of the Shack when none is to hand, and waits for it to arrive.
+ *
+ * Answers whether the tool is usable by the time it returns, so a caller can simply not act when it
+ * says no. The wait is for the server's own state rather than a fixed delay: the command is
+ * predicted locally, but a prediction that is rolled back would leave us acting on a tool we do not
+ * have.
+ */
+export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots = 0): Promise<boolean> {
+  if (looseToolCount(toolId) >= wanted) return true;
+  const shortfall = wanted - looseToolCount(toolId);
+  const stored = shackToolCount(toolId);
+  if (stored <= 0) return false;
+  if (!inventoryCanTakeTool(toolId, reserveSlots)) return false;
+  // The index is left off deliberately: without one the game appends, and a stackable tool merges
+  // into the stack it already has. Naming a slot is for dragging onto a particular square.
+  sendQuinoaCommand({
+    type: 'RetrieveItemFromStorage',
+    itemId: toolId,
+    storageId: TOOL_SHACK,
+    quantity: Math.min(shortfall, stored),
+  });
+  for (let attempt = 0; attempt < 40; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (looseToolCount(toolId) >= wanted) return true;
+  }
+  return false;
 }
 
 interface Tile { x: number; y: number }
@@ -406,7 +487,11 @@ export function petTile(petItemId: string): Tile | null {
  * Spends one XP Potion on a pet. The server only accepts it while the player stands on the pet, so
  * the player is moved onto its tile first. The game applies the catalog xpAmount, so no value is sent.
  */
-export function useXpPotion(petItemId: string): void {
+export async function useXpPotion(petItemId: string): Promise<void> {
+  if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
+  if (!await ensureToolReady('XPPotion')) throw new Error('No XP Potion is available to use.');
+  // Read again after the wait. Taking one out of the Tool Shack can take seconds, pets walk while it
+  // happens, and the potion needs the player standing where the pet is now rather than where it was.
   const tile = petTile(petItemId);
   if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
   send({ type: 'PlayerPosition', position: tile });
@@ -419,7 +504,11 @@ export function useXpPotion(petItemId: string): void {
  * afterwards; that was tried here and the server accepts the potion without it, so the plain move is
  * all this needs.
  */
-export function useReplenishPotion(petItemId: string): void {
+export async function useReplenishPotion(petItemId: string): Promise<void> {
+  if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
+  if (!await ensureToolReady('ReplenishPotion')) throw new Error('No Hunger Potion is available to use.');
+  // Read again after the wait, for the same reason as the XP potion: the pet may have walked while
+  // one was being fetched, and standing where it used to be spends the potion on nothing.
   const tile = petTile(petItemId);
   if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
   send({ type: 'PlayerPosition', position: tile });

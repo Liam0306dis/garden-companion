@@ -67,7 +67,7 @@ export function rarityRank(rarity: string | undefined): number {
   return rank < 0 ? RARITY_ORDER.length : rank;
 }
 
-export const EXCLUDED_TOOL_ALERTS = new Set(['Shovel', 'FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo']);
+export const EXCLUDED_TOOL_ALERTS = new Set(['Shovel', 'FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo', 'ToolShack']);
 
 export const STACKED_PASSIVE_GROUPS = [
   { key: 'HungerBoost', label: 'Hunger Boost', parameter: 'hungerRefundPercentage', abilities: ['HungerBoost', 'HungerBoostII', 'HungerBoostIII', 'SnowyHungerBoost'] },

@@ -1,6 +1,7 @@
 import type { CompanionPage } from '../types.js';
 import { noteRoomSocketClosed, noteRoomSocketOpened } from '../connection-state.js';
 import { state } from '../state.js';
+import { ensureToolReady, freeInventorySlots, shackToolCount } from '../pets.js';
 
 export function initPlantDragMove(): void {
     'use strict';
@@ -576,6 +577,15 @@ export function initPlantDragMove(): void {
     }
 
     /**
+     * A pot to hand, or one that can be fetched. The press only checks that a move is possible - the
+     * fetching itself waits for the hold to finish, since it needs to wait on the server and a press
+     * has to answer now.
+     */
+    function canGetPlanterPot() {
+        return hasPlanterPot() || shackToolCount('PlanterPot') > 0;
+    }
+
+    /**
      * Read from the state the game reports rather than from the atom mirror.
      *
      * Build 1029 turned the inventory atom into a derived one: it used to be written on every
@@ -654,7 +664,9 @@ export function initPlantDragMove(): void {
         if (source.userSlotIdx !== live.ownUserSlotIdx) {
             throw new Error('That plant is not in your garden');
         }
-        if (!hasPlanterPot()) throw new Error('No Planter Pot is available in your inventory');
+        // Only whether a move is possible. Fetching a pot out of the Tool Shack waits on the server,
+        // and this runs on the hold finishing, so the fetch itself happens in commitHeldMove.
+        if (!canGetPlanterPot()) throw new Error('No Planter Pot is available in your inventory');
 
         activePress.source = source;
         activePress.phase = 'dragging';
@@ -681,6 +693,13 @@ export function initPlantDragMove(): void {
         activePress.destination = destination;
         activePress.phase = 'potting';
         const species = activePress.source.object.species;
+        // Two slots, not one: the pot may still be in the Tool Shack, and potting hands back a Plant,
+        // which stacks onto nothing and always takes a slot of its own.
+        if (!hasPlanterPot() && !await ensureToolReady('PlanterPot', 1, 1)) {
+            throw new Error('No Planter Pot could be taken from the Tool Shack. Make room in your inventory.');
+        }
+        if (freeInventorySlots() < 1) throw new Error('Your inventory is full, so the plant has nowhere to go');
+
         const plantItemId = pageWindow.crypto.randomUUID();
         showToast(`Picking up ${species ?? 'plant'}...`, 'normal', 0);
         sendPotPlant(activePress.source.localTileIndex, plantItemId);
@@ -736,7 +755,7 @@ export function initPlantDragMove(): void {
         // Checked here rather than on the press. A move needs a pot; an ordinary click does not, and
         // the press is only a move once it has been held - so testing it any earlier answered every
         // click in the game with a toast about a tool the click was never going to use.
-        if (live.inventoryReady && !hasPlanterPot()) {
+        if (live.inventoryReady && !canGetPlanterPot()) {
             activePress.cancelled = true;
             showToast('A Planter Pot is required to move plants.', 'error', 4500);
             log('Move unavailable: no Planter Pot in inventory.');
