@@ -201,6 +201,7 @@ assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);')
 // numbered where it is built. One that goes out through the socket is numbered there instead, and
 // neither is numbered twice - a burned number leaves a gap the server will not recover from.
 assert.match(gameConnectionSource, /activeSocket\.send\(JSON\.stringify\(frame\)\);/, 'a command must leave by the socket, or it misses the one place a sequence is stamped');
+assert.match(companionSource, /if \(String\(args\[0\] \?\? ''\)\.includes\('\/api\/rooms\/'\)\) noteGameSocket\(socket\);/, 'any socket the page opens can become the one our commands are sent on');
 assert.match(petsSource, /standOnPet\(petItemId\);\s+sendQuinoaCommand\(\{ type: 'ReplenishPotion'/, 'the server refuses a potion unless the player is standing on the pet');
 assert.match(petsSource, /standOnPet\(petItemId\);\s+sendQuinoaCommand\(\{ type: 'XPPotion'/, 'the server refuses a potion unless the player is standing on the pet');
 const replenishBody = petsSource.split('export async function useReplenishPotion')[1] || '';

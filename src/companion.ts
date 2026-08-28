@@ -114,7 +114,6 @@ export function initCompanion(): void {
    * optimistic harvest; a refusal delivered now settles it immediately and lets the game tidy up.
    */
   function guardOutgoingHarvests(socket: WebSocket): void {
-    noteGameSocket(socket);
     const originalSend = socket.send;
     socket.send = function(data: Parameters<WebSocket['send']>[0]) {
       const blocked = blockOutgoingHarvest(data);
@@ -141,6 +140,10 @@ export function initCompanion(): void {
       socket.addEventListener('close', handleGameSocketClose);
       listenForWelcome(socket);
       guardOutgoingHarvests(socket);
+      // Only the room socket is worth remembering as the one to send on. Every socket the page opens
+      // passes through here, so noting them all let a later one - anything at all - take the place of
+      // the game connection and quietly carry our commands nowhere.
+      if (String(args[0] ?? '').includes('/api/rooms/')) noteGameSocket(socket);
       return socket;
     } as unknown as typeof WebSocket;
     Object.setPrototypeOf(GardenCompanionWebSocket, OriginalWebSocket);

@@ -5213,7 +5213,6 @@ ${eggs.map(eggCard).join("")}`;
       if (event.code === 4710 || event.reason.toLowerCase() === "version expired") handleGameUpdateDetected("WebSocket");
     }
     function guardOutgoingHarvests(socket) {
-      noteGameSocket(socket);
       const originalSend = socket.send;
       socket.send = function(data) {
         const blocked = blockOutgoingHarvest(data);
@@ -5232,6 +5231,7 @@ ${eggs.map(eggCard).join("")}`;
         socket.addEventListener("close", handleGameSocketClose);
         listenForWelcome(socket);
         guardOutgoingHarvests(socket);
+        if (String(args[0] ?? "").includes("/api/rooms/")) noteGameSocket(socket);
         return socket;
       };
       Object.setPrototypeOf(GardenCompanionWebSocket, OriginalWebSocket);
