@@ -30,8 +30,13 @@ import { escapeHtml, humanize, loadLocal, NUMBER_LOCALE, saveLocal } from '../ut
  */
 
 /**
- * Pulls of an egg before its outcome is forced. The game holds one constant for every egg's rarest
- * species and one each for the two pet colours, so these are stated rather than scraped.
+ * Pulls of an egg before its outcome is forced.
+ *
+ * The colours are stated; the species are not. Every egg but one guarantees its rarest species at
+ * 40, which is why taking the lowest spawn weight and applying one constant worked for years - and
+ * the Amber Egg breaks both halves of that at once. It guarantees two species, FireHorse at 40 and
+ * Phoenix at 100, so the rarest is not the only one and 40 is not its number. The game states the
+ * pair per egg, so they are read from the catalog rather than inferred.
  */
 export const PITY_THRESHOLDS: Record<string, number> = { species: 40, Gold: 200, Rainbow: 2000 };
 
@@ -69,7 +74,7 @@ function blankEgg(): EggRecord {
 }
 
 /** Repairs whatever a hand-edited or older store is missing, so a render never meets a hole. */
-function normaliseEgg(value: unknown): EggRecord {
+function normaliseEgg(value: unknown, eggId = ''): EggRecord {
   const raw = (value && typeof value === 'object' ? value : {}) as Partial<EggRecord>;
   const counters = (raw.counters && typeof raw.counters === 'object' ? raw.counters : {}) as Record<string, Partial<Counter>>;
   const numbers = (source: unknown): Record<string, number> => Object.fromEntries(
@@ -83,16 +88,19 @@ function normaliseEgg(value: unknown): EggRecord {
     pulls: Number(raw.pulls ?? raw.hatches) || 0,
     species: numbers(raw.species),
     colours: numbers(raw.colours),
-    counters: Object.fromEntries(Object.entries(counters).map(([key, saved]) => [key, {
-      misses: Number(saved?.misses) || 0,
-      synced: saved?.synced === true,
-    }])),
+    // Species counters used to share one 'species' key, because an egg only ever guaranteed one.
+    // The count is real progress towards a real guarantee, so it is carried onto the species that
+    // key stood for rather than dropped - which would reset a bar that may be hundreds of pulls in.
+    counters: Object.fromEntries(Object.entries(counters).map(([key, saved]) => [
+      key === 'species' ? pitySpeciesList(eggId)[0] || key : key,
+      { misses: Number(saved?.misses) || 0, synced: saved?.synced === true },
+    ])),
   };
 }
 
 let luck: Record<string, EggRecord> = Object.fromEntries(
   Object.entries(loadLocal<Record<string, unknown>>(EGG_LUCK_KEY, {}))
-    .map(([eggId, record]) => [eggId, normaliseEgg(record)]),
+    .map(([eggId, record]) => [eggId, normaliseEgg(record, eggId)]),
 );
 
 function save(): void {
@@ -117,8 +125,26 @@ function toggleEggCollapsed(eggId: string): void {
  * it without a second catalog to keep in step.
  */
 export function pitySpecies(eggId: string): string {
+  return pitySpeciesList(eggId)[0] ?? '';
+}
+
+/**
+ * Every species this egg guarantees, in the order the game lists them.
+ *
+ * The fallback is the old rule - the single rarest by spawn weight - so an egg from a bundle
+ * captured before the thresholds were read still shows a bar rather than none at all.
+ */
+export function pitySpeciesList(eggId: string): string[] {
+  const declared = Object.keys(EGG_CATALOG[eggId]?.pityThresholds || {});
+  if (declared.length) return declared;
   const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
-  return Object.keys(weights).sort((left, right) => (weights[left] || 0) - (weights[right] || 0))[0] || '';
+  const rarest = Object.keys(weights).sort((left, right) => (weights[left] || 0) - (weights[right] || 0))[0];
+  return rarest ? [rarest] : [];
+}
+
+/** A counter's threshold: stated for the colours, read from the egg for a species. */
+function pityThreshold(eggId: string, key: string): number {
+  return PITY_THRESHOLDS[key] ?? EGG_CATALOG[eggId]?.pityThresholds?.[key] ?? PITY_THRESHOLDS.species;
 }
 
 function bump(record: EggRecord, key: string, hit: boolean): void {
@@ -206,8 +232,9 @@ export function recordEggHatches(entries: ActivityLogEntry[]): void {
     const mutations = tally(record, pet);
     record.pulls += 1;
     for (const colour of COLOURS) bump(record, colour, mutations.includes(colour));
-    const rarest = pitySpecies(eggId);
-    if (rarest) bump(record, 'species', pet.petSpecies === rarest);
+    // One counter per guaranteed species, keyed by the species itself: an egg with two of them
+    // cannot share a single 'species' counter, since each runs to its own threshold.
+    for (const species of pitySpeciesList(eggId)) bump(record, species, pet.petSpecies === species);
     luck[eggId] = record;
     changed = true;
   }
@@ -238,16 +265,16 @@ function share(part: number, whole: number): string {
 
 /** Guarantees standing at or past their threshold, so a folded card can still say so. */
 function dueCount(eggId: string, record: EggRecord): number {
-  const keys = [pitySpecies(eggId) ? 'species' : '', ...COLOURS].filter(Boolean);
-  return keys.filter(key => (record.counters[key]?.misses ?? 0) >= (PITY_THRESHOLDS[key] ?? PITY_THRESHOLDS.species)).length;
+  const keys = [...pitySpeciesList(eggId), ...COLOURS];
+  return keys.filter(key => (record.counters[key]?.misses ?? 0) >= pityThreshold(eggId, key)).length;
 }
 
 /**
  * One guarantee's progress. An unsynced counter is shown as a floor rather than a figure, because
  * the hatches from before tracking began are in the game's count and not in ours.
  */
-function pityRow(label: string, sprite: string, record: EggRecord, key: string): string {
-  const threshold = PITY_THRESHOLDS[key] ?? PITY_THRESHOLDS.species;
+function pityRow(eggId: string, label: string, sprite: string, record: EggRecord, key: string): string {
+  const threshold = pityThreshold(eggId, key);
   const { misses, synced } = record.counters[key] ?? emptyCounter();
   const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
   const title = synced
@@ -302,10 +329,10 @@ function eggCard(eggId: string): string {
   const colours = COLOURS
     .map(colour => `<span class="gc-pill">${escapeHtml(colour)} ${(record.colours[colour] || 0).toLocaleString(NUMBER_LOCALE)}</span>`)
     .join('');
-  const rarest = pitySpecies(eggId);
   const pity = [
-    rarest ? pityRow(speciesName(rarest), page.__gardenCompanionPetSprites?.[rarest] || '', record, 'species') : '',
-    ...COLOURS.map(colour => pityRow(colour, mutationSprite(colour), record, colour)),
+    ...pitySpeciesList(eggId).map(species =>
+      pityRow(eggId, speciesName(species), page.__gardenCompanionPetSprites?.[species] || '', record, species)),
+    ...COLOURS.map(colour => pityRow(eggId, colour, mutationSprite(colour), record, colour)),
   ].join('');
 
   return `<section class="gc-card gc-egg-card">${head}

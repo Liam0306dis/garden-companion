@@ -96,6 +96,10 @@ function absorb(candidate: Row, keys: string[]): void {
     report('eggs', addMissing(EGG_CATALOG, candidate, row => ({
       name: String(row.name || ''),
       spawnWeights: { ...(row.faunaSpawnWeights as Record<string, number>) },
+      // How many pulls guarantee each species. Taken from the running game as well as the build so
+      // an egg added since our last capture still shows the right threshold rather than the old
+      // assumption that every egg guarantees its rarest at forty.
+      pityThresholds: { ...(row.speciesPityThresholdPulls as Record<string, number>) },
     })));
     return;
   }

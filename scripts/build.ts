@@ -17,7 +17,7 @@ interface BundleCatalogs {
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
   plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxScale: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
-  eggs: Record<string, { name: string; spawnWeights: Record<string, number> }>;
+  eggs: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds: Record<string, number> }>;
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
   decor: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean }>;
@@ -58,7 +58,10 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
         if (!petMatches.length) continue;
         const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
-        const eggMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.[A-Za-z0-9_]+,name:`([^`]+)`,.*?faunaSpawnWeights:\{([^}]*)\}/g)];
+        // The pity block follows the weights closely, and is captured with a tight bound rather
+        // than a lazy run so a missing one cannot reach forward into the next egg's. Optional: an
+        // egg without one must still be caught, or the whole bundle would fall to the fallback.
+        const eggMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{sprite:[A-Za-z_$]+\.Pet\.[A-Za-z0-9_]+,name:`([^`]+)`,.*?faunaSpawnWeights:\{([^}]*)\}(?:.{0,120}?speciesPityThresholdPulls:\{([^}]*)\})?/g)];
         if (!eggMatches.length) continue;
         const pets = Object.fromEntries(petMatches.map(match => [match[1], {
           name: match[3],
@@ -116,9 +119,23 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
           if (componentSpecies.has(row.species)) row.entry.component = true;
         }
         const plants = Object.fromEntries(plantRows.map(row => [row.species, row.entry]));
+        // How many pulls without a species before the game guarantees it. Usually one species per
+        // egg, but the Amber Egg has two at different thresholds - so this is read rather than
+        // inferred from the spawn weights, which would name the rarer one and the wrong number.
+        // Thresholds are written as a shared minified constant (`var L=40`) as often as a literal,
+        // so an identifier is resolved against the bundle rather than dropped.
+        const pityValue = (raw: string): number => {
+          const literal = Number(raw);
+          if (Number.isFinite(literal)) return literal;
+          const declared = bundle.match(new RegExp(`(?:^|[^A-Za-z0-9_$.])${raw}=([0-9]+)(?![0-9.])`));
+          return declared ? Number(declared[1]) : 0;
+        };
         const eggs = Object.fromEntries(eggMatches.map(match => [match[1], {
           name: match[2],
           spawnWeights: Object.fromEntries([...match[3].matchAll(/([A-Za-z][A-Za-z0-9_]*):([0-9.e+-]+)/g)].map(entry => [entry[1], Number(entry[2])])),
+          pityThresholds: Object.fromEntries([...(match[4] || '').matchAll(/([A-Za-z][A-Za-z0-9_]*):([A-Za-z0-9_$.]+)/g)]
+            .map(entry => [entry[1], pityValue(entry[2])])
+            .filter(([, threshold]) => Number(threshold) > 0)),
         }]));
         // Mutations carry a display name that differs from their id (Dawncharged shows as Dawnbound)
         // and a group; only one mutation from each group can be on a crop at a time.

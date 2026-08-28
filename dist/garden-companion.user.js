@@ -34,7 +34,7 @@
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: true, sprite: "StringLights" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: true, sprite: "ColoredStringLights" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: true, sprite: "PaperLantern" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: true, sprite: "FanousLantern" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: true, sprite: "WindchimeMoon" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: true, sprite: "WindchimeStar" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
 
   // <define:__EGG_CATALOG__>
-  var define_EGG_CATALOG_default = { CommonEgg: { name: "Common Egg", spawnWeights: { Worm: 65, Snail: 30, Bee: 5 } }, UncommonEgg: { name: "Uncommon Egg", spawnWeights: { Chicken: 65, Bunny: 30, Dragonfly: 5 } }, RareEgg: { name: "Rare Egg", spawnWeights: { Pig: 65, Cow: 30, Turkey: 5 } }, LegendaryEgg: { name: "Legendary Egg", spawnWeights: { Squirrel: 65, Turtle: 30, Goat: 5 } }, SnowEgg: { name: "Snow Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 } }, DawnEgg: { name: "Dawn Egg", spawnWeights: { Sheep: 65, Horse: 30, Ostrich: 5 } }, ThunderEgg: { name: "Thunder Egg", spawnWeights: { Bat: 65, Platypus: 30, ThunderWolf: 5 } }, AmberEgg: { name: "Amber Egg", spawnWeights: { Rooster: 60, RedFox: 33, FireHorse: 5, Phoenix: 2 } }, HorseEgg: { name: "Horse Egg", spawnWeights: { Pony: 65, Horse: 30, FireHorse: 5 } }, MythicalEgg: { name: "Mythical Egg", spawnWeights: { Butterfly: 65, Peacock: 30, Capybara: 5 } }, WinterEgg: { name: "Winter Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 } } };
+  var define_EGG_CATALOG_default = { CommonEgg: { name: "Common Egg", spawnWeights: { Worm: 65, Snail: 30, Bee: 5 }, pityThresholds: { Bee: 40 } }, UncommonEgg: { name: "Uncommon Egg", spawnWeights: { Chicken: 65, Bunny: 30, Dragonfly: 5 }, pityThresholds: { Dragonfly: 40 } }, RareEgg: { name: "Rare Egg", spawnWeights: { Pig: 65, Cow: 30, Turkey: 5 }, pityThresholds: { Turkey: 40 } }, LegendaryEgg: { name: "Legendary Egg", spawnWeights: { Squirrel: 65, Turtle: 30, Goat: 5 }, pityThresholds: { Goat: 40 } }, SnowEgg: { name: "Snow Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 }, pityThresholds: { WhiteCaribou: 40 } }, DawnEgg: { name: "Dawn Egg", spawnWeights: { Sheep: 65, Horse: 30, Ostrich: 5 }, pityThresholds: { Ostrich: 40 } }, ThunderEgg: { name: "Thunder Egg", spawnWeights: { Bat: 65, Platypus: 30, ThunderWolf: 5 }, pityThresholds: { ThunderWolf: 40 } }, AmberEgg: { name: "Amber Egg", spawnWeights: { Rooster: 60, RedFox: 33, FireHorse: 5, Phoenix: 2 }, pityThresholds: { FireHorse: 40, Phoenix: 100 } }, HorseEgg: { name: "Horse Egg", spawnWeights: { Pony: 65, Horse: 30, FireHorse: 5 }, pityThresholds: { FireHorse: 40 } }, MythicalEgg: { name: "Mythical Egg", spawnWeights: { Butterfly: 65, Peacock: 30, Capybara: 5 }, pityThresholds: { Capybara: 40 } }, WinterEgg: { name: "Winter Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 }, pityThresholds: { WhiteCaribou: 40 } } };
 
   // <define:__MUTATION_CATALOG__>
   var define_MUTATION_CATALOG_default = { Gold: { name: "Gold", group: "Growth", coinMultiplier: 25, sprite: "Gold" }, Rainbow: { name: "Rainbow", group: "Growth", coinMultiplier: 50, sprite: "Rainbow" }, Wet: { name: "Wet", group: "Hydro", coinMultiplier: 2, sprite: "Wet" }, Chilled: { name: "Chilled", group: "Hydro", coinMultiplier: 2, sprite: "Chilled" }, Frozen: { name: "Frozen", group: "Hydro", coinMultiplier: 6, sprite: "Frozen" }, Thunderstruck: { name: "Thunderstruck", group: "Hydro", coinMultiplier: 5, sprite: "Thunderstruck" }, Dawnlit: { name: "Dawnlit", group: "Lunar", coinMultiplier: 4, sprite: "Dawnlit" }, Ambershine: { name: "Amberlit", group: "Lunar", coinMultiplier: 6, sprite: "Amberlit" }, Dawncharged: { name: "Dawnbound", group: "Lunar", coinMultiplier: 7, sprite: "Dawncharged" }, Ambercharged: { name: "Amberbound", group: "Lunar", coinMultiplier: 10, sprite: "Ambercharged" }, Thundercharged: { name: "Thundercharged", group: "Hydro", coinMultiplier: 7, sprite: "Thundercharged" } };
@@ -390,7 +390,11 @@
     if (looksLike(keys, candidate[firstMember(keys, EGG_MEMBERS)], EGG_MEMBERS, eggProbe)) {
       report("eggs", addMissing(EGG_CATALOG, candidate, (row) => ({
         name: String(row.name || ""),
-        spawnWeights: { ...row.faunaSpawnWeights }
+        spawnWeights: { ...row.faunaSpawnWeights },
+        // How many pulls guarantee each species. Taken from the running game as well as the build so
+        // an egg added since our last capture still shows the right threshold rather than the old
+        // assumption that every egg guarantees its rarest at forty.
+        pityThresholds: { ...row.speciesPityThresholdPulls }
       })));
       return;
     }
@@ -3489,7 +3493,7 @@ ${rows}</div>`;
   function blankEgg() {
     return { hatches: 0, pulls: 0, species: {}, colours: {}, counters: {} };
   }
-  function normaliseEgg(value) {
+  function normaliseEgg(value, eggId = "") {
     const raw = value && typeof value === "object" ? value : {};
     const counters = raw.counters && typeof raw.counters === "object" ? raw.counters : {};
     const numbers = (source) => Object.fromEntries(
@@ -3502,14 +3506,17 @@ ${rows}</div>`;
       pulls: Number(raw.pulls ?? raw.hatches) || 0,
       species: numbers(raw.species),
       colours: numbers(raw.colours),
-      counters: Object.fromEntries(Object.entries(counters).map(([key, saved]) => [key, {
-        misses: Number(saved?.misses) || 0,
-        synced: saved?.synced === true
-      }]))
+      // Species counters used to share one 'species' key, because an egg only ever guaranteed one.
+      // The count is real progress towards a real guarantee, so it is carried onto the species that
+      // key stood for rather than dropped - which would reset a bar that may be hundreds of pulls in.
+      counters: Object.fromEntries(Object.entries(counters).map(([key, saved]) => [
+        key === "species" ? pitySpeciesList(eggId)[0] || key : key,
+        { misses: Number(saved?.misses) || 0, synced: saved?.synced === true }
+      ]))
     };
   }
   var luck = Object.fromEntries(
-    Object.entries(loadLocal(EGG_LUCK_KEY, {})).map(([eggId, record]) => [eggId, normaliseEgg(record)])
+    Object.entries(loadLocal(EGG_LUCK_KEY, {})).map(([eggId, record]) => [eggId, normaliseEgg(record, eggId)])
   );
   function save() {
     saveLocal(EGG_LUCK_KEY, luck);
@@ -3521,9 +3528,15 @@ ${rows}</div>`;
     collapsed.has(eggId) ? collapsed.delete(eggId) : collapsed.add(eggId);
     saveLocal(EGG_COLLAPSED_KEY, [...collapsed]);
   }
-  function pitySpecies(eggId) {
+  function pitySpeciesList(eggId) {
+    const declared = Object.keys(EGG_CATALOG[eggId]?.pityThresholds || {});
+    if (declared.length) return declared;
     const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
-    return Object.keys(weights).sort((left, right) => (weights[left] || 0) - (weights[right] || 0))[0] || "";
+    const rarest = Object.keys(weights).sort((left, right) => (weights[left] || 0) - (weights[right] || 0))[0];
+    return rarest ? [rarest] : [];
+  }
+  function pityThreshold(eggId, key) {
+    return PITY_THRESHOLDS[key] ?? EGG_CATALOG[eggId]?.pityThresholds?.[key] ?? PITY_THRESHOLDS.species;
   }
   function bump(record, key, hit) {
     const existing = record.counters[key] ?? emptyCounter();
@@ -3577,8 +3590,7 @@ ${rows}</div>`;
       const mutations = tally(record, pet);
       record.pulls += 1;
       for (const colour of COLOURS) bump(record, colour, mutations.includes(colour));
-      const rarest = pitySpecies(eggId);
-      if (rarest) bump(record, "species", pet.petSpecies === rarest);
+      for (const species of pitySpeciesList(eggId)) bump(record, species, pet.petSpecies === species);
       luck[eggId] = record;
       changed = true;
     }
@@ -3601,11 +3613,11 @@ ${rows}</div>`;
     return whole > 0 ? `${(part / whole * 100).toFixed(1)}%` : "-";
   }
   function dueCount(eggId, record) {
-    const keys = [pitySpecies(eggId) ? "species" : "", ...COLOURS].filter(Boolean);
-    return keys.filter((key) => (record.counters[key]?.misses ?? 0) >= (PITY_THRESHOLDS[key] ?? PITY_THRESHOLDS.species)).length;
+    const keys = [...pitySpeciesList(eggId), ...COLOURS];
+    return keys.filter((key) => (record.counters[key]?.misses ?? 0) >= pityThreshold(eggId, key)).length;
   }
-  function pityRow(label, sprite, record, key) {
-    const threshold = PITY_THRESHOLDS[key] ?? PITY_THRESHOLDS.species;
+  function pityRow(eggId, label, sprite, record, key) {
+    const threshold = pityThreshold(eggId, key);
     const { misses, synced } = record.counters[key] ?? emptyCounter();
     const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
     const title = synced ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.` : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
@@ -3633,10 +3645,9 @@ ${rows}</div>`;
       return `<tr${count ? "" : ' class="gc-egg-none"'}><td>${escapeHtml(speciesName(id))}</td><td>${count.toLocaleString(NUMBER_LOCALE)}</td><td>${share(count, record.hatches)}</td><td>${odds}</td></tr>`;
     }).join("");
     const colours = COLOURS.map((colour) => `<span class="gc-pill">${escapeHtml(colour)} ${(record.colours[colour] || 0).toLocaleString(NUMBER_LOCALE)}</span>`).join("");
-    const rarest = pitySpecies(eggId);
     const pity = [
-      rarest ? pityRow(speciesName(rarest), page.__gardenCompanionPetSprites?.[rarest] || "", record, "species") : "",
-      ...COLOURS.map((colour) => pityRow(colour, mutationSprite(colour), record, colour))
+      ...pitySpeciesList(eggId).map((species) => pityRow(eggId, speciesName(species), page.__gardenCompanionPetSprites?.[species] || "", record, species)),
+      ...COLOURS.map((colour) => pityRow(eggId, colour, mutationSprite(colour), record, colour))
     ].join("");
     return `<section class="gc-card gc-egg-card">${head}
 <div class="gc-egg-body"${open ? "" : " hidden"}>

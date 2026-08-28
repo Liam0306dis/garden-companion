@@ -1507,6 +1507,13 @@ assert.match(eggLuckSource, /pulls: Number\(raw\.pulls \?\? raw\.hatches\) \|\| 
 // sourceEggId is optional, so an extra pet can arrive with no egg to file it under. It still has to
 // be remembered as an ability pet: that is what keeps a later hatchEgg for it from becoming a pull.
 assert.match(eggLuckSource, /if \(!pet\) continue;\s*\/\/[\s\S]*?noteBonusPet\(String\(pet\.id \?\? ''\)\);[\s\S]*?const eggId = typeof pet\.sourceEggId/, 'an extra pet with no source egg is forgotten instead of guarded');
+// The Amber Egg guarantees two species at different thresholds, so a single 'species' counter and
+// a flat 40 are both wrong. Thresholds come from the egg, and each species counts on its own.
+assert.match(eggLuckSource, /export function pitySpeciesList\(eggId: string\): string\[\]/, 'only one guaranteed species per egg is tracked');
+assert.match(eggLuckSource, /for \(const species of pitySpeciesList\(eggId\)\) bump\(record, species,/, 'guaranteed species share one counter, so their separate thresholds cannot both be met');
+assert.match(eggLuckSource, /PITY_THRESHOLDS\[key\] \?\? EGG_CATALOG\[eggId\]\?\.pityThresholds\?\.\[key\]/, 'a species threshold is assumed to be 40 rather than read from the egg');
+assert.match(eggLuckSource, /key === 'species' \? pitySpeciesList\(eggId\)\[0\]/, 'an existing species counter is dropped instead of carried onto the species it stood for');
+assert.match(buildSource, /pityThresholds: Object\.fromEntries/, 'the egg catalog does not carry the pity thresholds the game states');
 
 // Value and growth time answer different questions, so each row has its own switch rather than one
 // covering both. An egg has no value row to offer, so it turns only on the growth switch.
