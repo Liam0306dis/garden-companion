@@ -712,7 +712,7 @@ assert.match(companionSource, /gc-card gc-ability-log-card/, 'recent proc card l
 assert.match(styleSource, /\.gc-ability-log-card \{[^}]*min-height:0[^}]*flex:1[^}]*display:flex[^}]*flex-direction:column/s, 'recent proc card does not expand vertically');
 assert.match(styleSource, /\.gc-ability-log-tab \.gc-log \{[^}]*max-height:none[^}]*flex:1/s, 'recent proc list remains height-limited');
 assert.match(companionSource, /\['seed', 'Seeds'\], \['amber', 'Amber'\], \['dawn', 'Dawn'\], \['thunder', 'Thunder'\], \['snow', 'Snow'\], \['rain', 'Rain'\], \['egg', 'Eggs'\], \['tool', 'Tools'\], \['decor', 'Decor'\]/, 'shop alarm tab order is incorrect');
-for (const seasonalItem of ['Dawnbreaker', 'DawnCelestial', 'DawnEgg', 'ThunderCelestial', 'ThunderEgg', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'RainWardShard', 'AmberEgg', 'HungerShard', 'Emberbloom']) assert.ok(companionSource.includes(seasonalItem), `seasonal shop item ${seasonalItem} missing`);
+for (const seasonalItem of ['Dawnbreaker', 'DawnCelestial', 'DawnEgg', 'ThunderCelestial', 'ThunderEgg', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'RainWardShard', 'SnowWardShard', 'ThunderWardShard', 'AmberEgg', 'HungerShard', 'Emberbloom']) assert.ok(companionSource.includes(seasonalItem), `seasonal shop item ${seasonalItem} missing`);
 // Every shop the alarm tabs offer needs a name of its own. The fallback is humanize, which only
 // splits camel case - a single lower case word comes back unchanged, so a missing name reads as
 // 'SHOP ALARM | rain' and 'Search rain shop' rather than as nothing at all.

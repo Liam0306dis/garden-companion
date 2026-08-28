@@ -88,7 +88,7 @@ const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
   egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'WinterEgg', 'ThunderEgg', 'AmberEgg'],
   // The Shards are the Rain and Amber shops' tools, and follow the same sprite paths as the rest.
   tool: ['PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion',
-    'RainWardShard', 'HungerShard', 'XPShard', 'StrengthShard'],
+    'RainWardShard', 'SnowWardShard', 'ThunderWardShard', 'HungerShard', 'XPShard', 'StrengthShard'],
 };
 
 /**
