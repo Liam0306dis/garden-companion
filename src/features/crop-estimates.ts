@@ -1,6 +1,5 @@
 import type { PlantSlot } from '../types.js';
 import { feature } from '../config.js';
-import { PET_CATALOG } from '../constants.js';
 import { protectionReason } from './crop-protection.js';
 import { mutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
