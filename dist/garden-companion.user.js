@@ -908,7 +908,7 @@
   function crystalStrengthBonus() {
     const garden = state.slot?.data?.garden;
     const tiles = [...Object.values(garden?.tileObjects || {}), ...Object.values(garden?.boardwalkTileObjects || {})];
-    const active = tiles.some((tile) => tile?.objectType === "Crystal" && tile.crystalType === "Strength" && Number(tile.remainingActiveSeconds) > 0);
+    const active = tiles.some((tile) => tile?.objectType === "crystal" && tile.crystalType === "Strength" && Number(tile.remainingActiveSeconds) > 0);
     return active ? 10 : 0;
   }
   function petMetrics(pet) {

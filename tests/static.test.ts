@@ -1660,7 +1660,7 @@ assert.match(petsSource, /return items\.length \+ \(stacks \? 0 : 1\) \+ reserve
 // A Strength Crystal lends every pet ten while it runs. The game adds it to the strength figure and
 // caps nothing, so it must survive the overview's own clamp and stay out of the levelling estimate.
 assert.match(petsSource, /return \{ strength: strength \+ crystalStrengthBonus\(\), maxStrength/, 'the crystal bonus is missing from the strength every calculation reads');
-assert.match(petsSource, /tile\.crystalType === 'Strength'\s*&& Number\(tile\.remainingActiveSeconds\) > 0/, 'an expired crystal still counts, or another crystal type is mistaken for one');
+assert.match(petsSource, /tile\?\.objectType === 'crystal'\s*&& tile\.crystalType === 'Strength'\s*&& Number\(tile\.remainingActiveSeconds\) > 0/, 'the crystal tile is matched with the wrong casing or an expired one still counts - objectType is lower case, crystalType is not');
 assert.match(petsSource, /boardwalkTileObjects/, 'a crystal on the boardwalk is not seen');
 assert.match(overviewSource, /return petMetrics\(pet as unknown as Parameters<typeof petMetrics>\[0\]\)\?\.strength/, 'the overview keeps its own copy of the strength formula, so a change has to be made twice');
 // Potting hands back a Plant, which stacks onto nothing, so the pot and the plant each need a slot.
