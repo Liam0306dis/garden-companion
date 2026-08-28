@@ -385,11 +385,25 @@ export function petMetrics(pet: Pet | undefined): { strength: number; maxStrengt
   return { strength: strength + crystalStrengthBonus(), maxStrength, xpPerLevel, xpToMax };
 }
 
-const XP_ABILITY_REGISTRY: Record<string, { baseChance: number; baseXp: number }> = {
-  PetXpBoost: { baseChance: 30, baseXp: 300 },
-  PetXpBoostI: { baseChance: 30, baseXp: 300 },
-  PetXpBoostII: { baseChance: 35, baseXp: 400 },
-};
+/**
+ * Every ability that grants XP over time, read from the catalog rather than listed here.
+ *
+ * The list used to be written out by hand and had three entries, so a pet carrying PetXpBoostIII or
+ * any of the weather variants contributed nothing at all to the rate - and the Amber Egg's pets
+ * arrive with AmberXpBoost, the strongest of the lot at 90% for 1400. Taking it from the catalog
+ * means the next tier is picked up by capturing a bundle rather than by remembering to edit this.
+ *
+ * `continuous` is what separates them from the hatch abilities: PetAgeBoost also grants bonusXp, but
+ * once when an egg hatches, which is not a rate and does not belong in a per-hour figure.
+ */
+function xpAbilityRate(ability: string): { baseChance: number; baseXp: number } | null {
+  const details = ABILITY_DETAILS[ability];
+  if (details?.trigger !== 'continuous') return null;
+  const baseXp = Number(details.baseParameters?.bonusXp || 0);
+  const baseChance = Number(details.baseProbability || 0);
+  if (baseXp <= 0 || baseChance <= 0) return null;
+  return { baseChance, baseXp };
+}
 
 function abilityXpPerHour(strength: number, baseChance: number, baseXp: number): number {
   const multiplier = Math.max(.25, strength / 100);
@@ -403,7 +417,10 @@ export function teamXpPerHour(pets: Pet[]): number {
     if (pet.hunger <= 0) continue;
     const strength = petMetrics(pet)?.strength ?? 100;
     for (const ability of pet.abilities ?? []) {
-      const xpAbility = XP_ABILITY_REGISTRY[ability];
+      // The weather variants only earn while their weather is running, the same test the passive
+      // summary uses - counting them the rest of the time would overstate the rate most of the day.
+      if (!abilityActiveInWeather(ability)) continue;
+      const xpAbility = xpAbilityRate(ability);
       if (xpAbility) total += abilityXpPerHour(strength, xpAbility.baseChance, xpAbility.baseXp);
     }
   }

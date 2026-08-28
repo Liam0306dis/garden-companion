@@ -691,9 +691,10 @@ assert.match(companionSource, /SeedFinderIV: \{ chance: \.01/, 'Seed Finder IV c
 assert.match(companionSource, /PlantGrowthBoostIII: \{ chance: 30/, 'Plant Growth Boost III calculation is missing');
 assert.match(companionSource, /values\.cooldownSeconds \/ Math\.max\(strength \/ 100, \.01\)/, 'activated ability cooldown does not use inverse strength scaling');
 assert.doesNotMatch(companionSource, /Object\.entries\(details\?\.baseParameters/, 'raw ability parameter flavor text remains');
-assert.match(companionSource, /PetXpBoost:\s*\{ baseChance: 30, baseXp: 300 \}/, 'Pet XP Boost reference values are missing');
-assert.match(companionSource, /PetXpBoostI:\s*\{ baseChance: 30, baseXp: 300 \}/, 'Pet XP Boost I reference values are missing');
-assert.match(companionSource, /PetXpBoostII:\s*\{ baseChance: 35, baseXp: 400 \}/, 'Pet XP Boost II reference values are missing');
+// The rate is read from the catalog now rather than from values written out here, so the check is
+// that the catalog carries them - PetXpBoost is continuous, with a probability and a bonusXp.
+assert.match(built, /PetXpBoost: \{ name: "[^"]*", trigger: "continuous", baseProbability: 30, baseParameters: \{ bonusXp: 300 \} \}/, 'the ability catalog no longer carries the xp values the rate is read from');
+assert.match(built, /PetXpBoostII: \{ name: "[^"]*", trigger: "continuous", baseProbability: 35, baseParameters: \{ bonusXp: 400 \} \}/, 'the ability catalog no longer carries the xp values the rate is read from');
 assert.doesNotMatch(companionSource.slice(companionSource.indexOf('function teamXpPerHour'), companionSource.indexOf('function formatEstimate')), /baseParameters\?\.bonusXp/, 'maximum-strength estimates still count unrelated bundle XP abilities');
 assert.match(companionSource, /xpToMax \/ xpRate \* 3600/, 'time until maximum pet strength missing');
 assert.match(companionSource, /function teamXpPerHour\(pets: Pet\[\]\)/, 'active-team XP ability calculation is missing');
@@ -1678,6 +1679,16 @@ assert.match(petsSource, /\* crystalHungerRateMultiplier\(\) \/ \(minutes \* 60\
 // team's rate rather than any single ability's contribution.
 assert.match(petsSource, /return activeCrystalTypes\(\)\.has\('XP'\) \? 1\.1 : 1;/, 'the xp crystal is ignored, or applied at the wrong rate');
 assert.match(petsSource, /return total \* crystalXpRateMultiplier\(\);/, 'the xp crystal never reaches the team rate, so time to max strength is overstated');
+// The XP abilities were listed by hand and stopped at the second tier, so a pet with PetXpBoostIII
+// or any weather variant counted for nothing. Read from the catalog, and only the continuous ones:
+// PetAgeBoost grants XP once on hatching, which is not a rate.
+assert.match(petsSource, /if \(details\?\.trigger !== 'continuous'\) return null;/, 'a hatch ability is counted as an hourly xp rate');
+assert.match(petsSource, /const baseXp = Number\(details\.baseParameters\?\.bonusXp \|\| 0\);/, 'the xp abilities are listed by hand again, so a new tier contributes nothing');
+assert.doesNotMatch(petsSource, /XP_ABILITY_REGISTRY/, 'the hand written xp registry is back');
+assert.match(petsSource, /if \(!abilityActiveInWeather\(ability\)\) continue;/, 'a weather locked xp ability is counted while its weather is not running');
+for (const gated of ['SnowyPetXpBoost', 'DawnXpBoost', 'ThunderXpBoost']) {
+  assert.ok(companionSource.includes(`['${gated}'`), `${gated} earns xp only in its weather, but is not gated`);
+}
 assert.match(overviewSource, /return petMetrics\(pet as unknown as Parameters<typeof petMetrics>\[0\]\)\?\.strength/, 'the overview keeps its own copy of the strength formula, so a change has to be made twice');
 // The turtle timer kept a third copy of the strength formula, with the catalog's numbers written out
 // by hand, so the crystal bonus never reached it.

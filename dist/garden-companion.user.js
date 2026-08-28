@@ -186,7 +186,13 @@
     ["AmberMoonBoost", "AmberMoon"],
     ["ThunderBoost", "Thunderstorm"],
     ["AmberXpBoost", "AmberMoon"],
-    ["AmberEggGrowthBoost", "AmberMoon"]
+    ["AmberEggGrowthBoost", "AmberMoon"],
+    // The XP and egg growth variants gate on weather exactly as the older passives do.
+    ["SnowyPetXpBoost", "Frost"],
+    ["DawnXpBoost", "Dawn"],
+    ["ThunderXpBoost", "Thunderstorm"],
+    ["SnowyEggGrowthBoost", "Frost"],
+    ["ThunderEggGrowthBoost", "Thunderstorm"]
   ]);
   var SHOP_NAMES = { seed: "Seed", egg: "Egg", decor: "Decor", tool: "Tool", dawn: "Dawn", snow: "Snow", thunder: "Thunder", rain: "Rain", amber: "Amber" };
   var SHOP_TABS = [["seed", "Seeds"], ["amber", "Amber"], ["dawn", "Dawn"], ["thunder", "Thunder"], ["snow", "Snow"], ["rain", "Rain"], ["egg", "Eggs"], ["tool", "Tools"], ["decor", "Decor"]];
@@ -938,11 +944,14 @@
     const xpToMax = strength >= maxStrength ? 0 : xpPerLevel - xpIntoLevel + xpPerLevel * (maxStrength - strength - 1);
     return { strength: strength + crystalStrengthBonus(), maxStrength, xpPerLevel, xpToMax };
   }
-  var XP_ABILITY_REGISTRY = {
-    PetXpBoost: { baseChance: 30, baseXp: 300 },
-    PetXpBoostI: { baseChance: 30, baseXp: 300 },
-    PetXpBoostII: { baseChance: 35, baseXp: 400 }
-  };
+  function xpAbilityRate(ability) {
+    const details = ABILITY_DETAILS[ability];
+    if (details?.trigger !== "continuous") return null;
+    const baseXp = Number(details.baseParameters?.bonusXp || 0);
+    const baseChance = Number(details.baseProbability || 0);
+    if (baseXp <= 0 || baseChance <= 0) return null;
+    return { baseChance, baseXp };
+  }
   function abilityXpPerHour(strength, baseChance, baseXp) {
     const multiplier = Math.max(0.25, strength / 100);
     const chancePerSecond = Math.min(0.95 / 60, baseChance / 60 / 100 * multiplier);
@@ -954,7 +963,8 @@
       if (pet.hunger <= 0) continue;
       const strength = petMetrics(pet)?.strength ?? 100;
       for (const ability of pet.abilities ?? []) {
-        const xpAbility = XP_ABILITY_REGISTRY[ability];
+        if (!abilityActiveInWeather(ability)) continue;
+        const xpAbility = xpAbilityRate(ability);
         if (xpAbility) total += abilityXpPerHour(strength, xpAbility.baseChance, xpAbility.baseXp);
       }
     }

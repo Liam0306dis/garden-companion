@@ -86,6 +86,9 @@ export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
   ['SnowyHungerBoost', 'Frost'], ['SnowyHungerRestore', 'Frost'], ['SnowyCropMutationBoost', 'Frost'], ['DawnBoost', 'Dawn'],
   ['AmberMoonBoost', 'AmberMoon'], ['ThunderBoost', 'Thunderstorm'],
   ['AmberXpBoost', 'AmberMoon'], ['AmberEggGrowthBoost', 'AmberMoon'],
+  // The XP and egg growth variants gate on weather exactly as the older passives do.
+  ['SnowyPetXpBoost', 'Frost'], ['DawnXpBoost', 'Dawn'], ['ThunderXpBoost', 'Thunderstorm'],
+  ['SnowyEggGrowthBoost', 'Frost'], ['ThunderEggGrowthBoost', 'Thunderstorm'],
 ]);
 
 export const SHOP_NAMES = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber' };
