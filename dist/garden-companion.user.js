@@ -5771,6 +5771,7 @@ ${eggs.map(eggCard).join("")}`;
       cancelKeybindCapture?.();
       const panel3 = document.getElementById("gc-panel");
       if (!panel3) return;
+      const navTop = panel3.querySelector("nav")?.scrollTop ?? 0;
       panel3.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION <em class="gc-version">v${escapeHtml(scriptVersion())}</em></small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${navHtml()}</nav><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></div></div>`;
       const main = panel3.querySelector("main");
       main.addEventListener("pointerleave", () => {
@@ -5785,6 +5786,8 @@ ${eggs.map(eggCard).join("")}`;
         };
         button.onclick = () => selectPanelTab(button.dataset.tab);
       });
+      const nav = panel3.querySelector("nav");
+      if (nav) nav.scrollTop = navTop;
       panel3.querySelectorAll("[data-nav-group]").forEach((button) => button.onclick = () => {
         const group = button.dataset.navGroup ?? "";
         collapsedNavGroups.has(group) ? collapsedNavGroups.delete(group) : collapsedNavGroups.add(group);
@@ -5797,12 +5800,9 @@ ${eggs.map(eggCard).join("")}`;
     function renderPanelPreservingScroll() {
       const panel3 = document.getElementById("gc-panel");
       const mainTop = panel3?.querySelector("main")?.scrollTop ?? 0;
-      const navTop = panel3?.querySelector("nav")?.scrollTop ?? 0;
       renderPanel();
       const main = panel3?.querySelector("main");
       if (main) main.scrollTop = mainTop;
-      const nav = panel3?.querySelector("nav");
-      if (nav) nav.scrollTop = navTop;
     }
     function renderTab() {
       if (activeTab === "supporter") return renderSupporter();

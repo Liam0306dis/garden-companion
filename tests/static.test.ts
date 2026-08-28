@@ -1543,7 +1543,8 @@ assert.match(activityLogSource, /known\.add\(id\);\s*return true;/, 'a duplicate
 
 // The nav overflows once there are enough groups, so a redraw has to put both panes back where they
 // were - restoring only the content snapped the nav to the top while you reached for its last item.
-assert.match(companionSource, /const navTop = panel\?\.querySelector\('nav'\)\?\.scrollTop \?\? 0;[\s\S]*?if \(nav\) nav\.scrollTop = navTop;/, 'a redraw resets the nav scroll position');
+assert.match(companionSource, /const navTop = panel\.querySelector\('nav'\)\?\.scrollTop \?\? 0;[\s\S]*?if \(nav\) nav\.scrollTop = navTop;/, 'a redraw resets the nav scroll position');
+assert.ok(companionSource.indexOf("const navTop = panel.querySelector('nav')") < companionSource.indexOf('function renderPanelPreservingScroll'), 'the nav scroll is kept only by the helper, so a redraw reached any other way still jumps to the top');
 assert.doesNotMatch(companionSource, /const nextMain = panel\.querySelector\('main'\)/, 'the live refresh restores its own scroll again, missing the nav');
 
 // Naming each header button in the stylesheet meant a new one arrived unsized, unbordered and with

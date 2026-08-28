@@ -800,10 +800,19 @@ export function initCompanion(): void {
     }).join('');
   }
 
+  /**
+   * The nav keeps its scroll across every redraw.
+   *
+   * It is the same list of the same groups whatever the content pane is showing, so nothing a
+   * redraw does can make where you had scrolled to wrong - while putting it back at the top is
+   * always wrong once there are enough groups to overflow. Kept here rather than at the call sites
+   * so a redraw from anywhere behaves the same, the periodic refreshes included.
+   */
   function renderPanel() {
     cancelKeybindCapture?.();
     const panel = document.getElementById('gc-panel');
     if (!panel) return;
+    const navTop = panel.querySelector('nav')?.scrollTop ?? 0;
     panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION <em class="gc-version">v${escapeHtml(scriptVersion())}</em></small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${navHtml()}</nav><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></div></div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
@@ -816,6 +825,8 @@ export function initCompanion(): void {
       };
       button.onclick = () => selectPanelTab(button.dataset.tab);
     });
+    const nav = panel.querySelector<HTMLElement>('nav');
+    if (nav) nav.scrollTop = navTop;
     panel.querySelectorAll<HTMLButtonElement>('[data-nav-group]').forEach(button => button.onclick = () => {
       const group = button.dataset.navGroup ?? '';
       collapsedNavGroups.has(group) ? collapsedNavGroups.delete(group) : collapsedNavGroups.add(group);
@@ -827,19 +838,16 @@ export function initCompanion(): void {
   }
 
   /**
-   * Both panes are restored, not just the content. The nav scrolls too once there are enough groups
-   * to overflow it, and a redraw landing while you reach for something near the bottom would put it
-   * back at the top - which reads as the window resetting itself under you.
+   * Keeps the content pane where it was as well. The nav is handled by renderPanel itself, since it
+   * should hold its place however the redraw was reached; this is for the redraws that leave the
+   * content the same too, where losing your place in a long list reads as the window resetting.
    */
   function renderPanelPreservingScroll(): void {
     const panel = document.getElementById('gc-panel');
     const mainTop = panel?.querySelector('main')?.scrollTop ?? 0;
-    const navTop = panel?.querySelector('nav')?.scrollTop ?? 0;
     renderPanel();
     const main = panel?.querySelector<HTMLElement>('main');
     if (main) main.scrollTop = mainTop;
-    const nav = panel?.querySelector<HTMLElement>('nav');
-    if (nav) nav.scrollTop = navTop;
   }
 
   function renderTab() {
