@@ -116,11 +116,11 @@
   var ABILITY_COLOURS = define_ABILITY_COLOURS_default;
   var ABILITY_COLOUR_FALLBACK = "#969696";
   var ABILITY_GROUPS = [
-    ["Coin Finder", ["CoinFinderI", "CoinFinderII", "CoinFinderIII", "SnowyCoinFinder", "DawnCoinFinder", "ThunderCoinFinder"]],
+    ["Coin Finder", ["CoinFinderI", "CoinFinderII", "CoinFinderIII", "CoinFinderIV", "SnowyCoinFinder", "DawnCoinFinder", "ThunderCoinFinder"]],
     ["Plant Growth Boost", ["PlantGrowthBoost", "PlantGrowthBoostII", "PlantGrowthBoostIII", "SnowyPlantGrowthBoost", "DawnPlantGrowthBoost", "AmberPlantGrowthBoost", "ThunderPlantGrowthBoost"]],
     ["Crop Size Boost", ["ProduceScaleBoost", "ProduceScaleBoostII", "ProduceScaleBoostIII", "SnowyCropSizeBoost"]],
-    ["Egg Growth Boost", ["EggGrowthBoost", "EggGrowthBoostII_NEW", "EggGrowthBoostII", "SnowyEggGrowthBoost", "ThunderEggGrowthBoost"]],
-    ["XP Boost", ["PetXpBoost", "PetXpBoostII", "PetXpBoostIII", "SnowyPetXpBoost", "DawnXpBoost", "ThunderXpBoost"]],
+    ["Egg Growth Boost", ["EggGrowthBoost", "EggGrowthBoostII_NEW", "EggGrowthBoostII", "SnowyEggGrowthBoost", "ThunderEggGrowthBoost", "AmberEggGrowthBoost"]],
+    ["XP Boost", ["PetXpBoost", "PetXpBoostII", "PetXpBoostIII", "SnowyPetXpBoost", "DawnXpBoost", "ThunderXpBoost", "AmberXpBoost"]],
     ["Hunger Restore", ["HungerRestore", "HungerRestoreII", "HungerRestoreIII", "SnowyHungerRestore"]],
     ["Hatch XP Boost", ["PetAgeBoost", "PetAgeBoostII", "PetAgeBoostIII"]],
     ["Max Strength Boost", ["PetHatchSizeBoost", "PetHatchSizeBoostII", "PetHatchSizeBoostIII"]],
@@ -129,7 +129,7 @@
     ["Sell Boost", ["SellBoostI", "SellBoostII", "SellBoostIII", "SellBoostIV"]],
     ["Mutation Granter", ["RainDance", "SnowGranter", "FrostGranter", "DawnlitGranter", "AmberlitGranter", "GoldGranter", "RainbowGranter", "ThunderstruckGranter"]]
   ];
-  var UNGROUPED_TRACKED_ABILITIES = ["ProduceEater", "ProduceRefund", "DoubleHarvest", "DoubleHatch"];
+  var UNGROUPED_TRACKED_ABILITIES = ["ProduceEater", "ProduceRefund", "DoubleHarvest", "DoubleHatch", "DoubleHatchII", "DustBoost", "Rebirth"];
   var EXCLUDED_TRACKED_ABILITIES = /* @__PURE__ */ new Set([
     "HungerBoost",
     "HungerBoostII",
@@ -150,6 +150,7 @@
     "Thunderbloom",
     "Copycat",
     "DawnCapture",
+    "AmberCapture",
     "Thundercharger",
     "DawnbinderBoost"
   ]);
@@ -159,7 +160,10 @@
   for (const [label, abilities] of ABILITY_GROUPS) for (const ability of abilities) ABILITY_GROUP_BY_ID.set(ability, label);
   var ABILITY_FILTER_OPTIONS = [
     ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
-    ...UNGROUPED_TRACKED_ABILITIES.map((ability) => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] }))
+    // Only the ones this build's catalog actually has. An ability can be listed here before the game
+    // ships it - the tables are written from a preview bundle - and an option filtering for something
+    // no pet can have yet is an option that always comes back empty.
+    ...UNGROUPED_TRACKED_ABILITIES.filter((ability) => ABILITY_SET.has(ability)).map((ability) => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] }))
   ];
   var RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic", "Divine", "Celestial"];
   function rarityRank(rarity) {
@@ -180,7 +184,9 @@
     ["SnowyCropMutationBoost", "Frost"],
     ["DawnBoost", "Dawn"],
     ["AmberMoonBoost", "AmberMoon"],
-    ["ThunderBoost", "Thunderstorm"]
+    ["ThunderBoost", "Thunderstorm"],
+    ["AmberXpBoost", "AmberMoon"],
+    ["AmberEggGrowthBoost", "AmberMoon"]
   ]);
   var SHOP_NAMES = { seed: "Seed", egg: "Egg", decor: "Decor", tool: "Tool", dawn: "Dawn", snow: "Snow", thunder: "Thunder", rain: "Rain", amber: "Amber" };
   var SHOP_TABS = [["seed", "Seeds"], ["amber", "Amber"], ["dawn", "Dawn"], ["thunder", "Thunder"], ["snow", "Snow"], ["rain", "Rain"], ["egg", "Eggs"], ["tool", "Tools"], ["decor", "Decor"]];

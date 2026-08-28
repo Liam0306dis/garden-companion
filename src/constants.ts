@@ -26,11 +26,11 @@ export const ABILITY_COLOURS = __ABILITY_COLOURS__;
 export const ABILITY_COLOUR_FALLBACK = '#969696';
 
 export const ABILITY_GROUPS = [
-  ['Coin Finder', ['CoinFinderI', 'CoinFinderII', 'CoinFinderIII', 'SnowyCoinFinder', 'DawnCoinFinder', 'ThunderCoinFinder']],
+  ['Coin Finder', ['CoinFinderI', 'CoinFinderII', 'CoinFinderIII', 'CoinFinderIV', 'SnowyCoinFinder', 'DawnCoinFinder', 'ThunderCoinFinder']],
   ['Plant Growth Boost', ['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost']],
   ['Crop Size Boost', ['ProduceScaleBoost', 'ProduceScaleBoostII', 'ProduceScaleBoostIII', 'SnowyCropSizeBoost']],
-  ['Egg Growth Boost', ['EggGrowthBoost', 'EggGrowthBoostII_NEW', 'EggGrowthBoostII', 'SnowyEggGrowthBoost', 'ThunderEggGrowthBoost']],
-  ['XP Boost', ['PetXpBoost', 'PetXpBoostII', 'PetXpBoostIII', 'SnowyPetXpBoost', 'DawnXpBoost', 'ThunderXpBoost']],
+  ['Egg Growth Boost', ['EggGrowthBoost', 'EggGrowthBoostII_NEW', 'EggGrowthBoostII', 'SnowyEggGrowthBoost', 'ThunderEggGrowthBoost', 'AmberEggGrowthBoost']],
+  ['XP Boost', ['PetXpBoost', 'PetXpBoostII', 'PetXpBoostIII', 'SnowyPetXpBoost', 'DawnXpBoost', 'ThunderXpBoost', 'AmberXpBoost']],
   ['Hunger Restore', ['HungerRestore', 'HungerRestoreII', 'HungerRestoreIII', 'SnowyHungerRestore']],
   ['Hatch XP Boost', ['PetAgeBoost', 'PetAgeBoostII', 'PetAgeBoostIII']],
   ['Max Strength Boost', ['PetHatchSizeBoost', 'PetHatchSizeBoostII', 'PetHatchSizeBoostIII']],
@@ -40,13 +40,13 @@ export const ABILITY_GROUPS = [
   ['Mutation Granter', ['RainDance', 'SnowGranter', 'FrostGranter', 'DawnlitGranter', 'AmberlitGranter', 'GoldGranter', 'RainbowGranter', 'ThunderstruckGranter']],
 ] as const;
 
-export const UNGROUPED_TRACKED_ABILITIES = ['ProduceEater', 'ProduceRefund', 'DoubleHarvest', 'DoubleHatch'];
+export const UNGROUPED_TRACKED_ABILITIES = ['ProduceEater', 'ProduceRefund', 'DoubleHarvest', 'DoubleHatch', 'DoubleHatchII', 'DustBoost', 'Rebirth'];
 
 export const EXCLUDED_TRACKED_ABILITIES = new Set([
   'HungerBoost', 'HungerBoostII', 'HungerBoostIII', 'SnowyHungerBoost',
   'PetMutationBoost', 'PetMutationBoostII', 'PetMutationBoostIII',
   'ProduceMutationBoost', 'ProduceMutationBoostII', 'ProduceMutationBoostIII', 'SnowyCropMutationBoost', 'DawnBoost', 'AmberMoonBoost', 'ThunderBoost',
-  'MoonKisser', 'DawnKisser', 'Thunderbloom', 'Copycat', 'DawnCapture', 'Thundercharger', 'DawnbinderBoost',
+  'MoonKisser', 'DawnKisser', 'Thunderbloom', 'Copycat', 'DawnCapture', 'AmberCapture', 'Thundercharger', 'DawnbinderBoost',
 ]);
 
 export const TRACKED_ABILITY_CATALOG = ABILITY_CATALOG.filter(ability => !EXCLUDED_TRACKED_ABILITIES.has(ability));
@@ -57,7 +57,11 @@ for (const [label, abilities] of ABILITY_GROUPS) for (const ability of abilities
 
 export const ABILITY_FILTER_OPTIONS: Array<{ key: string; label: string; abilities: readonly string[] }> = [
   ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
-  ...UNGROUPED_TRACKED_ABILITIES.map(ability => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] })),
+  // Only the ones this build's catalog actually has. An ability can be listed here before the game
+  // ships it - the tables are written from a preview bundle - and an option filtering for something
+  // no pet can have yet is an option that always comes back empty.
+  ...UNGROUPED_TRACKED_ABILITIES.filter(ability => ABILITY_SET.has(ability))
+    .map(ability => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] })),
 ];
 
 export const RARITY_ORDER = ['Common', 'Uncommon', 'Rare', 'Legendary', 'Mythic', 'Divine', 'Celestial'];
@@ -81,6 +85,7 @@ export const STACKED_PASSIVE_BY_ABILITY = new Map(STACKED_PASSIVE_GROUPS.flatMap
 export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
   ['SnowyHungerBoost', 'Frost'], ['SnowyHungerRestore', 'Frost'], ['SnowyCropMutationBoost', 'Frost'], ['DawnBoost', 'Dawn'],
   ['AmberMoonBoost', 'AmberMoon'], ['ThunderBoost', 'Thunderstorm'],
+  ['AmberXpBoost', 'AmberMoon'], ['AmberEggGrowthBoost', 'AmberMoon'],
 ]);
 
 export const SHOP_NAMES = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber' };
