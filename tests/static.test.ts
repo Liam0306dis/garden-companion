@@ -1663,6 +1663,10 @@ assert.match(petsSource, /return \{ strength: strength \+ crystalStrengthBonus\(
 assert.match(petsSource, /tile\?\.objectType === 'crystal'\s*&& tile\.crystalType === 'Strength'\s*&& Number\(tile\.remainingActiveSeconds\) > 0/, 'the crystal tile is matched with the wrong casing or an expired one still counts - objectType is lower case, crystalType is not');
 assert.match(petsSource, /boardwalkTileObjects/, 'a crystal on the boardwalk is not seen');
 assert.match(overviewSource, /return petMetrics\(pet as unknown as Parameters<typeof petMetrics>\[0\]\)\?\.strength/, 'the overview keeps its own copy of the strength formula, so a change has to be made twice');
+// The turtle timer kept a third copy of the strength formula, with the catalog's numbers written out
+// by hand, so the crystal bonus never reached it.
+assert.match(cropEstimatesSource, /return petMetrics\(pet\)\?\.strength \?\? 87 \+ crystalStrengthBonus\(\);/, 'crop estimates keep their own strength formula, so the crystal bonus misses the turtle timer');
+assert.doesNotMatch(cropEstimatesSource, /Chicken: \[2880/, 'the catalog numbers are written out by hand again, so a catalog change will not reach them');
 // Potting hands back a Plant, which stacks onto nothing, so the pot and the plant each need a slot.
 assert.match(plantDragSource, /ensureToolReady\('PlanterPot', 1, 1\)/, 'the potted plant is not given a slot of its own');
 // The index is left off so the game appends and a stackable tool merges into the stack it has.

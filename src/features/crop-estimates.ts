@@ -4,7 +4,7 @@ import { PET_CATALOG } from '../constants.js';
 import { protectionReason } from './crop-protection.js';
 import { mutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
-import { activePets } from '../pets.js';
+import { activePets, crystalStrengthBonus, petMetrics } from '../pets.js';
 import { findPixiCard } from '../pixi.js';
 import { onQuinoaEngine, quinoaEngine } from '../quinoa-engine.js';
 import { state } from '../state.js';
@@ -16,10 +16,16 @@ import { formatDuration, NUMBER_LOCALE } from '../utils.js';
  * into the state it renders; the DOM overlay is only a fallback for when that hook is unavailable.
  */
 
-function petStrength(pet, xpPerLevel = 12000, maxScale = 2.5) {
-  const xp = Math.min(30, Math.floor(Number(pet.xp || 0) / xpPerLevel));
-  const max = Math.floor(((Number(pet.targetScale || 1) - 1) / (maxScale - 1)) * 20 + 80);
-  return Math.max(0, Math.min(100, max - 30 + xp));
+/**
+ * The shared figure, rather than a third copy of the same arithmetic.
+ *
+ * This used to repeat the formula with its own per-species constants - a turtle's 12000 and 2.5 are
+ * just floor(3600 * hoursToMature / 30) and maxScale read out of the catalog by hand - which meant a
+ * Strength Crystal's ten had to be remembered in three places, and the turtle timer was the one that
+ * got missed. petMetrics carries the bonus, so nothing here has to know about crystals at all.
+ */
+function petStrength(pet) {
+  return petMetrics(pet)?.strength ?? 87 + crystalStrengthBonus();
 }
 
 function turtleRate(pets) {
@@ -30,13 +36,12 @@ function turtleRate(pets) {
 }
 
 const EGG_ABILITIES = { EggGrowthBoost: [7, .21], EggGrowthBoostI: [9, .24], EggGrowthBoostII_NEW: [9, .24], EggGrowthBoostII: [11, .27] };
-const EGG_PETS = { Chicken: [2880, 2], Turkey: [8640, 2.5], Turtle: [12000, 2.5] };
+const EGG_PETS = new Set(['Chicken', 'Turkey', 'Turtle']);
 function eggRate(pets) {
   let total = 0;
   for (const pet of pets) {
-    const info = EGG_PETS[pet.petSpecies];
-    if (!info || pet.hunger <= 0) continue;
-    const strength = petStrength(pet, info[0], info[1]);
+    if (!EGG_PETS.has(pet.petSpecies) || pet.hunger <= 0) continue;
+    const strength = petStrength(pet);
     for (const ability of pet.abilities || []) {
       const rule = EGG_ABILITIES[ability];
       if (rule) total += (strength / 100 * rule[0]) * 60 * (1 - Math.pow(1 - rule[1] * strength / 100, 1 / 60));

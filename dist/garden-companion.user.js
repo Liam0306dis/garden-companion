@@ -2233,10 +2233,8 @@ ${groups}
   }
 
   // src/features/crop-estimates.ts
-  function petStrength(pet, xpPerLevel = 12e3, maxScale = 2.5) {
-    const xp = Math.min(30, Math.floor(Number(pet.xp || 0) / xpPerLevel));
-    const max = Math.floor((Number(pet.targetScale || 1) - 1) / (maxScale - 1) * 20 + 80);
-    return Math.max(0, Math.min(100, max - 30 + xp));
+  function petStrength(pet) {
+    return petMetrics(pet)?.strength ?? 87 + crystalStrengthBonus();
   }
   function turtleRate(pets) {
     return pets.filter((pet) => pet.hunger > 0 && pet.petSpecies === "Turtle" && (pet.abilities || []).includes("PlantGrowthBoostII")).reduce((sum, pet) => {
@@ -2245,13 +2243,12 @@ ${groups}
     }, 0);
   }
   var EGG_ABILITIES = { EggGrowthBoost: [7, 0.21], EggGrowthBoostI: [9, 0.24], EggGrowthBoostII_NEW: [9, 0.24], EggGrowthBoostII: [11, 0.27] };
-  var EGG_PETS = { Chicken: [2880, 2], Turkey: [8640, 2.5], Turtle: [12e3, 2.5] };
+  var EGG_PETS = /* @__PURE__ */ new Set(["Chicken", "Turkey", "Turtle"]);
   function eggRate(pets) {
     let total = 0;
     for (const pet of pets) {
-      const info = EGG_PETS[pet.petSpecies];
-      if (!info || pet.hunger <= 0) continue;
-      const strength = petStrength(pet, info[0], info[1]);
+      if (!EGG_PETS.has(pet.petSpecies) || pet.hunger <= 0) continue;
+      const strength = petStrength(pet);
       for (const ability of pet.abilities || []) {
         const rule = EGG_ABILITIES[ability];
         if (rule) total += strength / 100 * rule[0] * 60 * (1 - Math.pow(1 - rule[1] * strength / 100, 1 / 60));
@@ -7075,16 +7072,16 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     }
     result.species = catalog ? Object.keys(catalog).map((species) => bySpecies.get(species)).filter((row) => Boolean(row)) : [...bySpecies.values()];
     for (const target of trackedMutations) result.targetProgress[target] = result.mutations.get(target) ?? 0;
-    const activePets2 = runtime.slot?.data?.petSlots ?? [];
+    const activePets3 = runtime.slot?.data?.petSlots ?? [];
     const inventoryPets = runtime.slot?.data?.inventory?.items?.filter((item) => item.itemType === "Pet") ?? [];
     const storedPets = runtime.slot?.data?.inventory?.storages?.flatMap((storage) => storage.items?.filter((item) => item.itemType === "Pet") ?? []) ?? [];
-    const availablePets = [...activePets2, ...inventoryPets, ...storedPets];
+    const availablePets = [...activePets3, ...inventoryPets, ...storedPets];
     function petStrength2(pet) {
       return petMetrics(pet)?.strength ?? 87 + crystalStrengthBonus();
     }
     function addEta(mutation, ability, chance, missing, total, countOnly = false) {
       const abilities = Array.isArray(ability) ? ability : [ability];
-      const pets = activePets2.filter((pet) => pet.hunger > 0 && pet.abilities?.some((name) => abilities.includes(name)));
+      const pets = activePets3.filter((pet) => pet.hunger > 0 && pet.abilities?.some((name) => abilities.includes(name)));
       if (!pets.length) return;
       const combinedTickRate = 1 - pets.reduce((remaining2, pet) => {
         const chancePerMinute = chance * petStrength2(pet) / 100;
