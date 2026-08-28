@@ -1,11 +1,8 @@
-import { page } from '../page.js';
-import { findVisiblePixiNodes, pixiSurface } from '../pixi.js';
-import { quinoaEngine } from '../quinoa-engine.js';
 import { state } from '../state.js';
-import { escapeHtml, formatDuration, humanize } from '../utils.js';
+import { humanize } from '../utils.js';
 
 /**
- * How long the current weather has left, shown under the game's own weather tooltip.
+ * How long the current weather has left, for the weather alarm panel.
  *
  * Every weather runs for ten minutes, and the game lays them out in five minute slots counted from
  * the start of the day, so a run is two slots and every boundary falls on a ten minute mark. That
@@ -16,15 +13,15 @@ import { escapeHtml, formatDuration, humanize } from '../utils.js';
  * the grid only stands in for the weather that was already running when we arrived.
  *
  * Clear skies is not an event but the gap between them, and the gap has no fixed length, so nothing
- * is shown then - the game's own tooltip already says the weather is clear.
+ * is shown then.
+ *
+ * This used to draw its own readout under the game's weather button on hover. The game now puts a
+ * ring on the weather icon showing how long the weather has left, and its Weather Station says so
+ * outright, so the readout is gone and only the figure the alarm panel reports is kept.
  */
 
-const TOOLTIP_ID = 'gc-weather-timer';
-const STYLE_ID = 'gc-weather-timer-style';
 /** The game gives both weather groups a duration of ten minutes. */
 const WEATHER_MS = 10 * 60 * 1000;
-/** Clear of whatever it hangs beneath, without drifting away from it. */
-const DROP_PX = 8;
 
 /**
  * What the game calls each weather, which is not always its id: Frost is shown as Snow. Held here
@@ -70,7 +67,6 @@ export function noteWeatherChange(): void {
   if (lastBoundaryAt && boundary > lastBoundaryAt + 1_000) boundaryEnd = boundary;
   lastBoundaryAt = boundary;
 }
-let pointer = { x: -1, y: -1 };
 
 export function currentWeather(): string {
   return state.game?.weather || '';
@@ -155,129 +151,13 @@ function remaining(now: number): { low: number; high: number } {
 }
 
 /**
- * How long the running weather has left, phrased as the tooltip phrases it. Rain is scheduled at
- * random and has no shop counter, so when it started before we arrived the answer is a pair of
- * possible ends rather than one.
+ * How long the running weather has left. Rain is scheduled at random and has no shop counter, so
+ * when it started before we arrived the answer is a pair of possible ends rather than one.
  */
 export function weatherRemainingText(): string {
   const { low, high } = remaining(Date.now());
-  // Whole minutes, unlike the tooltip: this one is read from a panel that redraws when it changes,
-  // and a ticking seconds field would rebuild the tab every second to move a digit.
+  // Whole minutes: this is read from a panel that redraws when it changes, and a ticking seconds
+  // field would rebuild the tab every second to move a digit.
   const minutes = (ms: number) => `${Math.max(1, Math.ceil(ms / 60_000))}m`;
   return low === high ? `${minutes(low)} left` : `${minutes(low)} or ${minutes(high)} left`;
-}
-
-/**
- * The game's own tooltip, which opens on the same hover and is drawn beside the button rather than
- * beneath it. Sitting under that reads as one panel; the button is the fallback for the moment
- * before it appears.
- */
-function tooltipRect(): { left: number; right: number; bottom: number } | null {
-  const surface = pixiSurface();
-  if (!surface) return null;
-  const popup = findVisiblePixiNodes(surface, ['TooltipPopup']).get('TooltipPopup');
-  if (!popup || typeof popup.getBounds !== 'function') return null;
-  try {
-    const bounds = popup.getBounds();
-    if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0) return null;
-    return {
-      left: surface.toScreenX(bounds.x),
-      right: surface.toScreenX(bounds.x + bounds.width),
-      bottom: surface.toScreenY(bounds.y + bounds.height),
-    };
-  } catch { return null; }
-}
-
-/** The game's weather button, which lives on the right hand rail beside the friend bonus. */
-function buttonRect(): { left: number; right: number; top: number; bottom: number } | null {
-  const surface = pixiSurface();
-  const rail = quinoaEngine()?.getSystem?.('rightSideRail') as { weatherButton?: { viewContainer?: Record<string, any> } } | undefined;
-  const container = rail?.weatherButton?.viewContainer;
-  if (!surface || !container || container.destroyed || typeof container.getBounds !== 'function') return null;
-  try {
-    const bounds = container.getBounds();
-    if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0) return null;
-    return {
-      left: surface.toScreenX(bounds.x),
-      right: surface.toScreenX(bounds.x + bounds.width),
-      top: surface.toScreenY(bounds.y),
-      bottom: surface.toScreenY(bounds.y + bounds.height),
-    };
-  } catch { return null; }
-}
-
-function ensureStyle(): void {
-  if (document.getElementById(STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = STYLE_ID;
-  style.textContent = `
-#${TOOLTIP_ID} { position:fixed;z-index:99993;pointer-events:none;transform:translateX(-50%);
-  padding:6px 10px;border-radius:9px;border:1px solid rgba(125,211,252,.16);
-  background:linear-gradient(145deg,#10151a,#090b0f 72%);box-shadow:0 12px 32px rgba(0,0,0,.6);
-  color:#e4e4e7;font:600 12px/1.25 system-ui,sans-serif;white-space:nowrap; }
-#${TOOLTIP_ID}[hidden] { display:none; }
-#${TOOLTIP_ID} b { color:#a9efff;font-weight:700; }
-#${TOOLTIP_ID} small { display:block;margin-top:2px;color:var(--gc-muted,#a1a1aa);font-size:10px;font-weight:600; }`;
-  document.head.appendChild(style);
-}
-
-function tooltip(): HTMLElement {
-  ensureStyle();
-  let root = document.getElementById(TOOLTIP_ID);
-  if (!root) {
-    root = document.createElement('div');
-    root.id = TOOLTIP_ID;
-    root.hidden = true;
-    document.body.appendChild(root);
-  }
-  return root;
-}
-
-function render(): void {
-  const now = Date.now();
-  const root = document.getElementById(TOOLTIP_ID);
-  const rect = buttonRect();
-  // The button's own bounds, so a differently sized rail is still hit exactly.
-  const hovering = rect
-    && pointer.x >= rect.left && pointer.x <= rect.right
-    && pointer.y >= rect.top && pointer.y <= rect.bottom;
-  if (!rect || !hovering || !currentWeather()) {
-    if (root) root.hidden = true;
-    return;
-  }
-  const element = tooltip();
-  const { low, high } = remaining(now);
-  // Two possible answers rather than a spread: it ends on the next slot boundary or the one after,
-  // so a range would claim every value between them is possible when only the two ends are.
-  const left = low === high
-    ? `<b>${escapeHtml(formatDuration(low))}</b> left`
-    : `<b>${escapeHtml(formatDuration(low))} or ${escapeHtml(formatDuration(high))}</b> left<small>started before you arrived</small>`;
-  element.innerHTML = `${escapeHtml(weatherLabel())} ${left}`;
-  element.hidden = false;
-  const under = tooltipRect() ?? rect;
-  element.style.left = `${Math.round((under.left + under.right) / 2)}px`;
-  element.style.top = `${Math.round(under.bottom + DROP_PX)}px`;
-}
-
-/**
- * Drawn when the pointer moves, and once a second only while it is actually showing. Measuring the
- * button means asking the engine for the rail and taking bounds off it, which is not work to do
- * four times a second at a cursor that is sitting still.
- */
-export function initWeatherTimer(): void {
-  let ticking = 0;
-  const stopTicking = () => { if (ticking) { clearInterval(ticking); ticking = 0; } };
-  const update = () => {
-    render();
-    const showing = !document.getElementById(TOOLTIP_ID)?.hidden;
-    // The tick calls back into here rather than straight to render, so it stops itself once the
-    // tooltip goes - the weather ending is not something a pointer event will tell us about.
-    if (showing && !ticking) ticking = window.setInterval(update, 1_000);
-    else if (!showing) stopTicking();
-  };
-  page.addEventListener('pointermove', event => {
-    pointer = { x: (event as PointerEvent).clientX, y: (event as PointerEvent).clientY };
-    update();
-  }, true);
-  page.addEventListener('pointerleave', () => { pointer = { x: -1, y: -1 }; update(); }, true);
 }
