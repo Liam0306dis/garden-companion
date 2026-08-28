@@ -84,7 +84,7 @@ export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
 ]);
 
 export const SHOP_NAMES = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber' };
-export const SHOP_TABS = [['seed', 'Seeds'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['rain', 'Rain'], ['amber', 'Amber'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
+export const SHOP_TABS = [['seed', 'Seeds'], ['amber', 'Amber'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['rain', 'Rain'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
 
 export const SEASONAL_SHOP_ITEMS: Record<string, string[]> = {
   dawn: ['Daisy', 'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'DawnCelestial', 'DawnEgg'],
