@@ -83,13 +83,19 @@ export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
   ['AmberMoonBoost', 'AmberMoon'], ['ThunderBoost', 'Thunderstorm'],
 ]);
 
-export const SHOP_NAMES = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder' };
-export const SHOP_TABS = [['seed', 'Seeds'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
+export const SHOP_NAMES = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber' };
+export const SHOP_TABS = [['seed', 'Seeds'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['rain', 'Rain'], ['amber', 'Amber'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
 
 export const SEASONAL_SHOP_ITEMS: Record<string, string[]> = {
   dawn: ['Daisy', 'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'DawnCelestial', 'DawnEgg'],
   thunder: ['Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial', 'ThunderEgg', 'SmallGravestone', 'MediumGravestone', 'LargeGravestone', 'Cauldron', 'WindchimeMoon', 'WindchimeStar', 'WindSpinner', 'WindTurner'],
   snow: ['Snowdrop', 'PineTree', 'Leek', 'Squash', 'Poinsettia', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'ColoredStringLights', 'WoodCaribou', 'StoneCaribou', 'MarbleCaribou'],
+  // Not live yet. Taken from a preview build's shop payload, and listed for the same reason the
+  // others are: an alarm can only be armed from a tab, and a shop that has never opened has no live
+  // stock to build one from - so without these the first restock is the earliest you could ask to
+  // be told about it, which is exactly the one worth knowing about.
+  rain: ['Clover', 'Delphinium', 'Mushroom', 'VioletCort', 'RainWardShard', 'WoodFrog', 'StoneBirdbath', 'MarbleFountain'],
+  amber: ['Persimmon', 'Habanero', 'Marigold', 'Emberbloom', 'MoonCelestial', 'AmberEgg', 'HungerShard', 'XPShard', 'StrengthShard', 'StoneMoonGate', 'StoneTorch', 'StoneFirepit'],
 };
 
 export const ITEM_KEYS = ['species', 'eggId', 'toolId', 'decorId'];

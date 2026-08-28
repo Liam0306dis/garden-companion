@@ -711,8 +711,10 @@ assert.match(companionSource, /activeTab === 'abilityLog' \? 'gc-ability-log-tab
 assert.match(companionSource, /gc-card gc-ability-log-card/, 'recent proc card lacks its expanding layout class');
 assert.match(styleSource, /\.gc-ability-log-card \{[^}]*min-height:0[^}]*flex:1[^}]*display:flex[^}]*flex-direction:column/s, 'recent proc card does not expand vertically');
 assert.match(styleSource, /\.gc-ability-log-tab \.gc-log \{[^}]*max-height:none[^}]*flex:1/s, 'recent proc list remains height-limited');
-assert.match(companionSource, /\['seed', 'Seeds'\], \['dawn', 'Dawn'\], \['thunder', 'Thunder'\], \['snow', 'Snow'\], \['egg', 'Eggs'\], \['tool', 'Tools'\], \['decor', 'Decor'\]/, 'shop alarm tab order is incorrect');
-for (const seasonalItem of ['Dawnbreaker', 'DawnCelestial', 'DawnEgg', 'ThunderCelestial', 'ThunderEgg', 'SnowEgg', 'ChilledPotion', 'FrozenPotion']) assert.ok(companionSource.includes(seasonalItem), `seasonal shop item ${seasonalItem} missing`);
+assert.match(companionSource, /\['seed', 'Seeds'\], \['dawn', 'Dawn'\], \['thunder', 'Thunder'\], \['snow', 'Snow'\], \['rain', 'Rain'\], \['amber', 'Amber'\], \['egg', 'Eggs'\], \['tool', 'Tools'\], \['decor', 'Decor'\]/, 'shop alarm tab order is incorrect');
+for (const seasonalItem of ['Dawnbreaker', 'DawnCelestial', 'DawnEgg', 'ThunderCelestial', 'ThunderEgg', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'RainWardShard', 'AmberEgg', 'HungerShard', 'Emberbloom']) assert.ok(companionSource.includes(seasonalItem), `seasonal shop item ${seasonalItem} missing`);
+// Every shop the alarm tabs offer needs a name, or its alarms are labelled with a blank.
+for (const shop of ['rain', 'amber']) assert.ok(new RegExp(`${shop}: '`).test(companionSource), `shop ${shop} has a tab but no display name`);
 assert.match(companionSource, /gc-team-abilities/, 'team creation does not show pet abilities');
 assert.match(companionSource, /data-team-search placeholder="Filter by pet name, species, location, or ability"/, 'team pet filter is missing');
 assert.match(companionSource, /Press Escape while recording to clear it/, 'keybind Escape guidance is missing');

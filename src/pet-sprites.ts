@@ -80,11 +80,15 @@ const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
     'PassionFruit', 'DragonFruit', 'Cacao', 'Lychee', 'Sunflower', 'Starweaver', 'DawnCelestial', 'MoonCelestial', 'Daisy',
     'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'Snowdrop', 'PineTree', 'Leek', 'Squash', 'Poinsettia',
     'Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial',
+    // The Rain and Amber shops, from a preview build and not live yet.
+    'Clover', 'Delphinium', 'Persimmon', 'Habanero', 'Marigold', 'Emberbloom',
   ],
   // SnowEgg and WinterEgg are both live ids for the same egg, and only WinterEgg has atlas art,
   // so both are listed and both resolve to that one frame.
-  egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'WinterEgg', 'ThunderEgg'],
-  tool: ['PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion'],
+  egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'WinterEgg', 'ThunderEgg', 'AmberEgg'],
+  // The Shards are the Rain and Amber shops' tools, and follow the same sprite paths as the rest.
+  tool: ['PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion',
+    'RainWardShard', 'HungerShard', 'XPShard', 'StrengthShard'],
 };
 
 function shopSpriteCandidates(group: string, itemId: string): string[] {
