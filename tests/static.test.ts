@@ -92,6 +92,7 @@ const tossSource = await readSource('src', 'features', 'pet-swap-toss.ts');
 const keybindsSource = await readSource('src', 'keybinds.ts');
 const estimatesSource = await readSource('src', 'features', 'crop-estimates.ts');
 const constantsSource = await readSource('src', 'constants.ts');
+const gameConnectionSource = await readSource('src', 'game-connection.ts');
 const mutationValueSource = await readSource('src', 'mutation-value.ts');
 const preserveAllSource = await readSource('src', 'features', 'preserve-all.ts');
 const cropProtectionSource = await readSource('src', 'features', 'crop-protection.ts');
@@ -196,8 +197,11 @@ assert.match(companionSource, /frame\.commandSequence = sequence\+\+;/, 'outgoin
 assert.match(companionSource, /return originalSend\.call\(this, renumberOutgoingCommand\(data\)/, 'the socket does not renumber what it sends');
 // Blocking must happen before the stamp, so a swallowed command never takes a number and leaves a hole.
 assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);') < companionSource.indexOf('renumberOutgoingCommand(data)'), 'a blocked command still takes a sequence number, leaving a hole');
-// Both senders leave the sequence off; the stamp on the way out is the only writer.
-assert.match(companionSource, /send\(\{ type: 'QuinoaCommand', requestId, command \}\)/, 'Quinoa command envelope missing');
+// A command through the game's own connection never reaches the socket send we wrap, so it is
+// numbered where it is built. One that goes out through the socket is numbered there instead, and
+// neither is numbered twice - a burned number leaves a gap the server will not recover from.
+assert.match(gameConnectionSource, /const commandSequence = nextCommandSequence\(\);/, 'Quinoa command envelope missing');
+assert.match(gameConnectionSource, /if \(Number\.isFinite\(Number\(frame\.commandSequence\)\)\) return data;/, 'an already numbered command is renumbered, which burns a sequence');
 assert.match(plantDragSource, /requestId,\s*command: \{ type: 'PotPlant', slot, plantItemId \}/, 'potting a plant sets its own sequence instead of being stamped');
 // Build 1029 moved item creation into a reducer both sides run, so the client names the item it is
 // about to be given - sending no id created it under one of undefined, findable by nothing.

@@ -580,11 +580,15 @@
     const executed = Number(executedCommandSequence);
     if (Number.isFinite(executed)) sequence = executed + 1;
   }
+  function nextCommandSequence() {
+    return sequence < 0 ? -1 : sequence++;
+  }
   function renumberOutgoingCommand(data) {
     if (sequence < 0 || typeof data !== "string" || !data.includes("QuinoaCommand")) return data;
     try {
       const frame = JSON.parse(data);
       if (frame?.type !== "QuinoaCommand") return data;
+      if (Number.isFinite(Number(frame.commandSequence))) return data;
       frame.commandSequence = sequence++;
       return JSON.stringify(frame);
     } catch {
@@ -617,7 +621,13 @@
   }
   function sendQuinoaCommand(command) {
     const requestId = crypto.randomUUID();
-    send({ type: "QuinoaCommand", requestId, command });
+    const commandSequence = nextCommandSequence();
+    send({
+      type: "QuinoaCommand",
+      requestId,
+      ...commandSequence >= 0 ? { commandSequence } : {},
+      command
+    });
     return requestId;
   }
 

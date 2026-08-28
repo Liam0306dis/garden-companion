@@ -25,15 +25,26 @@ export function seedCommandSequence(executedCommandSequence: unknown): void {
   if (Number.isFinite(executed)) sequence = executed + 1;
 }
 
+/** The next number, or -1 before the Welcome frame has said where to start. */
+export function nextCommandSequence(): number {
+  return sequence < 0 ? -1 : sequence++;
+}
+
 /**
- * Stamps an outgoing frame with the next sequence. Frames that are not commands, and anything sent
- * before Welcome has seeded us, are handed back untouched.
+ * Stamps an outgoing frame that has no sequence of its own.
+ *
+ * Only the frames that need it. A command sent through the game's own connection never reaches this
+ * - it does not go out through the socket send we wrap - so those are numbered where they are built
+ * instead, and numbering them twice would burn a number and leave the gap the server refuses to
+ * recover from. A frame that already carries a sequence is either one of those or one of the game's,
+ * and both are already right.
  */
 export function renumberOutgoingCommand(data: unknown): unknown {
   if (sequence < 0 || typeof data !== 'string' || !data.includes('QuinoaCommand')) return data;
   try {
     const frame = JSON.parse(data) as Record<string, unknown>;
     if (frame?.type !== 'QuinoaCommand') return data;
+    if (Number.isFinite(Number(frame.commandSequence))) return data;
     frame.commandSequence = sequence++;
     return JSON.stringify(frame);
   } catch { return data; }
@@ -78,8 +89,21 @@ export function send(command: Record<string, unknown>): void {
  * The sequence is left off deliberately: it is stamped on the way out, so that one counter covers
  * our commands and the game's alike.
  */
+/**
+ * Numbered here rather than on the way out.
+ *
+ * This goes through the game's own connection, which does not pass the socket send we wrap - so the
+ * stamp that covers everything else never reached it, and the command left with no sequence at all.
+ * The server refuses one without a number.
+ */
 export function sendQuinoaCommand(command: Record<string, unknown>): string {
   const requestId = crypto.randomUUID();
-  send({ type: 'QuinoaCommand', requestId, command });
+  const commandSequence = nextCommandSequence();
+  send({
+    type: 'QuinoaCommand',
+    requestId,
+    ...(commandSequence >= 0 ? { commandSequence } : {}),
+    command,
+  });
   return requestId;
 }
