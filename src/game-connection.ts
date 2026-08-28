@@ -86,6 +86,18 @@ export function noteOutgoingCommand(data: unknown): void {
  * numbers. Going out through the socket puts our commands past the single stamp, which is the only
  * arrangement where two senders never collide.
  */
+/**
+ * Sends one of the commands the game still sends bare, outside the envelope.
+ *
+ * No sequence: the server only numbers what arrives wrapped, and the stamp above passes anything
+ * that is not a QuinoaCommand straight through - so this stays in order behind the wrapped commands
+ * without drawing a number that would leave a gap in their run.
+ */
+export function sendBareCommand(command: Record<string, unknown>): void {
+  if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error('The game connection is not ready.');
+  activeSocket.send(JSON.stringify({ scopePath: ['Room', 'Quinoa'], ...command }));
+}
+
 export function sendQuinoaCommand(command: Record<string, unknown>): string {
   const requestId = crypto.randomUUID();
   const frame = { scopePath: ['Room', 'Quinoa'], type: 'QuinoaCommand', requestId, command };

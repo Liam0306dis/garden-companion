@@ -614,6 +614,10 @@
     } catch {
     }
   }
+  function sendBareCommand(command) {
+    if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error("The game connection is not ready.");
+    activeSocket.send(JSON.stringify({ scopePath: ["Room", "Quinoa"], ...command }));
+  }
   function sendQuinoaCommand(command) {
     const requestId = crypto.randomUUID();
     const frame = { scopePath: ["Room", "Quinoa"], type: "QuinoaCommand", requestId, command };
@@ -972,12 +976,19 @@
     }
     return false;
   }
+  function selectTool(toolId) {
+    const itemIndex = looseItems().findIndex((item) => item?.itemType === "Tool" && item.toolId === toolId);
+    if (itemIndex < 0) return;
+    sendBareCommand({ type: "SetSelectedItem", itemIndex });
+  }
   async function useXpPotion(petItemId) {
     if (!await ensureToolReady("XPPotion")) throw new Error("No XP Potion is available to use.");
+    selectTool("XPPotion");
     sendQuinoaCommand({ type: "XPPotion", petItemId });
   }
   async function useReplenishPotion(petItemId) {
     if (!await ensureToolReady("ReplenishPotion")) throw new Error("No Hunger Potion is available to use.");
+    selectTool("ReplenishPotion");
     sendQuinoaCommand({ type: "ReplenishPotion", petItemId });
   }
 

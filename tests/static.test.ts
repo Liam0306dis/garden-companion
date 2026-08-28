@@ -201,6 +201,10 @@ assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);')
 // numbered where it is built. One that goes out through the socket is numbered there instead, and
 // neither is numbered twice - a burned number leaves a gap the server will not recover from.
 assert.match(gameConnectionSource, /activeSocket\.send\(JSON\.stringify\(frame\)\);/, 'a command must leave by the socket, or it misses the one place a sequence is stamped');
+assert.match(petsSource, /selectTool\('ReplenishPotion'\);\s+sendQuinoaCommand\(\{ type: 'ReplenishPotion'/, 'the potion must be put in hand before it is used, or the server refuses it');
+assert.match(petsSource, /selectTool\('XPPotion'\);\s+sendQuinoaCommand\(\{ type: 'XPPotion'/, 'the potion must be put in hand before it is used, or the server refuses it');
+const fetchedAt = petsSource.indexOf("ensureToolReady('ReplenishPotion')");
+assert.ok(fetchedAt >= 0 && fetchedAt < petsSource.indexOf("selectTool('ReplenishPotion')"), 'the tool is selected by its loose inventory index, so it must be fetched from the Tool Shack first');
 assert.ok(!/commandSequence/.test(gameConnectionSource.split('export function sendQuinoaCommand')[1] || ''), 'a command numbered where it is built runs a second counter beside the one the game keeps, and the two pick the same numbers');
 assert.ok(!gameConnectionSource.includes('Number.isFinite(Number(frame.commandSequence))'), 'skipping an already numbered command leaves the game choosing its own, which is the second counter again');
 assert.match(plantDragSource, /requestId,\s*command: \{ type: 'PotPlant', slot, plantItemId \}/, 'potting a plant sets its own sequence instead of being stamped');

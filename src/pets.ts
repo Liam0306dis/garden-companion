@@ -1,7 +1,7 @@
 import type { Pet, ProduceItem } from './types.js';
 import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
 import { mutationMultiplier } from './mutation-value.js';
-import { sendQuinoaCommand } from './game-connection.js';
+import { sendBareCommand, sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from './utils.js';
@@ -457,6 +457,23 @@ export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots =
 }
 
 /**
+ * Puts a tool in hand before it is used.
+ *
+ * The player's selection is not a local matter: the game reports every change to the server with
+ * this same command, so the server knows what is being held, and its own handler refuses a potion
+ * that is not the selected tool. Feeding needs none of this, which is why it kept working while
+ * both potions did not.
+ *
+ * The index is into the loose inventory, so this is called after the tool has been fetched from the
+ * Tool Shack rather than before, when it may not be there to point at yet.
+ */
+export function selectTool(toolId: string): void {
+  const itemIndex = looseItems().findIndex(item => item?.itemType === 'Tool' && item.toolId === toolId);
+  if (itemIndex < 0) return;
+  sendBareCommand({ type: 'SetSelectedItem', itemIndex });
+}
+
+/**
  * Spends one XP Potion on a pet.
  *
  * No position is sent. This used to move the player onto the pet's tile first, on the belief that
@@ -467,11 +484,13 @@ export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots =
  */
 export async function useXpPotion(petItemId: string): Promise<void> {
   if (!await ensureToolReady('XPPotion')) throw new Error('No XP Potion is available to use.');
+  selectTool('XPPotion');
   sendQuinoaCommand({ type: 'XPPotion', petItemId });
 }
 
 /** Fills a pet's hunger with one Hunger Potion. No position, for the reason above. */
 export async function useReplenishPotion(petItemId: string): Promise<void> {
   if (!await ensureToolReady('ReplenishPotion')) throw new Error('No Hunger Potion is available to use.');
+  selectTool('ReplenishPotion');
   sendQuinoaCommand({ type: 'ReplenishPotion', petItemId });
 }
