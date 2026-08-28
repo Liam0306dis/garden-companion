@@ -20,6 +20,7 @@ export const DEFAULTS: CompanionConfig = {
   petSwapToss: false,
   autoStoreSeeds: false,
   autoStoreDecor: false,
+  autoStoreTools: false,
   cropProtection: false,
   protectMaxSize: false,
   protectedMutations: [],

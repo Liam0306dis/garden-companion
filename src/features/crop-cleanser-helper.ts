@@ -2,7 +2,7 @@ import { MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
-import { ensureToolReady, heldToolCount, mutationSprite } from '../pets.js';
+import { ensureToolReady, heldToolCount, holdTool, mutationSprite } from '../pets.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
@@ -179,6 +179,9 @@ function render(): void {
     // The count above is everything owned, the Tool Shack included, but a cleanser is only usable
     // once it is out of storage - so one is fetched before the command rather than after it fails.
     button.disabled = true;
+    // Held across the fetch and the use together, so auto-store cannot file the cleanser back
+    // between them.
+    const release = holdTool('CropCleanser');
     try {
       if (!await ensureToolReady('CropCleanser')) {
         toast('No Crop Cleanser could be taken from the Tool Shack. Make room in your inventory.', 'error');
@@ -194,6 +197,7 @@ function render(): void {
     } catch (error) {
       toast((error as Error).message, 'error');
     } finally {
+      release();
       button.disabled = false;
     }
   });

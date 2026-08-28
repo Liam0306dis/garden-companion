@@ -1,7 +1,7 @@
 import type { CompanionPage } from '../types.js';
 import { noteRoomSocketClosed, noteRoomSocketOpened } from '../connection-state.js';
 import { state } from '../state.js';
-import { ensureToolReady, freeInventorySlots, shackToolCount } from '../pets.js';
+import { ensureToolReady, freeInventorySlots, holdTool, shackToolCount } from '../pets.js';
 
 export function initPlantDragMove(): void {
     'use strict';
@@ -693,23 +693,30 @@ export function initPlantDragMove(): void {
         activePress.destination = destination;
         activePress.phase = 'potting';
         const species = activePress.source.object.species;
-        // Two slots, not one: the pot may still be in the Tool Shack, and potting hands back a Plant,
-        // which stacks onto nothing and always takes a slot of its own.
-        if (!hasPlanterPot() && !await ensureToolReady('PlanterPot', 1, 1)) {
-            throw new Error('No Planter Pot could be taken from the Tool Shack. Make room in your inventory.');
+        // Held for the whole move, not just the fetch: the pot is spent by the PotPlant at the end,
+        // and auto-store filing it back in between is what would make a drag fail outright.
+        const releasePot = holdTool('PlanterPot');
+        try {
+            // Two slots, not one: the pot may still be in the Tool Shack, and potting hands back a
+            // Plant, which stacks onto nothing and always takes a slot of its own.
+            if (!hasPlanterPot() && !await ensureToolReady('PlanterPot', 1, 1)) {
+                throw new Error('No Planter Pot could be taken from the Tool Shack. Make room in your inventory.');
+            }
+            if (freeInventorySlots() < 1) throw new Error('Your inventory is full, so the plant has nowhere to go');
+
+            const plantItemId = pageWindow.crypto.randomUUID();
+            showToast(`Picking up ${species ?? 'plant'}...`, 'normal', 0);
+            sendPotPlant(activePress.source.localTileIndex, plantItemId);
+
+            const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
+            restoreSourcePlant(activePress);
+            if (!plantItem) throw new Error('The server did not return the potted plant');
+
+            activePress.plantItem = plantItem;
+            activePress.phase = 'ready';
+        } finally {
+            releasePot();
         }
-        if (freeInventorySlots() < 1) throw new Error('Your inventory is full, so the plant has nowhere to go');
-
-        const plantItemId = pageWindow.crypto.randomUUID();
-        showToast(`Picking up ${species ?? 'plant'}...`, 'normal', 0);
-        sendPotPlant(activePress.source.localTileIndex, plantItemId);
-
-        const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
-        restoreSourcePlant(activePress);
-        if (!plantItem) throw new Error('The server did not return the potted plant');
-
-        activePress.plantItem = plantItem;
-        activePress.phase = 'ready';
         await placeHeldPlant(activePress, destination);
     }
 

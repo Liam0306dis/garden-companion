@@ -890,6 +890,7 @@ export function initCompanion(): void {
       ['petSwapToss', 'Pokemon Mode', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
       ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
       ['autoStoreDecor', 'Auto-store decor', 'Move decor into the Decor Shed when it already holds that item'],
+      ['autoStoreTools', 'Auto-store tools', 'Move tools into the Tool Shack when it already holds that tool - one being used, or held, is left alone'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
     ];

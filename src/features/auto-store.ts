@@ -1,10 +1,11 @@
 import { feature } from '../config.js';
 import { sendQuinoaCommand } from '../game-connection.js';
+import { toolIsHeld } from '../pets.js';
 import { state } from '../state.js';
 
 /**
- * Seeds into the Seed Silo, decor into the Decor Shed, and only where the storage already holds a
- * stack of the same thing. Filing something the storage has never held is a decision about how you
+ * Seeds into the Seed Silo, decor into the Decor Shed, tools into the Tool Shack, and only where the
+ * storage already holds a stack of the same thing. Filing something the storage has never held is a decision about how you
  * want your storage laid out; topping up a stack that is already there is not, which is why the
  * rule is drawn here.
  *
@@ -17,6 +18,7 @@ interface StoredItem {
   itemType?: string;
   species?: string;
   decorId?: string;
+  toolId?: string;
   quantity?: number;
 }
 
@@ -30,7 +32,24 @@ interface StoreRule {
 const RULES: StoreRule[] = [
   { storageId: 'SeedSilo', itemType: 'Seed', key: item => item.species ?? '', enabled: () => feature('autoStoreSeeds') },
   { storageId: 'DecorShed', itemType: 'Decor', key: item => item.decorId ?? '', enabled: () => feature('autoStoreDecor') },
+  { storageId: 'ToolShack', itemType: 'Tool', key: item => item.toolId ?? '', enabled: () => feature('autoStoreTools') },
 ];
+
+/**
+ * A tool the script is about to use, or one in the player's hand, stays where it is.
+ *
+ * Tools are the only kind here that the script itself takes back out of storage, so they are the
+ * only kind that can be filed away mid-use - a Planter Pot fetched for a drag, stored again before
+ * the PotPlant lands, and the drag fails. The hold covers the fetch and the use together; the
+ * selection covers the pot the keeper leaves in hand between drags, which no hold spans.
+ *
+ * Deliberately not a reserve. Keeping one of each tool loose would free none of the slots the Tool
+ * Shack exists to free, which is the whole point of storing them.
+ */
+function isBusy(rule: StoreRule, key: string): boolean {
+  if (rule.itemType !== 'Tool') return false;
+  return toolIsHeld(key) || state.selectedItemId === key;
+}
 
 /** Patches arrive continuously, so the work is coalesced rather than run against every one. */
 const DEBOUNCE_MS = 1_000;
@@ -78,7 +97,7 @@ function storedKeys(rule: StoreRule): Set<string> {
 function inventorySignature(): string {
   return inventoryItems()
     .filter(item => RULES.some(rule => rule.itemType === item.itemType))
-    .map(item => `${item.itemType}:${item.species ?? item.decorId ?? ''}:${item.quantity ?? ''}`)
+    .map(item => `${item.itemType}:${item.species ?? item.decorId ?? item.toolId ?? ''}:${item.quantity ?? ''}`)
     .join('|');
 }
 
@@ -95,7 +114,7 @@ function flush(): void {
     for (const item of inventoryItems()) {
       if (item.itemType !== rule.itemType) continue;
       const key = rule.key(item);
-      if (!key || !stored.has(key)) continue;
+      if (!key || !stored.has(key) || isBusy(rule, key)) continue;
       const pending = `${rule.storageId}:${key}`;
       if (sentAt.has(pending) || queued.has(pending)) continue;
       queued.add(pending);
@@ -116,7 +135,9 @@ function drain(): void {
   if (drainTimer || !queue.length) return;
   const next = queue.shift()!;
   queued.delete(next.pending);
-  if (next.rule.enabled()) {
+  // Rechecked here as well as at queue time: a drag can start while a move for the same tool is
+  // still sitting in the queue behind everything else.
+  if (next.rule.enabled() && !isBusy(next.rule, next.key)) {
     // Marked only once it is away, so the grace covers waiting for the echo rather than the wait
     // in the queue behind everything else.
     try {

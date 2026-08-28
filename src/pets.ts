@@ -460,6 +460,48 @@ function inventoryCanTakeTool(toolId: string, reserveSlots: number): boolean {
  * predicted locally, but a prediction that is rolled back would leave us acting on a tool we do not
  * have.
  */
+/**
+ * Tools the script is in the middle of using, which auto-store must leave alone.
+ *
+ * Fetching a tool out of the Tool Shack and filing it straight back is the one way these two
+ * features can fight, and it is a race rather than a rule: the fetch lands, a patch arrives, and the
+ * tool goes home before the command that wanted it has been sent. A hold is taken for the whole
+ * operation rather than for the fetch, because it is the use at the end that must be protected.
+ *
+ * Held by count, so two operations wanting the same tool cannot release each other's hold, and every
+ * hold carries an expiry so a flow that throws before releasing cannot pin a tool loose forever.
+ */
+const toolHolds = new Map<string, { count: number; until: number }>();
+/** Long enough to cover a command being sent and the server echoing the tool away. */
+const HOLD_GRACE_MS = 5_000;
+/** No operation here runs longer than this; past it, a hold is a leak rather than a use. */
+const HOLD_MAX_MS = 60_000;
+
+export function holdTool(toolId: string): () => void {
+  const now = Date.now();
+  const held = toolHolds.get(toolId);
+  toolHolds.set(toolId, { count: (held?.count ?? 0) + 1, until: now + HOLD_MAX_MS });
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const current = toolHolds.get(toolId);
+    if (!current) return;
+    const count = current.count - 1;
+    // The grace outlives the release: the command has gone but the tool is still in the inventory
+    // until the server takes it, and that gap is exactly when auto-store would file it back.
+    if (count > 0) toolHolds.set(toolId, { count, until: current.until });
+    else toolHolds.set(toolId, { count: 0, until: Date.now() + HOLD_GRACE_MS });
+  };
+}
+
+export function toolIsHeld(toolId: string): boolean {
+  const held = toolHolds.get(toolId);
+  if (!held) return false;
+  if (Date.now() > held.until) { toolHolds.delete(toolId); return false; }
+  return held.count > 0 || Date.now() <= held.until;
+}
+
 export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots = 0): Promise<boolean> {
   if (looseToolCount(toolId) >= wanted) return true;
   const shortfall = wanted - looseToolCount(toolId);
@@ -534,15 +576,21 @@ function standOnPet(petItemId: string): void {
  */
 export async function useXpPotion(petItemId: string): Promise<void> {
   if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
-  if (!await ensureToolReady('XPPotion')) throw new Error('No XP Potion is available to use.');
-  standOnPet(petItemId);
-  sendQuinoaCommand({ type: 'XPPotion', petItemId });
+  const release = holdTool('XPPotion');
+  try {
+    if (!await ensureToolReady('XPPotion')) throw new Error('No XP Potion is available to use.');
+    standOnPet(petItemId);
+    sendQuinoaCommand({ type: 'XPPotion', petItemId });
+  } finally { release(); }
 }
 
 /** Fills a pet's hunger with one Hunger Potion. Same standing requirement as the XP Potion. */
 export async function useReplenishPotion(petItemId: string): Promise<void> {
   if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
-  if (!await ensureToolReady('ReplenishPotion')) throw new Error('No Hunger Potion is available to use.');
-  standOnPet(petItemId);
-  sendQuinoaCommand({ type: 'ReplenishPotion', petItemId });
+  const release = holdTool('ReplenishPotion');
+  try {
+    if (!await ensureToolReady('ReplenishPotion')) throw new Error('No Hunger Potion is available to use.');
+    standOnPet(petItemId);
+    sendQuinoaCommand({ type: 'ReplenishPotion', petItemId });
+  } finally { release(); }
 }

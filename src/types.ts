@@ -235,6 +235,7 @@ export interface CompanionConfig {
   petSwapToss: boolean;
   autoStoreSeeds: boolean;
   autoStoreDecor: boolean;
+  autoStoreTools: boolean;
   cropProtection: boolean;
   protectMaxSize: boolean;
   protectedMutations: string[];

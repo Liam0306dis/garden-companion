@@ -484,6 +484,7 @@
     petSwapToss: false,
     autoStoreSeeds: false,
     autoStoreDecor: false,
+    autoStoreTools: false,
     cropProtection: false,
     protectMaxSize: false,
     protectedMutations: [],
@@ -983,6 +984,33 @@
     const stacks = items.some((item) => item?.itemType === "Tool" && item.toolId === toolId);
     return items.length + (stacks ? 0 : 1) + reserveSlots <= INVENTORY_SLOTS;
   }
+  var toolHolds = /* @__PURE__ */ new Map();
+  var HOLD_GRACE_MS = 5e3;
+  var HOLD_MAX_MS = 6e4;
+  function holdTool(toolId) {
+    const now = Date.now();
+    const held2 = toolHolds.get(toolId);
+    toolHolds.set(toolId, { count: (held2?.count ?? 0) + 1, until: now + HOLD_MAX_MS });
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      const current = toolHolds.get(toolId);
+      if (!current) return;
+      const count = current.count - 1;
+      if (count > 0) toolHolds.set(toolId, { count, until: current.until });
+      else toolHolds.set(toolId, { count: 0, until: Date.now() + HOLD_GRACE_MS });
+    };
+  }
+  function toolIsHeld(toolId) {
+    const held2 = toolHolds.get(toolId);
+    if (!held2) return false;
+    if (Date.now() > held2.until) {
+      toolHolds.delete(toolId);
+      return false;
+    }
+    return held2.count > 0 || Date.now() <= held2.until;
+  }
   async function ensureToolReady(toolId, wanted = 1, reserveSlots = 0) {
     if (looseToolCount(toolId) >= wanted) return true;
     const shortfall = wanted - looseToolCount(toolId);
@@ -1030,15 +1058,25 @@
   }
   async function useXpPotion(petItemId) {
     if (!petTile(petItemId)) throw new Error("The pet position is not available yet. Try again in a moment.");
-    if (!await ensureToolReady("XPPotion")) throw new Error("No XP Potion is available to use.");
-    standOnPet(petItemId);
-    sendQuinoaCommand({ type: "XPPotion", petItemId });
+    const release = holdTool("XPPotion");
+    try {
+      if (!await ensureToolReady("XPPotion")) throw new Error("No XP Potion is available to use.");
+      standOnPet(petItemId);
+      sendQuinoaCommand({ type: "XPPotion", petItemId });
+    } finally {
+      release();
+    }
   }
   async function useReplenishPotion(petItemId) {
     if (!petTile(petItemId)) throw new Error("The pet position is not available yet. Try again in a moment.");
-    if (!await ensureToolReady("ReplenishPotion")) throw new Error("No Hunger Potion is available to use.");
-    standOnPet(petItemId);
-    sendQuinoaCommand({ type: "ReplenishPotion", petItemId });
+    const release = holdTool("ReplenishPotion");
+    try {
+      if (!await ensureToolReady("ReplenishPotion")) throw new Error("No Hunger Potion is available to use.");
+      standOnPet(petItemId);
+      sendQuinoaCommand({ type: "ReplenishPotion", petItemId });
+    } finally {
+      release();
+    }
   }
 
   // src/features/calculators.ts
@@ -2950,8 +2988,13 @@ ${groups}
   // src/features/auto-store.ts
   var RULES = [
     { storageId: "SeedSilo", itemType: "Seed", key: (item) => item.species ?? "", enabled: () => feature("autoStoreSeeds") },
-    { storageId: "DecorShed", itemType: "Decor", key: (item) => item.decorId ?? "", enabled: () => feature("autoStoreDecor") }
+    { storageId: "DecorShed", itemType: "Decor", key: (item) => item.decorId ?? "", enabled: () => feature("autoStoreDecor") },
+    { storageId: "ToolShack", itemType: "Tool", key: (item) => item.toolId ?? "", enabled: () => feature("autoStoreTools") }
   ];
+  function isBusy(rule, key) {
+    if (rule.itemType !== "Tool") return false;
+    return toolIsHeld(key) || state.selectedItemId === key;
+  }
   var DEBOUNCE_MS = 1e3;
   var RESEND_GRACE_MS = 5e3;
   var SEND_INTERVAL_MS = 200;
@@ -2975,7 +3018,7 @@ ${groups}
     return keys;
   }
   function inventorySignature() {
-    return inventoryItems().filter((item) => RULES.some((rule) => rule.itemType === item.itemType)).map((item) => `${item.itemType}:${item.species ?? item.decorId ?? ""}:${item.quantity ?? ""}`).join("|");
+    return inventoryItems().filter((item) => RULES.some((rule) => rule.itemType === item.itemType)).map((item) => `${item.itemType}:${item.species ?? item.decorId ?? item.toolId ?? ""}:${item.quantity ?? ""}`).join("|");
   }
   function flush() {
     const now = Date.now();
@@ -2990,7 +3033,7 @@ ${groups}
       for (const item of inventoryItems()) {
         if (item.itemType !== rule.itemType) continue;
         const key = rule.key(item);
-        if (!key || !stored.has(key)) continue;
+        if (!key || !stored.has(key) || isBusy(rule, key)) continue;
         const pending = `${rule.storageId}:${key}`;
         if (sentAt.has(pending) || queued.has(pending)) continue;
         queued.add(pending);
@@ -3005,7 +3048,7 @@ ${groups}
     if (drainTimer || !queue.length) return;
     const next = queue.shift();
     queued.delete(next.pending);
-    if (next.rule.enabled()) {
+    if (next.rule.enabled() && !isBusy(next.rule, next.key)) {
       try {
         sendQuinoaCommand({ type: "PutItemInStorage", itemId: next.key, storageId: next.rule.storageId });
         sentAt.set(next.pending, Date.now());
@@ -5763,6 +5806,7 @@ ${eggs.map(eggCard).join("")}`;
         ["petSwapToss", "Pokemon Mode", "Throw a ball at each active pet and catch them before a team swap - delays it about a second"],
         ["autoStoreSeeds", "Auto-store seeds", "Move seeds into the Seed Silo when it already holds that species"],
         ["autoStoreDecor", "Auto-store decor", "Move decor into the Decor Shed when it already holds that item"],
+        ["autoStoreTools", "Auto-store tools", "Move tools into the Tool Shack when it already holds that tool - one being used, or held, is left alone"],
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
@@ -10992,18 +11036,23 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       activePress.destination = destination;
       activePress.phase = "potting";
       const species = activePress.source.object.species;
-      if (!hasPlanterPot() && !await ensureToolReady("PlanterPot", 1, 1)) {
-        throw new Error("No Planter Pot could be taken from the Tool Shack. Make room in your inventory.");
+      const releasePot = holdTool("PlanterPot");
+      try {
+        if (!hasPlanterPot() && !await ensureToolReady("PlanterPot", 1, 1)) {
+          throw new Error("No Planter Pot could be taken from the Tool Shack. Make room in your inventory.");
+        }
+        if (freeInventorySlots() < 1) throw new Error("Your inventory is full, so the plant has nowhere to go");
+        const plantItemId = pageWindow.crypto.randomUUID();
+        showToast(`Picking up ${species ?? "plant"}...`, "normal", 0);
+        sendPotPlant(activePress.source.localTileIndex, plantItemId);
+        const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
+        restoreSourcePlant(activePress);
+        if (!plantItem) throw new Error("The server did not return the potted plant");
+        activePress.plantItem = plantItem;
+        activePress.phase = "ready";
+      } finally {
+        releasePot();
       }
-      if (freeInventorySlots() < 1) throw new Error("Your inventory is full, so the plant has nowhere to go");
-      const plantItemId = pageWindow.crypto.randomUUID();
-      showToast(`Picking up ${species ?? "plant"}...`, "normal", 0);
-      sendPotPlant(activePress.source.localTileIndex, plantItemId);
-      const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
-      restoreSourcePlant(activePress);
-      if (!plantItem) throw new Error("The server did not return the potted plant");
-      activePress.plantItem = plantItem;
-      activePress.phase = "ready";
       await placeHeldPlant(activePress, destination);
     }
     async function placeHeldPlant(activePress, destination) {
@@ -12107,6 +12156,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         return;
       }
       button.disabled = true;
+      const release = holdTool("CropCleanser");
       try {
         if (!await ensureToolReady("CropCleanser")) {
           toast("No Crop Cleanser could be taken from the Tool Shack. Make room in your inventory.", "error");
@@ -12122,6 +12172,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       } catch (error) {
         toast(error.message, "error");
       } finally {
+        release();
         button.disabled = false;
       }
     });

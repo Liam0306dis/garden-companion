@@ -1384,14 +1384,21 @@ assert.match(cropProtectionSource, /message\.type === 'QuinoaCommand' \? message
 console.log('Static checks passed');
 // Auto-store only tops up a stack the storage already holds, and the silo and shed key their
 // contents by species and decor id rather than by an item id.
-assert.match(autoStoreSource, /if \(!key \|\| !stored\.has\(key\)\) continue;/, 'auto-store files items the storage has never held');
+assert.match(autoStoreSource, /if \(!key \|\| !stored\.has\(key\) \|\| isBusy\(rule, key\)\) continue;/, 'auto-store files items the storage has never held, or files a tool that is in use');
+// Tools are the only kind the script fetches back out, so they are the only kind that can be filed
+// away mid-use. Both the queue and the send are guarded, since a drag can begin while a move for
+// the same tool is still queued behind others.
+assert.match(autoStoreSource, /storageId: 'ToolShack', itemType: 'Tool', key: item => item\.toolId/, 'the tool shack rule no longer keys on tool id');
+assert.match(autoStoreSource, /return toolIsHeld\(key\) \|\| state\.selectedItemId === key;/, 'a tool being used, or held in hand, can be stored out from under the operation using it');
+assert.match(petsSource, /export function holdTool\(toolId: string\): \(\) => void/, 'nothing can mark a tool as in use, so auto-store cannot know to leave it alone');
+assert.match(plantDragSource, /const releasePot = holdTool\('PlanterPot'\);/, 'the planter pot is not held across the drag that spends it');
 assert.match(autoStoreSource, /storageId: 'SeedSilo', itemType: 'Seed', key: item => item\.species/, 'the seed silo rule no longer keys on species');
 assert.match(autoStoreSource, /storageId: 'DecorShed', itemType: 'Decor', key: item => item\.decorId/, 'the decor shed rule no longer keys on decor id');
 assert.match(autoStoreSource, /sendQuinoaCommand\(\{ type: 'PutItemInStorage', itemId: next\.key, storageId: next\.rule\.storageId \}\)/, 'auto-store no longer sends the command the game sends');
 // A whole inventory of eligible items must not leave as one burst, and the toggle can be turned
 // off while the queue is still draining.
 assert.match(autoStoreSource, /drainTimer = window\.setTimeout\(\(\) => \{ drainTimer = 0; drain\(\); \}, SEND_INTERVAL_MS\);/, 'auto-store sends every eligible move in one tick');
-assert.match(autoStoreSource, /if \(next\.rule\.enabled\(\)\) \{/, 'a draining queue ignores the toggle being turned off');
+assert.match(autoStoreSource, /if \(next\.rule\.enabled\(\) && !isBusy\(next\.rule, next\.key\)\) \{/, 'a draining queue ignores the toggle being turned off, or the hold taken since it was queued');
 assert.match(autoStoreSource, /if \(sentAt\.has\(pending\) \|\| queued\.has\(pending\)\) continue;/, 'auto-store resends a move before the server has echoed it');
 // The grace has to start when the move leaves, not when it joins the queue: a queue longer than the
 // grace would otherwise let the same key be queued twice.
