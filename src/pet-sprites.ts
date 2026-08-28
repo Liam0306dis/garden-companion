@@ -91,13 +91,27 @@ const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
     'RainWardShard', 'HungerShard', 'XPShard', 'StrengthShard'],
 };
 
+/**
+ * Tools whose art is not named after the item. The Amber shop's shards are drawn as crystal shards
+ * - HungerShard's sprite is HungerCrystalShard - while RainWardShard's matches its id, which is why
+ * that one resolved and these three did not.
+ */
+const TOOL_SPRITE_NAMES: Record<string, string> = {
+  HungerShard: 'HungerCrystalShard',
+  XPShard: 'XPCrystalShard',
+  StrengthShard: 'StrengthCrystalShard',
+};
+
 function shopSpriteCandidates(group: string, itemId: string): string[] {
   if (itemId === 'OrangeTulip') return ['sprite/seed/Tulip', 'sprite/plant/Tulip'];
   if (itemId === 'WoodBirdhouse') return ['sprite/decor/Birdhouse'];
   if (itemId === 'SnowEgg' || itemId === 'WinterEgg') return ['sprite/pet/WinterEgg', 'sprite/pet/SnowEgg'];
   if (group === 'seed') return [`sprite/seed/${itemId}`, `sprite/plant/${itemId}`];
   if (group === 'egg') return [`sprite/pet/${itemId}`];
-  if (group === 'tool') return [`sprite/item/${itemId}`, `sprite/tool/${itemId}`];
+  if (group === 'tool') {
+    const art = TOOL_SPRITE_NAMES[itemId];
+    return [...(art ? [`sprite/item/${art}`, `sprite/tool/${art}`] : []), `sprite/item/${itemId}`, `sprite/tool/${itemId}`];
+  }
   const decorSprite = __DECOR_CATALOG__[itemId]?.sprite;
   return [...(decorSprite ? [`sprite/decor/${decorSprite}`] : []), `sprite/decor/${itemId}`];
 }
@@ -288,6 +302,12 @@ async function trimTransparentImage(source: string): Promise<string> {
   return output.toDataURL('image/png');
 }
 
+/**
+ * Pets whose Rive artboard is not named after the species. The game keeps the same table - a single
+ * entry, `{RedFox: 'Red Fox'}` - so this follows it rather than guessing at a spacing rule.
+ */
+const PET_ARTBOARD_NAMES: Record<string, string> = { RedFox: 'Red Fox' };
+
 async function renderRivePet(runtime: RiveRuntime, buffer: ArrayBuffer, species: string): Promise<string | null> {
   const canvas = document.createElement('canvas');
   canvas.width = 360;
@@ -312,7 +332,7 @@ async function renderRivePet(runtime: RiveRuntime, buffer: ArrayBuffer, species:
       instance = new runtime.Rive({
         buffer: buffer.slice(0),
         canvas,
-        artboard: species,
+        artboard: PET_ARTBOARD_NAMES[species] ?? species,
         stateMachines: 'Pet State Machine',
         autoplay: true,
         layout: new runtime.Layout({ fit: runtime.Fit.Contain, alignment: runtime.Alignment.Center }),

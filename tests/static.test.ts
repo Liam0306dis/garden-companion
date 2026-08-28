@@ -1573,6 +1573,9 @@ assert.match(petSpriteSource, /\.\.\.Object\.values\(WEATHER_ICON_CANDIDATES\)\.
 const toolWantedAt = petSpriteSource.indexOf('...Object.values(toolCandidates).flat().map(normaliseKey),');
 assert.ok(toolWantedAt >= 0 && toolWantedAt < petSpriteSource.indexOf('async function decodeEssential'), 'the tool icons are back in the deferred pass, so the hunger potion has no icon until a panel is opened');
 assert.match(petSpriteSource, /shop: mapFrom\(toolCandidates, frames\),/, 'the decoded tool frames must be published into the shop map, which is where a tool icon is read from');
+// The Amber shards are drawn as crystal shards, so naming their art after the item id finds nothing.
+assert.match(petSpriteSource, /HungerShard: 'HungerCrystalShard'/, 'the amber shards look for art named after the item, which is not what the art is called');
+assert.match(petSpriteSource, /artboard: PET_ARTBOARD_NAMES\[species\] \?\? species,/, 'a pet whose Rive artboard is not its species id renders nothing');
 assert.doesNotMatch(companionSource, /weatherSpritesRequested/, 'the timer still asks for a deferred group that no longer carries its icons');
 assert.match(companionSource, /renderPetFood\(\);\s*\/\/[^\n]*\n\s*updateLunarTimer\(\);/, 'the timer is not redrawn when the sprites it asked for arrive');
 
