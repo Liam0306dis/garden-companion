@@ -604,6 +604,10 @@ export async function initPetSprites(): Promise<void> {
   const produceCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, produceSpriteCandidates(name)]));
   const plantCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, plantSpriteCandidates(name)]));
   const emblemCandidates = Object.fromEntries(Object.entries(EMBLEM_ICON_SPRITES).map(([icon, name]) => [icon, `sprite/ui/${name}`]));
+  // Tools are shop items, but the pet food panel puts them on screen without any panel being opened,
+  // so their frames are wanted by the first pass as well as the deferred one.
+  const toolIds = new Set(SHOP_SPRITE_GROUPS.tool);
+  const toolCandidates = Object.fromEntries(Object.entries(shopCandidates).filter(([itemId]) => toolIds.has(itemId)));
   const decorIds = new Set(SHOP_SPRITE_GROUPS.decor);
 
   function pick(candidates: string[], source: Map<string, string>): string | undefined {
@@ -657,7 +661,13 @@ export async function initPetSprites(): Promise<void> {
    */
   function essentialRequest(): { wanted: Set<string>; trimmedWanted: Set<string> } {
     return {
-      wanted: new Set(species.map(name => normaliseKey(`sprite/pet/${name}`))),
+      wanted: new Set([
+        ...species.map(name => normaliseKey(`sprite/pet/${name}`)),
+        // The pet food panel offers a Hunger Potion beside every crop, and it opens over the pets
+        // rather than from the panel the deferred stage waits on - so left there the potion was the
+        // one option in the row with no icon.
+        ...Object.values(toolCandidates).flat().map(normaliseKey),
+      ]),
       trimmedWanted: new Set([
         ...Object.values(produceCandidates).flat().map(normaliseKey),
         // Five icons, decoded with the first pass rather than the deferred one. The weather timer
@@ -687,6 +697,8 @@ export async function initPetSprites(): Promise<void> {
         return image ? [[name, image]] : [];
       })),
       produce: mapFrom(produceCandidates, trimmed),
+      // Into the shop map, which is where everything reads a tool icon from.
+      shop: mapFrom(toolCandidates, frames),
       weather: mapFrom(Object.fromEntries(Object.entries(WEATHER_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
     };
   }

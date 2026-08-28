@@ -1558,6 +1558,9 @@ assert.match(companionSource, /if \(sprite\) mark\.dataset\.weather = forecast!\
 // The timer shows these without any panel being opened, and the deferred pass waits for one - so
 // they belong in the first pass, where they are decoded on load.
 assert.match(petSpriteSource, /\.\.\.Object\.values\(WEATHER_ICON_CANDIDATES\)\.map\(normaliseKey\),\s*\]\),\s*\};\s*\}\s*async function decodeEssential/, 'the weather icons are back in the deferred pass, so they need a panel opened first');
+const toolWantedAt = petSpriteSource.indexOf('...Object.values(toolCandidates).flat().map(normaliseKey),');
+assert.ok(toolWantedAt >= 0 && toolWantedAt < petSpriteSource.indexOf('async function decodeEssential'), 'the tool icons are back in the deferred pass, so the hunger potion has no icon until a panel is opened');
+assert.match(petSpriteSource, /shop: mapFrom\(toolCandidates, frames\),/, 'the decoded tool frames must be published into the shop map, which is where a tool icon is read from');
 assert.doesNotMatch(companionSource, /weatherSpritesRequested/, 'the timer still asks for a deferred group that no longer carries its icons');
 assert.match(companionSource, /renderPetFood\(\);\s*\/\/[^\n]*\n\s*updateLunarTimer\(\);/, 'the timer is not redrawn when the sprites it asked for arrive');
 
