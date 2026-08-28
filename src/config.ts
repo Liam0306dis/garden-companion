@@ -89,8 +89,14 @@ export function pruneStaleConfig(): void {
   // A pet the baked catalog has never heard of is passed over rather than dropped: this runs before
   // the game's own catalog is captured, so judging a species newer than our last build would clear
   // a choice the player had made on every load.
+  //
+  // The Hunger Potion is not a crop and belongs to no diet, so measuring it against one dropped it
+  // from every pet on every load - the choice saved, and was gone by the time the panel next drew.
+  // Named here rather than imported: the constant lives with the pet food panel, which reads this
+  // module, and reaching back for it would close the loop.
   config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices)
-    .filter(([species, crop]) => !PET_CATALOG[species] || PET_CATALOG[species].diet?.includes(crop)));
+    .filter(([species, crop]) => crop === 'ReplenishPotion'
+      || !PET_CATALOG[species] || PET_CATALOG[species].diet?.includes(crop)));
   const savedProtectedSpecies = config.protectedSpecies && typeof config.protectedSpecies === 'object' ? config.protectedSpecies : {};
   // Only the protected ones are worth keeping: an unticked species reads the same as an absent one.
   // Membership of the catalog is deliberately not checked - this runs before the game's own catalog

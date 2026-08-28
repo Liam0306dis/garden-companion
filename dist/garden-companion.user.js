@@ -518,7 +518,7 @@
       return shop !== "tool" || !EXCLUDED_TOOL_ALERTS.has(itemId2);
     }));
     const savedFoodChoices = config.petFoodChoices && typeof config.petFoodChoices === "object" ? config.petFoodChoices : {};
-    config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices).filter(([species, crop]) => !PET_CATALOG[species] || PET_CATALOG[species].diet?.includes(crop)));
+    config.petFoodChoices = Object.fromEntries(Object.entries(savedFoodChoices).filter(([species, crop]) => crop === "ReplenishPotion" || !PET_CATALOG[species] || PET_CATALOG[species].diet?.includes(crop)));
     const savedProtectedSpecies = config.protectedSpecies && typeof config.protectedSpecies === "object" ? config.protectedSpecies : {};
     config.protectedSpecies = Object.fromEntries(Object.entries(savedProtectedSpecies).filter(([, on]) => on === true));
     if (config.silencedAbilities.length !== savedSilencedAbilities.length || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length || Object.keys(config.protectedSpecies).length !== Object.keys(savedProtectedSpecies).length) saveConfig();

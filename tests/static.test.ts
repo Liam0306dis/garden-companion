@@ -610,6 +610,7 @@ assert.match(styleSource, /\.gc-food-options \{ display:grid;grid-auto-flow:colu
 assert.match(companionSource, /export const HUNGER_POTION = 'ReplenishPotion';/, 'the hunger potion must be a named option');
 assert.match(companionSource, /option\(HUNGER_POTION, potionsHeld\),/, 'every species must be offered the hunger potion');
 assert.match(companionSource, /return stored === HUNGER_POTION \|\| petDiet\(species\)\.includes\(stored\)/, 'a stored potion choice must survive the diet check');
+assert.match(companionSource, /\.filter\(\(\[species, crop\]\) => crop === 'ReplenishPotion'/, 'the prune measures the hunger potion against a diet it is not part of, dropping it on every load');
 assert.match(companionSource, /if \(button\.dataset\.potion === 'true'\) \{[\s\S]*useReplenishPotion\(button\.dataset\.feedPet!\)/, 'the dock must spend a potion rather than feed it');
 assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'ReplenishPotion', petItemId \}\)/, 'the potion must be sent as the game names it');
 assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss must be presented as Pokemon Mode');
