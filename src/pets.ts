@@ -456,41 +456,68 @@ export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots =
   return false;
 }
 
+interface Tile { x: number; y: number }
+
+/** Where a pet currently stands. Walking pets interpolate along their path by elapsed time. */
+function petTileFromMotion(motion: unknown): Tile | null {
+  if (!motion || typeof motion !== 'object') return null;
+  const value = motion as Record<string, unknown>;
+  const round = (tile: unknown): Tile | null => {
+    const point = tile as Record<string, unknown> | undefined;
+    const x = Number(point?.x), y = Number(point?.y);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x: Math.round(x), y: Math.round(y) } : null;
+  };
+  if (value.kind === 'idle') return round(value.at);
+  if (value.kind === 'walking' && Array.isArray(value.path) && value.path.length) {
+    const step = Number(value.stepDurationMs) || 0;
+    const started = Number(value.startedAtMs) || 0;
+    const elapsed = Math.max(0, Date.now() - started);
+    const index = step > 0 ? Math.min(value.path.length - 1, Math.floor(elapsed / step)) : 0;
+    return round(value.path[index]);
+  }
+  return null;
+}
+
+export function petTile(petItemId: string): Tile | null {
+  const infos = (state.slot as unknown as { petSlotInfos?: Record<string, { motion?: unknown }> })?.petSlotInfos;
+  return petTileFromMotion(infos?.[petItemId]?.motion);
+}
+
 /**
- * Puts a tool in hand before it is used.
+ * Stands the player on the pet before a potion is spent on it.
  *
- * The player's selection is not a local matter: the game reports every change to the server with
- * this same command, so the server knows what is being held, and its own handler refuses a potion
- * that is not the selected tool. Feeding needs none of this, which is why it kept working while
- * both potions did not.
+ * Restored after being taken out on the argument that the reducer never reads a position. That
+ * argument was wrong: the reducer is the client's own prediction of what the server will do, not
+ * the server's validation, so its silence about position proved nothing - and the game's own
+ * handler refuses outright unless there is a pet on the player's tile.
  *
- * The index is into the loose inventory, so this is called after the tool has been fetched from the
- * Tool Shack rather than before, when it may not be there to point at yet.
+ * Read after the tool has been fetched rather than before. Taking one out of the Tool Shack can
+ * take seconds, pets walk while it happens, and standing where the pet used to be spends the potion
+ * on nothing.
  */
-export function selectTool(toolId: string): void {
-  const itemIndex = looseItems().findIndex(item => item?.itemType === 'Tool' && item.toolId === toolId);
-  if (itemIndex < 0) return;
-  sendBareCommand({ type: 'SetSelectedItem', itemIndex });
+function standOnPet(petItemId: string): void {
+  const tile = petTile(petItemId);
+  if (!tile) throw new Error('The pet position is not available yet. Try again in a moment.');
+  sendBareCommand({ type: 'PlayerPosition', position: tile });
 }
 
 /**
  * Spends one XP Potion on a pet.
  *
- * No position is sent. This used to move the player onto the pet's tile first, on the belief that
- * the potion needed it - the game's own client sends nothing but the pet id, and the reducer both
- * sides run looks the pet up by id and spends the tool without reference to where anyone is
- * standing. The move was not only unnecessary, it made the potion unusable whenever the pet's
- * position had not arrived yet.
+ * The player is moved onto the pet's tile first, which the server requires. The game applies the
+ * catalog xpAmount, so no value is sent.
  */
 export async function useXpPotion(petItemId: string): Promise<void> {
+  if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
   if (!await ensureToolReady('XPPotion')) throw new Error('No XP Potion is available to use.');
-  selectTool('XPPotion');
+  standOnPet(petItemId);
   sendQuinoaCommand({ type: 'XPPotion', petItemId });
 }
 
-/** Fills a pet's hunger with one Hunger Potion. No position, for the reason above. */
+/** Fills a pet's hunger with one Hunger Potion. Same standing requirement as the XP Potion. */
 export async function useReplenishPotion(petItemId: string): Promise<void> {
+  if (!petTile(petItemId)) throw new Error('The pet position is not available yet. Try again in a moment.');
   if (!await ensureToolReady('ReplenishPotion')) throw new Error('No Hunger Potion is available to use.');
-  selectTool('ReplenishPotion');
+  standOnPet(petItemId);
   sendQuinoaCommand({ type: 'ReplenishPotion', petItemId });
 }

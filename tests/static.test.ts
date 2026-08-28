@@ -201,10 +201,10 @@ assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);')
 // numbered where it is built. One that goes out through the socket is numbered there instead, and
 // neither is numbered twice - a burned number leaves a gap the server will not recover from.
 assert.match(gameConnectionSource, /activeSocket\.send\(JSON\.stringify\(frame\)\);/, 'a command must leave by the socket, or it misses the one place a sequence is stamped');
-assert.match(petsSource, /selectTool\('ReplenishPotion'\);\s+sendQuinoaCommand\(\{ type: 'ReplenishPotion'/, 'the potion must be put in hand before it is used, or the server refuses it');
-assert.match(petsSource, /selectTool\('XPPotion'\);\s+sendQuinoaCommand\(\{ type: 'XPPotion'/, 'the potion must be put in hand before it is used, or the server refuses it');
-const fetchedAt = petsSource.indexOf("ensureToolReady('ReplenishPotion')");
-assert.ok(fetchedAt >= 0 && fetchedAt < petsSource.indexOf("selectTool('ReplenishPotion')"), 'the tool is selected by its loose inventory index, so it must be fetched from the Tool Shack first');
+assert.match(petsSource, /standOnPet\(petItemId\);\s+sendQuinoaCommand\(\{ type: 'ReplenishPotion'/, 'the server refuses a potion unless the player is standing on the pet');
+assert.match(petsSource, /standOnPet\(petItemId\);\s+sendQuinoaCommand\(\{ type: 'XPPotion'/, 'the server refuses a potion unless the player is standing on the pet');
+const replenishBody = petsSource.split('export async function useReplenishPotion')[1] || '';
+assert.ok(replenishBody.indexOf("ensureToolReady('ReplenishPotion')") < replenishBody.indexOf('standOnPet(petItemId);'), 'the pet walks while a potion is fetched, so its tile must be read after the fetch, not before');
 assert.ok(!/commandSequence/.test(gameConnectionSource.split('export function sendQuinoaCommand')[1] || ''), 'a command numbered where it is built runs a second counter beside the one the game keeps, and the two pick the same numbers');
 assert.ok(!gameConnectionSource.includes('Number.isFinite(Number(frame.commandSequence))'), 'skipping an already numbered command leaves the game choosing its own, which is the second counter again');
 assert.match(plantDragSource, /requestId,\s*command: \{ type: 'PotPlant', slot, plantItemId \}/, 'potting a plant sets its own sequence instead of being stamped');
@@ -1622,9 +1622,10 @@ for (const [file, source] of [
 ]) {
   assert.doesNotMatch(source, /(?<!sendQuinoa)[^A-Za-z]send\(\{ type: '/, `${file} sends a bare command the game now wraps`);
 }
-// Neither potion sends a position any more: the reducer both sides run looks the pet up by id and
-// spends the tool, and the game's own client sends nothing but the pet id.
-assert.doesNotMatch(petsSource, /PlayerPosition/, 'a potion moves the player again, which the game does not require');
+// Both potions send a position again. The reducer's silence about position was read as proof the
+// server did not care, but the reducer is only the client's prediction - the server refuses a
+// potion unless the player stands on the pet, exactly as the game's own handler does.
+assert.match(petsSource, /sendBareCommand\(\{ type: 'PlayerPosition', position: tile \}\);/, 'a potion is spent without standing on the pet, which the server refuses');
 assert.doesNotMatch(petsSource, /send\(\{ type: '(XPPotion|ReplenishPotion)'/, 'a potion is sent bare while the game wraps it');
 
 // Build 1039 added the Tool Shack, which sells in the Tool shop like the other storage buildings -

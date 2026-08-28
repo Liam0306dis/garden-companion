@@ -976,19 +976,43 @@
     }
     return false;
   }
-  function selectTool(toolId) {
-    const itemIndex = looseItems().findIndex((item) => item?.itemType === "Tool" && item.toolId === toolId);
-    if (itemIndex < 0) return;
-    sendBareCommand({ type: "SetSelectedItem", itemIndex });
+  function petTileFromMotion(motion) {
+    if (!motion || typeof motion !== "object") return null;
+    const value = motion;
+    const round = (tile) => {
+      const point = tile;
+      const x = Number(point?.x), y = Number(point?.y);
+      return Number.isFinite(x) && Number.isFinite(y) ? { x: Math.round(x), y: Math.round(y) } : null;
+    };
+    if (value.kind === "idle") return round(value.at);
+    if (value.kind === "walking" && Array.isArray(value.path) && value.path.length) {
+      const step = Number(value.stepDurationMs) || 0;
+      const started = Number(value.startedAtMs) || 0;
+      const elapsed = Math.max(0, Date.now() - started);
+      const index = step > 0 ? Math.min(value.path.length - 1, Math.floor(elapsed / step)) : 0;
+      return round(value.path[index]);
+    }
+    return null;
+  }
+  function petTile(petItemId) {
+    const infos = state.slot?.petSlotInfos;
+    return petTileFromMotion(infos?.[petItemId]?.motion);
+  }
+  function standOnPet(petItemId) {
+    const tile = petTile(petItemId);
+    if (!tile) throw new Error("The pet position is not available yet. Try again in a moment.");
+    sendBareCommand({ type: "PlayerPosition", position: tile });
   }
   async function useXpPotion(petItemId) {
+    if (!petTile(petItemId)) throw new Error("The pet position is not available yet. Try again in a moment.");
     if (!await ensureToolReady("XPPotion")) throw new Error("No XP Potion is available to use.");
-    selectTool("XPPotion");
+    standOnPet(petItemId);
     sendQuinoaCommand({ type: "XPPotion", petItemId });
   }
   async function useReplenishPotion(petItemId) {
+    if (!petTile(petItemId)) throw new Error("The pet position is not available yet. Try again in a moment.");
     if (!await ensureToolReady("ReplenishPotion")) throw new Error("No Hunger Potion is available to use.");
-    selectTool("ReplenishPotion");
+    standOnPet(petItemId);
     sendQuinoaCommand({ type: "ReplenishPotion", petItemId });
   }
 
