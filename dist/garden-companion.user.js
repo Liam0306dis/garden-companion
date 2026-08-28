@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.32
+// @version      0.8.33
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
