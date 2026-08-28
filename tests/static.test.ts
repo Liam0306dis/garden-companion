@@ -1603,6 +1603,7 @@ assert.match(planterPotSelectionSource, /lastSelectedItemId !== 'PlanterPot'\) r
 // a flag the client sets - without it every create reads as an edit of a team that does not exist.
 assert.match(petTeamsSource, /const isCreate = !teamId;/, 'a created pet team is not marked as a create, so the reducer discards it');
 assert.match(petTeamsSource, /teamId: teamId \?\? crypto\.randomUUID\(\), isCreate/, 'the id of a new team is left to the server, which no longer assigns one');
+assert.match(petTeamsSource, /const ownedPetIds = new Set\(allPets\(\)\.map\(pet => pet\.id\)\);[\s\S]*?filter\(petId => ownedPetIds\.has\(petId\)\)/, 'a sold pet still counts towards the team size when editing, leaving a slot unusable');
 
 // Selecting is two things at once since 1029: an atom the interface reads and an index sent to the
 // server. Restoring only the atom leaves them disagreeing, which shows as nothing in hand.

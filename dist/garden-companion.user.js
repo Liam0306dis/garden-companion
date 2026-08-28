@@ -4485,7 +4485,8 @@ ${eggs.map(eggCard).join("")}`;
   function openTeamPicker(teamId) {
     const team = teamId ? teams().find((entry) => entry.id === teamId) ?? null : null;
     editingTeamId = team?.id ?? null;
-    teamPickerSelection = new Set(team?.members.map((member) => member.petId) ?? []);
+    const ownedPetIds = new Set(allPets().map((pet) => pet.id));
+    teamPickerSelection = new Set((team?.members ?? []).map((member) => member.petId).filter((petId) => ownedPetIds.has(petId)));
     teamPickerEmblem = team?.emblem ?? null;
     teamPickerEmblemKind = teamPickerEmblem?.type ?? "number";
     document.getElementById("gc-team-picker")?.remove();

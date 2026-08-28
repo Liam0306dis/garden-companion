@@ -184,7 +184,11 @@ function refreshEmblemUi(picker: HTMLElement): void {
 export function openTeamPicker(teamId: string | null | undefined): void {
   const team = teamId ? teams().find(entry => entry.id === teamId) ?? null : null;
   editingTeamId = team?.id ?? null;
-  teamPickerSelection = new Set(team?.members.map(member => member.petId) ?? []);
+  // Only the pets still owned. A sold pet stays in the saved team - the cards render it as an empty
+  // slot - and seeding it here left it selected but with no row to untick, so it counted towards the
+  // team size and left one fewer pet pickable than the team has room for.
+  const ownedPetIds = new Set(allPets().map(pet => pet.id));
+  teamPickerSelection = new Set((team?.members ?? []).map(member => member.petId).filter(petId => ownedPetIds.has(petId)));
   teamPickerEmblem = team?.emblem ?? null;
   teamPickerEmblemKind = teamPickerEmblem?.type ?? 'number';
   document.getElementById('gc-team-picker')?.remove();
