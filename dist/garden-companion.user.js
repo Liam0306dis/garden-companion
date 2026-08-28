@@ -580,20 +580,20 @@
     const executed = Number(executedCommandSequence);
     if (Number.isFinite(executed)) sequence = executed + 1;
   }
-  function nextCommandSequence() {
-    return sequence < 0 ? -1 : sequence++;
-  }
   function renumberOutgoingCommand(data) {
     if (sequence < 0 || typeof data !== "string" || !data.includes("QuinoaCommand")) return data;
     try {
       const frame = JSON.parse(data);
       if (frame?.type !== "QuinoaCommand") return data;
-      if (Number.isFinite(Number(frame.commandSequence))) return data;
       frame.commandSequence = sequence++;
       return JSON.stringify(frame);
     } catch {
       return data;
     }
+  }
+  var activeSocket = null;
+  function noteGameSocket(socket) {
+    activeSocket = socket;
   }
   var commandListeners = /* @__PURE__ */ new Set();
   function onOutgoingCommand(listener) {
@@ -614,20 +614,11 @@
     } catch {
     }
   }
-  function send(command) {
-    const connection = page.MagicCircle_RoomConnection;
-    if (!connection || typeof connection.sendMessage !== "function") throw new Error("The game connection is not ready.");
-    connection.sendMessage({ scopePath: ["Room", "Quinoa"], ...command });
-  }
   function sendQuinoaCommand(command) {
     const requestId = crypto.randomUUID();
-    const commandSequence = nextCommandSequence();
-    send({
-      type: "QuinoaCommand",
-      requestId,
-      ...commandSequence >= 0 ? { commandSequence } : {},
-      command
-    });
+    const frame = { scopePath: ["Room", "Quinoa"], type: "QuinoaCommand", requestId, command };
+    if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error("The game connection is not ready.");
+    activeSocket.send(JSON.stringify(frame));
     return requestId;
   }
 
@@ -5187,6 +5178,7 @@ ${eggs.map(eggCard).join("")}`;
       if (event.code === 4710 || event.reason.toLowerCase() === "version expired") handleGameUpdateDetected("WebSocket");
     }
     function guardOutgoingHarvests(socket) {
+      noteGameSocket(socket);
       const originalSend = socket.send;
       socket.send = function(data) {
         const blocked = blockOutgoingHarvest(data);

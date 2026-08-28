@@ -1,4 +1,3 @@
-import { page } from './page.js';
 
 /**
  * The QuinoaCommand envelope carries a commandSequence, and the server rejects the whole message as
@@ -25,29 +24,29 @@ export function seedCommandSequence(executedCommandSequence: unknown): void {
   if (Number.isFinite(executed)) sequence = executed + 1;
 }
 
-/** The next number, or -1 before the Welcome frame has said where to start. */
-export function nextCommandSequence(): number {
-  return sequence < 0 ? -1 : sequence++;
-}
-
 /**
- * Stamps an outgoing frame that has no sequence of its own.
+ * Stamps every outgoing command, the game's own included, overwriting the number it chose.
  *
- * Only the frames that need it. A command sent through the game's own connection never reaches this
- * - it does not go out through the socket send we wrap - so those are numbered where they are built
- * instead, and numbering them twice would burn a number and leave the gap the server refuses to
- * recover from. A frame that already carries a sequence is either one of those or one of the game's,
- * and both are already right.
+ * Overwriting looks wrong and is the whole point. The game's counter cannot see the numbers we take,
+ * so leaving its own frames alone means two counters both handing out numbers - which shows up as
+ * one command carrying a number the other counter still thinks is free. Taking the choice away from
+ * it entirely leaves one chooser, and the run stays contiguous.
  */
 export function renumberOutgoingCommand(data: unknown): unknown {
   if (sequence < 0 || typeof data !== 'string' || !data.includes('QuinoaCommand')) return data;
   try {
     const frame = JSON.parse(data) as Record<string, unknown>;
     if (frame?.type !== 'QuinoaCommand') return data;
-    if (Number.isFinite(Number(frame.commandSequence))) return data;
     frame.commandSequence = sequence++;
     return JSON.stringify(frame);
   } catch { return data; }
+}
+
+/** The socket the game is using, kept so our commands can leave by the same door as everything else. */
+let activeSocket: WebSocket | null = null;
+
+export function noteGameSocket(socket: WebSocket): void {
+  activeSocket = socket;
 }
 
 type CommandListener = (command: Record<string, unknown>) => void;
@@ -78,32 +77,19 @@ export function noteOutgoingCommand(data: unknown): void {
   } catch { /* not a frame we can read */ }
 }
 
-/** Sends a message on the game's own room connection, so the server sees it as the player acting. */
-export function send(command: Record<string, unknown>): void {
-  const connection = page.MagicCircle_RoomConnection;
-  if (!connection || typeof connection.sendMessage !== 'function') throw new Error('The game connection is not ready.');
-  connection.sendMessage({ scopePath: ['Room', 'Quinoa'], ...command });
-}
-
 /**
- * The sequence is left off deliberately: it is stamped on the way out, so that one counter covers
- * our commands and the game's alike.
- */
-/**
- * Numbered here rather than on the way out.
+ * Sent down the socket rather than through the game's connection, and with no sequence of its own.
  *
- * This goes through the game's own connection, which does not pass the socket send we wrap - so the
- * stamp that covers everything else never reached it, and the command left with no sequence at all.
- * The server refuses one without a number.
+ * Both halves of that matter. sendMessage does not pass the socket send we wrap, so a command sent
+ * that way left with no sequence at all and the server refused it; numbering it here instead fixed
+ * that but set a second counter running beside the game's, and the two started picking the same
+ * numbers. Going out through the socket puts our commands past the single stamp, which is the only
+ * arrangement where two senders never collide.
  */
 export function sendQuinoaCommand(command: Record<string, unknown>): string {
   const requestId = crypto.randomUUID();
-  const commandSequence = nextCommandSequence();
-  send({
-    type: 'QuinoaCommand',
-    requestId,
-    ...(commandSequence >= 0 ? { commandSequence } : {}),
-    command,
-  });
+  const frame = { scopePath: ['Room', 'Quinoa'], type: 'QuinoaCommand', requestId, command };
+  if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error('The game connection is not ready.');
+  activeSocket.send(JSON.stringify(frame));
   return requestId;
 }

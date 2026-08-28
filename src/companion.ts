@@ -11,7 +11,7 @@ import { ABILITY_DETAILS, GRANTER_CHANCES, KOFI_URL, LUNAR_MINIMISED_KEY, LUNAR_
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms, showAlarmBanner, stopAlarm } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
-import { noteOutgoingCommand, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
+import { noteGameSocket, noteOutgoingCommand, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
 import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -114,6 +114,7 @@ export function initCompanion(): void {
    * optimistic harvest; a refusal delivered now settles it immediately and lets the game tidy up.
    */
   function guardOutgoingHarvests(socket: WebSocket): void {
+    noteGameSocket(socket);
     const originalSend = socket.send;
     socket.send = function(data: Parameters<WebSocket['send']>[0]) {
       const blocked = blockOutgoingHarvest(data);
