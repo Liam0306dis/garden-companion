@@ -58,6 +58,9 @@ export interface GardenTile {
   objectType?: string;
   species?: string;
   decorId?: string;
+  /** Set on a Crystal tile: which one, and how long it has left to run. */
+  crystalType?: string;
+  remainingActiveSeconds?: number;
   rotation?: number;
   mountedCrop?: { id: string; species: string; itemType: string; scale: number; mutations: string[] };
   slots?: PlantSlot[];
@@ -105,7 +108,7 @@ export interface PlayerData {
     pets?: Record<string, { variantsLogged?: Array<{ variant?: string; createdAt?: number }>; abilitiesLogged?: Array<{ ability?: string; createdAt?: number }> }>;
   };
   inventory?: { items?: Pet[]; storages?: InventoryStorage[] };
-  garden?: { tileObjects?: Record<string, GardenTile> };
+  garden?: { tileObjects?: Record<string, GardenTile>; boardwalkTileObjects?: Record<string, GardenTile> };
 }
 
 export interface PlayerSlot {

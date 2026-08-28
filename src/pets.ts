@@ -315,6 +315,26 @@ export function allActivePetsStarving(): boolean {
   return pets.length > 0 && pets.every(petIsStarving);
 }
 
+/**
+ * The strength every pet is currently lent by a crystal on the farm.
+ *
+ * A Strength Crystal adds a flat ten while it runs, and the game applies it the same way we do -
+ * `(strength + bonus) / 100` - so it is added to the figure rather than to a multiplier, and it is
+ * not capped at a pet's own maximum. Crystals sit on the boardwalk as readily as the dirt, and stop
+ * counting the moment their timer runs out, which is why both maps are read and the seconds checked.
+ *
+ * The same table lends a Hunger Crystal a 0.9 hunger rate and an XP Crystal a 1.1 XP rate. Those are
+ * not applied here; only strength is.
+ */
+export function crystalStrengthBonus(): number {
+  const garden = state.slot?.data?.garden;
+  const tiles = [...Object.values(garden?.tileObjects || {}), ...Object.values(garden?.boardwalkTileObjects || {})];
+  const active = tiles.some(tile => tile?.objectType === 'Crystal'
+    && tile.crystalType === 'Strength'
+    && Number(tile.remainingActiveSeconds) > 0);
+  return active ? 10 : 0;
+}
+
 export function petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null {
   const info = PET_CATALOG[pet?.petSpecies || ''];
   if (!pet) return null;
@@ -325,8 +345,11 @@ export function petMetrics(pet: Pet | undefined): { strength: number; maxStrengt
   const levelProgress = Math.min(30, Math.floor(Number(pet.xp ?? 0) / xpPerLevel));
   const strength = maxStrength - 30 + levelProgress;
   const xpIntoLevel = Number(pet.xp ?? 0) % xpPerLevel;
+  // Levelling is measured against the pet's own strength. A crystal lends strength without earning
+  // any, so counting it here would report a pet as nearly maxed while the crystal was up and put
+  // the estimate back the moment it expired.
   const xpToMax = strength >= maxStrength ? 0 : xpPerLevel - xpIntoLevel + xpPerLevel * (maxStrength - strength - 1);
-  return { strength, maxStrength, xpPerLevel, xpToMax };
+  return { strength: strength + crystalStrengthBonus(), maxStrength, xpPerLevel, xpToMax };
 }
 
 const XP_ABILITY_REGISTRY: Record<string, { baseChance: number; baseXp: number }> = {

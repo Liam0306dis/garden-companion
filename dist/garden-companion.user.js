@@ -905,6 +905,12 @@
     const pets = activePets().filter((pet) => pet?.id);
     return pets.length > 0 && pets.every(petIsStarving);
   }
+  function crystalStrengthBonus() {
+    const garden = state.slot?.data?.garden;
+    const tiles = [...Object.values(garden?.tileObjects || {}), ...Object.values(garden?.boardwalkTileObjects || {})];
+    const active = tiles.some((tile) => tile?.objectType === "Crystal" && tile.crystalType === "Strength" && Number(tile.remainingActiveSeconds) > 0);
+    return active ? 10 : 0;
+  }
   function petMetrics(pet) {
     const info = PET_CATALOG[pet?.petSpecies || ""];
     if (!pet) return null;
@@ -916,7 +922,7 @@
     const strength = maxStrength - 30 + levelProgress;
     const xpIntoLevel = Number(pet.xp ?? 0) % xpPerLevel;
     const xpToMax = strength >= maxStrength ? 0 : xpPerLevel - xpIntoLevel + xpPerLevel * (maxStrength - strength - 1);
-    return { strength, maxStrength, xpPerLevel, xpToMax };
+    return { strength: strength + crystalStrengthBonus(), maxStrength, xpPerLevel, xpToMax };
   }
   var XP_ABILITY_REGISTRY = {
     PetXpBoost: { baseChance: 30, baseXp: 300 },
@@ -7074,12 +7080,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     const storedPets = runtime.slot?.data?.inventory?.storages?.flatMap((storage) => storage.items?.filter((item) => item.itemType === "Pet") ?? []) ?? [];
     const availablePets = [...activePets2, ...inventoryPets, ...storedPets];
     function petStrength2(pet) {
-      const info = PET_CATALOG[pet.petSpecies];
-      if (!info?.maxScale || !info.hoursToMature) return 87;
-      const xpPerLevel = Math.floor(3600 * info.hoursToMature / 30);
-      const xp = Math.min(Math.floor(Number(pet.xp ?? 0) / xpPerLevel), 30);
-      const scale = Math.floor((Number(pet.targetScale ?? 1) - 1) / (info.maxScale - 1) * 20 + 80) - 30;
-      return Math.max(0, Math.min(100, xp + scale));
+      return petMetrics(pet)?.strength ?? 87 + crystalStrengthBonus();
     }
     function addEta(mutation, ability, chance, missing, total, countOnly = false) {
       const abilities = Array.isArray(ability) ? ability : [ability];

@@ -1,6 +1,6 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
 import { MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
-import { mutationSprite, onSpritesReady, produceSprite } from '../pets.js';
+import { crystalStrengthBonus, mutationSprite, onSpritesReady, petMetrics, produceSprite } from '../pets.js';
 import { toast } from '../toast.js';
 import { NAME_OVERRIDES, NUMBER_LOCALE } from '../utils.js';
 
@@ -687,13 +687,16 @@ function calculateStats(
   const storedPets = runtime.slot?.data?.inventory?.storages?.flatMap(storage => storage.items?.filter(item => item.itemType === 'Pet') ?? []) ?? [];
   const availablePets = [...activePets, ...inventoryPets, ...storedPets];
 
+  /**
+   * The shared figure, rather than a second copy of the same arithmetic.
+   *
+   * This used to repeat petMetrics' formula, which meant a Strength Crystal's ten had to be added in
+   * two places and either could be forgotten. petMetrics returns null for a pet whose catalog entry
+   * cannot give a strength, which is what the stand-in below is for - and it carries the crystal's
+   * bonus itself, so the stand-in has to as well.
+   */
   function petStrength(pet: (typeof activePets)[number]): number {
-    const info = PET_CATALOG[pet.petSpecies];
-    if (!info?.maxScale || !info.hoursToMature) return 87;
-    const xpPerLevel = Math.floor(3600 * info.hoursToMature / 30);
-    const xp = Math.min(Math.floor(Number(pet.xp ?? 0) / xpPerLevel), 30);
-    const scale = Math.floor(((Number(pet.targetScale ?? 1) - 1) / (info.maxScale - 1)) * 20 + 80) - 30;
-    return Math.max(0, Math.min(100, xp + scale));
+    return petMetrics(pet as unknown as Parameters<typeof petMetrics>[0])?.strength ?? 87 + crystalStrengthBonus();
   }
 
   function addEta(mutation: string, ability: string | string[], chance: number, missing: number, total: number | null, countOnly = false): void {

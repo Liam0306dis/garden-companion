@@ -1657,6 +1657,12 @@ assert.match(petsSource, /export function shackToolCount/, 'nothing reads the To
 assert.match(petsSource, /return looseToolCount\(toolId\) \+ shackToolCount\(toolId\);/, 'the total no longer covers both places');
 // The game refuses a retrieval at a hundred loose slots unless the tool stacks onto one already out.
 assert.match(petsSource, /return items\.length \+ \(stacks \? 0 : 1\) \+ reserveSlots <= INVENTORY_SLOTS;/, 'a retrieval is sent without checking the inventory can take it');
+// A Strength Crystal lends every pet ten while it runs. The game adds it to the strength figure and
+// caps nothing, so it must survive the overview's own clamp and stay out of the levelling estimate.
+assert.match(petsSource, /return \{ strength: strength \+ crystalStrengthBonus\(\), maxStrength/, 'the crystal bonus is missing from the strength every calculation reads');
+assert.match(petsSource, /tile\.crystalType === 'Strength'\s*&& Number\(tile\.remainingActiveSeconds\) > 0/, 'an expired crystal still counts, or another crystal type is mistaken for one');
+assert.match(petsSource, /boardwalkTileObjects/, 'a crystal on the boardwalk is not seen');
+assert.match(overviewSource, /return petMetrics\(pet as unknown as Parameters<typeof petMetrics>\[0\]\)\?\.strength/, 'the overview keeps its own copy of the strength formula, so a change has to be made twice');
 // Potting hands back a Plant, which stacks onto nothing, so the pot and the plant each need a slot.
 assert.match(plantDragSource, /ensureToolReady\('PlanterPot', 1, 1\)/, 'the potted plant is not given a slot of its own');
 // The index is left off so the game appends and a stackable tool merges into the stack it has.
