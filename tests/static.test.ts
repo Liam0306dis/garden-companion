@@ -695,7 +695,11 @@ assert.doesNotMatch(companionSource, /Object\.entries\(details\?\.baseParameters
 // that the catalog carries them - PetXpBoost is continuous, with a probability and a bonusXp.
 assert.match(built, /PetXpBoost: \{ name: "[^"]*", trigger: "continuous", baseProbability: 30, baseParameters: \{ bonusXp: 300 \} \}/, 'the ability catalog no longer carries the xp values the rate is read from');
 assert.match(built, /PetXpBoostII: \{ name: "[^"]*", trigger: "continuous", baseProbability: 35, baseParameters: \{ bonusXp: 400 \} \}/, 'the ability catalog no longer carries the xp values the rate is read from');
-assert.doesNotMatch(companionSource.slice(companionSource.indexOf('function teamXpPerHour'), companionSource.indexOf('function formatEstimate')), /baseParameters\?\.bonusXp/, 'maximum-strength estimates still count unrelated bundle XP abilities');
+// Superseded. This used to forbid reading bonusXp out of the catalog at all, because doing so swept
+// in abilities that grant XP without being a rate. Reading it is now how every tier is found, and
+// the trigger check below is what excludes those - so the rule is stated there rather than here,
+// where it had come to pass only because the read sits in a helper just above the slice.
+assert.match(petsSource, /if \(baseXp <= 0 \|\| baseChance <= 0\) return null;/, 'an ability with no probability or no bonus xp is counted as a rate');
 assert.match(companionSource, /xpToMax \/ xpRate \* 3600/, 'time until maximum pet strength missing');
 assert.match(companionSource, /function teamXpPerHour\(pets: Pet\[\]\)/, 'active-team XP ability calculation is missing');
 assert.match(companionSource.slice(companionSource.indexOf('function teamXpPerHour'), companionSource.indexOf('function formatEstimate')), /if \(pet\.hunger <= 0\) continue;/, 'hungry pets still contribute XP ability bonuses');
