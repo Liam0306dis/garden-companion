@@ -358,6 +358,16 @@ export function crystalHungerRateMultiplier(): number {
   return activeCrystalTypes().has('Hunger') ? .9 : 1;
 }
 
+/**
+ * How much faster active pets earn XP while an XP Crystal is up.
+ *
+ * The game states it plainly - "Active pets gain XP 10% faster" - so it multiplies the rate whole
+ * rather than any one source of it. Applied to the team's rate for that reason, not to each ability.
+ */
+export function crystalXpRateMultiplier(): number {
+  return activeCrystalTypes().has('XP') ? 1.1 : 1;
+}
+
 export function petMetrics(pet: Pet | undefined): { strength: number; maxStrength: number; xpPerLevel: number; xpToMax: number } | null {
   const info = PET_CATALOG[pet?.petSpecies || ''];
   if (!pet) return null;
@@ -397,7 +407,7 @@ export function teamXpPerHour(pets: Pet[]): number {
       if (xpAbility) total += abilityXpPerHour(strength, xpAbility.baseChance, xpAbility.baseXp);
     }
   }
-  return total;
+  return total * crystalXpRateMultiplier();
 }
 
 export function formatEstimate(seconds: number): string {

@@ -1674,6 +1674,10 @@ assert.match(petsSource, /boardwalkTileObjects/, 'a crystal on the boardwalk is 
 // Boost, rather than added to the bar's lifetime.
 assert.match(petsSource, /export function crystalHungerRateMultiplier\(\): number \{\s*return activeCrystalTypes\(\)\.has\('Hunger'\) \? \.9 : 1;/, 'the hunger crystal is ignored, or applied as something other than a rate');
 assert.match(petsSource, /\* crystalHungerRateMultiplier\(\) \/ \(minutes \* 60\);/, 'the hunger crystal never reaches the drain, so every hunger timer is short');
+// The game states the XP crystal as a flat 10% on what active pets gain, so it multiplies the
+// team's rate rather than any single ability's contribution.
+assert.match(petsSource, /return activeCrystalTypes\(\)\.has\('XP'\) \? 1\.1 : 1;/, 'the xp crystal is ignored, or applied at the wrong rate');
+assert.match(petsSource, /return total \* crystalXpRateMultiplier\(\);/, 'the xp crystal never reaches the team rate, so time to max strength is overstated');
 assert.match(overviewSource, /return petMetrics\(pet as unknown as Parameters<typeof petMetrics>\[0\]\)\?\.strength/, 'the overview keeps its own copy of the strength formula, so a change has to be made twice');
 // The turtle timer kept a third copy of the strength formula, with the catalog's numbers written out
 // by hand, so the crystal bonus never reached it.

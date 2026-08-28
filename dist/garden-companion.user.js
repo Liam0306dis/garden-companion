@@ -922,6 +922,9 @@
   function crystalHungerRateMultiplier() {
     return activeCrystalTypes().has("Hunger") ? 0.9 : 1;
   }
+  function crystalXpRateMultiplier() {
+    return activeCrystalTypes().has("XP") ? 1.1 : 1;
+  }
   function petMetrics(pet) {
     const info = PET_CATALOG[pet?.petSpecies || ""];
     if (!pet) return null;
@@ -955,7 +958,7 @@
         if (xpAbility) total += abilityXpPerHour(strength, xpAbility.baseChance, xpAbility.baseXp);
       }
     }
-    return total;
+    return total * crystalXpRateMultiplier();
   }
   function formatEstimate(seconds) {
     if (!Number.isFinite(seconds) || seconds <= 0) return "Ready";
