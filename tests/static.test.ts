@@ -974,6 +974,17 @@ assert.match(calculatorsSource, /data-granter-effect="\$\{index\}"/, 'the per pe
 // roll tables rather than listed - except the two the server hands out at hatch, which belong to no
 // species and would otherwise be hidden along with them.
 assert.match(constantsSource, /export const SERVER_ASSIGNED_ABILITIES = new Set\(\['GoldGranter', 'RainbowGranter'\]\);/, 'the granters the server assigns are treated as unreleased and hidden');
+// Hunger duration is not in the bundle - the game drains it server side - so this table is observed
+// and hand written. A pet missing from it has no hunger estimate at all, which is silent, so every
+// pet the catalog knows about has to be in it.
+{
+  const petIds = [...built.matchAll(/(\w+): \{ name: "[^"]*", maxHunger:/g)].map(m => m[1]);
+  const hungerBlock = built.match(/HUNGER_MINUTES\w* = \{([\s\S]*?)\}/)?.[1] ?? '';
+  const timed = new Set([...hungerBlock.matchAll(/(\w+): \d+/g)].map(m => m[1]));
+  assert.ok(petIds.length > 0, 'no pets were found in the built catalog, so this check proves nothing');
+  const missing = petIds.filter(id => !timed.has(id));
+  assert.deepEqual(missing, [], `pets with no hunger duration: ${missing.join(', ')}`);
+}
 assert.match(constantsSource, /if \(!tables\) return new Set<string>\(\);/, 'a catalog with no roll tables hides every ability instead of none');
 assert.match(calculatorsSource, /&& !UNREACHABLE_ABILITIES\.has\(id\)\)/, 'the planner offers abilities no pet can have');
 assert.match(calculatorsSource, /refreshGranterEffects\(main\);\s*updateGranterResults\(main\);/, 'the effect lines do not follow the sliders or the crystal toggle');

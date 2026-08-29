@@ -298,7 +298,10 @@
     ThunderWolf: 60,
     Butterfly: 30,
     Peacock: 60,
-    Capybara: 60
+    Capybara: 60,
+    Rooster: 60,
+    RedFox: 45,
+    Phoenix: 90
   };
   var KOFI_URL = "https://ko-fi.com/liam0306";
   var MAX_PET_TEAMS = 25;
