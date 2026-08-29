@@ -151,19 +151,64 @@ function plantRows(): { rows: string; have: number; total: number } {
  * appear in more than one egg (Horse is in both the Dawn and Horse eggs), so the first egg in this
  * order claims it. WinterEgg is the old name for what is now SnowEgg, so only SnowEgg is listed.
  */
-const EGG_ORDER = ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'SnowEgg', 'DawnEgg', 'HorseEgg', 'MythicalEgg', 'ThunderEgg'];
+const EGG_ORDER = ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'SnowEgg', 'DawnEgg', 'HorseEgg', 'MythicalEgg', 'ThunderEgg', 'AmberEgg'];
+
+/**
+ * Where a pet is listed when more than one egg's table contains it.
+ *
+ * The Horse Egg was an event egg. It ended on 2026-03-01 and is sold nowhere, though people still
+ * hold them, so it keeps its group - a Pony comes from nothing else. Both of the pets it shares are
+ * listed with the egg that still gives them: the Fire Horse with the Amber Egg, the Horse with the
+ * Dawn Egg.
+ *
+ * Named here rather than derived. The egg carries an expiryDate in the bundle, but it sits behind
+ * the spawn weights among other optional fields, and reading it reliably costs more than stating the
+ * one case it would decide.
+ */
+const PET_EGG_HOME: Record<string, string> = { FireHorse: 'AmberEgg', Horse: 'DawnEgg' };
+
+/**
+ * The listed order first, then any egg the catalog has that this file has not been told about.
+ *
+ * The order is curated because it is the progression the game shows, but an egg missing from it used
+ * to drop its whole hatch list into Other - which is where the Amber Egg's pets went. Appending the
+ * rest means a new egg lands in its own group the moment a bundle is captured.
+ *
+ * An egg whose hatch list matches one already shown is skipped: SnowEgg and WinterEgg are two ids
+ * for the same egg, and both would otherwise draw the same three pets twice.
+ */
+function eggGroupOrder(): string[] {
+  const order = EGG_ORDER.filter(eggId => EGG_CATALOG[eggId]);
+  const seen = new Set(order.map(eggId => Object.keys(EGG_CATALOG[eggId]?.spawnWeights || {}).sort().join('|')));
+  for (const eggId of Object.keys(EGG_CATALOG)) {
+    if (order.includes(eggId)) continue;
+    const key = Object.keys(EGG_CATALOG[eggId]?.spawnWeights || {}).sort().join('|');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    order.push(eggId);
+  }
+  return order;
+}
 
 function petRows(): { rows: string; have: number; total: number } {
   const journal = journalSection('pets');
-  const claimed = new Set<string>();
   let have = 0;
   let counted = 0;
+  /**
+   * Species already counted. A pet can hatch from more than one egg - a Fire Horse comes from both
+   * the Horse Egg and the Amber Egg - so it is shown under each of them and tallied once, or the
+   * totals would climb with every egg that happens to share a pet.
+   */
+  const tallied = new Set<string>();
 
   const renderSpecies = (name: string) => {
     const entry = journal[name];
     const logged = loggedAt(entry);
-    have += PET_VARIANTS.filter(variant => logged.has(variant)).length;
-    counted += 1;
+    if (!tallied.has(name)) {
+      tallied.add(name);
+      have += PET_VARIANTS.filter(variant => logged.has(variant)).length;
+      counted += 1;
+    }
     const abilities = [...new Set((entry?.abilitiesLogged || []).map(row => row?.ability).filter(Boolean) as string[])];
     const extra = `<span class="gc-journal-abilities">${abilities.length
       ? abilityChips(abilities)
@@ -187,18 +232,21 @@ function petRows(): { rows: string; have: number; total: number } {
     species.map(renderSpecies).join(''),
   );
 
-  const groups = EGG_ORDER.map(eggId => {
+  const hatchable = new Set<string>();
+  const groups = eggGroupOrder().map(eggId => {
     const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
     // Most likely first, which is the order the game shows a hatch table in.
     const species = Object.keys(weights)
-      .filter(name => PET_CATALOG[name] && !claimed.has(name))
+      .filter(name => PET_CATALOG[name] && (PET_EGG_HOME[name] ?? eggId) === eggId)
       .sort((left, right) => (weights[right] || 0) - (weights[left] || 0));
-    for (const name of species) claimed.add(name);
+    for (const name of species) hatchable.add(name);
+    for (const name of Object.keys(weights)) if (PET_CATALOG[name] && EGG_CATALOG[PET_EGG_HOME[name] ?? '']) hatchable.add(name);
     return group(EGG_CATALOG[eggId]?.name || humanize(eggId), eggId, species);
   }).join('');
 
+  // Only what no egg hatches at all - a pet from an egg we know about belongs under that egg.
   const rest = Object.keys(PET_CATALOG)
-    .filter(name => !claimed.has(name))
+    .filter(name => !hatchable.has(name))
     .sort((left, right) => rarityRank(PET_CATALOG[left]?.rarity) - rarityRank(PET_CATALOG[right]?.rarity) || (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));
 
   const rows = groups + group('Other', '', rest);

@@ -1098,6 +1098,17 @@ assert.match(companionSource, /\['journal', 'Journal'\]/, 'the Journal tab is mi
 assert.match(journalSource, /'Normal', 'Wet', 'Chilled', 'Frozen', 'Dawnlit', 'Ambershine', 'Thunderstruck',/, 'journal produce variants do not match the game');
 assert.match(journalSource, /const PET_VARIANTS = \['Normal', 'Gold', 'Rainbow', 'Max Weight'\]/, 'journal pet variants do not match the game');
 assert.match(journalSource, /MUTATION_CATALOG\[variant\]\?\.name \|\| variant/, 'the journal shows internal mutation ids rather than their in-game names');
+// An egg missing from the curated order used to drop its whole hatch list into Other, which is where
+// the Amber Egg's pets went. And a pet from two eggs is shown under both, but counted once.
+assert.match(journalSource, /'ThunderEgg', 'AmberEgg'\]/, 'the amber egg is missing from the journal order, so its pets fall into Other');
+assert.match(journalSource, /if \(order\.includes\(eggId\)\) continue;/, 'an egg the catalog gains is not given a group of its own');
+assert.match(journalSource, /if \(!key \|\| seen\.has\(key\)\) continue;/, 'two ids for one egg draw the same pets twice');
+assert.match(journalSource, /if \(!tallied\.has\(name\)\) \{/, 'a pet from two eggs is counted twice in the journal total');
+assert.match(journalSource, /\.filter\(name => !hatchable\.has\(name\)\)/, 'Other still claims pets that an egg hatches');
+// The Horse Egg ended and is sold nowhere, so its Fire Horse is listed with the Amber Egg. The
+// Pony has no other source, which is why that group stays rather than being dropped outright.
+assert.match(journalSource, /const PET_EGG_HOME: Record<string, string> = \{ FireHorse: 'AmberEgg', Horse: 'DawnEgg' \};/, 'a pet the retired horse egg shares is listed under it again');
+assert.match(journalSource, /\(PET_EGG_HOME\[name\] \?\? eggId\) === eggId/, 'a pet pinned to one egg is still drawn under every egg that lists it');
 
 assert.match(shopAlarmsSource, /if \(previous !== undefined && seconds > previous\) restocked\.add\(shop\)/, 'shop restocks are not detected from the countdown');
 assert.match(shopAlarmsSource, /restocked\.has\(row\.shop\)/, 'an always-stocked item never re-alarms on restock');
