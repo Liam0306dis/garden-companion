@@ -76,6 +76,8 @@
 .gc-note { margin:0 0 12px;color:var(--gc-muted);font-size:11px; }
 .gc-list,.gc-stack { display:flex;flex-direction:column;gap:7px; }
 .gc-toggle,.gc-check { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft);cursor:pointer; }
+/* Sits under the ability hint, so it needs clearing from it. */
+.gc-granter-crystal { margin-top:10px; }
 .gc-toggle:hover,.gc-check:hover,.gc-card:hover { border-color:rgba(255,255,255,.13); }
 .gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }
 .gc-toggle b,.gc-check b { color:#e4e4e7;font-size:12px; }

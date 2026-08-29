@@ -340,8 +340,12 @@ function activeCrystalTypes(): Set<string> {
   return types;
 }
 
+/** What a Strength Crystal lends every pet while it runs. Shared so the granter planner, which
+ *  reckons the same bonus without one being placed, cannot drift from what the game gives. */
+export const STRENGTH_CRYSTAL_BONUS = 10;
+
 export function crystalStrengthBonus(): number {
-  return activeCrystalTypes().has('Strength') ? 10 : 0;
+  return activeCrystalTypes().has('Strength') ? STRENGTH_CRYSTAL_BONUS : 0;
 }
 
 /**

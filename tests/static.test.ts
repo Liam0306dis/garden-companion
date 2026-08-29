@@ -959,6 +959,13 @@ assert.match(companionSource, /const DUST_RARITY: Record<string, number> = \{ Co
 assert.match(companionSource, /hatch >= 50 \? 1 : hatch > 10 \? 2 : 5/, 'dust hatch multiplier does not match the calculator');
 assert.match(companionSource, /weights\.set\(species, weight\)/, 'hatch chances are not derived from the egg catalog');
 assert.match(calculatorsSource, /function hatchWeights\(\): Map<string, number>/, 'hatch chances are frozen at load, so a new egg is not counted');
+// The granter planner can reckon a Strength Crystal without one being placed, to compare an ability
+// with it and without. The bonus goes on top of the slider and is not clamped, since the game does
+// not cap it either - a maxed pet really does roll at 110.
+assert.match(calculatorsSource, /granterBaseStrength\(index, pets\) \+ \(granterCrystal \? STRENGTH_CRYSTAL_BONUS : 0\)/, 'the granter planner cannot model a strength crystal');
+assert.match(calculatorsSource, /const strength = granterBaseStrength\(index, pets\);/, 'the slider shows the boosted strength, so moving it would fold the crystal in twice');
+assert.match(calculatorsSource, /data-granter-crystal/, 'the strength crystal toggle is missing from the granter tab');
+assert.match(petsSource, /export const STRENGTH_CRYSTAL_BONUS = 10;/, 'the crystal bonus is written out twice and can drift');
 assert.match(companionSource, /Math\.floor\(dustMultiplier\(pet\.petSpecies, pet\.mutations \|\| \[\]\) \* Number\(pet\.targetScale \|\| 1\)\)/, 'pet dust does not use the pets own size');
 assert.match(companionSource, /1 - Math\.pow\(1 - \(ability \? ability\.probability \* granterStrengthFor\(index, pets\) \/ 100 : 0\) \/ 100, 1 \/ 60\)/, 'granter per-second chance does not match the calculator');
 assert.match(companionSource, /function updateGranterResults\(main: HTMLElement\)/, 'granter sliders redraw the whole panel mid-drag');
@@ -1673,7 +1680,7 @@ assert.match(petsSource, /return items\.length \+ \(stacks \? 0 : 1\) \+ reserve
 // caps nothing, so it must survive the overview's own clamp and stay out of the levelling estimate.
 assert.match(petsSource, /return \{ strength: strength \+ crystalStrengthBonus\(\), maxStrength/, 'the crystal bonus is missing from the strength every calculation reads');
 assert.match(petsSource, /if \(tile\?\.objectType !== 'crystal' \|\| Number\(tile\.remainingActiveSeconds\) <= 0\) continue;/, 'the crystal tile is matched with the wrong casing or an expired one still counts - objectType is lower case, crystalType is not');
-assert.match(petsSource, /return activeCrystalTypes\(\)\.has\('Strength'\) \? 10 : 0;/, 'the strength crystal is no longer read from the active crystal types');
+assert.match(petsSource, /return activeCrystalTypes\(\)\.has\('Strength'\) \? STRENGTH_CRYSTAL_BONUS : 0;/, 'the strength crystal is no longer read from the active crystal types');
 assert.match(petsSource, /boardwalkTileObjects/, 'a crystal on the boardwalk is not seen');
 // A Hunger Crystal slows the drain by a tenth. It belongs on the rate, beside the team's own Hunger
 // Boost, rather than added to the bar's lifetime.

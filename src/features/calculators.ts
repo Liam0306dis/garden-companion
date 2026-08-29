@@ -5,7 +5,7 @@ import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { activePets, allPets, mutationSprite, petDiet, petMetrics, petSprite, produceSprite } from '../pets.js';
+import { activePets, allPets, crystalStrengthBonus, mutationSprite, petDiet, petMetrics, petSprite, produceSprite, STRENGTH_CRYSTAL_BONUS } from '../pets.js';
 import { state } from '../state.js';
 import { escapeHtml, formatDuration, humanize, NUMBER_LOCALE } from '../utils.js';
 
@@ -87,6 +87,11 @@ let dustSearch = '';
 let granterAbility = 'RainbowGranter';
 const granterStrengths: Array<number | null> = [null, null, null];
 const granterEnabled = [true, true, true];
+/**
+ * Whether to reckon the strengths with a Strength Crystal down. Off by default so the sliders mean
+ * what they say; the point is to be able to flip it and see what the ability is worth either way.
+ */
+let granterCrystal = false;
 const foodSlots: Array<{ species: string; food: string } | null> = [null, null, null];
 
 const CALCULATOR_TABS = [['dust', 'Dust'], ['value', 'Crop Value'], ['food', 'Food'], ['granter', 'Granters']];
@@ -216,6 +221,10 @@ export function setDustSelection(petIds: string[]): void {
 }
 
 /** Switching ability drops any hand-set Strengths, since they described the previous ability. */
+export function setGranterCrystal(on: boolean): void {
+  granterCrystal = on;
+}
+
 export function selectGranterAbility(ability: string): void {
   granterAbility = ability;
   granterStrengths[0] = granterStrengths[1] = granterStrengths[2] = null;
@@ -340,9 +349,19 @@ function granterPets(ability: string): Pet[] {
     .slice(0, 3);
 }
 
-function granterStrengthFor(index: number, pets: Pet[]): number {
+/** The pet's own strength, before any crystal - which is what the slider shows and sets. */
+function granterBaseStrength(index: number, pets: Pet[]): number {
   const pet = pets[index] as Pet | undefined;
   return granterStrengths[index] ?? (pet ? petMetrics(pet)?.maxStrength : undefined) ?? 100;
+}
+
+/**
+ * What the ability actually rolls at. The crystal's ten is added on top of the slider rather than
+ * folded into it, and deliberately not clamped to a hundred: the game adds the bonus to the
+ * strength figure without a ceiling, so a maxed pet really does roll at 110.
+ */
+function granterStrengthFor(index: number, pets: Pet[]): number {
+  return granterBaseStrength(index, pets) + (granterCrystal ? STRENGTH_CRYSTAL_BONUS : 0);
 }
 
 function granterRows(): string {
@@ -350,7 +369,7 @@ function granterRows(): string {
   return [0, 1, 2].map(index => {
     const pet = pets[index];
     const name = pet ? pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies) : `Pet ${index + 1}`;
-    const strength = granterStrengthFor(index, pets);
+    const strength = granterBaseStrength(index, pets);
     const source = pet ? `${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location || '')}` : 'Not owned - set a Strength to plan ahead';
     const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
     return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div></div>`;
@@ -363,9 +382,17 @@ function renderGranterCalculator(): string {
   if (ability) granterAbility = ability.id;
   const select = options.map(option => `<option value="${escapeHtml(option.id)}" ${option.id === granterAbility ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('');
   return `<p class="gc-note">The three strongest pets you own with this ability are filled in automatically. Any ability can be planned without owning a pet for it by setting the Strength sliders yourself.</p>
-<section class="gc-card"><h3>Ability</h3><select class="gc-calc-select" data-granter-ability>${select}</select><p class="gc-calc-hint" data-granter-hint>${granterHint()}</p></section>
+<section class="gc-card"><h3>Ability</h3><select class="gc-calc-select" data-granter-ability>${select}</select><p class="gc-calc-hint" data-granter-hint>${granterHint()}</p>
+<label class="gc-check gc-granter-crystal"><input type="checkbox" data-granter-crystal ${granterCrystal ? 'checked' : ''}><span><b>Strength Crystal</b><small>${escapeHtml(crystalNote())}</small></span></label></section>
 <section class="gc-card"><h3>Pets</h3><div class="gc-granter-list">${granterRows()}</div></section>
 <section class="gc-card"><h3>Combined</h3><div data-granter-results>${granterResults()}</div></section>`;
+}
+
+/** Says what the toggle is worth, and whether one is actually down, so the two are not confused. */
+function crystalNote(): string {
+  const placed = crystalStrengthBonus() > 0;
+  return `+${STRENGTH_CRYSTAL_BONUS} STR to every pet while one is placed`
+    + (placed ? ' - you have one running now' : '');
 }
 
 function granterHint(): string {
@@ -405,6 +432,11 @@ export function updateGranterSection(main: HTMLElement): void {
 }
 
 export function bindGranterRows(main: HTMLElement): void {
+  const crystalToggle = main.querySelector<HTMLInputElement>('[data-granter-crystal]');
+  if (crystalToggle) crystalToggle.onchange = () => {
+    setGranterCrystal(crystalToggle.checked);
+    updateGranterResults(main);
+  };
   main.querySelectorAll<HTMLInputElement>('[data-granter-on]').forEach(input => input.onchange = () => {
     granterEnabled[Number(input.dataset.granterOn)] = input.checked;
     input.closest('.gc-granter-row')?.setAttribute('data-active', String(input.checked));
