@@ -55,6 +55,35 @@ export const ABILITY_SET = new Set(TRACKED_ABILITY_CATALOG);
 export const ABILITY_GROUP_BY_ID = new Map<string, string>();
 for (const [label, abilities] of ABILITY_GROUPS) for (const ability of abilities) ABILITY_GROUP_BY_ID.set(ability, label);
 
+/**
+ * Abilities the server can hand to any pet at hatch, so they belong to no species' roll table.
+ *
+ * Without this they would read as unreleased content and be hidden, which would take the two most
+ * valuable granters out of the planner.
+ */
+export const SERVER_ASSIGNED_ABILITIES = new Set(['GoldGranter', 'RainbowGranter']);
+
+/**
+ * Abilities that exist in the catalog but no pet can roll - the unreleased tiers, mostly the IIIs.
+ *
+ * Derived rather than listed, so a tier that ships is offered the moment a bundle is captured and
+ * nothing has to be remembered. A species with no scraped roll table is skipped rather than treated
+ * as rolling nothing, so a pattern that stops matching hides the whole catalog rather than silently
+ * hiding half of it.
+ */
+export const UNREACHABLE_ABILITIES = (() => {
+  const rollable = new Set<string>();
+  let tables = 0;
+  for (const pet of Object.values(PET_CATALOG)) {
+    if (!pet.abilities?.length) continue;
+    tables++;
+    for (const ability of pet.abilities) rollable.add(ability);
+  }
+  if (!tables) return new Set<string>();
+  return new Set(ABILITY_CATALOG.filter(ability =>
+    !rollable.has(ability) && !SERVER_ASSIGNED_ABILITIES.has(ability)));
+})();
+
 export const ABILITY_FILTER_OPTIONS: Array<{ key: string; label: string; abilities: readonly string[] }> = [
   ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
   // Only the ones this build's catalog actually has. An ability can be listed here before the game

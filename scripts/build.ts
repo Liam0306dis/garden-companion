@@ -15,7 +15,7 @@ interface BundleCatalogs {
   source: string;
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
-  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string }>;
+  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string ; abilities: string[] }>;
   plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxScale: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds: Record<string, number> }>;
   abilityColours: Record<string, string>;
@@ -56,6 +56,11 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
         // pet entry is matched with or without it.
         const petMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{(?:sprite:[A-Za-z_$]+\.Pet\.([A-Za-z][A-Za-z0-9_]+),)?name:`([^`]+)`,coinsToFullyReplenishHunger:([0-9.e+-]+),innateAbilityWeights:\{[^}]*\},maxScale:([0-9.e+-]+),.*?hoursToMature:([0-9.e+-]+),rarity:[A-Za-z_$]+\.([A-Za-z]+).{0,300}?diet:\[([^\]]*)\]/g)];
         if (!petMatches.length) continue;
+        // Which abilities each species can roll at hatch. Captured separately rather than by adding
+        // a group to the pet pattern above, which would renumber every field that follows it.
+        const petAbilityWeights = new Map([...bundle.matchAll(
+          /([A-Za-z][A-Za-z0-9_]+):\{(?:sprite:[A-Za-z_$]+\.Pet\.[A-Za-z][A-Za-z0-9_]+,)?name:`[^`]+`,coinsToFullyReplenishHunger:[0-9.e+-]+,innateAbilityWeights:\{([^}]*)\}/g)]
+          .map(match => [match[1], [...match[2].matchAll(/([A-Za-z][A-Za-z0-9_]*):/g)].map(entry => entry[1])]));
         const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?maxScale:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
         // The pity block follows the weights closely, and is captured with a tight bound rather
@@ -70,6 +75,7 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
           hoursToMature: Number(match[6]),
           rarity: match[7],
           diet: [...match[8].matchAll(/`([^`]+)`/g)].map(entry => entry[1]),
+          abilities: petAbilityWeights.get(match[1]) ?? [],
         }]));
         const plantRows = plantMatches.map(match => {
           const plantBlock = match[3];

@@ -1,6 +1,6 @@
 declare const __ABILITY_CATALOG__: string[];
 declare const __ABILITY_DETAILS__: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
-declare const __PET_CATALOG__: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet?: string[]; rarity?: string }>;
+declare const __PET_CATALOG__: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet?: string[]; rarity?: string ; abilities?: string[] }>;
 declare const __PLANT_CATALOG__: Record<string, { crop: { name?: string; baseSellPrice: number; baseWeight: number; maxScale: number; sprite?: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots?: number; regrows?: boolean; rarity?: string; slotSpecies?: string[]; component?: boolean }>;
 declare const __ABILITY_COLOURS__: Record<string, string>;
 declare const __MUTATION_CATALOG__: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;

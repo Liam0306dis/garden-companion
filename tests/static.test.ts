@@ -970,6 +970,12 @@ assert.match(calculatorsSource, /data-granter-crystal/, 'the strength crystal to
 // panel. It is shared now, and each pet row says what its own proc is worth at its own strength.
 assert.match(calculatorsSource, /abilityEffectText\(granterAbility, granterStrengthFor\(index, pets\), details\?\.trigger, details\?\.baseParameters\)/, 'the granter rows show a chance without ever saying what it is a chance of');
 assert.match(calculatorsSource, /data-granter-effect="\$\{index\}"/, 'the per pet effect line is missing from the granter rows');
+// The catalog carries tiers no pet can roll yet. They are hidden from the planner, derived from the
+// roll tables rather than listed - except the two the server hands out at hatch, which belong to no
+// species and would otherwise be hidden along with them.
+assert.match(constantsSource, /export const SERVER_ASSIGNED_ABILITIES = new Set\(\['GoldGranter', 'RainbowGranter'\]\);/, 'the granters the server assigns are treated as unreleased and hidden');
+assert.match(constantsSource, /if \(!tables\) return new Set<string>\(\);/, 'a catalog with no roll tables hides every ability instead of none');
+assert.match(calculatorsSource, /&& !UNREACHABLE_ABILITIES\.has\(id\)\)/, 'the planner offers abilities no pet can have');
 assert.match(calculatorsSource, /refreshGranterEffects\(main\);\s*updateGranterResults\(main\);/, 'the effect lines do not follow the sliders or the crystal toggle');
 assert.ok(companionSource.includes("import { abilityEffectText } from './ability-effect.js';"), 'the panel defines its own effect wording again, where the calculator cannot reach it');
 assert.match(petsSource, /export const STRENGTH_CRYSTAL_BONUS = 10;/, 'the crystal bonus is written out twice and can drift');

@@ -1,6 +1,6 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, HUNGER_MINUTES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { abilityEffectText } from '../ability-effect.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
@@ -338,7 +338,11 @@ function renderDustCalculator(): string {
 
 function granterOptions(): Array<{ id: string; label: string; probability: number }> {
   return Object.entries(ABILITY_DETAILS)
-    .filter(([id, details]) => typeof details.baseProbability === 'number' && !EXCLUDED_TRACKED_ABILITIES.has(id))
+    // Nothing no pet can have: the catalog carries unreleased tiers, and offering them to plan with
+    // is offering a pet that cannot exist.
+    .filter(([id, details]) => typeof details.baseProbability === 'number'
+      && !EXCLUDED_TRACKED_ABILITIES.has(id)
+      && !UNREACHABLE_ABILITIES.has(id))
     .map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability as number }))
     .sort((left, right) => left.label.localeCompare(right.label));
 }
