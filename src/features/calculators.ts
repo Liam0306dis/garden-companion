@@ -1,6 +1,7 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, HUNGER_MINUTES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { abilityEffectText } from '../ability-effect.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
@@ -364,6 +365,12 @@ function granterStrengthFor(index: number, pets: Pet[]): number {
   return granterBaseStrength(index, pets) + (granterCrystal ? STRENGTH_CRYSTAL_BONUS : 0);
 }
 
+/** The selected ability's effect at one pet's strength, crystal included. */
+function granterEffectText(index: number, pets: Pet[]): string {
+  const details = ABILITY_DETAILS[granterAbility];
+  return abilityEffectText(granterAbility, granterStrengthFor(index, pets), details?.trigger, details?.baseParameters);
+}
+
 function granterRows(): string {
   const pets = granterPets(granterAbility);
   return [0, 1, 2].map(index => {
@@ -372,7 +379,10 @@ function granterRows(): string {
     const strength = granterBaseStrength(index, pets);
     const source = pet ? `${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location || '')}` : 'Not owned - set a Strength to plan ahead';
     const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
-    return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div></div>`;
+    // What this pet's proc is actually worth, at its own strength and with the crystal if it is on.
+    // The chance alone says how often something happens without ever saying what.
+    const effect = granterEffectText(index, pets);
+    return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div><p class="gc-granter-effect" data-granter-effect="${index}">${escapeHtml(effect)}</p></div>`;
   }).join('');
 }
 
@@ -415,6 +425,14 @@ function granterResults(): string {
   return `<div class="gc-calc-grid"><div><small>Chance per minute</small><b>${perMinute.toFixed(2)}%</b></div><div><small>Average wait</small><b>${formatDuration(1000 / combined)}</b></div><div><small>95% within</small><b>${formatDuration(-Math.log(1 - .95) / combined * 1000)}</b></div><div><small>99% within</small><b>${formatDuration(-Math.log(1 - .99) / combined * 1000)}</b></div></div>`;
 }
 
+/** Redraws the per-pet effect lines, which move with the sliders and with the crystal toggle. */
+function refreshGranterEffects(main: HTMLElement): void {
+  const pets = granterPets(granterAbility);
+  main.querySelectorAll<HTMLElement>('[data-granter-effect]').forEach(node => {
+    node.textContent = granterEffectText(Number(node.dataset.granterEffect), pets);
+  });
+}
+
 export function updateGranterResults(main: HTMLElement): void {
   const container = main.querySelector<HTMLElement>('[data-granter-results]');
   if (container) container.innerHTML = granterResults();
@@ -435,6 +453,7 @@ export function bindGranterRows(main: HTMLElement): void {
   const crystalToggle = main.querySelector<HTMLInputElement>('[data-granter-crystal]');
   if (crystalToggle) crystalToggle.onchange = () => {
     setGranterCrystal(crystalToggle.checked);
+    refreshGranterEffects(main);
     updateGranterResults(main);
   };
   main.querySelectorAll<HTMLInputElement>('[data-granter-on]').forEach(input => input.onchange = () => {
@@ -447,6 +466,7 @@ export function bindGranterRows(main: HTMLElement): void {
     granterStrengths[index] = Number(input.value);
     const label = main.querySelector(`[data-granter-value="${index}"]`);
     if (label) label.textContent = input.value;
+    refreshGranterEffects(main);
     updateGranterResults(main);
   });
 }

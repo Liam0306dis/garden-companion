@@ -20,6 +20,7 @@ const companionSource = (await Promise.all([
   ['src', 'companion.ts'],
   ['src', 'constants.ts'],
   ['src', 'config.ts'],
+  ['src', 'ability-effect.ts'],
   ['src', 'state.ts'],
   ['src', 'utils.ts'],
   ['src', 'page.ts'],
@@ -965,6 +966,12 @@ assert.match(calculatorsSource, /function hatchWeights\(\): Map<string, number>/
 assert.match(calculatorsSource, /granterBaseStrength\(index, pets\) \+ \(granterCrystal \? STRENGTH_CRYSTAL_BONUS : 0\)/, 'the granter planner cannot model a strength crystal');
 assert.match(calculatorsSource, /const strength = granterBaseStrength\(index, pets\);/, 'the slider shows the boosted strength, so moving it would fold the crystal in twice');
 assert.match(calculatorsSource, /data-granter-crystal/, 'the strength crystal toggle is missing from the granter tab');
+// The granter tab used to show only a proc chance, because the wording lived in a closure inside the
+// panel. It is shared now, and each pet row says what its own proc is worth at its own strength.
+assert.match(calculatorsSource, /abilityEffectText\(granterAbility, granterStrengthFor\(index, pets\), details\?\.trigger, details\?\.baseParameters\)/, 'the granter rows show a chance without ever saying what it is a chance of');
+assert.match(calculatorsSource, /data-granter-effect="\$\{index\}"/, 'the per pet effect line is missing from the granter rows');
+assert.match(calculatorsSource, /refreshGranterEffects\(main\);\s*updateGranterResults\(main\);/, 'the effect lines do not follow the sliders or the crystal toggle');
+assert.ok(companionSource.includes("import { abilityEffectText } from './ability-effect.js';"), 'the panel defines its own effect wording again, where the calculator cannot reach it');
 assert.match(petsSource, /export const STRENGTH_CRYSTAL_BONUS = 10;/, 'the crystal bonus is written out twice and can drift');
 assert.match(companionSource, /Math\.floor\(dustMultiplier\(pet\.petSpecies, pet\.mutations \|\| \[\]\) \* Number\(pet\.targetScale \|\| 1\)\)/, 'pet dust does not use the pets own size');
 assert.match(companionSource, /1 - Math\.pow\(1 - \(ability \? ability\.probability \* granterStrengthFor\(index, pets\) \/ 100 : 0\) \/ 100, 1 \/ 60\)/, 'granter per-second chance does not match the calculator');

@@ -550,6 +550,44 @@
     if (config.silencedAbilities.length !== savedSilencedAbilities.length || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length || Object.keys(config.protectedSpecies).length !== Object.keys(savedProtectedSpecies).length) saveConfig();
   }
 
+  // src/ability-effect.ts
+  var GRANTER_MUTATIONS = {
+    RainDance: "Wet",
+    SnowGranter: "Chilled",
+    FrostGranter: "Frozen",
+    DawnlitGranter: "Dawnlit",
+    AmberlitGranter: "Ambershine",
+    GoldGranter: "Gold",
+    RainbowGranter: "Rainbow",
+    ThunderstruckGranter: "Thunderstruck"
+  };
+  function abilityEffectText(ability, strength, trigger, parameters) {
+    const proc = PROC_RULES[ability];
+    if (proc) return proc.effect(strength);
+    if (GRANTER_MUTATIONS[ability]) return `Applies the ${GRANTER_MUTATIONS[ability]} mutation`;
+    const values = parameters ?? {};
+    const scaled = (key) => Number(values[key] || 0) * strength / 100;
+    const percent = (value) => Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE);
+    if (values.hungerRefundPercentage != null) return `Reduces hunger depletion by ${percent(scaled("hungerRefundPercentage"))}%`;
+    if (values.hungerRestorePercentage != null) return `Restores ${percent(scaled("hungerRestorePercentage"))}% hunger per proc`;
+    if (values.mutationChanceIncreasePercentage != null) return `Mutation chance increase: +${percent(scaled("mutationChanceIncreasePercentage"))}%`;
+    if (values.scaleIncreasePercentage != null) return `Crop size increase: +${percent(scaled("scaleIncreasePercentage"))}% per proc`;
+    if (values.cropSellPriceIncreasePercentage != null) return `Sell bonus: +${percent(scaled("cropSellPriceIncreasePercentage"))}% coins`;
+    if (values.plantGrowthReductionMinutes != null) return `Growth reduction: ${scaled("plantGrowthReductionMinutes").toFixed(1)}m per proc`;
+    if (values.eggGrowthTimeReductionMinutes != null) return `Hatch reduction: ${scaled("eggGrowthTimeReductionMinutes").toFixed(1)}m per proc`;
+    if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.floor(scaled("baseMaxCoinsFindable")).toLocaleString(NUMBER_LOCALE)} per proc`;
+    if (values.bonusXp != null) return `Bonus XP: +${Math.floor(scaled("bonusXp")).toLocaleString(NUMBER_LOCALE)} per proc`;
+    if (values.maxStrengthIncreasePercentage != null) return `Max STR boost: +${percent(scaled("maxStrengthIncreasePercentage"))}%`;
+    if (values.plantAbilityChanceBoostPercentage != null) return `Active pet ability chance: +${percent(scaled("plantAbilityChanceBoostPercentage"))}%`;
+    if (values.mutationChancePerMinute != null) return `Mutation chance: ${percent(scaled("mutationChancePerMinute"))}% per minute`;
+    if (values.cooldownSeconds != null) {
+      const cooldown = values.cooldownSeconds / Math.max(strength / 100, 0.01);
+      const range = values.tileRadius != null ? ` | Range: ${values.tileRadius} tile${values.tileRadius === 1 ? "" : "s"}` : "";
+      return `Cooldown: ${formatDuration(cooldown * 1e3)}${range}`;
+    }
+    return humanize(trigger || "Effect details unavailable");
+  }
+
   // src/list-search.ts
   function bindListSearch(input) {
     if (!input) return;
@@ -1414,6 +1452,10 @@ ${groups}
   function granterStrengthFor(index, pets) {
     return granterBaseStrength(index, pets) + (granterCrystal ? STRENGTH_CRYSTAL_BONUS : 0);
   }
+  function granterEffectText(index, pets) {
+    const details = ABILITY_DETAILS[granterAbility];
+    return abilityEffectText(granterAbility, granterStrengthFor(index, pets), details?.trigger, details?.baseParameters);
+  }
   function granterRows() {
     const pets = granterPets(granterAbility);
     return [0, 1, 2].map((index) => {
@@ -1422,7 +1464,8 @@ ${groups}
       const strength = granterBaseStrength(index, pets);
       const source = pet ? `${escapeHtml(humanize(pet.petSpecies))} | ${escapeHtml(pet.location || "")}` : "Not owned - set a Strength to plan ahead";
       const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
-      return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? "checked" : ""}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div></div>`;
+      const effect = granterEffectText(index, pets);
+      return `<div class="gc-granter-row" data-active="${granterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-granter-on="${index}" ${granterEnabled[index] ? "checked" : ""}>${sprite}<span><b>${escapeHtml(name)}</b><small>${source}</small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-granter-str="${index}"><b data-granter-value="${index}">${strength}</b></div><p class="gc-granter-effect" data-granter-effect="${index}">${escapeHtml(effect)}</p></div>`;
     }).join("");
   }
   function renderGranterCalculator() {
@@ -1456,6 +1499,12 @@ ${groups}
     const perMinute = (1 - Math.pow(1 - combined, 60)) * 100;
     return `<div class="gc-calc-grid"><div><small>Chance per minute</small><b>${perMinute.toFixed(2)}%</b></div><div><small>Average wait</small><b>${formatDuration(1e3 / combined)}</b></div><div><small>95% within</small><b>${formatDuration(-Math.log(1 - 0.95) / combined * 1e3)}</b></div><div><small>99% within</small><b>${formatDuration(-Math.log(1 - 0.99) / combined * 1e3)}</b></div></div>`;
   }
+  function refreshGranterEffects(main) {
+    const pets = granterPets(granterAbility);
+    main.querySelectorAll("[data-granter-effect]").forEach((node) => {
+      node.textContent = granterEffectText(Number(node.dataset.granterEffect), pets);
+    });
+  }
   function updateGranterResults(main) {
     const container = main.querySelector("[data-granter-results]");
     if (container) container.innerHTML = granterResults();
@@ -1474,6 +1523,7 @@ ${groups}
     const crystalToggle = main.querySelector("[data-granter-crystal]");
     if (crystalToggle) crystalToggle.onchange = () => {
       setGranterCrystal(crystalToggle.checked);
+      refreshGranterEffects(main);
       updateGranterResults(main);
     };
     main.querySelectorAll("[data-granter-on]").forEach((input) => input.onchange = () => {
@@ -1486,6 +1536,7 @@ ${groups}
       granterStrengths[index] = Number(input.value);
       const label = main.querySelector(`[data-granter-value="${index}"]`);
       if (label) label.textContent = input.value;
+      refreshGranterEffects(main);
       updateGranterResults(main);
     });
   }
@@ -5391,42 +5442,6 @@ ${eggs.map(eggCard).join("")}`;
         // buttons rather than in a panel, and Stop holds until something is actually fed.
       });
     }
-    const GRANTER_MUTATIONS = {
-      RainDance: "Wet",
-      SnowGranter: "Chilled",
-      FrostGranter: "Frozen",
-      DawnlitGranter: "Dawnlit",
-      AmberlitGranter: "Ambershine",
-      GoldGranter: "Gold",
-      RainbowGranter: "Rainbow",
-      ThunderstruckGranter: "Thunderstruck"
-    };
-    function abilityEffectText(ability, strength, trigger, parameters) {
-      const proc = PROC_RULES[ability];
-      if (proc) return proc.effect(strength);
-      if (GRANTER_MUTATIONS[ability]) return `Applies the ${GRANTER_MUTATIONS[ability]} mutation`;
-      const values = parameters ?? {};
-      const scaled = (key) => Number(values[key] || 0) * strength / 100;
-      const percent = (value) => Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE);
-      if (values.hungerRefundPercentage != null) return `Reduces hunger depletion by ${percent(scaled("hungerRefundPercentage"))}%`;
-      if (values.hungerRestorePercentage != null) return `Restores ${percent(scaled("hungerRestorePercentage"))}% hunger per proc`;
-      if (values.mutationChanceIncreasePercentage != null) return `Mutation chance increase: +${percent(scaled("mutationChanceIncreasePercentage"))}%`;
-      if (values.scaleIncreasePercentage != null) return `Crop size increase: +${percent(scaled("scaleIncreasePercentage"))}% per proc`;
-      if (values.cropSellPriceIncreasePercentage != null) return `Sell bonus: +${percent(scaled("cropSellPriceIncreasePercentage"))}% coins`;
-      if (values.plantGrowthReductionMinutes != null) return `Growth reduction: ${scaled("plantGrowthReductionMinutes").toFixed(1)}m per proc`;
-      if (values.eggGrowthTimeReductionMinutes != null) return `Hatch reduction: ${scaled("eggGrowthTimeReductionMinutes").toFixed(1)}m per proc`;
-      if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.floor(scaled("baseMaxCoinsFindable")).toLocaleString(NUMBER_LOCALE)} per proc`;
-      if (values.bonusXp != null) return `Bonus XP: +${Math.floor(scaled("bonusXp")).toLocaleString(NUMBER_LOCALE)} per proc`;
-      if (values.maxStrengthIncreasePercentage != null) return `Max STR boost: +${percent(scaled("maxStrengthIncreasePercentage"))}%`;
-      if (values.plantAbilityChanceBoostPercentage != null) return `Active pet ability chance: +${percent(scaled("plantAbilityChanceBoostPercentage"))}%`;
-      if (values.mutationChancePerMinute != null) return `Mutation chance: ${percent(scaled("mutationChancePerMinute"))}% per minute`;
-      if (values.cooldownSeconds != null) {
-        const cooldown = values.cooldownSeconds / Math.max(strength / 100, 0.01);
-        const range = values.tileRadius != null ? ` | Range: ${values.tileRadius} tile${values.tileRadius === 1 ? "" : "s"}` : "";
-        return `Cooldown: ${formatDuration(cooldown * 1e3)}${range}`;
-      }
-      return humanize(trigger || "Effect details unavailable");
-    }
     function combinedAbilityRows(pets) {
       const groups = /* @__PURE__ */ new Map();
       for (const pet of pets) {
@@ -6022,6 +6037,8 @@ ${eggs.map(eggCard).join("")}`;
 .gc-toggle,.gc-check { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid var(--gc-line);border-radius:8px;background:var(--gc-soft);cursor:pointer; }\r
 /* Sits under the ability hint, so it needs clearing from it. */\r
 .gc-granter-crystal { margin-top:10px; }\r
+/* What one proc is worth, under the strength slider it follows. */\r
+.gc-granter-effect { margin:8px 0 0;font-size:11px;color:var(--gc-muted,#a1a1aa); }\r
 .gc-toggle:hover,.gc-check:hover,.gc-card:hover { border-color:rgba(255,255,255,.13); }\r
 .gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }\r
 .gc-toggle b,.gc-check b { color:#e4e4e7;font-size:12px; }\r
