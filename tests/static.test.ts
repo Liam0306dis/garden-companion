@@ -58,6 +58,7 @@ const catalogSource = await readSource('src', 'game-catalogs.ts');
 const gameAtomsSource = await readSource('src', 'game-atoms.ts');
 const calculatorsSource = await readSource('src', 'features', 'calculators.ts');
 const abilityLogSource = await readSource('src', 'features', 'ability-log.ts');
+const abilityEffectSource = await readSource('src', 'ability-effect.ts');
 const styleSource = await readSource('src', 'style.css');
 const overviewSource = await readSource('src', 'features', 'garden-overview.ts');
 const plantDragSource = await readSource('src', 'features', 'plant-drag-move.ts');
@@ -305,6 +306,15 @@ assert.match(overviewSource, /button\.hidden = Boolean\(page\.__gardenCompanionC
 assert.match(styleSource, /#gc-lunar::before[\s\S]*linear-gradient/, 'lunar timer accent line is missing');
 assert.doesNotMatch(companionSource, /slice\(0, 500\)/, 'legacy global ability history limit found');
 assert.match(overviewSource, /structureSignature/, 'overview structural refresh guard missing');
+// The XP potion button was left disabled on success and only came back on the next redraw, which is
+// the server round trip - so it sat dead about five seconds when using several in a row is the point.
+// It is re-enabled in a finally, the moment the send resolves.
+assert.match(companionSource, /await useXpPotion\(button\.dataset\.xpPotion!\);[\s\S]{0,220}\} finally \{\s*button\.disabled = false;/, 'the xp potion button stays disabled until the panel redraws');
+// The main card and its options card can each be dragged to a fixed spot independently, so without an
+// explicit order a positioned card paints over an in-flow one and the options bleed through. The
+// options card is pinned above the main card.
+assert.match(overviewSource, /\.go-card\{[^}]*z-index:1\}/, 'the overview main card has no explicit stacking order');
+assert.match(overviewSource, /\.go-config-card\{[^}]*z-index:2\}/, 'the overview options card is not pinned above the main card');
 assert.match(overviewSource, /installPlantFocus/, 'overview plant focus missing');
 assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*focus\.enabled = focusEnabled\.checked[\s\S]*refreshFocusSummary\(\)/, 'plant focus enabled checkbox must update the summary');
 // A redraw replaces the panel, so controls a keyboard can sit on must not trigger one blindly.
@@ -974,6 +984,13 @@ assert.match(calculatorsSource, /data-granter-effect="\$\{index\}"/, 'the per pe
 // roll tables rather than listed - except the two the server hands out at hatch, which belong to no
 // species and would otherwise be hidden along with them.
 assert.match(constantsSource, /export const SERVER_ASSIGNED_ABILITIES = new Set\(\['GoldGranter', 'RainbowGranter'\]\);/, 'the granters the server assigns are treated as unreleased and hidden');
+// Three mutations are shown under a name that is not their id - Ambershine is Amberlit, Ambercharged
+// is Amberbound, Dawncharged is Dawnbound - so anything printing an id prints a word the game never
+// uses. Every label goes through the catalog.
+assert.match(constantsSource, /export function mutationName\(mutation: string\): string \{\s*return MUTATION_CATALOG\[mutation\]\?\.name \|\| humanize\(mutation\);/, 'mutation names are not resolved from the catalog');
+assert.match(abilityEffectSource, /Applies the \$\{mutationName\(GRANTER_MUTATIONS\[ability\]\)\} mutation/, 'a granter prints the mutation id, which the game never shows');
+assert.match(abilityLogSource, /return mutationName\(raw\);/, 'the ability log humanises a mutation id instead of naming it');
+assert.doesNotMatch(cropCleanserSource, /id: 'Ambershine', label:/, 'the cleanser keeps its own copy of the mutation names, which can drift from the catalog');
 // Hunger duration is not in the bundle - the game drains it server side - so this table is observed
 // and hand written. A pet missing from it has no hunger estimate at all, which is silent, so every
 // pet the catalog knows about has to be in it.

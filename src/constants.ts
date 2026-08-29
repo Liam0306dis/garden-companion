@@ -231,6 +231,15 @@ export function plantName(species: string): string {
   return species.endsWith('Fruit') ? name : name.replace(/ Fruit$/, '');
 }
 
+/**
+ * What the game calls a mutation, which is often not its id: Ambershine is shown as Amberlit and
+ * Ambercharged as Amberbound, the same way Dawncharged is shown as Dawnbound. Players never see the
+ * ids, so anything printing one is printing a name that appears nowhere in the game.
+ */
+export function mutationName(mutation: string): string {
+  return MUTATION_CATALOG[mutation]?.name || humanize(mutation);
+}
+
 /** What the game calls the plant. A patch is named for the plant, since its crops disagree. */
 export function patchName(species: string): string {
   return PLANT_CATALOG[species]?.plantLabel || plantName(species);

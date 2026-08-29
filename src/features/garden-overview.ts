@@ -755,8 +755,8 @@ function injectStyles(): void {
     #${PANEL_ID}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID}[hidden]{display:none}
     #${PANEL_ID} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
-    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
-    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8)}
+    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035);z-index:1}
+    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8);z-index:2}
     #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move;touch-action:none;user-select:none}
     #${PANEL_ID} h2{flex:0 0 auto;margin:0;white-space:nowrap;font:700 14px/1.2 system-ui,sans-serif;letter-spacing:.02em}
     #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:4px}

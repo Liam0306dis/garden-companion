@@ -8,18 +8,16 @@ import { toast } from '../toast.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 
 const POSITION_KEY = 'gardenCompanion.cropCleanserPosition.v1';
+/**
+ * Ids only. The names were written beside them, which meant the same three renamed mutations were
+ * spelled out here as well as in the catalog - two places to keep right, and only one of them is
+ * what the game actually says.
+ */
 const MUTATIONS = [
-  { id: 'Wet', label: 'Wet' },
-  { id: 'Chilled', label: 'Chilled' },
-  { id: 'Frozen', label: 'Frozen' },
-  { id: 'Thunderstruck', label: 'Thunderstruck' },
-  { id: 'Thundercharged', label: 'Thundercharged' },
-  { id: 'Ambershine', label: 'Amberlit' },
-  { id: 'Dawnlit', label: 'Dawnlit' },
-  { id: 'Ambercharged', label: 'Amberbound' },
-  { id: 'Dawncharged', label: 'Dawnbound' },
+  'Wet', 'Chilled', 'Frozen', 'Thunderstruck', 'Thundercharged',
+  'Ambershine', 'Dawnlit', 'Ambercharged', 'Dawncharged',
 ] as const;
-const CLEANSEABLE = new Set<string>(MUTATIONS.map(mutation => mutation.id));
+const CLEANSEABLE = new Set<string>(MUTATIONS);
 
 interface CleanserRow {
   key: string;
@@ -145,9 +143,9 @@ function render(): void {
   if (!body) return;
   const cleaners = displayedCleanserCount;
   const rows = rowSnapshot;
-  const choices = MUTATIONS.map(mutation => {
-    const sprite = mutationSprite(mutation.id);
-    return `<button class="gc-cleanser-choice${selectedMutation === mutation.id ? ' on' : ''}" data-cleanser-mutation="${mutation.id}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}<span>${mutation.label}</span></button>`;
+  const choices = MUTATIONS.map(id => {
+    const sprite = mutationSprite(id);
+    return `<button class="gc-cleanser-choice${selectedMutation === id ? ' on' : ''}" data-cleanser-mutation="${id}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}<span>${escapeHtml(mutationLabel(id))}</span></button>`;
   }).join('');
   const tableRows = rows.map(row => {
     const mutations = row.mutations.filter(id => CLEANSEABLE.has(id));

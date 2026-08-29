@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.40
+// @version      0.8.41
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -325,6 +325,9 @@
     if (!name) return humanize(species);
     return species.endsWith("Fruit") ? name : name.replace(/ Fruit$/, "");
   }
+  function mutationName(mutation) {
+    return MUTATION_CATALOG[mutation]?.name || humanize(mutation);
+  }
   function patchName(species) {
     return PLANT_CATALOG[species]?.plantLabel || plantName(species);
   }
@@ -579,7 +582,7 @@
   function abilityEffectText(ability, strength, trigger, parameters) {
     const proc = PROC_RULES[ability];
     if (proc) return proc.effect(strength);
-    if (GRANTER_MUTATIONS[ability]) return `Applies the ${GRANTER_MUTATIONS[ability]} mutation`;
+    if (GRANTER_MUTATIONS[ability]) return `Applies the ${mutationName(GRANTER_MUTATIONS[ability])} mutation`;
     const values = parameters ?? {};
     const scaled = (key) => Number(values[key] || 0) * strength / 100;
     const percent = (value) => Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE);
@@ -2830,7 +2833,7 @@ ${groups}
     const raw = String(value ?? "Unknown");
     if (raw === "MoonCelestial" || raw === "Moon Celestial") return "Moonbinder";
     if (raw === "DawnCelestial" || raw === "Dawn Celestial") return "Dawnbinder";
-    return humanize(raw);
+    return mutationName(raw);
   }
   function payloadItemName(value) {
     if (typeof value === "string") return displayedItemName(value);
@@ -5950,8 +5953,9 @@ ${eggs.map(eggCard).join("")}`;
           await useXpPotion(button.dataset.xpPotion);
           toast("XP potion requested.", "success");
         } catch (error) {
-          button.disabled = false;
           toast(error.message, "error");
+        } finally {
+          button.disabled = false;
         }
       });
       main.querySelector("[data-open-overview]")?.addEventListener("click", () => page.__gardenCompanionToggleOverview?.());
@@ -7271,8 +7275,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     #${PANEL_ID}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
     #${PANEL_ID}[hidden]{display:none}
     #${PANEL_ID} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
-    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035)}
-    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8)}
+    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035);z-index:1}
+    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8);z-index:2}
     #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move;touch-action:none;user-select:none}
     #${PANEL_ID} h2{flex:0 0 auto;margin:0;white-space:nowrap;font:700 14px/1.2 system-ui,sans-serif;letter-spacing:.02em}
     #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:4px}
@@ -12104,17 +12108,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   // src/features/crop-cleanser-helper.ts
   var POSITION_KEY5 = "gardenCompanion.cropCleanserPosition.v1";
   var MUTATIONS = [
-    { id: "Wet", label: "Wet" },
-    { id: "Chilled", label: "Chilled" },
-    { id: "Frozen", label: "Frozen" },
-    { id: "Thunderstruck", label: "Thunderstruck" },
-    { id: "Thundercharged", label: "Thundercharged" },
-    { id: "Ambershine", label: "Amberlit" },
-    { id: "Dawnlit", label: "Dawnlit" },
-    { id: "Ambercharged", label: "Amberbound" },
-    { id: "Dawncharged", label: "Dawnbound" }
+    "Wet",
+    "Chilled",
+    "Frozen",
+    "Thunderstruck",
+    "Thundercharged",
+    "Ambershine",
+    "Dawnlit",
+    "Ambercharged",
+    "Dawncharged"
   ];
-  var CLEANSEABLE = new Set(MUTATIONS.map((mutation) => mutation.id));
+  var CLEANSEABLE = new Set(MUTATIONS);
   var selectedMutation = "";
   var rowSnapshot = [];
   var displayedCleanserCount = 0;
@@ -12217,9 +12221,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (!body) return;
     const cleaners = displayedCleanserCount;
     const rows = rowSnapshot;
-    const choices = MUTATIONS.map((mutation) => {
-      const sprite = mutationSprite(mutation.id);
-      return `<button class="gc-cleanser-choice${selectedMutation === mutation.id ? " on" : ""}" data-cleanser-mutation="${mutation.id}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}<span>${mutation.label}</span></button>`;
+    const choices = MUTATIONS.map((id) => {
+      const sprite = mutationSprite(id);
+      return `<button class="gc-cleanser-choice${selectedMutation === id ? " on" : ""}" data-cleanser-mutation="${id}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}<span>${escapeHtml(mutationLabel2(id))}</span></button>`;
     }).join("");
     const tableRows = rows.map((row) => {
       const mutations = row.mutations.filter((id) => CLEANSEABLE.has(id));

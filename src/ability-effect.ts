@@ -1,4 +1,4 @@
-import { ABILITY_DETAILS, PROC_RULES } from './constants.js';
+import { ABILITY_DETAILS, mutationName, PROC_RULES } from './constants.js';
 import { formatDuration, humanize, NUMBER_LOCALE } from './utils.js';
 
 /**
@@ -19,7 +19,10 @@ export const GRANTER_MUTATIONS: Record<string, string> = {
 export function abilityEffectText(ability: string, strength: number, trigger: string | undefined, parameters: Record<string, number> | undefined): string {
   const proc = PROC_RULES[ability];
   if (proc) return proc.effect(strength);
-  if (GRANTER_MUTATIONS[ability]) return `Applies the ${GRANTER_MUTATIONS[ability]} mutation`;
+  // The map holds the mutation's id, which is what the ability actually grants; the name is what the
+  // player is shown - printing the id read as "Applies the Ambershine mutation", a word the game
+  // never uses.
+  if (GRANTER_MUTATIONS[ability]) return `Applies the ${mutationName(GRANTER_MUTATIONS[ability])} mutation`;
   const values = parameters ?? {};
   const scaled = (key: string) => Number(values[key] || 0) * strength / 100;
   const percent = (value: number) => Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE);

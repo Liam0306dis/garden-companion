@@ -1,5 +1,5 @@
 import { feature } from '../config.js';
-import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUP_BY_ID, ABILITY_GROUPS, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS, PET_CATALOG } from '../constants.js';
+import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUP_BY_ID, ABILITY_GROUPS, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS, mutationName, PET_CATALOG } from '../constants.js';
 import { config, saveConfig } from '../config.js';
 import { allPets, petOverlay, petSpriteSource } from '../pets.js';
 import { saveAbilityLog, state, trimAbilityLogs, type AbilityLogRow } from '../state.js';
@@ -64,7 +64,10 @@ function displayedItemName(value: unknown): string {
   const raw = String(value ?? 'Unknown');
   if (raw === 'MoonCelestial' || raw === 'Moon Celestial') return 'Moonbinder';
   if (raw === 'DawnCelestial' || raw === 'Dawn Celestial') return 'Dawnbinder';
-  return humanize(raw);
+  // A mutation carries a name of its own - a granter's log line said Ambershine where the game says
+  // Amberlit, and Ambercharged where it says Amberbound. Anything else falls through to humanize
+  // inside mutationName, which is what this used to do directly.
+  return mutationName(raw);
 }
 
 function payloadItemName(value: unknown): string {

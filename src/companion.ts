@@ -915,16 +915,19 @@ export function initCompanion(): void {
     // Refreshed as the pointer arrives, so the tooltip that follows it carries current numbers even
     // though the tab itself is holding still underneath.
     main.querySelectorAll<HTMLElement>('[data-hunger-pet]').forEach(node => node.onpointerenter = () => refreshHungerDisplay(node));
-    // Disabled while it runs rather than after: taking a potion out of the Tool Shack first means
-    // this can now wait on the server, and a second press in that window spends two.
+    // Disabled only while the command is being sent, which covers the Tool Shack fetch where a
+    // second press would spend two. Re-enabled the moment the send resolves rather than waiting for
+    // the XP to come back and redraw the panel - that round trip is the ~5s the button used to sit
+    // dead for, when using several potions in a row is exactly the point.
     main.querySelectorAll<HTMLButtonElement>('[data-xp-potion]').forEach(button => button.onclick = async () => {
       button.disabled = true;
       try {
         await useXpPotion(button.dataset.xpPotion!);
         toast('XP potion requested.', 'success');
       } catch (error) {
-        button.disabled = false;
         toast((error as Error).message, 'error');
+      } finally {
+        button.disabled = false;
       }
     });
     main.querySelector('[data-open-overview]')?.addEventListener('click', () => page.__gardenCompanionToggleOverview?.());
