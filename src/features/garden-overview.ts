@@ -515,6 +515,9 @@ function escapeHtml(value: unknown): string {
  */
 function displayName(value: string): string {
   if (PLANT_CATALOG[value]) return plantName(value);
+  // A mutation carries its own display name - Ambershine shows as Amberlit - and this is reached
+  // with a mutation id from the completion alarm and the alarm-target picker, not just plant ids.
+  if (MUTATION_CATALOG[value]) return MUTATION_CATALOG[value].name;
   return NAME_OVERRIDES[value] ?? value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 

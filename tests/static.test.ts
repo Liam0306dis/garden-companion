@@ -315,6 +315,10 @@ assert.match(companionSource, /await useXpPotion\(button\.dataset\.xpPotion!\);[
 // options card is pinned above the main card.
 assert.match(overviewSource, /\.go-card\{[^}]*z-index:1\}/, 'the overview main card has no explicit stacking order');
 assert.match(overviewSource, /\.go-config-card\{[^}]*z-index:2\}/, 'the overview options card is not pinned above the main card');
+// displayName is reached with a mutation id from the completion alarm title and the alarm-target
+// picker, not only plant ids, so it must resolve the mutation's own name - the alarm read Ambershine
+// where the game says Amberlit.
+assert.match(overviewSource, /if \(MUTATION_CATALOG\[value\]\) return MUTATION_CATALOG\[value\]\.name;/, 'the completion alarm shows the mutation id instead of its name');
 assert.match(overviewSource, /installPlantFocus/, 'overview plant focus missing');
 assert.match(overviewSource, /focusEnabled\.onchange[\s\S]*focus\.enabled = focusEnabled\.checked[\s\S]*refreshFocusSummary\(\)/, 'plant focus enabled checkbox must update the summary');
 // A redraw replaces the panel, so controls a keyboard can sit on must not trigger one blindly.

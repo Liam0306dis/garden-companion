@@ -7073,6 +7073,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
   }
   function displayName(value) {
     if (PLANT_CATALOG[value]) return plantName(value);
+    if (MUTATION_CATALOG[value]) return MUTATION_CATALOG[value].name;
     return NAME_OVERRIDES[value] ?? value.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
   }
   function plantRowList(rows) {
