@@ -1,6 +1,7 @@
 import { initCatalogCapture } from './game-catalogs.js';
 import { initCompanion } from './companion.js';
 import { initAbilitySilencer } from './features/ability-silencer.js';
+import { initLevelUpSilencer } from './features/levelup-silencer.js';
 import { initGardenOverview } from './features/garden-overview.js';
 import { initGardenPlanner } from './features/garden-planner.js';
 import { initFishing } from './features/fishing.js';
@@ -17,6 +18,7 @@ import type { CompanionPage } from './types.js';
 initCatalogCapture();
 initCompanion();
 initAbilitySilencer();
+initLevelUpSilencer();
 installPetSpriteLoader();
 
 const page = window as unknown as CompanionPage;

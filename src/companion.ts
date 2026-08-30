@@ -689,7 +689,12 @@ export function initCompanion(): void {
   }
   function panelRefreshBlocked(panel: HTMLElement): boolean {
     const abilityUi = abilityLogUiState();
-    if (abilityUi.interacting || abilityUi.menuOpen || panel.contains(document.activeElement)) return true;
+    // Only a focused text field (a search box, the layout-name field, a keybind capture) must hold
+    // off a redraw, since redrawing would drop what is being typed. A focused button - most often
+    // the tab the user just clicked to reach this pane - used to count too, which left Active Pets
+    // frozen on stale strength until focus happened to leave the panel.
+    const focused = document.activeElement;
+    if (abilityUi.interacting || abilityUi.menuOpen || (isTyping() && focused && panel.contains(focused))) return true;
     if (panel.querySelector<HTMLDetailsElement>('[data-ability-filter]')?.open) return true;
     const abilityLog = activeTab === 'abilityLog' ? panel.querySelector<HTMLElement>('.gc-log') : null;
     if (abilityLog && (abilityLog.matches(':hover') || abilityLog.scrollTop > 0)) return true;
@@ -893,7 +898,7 @@ export function initCompanion(): void {
 
   function renderSilence() {
     const selected = new Set(config.silencedAbilities || []);
-    return `<p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map(ability => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? 'checked' : ''}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join('')}</div>`;
+    return `<label class="gc-toggle"><span><b>Hide pet level-up popups</b><small>Hides the "Level up!" and "Fully grown!" toasts.</small></span><input type="checkbox" data-feature="silenceLevelUps" ${feature('silenceLevelUps') ? 'checked' : ''}><i></i></label><p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map(ability => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? 'checked' : ''}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join('')}</div>`;
   }
 
   function bindTabEvents(main: HTMLElement): void {
@@ -924,6 +929,10 @@ export function initCompanion(): void {
       try {
         await useXpPotion(button.dataset.xpPotion!);
         toast('XP potion requested.', 'success');
+        // The new strength lands a moment later on a state patch, after the send round trip. A
+        // forced redraw ~1.5s on picks it up so the card shows the higher STR the potion was spent
+        // for - forced rather than the usual refresh so it lands even with the pointer over the card.
+        setTimeout(() => { if (!document.getElementById('gc-panel')?.hidden) renderPanelPreservingScroll(); }, 1500);
       } catch (error) {
         toast((error as Error).message, 'error');
       } finally {

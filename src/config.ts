@@ -31,6 +31,7 @@ export const DEFAULTS: CompanionConfig = {
   lunarTimer: true,
   abilitySilencer: true,
   silencedAbilities: [],
+  silenceLevelUps: false,
   trackedAbilities: [...ABILITY_CATALOG],
   shopAlerts: {},
   weatherAlerts: {},

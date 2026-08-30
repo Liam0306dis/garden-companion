@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.42
+// @version      0.8.43
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -519,6 +519,7 @@
     lunarTimer: true,
     abilitySilencer: true,
     silencedAbilities: [],
+    silenceLevelUps: false,
     trackedAbilities: [...ABILITY_CATALOG],
     shopAlerts: {},
     weatherAlerts: {},
@@ -5753,7 +5754,8 @@ ${eggs.map(eggCard).join("")}`;
     }
     function panelRefreshBlocked(panel3) {
       const abilityUi = abilityLogUiState();
-      if (abilityUi.interacting || abilityUi.menuOpen || panel3.contains(document.activeElement)) return true;
+      const focused = document.activeElement;
+      if (abilityUi.interacting || abilityUi.menuOpen || isTyping() && focused && panel3.contains(focused)) return true;
       if (panel3.querySelector("[data-ability-filter]")?.open) return true;
       const abilityLog = activeTab === "abilityLog" ? panel3.querySelector(".gc-log") : null;
       if (abilityLog && (abilityLog.matches(":hover") || abilityLog.scrollTop > 0)) return true;
@@ -5923,7 +5925,7 @@ ${eggs.map(eggCard).join("")}`;
     }
     function renderSilence() {
       const selected = new Set(config.silencedAbilities || []);
-      return `<p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
+      return `<label class="gc-toggle"><span><b>Hide pet level-up popups</b><small>Hides the "Level up!" and "Fully grown!" toasts.</small></span><input type="checkbox" data-feature="silenceLevelUps" ${feature("silenceLevelUps") ? "checked" : ""}><i></i></label><p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
     }
     function bindTabEvents(main) {
       main.querySelectorAll("[data-feature]").forEach((input) => input.onchange = () => {
@@ -5952,6 +5954,9 @@ ${eggs.map(eggCard).join("")}`;
         try {
           await useXpPotion(button.dataset.xpPotion);
           toast("XP potion requested.", "success");
+          setTimeout(() => {
+            if (!document.getElementById("gc-panel")?.hidden) renderPanelPreservingScroll();
+          }, 1500);
         } catch (error) {
           toast(error.message, "error");
         } finally {
@@ -6640,6 +6645,46 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       return filtered ?? value;
     };
     atom.__gardenCompanionSilencer = true;
+  }
+
+  // src/features/levelup-silencer.ts
+  function atomMap3(page3) {
+    const cache = page3.jotaiAtomCache;
+    if (cache instanceof Map) return cache;
+    return cache?.cache ?? null;
+  }
+  function initLevelUpSilencer(attempt = 0) {
+    const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+    const map = atomMap3(page3);
+    if (!map) {
+      if (attempt < 240) setTimeout(() => initLevelUpSilencer(attempt + 1), 500);
+      return;
+    }
+    const atom = [...map.values()].find((candidate) => String(candidate.debugLabel ?? "").endsWith("quinoaToastsAtom"));
+    if (!atom?.write) {
+      if (attempt < 240) setTimeout(() => initLevelUpSilencer(attempt + 1), 500);
+      return;
+    }
+    if (atom.__gardenCompanionLevelUpSilencer) return;
+    const isLevelUpToast = (entry) => {
+      const toast2 = entry;
+      return Boolean(toast2 && typeof toast2 === "object" && toast2.isStackable === true && toast2.variant === "success");
+    };
+    const originalWrite = atom.write;
+    atom.write = function(get, set, ...args) {
+      const result = originalWrite.call(this, get, set, ...args);
+      try {
+        if (page3.__gardenCompanionConfig?.()?.silenceLevelUps) {
+          const current = get(atom);
+          if (Array.isArray(current) && current.some(isLevelUpToast)) {
+            set(atom, current.filter((entry) => !isLevelUpToast(entry)));
+          }
+        }
+      } catch {
+      }
+      return result;
+    };
+    atom.__gardenCompanionLevelUpSilencer = true;
   }
 
   // src/features/garden-overview.ts
@@ -10872,7 +10917,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         }, duration);
       }
     }
-    function atomMap4() {
+    function atomMap5() {
       const cache = pageWindow.jotaiAtomCache;
       if (cache instanceof Map) return cache;
       return cache?.cache ?? null;
@@ -10880,7 +10925,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function hookAtom2(labels, onValue) {
       const wanted = Array.isArray(labels) ? labels : [labels];
       const debugLabel = wanted[0];
-      const map = atomMap4();
+      const map = atomMap5();
       if (!map || typeof map.values !== "function") return false;
       for (const atom of map.values()) {
         if (!wanted.includes(atom?.debugLabel) || typeof atom.read !== "function") continue;
@@ -11392,7 +11437,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function isEnabled() {
     return page.__gardenCompanionFeature?.("keepPlanterPotSelected") === true;
   }
-  function atomMap3() {
+  function atomMap4() {
     const cache = page.jotaiAtomCache;
     if (cache instanceof Map) return cache;
     return cache?.cache instanceof Map ? cache.cache : null;
@@ -11404,7 +11449,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return null;
   }
   function installHooks() {
-    const map = atomMap3();
+    const map = atomMap4();
     if (!map) return false;
     const selectedItemAtom = findAtom(map, "mySelectedItemIdAtom");
     const explicitItemAtom = findAtom(map, "myLastExplicitlySelectedItemIdAtom");
@@ -12591,6 +12636,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   initCatalogCapture();
   initCompanion();
   initAbilitySilencer();
+  initLevelUpSilencer();
   installPetSpriteLoader();
   var page2 = window;
   if (page2.__gardenCompanionFeature?.("overview")) initGardenOverview();

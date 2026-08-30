@@ -246,6 +246,7 @@ export interface CompanionConfig {
   lunarTimer: boolean;
   abilitySilencer: boolean;
   silencedAbilities: string[];
+  silenceLevelUps: boolean;
   trackedAbilities: string[];
   shopAlerts: Record<string, boolean>;
   weatherAlerts: Record<string, boolean>;
