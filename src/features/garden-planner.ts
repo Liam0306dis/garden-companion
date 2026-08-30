@@ -121,6 +121,45 @@ export function initGardenPlanner(): void {
     return system?.map && typeof system.updateTileData === 'function' ? system : null;
   }
 
+  // Set while the planner itself is pushing a tile, so the updateTileData hook lets our own writes
+  // through instead of treating them as a server redraw to override.
+  let applyingOwn = false;
+  // Global tile index -> planner key, so the hook can tell a server redraw of one of our tiles from
+  // any other tile the game updates. Rebuilt when the planner opens and on each poll.
+  let globalToLocal = new Map<number, string>();
+
+  function rebuildTileIndex(): void {
+    globalToLocal = new Map(Object.entries(ownTileIndexes()).map(([local, global]) => [global, local]));
+  }
+
+  /**
+   * The game redraws a tile from real server state on every state patch, which flashed the live
+   * garden over the plan until the next poll re-applied it. Wrapping updateTileData substitutes the
+   * planned tile in the same call the redraw happens, so the plan never blinks out. Our own writes
+   * (flagged by applyingOwn) and tiles that are not ours pass straight through.
+   */
+  function patchTileUpdates(): void {
+    const system = tileSystem();
+    if (!system || (system as any).__gcPlannerOriginalUpdate) return;
+    const original = system.updateTileData.bind(system) as (globalIndex: number, data: unknown) => unknown;
+    (system as any).__gcPlannerOriginalUpdate = original;
+    system.updateTileData = (globalIndex: number, data: unknown) => {
+      if (planner.open && !applyingOwn) {
+        const local = globalToLocal.get(globalIndex);
+        if (local !== undefined) return original(globalIndex, planner.tiles.get(local));
+      }
+      return original(globalIndex, data);
+    };
+  }
+
+  function unpatchTileUpdates(): void {
+    const system = systems()?.tileSystem;
+    const original = system && (system as any).__gcPlannerOriginalUpdate;
+    if (!original) return;
+    system.updateTileData = original;
+    delete (system as any).__gcPlannerOriginalUpdate;
+  }
+
   function companionState(): Record<string, any> | null {
     return (page.__gardenCompanionState as Record<string, any>) ?? null;
   }
@@ -240,7 +279,8 @@ export function initGardenPlanner(): void {
     if (!system || globalIndex === undefined) return;
     const data = planner.open ? planner.tiles.get(localIndex) : liveTiles()[localIndex];
     if (!force && system.tileViews?.get?.(globalIndex)?.tileObject === (data ?? undefined)) return;
-    try { system.updateTileData(globalIndex, data); } catch {}
+    applyingOwn = true;
+    try { system.updateTileData(globalIndex, data); } catch {} finally { applyingOwn = false; }
   }
 
   function applyAllTiles(): void {
@@ -409,6 +449,8 @@ export function initGardenPlanner(): void {
     if (planner.open || !tileSystem()) return;
     planner.open = true;
     planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === 'plant' || tile?.objectType === 'decor'));
+    rebuildTileIndex();
+    patchTileUpdates();
     applyAllTiles();
     hideNativeCardUi();
     document.body.classList.add('gc-planning');
@@ -422,6 +464,7 @@ export function initGardenPlanner(): void {
   function close(): void {
     if (!planner.open) return;
     planner.open = false;
+    unpatchTileUpdates();
     applyAllTiles();
     restoreNativeCardUi();
     document.body.classList.remove('gc-planning');
@@ -720,9 +763,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
   }
 
-  // Server patches redraw tiles from real state, so planned tiles are re-applied.
+  // The updateTileData hook keeps the plan in place synchronously; this poll is a backstop for any
+  // redraw path that bypasses it, and keeps the native card UI hidden and the tile index fresh.
   setInterval(() => {
     if (!planner.open) return;
+    rebuildTileIndex();
+    patchTileUpdates();
     applyAllTiles();
     hideNativeCardUi();
   }, 1000);

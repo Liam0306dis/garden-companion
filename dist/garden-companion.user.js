@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.41
+// @version      0.8.42
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -8214,6 +8214,31 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       const system = systems()?.tileSystem;
       return system?.map && typeof system.updateTileData === "function" ? system : null;
     }
+    let applyingOwn = false;
+    let globalToLocal = /* @__PURE__ */ new Map();
+    function rebuildTileIndex() {
+      globalToLocal = new Map(Object.entries(ownTileIndexes()).map(([local, global]) => [global, local]));
+    }
+    function patchTileUpdates() {
+      const system = tileSystem();
+      if (!system || system.__gcPlannerOriginalUpdate) return;
+      const original = system.updateTileData.bind(system);
+      system.__gcPlannerOriginalUpdate = original;
+      system.updateTileData = (globalIndex, data) => {
+        if (planner.open && !applyingOwn) {
+          const local = globalToLocal.get(globalIndex);
+          if (local !== void 0) return original(globalIndex, planner.tiles.get(local));
+        }
+        return original(globalIndex, data);
+      };
+    }
+    function unpatchTileUpdates() {
+      const system = systems()?.tileSystem;
+      const original = system && system.__gcPlannerOriginalUpdate;
+      if (!original) return;
+      system.updateTileData = original;
+      delete system.__gcPlannerOriginalUpdate;
+    }
     function companionState() {
       return page3.__gardenCompanionState ?? null;
     }
@@ -8302,9 +8327,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       if (!system || globalIndex === void 0) return;
       const data = planner.open ? planner.tiles.get(localIndex) : liveTiles()[localIndex];
       if (!force && system.tileViews?.get?.(globalIndex)?.tileObject === (data ?? void 0)) return;
+      applyingOwn = true;
       try {
         system.updateTileData(globalIndex, data);
       } catch {
+      } finally {
+        applyingOwn = false;
       }
     }
     function applyAllTiles() {
@@ -8440,6 +8468,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       if (planner.open || !tileSystem()) return;
       planner.open = true;
       planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === "plant" || tile?.objectType === "decor"));
+      rebuildTileIndex();
+      patchTileUpdates();
       applyAllTiles();
       hideNativeCardUi();
       document.body.classList.add("gc-planning");
@@ -8452,6 +8482,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     function close() {
       if (!planner.open) return;
       planner.open = false;
+      unpatchTileUpdates();
       applyAllTiles();
       restoreNativeCardUi();
       document.body.classList.remove("gc-planning");
@@ -8705,6 +8736,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     setInterval(() => {
       if (!planner.open) return;
+      rebuildTileIndex();
+      patchTileUpdates();
       applyAllTiles();
       hideNativeCardUi();
     }, 1e3);
