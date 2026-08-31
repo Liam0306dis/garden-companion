@@ -18,8 +18,8 @@ export const WEATHER_SHOP_KEY = { id: 'weatherShop', label: 'Weather shop' };
 
 /**
  * The weather shop is whichever one the running weather spawned, so a single keybind maps the
- * current weather to its shop. Weathers with no shop of their own (plain Rain) map to nothing and
- * the key does nothing. Keys are the game's own weather ids (Frost shows in game as Snow).
+ * current weather to its shop. Any weather not listed here (or none running) maps to nothing and the
+ * key does nothing. Keys are the game's own weather ids (Frost shows in game as Snow).
  */
 const WEATHER_SHOP_MODALS: Record<string, GameInterface> = {
   Frost: 'snowShop',
