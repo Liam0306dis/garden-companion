@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.43
+// @version      0.8.44
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3967,9 +3967,14 @@ ${eggs.map(eggCard).join("")}`;
     { id: "weatherStation", label: "Weather station" },
     { id: "seedShop", label: "Seed shop" },
     { id: "eggShop", label: "Egg shop" },
-    { id: "toolShop", label: "Tool shop" }
+    { id: "toolShop", label: "Tool shop" },
+    { id: "petHutch", label: "Pet hutch" },
+    { id: "decorShed", label: "Decor shed" },
+    { id: "toolShack", label: "Tool shack" },
+    { id: "seedSilo", label: "Seed silo" },
+    { id: "feedingTrough", label: "Feeding trough" }
   ];
-  var activeModalAtom = null;
+  var activeModalStateAtom = null;
   var cinematicAtom = null;
   var gameAtomSet = null;
   var wrappedAtomWrites = /* @__PURE__ */ new Map();
@@ -3982,7 +3987,7 @@ ${eggs.map(eggCard).join("")}`;
   function inspectGameAtom(key, atom) {
     if (!atom) return atom;
     const atomKey = String(key);
-    if (atomKey.endsWith("/activeModalAtom")) activeModalAtom = atom;
+    if (atomKey.endsWith("/activeModalStateAtom")) activeModalStateAtom = atom;
     if (atomKey.endsWith("/isCinematicModeAtom")) {
       cinematicAtom = atom;
       watchCinematicValue(atom);
@@ -4032,11 +4037,11 @@ ${eggs.map(eggCard).join("")}`;
     }
   }
   function openGameInterface(target) {
-    if (!activeModalAtom || !gameAtomSet) {
+    if (!activeModalStateAtom || !gameAtomSet) {
       toast("The game interface is still loading.", "error");
       return;
     }
-    gameAtomSet(activeModalAtom, target);
+    gameAtomSet(activeModalStateAtom, target);
   }
   var cinematicOwners = /* @__PURE__ */ new Set();
   var cinematicValue = false;
@@ -4800,6 +4805,14 @@ ${eggs.map(eggCard).join("")}`;
   // src/keybinds.ts
   var PLANNER_KEY = { id: "layoutPlanner", label: "Layout planner" };
   var CROP_CLEANSER_KEY = { id: "cropCleanserHelper", label: "Crop Cleanser Helper" };
+  var WEATHER_SHOP_KEY = { id: "weatherShop", label: "Weather shop" };
+  var WEATHER_SHOP_MODALS = {
+    Frost: "snowShop",
+    Thunderstorm: "thunderShop",
+    Dawn: "dawnShop",
+    AmberMoon: "amberShop",
+    Rain: "rainShop"
+  };
   var TEAM_CYCLE_KEYS = [
     { id: "teamCycleNext", label: "Next pet team", step: 1 },
     { id: "teamCyclePrevious", label: "Previous pet team", step: -1 }
@@ -4885,6 +4898,13 @@ ${eggs.map(eggCard).join("")}`;
         openGameInterface(gameInterface.id);
         return;
       }
+      if (feature("interfaceShortcuts") && config.interfaceKeybinds[WEATHER_SHOP_KEY.id] === combo) {
+        event.preventDefault();
+        event.stopPropagation();
+        const shop = WEATHER_SHOP_MODALS[currentWeather()];
+        if (shop) openGameInterface(shop);
+        return;
+      }
       if (!feature("petTeams")) return;
       if (config.interfaceKeybinds[PLANNER_KEY.id] === combo) {
         event.preventDefault();
@@ -4928,7 +4948,10 @@ ${eggs.map(eggCard).join("")}`;
     const interfaces = [
       shortcutRow("Garden Companion", 'data-interface-key="companionPanel"', config.interfaceKeybinds.companionPanel || ""),
       shortcutRow("Garden Overview", "data-overview-key", localStorage.getItem(OVERVIEW_SHORTCUT_KEY) || ""),
-      ...GAME_INTERFACES.map((item) => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || ""))
+      ...GAME_INTERFACES.flatMap((item) => {
+        const row = shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || "");
+        return item.id === "seedShop" ? [row, shortcutRow(WEATHER_SHOP_KEY.label, `data-interface-key="${WEATHER_SHOP_KEY.id}"`, config.interfaceKeybinds[WEATHER_SHOP_KEY.id] || "")] : [row];
+      })
     ].join("");
     const teamCycling = TEAM_CYCLE_KEYS.map((item) => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || "")).join("");
     const planner = shortcutRow(PLANNER_KEY.label, `data-interface-key="${PLANNER_KEY.id}"`, config.interfaceKeybinds[PLANNER_KEY.id] || "");
@@ -4954,6 +4977,7 @@ ${eggs.map(eggCard).join("")}`;
       window.removeEventListener("keydown", capture, true);
       input.removeEventListener("blur", cancel);
       if (activeCapture === cancel) activeCapture = null;
+      refreshVisibleKeybindInputs();
     };
     activeCapture = cancel;
     window.addEventListener("keydown", capture, true);

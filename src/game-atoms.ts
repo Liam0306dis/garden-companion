@@ -8,7 +8,11 @@ import { toast } from './toast.js';
  * Reading and driving the game through its own jotai atoms: mirroring the values the panel needs
  * into our state, and opening the game's shops and weather station the way its own buttons do.
  */
-export type GameInterface = 'weatherStation' | 'seedShop' | 'eggShop' | 'toolShop';
+export type GameInterface = 'weatherStation' | 'seedShop' | 'eggShop' | 'toolShop'
+  | 'petHutch' | 'decorShed' | 'toolShack' | 'seedSilo' | 'feedingTrough'
+  // Weather shops, only openable while their weather runs. Kept out of GAME_INTERFACES because one
+  // keybind opens whichever is running (see WEATHER_SHOP_KEY), rather than one row each.
+  | 'snowShop' | 'thunderShop' | 'dawnShop' | 'amberShop' | 'rainShop';
 
 function atomMap(): Map<unknown, JotaiAtom> | null {
   const cache = page.jotaiAtomCache;
@@ -21,8 +25,16 @@ export const GAME_INTERFACES: ReadonlyArray<{ id: GameInterface; label: string }
   { id: 'seedShop', label: 'Seed shop' },
   { id: 'eggShop', label: 'Egg shop' },
   { id: 'toolShop', label: 'Tool shop' },
+  { id: 'petHutch', label: 'Pet hutch' },
+  { id: 'decorShed', label: 'Decor shed' },
+  { id: 'toolShack', label: 'Tool shack' },
+  { id: 'seedSilo', label: 'Seed silo' },
+  { id: 'feedingTrough', label: 'Feeding trough' },
 ];
-let activeModalAtom: JotaiAtom | null = null;
+// The modal the game shows is read from activeModalAtom, but that is a read-only derived atom
+// (`atom(get => get(activeModalStateAtom))`); writing it throws "write is not a function". The
+// writable source is activeModalStateAtom, which the game's own open sets to the interface id.
+let activeModalStateAtom: JotaiAtom | null = null;
 let cinematicAtom: JotaiAtom | null = null;
 let gameAtomSet: ((atom: JotaiAtom, value: unknown) => unknown) | null = null;
 const wrappedAtomWrites = new Map<JotaiAtom, { original: JotaiAtom['write']; capture: JotaiAtom['write'] }>();
@@ -40,7 +52,7 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
   // out of the getter we wrapped - taking down whichever of the game's modules was mid-initialise.
   if (!atom) return atom;
   const atomKey = String(key);
-  if (atomKey.endsWith('/activeModalAtom')) activeModalAtom = atom;
+  if (atomKey.endsWith('/activeModalStateAtom')) activeModalStateAtom = atom;
   if (atomKey.endsWith('/isCinematicModeAtom')) {
     cinematicAtom = atom;
     watchCinematicValue(atom);
@@ -90,11 +102,11 @@ export function installGameModalAccess(): void {
 }
 
 export function openGameInterface(target: GameInterface): void {
-  if (!activeModalAtom || !gameAtomSet) {
+  if (!activeModalStateAtom || !gameAtomSet) {
     toast('The game interface is still loading.', 'error');
     return;
   }
-  gameAtomSet(activeModalAtom, target);
+  gameAtomSet(activeModalStateAtom, target);
 }
 
 const cinematicOwners = new Set<string>();

@@ -1,7 +1,8 @@
 import { config, feature, saveConfig } from './config.js';
 import { OVERVIEW_SHORTCUT_KEY } from './constants.js';
 import { activeTeamIds, applyPetTeam, teams } from './features/pet-teams.js';
-import { GAME_INTERFACES, openGameInterface } from './game-atoms.js';
+import { currentWeather } from './features/weather-timer.js';
+import { GAME_INTERFACES, openGameInterface, type GameInterface } from './game-atoms.js';
 import { page } from './page.js';
 import { panelActions } from './panel-actions.js';
 import { toast } from './toast.js';
@@ -13,6 +14,20 @@ import { escapeHtml } from './utils.js';
  */
 export const PLANNER_KEY = { id: 'layoutPlanner', label: 'Layout planner' };
 export const CROP_CLEANSER_KEY = { id: 'cropCleanserHelper', label: 'Crop Cleanser Helper' };
+export const WEATHER_SHOP_KEY = { id: 'weatherShop', label: 'Weather shop' };
+
+/**
+ * The weather shop is whichever one the running weather spawned, so a single keybind maps the
+ * current weather to its shop. Weathers with no shop of their own (plain Rain) map to nothing and
+ * the key does nothing. Keys are the game's own weather ids (Frost shows in game as Snow).
+ */
+const WEATHER_SHOP_MODALS: Record<string, GameInterface> = {
+  Frost: 'snowShop',
+  Thunderstorm: 'thunderShop',
+  Dawn: 'dawnShop',
+  AmberMoon: 'amberShop',
+  Rain: 'rainShop',
+};
 
 export const TEAM_CYCLE_KEYS = [
   { id: 'teamCycleNext', label: 'Next pet team', step: 1 },
@@ -105,6 +120,12 @@ function installShortcutListener(): void {
     openGameInterface(gameInterface.id);
     return;
   }
+  if (feature('interfaceShortcuts') && config.interfaceKeybinds[WEATHER_SHOP_KEY.id] === combo) {
+    event.preventDefault(); event.stopPropagation();
+    const shop = WEATHER_SHOP_MODALS[currentWeather()];
+    if (shop) openGameInterface(shop);
+    return;
+  }
   if (!feature('petTeams')) return;
   if (config.interfaceKeybinds[PLANNER_KEY.id] === combo) {
     event.preventDefault(); event.stopPropagation();
@@ -158,7 +179,13 @@ export function renderKeybinds() {
   const interfaces = [
     shortcutRow('Garden Companion', 'data-interface-key="companionPanel"', config.interfaceKeybinds.companionPanel || ''),
     shortcutRow('Garden Overview', 'data-overview-key', localStorage.getItem(OVERVIEW_SHORTCUT_KEY) || ''),
-    ...GAME_INTERFACES.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')),
+    ...GAME_INTERFACES.flatMap(item => {
+      const row = shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '');
+      // The weather shop sits directly under the seed shop, one key for whichever weather is running.
+      return item.id === 'seedShop'
+        ? [row, shortcutRow(WEATHER_SHOP_KEY.label, `data-interface-key="${WEATHER_SHOP_KEY.id}"`, config.interfaceKeybinds[WEATHER_SHOP_KEY.id] || '')]
+        : [row];
+    }),
   ].join('');
   const teamCycling = TEAM_CYCLE_KEYS.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')).join('');
   const planner = shortcutRow(PLANNER_KEY.label, `data-interface-key="${PLANNER_KEY.id}"`, config.interfaceKeybinds[PLANNER_KEY.id] || '');
@@ -185,6 +212,9 @@ export function beginKeybindCapture(input: HTMLInputElement, owner: string, prom
     window.removeEventListener('keydown', capture, true);
     input.removeEventListener('blur', cancel);
     if (activeCapture === cancel) activeCapture = null;
+    // Put the prompt text back to the stored combo, otherwise clicking a second box to start a new
+    // capture leaves the first one stuck showing "Press keys...".
+    refreshVisibleKeybindInputs();
   };
   activeCapture = cancel;
   window.addEventListener('keydown', capture, true);
