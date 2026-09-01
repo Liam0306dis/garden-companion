@@ -191,6 +191,10 @@
 .gc-check-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px; }
 .gc-check { justify-content:flex-start;padding:8px; }
 .gc-check input { accent-color:#8b5cf6; }
+/* Speaker toggle pinned to the far right of an alert row: mutes just that alert's sound. */
+.gc-alert-mute { margin-left:auto;flex:0 0 auto;padding:2px 5px;border:0;border-radius:6px;background:transparent;font-size:14px;line-height:1;cursor:pointer; }
+.gc-alert-mute:hover { background:rgba(255,255,255,.09); }
+.gc-alert-mute[data-muted="true"] { opacity:.45;filter:grayscale(1); }
 .gc-filter-list [hidden] { display:none; }
 .gc-pet-sprite { position:relative;width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.025); }
 .gc-pet-sprite img { width:40px;height:40px;object-fit:contain;image-rendering:auto; }

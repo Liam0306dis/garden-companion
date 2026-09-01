@@ -1,4 +1,4 @@
-import { armAlarmAudio, showAlarmBanner, stopAlarm } from '../alarms.js';
+import { alertMuteButton, armAlarmAudio, setAlarmSilenced, showAlarmBanner, stopAlarm } from '../alarms.js';
 import { config, saveConfig } from '../config.js';
 import { page } from '../page.js';
 import { state } from '../state.js';
@@ -25,12 +25,17 @@ function alerts(): Record<string, boolean> {
   return config.weatherAlerts && typeof config.weatherAlerts === 'object' ? config.weatherAlerts : {};
 }
 
+function muted(): Record<string, boolean> {
+  return config.weatherAlertsMuted && typeof config.weatherAlertsMuted === 'object' ? config.weatherAlertsMuted : {};
+}
+
 /** Undefined until the first report, so arriving is not mistaken for the weather starting. */
 let seen: string | undefined;
 
 function raise(weather: string): void {
   showAlarmBanner({
     owner: OWNER,
+    silent: Boolean(muted()[weather]),
     label: 'WEATHER ALARM',
     title: `${weatherLabel(weather)} has started`,
     detail: weatherRemainingText(),
@@ -67,8 +72,19 @@ export function toggleWeatherAlert(weather: string, enabled: boolean): void {
   if (currentWeather() === weather) raise(weather);
 }
 
+/** Mutes or unmutes this weather's alarm sound, live if that weather is already sounding one. */
+export function toggleWeatherAlertMuted(weather: string, isMuted: boolean): void {
+  const next = { ...muted() };
+  if (isMuted) next[weather] = true;
+  else delete next[weather];
+  config.weatherAlertsMuted = next;
+  saveConfig();
+  if (currentWeather() === weather) setAlarmSilenced(OWNER, isMuted);
+}
+
 export function renderWeatherAlarms(): string {
   const chosen = alerts();
+  const mutedNow = muted();
   const running = currentWeather();
   const rows = WEATHER_TYPES.map(weather => {
     const sprite = page.__gardenCompanionWeatherSprites?.[weather] || '';
@@ -76,7 +92,8 @@ export function renderWeatherAlarms(): string {
     const note = running === weather ? weatherRemainingText() : 'Not running';
     return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? 'checked' : ''}>`
       + `<span class="gc-shop-sprite">${icon}</span>`
-      + `<span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span></label>`;
+      + `<span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>`
+      + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + '</label>';
   }).join('');
   return `<p class="gc-note">An alarm appears when a selected weather begins. Weather already running when you arrive does not sound one - tick it and the alarm fires straight away if it is running.</p>
 <div class="gc-check-grid">${rows}</div>`;
@@ -90,5 +107,14 @@ export function weatherAlarmSignature(): string {
 export function bindWeatherAlarmEvents(main: HTMLElement): void {
   main.querySelectorAll<HTMLInputElement>('[data-weather-alert]').forEach(input => input.onchange = () => {
     toggleWeatherAlert(input.dataset.weatherAlert!, input.checked);
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-weather-mute]').forEach(button => button.onclick = event => {
+    // The button sits inside the row's label, so its click must not also toggle the alert checkbox.
+    event.preventDefault();
+    event.stopPropagation();
+    const isMuted = button.dataset.muted !== 'true';
+    toggleWeatherAlertMuted(button.dataset.weatherMute!, isMuted);
+    button.dataset.muted = String(isMuted);
+    button.innerHTML = isMuted ? '&#128263;' : '&#128266;';
   });
 }

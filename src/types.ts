@@ -210,6 +210,8 @@ export interface CompanionAlarmOptions {
   detail?: string;
   actionLabel?: string;
   onAction?: (button: HTMLButtonElement) => void | Promise<void>;
+  /** Show the banner without the tone, for an alert the player has muted the sound on. */
+  silent?: boolean;
 }
 
 export interface JotaiAtom {
@@ -249,7 +251,11 @@ export interface CompanionConfig {
   silenceLevelUps: boolean;
   trackedAbilities: string[];
   shopAlerts: Record<string, boolean>;
+  /** Shop alerts whose sound is muted: the banner still appears, but no tone plays. */
+  shopAlertsMuted: Record<string, boolean>;
   weatherAlerts: Record<string, boolean>;
+  /** Weather alerts whose sound is muted. */
+  weatherAlertsMuted: Record<string, boolean>;
   petFoodChoices: Record<string, string>;
   teamKeybinds: Record<string, string>;
   interfaceKeybinds: Record<string, string>;

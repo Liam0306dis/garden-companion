@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.44
+// @version      0.8.45
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -522,7 +522,9 @@
     silenceLevelUps: false,
     trackedAbilities: [...ABILITY_CATALOG],
     shopAlerts: {},
+    shopAlertsMuted: {},
     weatherAlerts: {},
+    weatherAlertsMuted: {},
     petFoodChoices: {},
     teamKeybinds: {},
     interfaceKeybinds: {}
@@ -1680,6 +1682,10 @@ ${groups}
   var alarmQueue = [];
   var alarmAudioContext = null;
   var alarmPhase = 0;
+  function alertMuteButton(dataAttr, muted3) {
+    const title = muted3 ? "Alarm sound muted for this alert. Click to unmute." : "Alarm sound on for this alert. Click to mute.";
+    return `<button type="button" class="gc-alert-mute" data-muted="${muted3}" ${dataAttr} title="${escapeHtml(title)}" aria-label="Toggle alarm sound">${muted3 ? "&#128263;" : "&#128266;"}</button>`;
+  }
   function armAlarmAudio() {
     try {
       if (!alarmAudioContext) {
@@ -1692,6 +1698,16 @@ ${groups}
     } catch {
       return null;
     }
+  }
+  function anyUnmutedAlarm() {
+    return Boolean(alarm && !alarm.options.silent) || alarmQueue.some((options) => !options.silent);
+  }
+  function maybePlayAlarmTone() {
+    if (anyUnmutedAlarm()) playAlarmTone();
+  }
+  function setAlarmSilenced(owner, silent) {
+    if (alarm?.options.owner === owner) alarm.options.silent = silent;
+    for (const options of alarmQueue) if (options.owner === owner) options.silent = silent;
   }
   function playAlarmTone() {
     const context = armAlarmAudio();
@@ -1768,8 +1784,9 @@ ${groups}
       void options.onAction?.(event.currentTarget);
     };
     alarmPhase = 0;
-    playAlarmTone();
-    alarm = { timer: setInterval(playAlarmTone, 420), options };
+    alarm = { timer: null, options };
+    maybePlayAlarmTone();
+    alarm.timer = setInterval(maybePlayAlarmTone, 420);
     updateAlarmQueueCount();
   }
   function showAlarmBanner(options) {
@@ -3424,10 +3441,14 @@ ${groups}
   function alerts() {
     return config.weatherAlerts && typeof config.weatherAlerts === "object" ? config.weatherAlerts : {};
   }
+  function muted() {
+    return config.weatherAlertsMuted && typeof config.weatherAlertsMuted === "object" ? config.weatherAlertsMuted : {};
+  }
   var seen;
   function raise(weather) {
     showAlarmBanner({
       owner: OWNER,
+      silent: Boolean(muted()[weather]),
       label: "WEATHER ALARM",
       title: `${weatherLabel(weather)} has started`,
       detail: weatherRemainingText()
@@ -3456,14 +3477,23 @@ ${groups}
     armAlarmAudio();
     if (currentWeather() === weather) raise(weather);
   }
+  function toggleWeatherAlertMuted(weather, isMuted) {
+    const next = { ...muted() };
+    if (isMuted) next[weather] = true;
+    else delete next[weather];
+    config.weatherAlertsMuted = next;
+    saveConfig();
+    if (currentWeather() === weather) setAlarmSilenced(OWNER, isMuted);
+  }
   function renderWeatherAlarms() {
     const chosen = alerts();
+    const mutedNow = muted();
     const running = currentWeather();
     const rows = WEATHER_TYPES.map((weather) => {
       const sprite = page.__gardenCompanionWeatherSprites?.[weather] || "";
       const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
       const note = running === weather ? weatherRemainingText() : "Not running";
-      return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span></label>`;
+      return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>` + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + "</label>";
     }).join("");
     return `<p class="gc-note">An alarm appears when a selected weather begins. Weather already running when you arrive does not sound one - tick it and the alarm fires straight away if it is running.</p>
 <div class="gc-check-grid">${rows}</div>`;
@@ -3474,6 +3504,14 @@ ${groups}
   function bindWeatherAlarmEvents(main) {
     main.querySelectorAll("[data-weather-alert]").forEach((input) => input.onchange = () => {
       toggleWeatherAlert(input.dataset.weatherAlert, input.checked);
+    });
+    main.querySelectorAll("[data-weather-mute]").forEach((button) => button.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const isMuted = button.dataset.muted !== "true";
+      toggleWeatherAlertMuted(button.dataset.weatherMute, isMuted);
+      button.dataset.muted = String(isMuted);
+      button.innerHTML = isMuted ? "&#128263;" : "&#128266;";
     });
   }
 
@@ -5231,6 +5269,7 @@ ${eggs.map(eggCard).join("")}`;
     const owner = `shop:${row.shop}:${row.id}`;
     showAlarmBanner({
       owner,
+      silent: Boolean(config.shopAlertsMuted[`${row.shop}:${row.id}`]),
       label: `SHOP ALARM | ${SHOP_NAMES[row.shop] || humanize(row.shop)}`,
       title: `${humanize(row.id)} is available`,
       detail: `${row.remaining} remaining`,
@@ -5268,6 +5307,11 @@ ${eggs.map(eggCard).join("")}`;
       showSelectedShopAlarm(key);
     } else stopAlarm(`shop:${key}`);
   }
+  function toggleShopAlertMuted(key, muted3) {
+    if (muted3) config.shopAlertsMuted[key] = true;
+    else delete config.shopAlertsMuted[key];
+    setAlarmSilenced(`shop:${key}`, muted3);
+  }
   function renderShops() {
     const shops = state.game?.shops || {};
     const liveItems = /* @__PURE__ */ new Map();
@@ -5280,7 +5324,7 @@ ${eggs.map(eggCard).join("")}`;
     const rows = itemIds.map((id) => {
       const key = `${shopAlarmTab}:${id}`;
       const sprite = page.__gardenCompanionShopSprites?.[id];
-      return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span></label>`;
+      return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
     });
     const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? "active" : ""}">${label}</button>`).join("");
     return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join("") || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;
@@ -5289,6 +5333,15 @@ ${eggs.map(eggCard).join("")}`;
     main.querySelectorAll("[data-shop-alert]").forEach((element) => element.onchange = () => {
       const input = element;
       toggleShopAlert(input.dataset.shopAlert, input.checked);
+      saveConfig();
+    });
+    main.querySelectorAll("[data-shop-mute]").forEach((button) => button.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const muted3 = button.dataset.muted !== "true";
+      toggleShopAlertMuted(button.dataset.shopMute, muted3);
+      button.dataset.muted = String(muted3);
+      button.innerHTML = muted3 ? "&#128263;" : "&#128266;";
       saveConfig();
     });
     main.querySelectorAll("[data-shop-tab]").forEach((button) => button.onclick = () => {
@@ -6216,6 +6269,10 @@ ${eggs.map(eggCard).join("")}`;
 .gc-check-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px; }\r
 .gc-check { justify-content:flex-start;padding:8px; }\r
 .gc-check input { accent-color:#8b5cf6; }\r
+/* Speaker toggle pinned to the far right of an alert row: mutes just that alert's sound. */\r
+.gc-alert-mute { margin-left:auto;flex:0 0 auto;padding:2px 5px;border:0;border-radius:6px;background:transparent;font-size:14px;line-height:1;cursor:pointer; }\r
+.gc-alert-mute:hover { background:rgba(255,255,255,.09); }\r
+.gc-alert-mute[data-muted="true"] { opacity:.45;filter:grayscale(1); }\r
 .gc-filter-list [hidden] { display:none; }\r
 .gc-pet-sprite { position:relative;width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;background:rgba(255,255,255,.025); }\r
 .gc-pet-sprite img { width:40px;height:40px;object-fit:contain;image-rendering:auto; }\r
@@ -8817,19 +8874,19 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   // src/features/fishing-audio.ts
   var MUTE_KEY = "gardenCompanion.fishingMuted.v1";
   var CLICK_INTERVAL = 62;
-  var muted = loadLocal(MUTE_KEY, false);
+  var muted2 = loadLocal(MUTE_KEY, false);
   var noiseBuffer = null;
   var noiseContext = null;
   var lastClickAt = 0;
   function fishingMuted() {
-    return muted;
+    return muted2;
   }
   function setFishingMuted(value) {
-    muted = value;
+    muted2 = value;
     saveLocal(MUTE_KEY, value);
   }
   function audio() {
-    if (muted) return null;
+    if (muted2) return null;
     const context = armAlarmAudio();
     return context && context.state !== "closed" ? context : null;
   }

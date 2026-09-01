@@ -1,5 +1,5 @@
 import type { ShopItem } from '../types.js';
-import { armAlarmAudio, showAlarmBanner, stopAlarm, updateAlarmDetail } from '../alarms.js';
+import { alertMuteButton, armAlarmAudio, setAlarmSilenced, showAlarmBanner, stopAlarm, updateAlarmDetail } from '../alarms.js';
 import { config, feature, saveConfig } from '../config.js';
 import { onRoomConnectionInterrupted } from '../connection-state.js';
 import { EXCLUDED_TOOL_ALERTS, ITEM_KEYS, SEASONAL_SHOP_ITEMS, SHOP_NAMES, SHOP_TABS } from '../constants.js';
@@ -215,6 +215,7 @@ function showShopAlarm(row: AvailableShopItem): void {
   const owner = `shop:${row.shop}:${row.id}`;
   showAlarmBanner({
     owner,
+    silent: Boolean(config.shopAlertsMuted[`${row.shop}:${row.id}`]),
     label: `SHOP ALARM | ${SHOP_NAMES[row.shop] || humanize(row.shop)}`,
     title: `${humanize(row.id)} is available`,
     detail: `${row.remaining} remaining`,
@@ -254,6 +255,13 @@ export function toggleShopAlert(key: string, enabled: boolean): void {
   } else stopAlarm(`shop:${key}`);
 }
 
+/** Mutes or unmutes just this item's alarm sound, live if it is already ringing. */
+export function toggleShopAlertMuted(key: string, muted: boolean): void {
+  if (muted) config.shopAlertsMuted[key] = true;
+  else delete config.shopAlertsMuted[key];
+  setAlarmSilenced(`shop:${key}`, muted);
+}
+
 export function renderShops(): string {
   const shops = state.game?.shops || {};
   const liveItems = new Map<string, ShopItem>();
@@ -266,7 +274,7 @@ export function renderShops(): string {
   const rows = itemIds.map(id => {
     const key = `${shopAlarmTab}:${id}`;
     const sprite = page.__gardenCompanionShopSprites?.[id];
-    return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? 'checked' : ''}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? 'Available now' : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span></label>`;
+    return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? 'checked' : ''}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? 'Available now' : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
   });
   const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? 'active' : ''}">${label}</button>`).join('');
   return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join('') || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;
@@ -276,6 +284,16 @@ export function bindShopEvents(main: HTMLElement): void {
   main.querySelectorAll('[data-shop-alert]').forEach(element => (element as HTMLInputElement).onchange = () => {
     const input = element as HTMLInputElement;
     toggleShopAlert(input.dataset.shopAlert!, input.checked);
+    saveConfig();
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-shop-mute]').forEach(button => button.onclick = event => {
+    // Inside the row's label, so the click must be kept from toggling the alert checkbox as well.
+    event.preventDefault();
+    event.stopPropagation();
+    const muted = button.dataset.muted !== 'true';
+    toggleShopAlertMuted(button.dataset.shopMute!, muted);
+    button.dataset.muted = String(muted);
+    button.innerHTML = muted ? '&#128263;' : '&#128266;';
     saveConfig();
   });
   main.querySelectorAll<HTMLButtonElement>('[data-shop-tab]').forEach(button => button.onclick = () => { setShopAlarmTab(button.dataset.shopTab || ''); panelActions.renderPanel(); });

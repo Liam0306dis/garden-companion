@@ -13,6 +13,16 @@ const alarmQueue: CompanionAlarmOptions[] = [];
 let alarmAudioContext: AudioContext | null = null;
 let alarmPhase = 0;
 
+/**
+ * The far-right speaker button shared by every alert row. It toggles whether that one alert makes a
+ * sound; the banner still appears either way. `dataAttr` carries the row's own key so the feature
+ * binding it knows which alert was clicked.
+ */
+export function alertMuteButton(dataAttr: string, muted: boolean): string {
+  const title = muted ? 'Alarm sound muted for this alert. Click to unmute.' : 'Alarm sound on for this alert. Click to mute.';
+  return `<button type="button" class="gc-alert-mute" data-muted="${muted}" ${dataAttr} title="${escapeHtml(title)}" aria-label="Toggle alarm sound">${muted ? '&#128263;' : '&#128266;'}</button>`;
+}
+
 export function armAlarmAudio(): AudioContext | null {
   try {
     if (!alarmAudioContext) {
@@ -25,6 +35,25 @@ export function armAlarmAudio(): AudioContext | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The tone belongs to the whole stack of alarms, not the one banner on top: as long as a single
+ * outstanding alarm (showing or queued behind it) is unmuted, it sounds. So a muted alarm sitting on
+ * top of unmuted ones still rings for them, and a stack that is muted through and through is silent.
+ */
+function anyUnmutedAlarm(): boolean {
+  return Boolean(alarm && !alarm.options.silent) || alarmQueue.some(options => !options.silent);
+}
+
+function maybePlayAlarmTone(): void {
+  if (anyUnmutedAlarm()) playAlarmTone();
+}
+
+/** Retunes a pending alarm's sound after the player mutes or unmutes that alert while it is up. */
+export function setAlarmSilenced(owner: string, silent: boolean): void {
+  if (alarm?.options.owner === owner) alarm.options.silent = silent;
+  for (const options of alarmQueue) if (options.owner === owner) options.silent = silent;
 }
 
 function playAlarmTone(): void {
@@ -109,8 +138,11 @@ function renderAlarmBanner(options: CompanionAlarmOptions): void {
   const actionButton = banner.querySelector<HTMLButtonElement>('[data-buy]');
   if (actionButton && options.onAction) actionButton.onclick = event => { void options.onAction?.(event.currentTarget as HTMLButtonElement); };
   alarmPhase = 0;
-  playAlarmTone();
-  alarm = { timer: setInterval(playAlarmTone, 420), options };
+  // The timer runs while any alarm is up; each tick decides whether to sound, so a muted banner on
+  // top still rings for unmuted alarms queued behind it, and later arrivals start it sounding again.
+  alarm = { timer: null, options };
+  maybePlayAlarmTone();
+  alarm.timer = setInterval(maybePlayAlarmTone, 420);
   updateAlarmQueueCount();
 }
 
