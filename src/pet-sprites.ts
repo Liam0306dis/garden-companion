@@ -374,6 +374,8 @@ const CACHE_STORE = 'maps';
 
 type SpriteMap = Record<string, string>;
 type SpriteBundle = Record<string, SpriteMap>;
+/** A decoded stage plus whether every atlas it needed loaded, which is what gates caching it. */
+interface StageResult { bundle: SpriteBundle; complete: boolean }
 
 function openCache(): Promise<IDBDatabase | null> {
   return new Promise(resolve => {
@@ -577,11 +579,15 @@ async function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Se
   }
 }
 
-async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted: Set<string>, trimmedWanted: Set<string>): Promise<{ frames: Map<string, string>; trimmed: Map<string, string> }> {
+async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted: Set<string>, trimmedWanted: Set<string>): Promise<{ frames: Map<string, string>; trimmed: Map<string, string>; complete: boolean }> {
   const output = new Map<string, string>();
   const trimmedOutput = new Map<string, string>();
   const pending = new Set(initialPaths);
   const seen = new Set<string>();
+  // A transient fetch or decode failure leaves some frames missing. That partial result is fine to
+  // show this session, but must never be cached: the cache key does not change when a later load
+  // would succeed, so a cached hole is served for good. `complete` gates the write.
+  let complete = true;
   const { basis, rgbaFormat } = await basisDecoder();
   while (pending.size && (output.size < wanted.size || trimmedOutput.size < trimmedWanted.size)) {
     const jsonPath = pending.values().next().value as string;
@@ -591,21 +597,21 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
     try {
       const jsonUrl = `${assetsBase}${jsonPath}`;
       const response = await fetch(jsonUrl);
-      if (!response.ok) continue;
+      if (!response.ok) { complete = false; continue; }
       const atlas = await response.json() as AtlasJson;
       const imageUrl = atlas.meta?.image ? new URL(atlas.meta.image, jsonUrl).href : jsonUrl.replace(/\.json$/, '.ktx2');
       const sheet = await decodeSheet(imageUrl, basis, rgbaFormat);
       if (sheet) {
         await cropFrames(atlas, sheet, wanted, output);
         await cropFrames(atlas, sheet, trimmedWanted, trimmedOutput, true);
-      }
+      } else complete = false;
       for (const related of atlas.meta?.related_multi_packs ?? []) {
         const relatedPath = jsonPath.replace(/[^/]+$/, '') + related.replace(/\.json$/, '') + '.json';
         if (!seen.has(relatedPath)) pending.add(relatedPath);
       }
-    } catch {}
+    } catch { complete = false; }
   }
-  return { frames: output, trimmed: trimmedOutput };
+  return { frames: output, trimmed: trimmedOutput, complete };
 }
 
 export async function initPetSprites(): Promise<void> {
@@ -702,28 +708,35 @@ export async function initPetSprites(): Promise<void> {
     };
   }
 
-  async function decodeEssential(): Promise<SpriteBundle> {
+  async function decodeEssential(): Promise<StageResult> {
     const { atlasPaths, petRiveUrl } = await loadSources();
     const { wanted, trimmedWanted } = essentialRequest();
-    const { frames, trimmed } = atlasPaths.length
+    const { frames, trimmed, complete: atlasComplete } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
-      : { frames: new Map<string, string>(), trimmed: new Map<string, string>() };
+      : { frames: new Map<string, string>(), trimmed: new Map<string, string>(), complete: false };
+    let riveComplete = true;
     if (petRiveUrl) {
       try {
         for (const [key, image] of await loadRivePetFrames(petRiveUrl, species)) frames.set(key, image);
       } catch (error) {
+        // The whole animation file failed, not one pet timing out, so anything atlas-less is now
+        // missing - not a bundle worth persisting.
+        riveComplete = false;
         console.warn('[Garden Companion] Current pet animations could not be rendered.', error);
       }
     }
     return {
-      pet: Object.fromEntries(species.flatMap(name => {
-        const image = frames.get(normaliseKey(`sprite/pet/${name}`));
-        return image ? [[name, image]] : [];
-      })),
-      produce: mapFrom(produceCandidates, trimmed),
-      // Into the shop map, which is where everything reads a tool icon from.
-      shop: mapFrom(toolCandidates, frames),
-      weather: mapFrom(Object.fromEntries(Object.entries(WEATHER_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
+      complete: atlasComplete && riveComplete,
+      bundle: {
+        pet: Object.fromEntries(species.flatMap(name => {
+          const image = frames.get(normaliseKey(`sprite/pet/${name}`));
+          return image ? [[name, image]] : [];
+        })),
+        produce: mapFrom(produceCandidates, trimmed),
+        // Into the shop map, which is where everything reads a tool icon from.
+        shop: mapFrom(toolCandidates, frames),
+        weather: mapFrom(Object.fromEntries(Object.entries(WEATHER_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
+      },
     };
   }
 
@@ -740,24 +753,27 @@ export async function initPetSprites(): Promise<void> {
     };
   }
 
-  async function decodeDeferred(): Promise<SpriteBundle> {
+  async function decodeDeferred(): Promise<StageResult> {
     const { atlasPaths } = await loadSources();
     const { wanted, trimmedWanted } = deferredRequest();
-    const { frames, trimmed } = atlasPaths.length
+    const { frames, trimmed, complete } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
-      : { frames: new Map<string, string>(), trimmed: new Map<string, string>() };
+      : { frames: new Map<string, string>(), trimmed: new Map<string, string>(), complete: false };
     return {
-      shop: Object.fromEntries(Object.entries(shopCandidates).flatMap(([itemId, candidates]) => {
-        const image = pick(candidates, decorIds.has(itemId) ? trimmed : frames);
-        return image ? [[itemId, image]] : [];
-      })),
-      plant: mapFrom(plantCandidates, trimmed),
-      emblem: mapFrom(Object.fromEntries(Object.entries(emblemCandidates).map(([icon, candidate]) => [icon, [candidate]])), trimmed),
-      mutation: mapFrom(Object.fromEntries(Object.entries(MUTATION_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
+      complete,
+      bundle: {
+        shop: Object.fromEntries(Object.entries(shopCandidates).flatMap(([itemId, candidates]) => {
+          const image = pick(candidates, decorIds.has(itemId) ? trimmed : frames);
+          return image ? [[itemId, image]] : [];
+        })),
+        plant: mapFrom(plantCandidates, trimmed),
+        emblem: mapFrom(Object.fromEntries(Object.entries(emblemCandidates).map(([icon, candidate]) => [icon, [candidate]])), trimmed),
+        mutation: mapFrom(Object.fromEntries(Object.entries(MUTATION_ICON_CANDIDATES).map(([id, candidate]) => [id, [candidate]])), trimmed),
+      },
     };
   }
 
-  const stages: Record<string, () => Promise<SpriteBundle>> = { essential: decodeEssential, deferred: decodeDeferred };
+  const stages: Record<string, () => Promise<StageResult>> = { essential: decodeEssential, deferred: decodeDeferred };
   const requests: Record<string, () => { wanted: Set<string>; trimmedWanted: Set<string> }> = { essential: essentialRequest, deferred: deferredRequest };
   const running = new Map<string, Promise<void>>();
 
@@ -766,15 +782,21 @@ export async function initPetSprites(): Promise<void> {
     if (existing) return existing;
     const task = (async () => {
       try {
-        const { key: fingerprintKey, identified } = await loadFingerprint();
+        const { key: rawFingerprint, identified } = await loadFingerprint();
+        // Bumped when a caching bug means old entries may be wrong: `s2` retires every bundle written
+        // before partial decodes stopped being cached, which had left some users with a permanently
+        // missing pet sprite. The tag rides on the fingerprint so eviction still matches by prefix.
+        const fingerprintKey = `s2-${rawFingerprint}`;
         const request = requests[stage]();
         const key = `${fingerprintKey}:${stage}:${requestSignature(request.wanted, request.trimmedWanted)}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.
         const cached = await readCache(key);
         if (cached) { publish(cached); return; }
-        const bundle = await stages[stage]();
+        const { bundle, complete } = await stages[stage]();
         publish(bundle);
-        void writeCache(key, bundle, fingerprintKey, identified);
+        // Only a clean decode is persisted. A partial one still shows this session, but leaving it
+        // out of the cache means the next load retries rather than serving the hole for good.
+        if (complete) void writeCache(key, bundle, fingerprintKey, identified);
       } catch (error) {
         running.delete(stage);
         console.warn(`[Garden Companion] ${stage} sprites could not be loaded.`, error);
