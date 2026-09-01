@@ -1,5 +1,6 @@
 import type { CompanionPage, GardenTile } from '../types.js';
 import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { NUMBER_LOCALE } from '../utils.js';
 
 /**
  * Layout planner. Nothing is sent to the game server: planned plants are fed to the
@@ -67,6 +68,31 @@ export function initGardenPlanner(): void {
     const max = Number(PLANTS[species]?.crop?.maxScale || 1);
     if (planner.scale === null) return max;
     return Math.min(max, Math.max(1, planner.scale));
+  }
+
+  /**
+   * The game's own size figures rather than the internal scale multiplier, so the slider reads the
+   * way a crop's card does: a percentage where scale 1 is 50% and the maximum is 100%, and the
+   * weight it works out to. Matches the crop value calculator. A crop that cannot grow (maxScale 1)
+   * has no size to speak of, so it stays "fixed".
+   */
+  function sizePercent(scale: number, maxScale: number): number {
+    if (scale <= 1) return 50;
+    if (scale >= maxScale) return 100;
+    return Math.floor(50 + 50 * (scale - 1) / (maxScale - 1));
+  }
+
+  function formatWeight(weight: number): string {
+    const digits = weight < 1 ? 2 : weight < 10 ? 1 : 0;
+    return weight.toLocaleString(NUMBER_LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  function sizeSummary(scale: number, species: string): string {
+    const max = Number(PLANTS[species]?.crop?.maxScale || 1);
+    if (max <= 1) return 'fixed';
+    const percent = `${sizePercent(scale, max)}%`;
+    const baseWeight = Number(PLANTS[species]?.crop?.baseWeight || 0);
+    return baseWeight > 0 ? `${percent} · ${formatWeight(scale * baseWeight)}kg` : percent;
   }
 
   function mutationIcon(id: string): string {
@@ -486,7 +512,7 @@ export function initGardenPlanner(): void {
     slider.value = value.toFixed(2);
     slider.disabled = max <= 1;
     const label = panel.querySelector<HTMLElement>('[data-plan-scale-value]');
-    if (label) label.textContent = max <= 1 ? 'fixed' : `${value.toFixed(2)}x`;
+    if (label) label.textContent = sizeSummary(value, species);
     const maxButton = panel.querySelector<HTMLButtonElement>('[data-plan-scale-max]');
     if (maxButton) maxButton.dataset.active = String(planner.scale === null);
   }
@@ -635,7 +661,7 @@ ${decorMode
       ? `<div class="gc-planner-row"><b>Facing</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${[0, 90, 180, 270].map(angle => `<button data-plan-rotation="${angle}" data-active="${planner.rotation === angle}">${angle}</button>`).join('')}</div></div></div>`
       : ''}<div class="gc-planner-row"><b>Flip</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-flip="false" data-active="${!planner.flipped}">Normal</button><button data-plan-flip="true" data-active="${planner.flipped}">Flipped</button></div></div></div>`
   : `<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`}
-${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${scaleValue.toFixed(2)}x</span><button data-plan-scale-max data-active="${planner.scale === null}">Max</button></div>`}
+${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies)}</span><button data-plan-scale-max data-active="${planner.scale === null}">Max</button></div>`}
 <div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
 <div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
 ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select><button data-plan-delete>Delete</button></div>` : ''}</div>`;
@@ -734,7 +760,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (scaleInput) scaleInput.oninput = () => {
       planner.scale = Number(scaleInput.value);
       const label = panel!.querySelector<HTMLElement>('[data-plan-scale-value]');
-      if (label) label.textContent = `${Number(scaleInput.value).toFixed(2)}x`;
+      if (label) label.textContent = sizeSummary(Number(scaleInput.value), scaleSpecies);
       const maxButton = panel!.querySelector<HTMLButtonElement>('[data-plan-scale-max]');
       if (maxButton) maxButton.dataset.active = 'false';
     };

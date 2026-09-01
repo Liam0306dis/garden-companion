@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.45
+// @version      0.8.46
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -8311,6 +8311,22 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       if (planner.scale === null) return max;
       return Math.min(max, Math.max(1, planner.scale));
     }
+    function sizePercent(scale, maxScale) {
+      if (scale <= 1) return 50;
+      if (scale >= maxScale) return 100;
+      return Math.floor(50 + 50 * (scale - 1) / (maxScale - 1));
+    }
+    function formatWeight3(weight) {
+      const digits = weight < 1 ? 2 : weight < 10 ? 1 : 0;
+      return weight.toLocaleString(NUMBER_LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+    function sizeSummary(scale, species) {
+      const max = Number(PLANTS2[species]?.crop?.maxScale || 1);
+      if (max <= 1) return "fixed";
+      const percent = `${sizePercent(scale, max)}%`;
+      const baseWeight = Number(PLANTS2[species]?.crop?.baseWeight || 0);
+      return baseWeight > 0 ? `${percent} · ${formatWeight3(scale * baseWeight)}kg` : percent;
+    }
     function mutationIcon(id) {
       const sprite = page3.__gardenCompanionMutationSprites?.[id];
       const name = MUTATIONS2[id]?.name || id;
@@ -8628,7 +8644,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       slider.value = value.toFixed(2);
       slider.disabled = max <= 1;
       const label = panel3.querySelector("[data-plan-scale-value]");
-      if (label) label.textContent = max <= 1 ? "fixed" : `${value.toFixed(2)}x`;
+      if (label) label.textContent = sizeSummary(value, species);
       const maxButton = panel3.querySelector("[data-plan-scale-max]");
       if (maxButton) maxButton.dataset.active = String(planner.scale === null);
     }
@@ -8739,7 +8755,7 @@ ${decorMode && DECOR[planner.decorId]?.mountable ? `<div class="gc-planner-row">
       }).join("")}</div>
 <div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>` : ""}
 ${decorMode ? `${DECOR[planner.decorId]?.rotates ? `<div class="gc-planner-row"><b>Facing</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${[0, 90, 180, 270].map((angle) => `<button data-plan-rotation="${angle}" data-active="${planner.rotation === angle}">${angle}</button>`).join("")}</div></div></div>` : ""}<div class="gc-planner-row"><b>Flip</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-flip="false" data-active="${!planner.flipped}">Normal</button><button data-plan-flip="true" data-active="${planner.flipped}">Flipped</button></div></div></div>` : `<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`}
-${decorMode && !DECOR[planner.decorId]?.mountable ? "" : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${scaleValue.toFixed(2)}x</span><button data-plan-scale-max data-active="${planner.scale === null}">Max</button></div>`}
+${decorMode && !DECOR[planner.decorId]?.mountable ? "" : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies)}</span><button data-plan-scale-max data-active="${planner.scale === null}">Max</button></div>`}
 <div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
 <div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
 ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map((name) => `<option value="${name}">${name}</option>`).join("")}</select><button data-plan-delete>Delete</button></div>` : ""}</div>`;
@@ -8832,7 +8848,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (scaleInput) scaleInput.oninput = () => {
         planner.scale = Number(scaleInput.value);
         const label = panel3.querySelector("[data-plan-scale-value]");
-        if (label) label.textContent = `${Number(scaleInput.value).toFixed(2)}x`;
+        if (label) label.textContent = sizeSummary(Number(scaleInput.value), scaleSpecies);
         const maxButton = panel3.querySelector("[data-plan-scale-max]");
         if (maxButton) maxButton.dataset.active = "false";
       };
