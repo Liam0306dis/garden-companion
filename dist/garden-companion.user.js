@@ -3284,8 +3284,8 @@ ${groups}
   // src/weather-forecast.ts
   var SHAPE = /function ([A-Za-z_$][\w$]*)\(e,t\)\{(?:(?!function ).){0,600}?return\{weatherId:[^,]+,startsAtMs:/s;
   var WRAPPER_NAME = /function ([A-Za-z_$][\w$]*)\(e\)\{$/;
-  var WEATHER_TABLE = /(\w+)=\{\[\w+\.Rain\]:\{groupId:/;
-  var GROUP_TABLE = /(\w+)=\{\[\w+\.\w+\]:\{durationMinutes:/;
+  var WEATHER_TABLE = /([\w$]+)=\{\[[\w$]+\.Rain\]:\{groupId:/;
+  var GROUP_TABLE = /([\w$]+)=\{\[[\w$]+\.\w+\]:\{durationMinutes:/;
   var LIKELY_CHUNK = /iconTextureResolution|ItemRenderResources/;
   var CACHE_KEY = "gardenCompanion.weatherForecastSource.v1";
   var trace = {};
