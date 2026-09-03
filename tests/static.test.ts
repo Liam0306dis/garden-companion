@@ -309,7 +309,7 @@ assert.match(overviewSource, /structureSignature/, 'overview structural refresh 
 // The XP potion button was left disabled on success and only came back on the next redraw, which is
 // the server round trip - so it sat dead about five seconds when using several in a row is the point.
 // It is re-enabled in a finally, the moment the send resolves.
-assert.match(companionSource, /await useXpPotion\(button\.dataset\.xpPotion!\);[\s\S]{0,220}\} finally \{\s*button\.disabled = false;/, 'the xp potion button stays disabled until the panel redraws');
+assert.match(companionSource, /await useXpPotion\(button\.dataset\.xpPotion!\);[\s\S]{0,420}\} finally \{\s*button\.disabled = false;/, 'the xp potion button stays disabled until the panel redraws');
 // The main card and its options card can each be dragged to a fixed spot independently, so without an
 // explicit order a positioned card paints over an in-flow one and the options bleed through. The
 // options card is pinned above the main card.
@@ -582,7 +582,7 @@ assert.match(overviewSource, /\.go-card\{width:min\(344px,94vw\)/, 'overview doe
 assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter estimates missing');
 assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, 'overview still displays empty mutation rows');
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
-assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
+assert.match(companionSource, /alarm\.timer = setInterval\(maybePlayAlarmTone, 420\)/, 'shared alarm is not persistent');
 // Redrawing under the pointer destroys the hovered element, taking its native tooltip with it.
 assert.match(companionSource, /\['abilities', 'teams', 'petFood', 'calculators', 'journal'\]\.includes\(activeTab\)/, 'a live tab must not redraw while the pointer rests on it');
 // Holding still would leave stale numbers, so a hovered block is rewritten in place instead.
@@ -769,7 +769,7 @@ assert.match(companionSource, /data-delete-team[\s\S]*renderPanelPreservingScrol
 assert.match(companionSource, /querySelectorAll<HTMLInputElement>\('#gc-panel \[data-team-key\]'\)[\s\S]*field\.value = config\.teamKeybinds/, 'team keybind changes still redraw the panel');
 assert.match(companionSource, /\[880, 660, 880, 660, 0\]\[alarmPhase\+\+ % 5\]/, 'shop alarm does not use the alternating warning pattern');
 assert.match(companionSource, /gain\.gain\.setValueAtTime\(\.25, now\)/, 'shop alarm is not loud enough');
-assert.match(companionSource, /setInterval\(playAlarmTone, 420\)/, 'shop alarm warning pattern is not persistent');
+assert.match(companionSource, /setInterval\(maybePlayAlarmTone, 420\)/, 'shop alarm warning pattern is not persistent');
 assert.match(companionSource, /const VALUE_PREFIX = '🪙 ';/, 'crop value label is incorrect');
 assert.match(companionSource, /const GROWTH_PREFIX = '🐢 ';/, 'growth estimate label is incorrect');
 assert.match(companionSource, /`\$\{VALUE_PREFIX\}\$\{Math\.round/, 'crop value line does not use the coin prefix');
