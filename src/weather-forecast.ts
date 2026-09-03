@@ -2,8 +2,11 @@ import { loadLocal, saveLocal } from './utils.js';
 
 const SHAPE = /function ([A-Za-z_$][\w$]*)\(e,t\)\{(?:(?!function ).){0,600}?return\{weatherId:[^,]+,startsAtMs:/s;
 const WRAPPER_NAME = /function ([A-Za-z_$][\w$]*)\(e\)\{$/;
-const WEATHER_TABLE = /(\w+)=\{\[\w+\.Rain\]:\{groupId:/;
-const GROUP_TABLE = /(\w+)=\{\[\w+\.\w+\]:\{durationMinutes:/;
+// The enum holder inside the key can be minified to a name with a `$` (build 1092 named the group
+// enum `$o`), which `\w` does not cover - so both classes allow `$` or the table goes unfound and
+// the forecast reports itself unavailable.
+const WEATHER_TABLE = /([\w$]+)=\{\[[\w$]+\.Rain\]:\{groupId:/;
+const GROUP_TABLE = /([\w$]+)=\{\[[\w$]+\.\w+\]:\{durationMinutes:/;
 const LIKELY_CHUNK = /iconTextureResolution|ItemRenderResources/;
 
 const CACHE_KEY = 'gardenCompanion.weatherForecastSource.v1';
