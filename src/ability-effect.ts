@@ -29,6 +29,10 @@ export function abilityEffectText(ability: string, strength: number, trigger: st
   if (values.hungerRefundPercentage != null) return `Reduces hunger depletion by ${percent(scaled('hungerRefundPercentage'))}%`;
   if (values.hungerRestorePercentage != null) return `Restores ${percent(scaled('hungerRestorePercentage'))}% hunger per proc`;
   if (values.mutationChanceIncreasePercentage != null) return `Mutation chance increase: +${percent(scaled('mutationChanceIncreasePercentage'))}%`;
+  // Crop size is a 50-100 stat now, and a proc adds a flat sizeIncrease to it - strength only scales
+  // how often it procs, not how much each one gives, so this is not scaled. The old percentage form
+  // is kept below for the live build until the size update ships.
+  if (values.sizeIncrease != null) return `Crop size increase: +${percent(Number(values.sizeIncrease || 0))} per proc`;
   if (values.scaleIncreasePercentage != null) return `Crop size increase: +${percent(scaled('scaleIncreasePercentage'))}% per proc`;
   if (values.cropSellPriceIncreasePercentage != null) return `Sell bonus: +${percent(scaled('cropSellPriceIncreasePercentage'))}% coins`;
   if (values.plantGrowthReductionMinutes != null) return `Growth reduction: ${scaled('plantGrowthReductionMinutes').toFixed(1)}m per proc`;

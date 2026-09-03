@@ -721,7 +721,16 @@ function calculateStats(
     addEta(rule.mutation, ability, rule.chance, missingPool[rule.mutation] ?? 0, poolTotal);
   }
 
-  function boostsUntilMax(ability: string | string[], baseBoost: number, cap: number): number {
+  /**
+   * The worst crop's number of size-boost procs to reach maximum size.
+   *
+   * The size update reworked this: a crop's size is a flat 50-100 stat and each proc adds a whole
+   * `sizeIncrease` to it, capped at 100 for every crop - so strength no longer changes the amount (it
+   * only scales the proc rate, handled in addEta) and the species no longer matters. A slot carrying
+   * `size` is on the new model; the old multiplicative-to-maxScale path is kept for the live build
+   * until it ships.
+   */
+  function boostsUntilMax(ability: string | string[], baseBoost: number, cap: number, sizeIncrease: number): number {
     const abilities = Array.isArray(ability) ? ability : [ability];
     const strengths = availablePets.filter(pet => pet.abilities?.some(name => abilities.includes(name))).map(petStrength).sort((a, b) => b - a).slice(0, 3);
     const average = strengths.length ? strengths.reduce((sum, value) => sum + value, 0) / strengths.length : 87;
@@ -729,6 +738,11 @@ function calculateStats(
     let maximum = 0;
     for (const candidate of eligibleSlots) {
       if (!mutationConfig.granterAllGarden && !candidate.tracked) continue;
+      const size = (candidate.slot as { size?: number }).size;
+      if (size != null) {
+        if (Number(size) < 100) maximum = Math.max(maximum, Math.ceil((100 - Number(size)) / Math.max(1, sizeIncrease)));
+        continue;
+      }
       const maxScale = catalog?.[candidate.species]?.crop?.maxScale;
       if (!maxScale) continue;
       let scale = Number(candidate.slot.targetScale ?? 1);
@@ -739,8 +753,8 @@ function calculateStats(
     return maximum;
   }
 
-  const maxSizeBoosts = boostsUntilMax(['ProduceScaleBoostII', 'Crop Size Boost II'], .1, 20);
-  const beeSizeBoosts = boostsUntilMax('ProduceScaleBoost', .06, 200);
+  const maxSizeBoosts = boostsUntilMax(['ProduceScaleBoostII', 'Crop Size Boost II'], .1, 20, 5);
+  const beeSizeBoosts = boostsUntilMax('ProduceScaleBoost', .06, 200, 3);
   addEta('Max Size', ['ProduceScaleBoostII', 'Crop Size Boost II'], .4, maxSizeBoosts, null, true);
   addEta('Bee Size', 'ProduceScaleBoost', .3, beeSizeBoosts, null, true);
   return result;

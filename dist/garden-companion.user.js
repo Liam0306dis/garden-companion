@@ -592,6 +592,7 @@
     if (values.hungerRefundPercentage != null) return `Reduces hunger depletion by ${percent(scaled("hungerRefundPercentage"))}%`;
     if (values.hungerRestorePercentage != null) return `Restores ${percent(scaled("hungerRestorePercentage"))}% hunger per proc`;
     if (values.mutationChanceIncreasePercentage != null) return `Mutation chance increase: +${percent(scaled("mutationChanceIncreasePercentage"))}%`;
+    if (values.sizeIncrease != null) return `Crop size increase: +${percent(Number(values.sizeIncrease || 0))} per proc`;
     if (values.scaleIncreasePercentage != null) return `Crop size increase: +${percent(scaled("scaleIncreasePercentage"))}% per proc`;
     if (values.cropSellPriceIncreasePercentage != null) return `Sell bonus: +${percent(scaled("cropSellPriceIncreasePercentage"))}% coins`;
     if (values.plantGrowthReductionMinutes != null) return `Growth reduction: ${scaled("plantGrowthReductionMinutes").toFixed(1)}m per proc`;
@@ -7364,7 +7365,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     for (const [ability, rule] of Object.entries(GRANTERS)) {
       addEta(rule.mutation, ability, rule.chance, missingPool[rule.mutation] ?? 0, poolTotal);
     }
-    function boostsUntilMax(ability, baseBoost, cap) {
+    function boostsUntilMax(ability, baseBoost, cap, sizeIncrease) {
       const abilities = Array.isArray(ability) ? ability : [ability];
       const strengths = availablePets.filter((pet) => pet.abilities?.some((name) => abilities.includes(name))).map(petStrength2).sort((a, b) => b - a).slice(0, 3);
       const average = strengths.length ? strengths.reduce((sum, value) => sum + value, 0) / strengths.length : 87;
@@ -7372,6 +7373,11 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       let maximum = 0;
       for (const candidate of eligibleSlots2) {
         if (!mutationConfig.granterAllGarden && !candidate.tracked) continue;
+        const size = candidate.slot.size;
+        if (size != null) {
+          if (Number(size) < 100) maximum = Math.max(maximum, Math.ceil((100 - Number(size)) / Math.max(1, sizeIncrease)));
+          continue;
+        }
         const maxScale = catalog?.[candidate.species]?.crop?.maxScale;
         if (!maxScale) continue;
         let scale = Number(candidate.slot.targetScale ?? 1);
@@ -7384,8 +7390,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       }
       return maximum;
     }
-    const maxSizeBoosts = boostsUntilMax(["ProduceScaleBoostII", "Crop Size Boost II"], 0.1, 20);
-    const beeSizeBoosts = boostsUntilMax("ProduceScaleBoost", 0.06, 200);
+    const maxSizeBoosts = boostsUntilMax(["ProduceScaleBoostII", "Crop Size Boost II"], 0.1, 20, 5);
+    const beeSizeBoosts = boostsUntilMax("ProduceScaleBoost", 0.06, 200, 3);
     addEta("Max Size", ["ProduceScaleBoostII", "Crop Size Boost II"], 0.4, maxSizeBoosts, null, true);
     addEta("Bee Size", "ProduceScaleBoost", 0.3, beeSizeBoosts, null, true);
     return result;
