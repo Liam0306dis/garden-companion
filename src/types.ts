@@ -18,7 +18,10 @@ export interface ProduceItem {
   id: string;
   species: string;
   itemType?: string;
+  /** Old size model. */
   scale?: number;
+  /** New size model: integer 50-100. */
+  size?: number;
   mutations?: string[];
 }
 
@@ -50,7 +53,10 @@ export interface PlantSlot {
   endTime?: number;
   maturedAt?: number;
   mutations?: string[];
+  /** Old size model: a scale multiplier from 1 up to the crop's maxScale. */
   targetScale?: number;
+  /** New size model: an integer 50-100 the game shows directly as the crop's size. */
+  size?: number;
   preserved?: boolean;
 }
 
@@ -62,7 +68,7 @@ export interface GardenTile {
   crystalType?: string;
   remainingActiveSeconds?: number;
   rotation?: number;
-  mountedCrop?: { id: string; species: string; itemType: string; scale: number; mutations: string[] };
+  mountedCrop?: { id: string; species: string; itemType: string; scale: number; size?: number; mutations: string[] };
   slots?: PlantSlot[];
   plantedAt?: number;
   maturedAt?: number;

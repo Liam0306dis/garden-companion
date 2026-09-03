@@ -929,9 +929,8 @@ export function initCompanion(): void {
       try {
         await useXpPotion(button.dataset.xpPotion!);
         toast('XP potion requested.', 'success');
-        // The new strength lands a moment later on a state patch, after the send round trip. A
-        // forced redraw ~1.5s on picks it up so the card shows the higher STR the potion was spent
-        // for - forced rather than the usual refresh so it lands even with the pointer over the card.
+        // The new strength lands ~1.5s later on a state patch; a forced redraw then shows it even
+        // with the pointer over the card.
         setTimeout(() => { if (!document.getElementById('gc-panel')?.hidden) renderPanelPreservingScroll(); }, 1500);
       } catch (error) {
         toast((error as Error).message, 'error');

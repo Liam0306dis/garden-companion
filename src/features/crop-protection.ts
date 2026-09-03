@@ -1,6 +1,7 @@
 import type { PlantSlot } from '../types.js';
 import { config, feature, saveConfig } from '../config.js';
 import { MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { slotIsMaxSize } from '../crop-size.js';
 import { bindListSearch } from '../list-search.js';
 import { mutationSprite, produceSprite } from '../pets.js';
 import { panelActions } from '../panel-actions.js';
@@ -32,8 +33,7 @@ function protectedSpecies(): Record<string, boolean> {
 }
 
 function atMaxSize(slot: PlantSlot, species: string): boolean {
-  const maxScale = Number(PLANT_CATALOG[species]?.crop?.maxScale) || 0;
-  return maxScale > 0 && Number(slot.targetScale ?? 0) >= maxScale - 1e-6;
+  return slotIsMaxSize(PLANT_CATALOG[species]?.crop, slot);
 }
 
 /**

@@ -309,7 +309,7 @@ assert.match(overviewSource, /structureSignature/, 'overview structural refresh 
 // The XP potion button was left disabled on success and only came back on the next redraw, which is
 // the server round trip - so it sat dead about five seconds when using several in a row is the point.
 // It is re-enabled in a finally, the moment the send resolves.
-assert.match(companionSource, /await useXpPotion\(button\.dataset\.xpPotion!\);[\s\S]{0,220}\} finally \{\s*button\.disabled = false;/, 'the xp potion button stays disabled until the panel redraws');
+assert.match(companionSource, /await useXpPotion\(button\.dataset\.xpPotion!\);[\s\S]{0,420}\} finally \{\s*button\.disabled = false;/, 'the xp potion button stays disabled until the panel redraws');
 // The main card and its options card can each be dragged to a fixed spot independently, so without an
 // explicit order a positioned card paints over an in-flow one and the options bleed through. The
 // options card is pinned above the main card.
@@ -518,7 +518,7 @@ assert.match(cropCleanserSource, /plantName\(row\.species\)/, 'Crop Cleanser hel
 assert.ok(constantsSource.includes("const name = NAME_OVERRIDES[species] ?? PLANT_CATALOG[species]?.crop?.name;"), 'crop names no longer come from the game catalog');
 assert.ok(constantsSource.includes("return species.endsWith('Fruit') ? name : name.replace(/ Fruit$/, '');"), 'a trailing Fruit is no longer trimmed from crop names');
 assert.ok(constantsSource.includes('PLANT_CATALOG[species]?.plantLabel || plantName(species)'), 'patch rows no longer use the plant name');
-assert.ok(buildSource.includes('crop: { name: match[5]'), 'the plant catalog no longer carries crop names');
+assert.ok(buildSource.includes('name: match[5], baseSellPrice: Number(match[6])'), 'the plant catalog no longer carries crop names');
 assert.match(overviewSource, /const key = PATCH_FAMILY_OF\[row\.species\] \?\? row\.species;/, 'the overview no longer groups patch families onto one row');
 assert.match(overviewSource, /if \(PLANT_CATALOG\[value\]\) return plantName\(value\);/, 'the overview names crops itself instead of using the shared name');
 assert.match(overviewSource, /const open = openFamilies\.has\(key\);/, 'patch rows no longer expand to show their species');
@@ -582,7 +582,7 @@ assert.match(overviewSource, /\.go-card\{width:min\(344px,94vw\)/, 'overview doe
 assert.match(overviewSource, /row\.totalSeconds/, 'overview detailed granter estimates missing');
 assert.match(overviewSource, /rows\.filter\(\(\[, , count\]\) => count > 0\)/, 'overview still displays empty mutation rows');
 assert.match(overviewSource, /stats\.mature === 0/, 'overview first-ready card behavior differs from standalone');
-assert.match(companionSource, /alarm = \{ timer: setInterval\(playAlarmTone, 420\), options \}/, 'shared alarm is not persistent');
+assert.match(companionSource, /alarm\.timer = setInterval\(maybePlayAlarmTone, 420\)/, 'shared alarm is not persistent');
 // Redrawing under the pointer destroys the hovered element, taking its native tooltip with it.
 assert.match(companionSource, /\['abilities', 'teams', 'petFood', 'calculators', 'journal'\]\.includes\(activeTab\)/, 'a live tab must not redraw while the pointer rests on it');
 // Holding still would leave stale numbers, so a hovered block is rewritten in place instead.
@@ -769,7 +769,7 @@ assert.match(companionSource, /data-delete-team[\s\S]*renderPanelPreservingScrol
 assert.match(companionSource, /querySelectorAll<HTMLInputElement>\('#gc-panel \[data-team-key\]'\)[\s\S]*field\.value = config\.teamKeybinds/, 'team keybind changes still redraw the panel');
 assert.match(companionSource, /\[880, 660, 880, 660, 0\]\[alarmPhase\+\+ % 5\]/, 'shop alarm does not use the alternating warning pattern');
 assert.match(companionSource, /gain\.gain\.setValueAtTime\(\.25, now\)/, 'shop alarm is not loud enough');
-assert.match(companionSource, /setInterval\(playAlarmTone, 420\)/, 'shop alarm warning pattern is not persistent');
+assert.match(companionSource, /setInterval\(maybePlayAlarmTone, 420\)/, 'shop alarm warning pattern is not persistent');
 assert.match(companionSource, /const VALUE_PREFIX = '🪙 ';/, 'crop value label is incorrect');
 assert.match(companionSource, /const GROWTH_PREFIX = '🐢 ';/, 'growth estimate label is incorrect');
 assert.match(companionSource, /`\$\{VALUE_PREFIX\}\$\{Math\.round/, 'crop value line does not use the coin prefix');
@@ -921,7 +921,7 @@ assert.match(calculatorsSource, /write\('\[data-value-weight\]', formatWeight\(v
 assert.match(calculatorsSource, /write\('\[data-value-breakdown\]', valueBreakdown\(value\)\);/, 'the value breakdown does not follow the size slider');
 assert.match(buildSource, /baseWeight:\(\[0-9\.e\+-\]\+\)/, 'the plant catalog no longer carries base weights');
 // Preserve All spends real coins per slot, so it must copy the game's own preserve rules exactly.
-assert.match(preserveAllSource, /Math\.round\(base \* \(Number\(targetScale\) \|\| 1\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
+assert.match(preserveAllSource, /Math\.round\(base \* slotScale\(crop, slot\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
 assert.match(preserveAllSource, /if \(!slot \|\| slot\.preserved === true \|\| slot\.slotId == null\) continue;\s+if \(Number\(slot\.endTime \|\| 0\) > now\) continue;/, 'preserve all no longer skips preserved or still-growing slots');
 assert.match(companionSource, /const qualifies = slot => slot\?\.preserved !== true &&/, 'instant harvest can destroy a preserved crop');
 // Crop Protection blocks the harvests instant harvest fires, so the two are mutually exclusive in
@@ -1112,7 +1112,7 @@ assert.match(plannerSource, /DECOR\[planner\.decorId\]\?\.mountable && planner\.
 assert.ok(built.includes('WoodStoolShort: { name: "Short Wood Stool"'), 'the newest decor is missing from the catalog');
 assert.match(plannerSource, /function scaleFor\(species: string\)/, 'planned crops have no adjustable size');
 assert.match(plannerSource, /if \(planner\.scale === null\) return max;/, 'the size slider does not default to the species maximum');
-assert.match(plannerSource, /targetScale: scaleFor\(/, 'slots ignore the chosen size');
+assert.match(plannerSource, /\.\.\.slotSizeFields\(grown\)/, 'slots ignore the chosen size');
 assert.match(plannerSource, /function mutationIcon\(id: string\)/, 'mutations are still text buttons');
 assert.match(petSpriteSource, /__gardenCompanionMutationSprites/, 'mutation icons are not decoded');
 assert.match(petSpriteSource, /pick\(candidates, decorIds\.has\(itemId\) \? trimmed : frames\)/, 'decor sprites are not trimmed, so they sit oddly in their boxes');

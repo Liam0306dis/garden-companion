@@ -1,5 +1,6 @@
 import type { PlantSlot } from '../types.js';
 import { PLANT_CATALOG, plantName } from '../constants.js';
+import { slotScale } from '../crop-size.js';
 import { page } from '../page.js';
 import { findPixiCard } from '../pixi.js';
 import { sendQuinoaCommand } from '../game-connection.js';
@@ -41,9 +42,10 @@ function heldSlots(): PlantSlot[] {
   return Array.isArray(state.currentCrop) ? state.currentCrop : [];
 }
 
-function preserveCost(species: string, targetScale: unknown, mutations: readonly string[]): number {
-  const base = Number(PLANT_CATALOG[species]?.crop?.baseSellPrice) || 0;
-  return Math.round(base * (Number(targetScale) || 1) * catalogMutationMultiplier(mutations));
+function preserveCost(species: string, slot: PlantSlot, mutations: readonly string[]): number {
+  const crop = PLANT_CATALOG[species]?.crop;
+  const base = Number(crop?.baseSellPrice) || 0;
+  return Math.round(base * slotScale(crop, slot) * catalogMutationMultiplier(mutations));
 }
 
 function eligibleSlots(): EligibleSlot[] {
@@ -54,7 +56,7 @@ function eligibleSlots(): EligibleSlot[] {
     if (Number(slot.endTime || 0) > now) continue;
     const species = slot.species || '';
     if (!species) continue;
-    rows.push({ slotId: slot.slotId, species, cost: preserveCost(species, slot.targetScale, slot.mutations || []) });
+    rows.push({ slotId: slot.slotId, species, cost: preserveCost(species, slot, slot.mutations || []) });
   }
   return rows;
 }

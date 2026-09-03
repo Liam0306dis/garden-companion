@@ -1,11 +1,12 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
 import { MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { crystalStrengthBonus, mutationSprite, onSpritesReady, petMetrics, produceSprite } from '../pets.js';
+import { maxSizeMultiplier, slotIsMaxSize, slotScale } from '../crop-size.js';
 import { toast } from '../toast.js';
 import { NAME_OVERRIDES, NUMBER_LOCALE } from '../utils.js';
 
 interface PlantCatalogEntry {
-  crop?: { baseSellPrice?: number; maxScale?: number };
+  crop?: { baseSellPrice?: number; maxScale?: number; maxSizeMultiplier?: number };
 }
 
 interface OverviewRuntimeState {
@@ -284,8 +285,7 @@ function installPlantFocus(
     const conditions = config.mutations.map(name => mutations.includes(name));
     if (config.maxSize) conditions.push((tile.slots || []).some((candidate: PlantSlot) => {
       if (ignorePreserved() && candidate.preserved) return false;
-      const maximumScale = PLANT_CATALOG[candidate.species ?? tile.species]?.crop?.maxScale;
-      return Boolean(maximumScale && Number(candidate.targetScale ?? 1) >= maximumScale);
+      return slotIsMaxSize(PLANT_CATALOG[candidate.species ?? tile.species ?? '']?.crop, candidate);
     }));
     // No conditions picked means the scope is the only filter — not "unmutated crops only".
     const ruleMatches = !conditions.length
@@ -673,10 +673,11 @@ function calculateStats(
       if (slotMutations.some(name => name === 'Ambershine' || name === 'Dawnlit')) result.targetProgress.AmberDawn = (result.targetProgress.AmberDawn ?? 0) + 1;
       if (slotMutations.some(name => ['Dawncharged', 'Dawnbound', 'Ambercharged', 'Amberbound'].includes(name))) result.targetProgress.DawnAmbercharged = (result.targetProgress.DawnAmbercharged ?? 0) + 1;
       if (!(slot.mutations || []).length) result.unmutated++;
-      const maximumScale = catalog?.[slotSpecies]?.crop?.maxScale;
-      if (maximumScale && Number(slot.targetScale ?? 1) < maximumScale) result.notMaxSize++;
-      const base = catalog?.[slotSpecies]?.crop?.baseSellPrice ?? 0;
-      const value = Math.round(base * Number(slot.targetScale ?? 1) * mutationMultiplier(slot.mutations ?? []) * friendMultiplier);
+      const crop = catalog?.[slotSpecies]?.crop;
+      // Only crops that can actually grow count towards "not max size", matching the old maxScale gate.
+      if (maxSizeMultiplier(crop) > 1 && !slotIsMaxSize(crop, slot)) result.notMaxSize++;
+      const base = crop?.baseSellPrice ?? 0;
+      const value = Math.round(base * slotScale(crop, slot) * mutationMultiplier(slot.mutations ?? []) * friendMultiplier);
       result.value += value;
       species.value += value;
     }

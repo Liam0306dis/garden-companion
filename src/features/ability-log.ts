@@ -122,7 +122,10 @@ export function procOutcome(ability: string, data: Record<string, unknown>): str
   // shape every other boost has: an amount, then the effect on it.
   if (ABILITY_GROUP_BY_ID.get(ability) === 'Crop Size Boost') {
     const count = data.numPlantsAffected != null ? countLabel(Number(data.numPlantsAffected), 'plant') : '';
-    const boost = data.scaleIncreasePercentage != null ? `+${Number(data.scaleIncreasePercentage).toFixed(1)}% boosted` : '';
+    // The size update reports a flat whole-number `sizeIncrease`; older logs carry the percentage.
+    const boost = data.sizeIncrease != null
+      ? `+${Number(data.sizeIncrease)} size`
+      : data.scaleIncreasePercentage != null ? `+${Number(data.scaleIncreasePercentage).toFixed(1)}% boosted` : '';
     if (count && boost) return `${count} ${ARROW} ${boost}`;
     if (count || boost) return count || boost;
   }
@@ -151,6 +154,7 @@ export function procOutcome(ability: string, data: Record<string, unknown>): str
   if (data.hungerRestoreAmount != null) return `${Number(data.hungerRestoreAmount).toLocaleString(NUMBER_LOCALE)} hunger`;
   if (data.sellPrice != null) return `${Number(data.sellPrice).toLocaleString(NUMBER_LOCALE)} coins`;
   if (data.strengthIncrease != null) return `+${Number(data.strengthIncrease).toLocaleString(NUMBER_LOCALE)} STR`;
+  if (data.sizeIncrease != null) return `+${Number(data.sizeIncrease).toLocaleString(NUMBER_LOCALE)} size`;
   if (data.scaleIncreasePercentage != null) return `+${Number(data.scaleIncreasePercentage).toLocaleString(NUMBER_LOCALE)}% size`;
   if (data.mutation || data.targetMutation) return payloadItemName(data.mutation || data.targetMutation);
   const fallback = Object.entries(data).find(([key, value]) => !['pet', 'sourcePet'].includes(key) && ['string', 'number', 'boolean'].includes(typeof value));

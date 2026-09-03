@@ -2,6 +2,7 @@ import type { Pet } from '../types.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { abilityEffectText } from '../ability-effect.js';
+import { maxSizeMultiplier } from '../crop-size.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
@@ -153,7 +154,9 @@ interface CropValue { base: number; scale: number; maxScale: number; weight: num
 function cropValueFor(species: string, sizeFraction: number, selected: string[], friends: number): CropValue {
   const crop = cropCatalog(species);
   const base = Number(crop?.baseSellPrice) || 0;
-  const maxScale = Number(crop?.maxScale) || 1;
+  // The slider is a 0-1 size fraction, so the scale formula is the same in both models: only the
+  // ceiling differs - the old maxScale, or the new maxSizeMultiplier when the size update is live.
+  const maxScale = maxSizeMultiplier(crop);
   const scale = 1 + Math.max(0, Math.min(1, sizeFraction)) * (maxScale - 1);
   const mutation = catalogMutationMultiplier(selected);
   const friend = friendMultiplier(friends);

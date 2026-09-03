@@ -1,5 +1,7 @@
 import type { PlantSlot } from '../types.js';
 import { feature } from '../config.js';
+import { PLANT_CATALOG } from '../constants.js';
+import { slotScale } from '../crop-size.js';
 import { protectionReason } from './crop-protection.js';
 import { mutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
@@ -89,7 +91,7 @@ function estimateLines(): string[] {
   const lines = [];
   if (feature('cropValues')) {
     const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * Number(crop.targetScale || 1) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
+    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * slotScale(PLANT_CATALOG[crop.species ?? '']?.crop, crop) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
   }
   if (feature('turtleTimer')) {
     const end = Number(crop.endTime || 0), rate = turtleRate(pets);

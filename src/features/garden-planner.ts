@@ -1,5 +1,6 @@
 import type { CompanionPage, GardenTile } from '../types.js';
 import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { maxSizeMultiplier, sizeFromScale, slotScale } from '../crop-size.js';
 import { NUMBER_LOCALE } from '../utils.js';
 
 /**
@@ -52,22 +53,38 @@ export function initGardenPlanner(): void {
   function plannedDecor(): GardenTile {
     const tile = { objectType: 'decor', decorId: planner.decorId, rotation: decorRotation() } as GardenTile;
     if (DECOR[planner.decorId]?.mountable && planner.mountedSpecies) {
+      // A mounted crop keeps its own `scale` on both models; the new model also carries `size`.
+      const mountedCrop = PLANTS[planner.mountedSpecies]?.crop;
+      const scale = scaleFor(planner.mountedSpecies);
       tile.mountedCrop = {
         id: crypto.randomUUID(),
         species: planner.mountedSpecies,
         itemType: 'Produce',
-        scale: scaleFor(planner.mountedSpecies),
+        scale,
+        ...(mountedCrop?.maxSizeMultiplier != null ? { size: sizeFromScale(maxSizeMultiplier(mountedCrop), scale) } : {}),
         mutations: [...planner.mutations],
       };
     }
     return tile;
   }
 
-  /** Planned size for a species, defaulting to its maximum and clamped to the legal range. */
+  /** Planned scale multiplier for a species, defaulting to its maximum and clamped to the legal range. */
   function scaleFor(species: string): number {
-    const max = Number(PLANTS[species]?.crop?.maxScale || 1);
+    const max = maxSizeMultiplier(PLANTS[species]?.crop);
     if (planner.scale === null) return max;
     return Math.min(max, Math.max(1, planner.scale));
+  }
+
+  /**
+   * The size fields a planned crop slot carries, fed to the game's own tile system. The size update
+   * replaced a slot's `targetScale` with an integer `size` (50-100); a crop whose catalog gives
+   * `maxSizeMultiplier` is on the new model and gets `size`, everything else keeps `targetScale`.
+   */
+  function slotSizeFields(species: string): { targetScale?: number; size?: number } {
+    const crop = PLANTS[species]?.crop;
+    const scale = scaleFor(species);
+    if (crop?.maxSizeMultiplier != null) return { size: sizeFromScale(maxSizeMultiplier(crop), scale) };
+    return { targetScale: scale };
   }
 
   /**
@@ -88,7 +105,7 @@ export function initGardenPlanner(): void {
   }
 
   function sizeSummary(scale: number, species: string): string {
-    const max = Number(PLANTS[species]?.crop?.maxScale || 1);
+    const max = maxSizeMultiplier(PLANTS[species]?.crop);
     if (max <= 1) return 'fixed';
     const percent = `${sizePercent(scale, max)}%`;
     const baseWeight = Number(PLANTS[species]?.crop?.baseWeight || 0);
@@ -285,7 +302,7 @@ export function initGardenPlanner(): void {
           species: grown,
           startTime: started,
           endTime: matured,
-          targetScale: scaleFor(grown),
+          ...slotSizeFields(grown),
           mutations: [...mutations],
           slotId,
           ...(isPatch ? patchSlotOffset(slotId, capacity) : {}),
@@ -506,7 +523,7 @@ export function initGardenPlanner(): void {
     const species = planner.mode === 'decor' ? planner.mountedSpecies || planner.species : planner.species;
     const slider = panel.querySelector<HTMLInputElement>('[data-plan-scale]');
     if (!slider) return;
-    const max = Number(PLANTS[species]?.crop?.maxScale || 1);
+    const max = maxSizeMultiplier(PLANTS[species]?.crop);
     const value = scaleFor(species);
     slider.max = max.toFixed(2);
     slider.value = value.toFixed(2);
@@ -559,7 +576,9 @@ export function initGardenPlanner(): void {
     return {
       p: tile.species,
       m: slot?.mutations ?? [],
-      s: round2(slot?.targetScale),
+      // Stored as a scale multiplier whichever model the slot uses, so a layout saved on one still
+      // rebuilds on the other. plannedTile turns it back into `size` or `targetScale` as needed.
+      s: round2(slotScale(PLANTS[host]?.crop, slot)),
       ...(custom ? { v: grown } : {}),
     };
   }
@@ -641,7 +660,7 @@ export function initGardenPlanner(): void {
     const decorMode = planner.mode === 'decor';
     const layoutNames = Object.keys(savedLayouts()).sort();
     const scaleSpecies = decorMode ? planner.mountedSpecies || planner.species : planner.species;
-    const scaleMax = Number(PLANTS[scaleSpecies]?.crop?.maxScale || 1);
+    const scaleMax = maxSizeMultiplier(PLANTS[scaleSpecies]?.crop);
     const scaleValue = scaleFor(scaleSpecies);
     const previousScroll = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)')?.scrollTop ?? 0;
     panel.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size} planned</span><button data-plan-close>Exit</button></header>
