@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.48
+// @version      0.8.49
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -11521,7 +11521,24 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var wrappedAtoms = /* @__PURE__ */ new WeakSet();
   var INSTALL_INTERVAL_MS = 250;
   var MAX_INSTALL_ATTEMPTS = 240;
+  var GESTURE_GAP_MS = 30;
+  var GESTURE_RECENT_MS = 250;
   var pendingSelection = null;
+  var lastUserGestureAt = 0;
+  var gestureWatch = false;
+  function playerReselect(pending) {
+    const now = performance.now();
+    return lastUserGestureAt > pending.armedAt + GESTURE_GAP_MS && now - lastUserGestureAt < GESTURE_RECENT_MS;
+  }
+  function watchUserGestures() {
+    if (gestureWatch) return;
+    gestureWatch = true;
+    const mark = (event) => {
+      if (event.isTrusted) lastUserGestureAt = performance.now();
+    };
+    window.addEventListener("keydown", mark, true);
+    window.addEventListener("pointerdown", mark, true);
+  }
   var lastSelectedItemId = null;
   function trace2(step, detail) {
     try {
@@ -11556,7 +11573,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const originalExplicitItemWrite = explicitItemAtom.write;
     explicitItemAtom.write = function(get, set, ...args) {
       const pending = pendingSelection;
-      const redirecting = Boolean(pending) && performance.now() <= (pending?.expiresAt ?? 0) && typeof args[0] === "string" && Boolean(pending?.addedPlantIds.has(args[0]));
+      const targetsPlant = Boolean(pending) && performance.now() <= (pending?.expiresAt ?? 0) && typeof args[0] === "string" && Boolean(pending?.addedPlantIds.has(args[0]));
+      if (targetsPlant && pending && playerReselect(pending)) pendingSelection = null;
+      const redirecting = targetsPlant && Boolean(pendingSelection);
       trace2("explicit write", { requested: args[0], redirecting });
       const value = redirecting ? pending.restoreItemId : args[0];
       return originalExplicitItemWrite.call(this, get, set, value);
@@ -11571,14 +11590,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       pendingSelection = {
         addedPlantIds: /* @__PURE__ */ new Set([plantItemId]),
         restoreItemId: "PlanterPot",
-        expiresAt: performance.now() + 2e3
+        expiresAt: performance.now() + 2e3,
+        armedAt: performance.now()
       };
     });
     selectedItemAtom.write = function(get, set, ...args) {
       const pending = pendingSelection;
       if (!isEnabled() || pending && performance.now() > pending.expiresAt) pendingSelection = null;
       const nextItemId = args[0];
-      const redirecting = Boolean(pendingSelection) && typeof nextItemId === "string" && Boolean(pendingSelection?.addedPlantIds.has(nextItemId));
+      const targetsPlant = Boolean(pendingSelection) && typeof nextItemId === "string" && Boolean(pendingSelection?.addedPlantIds.has(nextItemId));
+      if (targetsPlant && pendingSelection && playerReselect(pendingSelection)) pendingSelection = null;
+      const redirecting = targetsPlant && Boolean(pendingSelection);
       trace2("select write", { requested: nextItemId, redirecting });
       if (redirecting && pendingSelection) {
         lastSelectedItemId = pendingSelection.restoreItemId;
@@ -11593,6 +11615,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return true;
   }
   function initPlanterPotSelection() {
+    watchUserGestures();
     if (installHooks()) return;
     let attempts = 0;
     const timer = window.setInterval(() => {
