@@ -10,12 +10,43 @@ interface PendingPotSelection {
   addedPlantIds: Set<string>;
   restoreItemId: string | null;
   expiresAt: number;
+  /** When the pot went out, so a later hotbar press can be told apart from the game's own writes. */
+  armedAt: number;
 }
 
 const wrappedAtoms = new WeakSet<JotaiAtom>();
 const INSTALL_INTERVAL_MS = 250;
 const MAX_INSTALL_ATTEMPTS = 240;
+/** A hotbar press this much after the pot counts as the player overriding, not the pot's auto-select. */
+const GESTURE_GAP_MS = 30;
+/** How fresh that press must be when the selection write lands, so a stale click does not count. */
+const GESTURE_RECENT_MS = 250;
 let pendingSelection: PendingPotSelection | null = null;
+/** Last trusted keydown/pointerdown, used to spot the player reselecting the plant themselves. */
+let lastUserGestureAt = 0;
+let gestureWatch = false;
+
+/**
+ * The game keeps the pot selected because we bounce every write of the new plant's id back to it for
+ * a two-second window. The catch is that the player's own hotbar press to select that plant is such
+ * a write, so within the window it gets bounced too - the plant will not select until the window
+ * runs out. This says whether the current write is the player deciding to pick the plant up after
+ * the pot: a trusted gesture that happened after the pot went out, and recently enough to be the one
+ * driving this very write. The pot's own auto-select fires in the same tick it was armed, and the
+ * server's later re-select has no gesture behind it, so neither is mistaken for the player.
+ */
+function playerReselect(pending: PendingPotSelection): boolean {
+  const now = performance.now();
+  return lastUserGestureAt > pending.armedAt + GESTURE_GAP_MS && now - lastUserGestureAt < GESTURE_RECENT_MS;
+}
+
+function watchUserGestures(): void {
+  if (gestureWatch) return;
+  gestureWatch = true;
+  const mark = (event: Event) => { if (event.isTrusted) lastUserGestureAt = performance.now(); };
+  window.addEventListener('keydown', mark, true);
+  window.addEventListener('pointerdown', mark, true);
+}
 /**
  * The selection as last written. Tracked rather than read back: a command goes out before any
  * getter is to hand, and this is the only thing that says whether the pot was what was in use.
@@ -70,8 +101,12 @@ function installHooks(): boolean {
 
   explicitItemAtom.write = function(get, set, ...args) {
     const pending = pendingSelection;
-    const redirecting = Boolean(pending) && performance.now() <= (pending?.expiresAt ?? 0)
+    const targetsPlant = Boolean(pending) && performance.now() <= (pending?.expiresAt ?? 0)
       && typeof args[0] === 'string' && Boolean(pending?.addedPlantIds.has(args[0] as string));
+    // A hotbar press or click landing on the just-potted plant is the player choosing it: disarm so
+    // it selects at once instead of being bounced back to the pot for the rest of the window.
+    if (targetsPlant && pending && playerReselect(pending)) pendingSelection = null;
+    const redirecting = targetsPlant && Boolean(pendingSelection);
     trace('explicit write', { requested: args[0], redirecting });
     const value = redirecting ? pending!.restoreItemId : args[0];
     return originalExplicitItemWrite.call(this, get as AtomGetter, set as AtomSetter, value);
@@ -101,6 +136,7 @@ function installHooks(): boolean {
       addedPlantIds: new Set([plantItemId]),
       restoreItemId: 'PlanterPot',
       expiresAt: performance.now() + 2_000,
+      armedAt: performance.now(),
     };
   });
 
@@ -114,8 +150,11 @@ function installHooks(): boolean {
     // sets the selection when it predicts and again when the server confirms, and consuming this on
     // whichever came first let the other one through - which is how the plant stopped being
     // selected without the pot ever coming back.
-    const redirecting = Boolean(pendingSelection) && typeof nextItemId === 'string'
+    const targetsPlant = Boolean(pendingSelection) && typeof nextItemId === 'string'
       && Boolean(pendingSelection?.addedPlantIds.has(nextItemId));
+    // ...but a fresh hotbar press on the plant is the player overriding the keeper, so let it land.
+    if (targetsPlant && pendingSelection && playerReselect(pendingSelection)) pendingSelection = null;
+    const redirecting = targetsPlant && Boolean(pendingSelection);
     trace('select write', { requested: nextItemId, redirecting });
     if (redirecting && pendingSelection) {
       lastSelectedItemId = pendingSelection.restoreItemId;
@@ -135,6 +174,7 @@ function installHooks(): boolean {
 }
 
 export function initPlanterPotSelection(): void {
+  watchUserGestures();
   if (installHooks()) return;
   let attempts = 0;
   const timer = window.setInterval(() => {

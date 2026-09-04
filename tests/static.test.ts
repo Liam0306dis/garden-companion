@@ -1686,7 +1686,9 @@ assert.match(plantDragSource, /const items = state\.slot\?\.data\?\.inventory\?\
 // Under prediction the game writes the selection twice - once on its own prediction, once on
 // confirmation - so the arming has to survive the first write or the second one undoes the restore.
 assert.match(planterPotSelectionSource, /if \(!isEnabled\(\) \|\| \(pending && performance\.now\(\) > pending\.expiresAt\)\) pendingSelection = null;/, 'the arming is cleared by something other than being disabled or expiring, so it is spent early');
-assert.match(planterPotSelectionSource, /const redirecting = Boolean\(pendingSelection\) && typeof nextItemId === 'string'/, 'the keeper no longer redirects every write in its window');
+assert.match(planterPotSelectionSource, /const targetsPlant = Boolean\(pendingSelection\) && typeof nextItemId === 'string'/, 'the keeper no longer redirects every write in its window');
+// A fresh hotbar press on the plant must disarm the keeper, or reselecting it fights the redirect.
+assert.match(planterPotSelectionSource, /if \(targetsPlant && pendingSelection && playerReselect\(pendingSelection\)\) pendingSelection = null;/, 'a manual reselect of the potted plant does not override the keeper');
 // A command goes out before any getter is to hand, so the selection is tracked as it is written.
 assert.match(planterPotSelectionSource, /lastSelectedItemId !== 'PlanterPot'\) return;/, 'the keeper arms even when the pot was not what was in use');
 
