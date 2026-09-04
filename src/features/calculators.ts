@@ -32,11 +32,13 @@ const CROP_REGROW: Record<string, [number, number]> = {
   Eggplant: [180, 60], Lemon: [90, 30], Peach: [135, 45], Pear: [135, 45], Poinsettia: [9, 3], PricklyPear: [90, 30],
   Strawberry: [15 / 60, 5 / 60], Tomato: [1, 20 / 60], BurrosTail: [4.5, 1.5], FavaBean: [12, 2], PassionFruit: [90, 30],
   Blueberry: [33 / 60, 11 / 60], Cabbage: [52 / 60, 0], Corn: [45 / 60, 0], Grape: [22.5, 0], Sunflower: [1320, 0],
+  Habanero: [15, 5], Persimmon: [90, 30], Marigold: [240, 0],
 };
 const CROP_GROW: Record<string, number> = {
   Daffodil: 50 / 60, Lily: 4, Carrot: 4 / 60, Aloe: 45 / 60, Bamboo: 1320, Cactus: 180, Beet: 1, Clover: 6,
   Delphinium: 25 / 60, FourLeafClover: 6, Gentian: 1.5, Leek: 1.5, Mushroom: 1320, OrangeTulip: 8 / 60,
   Pumpkin: 35, VioletCort: 1320, Watermelon: 12,
+  Cardoon: 2, Milkcap: 1320, Echeveria: 20, Saffron: 2, Cattail: 3, Daisy: 1.5,
 };
 
 export function dustMultiplier(species: string, mutations: string[] = []): number {
