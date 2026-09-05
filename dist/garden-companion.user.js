@@ -6751,7 +6751,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-egg-head i { flex:0 0 auto;color:var(--gc-muted);font-size:9px;font-style:normal; }
 .gc-egg-head:hover h3 { color:#ddd6fe; }
 .gc-egg-due { border-color:rgba(74,222,128,.35)!important;color:#86efac!important;background:rgba(74,222,128,.1)!important; }
-.gc-egg-table { width:100%;margin:9px 0 0;border-collapse:collapse;font-size:11px; }
+.gc-egg-table { width:100%;table-layout:fixed;margin:9px 0 0;border-collapse:collapse;font-size:11px; }
+.gc-egg-table th:nth-child(1),.gc-egg-table td:nth-child(1) { width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-egg-table th:nth-child(n+2),.gc-egg-table td:nth-child(n+2) { width:13.2%; }
 .gc-egg-table th { padding:3px 6px;color:var(--gc-muted);font-size:9px;font-weight:600;text-align:right;text-transform:uppercase;letter-spacing:.4px; }
 .gc-egg-table th:first-child,.gc-egg-table td:first-child { text-align:left; }
 .gc-egg-table td { padding:3px 6px;text-align:right;border-top:1px solid var(--gc-line); }
