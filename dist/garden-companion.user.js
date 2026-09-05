@@ -6656,8 +6656,9 @@ ${eggs.map(eggCard).join("")}`;
 .gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }
 .gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }
 .gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }
-.gc-planner-weather button { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }
-.gc-planner-weather button img { width:26px;height:26px;object-fit:contain; }
+.gc-planner-weather { flex-wrap:nowrap;gap:3px; }
+.gc-planner-weather button { min-width:0;padding:3px 5px!important;display:grid;place-items:center; }
+.gc-planner-weather button img { display:block;width:22px;height:22px;object-fit:contain; }
 .gc-planner-mutation b { font-size:9px; }
 .gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }
 .gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:11px;font-weight:700;text-align:right; }
