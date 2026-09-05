@@ -3814,7 +3814,7 @@ ${rows}</div>`;
     return { misses: 0, synced: false };
   }
   function blankEgg() {
-    return { hatches: 0, pulls: 0, species: {}, colours: {}, counters: {} };
+    return { hatches: 0, pulls: 0, species: {}, colours: {}, speciesColours: {}, counters: {} };
   }
   function normaliseEgg(value, eggId = "") {
     const raw = value && typeof value === "object" ? value : {};
@@ -3829,6 +3829,9 @@ ${rows}</div>`;
       pulls: Number(raw.pulls ?? raw.hatches) || 0,
       species: numbers(raw.species),
       colours: numbers(raw.colours),
+      speciesColours: Object.fromEntries(Object.entries(
+        raw.speciesColours && typeof raw.speciesColours === "object" ? raw.speciesColours : {}
+      ).map(([species, colours]) => [species, numbers(colours)])),
       // Species counters used to share one 'species' key, because an egg only ever guaranteed one.
       // The count is real progress towards a real guarantee, so it is carried onto the species that
       // key stood for rather than dropped - which would reset a bar that may be hundreds of pulls in.
@@ -3882,7 +3885,10 @@ ${rows}</div>`;
     record.hatches += 1;
     record.species[pet.petSpecies] = (record.species[pet.petSpecies] || 0) + 1;
     for (const colour of COLOURS) {
-      if (mutations.includes(colour)) record.colours[colour] = (record.colours[colour] || 0) + 1;
+      if (!mutations.includes(colour)) continue;
+      record.colours[colour] = (record.colours[colour] || 0) + 1;
+      const perSpecies = record.speciesColours[pet.petSpecies] ?? (record.speciesColours[pet.petSpecies] = {});
+      perSpecies[colour] = (perSpecies[colour] || 0) + 1;
     }
     return mutations;
   }
@@ -3965,8 +3971,14 @@ ${rows}</div>`;
     const rows = [...listed, ...Object.keys(record.species).filter((id) => !weights[id])].map((id) => {
       const count = record.species[id] || 0;
       const odds = weightTotal > 0 && weights[id] ? `${(weights[id] / weightTotal * 100).toFixed(0)}%` : "-";
-      return `<tr${count ? "" : ' class="gc-egg-none"'}><td>${escapeHtml(speciesName(id))}</td><td>${count.toLocaleString(NUMBER_LOCALE)}</td><td>${share(count, record.hatches)}</td><td>${odds}</td></tr>`;
+      const petSprite3 = page.__gardenCompanionPetSprites?.[id] || "";
+      const petIcon = petSprite3 ? `<img src="${escapeHtml(petSprite3)}" alt="">` : "";
+      const gold = record.speciesColours[id]?.Gold || 0;
+      const rainbow = record.speciesColours[id]?.Rainbow || 0;
+      return `<tr${count ? "" : ' class="gc-egg-none"'}><td><span class="gc-shop-sprite">${petIcon}</span>${escapeHtml(speciesName(id))}</td><td>${count.toLocaleString(NUMBER_LOCALE)}</td><td>${gold ? gold.toLocaleString(NUMBER_LOCALE) : "-"}</td><td>${rainbow ? rainbow.toLocaleString(NUMBER_LOCALE) : "-"}</td><td>${share(count, record.hatches)}</td><td>${odds}</td></tr>`;
     }).join("");
+    const goldHead = mutationSprite("Gold") ? `<img src="${escapeHtml(mutationSprite("Gold"))}" alt="Gold">` : "Gold";
+    const rainbowHead = mutationSprite("Rainbow") ? `<img src="${escapeHtml(mutationSprite("Rainbow"))}" alt="Rainbow">` : "Rainbow";
     const colours = COLOURS.map((colour) => `<span class="gc-pill">${escapeHtml(colour)} ${(record.colours[colour] || 0).toLocaleString(NUMBER_LOCALE)}</span>`).join("");
     const pity = [
       ...pitySpeciesList(eggId).map((species) => pityRow(eggId, speciesName(species), page.__gardenCompanionPetSprites?.[species] || "", record, species)),
@@ -3974,7 +3986,7 @@ ${rows}</div>`;
     ].join("");
     return `<section class="gc-card gc-egg-card">${head}
 <div class="gc-egg-body"${open ? "" : " hidden"}>
-<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th>Yours</th><th>Odds</th></tr></thead><tbody>${rows}</tbody></table>
+<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th class="gc-egg-mut" title="Gold found">${goldHead}</th><th class="gc-egg-mut" title="Rainbow found">${rainbowHead}</th><th>Yours</th><th>Odds</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="gc-egg-colours">${colours}<button data-egg-reset="${escapeHtml(eggId)}" title="Clear everything recorded for this egg">Reset</button></div>
 <div class="gc-egg-pities">${pity}</div></div></section>`;
   }
@@ -6744,6 +6756,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-egg-table th:first-child,.gc-egg-table td:first-child { text-align:left; }
 .gc-egg-table td { padding:3px 6px;text-align:right;border-top:1px solid var(--gc-line); }
 .gc-egg-table tr.gc-egg-none { opacity:.45; }
+.gc-egg-table th,.gc-egg-table td { vertical-align:middle; }
+.gc-egg-table td:first-child .gc-shop-sprite { display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:middle; }
+.gc-egg-table td:first-child .gc-shop-sprite img { width:18px;height:18px;object-fit:contain;vertical-align:middle; }
+.gc-egg-table th.gc-egg-mut img { display:inline-block;width:14px;height:14px;object-fit:contain;vertical-align:middle; }
 .gc-egg-colours { margin-top:9px;display:flex;align-items:center;gap:6px; }
 .gc-egg-colours button { margin-left:auto;padding:3px 9px;border:1px solid var(--gc-line);border-radius:5px;color:var(--gc-muted);background:transparent;font-size:10px;cursor:pointer; }
 .gc-egg-colours button:hover { border-color:rgba(248,113,113,.45);color:#fca5a5; }

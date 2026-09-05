@@ -556,6 +556,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-egg-table th:first-child,.gc-egg-table td:first-child { text-align:left; }
 .gc-egg-table td { padding:3px 6px;text-align:right;border-top:1px solid var(--gc-line); }
 .gc-egg-table tr.gc-egg-none { opacity:.45; }
+.gc-egg-table th,.gc-egg-table td { vertical-align:middle; }
+.gc-egg-table td:first-child .gc-shop-sprite { display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:middle; }
+.gc-egg-table td:first-child .gc-shop-sprite img { width:18px;height:18px;object-fit:contain;vertical-align:middle; }
+.gc-egg-table th.gc-egg-mut img { display:inline-block;width:14px;height:14px;object-fit:contain;vertical-align:middle; }
 .gc-egg-colours { margin-top:9px;display:flex;align-items:center;gap:6px; }
 .gc-egg-colours button { margin-left:auto;padding:3px 9px;border:1px solid var(--gc-line);border-radius:5px;color:var(--gc-muted);background:transparent;font-size:10px;cursor:pointer; }
 .gc-egg-colours button:hover { border-color:rgba(248,113,113,.45);color:#fca5a5; }
