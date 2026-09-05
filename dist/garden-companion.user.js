@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.49
+// @version      0.8.50
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1199,7 +1199,10 @@
     Cabbage: [52 / 60, 0],
     Corn: [45 / 60, 0],
     Grape: [22.5, 0],
-    Sunflower: [1320, 0]
+    Sunflower: [1320, 0],
+    Habanero: [15, 5],
+    Persimmon: [90, 30],
+    Marigold: [240, 0]
   };
   var CROP_GROW = {
     Daffodil: 50 / 60,
@@ -1218,7 +1221,13 @@
     OrangeTulip: 8 / 60,
     Pumpkin: 35,
     VioletCort: 1320,
-    Watermelon: 12
+    Watermelon: 12,
+    Cardoon: 2,
+    Milkcap: 1320,
+    Echeveria: 20,
+    Saffron: 2,
+    Cattail: 3,
+    Daisy: 1.5
   };
   function dustMultiplier(species, mutations = []) {
     const rarity = DUST_RARITY[PET_CATALOG[species]?.rarity || ""] || 1;
@@ -1229,6 +1238,53 @@
   }
   function petMaxDust(pet) {
     return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || []) * Number(pet.targetScale || 1));
+  }
+  function detectedDustBoostStrengths() {
+    return activePets().filter((pet) => pet.abilities?.includes("DustBoost")).map((pet) => petMetrics(pet)?.maxStrength ?? 100).sort((left, right) => right - left).slice(0, MAX_TEAM_PETS);
+  }
+  function dustBoostStrengthFor(index, detected = detectedDustBoostStrengths()) {
+    return dustBoostStrengths[index] ?? detected[index] ?? null;
+  }
+  function setDustBoostStrength(index, strength) {
+    dustBoostStrengths[index] = strength;
+  }
+  function setDustCrystal(on) {
+    dustCrystal = on;
+  }
+  function dustBoostEffect() {
+    const details = ABILITY_DETAILS.DustBoost;
+    const baseChance = Number(details?.baseProbability || 0);
+    const baseAmount = Number(details?.baseParameters?.petDustIncreasePercentage || 0);
+    const none = { multiplier: 1, count: 0, percent: 0, maxMultiplier: 1, maxPercent: 0, procChance: 0 };
+    if (baseChance <= 0 || baseAmount <= 0) return none;
+    const bonus = dustCrystal ? STRENGTH_CRYSTAL_BONUS : 0;
+    const detected = detectedDustBoostStrengths();
+    const boosters = [];
+    for (let index = 0; index < MAX_TEAM_PETS; index++) {
+      const base = dustBoostStrengthFor(index, detected);
+      if (base == null) continue;
+      const scale = Math.max(0.25, (base + bonus) / 100);
+      boosters.push({ chance: Math.min(1, baseChance / 100 * scale), amount: baseAmount / 100 * scale });
+    }
+    if (!boosters.length) return none;
+    boosters.sort((left, right) => right.amount - left.amount);
+    let expected = 0, noneStronger = 1;
+    for (const booster of boosters) {
+      expected += booster.amount * booster.chance * noneStronger;
+      noneStronger *= 1 - booster.chance;
+    }
+    const maxAmount = boosters[0].amount;
+    return { multiplier: 1 + expected, count: boosters.length, percent: expected * 100, maxMultiplier: 1 + maxAmount, maxPercent: maxAmount * 100, procChance: (1 - noneStronger) * 100 };
+  }
+  function boostProcLine(total, boost) {
+    return `on a Dust Boost proc (+${boost.maxPercent.toFixed(1)}%): ${Math.round(total * boost.maxMultiplier).toLocaleString(NUMBER_LOCALE)} dust`;
+  }
+  function boostAvgLine(total, boost) {
+    return `with Dust Boost (avg +${boost.percent.toFixed(1)}%): ${Math.round(total * boost.multiplier).toLocaleString(NUMBER_LOCALE)} dust`;
+  }
+  function boostCeilingNote(boost) {
+    if (!boost.count) return "";
+    return `A Dust Boost proc adds <b>+${boost.maxPercent.toFixed(1)}%</b> and doesn't stack, so it is the same however many pets fire. With ${boost.count} booster${boost.count === 1 ? "" : "s"} about <b>${boost.procChance.toFixed(0)}%</b> of sales land a proc. The egg estimate folds in the average (+${boost.percent.toFixed(1)}%); the pet total shows a sale that procs.`;
   }
   function eggDustRange(eggId) {
     const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
@@ -1263,6 +1319,8 @@
   var calculatorTab = "dust";
   var dustSelection = /* @__PURE__ */ new Set();
   var dustSearch = "";
+  var dustCrystal = false;
+  var dustBoostStrengths = [null, null, null];
   var granterAbility = "RainbowGranter";
   var granterStrengths = [null, null, null];
   var granterEnabled = [true, true, true];
@@ -1374,6 +1432,29 @@
     const total = allPets().filter((pet) => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
     const label = main.querySelector("[data-dust-total]");
     if (label) label.textContent = `${total.toLocaleString(NUMBER_LOCALE)} dust`;
+    const boost = dustBoostEffect();
+    const boosted = main.querySelector("[data-dust-boosted]");
+    if (boosted) {
+      boosted.textContent = boost.count ? boostProcLine(total, boost) : "";
+      boosted.hidden = !boost.count;
+    }
+  }
+  function updateDustBoost(main) {
+    const boost = dustBoostEffect();
+    const percent = main.querySelector("[data-dust-boost-percent]");
+    if (percent) percent.textContent = boost.count ? `+${boost.maxPercent.toFixed(1)}% on proc` : "none";
+    const ceiling = main.querySelector("[data-dust-boost-max]");
+    if (ceiling) {
+      ceiling.innerHTML = boostCeilingNote(boost);
+      ceiling.hidden = !boost.count;
+    }
+    const eggTotal = heldEggs().reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
+    const eggEl = main.querySelector("[data-dust-boosted-egg]");
+    if (eggEl) {
+      eggEl.textContent = boost.count ? boostAvgLine(eggTotal, boost) : "";
+      eggEl.hidden = !boost.count;
+    }
+    updateDustTotal(main);
   }
   function calculatorsSignature() {
     const pets = allPets().map((pet) => [
@@ -1450,15 +1531,21 @@ ${groups}
     const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
     const pets = allPets().map((pet) => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
     const selectedTotal = pets.filter((row) => dustSelection.has(row.pet.id)).reduce((sum, row) => sum + row.dust, 0);
+    const boost = dustBoostEffect();
+    const detected = detectedDustBoostStrengths();
+    const slotInputs = Array.from({ length: MAX_TEAM_PETS }, (_unused, index) => `<label class="gc-dust-boost-slot"><span>Pet ${index + 1} STR</span><input type="number" min="0" max="100" step="1" data-dust-str="${index}" value="${dustBoostStrengths[index] ?? ""}" placeholder="${detected[index] ?? "none"}"></label>`).join("");
+    const boostCard = `<section class="gc-card"><div class="gc-row"><h3>Dust Boost</h3><span class="gc-calc-total" data-dust-boost-percent>${boost.count ? `+${boost.maxPercent.toFixed(1)}% on proc` : "none"}</span></div><p class="gc-note">Active pets with Dust Boost raise the Magic Dust from selling a pet. Each slot uses one of your active Dust Boost pets - type a Strength to override it, or to add a booster by hand. Only the three strongest apply.</p><div class="gc-dust-boost-slots">${slotInputs}</div><label class="gc-check"><input type="checkbox" data-dust-crystal ${dustCrystal ? "checked" : ""}><span><b>Strength Crystal</b><small>${escapeHtml(crystalNote())}</small></span></label><p class="gc-note" data-dust-boost-max${boost.count ? "" : " hidden"}>${boostCeilingNote(boost)}</p></section>`;
+    const eggBoosted = `<small class="gc-dust-boosted" data-dust-boosted-egg${boost.count ? "" : " hidden"}>${boost.count ? boostAvgLine(eggTotal, boost) : ""}</small>`;
+    const petsBoosted = `<small class="gc-dust-boosted" data-dust-boosted${boost.count ? "" : " hidden"}>${boost.count ? boostProcLine(selectedTotal, boost) : ""}</small>`;
     const petRows2 = pets.map(({ pet, dust }) => {
       const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
       const metrics = petMetrics(pet);
       const mutations = (pet.mutations || []).filter((mutation) => mutation === "Gold" || mutation === "Rainbow");
       return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(" "))}` : ""}${metrics ? ` | max STR ${metrics.maxStrength}` : ""}</small></span><b class="gc-dust-value">${dust.toLocaleString(NUMBER_LOCALE)}</b></label>`;
     }).join("");
-    return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
-<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+    return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>${boostCard}
+<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust${eggBoosted}</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total"><span data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span>${petsBoosted}</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
   }
   function granterOptions() {
     return Object.entries(ABILITY_DETAILS).filter(([id, details]) => typeof details.baseProbability === "number" && !EXCLUDED_TRACKED_ABILITIES.has(id) && !UNREACHABLE_ABILITIES.has(id)).map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability })).sort((left, right) => left.label.localeCompare(right.label));
@@ -1629,6 +1716,16 @@ ${groups}
     main.querySelector("[data-dust-none]")?.addEventListener("click", () => {
       setDustSelection([]);
       panelActions.renderPanelPreservingScroll();
+    });
+    const dustCrystalToggle = main.querySelector("[data-dust-crystal]");
+    if (dustCrystalToggle) dustCrystalToggle.onchange = () => {
+      setDustCrystal(dustCrystalToggle.checked);
+      updateDustBoost(main);
+    };
+    main.querySelectorAll("[data-dust-str]").forEach((input) => input.oninput = () => {
+      const raw = input.value.trim();
+      setDustBoostStrength(Number(input.dataset.dustStr), raw === "" ? null : Math.max(0, Math.min(100, Math.round(Number(raw) || 0))));
+      updateDustBoost(main);
     });
     const dustSearchInput = main.querySelector("[data-dust-search]");
     bindListSearch(dustSearchInput);
@@ -3485,6 +3582,11 @@ ${groups}
     saveConfig();
     if (currentWeather() === weather) setAlarmSilenced(OWNER, isMuted);
   }
+  function rainRemainingText() {
+    const seconds = Number(state.game?.shops?.rain?.secondsUntilRestock);
+    if (!Number.isFinite(seconds) || seconds <= 0) return weatherRemainingText();
+    return `${Math.max(1, Math.ceil(seconds / 60))}m left`;
+  }
   function renderWeatherAlarms() {
     const chosen = alerts();
     const mutedNow = muted();
@@ -3492,14 +3594,15 @@ ${groups}
     const rows = WEATHER_TYPES.map((weather) => {
       const sprite = page.__gardenCompanionWeatherSprites?.[weather] || "";
       const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-      const note = running === weather ? weatherRemainingText() : "Not running";
+      const note = running === weather ? weather === "Rain" ? rainRemainingText() : weatherRemainingText() : "Not running";
       return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>` + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + "</label>";
     }).join("");
     return `<p class="gc-note">An alarm appears when a selected weather begins. Weather already running when you arrive does not sound one - tick it and the alarm fires straight away if it is running.</p>
 <div class="gc-check-grid">${rows}</div>`;
   }
   function weatherAlarmSignature() {
-    return `${currentWeather()}|${weatherRemainingText()}`;
+    const running = currentWeather();
+    return `${running}|${running === "Rain" ? rainRemainingText() : weatherRemainingText()}`;
   }
   function bindWeatherAlarmEvents(main) {
     main.querySelectorAll("[data-weather-alert]").forEach((input) => input.onchange = () => {
@@ -6431,6 +6534,12 @@ ${eggs.map(eggCard).join("")}`;
 .gc-food-slot { display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }\r
 .gc-food-slot select { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:11px; }\r
 .gc-food-slot small { color:var(--gc-muted);font-size:9px; }\r
+.gc-dust-boost-slots { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px; }\r
+.gc-dust-boost-slot { display:flex;flex-direction:column;gap:4px; }\r
+.gc-dust-boost-slot span { color:var(--gc-muted);font-size:10px; }\r
+.gc-dust-boost-slot input { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:12px; }\r
+.gc-dust-boost-slot input:focus { border-color:#8b5cf6; }\r
+.gc-dust-boosted { display:block;margin-top:2px;color:var(--gc-muted);font-size:10px;font-weight:600;white-space:normal; }\r
 .gc-team-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:9px 11px;border:1px solid var(--gc-line);border-radius:9px;background:linear-gradient(180deg,rgba(167,139,250,.07),transparent); }\r
 .gc-team-summary-line { min-width:0;color:var(--gc-muted);font-size:11px; }\r
 .gc-team-summary-line b { color:var(--gc-text);font-size:12px; }\r
@@ -6528,6 +6637,8 @@ ${eggs.map(eggCard).join("")}`;
 .gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }\r
 .gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }\r
 .gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }\r
+.gc-planner-weather button { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }\r
+.gc-planner-weather button img { width:26px;height:26px;object-fit:contain; }\r
 .gc-planner-mutation b { font-size:9px; }\r
 .gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }\r
 .gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:11px;font-weight:700;text-align:right; }\r
@@ -8278,6 +8389,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     const LAYOUT_KEY = "gardenCompanion.layouts.v1";
     const MUTATION_GROUPS = [...new Set(Object.values(MUTATIONS2).map((mutation) => mutation.group))];
     const RARITY_ORDER3 = ["Common", "Uncommon", "Rare", "Legendary", "Mythic", "Divine", "Celestial"];
+    const UNIQUE_DECOR = /* @__PURE__ */ new Set(["FeedingTrough", "DecorShed", "PetHutch", "SeedSilo", "ToolShack"]);
     function rarityRank2(species) {
       const rank = RARITY_ORDER3.indexOf(PLANTS2[species]?.rarity || "Common");
       return rank < 0 ? RARITY_ORDER3.length : rank;
@@ -8347,8 +8459,30 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       mutations: /* @__PURE__ */ new Set(),
       tiles: /* @__PURE__ */ new Map(),
       painting: false,
-      erasing: false
+      erasing: false,
+      weather: "live"
     };
+    const WEATHER_CHOICES = [
+      { id: "live", label: "Live" },
+      { id: "clear", label: "Clear" },
+      { id: "Rain", label: "Rain" },
+      { id: "Frost", label: "Snow" },
+      { id: "Thunderstorm", label: "Storm" },
+      { id: "Dawn", label: "Dawn" },
+      { id: "AmberMoon", label: "Amber" }
+    ];
+    function patchWeatherDraw() {
+      const engine2 = quinoaEngine();
+      if (!engine2 || typeof engine2.callDraw !== "function" || engine2.__gcPlannerWeatherPatched) return;
+      const original = engine2.callDraw.bind(engine2);
+      engine2.__gcPlannerWeatherPatched = true;
+      engine2.callDraw = (context, delta) => {
+        if (planner.open && planner.weather !== "live" && context && typeof context === "object") {
+          context.weatherId = planner.weather === "clear" ? null : planner.weather;
+        }
+        return original(context, delta);
+      };
+    }
     function systems() {
       return page3.__gardenCompanionFarmSystems ?? null;
     }
@@ -8511,6 +8645,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     }
     function place2(localIndex, fill = false) {
       if (planner.mode === "decor") {
+        if (UNIQUE_DECOR.has(planner.decorId)) {
+          for (const key of [...planner.tiles.keys()]) {
+            if (key !== localIndex && planner.tiles.get(key)?.decorId === planner.decorId) {
+              planner.tiles.delete(key);
+              applyTile(key);
+            }
+          }
+        }
         planner.tiles.set(localIndex, plannedDecor());
       } else {
         const existing = planner.tiles.get(localIndex);
@@ -8612,6 +8754,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === "plant" || tile?.objectType === "decor"));
       rebuildTileIndex();
       patchTileUpdates();
+      patchWeatherDraw();
       applyAllTiles();
       hideNativeCardUi();
       document.body.classList.add("gc-planning");
@@ -8624,6 +8767,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     function close() {
       if (!planner.open) return;
       planner.open = false;
+      planner.weather = "live";
       unpatchTileUpdates();
       applyAllTiles();
       restoreNativeCardUi();
@@ -8747,6 +8891,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       panel3.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size} planned</span><button data-plan-close>Exit</button></header>
 <div class="gc-planner-body"><small data-plan-notice>Left click places, right click removes. Drag to fill. Nothing here is sent to the game.</small>
 <div class="gc-planner-modes"><button data-plan-mode="plants" class="${decorMode ? "" : "active"}">Plants</button><button data-plan-mode="decor" class="${decorMode ? "active" : ""}">Decor</button></div>
+<div class="gc-planner-row"><b>Weather</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group gc-planner-weather">${WEATHER_CHOICES.map((choice) => {
+        const sprite = page3.__gardenCompanionWeatherSprites?.[choice.id];
+        return `<button data-plan-weather="${choice.id}" data-active="${planner.weather === choice.id}" title="${choice.label}">${sprite ? `<img src="${sprite}" alt="${choice.label}">` : choice.label}</button>`;
+      }).join("")}</div></div></div>
 <div class="gc-planner-grid">${decorMode ? decorOptions : options}</div>
 ${decorMode && DECOR[planner.decorId]?.mountable ? `<div class="gc-planner-row"><b>Display crop</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-mount="" data-active="${!planner.mountedSpecies}">None</button></div></div></div>
 <div class="gc-planner-grid gc-planner-mount">${sortedSpecies().map((name) => {
@@ -8793,6 +8941,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       panel3.querySelectorAll("[data-plan-mode]").forEach((button) => button.onclick = () => {
         planner.mode = button.dataset.planMode;
         renderPanel();
+      });
+      panel3.querySelectorAll("[data-plan-weather]").forEach((button) => button.onclick = () => {
+        planner.weather = button.dataset.planWeather;
+        patchWeatherDraw();
+        panel3.querySelectorAll("[data-plan-weather]").forEach((other) => {
+          other.dataset.active = String(other.dataset.planWeather === planner.weather);
+        });
       });
       panel3.querySelectorAll("[data-plan-decor]").forEach((button) => button.onclick = () => {
         const previous = planner.decorId;
@@ -8880,6 +9035,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (!planner.open) return;
       rebuildTileIndex();
       patchTileUpdates();
+      patchWeatherDraw();
       applyAllTiles();
       hideNativeCardUi();
     }, 1e3);

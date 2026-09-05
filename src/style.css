@@ -353,6 +353,12 @@
 .gc-food-slot { display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }
 .gc-food-slot select { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:11px; }
 .gc-food-slot small { color:var(--gc-muted);font-size:9px; }
+.gc-dust-boost-slots { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px; }
+.gc-dust-boost-slot { display:flex;flex-direction:column;gap:4px; }
+.gc-dust-boost-slot span { color:var(--gc-muted);font-size:10px; }
+.gc-dust-boost-slot input { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:12px; }
+.gc-dust-boost-slot input:focus { border-color:#8b5cf6; }
+.gc-dust-boosted { display:block;margin-top:2px;color:var(--gc-muted);font-size:10px;font-weight:600;white-space:normal; }
 .gc-team-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:9px 11px;border:1px solid var(--gc-line);border-radius:9px;background:linear-gradient(180deg,rgba(167,139,250,.07),transparent); }
 .gc-team-summary-line { min-width:0;color:var(--gc-muted);font-size:11px; }
 .gc-team-summary-line b { color:var(--gc-text);font-size:12px; }
@@ -450,6 +456,8 @@
 .gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }
 .gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }
 .gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }
+.gc-planner-weather button { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }
+.gc-planner-weather button img { width:26px;height:26px;object-fit:contain; }
 .gc-planner-mutation b { font-size:9px; }
 .gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }
 .gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:11px;font-weight:700;text-align:right; }

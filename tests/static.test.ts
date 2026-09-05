@@ -1051,7 +1051,8 @@ assert.doesNotMatch(plannerSource, /sendMessage|QuinoaCommand|SavePetTeam|Harves
 assert.match(plannerSource, /dirt\.userSlotIdx === ownSlotIndex\(\)/, 'the planner can edit dirt tiles outside your own garden');
 assert.match(plannerSource, /boardwalk\.userSlotIdx === ownSlotIndex\(\) && planner\.mode === 'decor'/, 'boardwalk tiles are not limited to your own decor');
 assert.match(plannerSource, /indexes\[`board:\$\{local\}`\]/, 'boardwalk tiles cannot be planned');
-assert.match(plannerSource, /function close\(\)[\s\S]{0,200}applyAllTiles\(\)/, 'leaving the planner does not restore the real garden');
+assert.match(plannerSource, /function close\(\)[\s\S]{0,360}applyAllTiles\(\)/, 'leaving the planner does not restore the real garden');
+assert.match(plannerSource, /function close\(\)[\s\S]{0,200}planner\.weather = 'live'/, 'leaving the planner does not drop the weather preview');
 assert.match(companionSource, /page\.__gardenCompanionTogglePlanner\?\.\(\)/, 'the planner cannot be opened from the panel');
 assert.match(indexSource, /initGardenPlanner\(\);/, 'the planner is not installed');
 assert.match(plannerSource, /function sortedSpecies\(\)[\s\S]{0,320}rarityRank\(left\) - rarityRank\(right\)/, 'the planner palette is not sorted by rarity');

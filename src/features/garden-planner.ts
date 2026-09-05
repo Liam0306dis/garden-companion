@@ -1,5 +1,6 @@
 import type { CompanionPage, GardenTile } from '../types.js';
 import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { quinoaEngine } from '../quinoa-engine.js';
 import { NUMBER_LOCALE } from '../utils.js';
 
 /**
@@ -19,6 +20,9 @@ export function initGardenPlanner(): void {
   // One mutation per group can be on a crop, so picking one replaces the group's current choice.
   const MUTATION_GROUPS = [...new Set(Object.values(MUTATIONS).map(mutation => mutation.group))];
   const RARITY_ORDER = ['Common', 'Uncommon', 'Rare', 'Legendary', 'Mythic', 'Divine', 'Celestial'];
+  // Storage buildings the game only ever lets you own one of, so the plan holds one of each too:
+  // placing another moves the one already down rather than adding a second.
+  const UNIQUE_DECOR = new Set(['FeedingTrough', 'DecorShed', 'PetHutch', 'SeedSilo', 'ToolShack']);
 
   function rarityRank(species: string): number {
     const rank = RARITY_ORDER.indexOf(PLANTS[species]?.rarity || 'Common');
@@ -121,6 +125,8 @@ export function initGardenPlanner(): void {
     tiles: Map<string, GardenTile>;
     painting: boolean;
     erasing: boolean;
+    /** Weather to preview the garden under: 'live' leaves it be, 'clear' forces clear skies. */
+    weather: string;
   }
 
   const planner: PlannerState = {
@@ -136,7 +142,35 @@ export function initGardenPlanner(): void {
     tiles: new Map(),
     painting: false,
     erasing: false,
+    weather: 'live',
   };
+
+  // Weather preview: the render loop draws every system from one shared frame context whose
+  // `weatherId` decides the sky, lighting and how plants and decor render. Wrapping the engine's
+  // draw lets the planner force that value client-side - Rain, Snow, Dawn and the rest - without the
+  // server ever changing the weather. 'live' passes through; leaving the planner drops back to it.
+  const WEATHER_CHOICES: ReadonlyArray<{ id: string; label: string }> = [
+    { id: 'live', label: 'Live' },
+    { id: 'clear', label: 'Clear' },
+    { id: 'Rain', label: 'Rain' },
+    { id: 'Frost', label: 'Snow' },
+    { id: 'Thunderstorm', label: 'Storm' },
+    { id: 'Dawn', label: 'Dawn' },
+    { id: 'AmberMoon', label: 'Amber' },
+  ];
+
+  function patchWeatherDraw(): void {
+    const engine = quinoaEngine() as Record<string, any> | null;
+    if (!engine || typeof engine.callDraw !== 'function' || engine.__gcPlannerWeatherPatched) return;
+    const original = engine.callDraw.bind(engine);
+    engine.__gcPlannerWeatherPatched = true;
+    engine.callDraw = (context: any, delta: any) => {
+      if (planner.open && planner.weather !== 'live' && context && typeof context === 'object') {
+        context.weatherId = planner.weather === 'clear' ? null : planner.weather;
+      }
+      return original(context, delta);
+    };
+  }
 
   function systems() {
     return page.__gardenCompanionFarmSystems ?? null;
@@ -352,6 +386,15 @@ export function initGardenPlanner(): void {
    */
   function place(localIndex: string, fill = false): void {
     if (planner.mode === 'decor') {
+      if (UNIQUE_DECOR.has(planner.decorId)) {
+        // Move the one already planned instead of adding a second: clear any other tile holding it.
+        for (const key of [...planner.tiles.keys()]) {
+          if (key !== localIndex && planner.tiles.get(key)?.decorId === planner.decorId) {
+            planner.tiles.delete(key);
+            applyTile(key);
+          }
+        }
+      }
       planner.tiles.set(localIndex, plannedDecor());
     } else {
       const existing = planner.tiles.get(localIndex);
@@ -477,6 +520,7 @@ export function initGardenPlanner(): void {
     planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === 'plant' || tile?.objectType === 'decor'));
     rebuildTileIndex();
     patchTileUpdates();
+    patchWeatherDraw();
     applyAllTiles();
     hideNativeCardUi();
     document.body.classList.add('gc-planning');
@@ -490,6 +534,8 @@ export function initGardenPlanner(): void {
   function close(): void {
     if (!planner.open) return;
     planner.open = false;
+    // Back to the real weather. The draw wrapper stays installed but passes straight through now.
+    planner.weather = 'live';
     unpatchTileUpdates();
     applyAllTiles();
     restoreNativeCardUi();
@@ -647,6 +693,10 @@ export function initGardenPlanner(): void {
     panel.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size} planned</span><button data-plan-close>Exit</button></header>
 <div class="gc-planner-body"><small data-plan-notice>Left click places, right click removes. Drag to fill. Nothing here is sent to the game.</small>
 <div class="gc-planner-modes"><button data-plan-mode="plants" class="${decorMode ? '' : 'active'}">Plants</button><button data-plan-mode="decor" class="${decorMode ? 'active' : ''}">Decor</button></div>
+<div class="gc-planner-row"><b>Weather</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group gc-planner-weather">${WEATHER_CHOICES.map(choice => {
+  const sprite = page.__gardenCompanionWeatherSprites?.[choice.id];
+  return `<button data-plan-weather="${choice.id}" data-active="${planner.weather === choice.id}" title="${choice.label}">${sprite ? `<img src="${sprite}" alt="${choice.label}">` : choice.label}</button>`;
+}).join('')}</div></div></div>
 <div class="gc-planner-grid">${decorMode ? decorOptions : options}</div>
 ${decorMode && DECOR[planner.decorId]?.mountable
   ? `<div class="gc-planner-row"><b>Display crop</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-mount="" data-active="${!planner.mountedSpecies}">None</button></div></div></div>
@@ -701,6 +751,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-mode]').forEach(button => button.onclick = () => {
       planner.mode = button.dataset.planMode as PlannerState['mode'];
       renderPanel();
+    });
+    panel.querySelectorAll<HTMLButtonElement>('[data-plan-weather]').forEach(button => button.onclick = () => {
+      planner.weather = button.dataset.planWeather!;
+      patchWeatherDraw();
+      panel!.querySelectorAll<HTMLButtonElement>('[data-plan-weather]').forEach(other => {
+        other.dataset.active = String(other.dataset.planWeather === planner.weather);
+      });
     });
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-decor]').forEach(button => button.onclick = () => {
       const previous = planner.decorId;
@@ -795,6 +852,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (!planner.open) return;
     rebuildTileIndex();
     patchTileUpdates();
+    patchWeatherDraw();
     applyAllTiles();
     hideNativeCardUi();
   }, 1000);

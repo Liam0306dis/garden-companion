@@ -1,6 +1,6 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MAX_TEAM_PETS, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { abilityEffectText } from '../ability-effect.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
@@ -31,11 +31,13 @@ const CROP_REGROW: Record<string, [number, number]> = {
   Eggplant: [180, 60], Lemon: [90, 30], Peach: [135, 45], Pear: [135, 45], Poinsettia: [9, 3], PricklyPear: [90, 30],
   Strawberry: [15 / 60, 5 / 60], Tomato: [1, 20 / 60], BurrosTail: [4.5, 1.5], FavaBean: [12, 2], PassionFruit: [90, 30],
   Blueberry: [33 / 60, 11 / 60], Cabbage: [52 / 60, 0], Corn: [45 / 60, 0], Grape: [22.5, 0], Sunflower: [1320, 0],
+  Habanero: [15, 5], Persimmon: [90, 30], Marigold: [240, 0],
 };
 const CROP_GROW: Record<string, number> = {
   Daffodil: 50 / 60, Lily: 4, Carrot: 4 / 60, Aloe: 45 / 60, Bamboo: 1320, Cactus: 180, Beet: 1, Clover: 6,
   Delphinium: 25 / 60, FourLeafClover: 6, Gentian: 1.5, Leek: 1.5, Mushroom: 1320, OrangeTulip: 8 / 60,
   Pumpkin: 35, VioletCort: 1320, Watermelon: 12,
+  Cardoon: 2, Milkcap: 1320, Echeveria: 20, Saffron: 2, Cattail: 3, Daisy: 1.5,
 };
 
 export function dustMultiplier(species: string, mutations: string[] = []): number {
@@ -48,6 +50,88 @@ export function dustMultiplier(species: string, mutations: string[] = []): numbe
 
 export function petMaxDust(pet: Pet): number {
   return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || []) * Number(pet.targetScale || 1));
+}
+
+/**
+ * The Strengths of the active pets carrying Dust Boost, strongest first and capped at the three that
+ * can be active at once. These fill the slot inputs unless the player has typed over them.
+ */
+function detectedDustBoostStrengths(): number[] {
+  return activePets()
+    .filter(pet => pet.abilities?.includes('DustBoost'))
+    .map(pet => petMetrics(pet)?.maxStrength ?? 100)
+    .sort((left, right) => right - left)
+    .slice(0, MAX_TEAM_PETS);
+}
+
+/** A slot's Strength: the player's override, else the detected active pet, else empty (no booster). */
+function dustBoostStrengthFor(index: number, detected = detectedDustBoostStrengths()): number | null {
+  return dustBoostStrengths[index] ?? detected[index] ?? null;
+}
+
+export function setDustBoostStrength(index: number, strength: number | null): void {
+  dustBoostStrengths[index] = strength;
+}
+
+export function setDustCrystal(on: boolean): void {
+  dustCrystal = on;
+}
+
+/**
+ * Active pets with the Dust Boost ability raise the Magic Dust a sold pet yields. It triggers on
+ * sellPet: each has a strength-scaled chance to add a strength-scaled percentage, so its expected
+ * contribution is that chance times that amount, and up to three boosters sum. Chance and amount come
+ * from the catalog so a bundle update carries them. The crystal toggle lends every booster its flat
+ * Strength bonus, and each slot's Strength can be overridden or filled in by hand.
+ */
+export function dustBoostEffect(): { multiplier: number; count: number; percent: number; maxMultiplier: number; maxPercent: number; procChance: number } {
+  const details = ABILITY_DETAILS.DustBoost;
+  const baseChance = Number(details?.baseProbability || 0);
+  const baseAmount = Number(details?.baseParameters?.petDustIncreasePercentage || 0);
+  const none = { multiplier: 1, count: 0, percent: 0, maxMultiplier: 1, maxPercent: 0, procChance: 0 };
+  if (baseChance <= 0 || baseAmount <= 0) return none;
+  const bonus = dustCrystal ? STRENGTH_CRYSTAL_BONUS : 0;
+  const detected = detectedDustBoostStrengths();
+  const boosters: Array<{ chance: number; amount: number }> = [];
+  for (let index = 0; index < MAX_TEAM_PETS; index++) {
+    const base = dustBoostStrengthFor(index, detected);
+    if (base == null) continue;
+    const scale = Math.max(.25, (base + bonus) / 100);
+    boosters.push({ chance: Math.min(1, baseChance / 100 * scale), amount: baseAmount / 100 * scale });
+  }
+  if (!boosters.length) return none;
+  // Procs do not stack: at most one pet's boost lands on a sale - the strongest that fires - so the
+  // ceiling is a single proc, and extra pets only raise the chance of getting a boost, never its
+  // size. The average is each pet's amount times the chance it procs while no stronger one did.
+  boosters.sort((left, right) => right.amount - left.amount);
+  let expected = 0, noneStronger = 1;
+  for (const booster of boosters) {
+    expected += booster.amount * booster.chance * noneStronger;
+    noneStronger *= 1 - booster.chance;
+  }
+  const maxAmount = boosters[0].amount;
+  return { multiplier: 1 + expected, count: boosters.length, percent: expected * 100, maxMultiplier: 1 + maxAmount, maxPercent: maxAmount * 100, procChance: (1 - noneStronger) * 100 };
+}
+
+type DustBoost = ReturnType<typeof dustBoostEffect>;
+
+/** The dust a total becomes on a sale where Dust Boost procs - the value a real, exact pet pays out. */
+function boostProcLine(total: number, boost: DustBoost): string {
+  return `on a Dust Boost proc (+${boost.maxPercent.toFixed(1)}%): ${Math.round(total * boost.maxMultiplier).toLocaleString(NUMBER_LOCALE)} dust`;
+}
+
+/**
+ * The expected dust once Dust Boost is folded in over many sales. This is what an egg estimate wants,
+ * since a hatch is already an average over random pets and sizes, so the proc chance averages in too.
+ */
+function boostAvgLine(total: number, boost: DustBoost): string {
+  return `with Dust Boost (avg +${boost.percent.toFixed(1)}%): ${Math.round(total * boost.multiplier).toLocaleString(NUMBER_LOCALE)} dust`;
+}
+
+/** How the boost behaves: a flat proc that does not stack, and how often a sale lands one. */
+function boostCeilingNote(boost: DustBoost): string {
+  if (!boost.count) return '';
+  return `A Dust Boost proc adds <b>+${boost.maxPercent.toFixed(1)}%</b> and doesn't stack, so it is the same however many pets fire. With ${boost.count} booster${boost.count === 1 ? '' : 's'} about <b>${boost.procChance.toFixed(0)}%</b> of sales land a proc. The egg estimate folds in the average (+${boost.percent.toFixed(1)}%); the pet total shows a sale that procs.`;
 }
 
 function eggDustRange(eggId: string): { low: number; average: number; high: number } {
@@ -85,6 +169,10 @@ function heldEggs(): Array<{ eggId: string; quantity: number }> {
 let calculatorTab = 'dust';
 const dustSelection = new Set<string>();
 let dustSearch = '';
+/** Whether to reckon Dust Boost with a Strength Crystal down, lending every booster its flat bonus. */
+let dustCrystal = false;
+/** Per-slot Strength overrides for the Dust Boost pets. null falls back to a detected active pet. */
+const dustBoostStrengths: Array<number | null> = [null, null, null];
 let granterAbility = 'RainbowGranter';
 const granterStrengths: Array<number | null> = [null, null, null];
 const granterEnabled = [true, true, true];
@@ -240,6 +328,31 @@ export function updateDustTotal(main: HTMLElement): void {
   const total = allPets().filter(pet => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
   const label = main.querySelector<HTMLElement>('[data-dust-total]');
   if (label) label.textContent = `${total.toLocaleString(NUMBER_LOCALE)} dust`;
+  const boost = dustBoostEffect();
+  const boosted = main.querySelector<HTMLElement>('[data-dust-boosted]');
+  if (boosted) {
+    boosted.textContent = boost.count ? boostProcLine(total, boost) : '';
+    boosted.hidden = !boost.count;
+  }
+}
+
+/** Refreshes everything the Dust Boost inputs feed: the headline percent, the egg line, the pets line. */
+function updateDustBoost(main: HTMLElement): void {
+  const boost = dustBoostEffect();
+  const percent = main.querySelector<HTMLElement>('[data-dust-boost-percent]');
+  if (percent) percent.textContent = boost.count ? `+${boost.maxPercent.toFixed(1)}% on proc` : 'none';
+  const ceiling = main.querySelector<HTMLElement>('[data-dust-boost-max]');
+  if (ceiling) {
+    ceiling.innerHTML = boostCeilingNote(boost);
+    ceiling.hidden = !boost.count;
+  }
+  const eggTotal = heldEggs().reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
+  const eggEl = main.querySelector<HTMLElement>('[data-dust-boosted-egg]');
+  if (eggEl) {
+    eggEl.textContent = boost.count ? boostAvgLine(eggTotal, boost) : '';
+    eggEl.hidden = !boost.count;
+  }
+  updateDustTotal(main);
 }
 
 /** Redraw only when data used by the visible calculator has changed. */
@@ -325,15 +438,27 @@ function renderDustCalculator(): string {
   const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
   const pets = allPets().map(pet => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
   const selectedTotal = pets.filter(row => dustSelection.has(row.pet.id)).reduce((sum, row) => sum + row.dust, 0);
+  const boost = dustBoostEffect();
+  const detected = detectedDustBoostStrengths();
+  const slotInputs = Array.from({ length: MAX_TEAM_PETS }, (_unused, index) =>
+    `<label class="gc-dust-boost-slot"><span>Pet ${index + 1} STR</span>`
+    + `<input type="number" min="0" max="100" step="1" data-dust-str="${index}" value="${dustBoostStrengths[index] ?? ''}" placeholder="${detected[index] ?? 'none'}"></label>`).join('');
+  const boostCard = `<section class="gc-card"><div class="gc-row"><h3>Dust Boost</h3><span class="gc-calc-total" data-dust-boost-percent>${boost.count ? `+${boost.maxPercent.toFixed(1)}% on proc` : 'none'}</span></div>`
+    + `<p class="gc-note">Active pets with Dust Boost raise the Magic Dust from selling a pet. Each slot uses one of your active Dust Boost pets - type a Strength to override it, or to add a booster by hand. Only the three strongest apply.</p>`
+    + `<div class="gc-dust-boost-slots">${slotInputs}</div>`
+    + `<label class="gc-check"><input type="checkbox" data-dust-crystal ${dustCrystal ? 'checked' : ''}><span><b>Strength Crystal</b><small>${escapeHtml(crystalNote())}</small></span></label>`
+    + `<p class="gc-note" data-dust-boost-max${boost.count ? '' : ' hidden'}>${boostCeilingNote(boost)}</p></section>`;
+  const eggBoosted = `<small class="gc-dust-boosted" data-dust-boosted-egg${boost.count ? '' : ' hidden'}>${boost.count ? boostAvgLine(eggTotal, boost) : ''}</small>`;
+  const petsBoosted = `<small class="gc-dust-boosted" data-dust-boosted${boost.count ? '' : ' hidden'}>${boost.count ? boostProcLine(selectedTotal, boost) : ''}</small>`;
   const petRows = pets.map(({ pet, dust }) => {
     const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
     const metrics = petMetrics(pet);
     const mutations = (pet.mutations || []).filter(mutation => mutation === 'Gold' || mutation === 'Rainbow');
     return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? 'checked' : ''}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(' '))}` : ''}${metrics ? ` | max STR ${metrics.maxStrength}` : ''}</small></span><b class="gc-dust-value">${dust.toLocaleString(NUMBER_LOCALE)}</b></label>`;
   }).join('');
-  return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
-<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+  return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>${boostCard}
+<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust${eggBoosted}</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total"><span data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span>${petsBoosted}</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
 }
 
 function granterOptions(): Array<{ id: string; label: string; probability: number }> {
@@ -541,6 +666,13 @@ export function bindCalculatorEvents(main: HTMLElement): void {
     panelActions.renderPanelPreservingScroll();
   });
   main.querySelector('[data-dust-none]')?.addEventListener('click', () => { setDustSelection([]); panelActions.renderPanelPreservingScroll(); });
+  const dustCrystalToggle = main.querySelector<HTMLInputElement>('[data-dust-crystal]');
+  if (dustCrystalToggle) dustCrystalToggle.onchange = () => { setDustCrystal(dustCrystalToggle.checked); updateDustBoost(main); };
+  main.querySelectorAll<HTMLInputElement>('[data-dust-str]').forEach(input => input.oninput = () => {
+    const raw = input.value.trim();
+    setDustBoostStrength(Number(input.dataset.dustStr), raw === '' ? null : Math.max(0, Math.min(100, Math.round(Number(raw) || 0))));
+    updateDustBoost(main);
+  });
   const dustSearchInput = main.querySelector<HTMLInputElement>('[data-dust-search]');
   bindListSearch(dustSearchInput);
   dustSearchInput?.addEventListener('input', () => { dustSearch = dustSearchInput.value; });
