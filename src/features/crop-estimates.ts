@@ -144,6 +144,8 @@ function protectionLines(): string[] {
 }
 
 function cardLines(): string[] {
+  // A pet card is never a crop, so nothing of ours belongs on it.
+  if (cardShowsPet) return [];
   return [...protectionLines(), ...estimateLines()];
 }
 
@@ -210,6 +212,24 @@ function layoutNativeEstimates(view: Record<string, any>, signature: string): bo
   return false;
 }
 
+/**
+ * The garden info card is shared: it shows a crop, an egg, a decor or a pet, whichever you last
+ * opened. The estimate belongs only on a crop or egg card, but `state.currentCrop` can still be set
+ * from the tile you are standing on while the card itself has switched to a pet you moused over - so
+ * without this the timer was injected into the pet's card. Watching what the card was opened for lets
+ * a pet card be left alone. Anything not clearly a pet keeps the old behaviour, so crops are safe.
+ */
+let cardShowsPet = false;
+
+/**
+ * A pet's card always carries a Strength attribute; a crop or egg card never does. That is the one
+ * field that tells them apart in the state, so it is what decides whether the card is a pet's.
+ */
+function cardStateIsPet(nextState: GardenCardState): boolean {
+  const attributes = nextState?.card?.attributes;
+  return Array.isArray(attributes) && attributes.some(attribute => attribute?.key === 'strength');
+}
+
 /** Re-hooks the card whenever the game hands us a new engine. */
 function hookGardenInfoCard(engine: ReturnType<typeof quinoaEngine>): void {
   if (!engine || typeof engine.getSystem !== 'function') {
@@ -222,6 +242,9 @@ function hookGardenInfoCard(engine: ReturnType<typeof quinoaEngine>): void {
   const originalLayout = view.layout;
   const hook: NativeGardenCardHook = { view, originalSetState, sourceState: null, signature: '' };
   view.setState = function(nextState: GardenCardState) {
+    // Decide from the card being set whether it is a pet's, so the estimate can be kept off it. Set
+    // before the signature is worked out, since that is what reads it.
+    cardShowsPet = cardStateIsPet(nextState);
     hook.sourceState = cleanGardenCardState(nextState);
     hook.signature = nativeEstimateSignature();
     return originalSetState.call(this, decorateGardenCardState(hook.sourceState, hook.signature));
