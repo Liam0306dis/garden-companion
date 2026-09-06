@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.51
+// @version      0.8.52
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -661,16 +661,105 @@
 
   // src/game-connection.ts
   var sequence = -1;
+  var frontier = -1;
+  var diagnostics = {
+    welcomeSeeds: 0,
+    frontierFromProperty: 0,
+    frontierFromFrame: 0,
+    propertyPresent: false,
+    propertyProbed: false,
+    forwardJumps: 0,
+    heals: 0,
+    lastForwardJump: null,
+    lastHeal: null
+  };
+  function getSequencerDiagnostics() {
+    return { sequence, frontier, ...diagnostics, lastForwardJump: diagnostics.lastForwardJump, lastHeal: diagnostics.lastHeal };
+  }
   function seedCommandSequence(executedCommandSequence) {
     const executed = Number(executedCommandSequence);
-    if (Number.isFinite(executed)) sequence = executed + 1;
+    if (!Number.isFinite(executed)) return;
+    sequence = executed + 1;
+    frontier = executed;
+    diagnostics.welcomeSeeds += 1;
+    console.info("[Garden Companion] Command sequencer seeded from Welcome.", { executed, sequence, frontier });
+  }
+  function noteFrontier(value, source) {
+    const executed = Number(value);
+    if (!Number.isFinite(executed)) return;
+    if (source === "property") diagnostics.frontierFromProperty += 1;
+    else diagnostics.frontierFromFrame += 1;
+    if (executed > frontier) frontier = executed;
+  }
+  function readServerFrontier() {
+    const connection = page.MagicCircle_RoomConnection;
+    if (!connection) return;
+    const publication = connection.lastDistributedRoomPublication;
+    const raw = publication?.executedCommandSequence;
+    if (!diagnostics.propertyProbed) {
+      diagnostics.propertyProbed = true;
+      diagnostics.propertyPresent = typeof raw === "number" && Number.isFinite(raw);
+      console.info("[Garden Companion] Command frontier property probe.", {
+        hasRoomConnection: true,
+        hasLastDistributedRoomPublication: !!publication,
+        executedCommandSequence: raw,
+        present: diagnostics.propertyPresent
+      });
+    }
+    noteFrontier(raw, "property");
+  }
+  function noteFrontierFromFrame(data) {
+    const key = '"executedCommandSequence":';
+    const at = data.indexOf(key);
+    if (at === -1) return;
+    let end = at + key.length;
+    while (end < data.length) {
+      const code = data.charCodeAt(end);
+      if (code < 48 || code > 57) break;
+      end += 1;
+    }
+    if (end > at + key.length) noteFrontier(data.slice(at + key.length, end), "frame");
+  }
+  function allocateSequence() {
+    readServerFrontier();
+    if (frontier + 1 > sequence) {
+      diagnostics.forwardJumps += 1;
+      diagnostics.lastForwardJump = { from: sequence, to: frontier + 1 };
+      console.info("[Garden Companion] Command sequence jumped forward to the server frontier.", diagnostics.lastForwardJump);
+      sequence = frontier + 1;
+    }
+    return sequence++;
+  }
+  function healToFrontier() {
+    readServerFrontier();
+    if (frontier < 0) return;
+    diagnostics.heals += 1;
+    diagnostics.lastHeal = { from: sequence, to: frontier + 1 };
+    console.warn("[Garden Companion] invalid_sequence - resyncing command counter to the server frontier.", {
+      ...diagnostics.lastHeal,
+      frontierFromProperty: diagnostics.frontierFromProperty,
+      frontierFromFrame: diagnostics.frontierFromFrame,
+      propertyPresent: diagnostics.propertyPresent
+    });
+    sequence = frontier + 1;
+  }
+  function noteServerFrame(data) {
+    if (sequence < 0 || typeof data !== "string") return;
+    noteFrontierFromFrame(data);
+    readServerFrontier();
+    if (!data.includes("QuinoaCommandResult") || !data.includes("invalid_sequence")) return;
+    try {
+      const frame = JSON.parse(data);
+      if (frame?.type === "QuinoaCommandResult" && frame.ok === false && frame.code === "invalid_sequence") healToFrontier();
+    } catch {
+    }
   }
   function renumberOutgoingCommand(data) {
     if (sequence < 0 || typeof data !== "string" || !data.includes("QuinoaCommand")) return data;
     try {
       const frame = JSON.parse(data);
       if (frame?.type !== "QuinoaCommand") return data;
-      frame.commandSequence = sequence++;
+      frame.commandSequence = allocateSequence();
       return JSON.stringify(frame);
     } catch {
       return data;
@@ -5493,6 +5582,7 @@ ${eggs.map(eggCard).join("")}`;
     page.__gardenCompanionFeature = feature;
     page.__gardenCompanionConfig = () => config;
     page.__gardenCompanionForecastTrace = forecastTrace;
+    page.__gardenCompanionSequencer = getSequencerDiagnostics;
     let gameUpdateDetected = false;
     function handleGameUpdateDetected(source) {
       if (gameUpdateDetected) return;
@@ -5577,6 +5667,7 @@ ${eggs.map(eggCard).join("")}`;
     let welcomePlayerId = null;
     function readWelcome(event) {
       const data = event.data;
+      noteServerFrame(data);
       if (typeof data !== "string" || !data.includes('"selfPlayerId"')) return;
       try {
         const frame = JSON.parse(data);

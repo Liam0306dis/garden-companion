@@ -11,7 +11,7 @@ import { ABILITY_DETAILS, GRANTER_CHANCES, KOFI_URL, LUNAR_MINIMISED_KEY, LUNAR_
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms, showAlarmBanner, stopAlarm } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
-import { noteGameSocket, noteOutgoingCommand, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
+import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
 import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -87,6 +87,9 @@ export function initCompanion(): void {
   page.__gardenCompanionFeature = feature;
   page.__gardenCompanionConfig = () => config;
   page.__gardenCompanionForecastTrace = forecastTrace;
+  // Call __gardenCompanionSequencer() in the console to see the command frontier state - whether the
+  // room-connection property is feeding it, how often it healed, and the last forward jump / heal.
+  page.__gardenCompanionSequencer = getSequencerDiagnostics;
 
   let gameUpdateDetected = false;
   function handleGameUpdateDetected(source: string): void {
@@ -209,6 +212,9 @@ export function initCompanion(): void {
 
   function readWelcome(event: Event): void {
     const data = (event as MessageEvent).data;
+    // Track the server's command frontier and catch the invalid_sequence rejection that says our
+    // numbering has desynced, so the sequencer resyncs to the frontier instead of freezing.
+    noteServerFrame(data);
     if (typeof data !== 'string' || !data.includes('"selfPlayerId"')) return;
     try {
       const frame = JSON.parse(data) as { selfPlayerId?: unknown; executedCommandSequence?: unknown };

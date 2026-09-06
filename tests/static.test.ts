@@ -188,14 +188,20 @@ assert.match(buildSource, /__PLANT_CATALOG__: JSON\.stringify\(catalogs\.plants\
 assert.ok(!/setInterval\([^)]*(PurchaseShopItem|HarvestCrop|ApplyPetTeam)/s.test(built), 'unattended command loop found');
 assert.ok(!built.includes('vendor/'), 'vendored source reference found');
 // The envelope needs a commandSequence and the server wants the run contiguous: a number it never
-// receives makes every later command `invalid_sequence`, and it never recovers. The game seeds its
-// counter from Welcome and takes one per command, so we seed from the same frame - which also means
-// a reconnect needs no special handling, because every Welcome re-seeds.
+// receives makes every later command `invalid_sequence`. The game seeds its counter from Welcome and
+// takes one per command, so we seed from the same frame - which also means a reconnect needs no
+// special handling, because every Welcome re-seeds.
 assert.match(companionSource, /sequence = executed \+ 1;/, 'the counter is not seeded the way the game seeds its own');
 assert.match(companionSource, /seedCommandSequence\(frame\?\.executedCommandSequence\)/, 'the Welcome frame does not seed the command counter');
 // A second counter cannot work: the game never learns we consumed a number and its next command
 // reuses ours, so every command is stamped on the way out instead - one counter, one chooser.
-assert.match(companionSource, /frame\.commandSequence = sequence\+\+;/, 'outgoing commands are not renumbered from one counter');
+assert.match(companionSource, /frame\.commandSequence = allocateSequence\(\);/, 'outgoing commands are not renumbered from one counter');
+// A blind counter cannot survive a second mod renumbering the same socket, so the number stays
+// anchored to the server's frontier: jump forward when the stream ran ahead of us, and resync down
+// to the frontier when the server rejects a command as invalid_sequence, instead of freezing.
+assert.match(companionSource, /if \(frontier \+ 1 > sequence\) \{/, 'the sequence is not healed forward to the server frontier before stamping');
+assert.match(companionSource, /frame\.code === 'invalid_sequence'\) healToFrontier\(\)/, 'an invalid_sequence rejection does not resync the counter to the frontier');
+assert.match(companionSource, /noteServerFrame\(data\);/, 'incoming frames are not watched for the frontier and the invalid_sequence desync signal');
 assert.match(companionSource, /return originalSend\.call\(this, renumberOutgoingCommand\(data\)/, 'the socket does not renumber what it sends');
 // Blocking must happen before the stamp, so a swallowed command never takes a number and leaves a hole.
 assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);') < companionSource.indexOf('renumberOutgoingCommand(data)'), 'a blocked command still takes a sequence number, leaving a hole');
