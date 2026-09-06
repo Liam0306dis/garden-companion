@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.52
+// @version      0.8.53
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3131,15 +3131,50 @@ ${groups}
     }
     return "";
   }
-  function selectedAbilityFilters() {
-    const saved = new Set(config.trackedAbilities || []);
-    const hasGroupedKeys = ABILITY_GROUPS.some(([label]) => saved.has(label));
-    return new Set(ABILITY_FILTER_OPTIONS.filter(
-      (option) => saved.has(option.key) || !hasGroupedKeys && option.abilities.some((ability) => saved.has(ability))
-    ).map((option) => option.key));
+  var FILTERABLE_ABILITIES = (() => {
+    const seen3 = /* @__PURE__ */ new Set();
+    const order = [];
+    for (const option of ABILITY_FILTER_OPTIONS) {
+      for (const ability of option.abilities) {
+        if (ABILITY_SET.has(ability) && !seen3.has(ability)) {
+          seen3.add(ability);
+          order.push(ability);
+        }
+      }
+    }
+    return order;
+  })();
+  var VISIBLE_FILTER_OPTIONS = ABILITY_FILTER_OPTIONS.map((option) => ({ ...option, items: option.abilities.filter((ability) => ABILITY_SET.has(ability)) })).filter((option) => option.items.length > 0);
+  function abilityDisplayName(ability) {
+    return ABILITY_DETAILS[ability]?.name || humanize(ability);
   }
-  function abilityFilterSummary(selectedFilters) {
-    return selectedFilters.size === ABILITY_FILTER_OPTIONS.length ? "All abilities" : selectedFilters.size === 0 ? "No abilities" : selectedFilters.size === 1 ? ABILITY_FILTER_OPTIONS.find((option) => selectedFilters.has(option.key))?.label || "No abilities" : `${selectedFilters.size} selections`;
+  function enabledAbilities() {
+    const saved = config.trackedAbilities || [];
+    const enabled = /* @__PURE__ */ new Set();
+    for (const value of saved) {
+      if (ABILITY_SET.has(value)) {
+        enabled.add(value);
+        continue;
+      }
+      const group = ABILITY_FILTER_OPTIONS.find((option) => option.key === value);
+      if (group) {
+        for (const ability of group.abilities) if (ABILITY_SET.has(ability)) enabled.add(ability);
+      }
+    }
+    return enabled;
+  }
+  function groupState(items, enabled) {
+    const on = items.reduce((total, ability) => total + (enabled.has(ability) ? 1 : 0), 0);
+    return on === 0 ? "none" : on === items.length ? "all" : "some";
+  }
+  var STATE_MARKER = { all: "&#10003;", some: "&#8211;", none: "" };
+  function abilityFilterSummary(enabled) {
+    const total = FILTERABLE_ABILITIES.length;
+    const on = FILTERABLE_ABILITIES.reduce((count, ability) => count + (enabled.has(ability) ? 1 : 0), 0);
+    if (on === total) return "All abilities";
+    if (on === 0) return "No abilities";
+    if (on === 1) return abilityDisplayName(FILTERABLE_ABILITIES.find((ability) => enabled.has(ability)) || "");
+    return `${on} abilities`;
   }
   function indexOwnedPets() {
     const byId = /* @__PURE__ */ new Map();
@@ -3174,14 +3209,6 @@ ${groups}
       iso: value.toISOString()
     };
   }
-  function visibleAbilities(selectedFilters) {
-    const visible = /* @__PURE__ */ new Set();
-    for (const option of ABILITY_FILTER_OPTIONS) {
-      if (!selectedFilters.has(option.key)) continue;
-      for (const ability of option.abilities) if (ABILITY_SET.has(ability)) visible.add(ability);
-    }
-    return visible;
-  }
   var searchTextCache = /* @__PURE__ */ new WeakMap();
   function searchText(log) {
     const cached = searchTextCache.get(log);
@@ -3208,10 +3235,9 @@ ${groups}
       if (source && image.src !== source) image.src = source;
     });
   }
-  function renderAbilityLogRows(selectedFilters) {
-    const visible = visibleAbilities(selectedFilters);
+  function renderAbilityLogRows(enabled) {
     const search = abilityLogSearch.trim().toLowerCase();
-    const matched = state.abilityLog.filter((log) => visible.has(log.ability) && (!search || searchText(log).includes(search)));
+    const matched = state.abilityLog.filter((log) => enabled.has(log.ability) && (!search || searchText(log).includes(search)));
     const recent = matched.slice(0, LOG_VISIBLE_ROWS);
     if (!recent.length) return search ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
     const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : "";
@@ -3225,29 +3251,129 @@ ${groups}
       return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip ? ` title="${escapeHtml(tooltip)}" data-detail` : ""}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
     }).join("") + more;
   }
-  function refreshAbilityFilterUi(main) {
-    const selectedFilters = selectedAbilityFilters();
-    const summary = main.querySelector("[data-ability-filter] summary");
-    if (summary) summary.textContent = abilityFilterSummary(selectedFilters);
-    main.querySelectorAll("[data-ability-option]").forEach((button) => {
-      const active = selectedFilters.has(button.dataset.abilityOption || "");
-      button.dataset.active = String(active);
-      const marker = button.querySelector("i");
-      if (marker) marker.innerHTML = active ? "&#10003;" : "";
-    });
-    const log = main.querySelector(".gc-log");
+  var expandedGroups = /* @__PURE__ */ new Set();
+  function renderStandaloneItem(option, enabled) {
+    const ability = option.items[0];
+    const active = enabled.has(ability);
+    return `<div class="gc-ability-standalone"><button data-ability-item="${escapeHtml(ability)}" data-active="${active}"><span>${escapeHtml(option.label)}</span><i>${active ? "&#10003;" : ""}</i></button></div>`;
+  }
+  function renderFilterGroup(option, enabled) {
+    const state2 = groupState(option.items, enabled);
+    const on = option.items.reduce((count, ability) => count + (enabled.has(ability) ? 1 : 0), 0);
+    const expanded = expandedGroups.has(option.key);
+    const items = option.items.map((ability) => {
+      const active = enabled.has(ability);
+      return `<button data-ability-item="${escapeHtml(ability)}" data-active="${active}"><span>${escapeHtml(abilityDisplayName(ability))}</span><i>${active ? "&#10003;" : ""}</i></button>`;
+    }).join("");
+    return `<section class="gc-ability-group" data-group="${escapeHtml(option.key)}"><div class="gc-ability-group-head"><button class="gc-ability-expand" data-ability-expand="${escapeHtml(option.key)}" aria-expanded="${expanded}">${expanded ? "&#9662;" : "&#9656;"}</button><button class="gc-ability-group-toggle" data-ability-group="${escapeHtml(option.key)}" data-state="${state2}"><span>${escapeHtml(option.label)}</span><small>${on}/${option.items.length}</small><i>${STATE_MARKER[state2]}</i></button></div><div class="gc-ability-group-items"${expanded ? "" : " hidden"}>${items}</div></section>`;
+  }
+  function renderAbilityFilterBody(enabled) {
+    return VISIBLE_FILTER_OPTIONS.map(
+      (option) => option.abilities.length === 1 ? renderStandaloneItem(option, enabled) : renderFilterGroup(option, enabled)
+    ).join("");
+  }
+  function refreshAbilityPanel() {
+    const enabled = enabledAbilities();
+    const openButton = page.document.querySelector("[data-ability-filter-open]");
+    if (openButton) openButton.textContent = abilityFilterSummary(enabled);
+    const log = page.document.querySelector(".gc-ability-log-card .gc-log");
     if (log) {
       const scrollTop = log.scrollTop;
-      log.innerHTML = renderAbilityLogRows(selectedFilters);
+      log.innerHTML = renderAbilityLogRows(enabled);
       hydrateAbilityLogSprites(log);
       log.scrollTop = scrollTop;
     }
   }
+  var ABILITY_MODAL_ID = "gc-ability-filter-modal";
+  function abilityModalMarkup(enabled) {
+    return `<div class="gc-ability-modal" role="dialog" aria-label="Ability history filter"><header class="gc-modal-head"><h3>Show which abilities</h3><button class="gc-modal-close" data-ability-close aria-label="Close">&times;</button></header><div class="gc-modal-tools"><span class="gc-modal-summary" data-ability-summary>${escapeHtml(abilityFilterSummary(enabled))}</span><div><button data-ability-all>All</button><button data-ability-none>None</button></div></div><div class="gc-modal-body" data-ability-body>${renderAbilityFilterBody(enabled)}</div></div>`;
+  }
+  function redrawAbilityModal(root) {
+    const enabled = enabledAbilities();
+    const body = root.querySelector("[data-ability-body]");
+    if (body) body.innerHTML = renderAbilityFilterBody(enabled);
+    const summary = root.querySelector("[data-ability-summary]");
+    if (summary) summary.textContent = abilityFilterSummary(enabled);
+  }
+  function onAbilityModalKey(event) {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      closeAbilityFilterDialog();
+    }
+  }
+  function closeAbilityFilterDialog() {
+    page.document.getElementById(ABILITY_MODAL_ID)?.remove();
+    page.document.removeEventListener("keydown", onAbilityModalKey, true);
+    setAbilityFilterMenuOpen(false);
+    setAbilityFilterInteracting(false);
+  }
+  function openAbilityFilterDialog() {
+    closeAbilityFilterDialog();
+    const backdrop = page.document.createElement("div");
+    backdrop.id = ABILITY_MODAL_ID;
+    backdrop.className = "gc-modal-backdrop";
+    backdrop.innerHTML = abilityModalMarkup(enabledAbilities());
+    page.document.body.appendChild(backdrop);
+    setAbilityFilterMenuOpen(true);
+    setAbilityFilterInteracting(true);
+    panelActions.cancelPanelRefresh();
+    const commit = (enabled) => {
+      config.trackedAbilities = [...enabled];
+      saveConfig();
+      redrawAbilityModal(backdrop);
+      refreshAbilityPanel();
+    };
+    backdrop.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target === backdrop || target.closest("[data-ability-close]")) {
+        closeAbilityFilterDialog();
+        return;
+      }
+      const expand = target.closest("[data-ability-expand]");
+      if (expand) {
+        event.preventDefault();
+        const key = expand.dataset.abilityExpand;
+        expandedGroups.has(key) ? expandedGroups.delete(key) : expandedGroups.add(key);
+        redrawAbilityModal(backdrop);
+        return;
+      }
+      const item = target.closest("[data-ability-item]");
+      if (item) {
+        event.preventDefault();
+        const enabled = enabledAbilities();
+        const ability = item.dataset.abilityItem;
+        enabled.has(ability) ? enabled.delete(ability) : enabled.add(ability);
+        commit(enabled);
+        return;
+      }
+      const group = target.closest("[data-ability-group]");
+      if (group) {
+        event.preventDefault();
+        const option = VISIBLE_FILTER_OPTIONS.find((entry) => entry.key === group.dataset.abilityGroup);
+        if (!option) return;
+        const enabled = enabledAbilities();
+        const turningOff = groupState(option.items, enabled) === "all";
+        for (const ability of option.items) turningOff ? enabled.delete(ability) : enabled.add(ability);
+        commit(enabled);
+        return;
+      }
+      if (target.closest("[data-ability-all]")) {
+        event.preventDefault();
+        commit(new Set(FILTERABLE_ABILITIES));
+        return;
+      }
+      if (target.closest("[data-ability-none]")) {
+        event.preventDefault();
+        commit(/* @__PURE__ */ new Set());
+        return;
+      }
+    });
+    page.document.addEventListener("keydown", onAbilityModalKey, true);
+  }
   function renderAbilityLog() {
-    const selectedFilters = selectedAbilityFilters();
-    const filterSummary = abilityFilterSummary(selectedFilters);
-    const filterOptions = ABILITY_FILTER_OPTIONS.map((option) => `<button data-ability-option="${escapeHtml(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml(option.label)}</span><i>${selectedFilters.has(option.key) ? "&#10003;" : ""}</i></button>`).join("");
-    return `<section class="gc-card gc-ability-log-card"><div class="gc-ability-log-toolbar"><div><h3>Pet ability history</h3><small>Up to ${LOG_PER_ABILITY} entries are stored per ability.</small></div><div class="gc-ability-log-actions"><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search history" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><details class="gc-ability-filter" data-ability-filter ${abilityFilterMenuOpen ? "open" : ""}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><button data-clear-log>Clear</button></div></div><div class="gc-ability-log-columns"><span>Time &amp; date</span><span>Pet</span><span>Ability</span><span>Payload</span></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
+    const enabled = enabledAbilities();
+    const filterSummary = abilityFilterSummary(enabled);
+    return `<section class="gc-card gc-ability-log-card"><div class="gc-ability-log-toolbar"><div><h3>Pet ability history</h3><small>Up to ${LOG_PER_ABILITY} entries are stored per ability.</small></div><div class="gc-ability-log-actions"><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search history" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><button class="gc-ability-filter" data-ability-filter-open title="Choose which abilities to show">${escapeHtml(filterSummary)}</button><button data-clear-log>Clear</button></div></div><div class="gc-ability-log-columns"><span>Time &amp; date</span><span>Pet</span><span>Ability</span><span>Payload</span></div><div class="gc-log">${renderAbilityLogRows(enabled)}</div></section>`;
   }
   function bindAbilityLogEvents(main) {
     hydrateAbilityLogSprites(main);
@@ -3258,51 +3384,16 @@ ${groups}
     });
     main.querySelector("[data-log-search]")?.addEventListener("input", (event) => {
       setAbilityLogSearch(event.target.value);
-      refreshAbilityFilterUi(main);
       const log = main.querySelector(".gc-log");
-      if (log) log.scrollTop = 0;
-    });
-    const abilityFilter = main.querySelector("[data-ability-filter]");
-    if (!abilityFilter) return;
-    abilityFilter.ontoggle = () => {
-      setAbilityFilterMenuOpen(abilityFilter.open);
-      setAbilityFilterInteracting(abilityFilter.open);
-      if (abilityFilter.open) panelActions.cancelPanelRefresh();
-    };
-    abilityFilter.addEventListener("focusout", () => setTimeout(() => {
-      if (!abilityFilter.contains(document.activeElement)) {
-        abilityFilter.open = false;
-        setAbilityFilterMenuOpen(false);
-        setAbilityFilterInteracting(false);
+      if (log) {
+        log.innerHTML = renderAbilityLogRows(enabledAbilities());
+        hydrateAbilityLogSprites(log);
+        log.scrollTop = 0;
       }
-    }));
-    main.querySelectorAll("[data-ability-option]").forEach((button) => button.onclick = (event) => {
-      event.preventDefault();
-      const selected = new Set(config.trackedAbilities || []);
-      const currentKeys = new Set(ABILITY_FILTER_OPTIONS.filter((option) => selected.has(option.key) || option.abilities.some((ability) => selected.has(ability))).map((option) => option.key));
-      const key = button.dataset.abilityOption;
-      currentKeys.has(key) ? currentKeys.delete(key) : currentKeys.add(key);
-      config.trackedAbilities = [...currentKeys];
-      saveConfig();
-      setAbilityFilterMenuOpen(true);
-      setAbilityFilterInteracting(true);
-      refreshAbilityFilterUi(main);
     });
-    main.querySelector("[data-ability-all]")?.addEventListener("click", (event) => {
+    main.querySelector("[data-ability-filter-open]")?.addEventListener("click", (event) => {
       event.preventDefault();
-      config.trackedAbilities = ABILITY_FILTER_OPTIONS.map((option) => option.key);
-      saveConfig();
-      setAbilityFilterMenuOpen(true);
-      setAbilityFilterInteracting(true);
-      refreshAbilityFilterUi(main);
-    });
-    main.querySelector("[data-ability-none]")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      config.trackedAbilities = [];
-      saveConfig();
-      setAbilityFilterMenuOpen(true);
-      setAbilityFilterInteracting(true);
-      refreshAbilityFilterUi(main);
+      openAbilityFilterDialog();
     });
   }
 
@@ -6176,7 +6267,7 @@ ${eggs.map(eggCard).join("")}`;
     }
     function renderSupporter() {
       return `<p class="gc-note">If any of my mods or tools have saved you some time or helped improved quality of life and you feel like putting something in the tip jar, the link below is the place to do it, thank you</p>
-<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3><p>One-off or monthly, whatever suits. Thank you either way.</p></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
+<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
 <p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bugs and ideas are just as welcome as anything else.</p>`;
     }
     function renderFeatures() {
@@ -6515,7 +6606,30 @@ ${eggs.map(eggCard).join("")}`;
 .gc-proc-row div { min-width:0;display:flex;flex-direction:column; }
 .gc-proc-row small,.gc-proc-row > span { color:var(--gc-muted);font-size:9px; }
 .gc-proc-row p { grid-column:1/-1;margin:0;color:rgba(255,255,255,.75);font:10px/1.35 ui-monospace,monospace; }
-.gc-ability-filter { position:relative;z-index:7;width:126px;flex:0 0 auto; }.gc-ability-filter>summary { height:34px;box-sizing:border-box;padding:8px 24px 8px 8px;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;list-style:none;color:var(--gc-text);background:#08080c;cursor:pointer;font-size:10px;font-weight:700;text-overflow:ellipsis;white-space:nowrap; }.gc-ability-filter>summary::-webkit-details-marker { display:none; }.gc-ability-filter>summary::after { content:'\\25BE';position:absolute;right:8px;color:var(--gc-muted); }.gc-ability-picker { position:absolute;top:39px;right:0;z-index:10;width:240px;max-height:min(320px,50vh);box-sizing:border-box;padding:5px;overflow:auto;border:1px solid rgba(167,139,250,.28);border-radius:7px;background:#08080c;box-shadow:0 18px 45px rgba(0,0,0,.72); }.gc-ability-picker header { display:flex;gap:5px;margin-bottom:5px; }.gc-ability-picker header button { flex:1; }.gc-ability-picker>button { width:100%;display:flex;align-items:center;justify-content:space-between;margin:2px 0;padding:7px 8px!important;text-align:left!important; }.gc-ability-picker>button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.3)!important;background:rgba(167,139,250,.12)!important; }.gc-ability-picker>button i { color:#a78bfa;font-style:normal; }
+.gc-ability-filter { height:34px;box-sizing:border-box;width:126px;flex:0 0 auto;padding:8px;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;cursor:pointer;font-size:10px;font-weight:700;text-align:left;text-overflow:ellipsis;white-space:nowrap; }
+.gc-modal-backdrop { position:fixed;inset:0;z-index:999995;display:grid;place-items:center;padding:20px;box-sizing:border-box;background:rgba(0,0,0,.55); }
+.gc-modal-backdrop button { padding:6px 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:rgba(255,255,255,.04);cursor:pointer;font:600 11px system-ui,sans-serif; }
+.gc-modal-backdrop button:hover { border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.08); }
+.gc-ability-modal { width:340px;max-width:calc(100vw - 40px);max-height:min(80vh,640px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(167,139,250,.28);border-radius:12px;background:#0b0b10;box-shadow:0 24px 60px rgba(0,0,0,.7);color:var(--gc-text);font:12px/1.4 system-ui,sans-serif; }
+.gc-modal-head { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--gc-line); }
+.gc-modal-head h3 { margin:0;font-size:13px; }
+.gc-modal-close { width:26px;height:26px;padding:0!important;font-size:16px;line-height:1; }
+.gc-modal-tools { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--gc-line); }
+.gc-modal-tools .gc-modal-summary { color:var(--gc-muted);font-size:10px;font-weight:700; }
+.gc-modal-tools div { display:flex;gap:6px; }
+.gc-modal-body { padding:8px 10px;overflow:auto; }
+.gc-ability-group { margin:3px 0;border:1px solid var(--gc-line);border-radius:8px;overflow:hidden; }
+.gc-ability-group-head { display:flex;align-items:stretch; }
+.gc-ability-expand { width:30px;flex:0 0 auto;padding:0!important;border:none!important;border-radius:0!important;background:transparent!important;color:var(--gc-muted)!important;cursor:pointer; }
+.gc-ability-group-toggle { flex:1;display:flex;align-items:center;gap:8px;border:none!important;border-radius:0!important;background:transparent!important;padding:8px!important;text-align:left!important;font-weight:800; }
+.gc-ability-group-toggle small { margin-left:auto;color:var(--gc-muted);font-weight:600; }
+.gc-ability-group-toggle i { color:#a78bfa;font-style:normal;width:12px;text-align:center; }
+.gc-ability-group-toggle[data-state=all],.gc-ability-group-toggle[data-state=some] { color:#ddd6fe!important; }
+.gc-ability-group-items { display:grid;gap:3px;padding:6px;background:rgba(255,255,255,.02); }
+.gc-ability-group-items button,.gc-ability-standalone button { width:100%;display:flex;align-items:center;justify-content:space-between;padding:6px 8px!important;text-align:left!important;font-size:10px; }
+.gc-ability-group-items button[data-active=true],.gc-ability-standalone button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.3)!important;background:rgba(167,139,250,.12)!important; }
+.gc-ability-group-items button i,.gc-ability-standalone button i { color:#a78bfa;font-style:normal; }
+.gc-ability-standalone { margin:3px 0; }
 .gc-shop-tabs { display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px; }.gc-shop-tabs button { flex:1 1 72px; }.gc-shop-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }
 .gc-shop-sprite { width:32px;height:32px;flex:0 0 auto;display:grid!important;place-items:center;overflow:hidden;border-radius:6px;background:rgba(255,255,255,.035); }.gc-shop-sprite img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }
 .gc-empty { padding:22px;color:var(--gc-muted);text-align:center; }

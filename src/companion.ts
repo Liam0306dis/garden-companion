@@ -855,7 +855,7 @@ export function initCompanion(): void {
    */
   function renderSupporter() {
     return `<p class="gc-note">If any of my mods or tools have saved you some time or helped improved quality of life and you feel like putting something in the tip jar, the link below is the place to do it, thank you</p>
-<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3><p>One-off or monthly, whatever suits. Thank you either way.</p></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
+<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
 <p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bugs and ideas are just as welcome as anything else.</p>`;
   }
 
