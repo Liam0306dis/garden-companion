@@ -162,18 +162,26 @@ function healToFrontier(): void {
 }
 
 /**
- * Watches every incoming frame for two things: the server's current frontier (to keep our counter
- * anchored) and the invalid_sequence rejection that says our numbering has desynced. Only the small
- * QuinoaCommandResult frames are ever parsed - guarded by two substring checks first - so the large
- * room publications cost no more than one indexOf.
+ * A QuinoaCommandResult is tiny; a room publication is not. Scanning the big frames for substrings
+ * they cannot contain is what turned this hook into a per-frame cost heavy enough to be felt as jank,
+ * so anything past this length is skipped on an O(1) length check before any scan runs.
+ */
+const RESULT_FRAME_MAX = 20_000;
+
+/**
+ * Watches incoming frames for the invalid_sequence rejection that says our numbering has desynced,
+ * and - only on builds where the room-connection frontier property is missing - for the frontier
+ * itself. The frontier is normally read straight off that property at allocate/heal time, so on the
+ * hot path here the large room publications cost nothing but a length check: the substring scans and
+ * JSON.parse run only on the small frames a result can actually be.
  */
 export function noteServerFrame(data: unknown): void {
   if (sequence < 0 || typeof data !== 'string') return;
-  noteFrontierFromFrame(data);
-  // Also read (and, once, probe) the room-connection property here rather than only on send, so its
-  // presence and freshness are visible at idle instead of staying unknown until the first command.
-  readServerFrontier();
-  if (!data.includes('QuinoaCommandResult') || !data.includes('invalid_sequence')) return;
+  // Probe the property once a connection exists; after that it is read at allocate/heal time, so the
+  // per-frame frontier scan is only needed as a fallback on a build where the property is absent.
+  if (!diagnostics.propertyProbed) readServerFrontier();
+  if (diagnostics.propertyProbed && !diagnostics.propertyPresent) noteFrontierFromFrame(data);
+  if (data.length > RESULT_FRAME_MAX || !data.includes('QuinoaCommandResult') || !data.includes('invalid_sequence')) return;
   try {
     const frame = JSON.parse(data) as Record<string, unknown>;
     if (frame?.type === 'QuinoaCommandResult' && frame.ok === false && frame.code === 'invalid_sequence') healToFrontier();

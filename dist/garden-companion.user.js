@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.53
+// @version      0.8.54
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -743,11 +743,12 @@
     });
     sequence = frontier + 1;
   }
+  var RESULT_FRAME_MAX = 2e4;
   function noteServerFrame(data) {
     if (sequence < 0 || typeof data !== "string") return;
-    noteFrontierFromFrame(data);
-    readServerFrontier();
-    if (!data.includes("QuinoaCommandResult") || !data.includes("invalid_sequence")) return;
+    if (!diagnostics.propertyProbed) readServerFrontier();
+    if (diagnostics.propertyProbed && !diagnostics.propertyPresent) noteFrontierFromFrame(data);
+    if (data.length > RESULT_FRAME_MAX || !data.includes("QuinoaCommandResult") || !data.includes("invalid_sequence")) return;
     try {
       const frame = JSON.parse(data);
       if (frame?.type === "QuinoaCommandResult" && frame.ok === false && frame.code === "invalid_sequence") healToFrontier();
