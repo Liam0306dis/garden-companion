@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.54
+// @version      0.8.55
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -2911,8 +2911,8 @@ ${groups}
         const icon = row.choice ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>` : "<i>?</i>";
         return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" data-potion="${row.potion}" title="${escapeHtml(label)}" ${ready ? "" : "disabled"}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
       }).join("");
+      positionPetFood();
     }
-    positionPetFood();
   }
   function petPanelCovered(anchor) {
     const sampleX = Math.round((anchor.left + anchor.right) / 2);

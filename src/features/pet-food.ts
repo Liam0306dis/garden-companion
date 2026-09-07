@@ -140,6 +140,9 @@ export function renderPetFood(): void {
   }
   const signature = JSON.stringify(rows.map(row => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice))]));
   const panel = existing || createPetFoodPanel();
+  // Only when the buttons actually change: positioning reads the scene graph and forces a hit-test
+  // (petPanelCovered -> elementFromPoint), which is wasteful to run on every state patch. The 250ms
+  // interval keeps the buttons tracking the dock as it moves, so the reposition rides the rebuild.
   if (!existing || signature !== petFoodSignature) {
     petFoodSignature = signature;
     panel.querySelector('.gc-petfood-list')!.innerHTML = rows.map(row => {
@@ -156,8 +159,8 @@ export function renderPetFood(): void {
         : '<i>?</i>';
       return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" data-potion="${row.potion}" title="${escapeHtml(label)}" ${ready ? '' : 'disabled'}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ''}</button>`;
     }).join('');
+    positionPetFood();
   }
-  positionPetFood();
 }
 
 /**
