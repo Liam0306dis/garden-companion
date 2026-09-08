@@ -27,7 +27,12 @@ interface OverviewStats {
   plants: number;
   crops: number;
   mature: number;
+  /** One-time sell total: base x size x mutation x friend, summed over every crop. */
   value: number;
+  /** value scaled by expected DoubleHarvest / ProduceRefund yield from active fed pets. */
+  projectedValue: number;
+  doubleHarvestMult: number;
+  cropRefundMult: number;
   mutations: Map<string, number>;
   species: SpeciesStats[];
   nextMatureAt: number | null;
@@ -596,7 +601,7 @@ function calculateStats(
   ignorePreserved: boolean,
   mutationConfig: MutationConfig,
 ): OverviewStats {
-  const result: OverviewStats = { plants: 0, crops: 0, mature: 0, value: 0, mutations: new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1 };
+  const result: OverviewStats = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1 };
   const bySpecies = new Map<string, SpeciesStats>();
   const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
   const friendCount = Math.min(5, Math.max(0, (runtime.room?.players?.length ?? 1) - 1));
@@ -702,6 +707,29 @@ function calculateStats(
   function petStrength(pet: (typeof activePets)[number]): number {
     return petMetrics(pet as unknown as Parameters<typeof petMetrics>[0])?.strength ?? 87 + crystalStrengthBonus();
   }
+
+  /**
+   * Expected-yield multipliers layered onto the one-time sell total, matching how our other tooling
+   * projects value. Both scan every owned pet (team, inventory and storage) for the top three carrying
+   * the ability, since that is the best team the player could field, and scale each by its strength.
+   *
+   * DoubleHarvest gives a second crop on a proc, so it adds its summed proc chance. ProduceRefund puts
+   * the crop back on the field where it can be harvested - and refund - again, so its effect is
+   * geometric: 1 / (1 - p).
+   */
+  const abilityProcSum = (ability: string, perProcAtFullStrength: number): number =>
+    availablePets
+      .filter(pet => pet.abilities?.includes(ability))
+      .map(petStrength)
+      .sort((left, right) => right - left)
+      .slice(0, 3)
+      .reduce((sum, strength) => sum + perProcAtFullStrength * strength / 100, 0);
+
+  const pDouble = abilityProcSum('DoubleHarvest', 0.05);
+  const pRefund = abilityProcSum('ProduceRefund', 0.20);
+  result.doubleHarvestMult = 1 + pDouble;
+  result.cropRefundMult = pRefund < 1 ? 1 / (1 - pRefund) : 1;
+  result.projectedValue = Math.round(result.value * result.doubleHarvestMult * result.cropRefundMult);
 
   function addEta(mutation: string, ability: string | string[], chance: number, missing: number, total: number | null, countOnly = false): void {
     const abilities = Array.isArray(ability) ? ability : [ability];
@@ -1002,7 +1030,7 @@ export function initGardenOverview(): void {
 
   function structureSignature(stats: OverviewStats): string {
     return JSON.stringify({
-      plants: stats.plants, crops: stats.crops, mature: stats.mature, value: stats.value, unmutated: stats.unmutated, notMaxSize: stats.notMaxSize,
+      plants: stats.plants, crops: stats.crops, mature: stats.mature, value: stats.value, projectedValue: stats.projectedValue, unmutated: stats.unmutated, notMaxSize: stats.notMaxSize,
       mutations: [...stats.mutations], species: stats.species.map(row => [row.species, row.plants, row.crops, row.mature, row.value]),
       etas: stats.granterEtas.map(row => [row.mutation, row.pets, row.missing, Math.round(row.meanSeconds), Math.round(row.totalSeconds)]),
       filter: filter ? [...filter] : null, tracked: [...trackedMutations], alarms: [...alarmTargets], mutationConfig, view, configMode,
@@ -1274,7 +1302,7 @@ export function initGardenOverview(): void {
     // just to find out whether it holds anything.
     const collapsible = (key: string, label: string, total: number, open: boolean) =>
       `<div class="go-section-title go-collapsible" data-collapse="${key}" title="${open ? 'Hide' : 'Show'} ${escapeHtml(label.toLowerCase())}"><span>${escapeHtml(label)}<small>${total}</small></span><u class="go-chevron">${open ? '&#9650;' : '&#9660;'}</u></div>`;
-    return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? 'Disable' : 'Enable'} completion alarm">${view.alarm ? '&#128276;' : '&#128277;'}</button></div></div>${etaRows}</section>` : ''}<section class="go-section">${collapsible('mutations', 'Mutations', rows.filter(([, , value]) => value > 0).length, view.mutationsOpen)}<div data-section="mutations" ${view.mutationsOpen ? '' : 'hidden'}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section">${collapsible('plants', 'Plants', plantList.filter(row => !row.child).length, view.plantsOpen)}<div class="go-plants" data-section="plants" ${view.plantsOpen ? '' : 'hidden'}>${plantRows ? `<div class="go-plant-row go-plant-units"><span></span><b>Tiles</b><b>Crops</b></div>${plantRows}` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ''}</span><b>${compactNumber(stats.value)}</b></div>`;
+    return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? 'Disable' : 'Enable'} completion alarm">${view.alarm ? '&#128276;' : '&#128277;'}</button></div></div>${etaRows}</section>` : ''}<section class="go-section">${collapsible('mutations', 'Mutations', rows.filter(([, , value]) => value > 0).length, view.mutationsOpen)}<div data-section="mutations" ${view.mutationsOpen ? '' : 'hidden'}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section">${collapsible('plants', 'Plants', plantList.filter(row => !row.child).length, view.plantsOpen)}<div class="go-plants" data-section="plants" ${view.plantsOpen ? '' : 'hidden'}>${plantRows ? `<div class="go-plant-row go-plant-units"><span></span><b>Tiles</b><b>Crops</b></div>${plantRows}` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ''}</span><b title="Estimated value including expected DoubleHarvest and ProduceRefund yield from your top pets">${compactNumber(stats.projectedValue || stats.value)}</b></div>`;
   }
 
   function installDrag(card: HTMLElement, header: HTMLElement, save: ((left: number, top: number) => void) | null = null): void {

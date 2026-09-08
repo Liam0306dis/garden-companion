@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.58
+// @version      0.8.59
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -7632,7 +7632,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     target.set(mutation, (target.get(mutation) ?? 0) + 1);
   }
   function calculateStats(runtime, catalog, filter, trackedMutations, ignorePreserved, mutationConfig) {
-    const result = { plants: 0, crops: 0, mature: 0, value: 0, mutations: /* @__PURE__ */ new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1 };
+    const result = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: /* @__PURE__ */ new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1 };
     const bySpecies = /* @__PURE__ */ new Map();
     const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
     const friendCount = Math.min(5, Math.max(0, (runtime.room?.players?.length ?? 1) - 1));
@@ -7727,6 +7727,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     function petStrength2(pet) {
       return petMetrics(pet)?.strength ?? 87 + crystalStrengthBonus();
     }
+    const abilityProcSum = (ability, perProcAtFullStrength) => availablePets.filter((pet) => pet.abilities?.includes(ability)).map(petStrength2).sort((left, right) => right - left).slice(0, 3).reduce((sum, strength) => sum + perProcAtFullStrength * strength / 100, 0);
+    const pDouble = abilityProcSum("DoubleHarvest", 0.05);
+    const pRefund = abilityProcSum("ProduceRefund", 0.2);
+    result.doubleHarvestMult = 1 + pDouble;
+    result.cropRefundMult = pRefund < 1 ? 1 / (1 - pRefund) : 1;
+    result.projectedValue = Math.round(result.value * result.doubleHarvestMult * result.cropRefundMult);
     function addEta(mutation, ability, chance, missing, total, countOnly = false) {
       const abilities = Array.isArray(ability) ? ability : [ability];
       const pets = activePets3.filter((pet) => pet.hunger > 0 && pet.abilities?.some((name) => abilities.includes(name)));
@@ -8006,6 +8012,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         crops: stats.crops,
         mature: stats.mature,
         value: stats.value,
+        projectedValue: stats.projectedValue,
         unmutated: stats.unmutated,
         notMaxSize: stats.notMaxSize,
         mutations: [...stats.mutations],
@@ -8220,7 +8227,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       })();
       const bonus = Math.round((stats.friendBonus - 1) * 100);
       const collapsible = (key, label, total, open2) => `<div class="go-section-title go-collapsible" data-collapse="${key}" title="${open2 ? "Hide" : "Show"} ${escapeHtml2(label.toLowerCase())}"><span>${escapeHtml2(label)}<small>${total}</small></span><u class="go-chevron">${open2 ? "&#9650;" : "&#9660;"}</u></div>`;
-      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section">${collapsible("mutations", "Mutations", rows.filter(([, , value]) => value > 0).length, view.mutationsOpen)}<div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section">${collapsible("plants", "Plants", plantList.filter((row) => !row.child).length, view.plantsOpen)}<div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}>${plantRows2 ? `<div class="go-plant-row go-plant-units"><span></span><b>Tiles</b><b>Crops</b></div>${plantRows2}` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b>${compactNumber(stats.value)}</b></div>`;
+      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section">${collapsible("mutations", "Mutations", rows.filter(([, , value]) => value > 0).length, view.mutationsOpen)}<div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section">${collapsible("plants", "Plants", plantList.filter((row) => !row.child).length, view.plantsOpen)}<div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}>${plantRows2 ? `<div class="go-plant-row go-plant-units"><span></span><b>Tiles</b><b>Crops</b></div>${plantRows2}` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b title="Estimated value including expected DoubleHarvest and ProduceRefund yield from your top pets">${compactNumber(stats.projectedValue || stats.value)}</b></div>`;
     }
     function installDrag(card, header, save2 = null) {
       header.onpointerdown = (event) => {
