@@ -61,9 +61,12 @@ async function catalogsFromBundle(): Promise<BundleCatalogs> {
         const petAbilityWeights = new Map([...bundle.matchAll(
           /([A-Za-z][A-Za-z0-9_]+):\{(?:sprite:[A-Za-z_$]+\.Pet\.[A-Za-z][A-Za-z0-9_]+,)?name:`[^`]+`,coinsToFullyReplenishHunger:[0-9.e+-]+,innateAbilityWeights:\{([^}]*)\}/g)]
           .map(match => [match[1], [...match[2].matchAll(/([A-Za-z][A-Za-z0-9_]*):/g)].map(entry => entry[1])]));
-        // The size update replaced a crop's `maxScale` with `baseTileScale` + `maxSizeMultiplier`, so
-        // the tail matches either form: match[8] is the old maxScale, match[9]/match[10] the new pair.
-        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?(?:maxScale:([0-9.e+-]+)|baseTileScale:([0-9.e+-]+),maxSizeMultiplier:([0-9.e+-]+))/g)];
+        // The size update replaced a crop's `maxScale` with `maxSizeMultiplier`, optionally preceded
+        // by `baseTileScale`. Some crops (Clover, Milkcap, the seasonals) carry maxSizeMultiplier with
+        // no baseTileScale, so that field is optional or those crops drop out of the catalog entirely.
+        // The tail matches either form: match[8] is the old maxScale, match[9] the optional
+        // baseTileScale, match[10] the new maxSizeMultiplier.
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?(?:maxScale:([0-9.e+-]+)|(?:baseTileScale:([0-9.e+-]+),)?maxSizeMultiplier:([0-9.e+-]+))/g)];
         if (!plantMatches.length) continue;
         // The pity block follows the weights closely, and is captured with a tight bound rather
         // than a lazy run so a missing one cannot reach forward into the next egg's. Optional: an
