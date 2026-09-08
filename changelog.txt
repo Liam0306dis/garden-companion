@@ -1,0 +1,91 @@
+
+0.8.59
+- garden overview "est. value" now includes expected extra yield from your Double Harvest and Produce Refund pets (top 3 of each across all owned pets, scaled by strength, Strength Crystal included)
+
+0.8.58
+- crop size boost estimates now read the live boost amounts (+4 / +7) instead of outdated values
+
+0.8.57 - Updated for the crop size update (bundle 1118)
+- crop and produce values, sizes and "max size" checks now use the game's new size model
+- fixed produce being valued at minimum size everywhere it's shown
+
+0.8.56
+- fixed instant harvest breaking after the latest game update
+
+0.8.55
+- performance: docked pet food buttons no longer reposition on every game update
+
+0.8.54
+- performance: less work done on every incoming game message
+
+0.8.53
+- pet ability history filter is now a pop-out window with collapsible groups, so you can show or hide individual granters instead of a whole group at once
+
+0.8.52
+- fixed command lockups when running alongside other mods - our commands now recover instead of freezing the connection
+
+0.8.51
+- egg luck: added pet sprites and per-species gold/rainbow counts (double hatch included), with columns lined up across cards
+- layout planner: added a client-side weather preview, and limited hutch/tool shack/feeding trough/seed silo/decor shed to one each
+- dust calculator now accounts for Dust Boost pets, with a Strength Crystal toggle and editable pet strengths
+- rain alert now uses the shop's exact restock timer
+- added grow times for the newer crops to the food calculator
+- turtle timer / crop estimate no longer shows on pet info cards
+
+0.8.50
+- crop size displays (garden overview, calculator, pet panels) should be in line with the latest changes
+- added missing crops to calculators -> pet food
+
+0.8.49
+- fixed a bug with 'keep planter pot selected' where it would take multiple keypresses to select the plant you just potted
+
+0.8.48
+- fixed 'next weather'
+
+0.8.47
+- shows real size & weight in layout planner instead of scale - should be easier to place plants of desired sizes now
+- fix to hopefully prevent partial sprite caching problems
+
+0.8.45
+- added a speaker icon to the alerts tab - toggles sound for each alert
+
+0.8.44
+- fixed shop keybinds and added storage keybinds
+
+0.8.43
+- added option to ignore pet level up notifications
+
+0.8.42
+-fixed layout planner flashing your real garden when the server sends tile updates while using the editor
+
+0.8.41
+- fixed garden overview options panel ordering - should no longer 'leak through' when on top of each other
+- xp potion button should be available as soon as a potion is successfully applied
+- front facing names for amberlit should be correct everywhere
+
+0.8.40
+- moved journal entries for Amber Egg under the right heading & duplicate Fire Horse / Horse entries are gone
+- added hunger durations of red fox, rooster & phoenix
+
+0.8.39
+- Granter Calculator: each pet row now shows what its proc is actually worth(crop size %, growth minutes, XP, coins), not just how often it fires
+- Granter Calculator: added a Strength Crystal toggle, to compare an ability with and without one
+- Granter Calculator: abilities no pet can roll yet are no longer listed
+
+0.8.38
+- hunger shard, xp shard & weather xp boosts are now calculated on the active pets panel
+
+0.8.37
+- auto stores tools in toolshack if a tool of that type exists there already
+
+0.8.36
+- added snow/thunder ward shards to shop alerts
+- garden overview and turtle timer now take into consideration strength shards
+
+0.8.35 - Updated for the Amber & Rain update
+- Amber and Rain shop tabs added to shop alarms, so you can set alerts for the new seeds, shards, decor and the Amber Egg
+- Egg Luck supports the Amber Egg: it guarantees two pets rather than one, and Phoenix is guaranteed at 100 pulls, not 40 like every other egg's rarest. Both bars are now tracked separately.
+- New pets, plants, decor and abilities all recognised
+- Embercrowns now group under their Emberbloom patch in Garden Overview
+- Fixed missing icons for the Hunger, XP and Strength Shards, and Red Fox
+- Removed our weather hover timer, since the game now shows the time remaining on the weather icon itself

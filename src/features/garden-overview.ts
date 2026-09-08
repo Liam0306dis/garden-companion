@@ -713,9 +713,11 @@ function calculateStats(
    * projects value. Both scan every owned pet (team, inventory and storage) for the top three carrying
    * the ability, since that is the best team the player could field, and scale each by its strength.
    *
-   * DoubleHarvest gives a second crop on a proc, so it adds its summed proc chance. ProduceRefund puts
-   * the crop back on the field where it can be harvested - and refund - again, so its effect is
-   * geometric: 1 / (1 - p).
+   * DoubleHarvest gives a second crop on a proc, so it adds its summed proc chance. ProduceRefund
+   * returns a sold produce to the inventory so it can be sold again - and each refund pet rolls
+   * independently on the same sale (3 pets can all proc it, returning up to 3 copies), so expected
+   * copies per sale add, and since a returned copy can itself be refunded the effect is geometric:
+   * 1 / (1 - p).
    */
   const abilityProcSum = (ability: string, perProcAtFullStrength: number): number =>
     availablePets
