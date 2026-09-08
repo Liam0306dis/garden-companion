@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.55
+// @version      0.8.56
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -5931,7 +5931,7 @@ ${eggs.map(eggCard).join("")}`;
         event.preventDefault();
         event.stopImmediatePropagation();
         const slot = tile.slots[index];
-        sendQuinoaCommand({ type: "HarvestCrop", slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
+        sendQuinoaCommand({ type: "HarvestCrop", slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
         toast("Harvest requested.", "success");
       }, true);
     }

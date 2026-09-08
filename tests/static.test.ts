@@ -1456,6 +1456,8 @@ assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = deferredReque
 // a command on the wrong side of that line fails silently: the server drops it and nothing is said.
 // HarvestCrop, PotPlant, Preserve and PurchaseShopItem are the envelope ones.
 assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'HarvestCrop'/, 'harvest is sent raw, which the server rejects');
+// Since bundle 1116 the reducer needs a client-minted id for the produce the harvest creates.
+assert.match(companionSource, /type: 'HarvestCrop'[^}]*cropItemId: crypto\.randomUUID\(\)/, 'harvest omits cropItemId, which build 1116 rejects');
 assert.match(preserveAllSource, /sendQuinoaCommand\(\{ type: 'Preserve'/, 'preserve is sent raw, which the server rejects');
 assert.match(shopAlarmsSource, /sendQuinoaCommand\(\{ type: 'PurchaseShopItem'/, 'buying is sent raw, which the server rejects');
 // Crop protection reads outgoing harvests, so it has to understand both shapes or moving harvest

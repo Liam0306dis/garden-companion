@@ -424,7 +424,10 @@ export function initCompanion(): void {
       const slot = tile.slots[index];
       // Harvest is one of the commands the game sends inside the QuinoaCommand envelope, so it
       // needs the sequence too - sent raw the server rejects it and the crop simply stays put.
-      sendQuinoaCommand({ type: 'HarvestCrop', slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
+      // Since bundle 1116 it also carries a client-minted cropItemId: the reducer uses it as the id
+      // of the produce the harvest drops into the inventory, and a harvest without one is rejected.
+      // Any fresh unique UUID works - the server assigns it to the produce and we never read it back.
+      sendQuinoaCommand({ type: 'HarvestCrop', slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
       toast('Harvest requested.', 'success');
     }, true);
   }
