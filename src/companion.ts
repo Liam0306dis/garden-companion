@@ -11,7 +11,7 @@ import { ABILITY_DETAILS, GRANTER_CHANCES, KOFI_URL, LUNAR_MINIMISED_KEY, LUNAR_
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { installAlarms, showAlarmBanner, stopAlarm } from './alarms.js';
 import { worldSceneActive } from './world-scene.js';
-import { noteGameSocket, noteOutgoingCommand, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
+import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
 import { abilityChips } from './ability-chips.js';
 import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -87,6 +87,9 @@ export function initCompanion(): void {
   page.__gardenCompanionFeature = feature;
   page.__gardenCompanionConfig = () => config;
   page.__gardenCompanionForecastTrace = forecastTrace;
+  // Call __gardenCompanionSequencer() in the console to see the command frontier state - whether the
+  // room-connection property is feeding it, how often it healed, and the last forward jump / heal.
+  page.__gardenCompanionSequencer = getSequencerDiagnostics;
 
   let gameUpdateDetected = false;
   function handleGameUpdateDetected(source: string): void {
@@ -209,6 +212,9 @@ export function initCompanion(): void {
 
   function readWelcome(event: Event): void {
     const data = (event as MessageEvent).data;
+    // Track the server's command frontier and catch the invalid_sequence rejection that says our
+    // numbering has desynced, so the sequencer resyncs to the frontier instead of freezing.
+    noteServerFrame(data);
     if (typeof data !== 'string' || !data.includes('"selfPlayerId"')) return;
     try {
       const frame = JSON.parse(data) as { selfPlayerId?: unknown; executedCommandSequence?: unknown };
@@ -418,7 +424,10 @@ export function initCompanion(): void {
       const slot = tile.slots[index];
       // Harvest is one of the commands the game sends inside the QuinoaCommand envelope, so it
       // needs the sequence too - sent raw the server rejects it and the crop simply stays put.
-      sendQuinoaCommand({ type: 'HarvestCrop', slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
+      // Since bundle 1116 it also carries a client-minted cropItemId: the reducer uses it as the id
+      // of the produce the harvest drops into the inventory, and a harvest without one is rejected.
+      // Any fresh unique UUID works - the server assigns it to the produce and we never read it back.
+      sendQuinoaCommand({ type: 'HarvestCrop', slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
       toast('Harvest requested.', 'success');
     }, true);
   }
@@ -849,7 +858,7 @@ export function initCompanion(): void {
    */
   function renderSupporter() {
     return `<p class="gc-note">If any of my mods or tools have saved you some time or helped improved quality of life and you feel like putting something in the tip jar, the link below is the place to do it, thank you</p>
-<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3><p>One-off or monthly, whatever suits. Thank you either way.</p></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
+<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
 <p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bugs and ideas are just as welcome as anything else.</p>`;
   }
 

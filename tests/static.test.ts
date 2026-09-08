@@ -188,14 +188,20 @@ assert.match(buildSource, /__PLANT_CATALOG__: JSON\.stringify\(catalogs\.plants\
 assert.ok(!/setInterval\([^)]*(PurchaseShopItem|HarvestCrop|ApplyPetTeam)/s.test(built), 'unattended command loop found');
 assert.ok(!built.includes('vendor/'), 'vendored source reference found');
 // The envelope needs a commandSequence and the server wants the run contiguous: a number it never
-// receives makes every later command `invalid_sequence`, and it never recovers. The game seeds its
-// counter from Welcome and takes one per command, so we seed from the same frame - which also means
-// a reconnect needs no special handling, because every Welcome re-seeds.
+// receives makes every later command `invalid_sequence`. The game seeds its counter from Welcome and
+// takes one per command, so we seed from the same frame - which also means a reconnect needs no
+// special handling, because every Welcome re-seeds.
 assert.match(companionSource, /sequence = executed \+ 1;/, 'the counter is not seeded the way the game seeds its own');
 assert.match(companionSource, /seedCommandSequence\(frame\?\.executedCommandSequence\)/, 'the Welcome frame does not seed the command counter');
 // A second counter cannot work: the game never learns we consumed a number and its next command
 // reuses ours, so every command is stamped on the way out instead - one counter, one chooser.
-assert.match(companionSource, /frame\.commandSequence = sequence\+\+;/, 'outgoing commands are not renumbered from one counter');
+assert.match(companionSource, /frame\.commandSequence = allocateSequence\(\);/, 'outgoing commands are not renumbered from one counter');
+// A blind counter cannot survive a second mod renumbering the same socket, so the number stays
+// anchored to the server's frontier: jump forward when the stream ran ahead of us, and resync down
+// to the frontier when the server rejects a command as invalid_sequence, instead of freezing.
+assert.match(companionSource, /if \(frontier \+ 1 > sequence\) \{/, 'the sequence is not healed forward to the server frontier before stamping');
+assert.match(companionSource, /frame\.code === 'invalid_sequence'\) healToFrontier\(\)/, 'an invalid_sequence rejection does not resync the counter to the frontier');
+assert.match(companionSource, /noteServerFrame\(data\);/, 'incoming frames are not watched for the frontier and the invalid_sequence desync signal');
 assert.match(companionSource, /return originalSend\.call\(this, renumberOutgoingCommand\(data\)/, 'the socket does not renumber what it sends');
 // Blocking must happen before the stamp, so a swallowed command never takes a number and leaves a hole.
 assert.ok(companionSource.indexOf('const blocked = blockOutgoingHarvest(data);') < companionSource.indexOf('renumberOutgoingCommand(data)'), 'a blocked command still takes a sequence number, leaving a hole');
@@ -638,13 +644,19 @@ assert.match(companionSource, /\['petSwapToss', 'Pokemon Mode'/, 'pet swap toss 
 assert.match(companionSource, /\[4, 5\]\.includes\(Number\(room\.players_count\)\)/, 'rooms are not restricted to 4 or 5 players');
 assert.match(companionSource, /sort\(\(left, right\) => Number\(right\.players_count\) - Number\(left\.players_count\)\)/, '5-player rooms are not sorted above 4-player rooms');
 assert.match(companionSource, /Public rooms with one or two open slots\./, 'room description is incorrect');
-assert.match(companionSource, /data-ability-filter/, 'Pet Abilities filter missing');
-assert.match(companionSource, /data-ability-option/, 'Pet Abilities multi-selection options missing');
+assert.match(companionSource, /data-ability-filter-open/, 'Pet Abilities filter button missing');
+assert.match(companionSource, /data-ability-item/, 'Pet Abilities per-ability options missing');
+assert.match(companionSource, /data-ability-group/, 'Pet Abilities group headers missing');
+assert.match(companionSource, /data-ability-expand/, 'Pet Abilities groups are not collapsible');
 assert.match(companionSource, /data-ability-all[\s\S]*data-ability-none/, 'Pet Abilities All and None selections missing');
-assert.match(companionSource, /config\.trackedAbilities = \[\.\.\.currentKeys\]/, 'Pet Abilities selections are not saved together');
-assert.match(companionSource, /abilityFilter\.addEventListener\('focusout'[\s\S]*abilityFilter\.open = false/, 'ability filter does not close after focus leaves');
-assert.match(styleSource, /\.gc-ability-picker \{ position:absolute;top:39px;right:0/, 'ability filter still shifts the panel layout');
-assert.match(styleSource, /\.gc-ability-filter>summary \{ height:34px/, 'ability filter does not align with the search field');
+// Individual abilities are the stored truth, so a granter can be shown while its siblings are hidden.
+assert.match(companionSource, /config\.trackedAbilities = \[\.\.\.enabled\]/, 'Pet Abilities selections no longer persist individual abilities');
+// The filter opens in its own dialog on the page body, so a panel redraw cannot disturb it.
+assert.match(companionSource, /export function openAbilityFilterDialog/, 'the ability filter no longer opens as a dialog');
+assert.match(companionSource, /page\.document\.body\.appendChild\(backdrop\)/, 'the ability filter dialog is not mounted outside the panel');
+assert.match(companionSource, /event\.key === 'Escape'[\s\S]*closeAbilityFilterDialog\(\)/, 'the ability filter dialog does not close on Escape');
+assert.match(styleSource, /\.gc-modal-backdrop \{ position:fixed;inset:0/, 'ability filter dialog has no backdrop');
+assert.match(styleSource, /\.gc-ability-filter \{ height:34px/, 'ability filter button does not align with the search field');
 assert.match(styleSource, /\.gc-ability-log-actions \.gc-log-search \{[^}]*height:34px[^}]*margin:0/, 'ability history search field retains its global top margin');
 assert.match(companionSource, /\['Plant Growth Boost', \['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost'\]\]/, 'plant growth abilities are not grouped');
 assert.match(companionSource, /\['Mutation Granter', \['RainDance'.*'RainbowGranter'.*'ThunderstruckGranter'\]\]/, 'mutation granters are not grouped');
@@ -654,9 +666,9 @@ assert.match(companionSource, /config\.silencedAbilities = savedSilencedAbilitie
 const silenceSource = companionSource.slice(companionSource.indexOf('function renderSilence()'), companionSource.indexOf('function bindListSearch'));
 assert.match(silenceSource, /TRACKED_ABILITY_CATALOG\.map/, 'silence list does not apply tracked ability exclusions');
 assert.doesNotMatch(silenceSource, /(?<!TRACKED_)ABILITY_CATALOG\.map/, 'silence list still includes excluded abilities');
-assert.match(companionSource, /abilityFilterInteracting/, 'ability dropdown redraw guard missing');
-assert.match(companionSource, /function refreshAbilityFilterUi/, 'the ability filter has no in-place refresh');
-assert.match(companionSource, /refreshAbilityFilterUi\(main\)/, 'ability filter selections still require a full panel redraw');
+assert.match(companionSource, /abilityFilterInteracting/, 'ability dialog redraw guard missing');
+assert.match(companionSource, /function refreshAbilityPanel/, 'the ability filter has no in-place panel refresh');
+assert.match(companionSource, /redrawAbilityModal\(backdrop\);\s*refreshAbilityPanel\(\);/, 'a filter change does not refresh both the dialog and the panel in place');
 // Growth savings arrive as raw seconds, and the egg boost reports its eggs and its time together.
 assert.match(abilityLogSource, /const saved = `\$\{formatReduction\(data\.secondsReduced\)\} reduced`;/, 'growth savings are still shown as raw seconds');
 // Boost rows read as what was affected, then what it got, rather than facts joined by a pipe.
@@ -671,7 +683,7 @@ assert.match(abilityLogSource, /if \(data\.growSlotsAffected\) return withReduct
 assert.match(abilityLogSource, /procOutcome\(log\.ability, log\.data\)} \$\{procOutcomeTooltip\(log\.ability, log\.data\)}`\.toLowerCase\(\)/, 'ability log search cannot reach detail held in a tooltip');
 // The history runs to hundreds of rows per ability, so neither the filter nor the search may do
 // per-row work that scales with the filter options or rebuild formatted text on every keystroke.
-assert.match(abilityLogSource, /const visible = visibleAbilities\(selectedFilters\);/, 'the ability filter is resolved per row again');
+assert.match(abilityLogSource, /const matched = state\.abilityLog\.filter\(log => enabled\.has\(log\.ability\)/, 'the ability filter is resolved per row again');
 assert.match(abilityLogSource, /const searchTextCache = new WeakMap<AbilityLogRow, string>\(\);/, 'ability log search text is rebuilt for every keystroke');
 assert.match(abilityLogSource, /const owners = indexOwnedPets\(\);/, 'the ability log rebuilds the pet list for every row it draws');
 // A sprite data url written into every row is megabytes of markup per keystroke.
@@ -683,10 +695,10 @@ assert.match(abilityLogSource, /hydrateAbilityLogSprites\(main\);/, 'ability row
 assert.match(abilityLogSource, /const LOG_DATE_FORMAT = new Intl\.DateTimeFormat\(undefined, /, 'the ability log builds a date formatter for every row');
 assert.doesNotMatch(abilityLogSource, /toLocaleDateString\(undefined, \{/, 'the ability log formats dates the slow way again');
 assert.doesNotMatch(abilityLogSource, /allPets\(\)\.find/, 'the ability log scans every pet per row again');
-const abilityFilterEvents = abilityLogSource.slice(abilityLogSource.indexOf("const abilityFilter = main.querySelector('[data-ability-filter]')"));
-assert.doesNotMatch(abilityFilterEvents, /renderPanel\(\)/, 'ability filter selection closes the dropdown by redrawing the panel');
-assert.match(companionSource, /panelRefreshTimer = setTimeout[\s\S]*panelRefreshBlocked\(panel\)/, 'queued panel refresh does not re-check the open ability dropdown');
-assert.match(abilityFilterEvents, /if \(abilityFilter\.open\) panelActions\.cancelPanelRefresh\(\)/, 'opening the ability dropdown does not cancel a queued panel refresh');
+const abilityFilterEvents = abilityLogSource.slice(abilityLogSource.indexOf('export function openAbilityFilterDialog'), abilityLogSource.indexOf('export function renderAbilityLog('));
+assert.doesNotMatch(abilityFilterEvents, /panelActions\.renderPanel\(\)/, 'a filter selection redraws the whole panel instead of updating in place');
+assert.match(companionSource, /panelRefreshTimer = setTimeout[\s\S]*panelRefreshBlocked\(panel\)/, 'queued panel refresh does not re-check the open ability dialog');
+assert.match(abilityFilterEvents, /panelActions\.cancelPanelRefresh\(\)/, 'opening the ability dialog does not cancel a queued panel refresh');
 assert.match(companionSource, /abilityLog\.matches\(':hover'\) \|\| abilityLog\.scrollTop > 0/, 'proc history does not pause redraws while browsing');
 assert.match(companionSource, /function selectPanelTab[\s\S]*cancelPanelRefresh\(\);[\s\S]*activeTab = tab/, 'tab selection does not cancel pending panel redraws');
 assert.match(companionSource, /button\.onpointerdown = event =>[\s\S]*selectPanelTab\(button\.dataset\.tab\)/, 'panel tabs still wait for a click that can be lost during redraw');
@@ -1051,7 +1063,8 @@ assert.doesNotMatch(plannerSource, /sendMessage|QuinoaCommand|SavePetTeam|Harves
 assert.match(plannerSource, /dirt\.userSlotIdx === ownSlotIndex\(\)/, 'the planner can edit dirt tiles outside your own garden');
 assert.match(plannerSource, /boardwalk\.userSlotIdx === ownSlotIndex\(\) && planner\.mode === 'decor'/, 'boardwalk tiles are not limited to your own decor');
 assert.match(plannerSource, /indexes\[`board:\$\{local\}`\]/, 'boardwalk tiles cannot be planned');
-assert.match(plannerSource, /function close\(\)[\s\S]{0,200}applyAllTiles\(\)/, 'leaving the planner does not restore the real garden');
+assert.match(plannerSource, /function close\(\)[\s\S]{0,360}applyAllTiles\(\)/, 'leaving the planner does not restore the real garden');
+assert.match(plannerSource, /function close\(\)[\s\S]{0,200}planner\.weather = 'live'/, 'leaving the planner does not drop the weather preview');
 assert.match(companionSource, /page\.__gardenCompanionTogglePlanner\?\.\(\)/, 'the planner cannot be opened from the panel');
 assert.match(indexSource, /initGardenPlanner\(\);/, 'the planner is not installed');
 assert.match(plannerSource, /function sortedSpecies\(\)[\s\S]{0,320}rarityRank\(left\) - rarityRank\(right\)/, 'the planner palette is not sorted by rarity');
@@ -1443,6 +1456,8 @@ assert.match(petSpriteSource, /const \{ wanted, trimmedWanted \} = deferredReque
 // a command on the wrong side of that line fails silently: the server drops it and nothing is said.
 // HarvestCrop, PotPlant, Preserve and PurchaseShopItem are the envelope ones.
 assert.match(companionSource, /sendQuinoaCommand\(\{ type: 'HarvestCrop'/, 'harvest is sent raw, which the server rejects');
+// Since bundle 1116 the reducer needs a client-minted id for the produce the harvest creates.
+assert.match(companionSource, /type: 'HarvestCrop'[^}]*cropItemId: crypto\.randomUUID\(\)/, 'harvest omits cropItemId, which build 1116 rejects');
 assert.match(preserveAllSource, /sendQuinoaCommand\(\{ type: 'Preserve'/, 'preserve is sent raw, which the server rejects');
 assert.match(shopAlarmsSource, /sendQuinoaCommand\(\{ type: 'PurchaseShopItem'/, 'buying is sent raw, which the server rejects');
 // Crop protection reads outgoing harvests, so it has to understand both shapes or moving harvest

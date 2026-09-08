@@ -82,6 +82,13 @@ export function toggleWeatherAlertMuted(weather: string, isMuted: boolean): void
   if (currentWeather() === weather) setAlarmSilenced(OWNER, isMuted);
 }
 
+/** Exact time left on the running Rain, read from its shop's restock counter (in whole minutes). */
+function rainRemainingText(): string {
+  const seconds = Number(state.game?.shops?.rain?.secondsUntilRestock);
+  if (!Number.isFinite(seconds) || seconds <= 0) return weatherRemainingText();
+  return `${Math.max(1, Math.ceil(seconds / 60))}m left`;
+}
+
 export function renderWeatherAlarms(): string {
   const chosen = alerts();
   const mutedNow = muted();
@@ -89,7 +96,9 @@ export function renderWeatherAlarms(): string {
   const rows = WEATHER_TYPES.map(weather => {
     const sprite = page.__gardenCompanionWeatherSprites?.[weather] || '';
     const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
-    const note = running === weather ? weatherRemainingText() : 'Not running';
+    // Rain is not on the fixed lunar slots, so the slot estimate can only narrow it to "5m or 10m
+    // left". Its shop restock counter gives the exact time, the same as every other weather shows.
+    const note = running === weather ? (weather === 'Rain' ? rainRemainingText() : weatherRemainingText()) : 'Not running';
     return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? 'checked' : ''}>`
       + `<span class="gc-shop-sprite">${icon}</span>`
       + `<span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>`
@@ -101,7 +110,8 @@ export function renderWeatherAlarms(): string {
 
 /** Redraw as the weather or its countdown moves, so the running row does not go stale. */
 export function weatherAlarmSignature(): string {
-  return `${currentWeather()}|${weatherRemainingText()}`;
+  const running = currentWeather();
+  return `${running}|${running === 'Rain' ? rainRemainingText() : weatherRemainingText()}`;
 }
 
 export function bindWeatherAlarmEvents(main: HTMLElement): void {

@@ -62,6 +62,8 @@ interface EggRecord {
   pulls: number;
   species: Record<string, number>;
   colours: Record<string, number>;
+  /** Gold/Rainbow counts broken down by species, so a card can show how many of each you have found. */
+  speciesColours: Record<string, Record<string, number>>;
   counters: Record<string, Counter>;
 }
 
@@ -70,7 +72,7 @@ function emptyCounter(): Counter {
 }
 
 function blankEgg(): EggRecord {
-  return { hatches: 0, pulls: 0, species: {}, colours: {}, counters: {} };
+  return { hatches: 0, pulls: 0, species: {}, colours: {}, speciesColours: {}, counters: {} };
 }
 
 /** Repairs whatever a hand-edited or older store is missing, so a render never meets a hole. */
@@ -88,6 +90,9 @@ function normaliseEgg(value: unknown, eggId = ''): EggRecord {
     pulls: Number(raw.pulls ?? raw.hatches) || 0,
     species: numbers(raw.species),
     colours: numbers(raw.colours),
+    speciesColours: Object.fromEntries(Object.entries(
+      (raw.speciesColours && typeof raw.speciesColours === 'object' ? raw.speciesColours : {}) as Record<string, unknown>,
+    ).map(([species, colours]) => [species, numbers(colours)])),
     // Species counters used to share one 'species' key, because an egg only ever guaranteed one.
     // The count is real progress towards a real guarantee, so it is carried onto the species that
     // key stood for rather than dropped - which would reset a bar that may be hundreds of pulls in.
@@ -184,7 +189,10 @@ function tally(record: EggRecord, pet: Pet): string[] {
   record.hatches += 1;
   record.species[pet.petSpecies] = (record.species[pet.petSpecies] || 0) + 1;
   for (const colour of COLOURS) {
-    if (mutations.includes(colour)) record.colours[colour] = (record.colours[colour] || 0) + 1;
+    if (!mutations.includes(colour)) continue;
+    record.colours[colour] = (record.colours[colour] || 0) + 1;
+    const perSpecies = record.speciesColours[pet.petSpecies] ?? (record.speciesColours[pet.petSpecies] = {});
+    perSpecies[colour] = (perSpecies[colour] || 0) + 1;
   }
   return mutations;
 }
@@ -320,11 +328,19 @@ function eggCard(eggId: string): string {
   const rows = [...listed, ...Object.keys(record.species).filter(id => !weights[id])].map(id => {
     const count = record.species[id] || 0;
     const odds = weightTotal > 0 && weights[id] ? `${(weights[id] / weightTotal * 100).toFixed(0)}%` : '-';
-    return `<tr${count ? '' : ' class="gc-egg-none"'}><td>${escapeHtml(speciesName(id))}</td>`
+    const petSprite = page.__gardenCompanionPetSprites?.[id] || '';
+    const petIcon = petSprite ? `<img src="${escapeHtml(petSprite)}" alt="">` : '';
+    const gold = record.speciesColours[id]?.Gold || 0;
+    const rainbow = record.speciesColours[id]?.Rainbow || 0;
+    return `<tr${count ? '' : ' class="gc-egg-none"'}><td><span class="gc-shop-sprite">${petIcon}</span>${escapeHtml(speciesName(id))}</td>`
       + `<td>${count.toLocaleString(NUMBER_LOCALE)}</td>`
+      + `<td>${gold ? gold.toLocaleString(NUMBER_LOCALE) : '-'}</td>`
+      + `<td>${rainbow ? rainbow.toLocaleString(NUMBER_LOCALE) : '-'}</td>`
       + `<td>${share(count, record.hatches)}</td>`
       + `<td>${odds}</td></tr>`;
   }).join('');
+  const goldHead = mutationSprite('Gold') ? `<img src="${escapeHtml(mutationSprite('Gold'))}" alt="Gold">` : 'Gold';
+  const rainbowHead = mutationSprite('Rainbow') ? `<img src="${escapeHtml(mutationSprite('Rainbow'))}" alt="Rainbow">` : 'Rainbow';
 
   const colours = COLOURS
     .map(colour => `<span class="gc-pill">${escapeHtml(colour)} ${(record.colours[colour] || 0).toLocaleString(NUMBER_LOCALE)}</span>`)
@@ -337,7 +353,7 @@ function eggCard(eggId: string): string {
 
   return `<section class="gc-card gc-egg-card">${head}
 <div class="gc-egg-body"${open ? '' : ' hidden'}>
-<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th>Yours</th><th>Odds</th></tr></thead><tbody>${rows}</tbody></table>
+<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th class="gc-egg-mut" title="Gold found">${goldHead}</th><th class="gc-egg-mut" title="Rainbow found">${rainbowHead}</th><th>Yours</th><th>Odds</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="gc-egg-colours">${colours}<button data-egg-reset="${escapeHtml(eggId)}" title="Clear everything recorded for this egg">Reset</button></div>
 <div class="gc-egg-pities">${pity}</div></div></section>`;
 }

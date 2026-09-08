@@ -697,16 +697,106 @@
 
   // src/game-connection.ts
   var sequence = -1;
+  var frontier = -1;
+  var diagnostics = {
+    welcomeSeeds: 0,
+    frontierFromProperty: 0,
+    frontierFromFrame: 0,
+    propertyPresent: false,
+    propertyProbed: false,
+    forwardJumps: 0,
+    heals: 0,
+    lastForwardJump: null,
+    lastHeal: null
+  };
+  function getSequencerDiagnostics() {
+    return { sequence, frontier, ...diagnostics, lastForwardJump: diagnostics.lastForwardJump, lastHeal: diagnostics.lastHeal };
+  }
   function seedCommandSequence(executedCommandSequence) {
     const executed = Number(executedCommandSequence);
-    if (Number.isFinite(executed)) sequence = executed + 1;
+    if (!Number.isFinite(executed)) return;
+    sequence = executed + 1;
+    frontier = executed;
+    diagnostics.welcomeSeeds += 1;
+    console.info("[Garden Companion] Command sequencer seeded from Welcome.", { executed, sequence, frontier });
+  }
+  function noteFrontier(value, source) {
+    const executed = Number(value);
+    if (!Number.isFinite(executed)) return;
+    if (source === "property") diagnostics.frontierFromProperty += 1;
+    else diagnostics.frontierFromFrame += 1;
+    if (executed > frontier) frontier = executed;
+  }
+  function readServerFrontier() {
+    const connection = page.MagicCircle_RoomConnection;
+    if (!connection) return;
+    const publication = connection.lastDistributedRoomPublication;
+    const raw = publication?.executedCommandSequence;
+    if (!diagnostics.propertyProbed) {
+      diagnostics.propertyProbed = true;
+      diagnostics.propertyPresent = typeof raw === "number" && Number.isFinite(raw);
+      console.info("[Garden Companion] Command frontier property probe.", {
+        hasRoomConnection: true,
+        hasLastDistributedRoomPublication: !!publication,
+        executedCommandSequence: raw,
+        present: diagnostics.propertyPresent
+      });
+    }
+    noteFrontier(raw, "property");
+  }
+  function noteFrontierFromFrame(data) {
+    const key = '"executedCommandSequence":';
+    const at = data.indexOf(key);
+    if (at === -1) return;
+    let end = at + key.length;
+    while (end < data.length) {
+      const code = data.charCodeAt(end);
+      if (code < 48 || code > 57) break;
+      end += 1;
+    }
+    if (end > at + key.length) noteFrontier(data.slice(at + key.length, end), "frame");
+  }
+  function allocateSequence() {
+    readServerFrontier();
+    if (frontier + 1 > sequence) {
+      diagnostics.forwardJumps += 1;
+      diagnostics.lastForwardJump = { from: sequence, to: frontier + 1 };
+      console.info("[Garden Companion] Command sequence jumped forward to the server frontier.", diagnostics.lastForwardJump);
+      sequence = frontier + 1;
+    }
+    return sequence++;
+  }
+  function healToFrontier() {
+    readServerFrontier();
+    if (frontier < 0) return;
+    diagnostics.heals += 1;
+    diagnostics.lastHeal = { from: sequence, to: frontier + 1 };
+    console.warn("[Garden Companion] invalid_sequence - resyncing command counter to the server frontier.", {
+      ...diagnostics.lastHeal,
+      frontierFromProperty: diagnostics.frontierFromProperty,
+      frontierFromFrame: diagnostics.frontierFromFrame,
+      propertyPresent: diagnostics.propertyPresent
+    });
+    sequence = frontier + 1;
+  }
+  var RESULT_FRAME_MAX = 2e4;
+  function noteServerFrame(data) {
+    if (sequence < 0 || typeof data !== "string") return;
+    if (!diagnostics.propertyProbed) readServerFrontier();
+    if (diagnostics.propertyProbed && !diagnostics.propertyPresent) noteFrontierFromFrame(data);
+    if (data.length > RESULT_FRAME_MAX || !data.includes("QuinoaCommandResult") || !data.includes("invalid_sequence")) return;
+    try {
+      const frame = JSON.parse(data);
+      if (frame?.type === "QuinoaCommandResult" && frame.ok === false && frame.code === "invalid_sequence") healToFrontier();
+    } catch {
+    }
   }
   function renumberOutgoingCommand(data) {
     if (sequence < 0 || typeof data !== "string" || !data.includes("QuinoaCommand")) return data;
     try {
       const frame = JSON.parse(data);
       if (frame?.type !== "QuinoaCommand") return data;
-      frame.commandSequence = sequence++;
+      frame.commandSequence = allocateSequence();
       return JSON.stringify(frame);
     } catch {
       return data;
@@ -803,7 +893,9 @@
   }
   function produceValue(item) {
     const base = Number(page.__gardenCompanionPlantPrice?.(item.species) || 0) || 1;
-    return base * Number(item.scale || 1) * mutationMultiplier([...item.mutations || []]);
+    const crop = PLANT_CATALOG[item.species ?? ""]?.crop;
+    const scale = item.size != null && crop?.maxSizeMultiplier != null ? slotScale(crop, item) : Number(item.scale || 1);
+    return base * scale * mutationMultiplier([...item.mutations || []]);
   }
   function petDiet(species) {
     return PET_CATALOG[species]?.diet || [];
@@ -1275,6 +1367,53 @@
   function petMaxDust(pet) {
     return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || []) * Number(pet.targetScale || 1));
   }
+  function detectedDustBoostStrengths() {
+    return activePets().filter((pet) => pet.abilities?.includes("DustBoost")).map((pet) => petMetrics(pet)?.maxStrength ?? 100).sort((left, right) => right - left).slice(0, MAX_TEAM_PETS);
+  }
+  function dustBoostStrengthFor(index, detected = detectedDustBoostStrengths()) {
+    return dustBoostStrengths[index] ?? detected[index] ?? null;
+  }
+  function setDustBoostStrength(index, strength) {
+    dustBoostStrengths[index] = strength;
+  }
+  function setDustCrystal(on) {
+    dustCrystal = on;
+  }
+  function dustBoostEffect() {
+    const details = ABILITY_DETAILS.DustBoost;
+    const baseChance = Number(details?.baseProbability || 0);
+    const baseAmount = Number(details?.baseParameters?.petDustIncreasePercentage || 0);
+    const none = { multiplier: 1, count: 0, percent: 0, maxMultiplier: 1, maxPercent: 0, procChance: 0 };
+    if (baseChance <= 0 || baseAmount <= 0) return none;
+    const bonus = dustCrystal ? STRENGTH_CRYSTAL_BONUS : 0;
+    const detected = detectedDustBoostStrengths();
+    const boosters = [];
+    for (let index = 0; index < MAX_TEAM_PETS; index++) {
+      const base = dustBoostStrengthFor(index, detected);
+      if (base == null) continue;
+      const scale = Math.max(0.25, (base + bonus) / 100);
+      boosters.push({ chance: Math.min(1, baseChance / 100 * scale), amount: baseAmount / 100 * scale });
+    }
+    if (!boosters.length) return none;
+    boosters.sort((left, right) => right.amount - left.amount);
+    let expected = 0, noneStronger = 1;
+    for (const booster of boosters) {
+      expected += booster.amount * booster.chance * noneStronger;
+      noneStronger *= 1 - booster.chance;
+    }
+    const maxAmount = boosters[0].amount;
+    return { multiplier: 1 + expected, count: boosters.length, percent: expected * 100, maxMultiplier: 1 + maxAmount, maxPercent: maxAmount * 100, procChance: (1 - noneStronger) * 100 };
+  }
+  function boostProcLine(total, boost) {
+    return `on a Dust Boost proc (+${boost.maxPercent.toFixed(1)}%): ${Math.round(total * boost.maxMultiplier).toLocaleString(NUMBER_LOCALE)} dust`;
+  }
+  function boostAvgLine(total, boost) {
+    return `with Dust Boost (avg +${boost.percent.toFixed(1)}%): ${Math.round(total * boost.multiplier).toLocaleString(NUMBER_LOCALE)} dust`;
+  }
+  function boostCeilingNote(boost) {
+    if (!boost.count) return "";
+    return `A Dust Boost proc adds <b>+${boost.maxPercent.toFixed(1)}%</b> and doesn't stack, so it is the same however many pets fire. With ${boost.count} booster${boost.count === 1 ? "" : "s"} about <b>${boost.procChance.toFixed(0)}%</b> of sales land a proc. The egg estimate folds in the average (+${boost.percent.toFixed(1)}%); the pet total shows a sale that procs.`;
+  }
   function eggDustRange(eggId) {
     const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
     const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0) || 1;
@@ -1308,6 +1447,8 @@
   var calculatorTab = "dust";
   var dustSelection = /* @__PURE__ */ new Set();
   var dustSearch = "";
+  var dustCrystal = false;
+  var dustBoostStrengths = [null, null, null];
   var granterAbility = "RainbowGranter";
   var granterStrengths = [null, null, null];
   var granterEnabled = [true, true, true];
@@ -1419,6 +1560,29 @@
     const total = allPets().filter((pet) => dustSelection.has(pet.id)).reduce((sum, pet) => sum + petMaxDust(pet), 0);
     const label = main.querySelector("[data-dust-total]");
     if (label) label.textContent = `${total.toLocaleString(NUMBER_LOCALE)} dust`;
+    const boost = dustBoostEffect();
+    const boosted = main.querySelector("[data-dust-boosted]");
+    if (boosted) {
+      boosted.textContent = boost.count ? boostProcLine(total, boost) : "";
+      boosted.hidden = !boost.count;
+    }
+  }
+  function updateDustBoost(main) {
+    const boost = dustBoostEffect();
+    const percent = main.querySelector("[data-dust-boost-percent]");
+    if (percent) percent.textContent = boost.count ? `+${boost.maxPercent.toFixed(1)}% on proc` : "none";
+    const ceiling = main.querySelector("[data-dust-boost-max]");
+    if (ceiling) {
+      ceiling.innerHTML = boostCeilingNote(boost);
+      ceiling.hidden = !boost.count;
+    }
+    const eggTotal = heldEggs().reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
+    const eggEl = main.querySelector("[data-dust-boosted-egg]");
+    if (eggEl) {
+      eggEl.textContent = boost.count ? boostAvgLine(eggTotal, boost) : "";
+      eggEl.hidden = !boost.count;
+    }
+    updateDustTotal(main);
   }
   function calculatorsSignature() {
     const pets = allPets().map((pet) => [
@@ -1495,15 +1659,21 @@ ${groups}
     const eggTotal = eggs.reduce((sum, { eggId, quantity }) => sum + eggDustRange(eggId).average * quantity, 0);
     const pets = allPets().map((pet) => ({ pet, dust: petMaxDust(pet) })).sort((left, right) => right.dust - left.dust);
     const selectedTotal = pets.filter((row) => dustSelection.has(row.pet.id)).reduce((sum, row) => sum + row.dust, 0);
+    const boost = dustBoostEffect();
+    const detected = detectedDustBoostStrengths();
+    const slotInputs = Array.from({ length: MAX_TEAM_PETS }, (_unused, index) => `<label class="gc-dust-boost-slot"><span>Pet ${index + 1} STR</span><input type="number" min="0" max="100" step="1" data-dust-str="${index}" value="${dustBoostStrengths[index] ?? ""}" placeholder="${detected[index] ?? "none"}"></label>`).join("");
+    const boostCard = `<section class="gc-card"><div class="gc-row"><h3>Dust Boost</h3><span class="gc-calc-total" data-dust-boost-percent>${boost.count ? `+${boost.maxPercent.toFixed(1)}% on proc` : "none"}</span></div><p class="gc-note">Active pets with Dust Boost raise the Magic Dust from selling a pet. Each slot uses one of your active Dust Boost pets - type a Strength to override it, or to add a booster by hand. Only the three strongest apply.</p><div class="gc-dust-boost-slots">${slotInputs}</div><label class="gc-check"><input type="checkbox" data-dust-crystal ${dustCrystal ? "checked" : ""}><span><b>Strength Crystal</b><small>${escapeHtml(crystalNote())}</small></span></label><p class="gc-note" data-dust-boost-max${boost.count ? "" : " hidden"}>${boostCeilingNote(boost)}</p></section>`;
+    const eggBoosted = `<small class="gc-dust-boosted" data-dust-boosted-egg${boost.count ? "" : " hidden"}>${boost.count ? boostAvgLine(eggTotal, boost) : ""}</small>`;
+    const petsBoosted = `<small class="gc-dust-boosted" data-dust-boosted${boost.count ? "" : " hidden"}>${boost.count ? boostProcLine(selectedTotal, boost) : ""}</small>`;
     const petRows2 = pets.map(({ pet, dust }) => {
       const name = pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
       const metrics = petMetrics(pet);
       const mutations = (pet.mutations || []).filter((mutation) => mutation === "Gold" || mutation === "Rainbow");
       return `<label class="gc-dust-row" data-filter-text="${escapeHtml(`${name} ${pet.petSpecies} ${pet.location}`.toLowerCase())}"><input type="checkbox" data-dust-pet="${escapeHtml(pet.id)}" ${dustSelection.has(pet.id) ? "checked" : ""}>${petSprite(pet)}<span><b>${escapeHtml(name)}</b><small>${escapeHtml(pet.location)}${mutations.length ? ` | ${escapeHtml(mutations.join(" "))}` : ""}${metrics ? ` | max STR ${metrics.maxStrength}` : ""}</small></span><b class="gc-dust-value">${dust.toLocaleString(NUMBER_LOCALE)}</b></label>`;
     }).join("");
-    return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>
-<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
-<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total" data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
+    return `<p class="gc-note">Dust values use your pets own sizes, so a sold pet at its maximum Strength is exact. Egg values are an estimate: a hatched pet rolls a random size, so the midpoint is shown with the full range beneath.</p>${boostCard}
+<section class="gc-card"><div class="gc-row"><h3>Eggs you hold</h3><span class="gc-calc-total">${Math.round(eggTotal).toLocaleString(NUMBER_LOCALE)} dust${eggBoosted}</span></div>${eggs.length ? `<table class="gc-calc-table"><thead><tr><th>Egg</th><th>Held</th><th>Each</th><th>Total</th></tr></thead><tbody>${eggRows}</tbody></table>` : '<p class="gc-empty">No eggs in your inventory, storage, or garden.</p>'}</section>
+<section class="gc-card"><div class="gc-row"><h3>Pets at maximum Strength</h3><span class="gc-calc-total"><span data-dust-total>${selectedTotal.toLocaleString(NUMBER_LOCALE)} dust</span>${petsBoosted}</span></div><div class="gc-row"><input class="gc-search" data-dust-search placeholder="Filter by pet name, species, or location" value="${escapeHtml(dustSearch)}"><button data-dust-all>Select all</button><button data-dust-none>Clear</button></div><div class="gc-dust-list gc-filter-list">${petRows2 || '<p class="gc-empty">No pets found.</p>'}</div></section>`;
   }
   function granterOptions() {
     return Object.entries(ABILITY_DETAILS).filter(([id, details]) => typeof details.baseProbability === "number" && !EXCLUDED_TRACKED_ABILITIES.has(id) && !UNREACHABLE_ABILITIES.has(id)).map(([id, details]) => ({ id, label: details.name || humanize(id), probability: details.baseProbability })).sort((left, right) => left.label.localeCompare(right.label));
@@ -1674,6 +1844,16 @@ ${groups}
     main.querySelector("[data-dust-none]")?.addEventListener("click", () => {
       setDustSelection([]);
       panelActions.renderPanelPreservingScroll();
+    });
+    const dustCrystalToggle = main.querySelector("[data-dust-crystal]");
+    if (dustCrystalToggle) dustCrystalToggle.onchange = () => {
+      setDustCrystal(dustCrystalToggle.checked);
+      updateDustBoost(main);
+    };
+    main.querySelectorAll("[data-dust-str]").forEach((input) => input.oninput = () => {
+      const raw = input.value.trim();
+      setDustBoostStrength(Number(input.dataset.dustStr), raw === "" ? null : Math.max(0, Math.min(100, Math.round(Number(raw) || 0))));
+      updateDustBoost(main);
     });
     const dustSearchInput = main.querySelector("[data-dust-search]");
     bindListSearch(dustSearchInput);
@@ -2525,6 +2705,7 @@ ${groups}
     return protectionReason(crop, crop.species || "") ? [LOCK] : [];
   }
   function cardLines() {
+    if (cardShowsPet) return [];
     return [...protectionLines(), ...estimateLines()];
   }
   function nativeEstimateSignature() {
@@ -2585,6 +2766,11 @@ ${groups}
     for (const chip of estimateChips) shiftNativeRowToCardCenter(card, chip.parent, chip);
     return false;
   }
+  var cardShowsPet = false;
+  function cardStateIsPet(nextState) {
+    const attributes = nextState?.card?.attributes;
+    return Array.isArray(attributes) && attributes.some((attribute) => attribute?.key === "strength");
+  }
   function hookGardenInfoCard(engine2) {
     if (!engine2 || typeof engine2.getSystem !== "function") {
       nativeGardenCardHook = null;
@@ -2596,6 +2782,7 @@ ${groups}
     const originalLayout = view.layout;
     const hook = { view, originalSetState, sourceState: null, signature: "" };
     view.setState = function(nextState) {
+      cardShowsPet = cardStateIsPet(nextState);
       hook.sourceState = cleanGardenCardState(nextState);
       hook.signature = nativeEstimateSignature();
       return originalSetState.call(this, decorateGardenCardState(hook.sourceState, hook.signature));
@@ -2761,8 +2948,8 @@ ${groups}
         const icon = row.choice ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>` : "<i>?</i>";
         return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" data-potion="${row.potion}" title="${escapeHtml(label)}" ${ready ? "" : "disabled"}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
       }).join("");
+      positionPetFood();
     }
-    positionPetFood();
   }
   function petPanelCovered(anchor) {
     const sampleX = Math.round((anchor.left + anchor.right) / 2);
@@ -2983,15 +3170,50 @@ ${groups}
     }
     return "";
   }
-  function selectedAbilityFilters() {
-    const saved = new Set(config.trackedAbilities || []);
-    const hasGroupedKeys = ABILITY_GROUPS.some(([label]) => saved.has(label));
-    return new Set(ABILITY_FILTER_OPTIONS.filter(
-      (option) => saved.has(option.key) || !hasGroupedKeys && option.abilities.some((ability) => saved.has(ability))
-    ).map((option) => option.key));
+  var FILTERABLE_ABILITIES = (() => {
+    const seen3 = /* @__PURE__ */ new Set();
+    const order = [];
+    for (const option of ABILITY_FILTER_OPTIONS) {
+      for (const ability of option.abilities) {
+        if (ABILITY_SET.has(ability) && !seen3.has(ability)) {
+          seen3.add(ability);
+          order.push(ability);
+        }
+      }
+    }
+    return order;
+  })();
+  var VISIBLE_FILTER_OPTIONS = ABILITY_FILTER_OPTIONS.map((option) => ({ ...option, items: option.abilities.filter((ability) => ABILITY_SET.has(ability)) })).filter((option) => option.items.length > 0);
+  function abilityDisplayName(ability) {
+    return ABILITY_DETAILS[ability]?.name || humanize(ability);
   }
-  function abilityFilterSummary(selectedFilters) {
-    return selectedFilters.size === ABILITY_FILTER_OPTIONS.length ? "All abilities" : selectedFilters.size === 0 ? "No abilities" : selectedFilters.size === 1 ? ABILITY_FILTER_OPTIONS.find((option) => selectedFilters.has(option.key))?.label || "No abilities" : `${selectedFilters.size} selections`;
+  function enabledAbilities() {
+    const saved = config.trackedAbilities || [];
+    const enabled = /* @__PURE__ */ new Set();
+    for (const value of saved) {
+      if (ABILITY_SET.has(value)) {
+        enabled.add(value);
+        continue;
+      }
+      const group = ABILITY_FILTER_OPTIONS.find((option) => option.key === value);
+      if (group) {
+        for (const ability of group.abilities) if (ABILITY_SET.has(ability)) enabled.add(ability);
+      }
+    }
+    return enabled;
+  }
+  function groupState(items, enabled) {
+    const on = items.reduce((total, ability) => total + (enabled.has(ability) ? 1 : 0), 0);
+    return on === 0 ? "none" : on === items.length ? "all" : "some";
+  }
+  var STATE_MARKER = { all: "&#10003;", some: "&#8211;", none: "" };
+  function abilityFilterSummary(enabled) {
+    const total = FILTERABLE_ABILITIES.length;
+    const on = FILTERABLE_ABILITIES.reduce((count, ability) => count + (enabled.has(ability) ? 1 : 0), 0);
+    if (on === total) return "All abilities";
+    if (on === 0) return "No abilities";
+    if (on === 1) return abilityDisplayName(FILTERABLE_ABILITIES.find((ability) => enabled.has(ability)) || "");
+    return `${on} abilities`;
   }
   function indexOwnedPets() {
     const byId = /* @__PURE__ */ new Map();
@@ -3026,14 +3248,6 @@ ${groups}
       iso: value.toISOString()
     };
   }
-  function visibleAbilities(selectedFilters) {
-    const visible = /* @__PURE__ */ new Set();
-    for (const option of ABILITY_FILTER_OPTIONS) {
-      if (!selectedFilters.has(option.key)) continue;
-      for (const ability of option.abilities) if (ABILITY_SET.has(ability)) visible.add(ability);
-    }
-    return visible;
-  }
   var searchTextCache = /* @__PURE__ */ new WeakMap();
   function searchText(log) {
     const cached = searchTextCache.get(log);
@@ -3060,10 +3274,9 @@ ${groups}
       if (source && image.src !== source) image.src = source;
     });
   }
-  function renderAbilityLogRows(selectedFilters) {
-    const visible = visibleAbilities(selectedFilters);
+  function renderAbilityLogRows(enabled) {
     const search = abilityLogSearch.trim().toLowerCase();
-    const matched = state.abilityLog.filter((log) => visible.has(log.ability) && (!search || searchText(log).includes(search)));
+    const matched = state.abilityLog.filter((log) => enabled.has(log.ability) && (!search || searchText(log).includes(search)));
     const recent = matched.slice(0, LOG_VISIBLE_ROWS);
     if (!recent.length) return search ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
     const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : "";
@@ -3077,29 +3290,129 @@ ${groups}
       return `<article class="gc-ability-log-row"><time datetime="${escapeHtml(when.iso)}"><b>${escapeHtml(when.time)}</b><span>${escapeHtml(when.date)}</span></time><div class="gc-ability-log-pet" title="${escapeHtml(log.pet)}">${sprite}</div><div class="gc-ability-log-name"><b>${escapeHtml(ABILITY_DETAILS[log.ability]?.name || humanize(log.ability))}</b></div><div class="gc-ability-log-payload"${tooltip ? ` title="${escapeHtml(tooltip)}" data-detail` : ""}>${escapeHtml(procOutcome(log.ability, log.data))}</div></article>`;
     }).join("") + more;
   }
-  function refreshAbilityFilterUi(main) {
-    const selectedFilters = selectedAbilityFilters();
-    const summary = main.querySelector("[data-ability-filter] summary");
-    if (summary) summary.textContent = abilityFilterSummary(selectedFilters);
-    main.querySelectorAll("[data-ability-option]").forEach((button) => {
-      const active = selectedFilters.has(button.dataset.abilityOption || "");
-      button.dataset.active = String(active);
-      const marker = button.querySelector("i");
-      if (marker) marker.innerHTML = active ? "&#10003;" : "";
-    });
-    const log = main.querySelector(".gc-log");
+  var expandedGroups = /* @__PURE__ */ new Set();
+  function renderStandaloneItem(option, enabled) {
+    const ability = option.items[0];
+    const active = enabled.has(ability);
+    return `<div class="gc-ability-standalone"><button data-ability-item="${escapeHtml(ability)}" data-active="${active}"><span>${escapeHtml(option.label)}</span><i>${active ? "&#10003;" : ""}</i></button></div>`;
+  }
+  function renderFilterGroup(option, enabled) {
+    const state2 = groupState(option.items, enabled);
+    const on = option.items.reduce((count, ability) => count + (enabled.has(ability) ? 1 : 0), 0);
+    const expanded = expandedGroups.has(option.key);
+    const items = option.items.map((ability) => {
+      const active = enabled.has(ability);
+      return `<button data-ability-item="${escapeHtml(ability)}" data-active="${active}"><span>${escapeHtml(abilityDisplayName(ability))}</span><i>${active ? "&#10003;" : ""}</i></button>`;
+    }).join("");
+    return `<section class="gc-ability-group" data-group="${escapeHtml(option.key)}"><div class="gc-ability-group-head"><button class="gc-ability-expand" data-ability-expand="${escapeHtml(option.key)}" aria-expanded="${expanded}">${expanded ? "&#9662;" : "&#9656;"}</button><button class="gc-ability-group-toggle" data-ability-group="${escapeHtml(option.key)}" data-state="${state2}"><span>${escapeHtml(option.label)}</span><small>${on}/${option.items.length}</small><i>${STATE_MARKER[state2]}</i></button></div><div class="gc-ability-group-items"${expanded ? "" : " hidden"}>${items}</div></section>`;
+  }
+  function renderAbilityFilterBody(enabled) {
+    return VISIBLE_FILTER_OPTIONS.map(
+      (option) => option.abilities.length === 1 ? renderStandaloneItem(option, enabled) : renderFilterGroup(option, enabled)
+    ).join("");
+  }
+  function refreshAbilityPanel() {
+    const enabled = enabledAbilities();
+    const openButton = page.document.querySelector("[data-ability-filter-open]");
+    if (openButton) openButton.textContent = abilityFilterSummary(enabled);
+    const log = page.document.querySelector(".gc-ability-log-card .gc-log");
     if (log) {
       const scrollTop = log.scrollTop;
-      log.innerHTML = renderAbilityLogRows(selectedFilters);
+      log.innerHTML = renderAbilityLogRows(enabled);
       hydrateAbilityLogSprites(log);
       log.scrollTop = scrollTop;
     }
   }
+  var ABILITY_MODAL_ID = "gc-ability-filter-modal";
+  function abilityModalMarkup(enabled) {
+    return `<div class="gc-ability-modal" role="dialog" aria-label="Ability history filter"><header class="gc-modal-head"><h3>Show which abilities</h3><button class="gc-modal-close" data-ability-close aria-label="Close">&times;</button></header><div class="gc-modal-tools"><span class="gc-modal-summary" data-ability-summary>${escapeHtml(abilityFilterSummary(enabled))}</span><div><button data-ability-all>All</button><button data-ability-none>None</button></div></div><div class="gc-modal-body" data-ability-body>${renderAbilityFilterBody(enabled)}</div></div>`;
+  }
+  function redrawAbilityModal(root) {
+    const enabled = enabledAbilities();
+    const body = root.querySelector("[data-ability-body]");
+    if (body) body.innerHTML = renderAbilityFilterBody(enabled);
+    const summary = root.querySelector("[data-ability-summary]");
+    if (summary) summary.textContent = abilityFilterSummary(enabled);
+  }
+  function onAbilityModalKey(event) {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      closeAbilityFilterDialog();
+    }
+  }
+  function closeAbilityFilterDialog() {
+    page.document.getElementById(ABILITY_MODAL_ID)?.remove();
+    page.document.removeEventListener("keydown", onAbilityModalKey, true);
+    setAbilityFilterMenuOpen(false);
+    setAbilityFilterInteracting(false);
+  }
+  function openAbilityFilterDialog() {
+    closeAbilityFilterDialog();
+    const backdrop = page.document.createElement("div");
+    backdrop.id = ABILITY_MODAL_ID;
+    backdrop.className = "gc-modal-backdrop";
+    backdrop.innerHTML = abilityModalMarkup(enabledAbilities());
+    page.document.body.appendChild(backdrop);
+    setAbilityFilterMenuOpen(true);
+    setAbilityFilterInteracting(true);
+    panelActions.cancelPanelRefresh();
+    const commit = (enabled) => {
+      config.trackedAbilities = [...enabled];
+      saveConfig();
+      redrawAbilityModal(backdrop);
+      refreshAbilityPanel();
+    };
+    backdrop.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target === backdrop || target.closest("[data-ability-close]")) {
+        closeAbilityFilterDialog();
+        return;
+      }
+      const expand = target.closest("[data-ability-expand]");
+      if (expand) {
+        event.preventDefault();
+        const key = expand.dataset.abilityExpand;
+        expandedGroups.has(key) ? expandedGroups.delete(key) : expandedGroups.add(key);
+        redrawAbilityModal(backdrop);
+        return;
+      }
+      const item = target.closest("[data-ability-item]");
+      if (item) {
+        event.preventDefault();
+        const enabled = enabledAbilities();
+        const ability = item.dataset.abilityItem;
+        enabled.has(ability) ? enabled.delete(ability) : enabled.add(ability);
+        commit(enabled);
+        return;
+      }
+      const group = target.closest("[data-ability-group]");
+      if (group) {
+        event.preventDefault();
+        const option = VISIBLE_FILTER_OPTIONS.find((entry) => entry.key === group.dataset.abilityGroup);
+        if (!option) return;
+        const enabled = enabledAbilities();
+        const turningOff = groupState(option.items, enabled) === "all";
+        for (const ability of option.items) turningOff ? enabled.delete(ability) : enabled.add(ability);
+        commit(enabled);
+        return;
+      }
+      if (target.closest("[data-ability-all]")) {
+        event.preventDefault();
+        commit(new Set(FILTERABLE_ABILITIES));
+        return;
+      }
+      if (target.closest("[data-ability-none]")) {
+        event.preventDefault();
+        commit(/* @__PURE__ */ new Set());
+        return;
+      }
+    });
+    page.document.addEventListener("keydown", onAbilityModalKey, true);
+  }
   function renderAbilityLog() {
-    const selectedFilters = selectedAbilityFilters();
-    const filterSummary = abilityFilterSummary(selectedFilters);
-    const filterOptions = ABILITY_FILTER_OPTIONS.map((option) => `<button data-ability-option="${escapeHtml(option.key)}" data-active="${selectedFilters.has(option.key)}"><span>${escapeHtml(option.label)}</span><i>${selectedFilters.has(option.key) ? "&#10003;" : ""}</i></button>`).join("");
-    return `<section class="gc-card gc-ability-log-card"><div class="gc-ability-log-toolbar"><div><h3>Pet ability history</h3><small>Up to ${LOG_PER_ABILITY} entries are stored per ability.</small></div><div class="gc-ability-log-actions"><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search history" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><details class="gc-ability-filter" data-ability-filter ${abilityFilterMenuOpen ? "open" : ""}><summary>${escapeHtml(filterSummary)}</summary><div class="gc-ability-picker"><header><button data-ability-all>All</button><button data-ability-none>None</button></header>${filterOptions}</div></details><button data-clear-log>Clear</button></div></div><div class="gc-ability-log-columns"><span>Time &amp; date</span><span>Pet</span><span>Ability</span><span>Payload</span></div><div class="gc-log">${renderAbilityLogRows(selectedFilters)}</div></section>`;
+    const enabled = enabledAbilities();
+    const filterSummary = abilityFilterSummary(enabled);
+    return `<section class="gc-card gc-ability-log-card"><div class="gc-ability-log-toolbar"><div><h3>Pet ability history</h3><small>Up to ${LOG_PER_ABILITY} entries are stored per ability.</small></div><div class="gc-ability-log-actions"><input class="gc-search gc-log-search" type="text" data-log-search placeholder="Search history" spellcheck="false" value="${escapeHtml(abilityLogSearch)}"><button class="gc-ability-filter" data-ability-filter-open title="Choose which abilities to show">${escapeHtml(filterSummary)}</button><button data-clear-log>Clear</button></div></div><div class="gc-ability-log-columns"><span>Time &amp; date</span><span>Pet</span><span>Ability</span><span>Payload</span></div><div class="gc-log">${renderAbilityLogRows(enabled)}</div></section>`;
   }
   function bindAbilityLogEvents(main) {
     hydrateAbilityLogSprites(main);
@@ -3110,51 +3423,16 @@ ${groups}
     });
     main.querySelector("[data-log-search]")?.addEventListener("input", (event) => {
       setAbilityLogSearch(event.target.value);
-      refreshAbilityFilterUi(main);
       const log = main.querySelector(".gc-log");
-      if (log) log.scrollTop = 0;
-    });
-    const abilityFilter = main.querySelector("[data-ability-filter]");
-    if (!abilityFilter) return;
-    abilityFilter.ontoggle = () => {
-      setAbilityFilterMenuOpen(abilityFilter.open);
-      setAbilityFilterInteracting(abilityFilter.open);
-      if (abilityFilter.open) panelActions.cancelPanelRefresh();
-    };
-    abilityFilter.addEventListener("focusout", () => setTimeout(() => {
-      if (!abilityFilter.contains(document.activeElement)) {
-        abilityFilter.open = false;
-        setAbilityFilterMenuOpen(false);
-        setAbilityFilterInteracting(false);
+      if (log) {
+        log.innerHTML = renderAbilityLogRows(enabledAbilities());
+        hydrateAbilityLogSprites(log);
+        log.scrollTop = 0;
       }
-    }));
-    main.querySelectorAll("[data-ability-option]").forEach((button) => button.onclick = (event) => {
-      event.preventDefault();
-      const selected = new Set(config.trackedAbilities || []);
-      const currentKeys = new Set(ABILITY_FILTER_OPTIONS.filter((option) => selected.has(option.key) || option.abilities.some((ability) => selected.has(ability))).map((option) => option.key));
-      const key = button.dataset.abilityOption;
-      currentKeys.has(key) ? currentKeys.delete(key) : currentKeys.add(key);
-      config.trackedAbilities = [...currentKeys];
-      saveConfig();
-      setAbilityFilterMenuOpen(true);
-      setAbilityFilterInteracting(true);
-      refreshAbilityFilterUi(main);
     });
-    main.querySelector("[data-ability-all]")?.addEventListener("click", (event) => {
+    main.querySelector("[data-ability-filter-open]")?.addEventListener("click", (event) => {
       event.preventDefault();
-      config.trackedAbilities = ABILITY_FILTER_OPTIONS.map((option) => option.key);
-      saveConfig();
-      setAbilityFilterMenuOpen(true);
-      setAbilityFilterInteracting(true);
-      refreshAbilityFilterUi(main);
-    });
-    main.querySelector("[data-ability-none]")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      config.trackedAbilities = [];
-      saveConfig();
-      setAbilityFilterMenuOpen(true);
-      setAbilityFilterInteracting(true);
-      refreshAbilityFilterUi(main);
+      openAbilityFilterDialog();
     });
   }
 
@@ -3530,6 +3808,11 @@ ${groups}
     saveConfig();
     if (currentWeather() === weather) setAlarmSilenced(OWNER, isMuted);
   }
+  function rainRemainingText() {
+    const seconds = Number(state.game?.shops?.rain?.secondsUntilRestock);
+    if (!Number.isFinite(seconds) || seconds <= 0) return weatherRemainingText();
+    return `${Math.max(1, Math.ceil(seconds / 60))}m left`;
+  }
   function renderWeatherAlarms() {
     const chosen = alerts();
     const mutedNow = muted();
@@ -3537,14 +3820,15 @@ ${groups}
     const rows = WEATHER_TYPES.map((weather) => {
       const sprite = page.__gardenCompanionWeatherSprites?.[weather] || "";
       const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-      const note = running === weather ? weatherRemainingText() : "Not running";
+      const note = running === weather ? weather === "Rain" ? rainRemainingText() : weatherRemainingText() : "Not running";
       return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>` + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + "</label>";
     }).join("");
     return `<p class="gc-note">An alarm appears when a selected weather begins. Weather already running when you arrive does not sound one - tick it and the alarm fires straight away if it is running.</p>
 <div class="gc-check-grid">${rows}</div>`;
   }
   function weatherAlarmSignature() {
-    return `${currentWeather()}|${weatherRemainingText()}`;
+    const running = currentWeather();
+    return `${running}|${running === "Rain" ? rainRemainingText() : weatherRemainingText()}`;
   }
   function bindWeatherAlarmEvents(main) {
     main.querySelectorAll("[data-weather-alert]").forEach((input) => input.onchange = () => {
@@ -3749,7 +4033,7 @@ ${rows}</div>`;
     return { misses: 0, synced: false };
   }
   function blankEgg() {
-    return { hatches: 0, pulls: 0, species: {}, colours: {}, counters: {} };
+    return { hatches: 0, pulls: 0, species: {}, colours: {}, speciesColours: {}, counters: {} };
   }
   function normaliseEgg(value, eggId = "") {
     const raw = value && typeof value === "object" ? value : {};
@@ -3764,6 +4048,9 @@ ${rows}</div>`;
       pulls: Number(raw.pulls ?? raw.hatches) || 0,
       species: numbers(raw.species),
       colours: numbers(raw.colours),
+      speciesColours: Object.fromEntries(Object.entries(
+        raw.speciesColours && typeof raw.speciesColours === "object" ? raw.speciesColours : {}
+      ).map(([species, colours]) => [species, numbers(colours)])),
       // Species counters used to share one 'species' key, because an egg only ever guaranteed one.
       // The count is real progress towards a real guarantee, so it is carried onto the species that
       // key stood for rather than dropped - which would reset a bar that may be hundreds of pulls in.
@@ -3817,7 +4104,10 @@ ${rows}</div>`;
     record.hatches += 1;
     record.species[pet.petSpecies] = (record.species[pet.petSpecies] || 0) + 1;
     for (const colour of COLOURS) {
-      if (mutations.includes(colour)) record.colours[colour] = (record.colours[colour] || 0) + 1;
+      if (!mutations.includes(colour)) continue;
+      record.colours[colour] = (record.colours[colour] || 0) + 1;
+      const perSpecies = record.speciesColours[pet.petSpecies] ?? (record.speciesColours[pet.petSpecies] = {});
+      perSpecies[colour] = (perSpecies[colour] || 0) + 1;
     }
     return mutations;
   }
@@ -3900,8 +4190,14 @@ ${rows}</div>`;
     const rows = [...listed, ...Object.keys(record.species).filter((id) => !weights[id])].map((id) => {
       const count = record.species[id] || 0;
       const odds = weightTotal > 0 && weights[id] ? `${(weights[id] / weightTotal * 100).toFixed(0)}%` : "-";
-      return `<tr${count ? "" : ' class="gc-egg-none"'}><td>${escapeHtml(speciesName(id))}</td><td>${count.toLocaleString(NUMBER_LOCALE)}</td><td>${share(count, record.hatches)}</td><td>${odds}</td></tr>`;
+      const petSprite3 = page.__gardenCompanionPetSprites?.[id] || "";
+      const petIcon = petSprite3 ? `<img src="${escapeHtml(petSprite3)}" alt="">` : "";
+      const gold = record.speciesColours[id]?.Gold || 0;
+      const rainbow = record.speciesColours[id]?.Rainbow || 0;
+      return `<tr${count ? "" : ' class="gc-egg-none"'}><td><span class="gc-shop-sprite">${petIcon}</span>${escapeHtml(speciesName(id))}</td><td>${count.toLocaleString(NUMBER_LOCALE)}</td><td>${gold ? gold.toLocaleString(NUMBER_LOCALE) : "-"}</td><td>${rainbow ? rainbow.toLocaleString(NUMBER_LOCALE) : "-"}</td><td>${share(count, record.hatches)}</td><td>${odds}</td></tr>`;
     }).join("");
+    const goldHead = mutationSprite("Gold") ? `<img src="${escapeHtml(mutationSprite("Gold"))}" alt="Gold">` : "Gold";
+    const rainbowHead = mutationSprite("Rainbow") ? `<img src="${escapeHtml(mutationSprite("Rainbow"))}" alt="Rainbow">` : "Rainbow";
     const colours = COLOURS.map((colour) => `<span class="gc-pill">${escapeHtml(colour)} ${(record.colours[colour] || 0).toLocaleString(NUMBER_LOCALE)}</span>`).join("");
     const pity = [
       ...pitySpeciesList(eggId).map((species) => pityRow(eggId, speciesName(species), page.__gardenCompanionPetSprites?.[species] || "", record, species)),
@@ -3909,7 +4205,7 @@ ${rows}</div>`;
     ].join("");
     return `<section class="gc-card gc-egg-card">${head}
 <div class="gc-egg-body"${open ? "" : " hidden"}>
-<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th>Yours</th><th>Odds</th></tr></thead><tbody>${rows}</tbody></table>
+<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th class="gc-egg-mut" title="Gold found">${goldHead}</th><th class="gc-egg-mut" title="Rainbow found">${rainbowHead}</th><th>Yours</th><th>Odds</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="gc-egg-colours">${colours}<button data-egg-reset="${escapeHtml(eggId)}" title="Clear everything recorded for this egg">Reset</button></div>
 <div class="gc-egg-pities">${pity}</div></div></section>`;
   }
@@ -5416,6 +5712,7 @@ ${eggs.map(eggCard).join("")}`;
     page.__gardenCompanionFeature = feature;
     page.__gardenCompanionConfig = () => config;
     page.__gardenCompanionForecastTrace = forecastTrace;
+    page.__gardenCompanionSequencer = getSequencerDiagnostics;
     let gameUpdateDetected = false;
     function handleGameUpdateDetected(source) {
       if (gameUpdateDetected) return;
@@ -5500,6 +5797,7 @@ ${eggs.map(eggCard).join("")}`;
     let welcomePlayerId = null;
     function readWelcome(event) {
       const data = event.data;
+      noteServerFrame(data);
       if (typeof data !== "string" || !data.includes('"selfPlayerId"')) return;
       try {
         const frame = JSON.parse(data);
@@ -5671,7 +5969,7 @@ ${eggs.map(eggCard).join("")}`;
         event.preventDefault();
         event.stopImmediatePropagation();
         const slot = tile.slots[index];
-        sendQuinoaCommand({ type: "HarvestCrop", slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index });
+        sendQuinoaCommand({ type: "HarvestCrop", slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
         toast("Harvest requested.", "success");
       }, true);
     }
@@ -6008,7 +6306,7 @@ ${eggs.map(eggCard).join("")}`;
     }
     function renderSupporter() {
       return `<p class="gc-note">If any of my mods or tools have saved you some time or helped improved quality of life and you feel like putting something in the tip jar, the link below is the place to do it, thank you</p>
-<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3><p>One-off or monthly, whatever suits. Thank you either way.</p></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
+<section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
 <p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bugs and ideas are just as welcome as anything else.</p>`;
     }
     function renderFeatures() {
@@ -6347,7 +6645,30 @@ ${eggs.map(eggCard).join("")}`;
 .gc-proc-row div { min-width:0;display:flex;flex-direction:column; }
 .gc-proc-row small,.gc-proc-row > span { color:var(--gc-muted);font-size:9px; }
 .gc-proc-row p { grid-column:1/-1;margin:0;color:rgba(255,255,255,.75);font:10px/1.35 ui-monospace,monospace; }
-.gc-ability-filter { position:relative;z-index:7;width:126px;flex:0 0 auto; }.gc-ability-filter>summary { height:34px;box-sizing:border-box;padding:8px 24px 8px 8px;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;list-style:none;color:var(--gc-text);background:#08080c;cursor:pointer;font-size:10px;font-weight:700;text-overflow:ellipsis;white-space:nowrap; }.gc-ability-filter>summary::-webkit-details-marker { display:none; }.gc-ability-filter>summary::after { content:'\\25BE';position:absolute;right:8px;color:var(--gc-muted); }.gc-ability-picker { position:absolute;top:39px;right:0;z-index:10;width:240px;max-height:min(320px,50vh);box-sizing:border-box;padding:5px;overflow:auto;border:1px solid rgba(167,139,250,.28);border-radius:7px;background:#08080c;box-shadow:0 18px 45px rgba(0,0,0,.72); }.gc-ability-picker header { display:flex;gap:5px;margin-bottom:5px; }.gc-ability-picker header button { flex:1; }.gc-ability-picker>button { width:100%;display:flex;align-items:center;justify-content:space-between;margin:2px 0;padding:7px 8px!important;text-align:left!important; }.gc-ability-picker>button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.3)!important;background:rgba(167,139,250,.12)!important; }.gc-ability-picker>button i { color:#a78bfa;font-style:normal; }
+.gc-ability-filter { height:34px;box-sizing:border-box;width:126px;flex:0 0 auto;padding:8px;overflow:hidden;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:#08080c;cursor:pointer;font-size:10px;font-weight:700;text-align:left;text-overflow:ellipsis;white-space:nowrap; }
+.gc-modal-backdrop { position:fixed;inset:0;z-index:999995;display:grid;place-items:center;padding:20px;box-sizing:border-box;background:rgba(0,0,0,.55); }
+.gc-modal-backdrop button { padding:6px 10px;border:1px solid var(--gc-line);border-radius:7px;color:var(--gc-text);background:rgba(255,255,255,.04);cursor:pointer;font:600 11px system-ui,sans-serif; }
+.gc-modal-backdrop button:hover { border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.08); }
+.gc-ability-modal { width:340px;max-width:calc(100vw - 40px);max-height:min(80vh,640px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(167,139,250,.28);border-radius:12px;background:#0b0b10;box-shadow:0 24px 60px rgba(0,0,0,.7);color:var(--gc-text);font:12px/1.4 system-ui,sans-serif; }
+.gc-modal-head { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--gc-line); }
+.gc-modal-head h3 { margin:0;font-size:13px; }
+.gc-modal-close { width:26px;height:26px;padding:0!important;font-size:16px;line-height:1; }
+.gc-modal-tools { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--gc-line); }
+.gc-modal-tools .gc-modal-summary { color:var(--gc-muted);font-size:10px;font-weight:700; }
+.gc-modal-tools div { display:flex;gap:6px; }
+.gc-modal-body { padding:8px 10px;overflow:auto; }
+.gc-ability-group { margin:3px 0;border:1px solid var(--gc-line);border-radius:8px;overflow:hidden; }
+.gc-ability-group-head { display:flex;align-items:stretch; }
+.gc-ability-expand { width:30px;flex:0 0 auto;padding:0!important;border:none!important;border-radius:0!important;background:transparent!important;color:var(--gc-muted)!important;cursor:pointer; }
+.gc-ability-group-toggle { flex:1;display:flex;align-items:center;gap:8px;border:none!important;border-radius:0!important;background:transparent!important;padding:8px!important;text-align:left!important;font-weight:800; }
+.gc-ability-group-toggle small { margin-left:auto;color:var(--gc-muted);font-weight:600; }
+.gc-ability-group-toggle i { color:#a78bfa;font-style:normal;width:12px;text-align:center; }
+.gc-ability-group-toggle[data-state=all],.gc-ability-group-toggle[data-state=some] { color:#ddd6fe!important; }
+.gc-ability-group-items { display:grid;gap:3px;padding:6px;background:rgba(255,255,255,.02); }
+.gc-ability-group-items button,.gc-ability-standalone button { width:100%;display:flex;align-items:center;justify-content:space-between;padding:6px 8px!important;text-align:left!important;font-size:10px; }
+.gc-ability-group-items button[data-active=true],.gc-ability-standalone button[data-active=true] { color:#ddd6fe!important;border-color:rgba(167,139,250,.3)!important;background:rgba(167,139,250,.12)!important; }
+.gc-ability-group-items button i,.gc-ability-standalone button i { color:#a78bfa;font-style:normal; }
+.gc-ability-standalone { margin:3px 0; }
 .gc-shop-tabs { display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px; }.gc-shop-tabs button { flex:1 1 72px; }.gc-shop-tabs button.active { color:#ddd6fe!important;border-color:rgba(167,139,250,.35)!important;background:rgba(167,139,250,.14)!important; }
 .gc-shop-sprite { width:32px;height:32px;flex:0 0 auto;display:grid!important;place-items:center;overflow:hidden;border-radius:6px;background:rgba(255,255,255,.035); }.gc-shop-sprite img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }
 .gc-empty { padding:22px;color:var(--gc-muted);text-align:center; }
@@ -6476,6 +6797,12 @@ ${eggs.map(eggCard).join("")}`;
 .gc-food-slot { display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--gc-line);border-radius:8px;background:rgba(0,0,0,.16); }
 .gc-food-slot select { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:11px; }
 .gc-food-slot small { color:var(--gc-muted);font-size:9px; }
+.gc-dust-boost-slots { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px; }
+.gc-dust-boost-slot { display:flex;flex-direction:column;gap:4px; }
+.gc-dust-boost-slot span { color:var(--gc-muted);font-size:10px; }
+.gc-dust-boost-slot input { height:30px;box-sizing:border-box;padding:0 7px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-text);background:#08080c;outline:none;font:inherit;font-size:12px; }
+.gc-dust-boost-slot input:focus { border-color:#8b5cf6; }
+.gc-dust-boosted { display:block;margin-top:2px;color:var(--gc-muted);font-size:10px;font-weight:600;white-space:normal; }
 .gc-team-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:9px 11px;border:1px solid var(--gc-line);border-radius:9px;background:linear-gradient(180deg,rgba(167,139,250,.07),transparent); }
 .gc-team-summary-line { min-width:0;color:var(--gc-muted);font-size:11px; }
 .gc-team-summary-line b { color:var(--gc-text);font-size:12px; }
@@ -6573,6 +6900,9 @@ ${eggs.map(eggCard).join("")}`;
 .gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }
 .gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }
 .gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }
+.gc-planner-weather { flex-wrap:nowrap;gap:3px; }
+.gc-planner-weather button { min-width:0;padding:3px 5px!important;display:grid;place-items:center; }
+.gc-planner-weather button img { display:block;width:22px;height:22px;object-fit:contain; }
 .gc-planner-mutation b { font-size:9px; }
 .gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }
 .gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:11px;font-weight:700;text-align:right; }
@@ -6666,11 +6996,17 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-egg-head i { flex:0 0 auto;color:var(--gc-muted);font-size:9px;font-style:normal; }
 .gc-egg-head:hover h3 { color:#ddd6fe; }
 .gc-egg-due { border-color:rgba(74,222,128,.35)!important;color:#86efac!important;background:rgba(74,222,128,.1)!important; }
-.gc-egg-table { width:100%;margin:9px 0 0;border-collapse:collapse;font-size:11px; }
+.gc-egg-table { width:100%;table-layout:fixed;margin:9px 0 0;border-collapse:collapse;font-size:11px; }
+.gc-egg-table th:nth-child(1),.gc-egg-table td:nth-child(1) { width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-egg-table th:nth-child(n+2),.gc-egg-table td:nth-child(n+2) { width:13.2%; }
 .gc-egg-table th { padding:3px 6px;color:var(--gc-muted);font-size:9px;font-weight:600;text-align:right;text-transform:uppercase;letter-spacing:.4px; }
 .gc-egg-table th:first-child,.gc-egg-table td:first-child { text-align:left; }
 .gc-egg-table td { padding:3px 6px;text-align:right;border-top:1px solid var(--gc-line); }
 .gc-egg-table tr.gc-egg-none { opacity:.45; }
+.gc-egg-table th,.gc-egg-table td { vertical-align:middle; }
+.gc-egg-table td:first-child .gc-shop-sprite { display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:middle; }
+.gc-egg-table td:first-child .gc-shop-sprite img { width:18px;height:18px;object-fit:contain;vertical-align:middle; }
+.gc-egg-table th.gc-egg-mut img { display:inline-block;width:14px;height:14px;object-fit:contain;vertical-align:middle; }
 .gc-egg-colours { margin-top:9px;display:flex;align-items:center;gap:6px; }
 .gc-egg-colours button { margin-left:auto;padding:3px 9px;border:1px solid var(--gc-line);border-radius:5px;color:var(--gc-muted);background:transparent;font-size:10px;cursor:pointer; }
 .gc-egg-colours button:hover { border-color:rgba(248,113,113,.45);color:#fca5a5; }
@@ -8327,6 +8663,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     const LAYOUT_KEY = "gardenCompanion.layouts.v1";
     const MUTATION_GROUPS = [...new Set(Object.values(MUTATIONS2).map((mutation) => mutation.group))];
     const RARITY_ORDER3 = ["Common", "Uncommon", "Rare", "Legendary", "Mythic", "Divine", "Celestial"];
+    const UNIQUE_DECOR = /* @__PURE__ */ new Set(["FeedingTrough", "DecorShed", "PetHutch", "SeedSilo", "ToolShack"]);
     function rarityRank2(species) {
       const rank = RARITY_ORDER3.indexOf(PLANTS2[species]?.rarity || "Common");
       return rank < 0 ? RARITY_ORDER3.length : rank;
@@ -8405,8 +8742,30 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       mutations: /* @__PURE__ */ new Set(),
       tiles: /* @__PURE__ */ new Map(),
       painting: false,
-      erasing: false
+      erasing: false,
+      weather: "live"
     };
+    const WEATHER_CHOICES = [
+      { id: "live", label: "Live" },
+      { id: "clear", label: "Clear" },
+      { id: "Rain", label: "Rain" },
+      { id: "Frost", label: "Snow" },
+      { id: "Thunderstorm", label: "Storm" },
+      { id: "Dawn", label: "Dawn" },
+      { id: "AmberMoon", label: "Amber" }
+    ];
+    function patchWeatherDraw() {
+      const engine2 = quinoaEngine();
+      if (!engine2 || typeof engine2.callDraw !== "function" || engine2.__gcPlannerWeatherPatched) return;
+      const original = engine2.callDraw.bind(engine2);
+      engine2.__gcPlannerWeatherPatched = true;
+      engine2.callDraw = (context, delta) => {
+        if (planner.open && planner.weather !== "live" && context && typeof context === "object") {
+          context.weatherId = planner.weather === "clear" ? null : planner.weather;
+        }
+        return original(context, delta);
+      };
+    }
     function systems() {
       return page3.__gardenCompanionFarmSystems ?? null;
     }
@@ -8569,6 +8928,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     }
     function place2(localIndex, fill = false) {
       if (planner.mode === "decor") {
+        if (UNIQUE_DECOR.has(planner.decorId)) {
+          for (const key of [...planner.tiles.keys()]) {
+            if (key !== localIndex && planner.tiles.get(key)?.decorId === planner.decorId) {
+              planner.tiles.delete(key);
+              applyTile(key);
+            }
+          }
+        }
         planner.tiles.set(localIndex, plannedDecor());
       } else {
         const existing = planner.tiles.get(localIndex);
@@ -8670,6 +9037,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === "plant" || tile?.objectType === "decor"));
       rebuildTileIndex();
       patchTileUpdates();
+      patchWeatherDraw();
       applyAllTiles();
       hideNativeCardUi();
       document.body.classList.add("gc-planning");
@@ -8682,6 +9050,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     function close() {
       if (!planner.open) return;
       planner.open = false;
+      planner.weather = "live";
       unpatchTileUpdates();
       applyAllTiles();
       restoreNativeCardUi();
@@ -8807,6 +9176,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       panel3.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size} planned</span><button data-plan-close>Exit</button></header>
 <div class="gc-planner-body"><small data-plan-notice>Left click places, right click removes. Drag to fill. Nothing here is sent to the game.</small>
 <div class="gc-planner-modes"><button data-plan-mode="plants" class="${decorMode ? "" : "active"}">Plants</button><button data-plan-mode="decor" class="${decorMode ? "active" : ""}">Decor</button></div>
+<div class="gc-planner-row"><b>Weather</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group gc-planner-weather">${WEATHER_CHOICES.map((choice) => {
+        const sprite = page3.__gardenCompanionWeatherSprites?.[choice.id];
+        return `<button data-plan-weather="${choice.id}" data-active="${planner.weather === choice.id}" title="${choice.label}">${sprite ? `<img src="${sprite}" alt="${choice.label}">` : choice.label}</button>`;
+      }).join("")}</div></div></div>
 <div class="gc-planner-grid">${decorMode ? decorOptions : options}</div>
 ${decorMode && DECOR[planner.decorId]?.mountable ? `<div class="gc-planner-row"><b>Display crop</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-mount="" data-active="${!planner.mountedSpecies}">None</button></div></div></div>
 <div class="gc-planner-grid gc-planner-mount">${sortedSpecies().map((name) => {
@@ -8853,6 +9226,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       panel3.querySelectorAll("[data-plan-mode]").forEach((button) => button.onclick = () => {
         planner.mode = button.dataset.planMode;
         renderPanel();
+      });
+      panel3.querySelectorAll("[data-plan-weather]").forEach((button) => button.onclick = () => {
+        planner.weather = button.dataset.planWeather;
+        patchWeatherDraw();
+        panel3.querySelectorAll("[data-plan-weather]").forEach((other) => {
+          other.dataset.active = String(other.dataset.planWeather === planner.weather);
+        });
       });
       panel3.querySelectorAll("[data-plan-decor]").forEach((button) => button.onclick = () => {
         const previous = planner.decorId;
@@ -8940,6 +9320,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (!planner.open) return;
       rebuildTileIndex();
       patchTileUpdates();
+      patchWeatherDraw();
       applyAllTiles();
       hideNativeCardUi();
     }, 1e3);

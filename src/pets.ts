@@ -1,5 +1,6 @@
 import type { Pet, ProduceItem } from './types.js';
-import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
+import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PLANT_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
+import { slotScale } from './crop-size.js';
 import { mutationMultiplier } from './mutation-value.js';
 import { sendBareCommand, sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
@@ -28,7 +29,12 @@ export function heldProduce(): ProduceItem[] {
 
 export function produceValue(item: ProduceItem): number {
   const base = Number(page.__gardenCompanionPlantPrice?.(item.species) || 0) || 1;
-  return base * Number(item.scale || 1) * mutationMultiplier([...(item.mutations || [])]);
+  // The size update moved produce onto an integer `size` (50-100); its sell value scales with the
+  // crop's maxSizeMultiplier exactly as slotScale computes. Old-model items still carry a flat
+  // `scale`, which is the fallback when there is no size to read.
+  const crop = PLANT_CATALOG[item.species ?? '']?.crop;
+  const scale = item.size != null && crop?.maxSizeMultiplier != null ? slotScale(crop, item) : Number(item.scale || 1);
+  return base * scale * mutationMultiplier([...(item.mutations || [])]);
 }
 
 export function petDiet(species: string): string[] {

@@ -162,6 +162,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionFeature?: (name: string) => boolean;
   __gardenCompanionConfig?: () => CompanionConfig;
   __gardenCompanionForecastTrace?: () => Record<string, unknown>;
+  __gardenCompanionSequencer?: () => Record<string, unknown>;
   __gardenCompanionPlantPrice?: (species?: string) => number | undefined;
   __gardenCompanionPetSprites?: Record<string, string>;
   __gardenCompanionShopSprites?: Record<string, string>;
