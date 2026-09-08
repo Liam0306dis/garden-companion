@@ -1,5 +1,5 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
-import { MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { ABILITY_DETAILS, MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { crystalStrengthBonus, mutationSprite, onSpritesReady, petMetrics, produceSprite } from '../pets.js';
 import { maxSizeMultiplier, slotIsMaxSize, slotScale } from '../crop-size.js';
 import { toast } from '../toast.js';
@@ -754,8 +754,14 @@ function calculateStats(
     return maximum;
   }
 
-  const maxSizeBoosts = boostsUntilMax(['ProduceScaleBoostII', 'Crop Size Boost II'], .1, 20, 5);
-  const beeSizeBoosts = boostsUntilMax('ProduceScaleBoost', .06, 200, 3);
+  // The per-proc size gain comes from the ability's own baseParameters, not a remembered constant, so
+  // a dev tweak to Crop Size Boost I/II flows through without an edit here (I is +4, II is +7 today).
+  const sizeIncreaseOf = (ability: string, fallback: number): number => {
+    const value = Number(ABILITY_DETAILS[ability]?.baseParameters?.sizeIncrease);
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+  };
+  const maxSizeBoosts = boostsUntilMax(['ProduceScaleBoostII', 'Crop Size Boost II'], .1, 20, sizeIncreaseOf('ProduceScaleBoostII', 7));
+  const beeSizeBoosts = boostsUntilMax('ProduceScaleBoost', .06, 200, sizeIncreaseOf('ProduceScaleBoost', 4));
   addEta('Max Size', ['ProduceScaleBoostII', 'Crop Size Boost II'], .4, maxSizeBoosts, null, true);
   addEta('Bee Size', 'ProduceScaleBoost', .3, beeSizeBoosts, null, true);
   return result;

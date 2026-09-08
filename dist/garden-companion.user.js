@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.57
+// @version      0.8.58
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -7769,8 +7769,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       }
       return maximum;
     }
-    const maxSizeBoosts = boostsUntilMax(["ProduceScaleBoostII", "Crop Size Boost II"], 0.1, 20, 5);
-    const beeSizeBoosts = boostsUntilMax("ProduceScaleBoost", 0.06, 200, 3);
+    const sizeIncreaseOf = (ability, fallback) => {
+      const value = Number(ABILITY_DETAILS[ability]?.baseParameters?.sizeIncrease);
+      return Number.isFinite(value) && value > 0 ? value : fallback;
+    };
+    const maxSizeBoosts = boostsUntilMax(["ProduceScaleBoostII", "Crop Size Boost II"], 0.1, 20, sizeIncreaseOf("ProduceScaleBoostII", 7));
+    const beeSizeBoosts = boostsUntilMax("ProduceScaleBoost", 0.06, 200, sizeIncreaseOf("ProduceScaleBoost", 4));
     addEta("Max Size", ["ProduceScaleBoostII", "Crop Size Boost II"], 0.4, maxSizeBoosts, null, true);
     addEta("Bee Size", "ProduceScaleBoost", 0.3, beeSizeBoosts, null, true);
     return result;
