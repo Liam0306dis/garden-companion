@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.59
+// @version      0.8.60
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -5955,21 +5955,41 @@ ${eggs.map(eggCard).join("")}`;
       }).join("");
     }
     function installInstantHarvest() {
+      let harvested = null;
       window.addEventListener("keydown", (event) => {
         if (!feature("instantHarvest") || feature("cropProtection") || worldSceneActive() || event.code !== "Space" || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
         if (state.currentAction && state.currentAction !== "none" && !["harvest", "rainbowHarvest", "goldHarvest", "rarePatchHarvest"].includes(state.currentAction)) return;
-        const tile = state.slot?.data?.garden?.tileObjects?.[String(state.dirtTileIndex)];
+        const tileObjects = state.slot?.data?.garden?.tileObjects ?? {};
+        const current = Array.isArray(state.currentCrop) ? state.currentCrop : [];
+        const slotKey = (slot2) => `${slot2?.slotId}|${slot2?.species}|${slot2?.endTime}`;
+        const currentSignature = current.map(slotKey).join(",");
+        let dirtIndex = state.dirtTileIndex;
+        if ((dirtIndex == null || !tileObjects[String(dirtIndex)]?.slots?.length) && current.length) {
+          const match = Object.keys(tileObjects).find((key) => {
+            const slots = tileObjects[key]?.slots;
+            return Array.isArray(slots) && slots.length === current.length && slots.map(slotKey).join(",") === currentSignature;
+          });
+          if (match !== void 0) dirtIndex = match;
+        }
+        const tile = dirtIndex == null ? void 0 : tileObjects[String(dirtIndex)];
         if (!tile?.slots?.length) return;
         const now = Date.now();
-        const qualifies = (slot2) => slot2?.preserved !== true && Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow");
-        let index = tile.slots.findIndex((slot2) => String(slot2.slotId) === String(state.selectedSlotId));
-        if (index >= 0 && !qualifies(tile.slots[index])) return;
-        if (index < 0) index = tile.slots.findIndex(qualifies);
+        const readyRareGold = (slot2) => slot2?.preserved !== true && Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow");
+        if (!harvested || harvested.tile !== String(dirtIndex)) harvested = { tile: String(dirtIndex), ids: /* @__PURE__ */ new Set() };
+        for (const id of [...harvested.ids]) {
+          if (!readyRareGold(tile.slots.find((slot2) => Number(slot2.slotId) === id))) harvested.ids.delete(id);
+        }
+        const qualifyingIds = tile.slots.filter((slot2) => readyRareGold(slot2) && !harvested.ids.has(Number(slot2.slotId))).map((slot2) => Number(slot2.slotId)).sort((left, right) => left - right);
+        if (!qualifyingIds.length) return;
+        const selected = Number(state.selectedSlotId);
+        const targetId = qualifyingIds.find((id) => id >= selected) ?? qualifyingIds[0];
+        const index = tile.slots.findIndex((slot2) => Number(slot2.slotId) === targetId);
         if (index < 0) return;
         event.preventDefault();
         event.stopImmediatePropagation();
         const slot = tile.slots[index];
-        sendQuinoaCommand({ type: "HarvestCrop", slot: state.dirtTileIndex, slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
+        harvested.ids.add(targetId);
+        sendQuinoaCommand({ type: "HarvestCrop", slot: Number(dirtIndex), slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
         toast("Harvest requested.", "success");
       }, true);
     }

@@ -935,7 +935,7 @@ assert.match(buildSource, /baseWeight:\(\[0-9\.e\+-\]\+\)/, 'the plant catalog n
 // Preserve All spends real coins per slot, so it must copy the game's own preserve rules exactly.
 assert.match(preserveAllSource, /Math\.round\(base \* slotScale\(crop, slot\) \* catalogMutationMultiplier\(mutations\)\)/, 'the preserve price no longer matches what the game charges');
 assert.match(preserveAllSource, /if \(!slot \|\| slot\.preserved === true \|\| slot\.slotId == null\) continue;\s+if \(Number\(slot\.endTime \|\| 0\) > now\) continue;/, 'preserve all no longer skips preserved or still-growing slots');
-assert.match(companionSource, /const qualifies = slot => slot\?\.preserved !== true &&/, 'instant harvest can destroy a preserved crop');
+assert.match(companionSource, /const readyRareGold = slot => slot\?\.preserved !== true &&/, 'instant harvest can destroy a preserved crop');
 // Crop Protection blocks the harvests instant harvest fires, so the two are mutually exclusive in
 // config and again at the moment the key is pressed.
 assert.match(companionSource, /if \(!feature\('instantHarvest'\) \|\| feature\('cropProtection'\) \|\|/, 'instant harvest still fires while Crop Protection is on');
