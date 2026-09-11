@@ -699,11 +699,11 @@ export function initPlantDragMove(): void {
 
         const swapDestPlant = !!destination.object
 
-        // Held for the whole move, not just the fetch: the pot is spent by the PotPlant at the end,
-        // and auto-store filing it back in between is what would make a drag fail outright.
         let requiredPlanterPots = swapDestPlant ? 2 : 1
         let requiredFreeInventorySlots = swapDestPlant ? 2 : 1
 
+        // Held for the whole move, not just the fetch: the pot is spent by the PotPlant at the end,
+        // and auto-store filing it back in between is what would make a drag fail outright.
         const releasePot = holdTool('PlanterPot');
         try {
             // Two slots, not one: the pot may still be in the Tool Shack, and potting hands back a
