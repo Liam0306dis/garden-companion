@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.60
+// @version      0.8.61
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1200,8 +1200,8 @@
   var HOLD_MAX_MS = 6e4;
   function holdTool(toolId) {
     const now = Date.now();
-    const held2 = toolHolds.get(toolId);
-    toolHolds.set(toolId, { count: (held2?.count ?? 0) + 1, until: now + HOLD_MAX_MS });
+    const held = toolHolds.get(toolId);
+    toolHolds.set(toolId, { count: (held?.count ?? 0) + 1, until: now + HOLD_MAX_MS });
     let released = false;
     return () => {
       if (released) return;
@@ -1214,13 +1214,13 @@
     };
   }
   function toolIsHeld(toolId) {
-    const held2 = toolHolds.get(toolId);
-    if (!held2) return false;
-    if (Date.now() > held2.until) {
+    const held = toolHolds.get(toolId);
+    if (!held) return false;
+    if (Date.now() > held.until) {
       toolHolds.delete(toolId);
       return false;
     }
-    return held2.count > 0 || Date.now() <= held2.until;
+    return held.count > 0 || Date.now() <= held.until;
   }
   async function ensureToolReady(toolId, wanted = 1, reserveSlots = 0) {
     if (looseToolCount(toolId) >= wanted) return true;
@@ -3007,10 +3007,10 @@ ${groups}
     const potionsHeld = heldToolCount(HUNGER_POTION);
     const cards = species.map((name) => {
       const chosen = chosenFood(name);
-      const option = (id, held2) => {
+      const option = (id, held) => {
         const sprite = produceSprite(id);
         const label = humanize(id);
-        return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(id)}" data-active="${id === chosen}" title="${escapeHtml(label)} - ${held2} held"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(label)}</b><small>${held2} held</small></span></button>`;
+        return `<button data-food-choice="${escapeHtml(name)}" data-food-crop="${escapeHtml(id)}" data-active="${id === chosen}" title="${escapeHtml(label)} - ${held} held"><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(label)}</b><small>${held} held</small></span></button>`;
       };
       const options = [
         ...petDiet(name).map((crop) => option(crop, counts.get(crop) || 0)),
@@ -3605,158 +3605,44 @@ ${groups}
   }
 
   // src/weather-forecast.ts
-  var SHAPE = /function ([A-Za-z_$][\w$]*)\(e,t\)\{(?:(?!function ).){0,600}?return\{weatherId:[^,]+,startsAtMs:/s;
-  var WRAPPER_NAME = /function ([A-Za-z_$][\w$]*)\(e\)\{$/;
-  var WEATHER_TABLE = /([\w$]+)=\{\[[\w$]+\.Rain\]:\{groupId:/;
-  var GROUP_TABLE = /([\w$]+)=\{\[[\w$]+\.\w+\]:\{durationMinutes:/;
-  var LIKELY_CHUNK = /iconTextureResolution|ItemRenderResources/;
-  var CACHE_KEY = "gardenCompanion.weatherForecastSource.v1";
-  var trace = {};
-  function forecastTrace() {
-    return { ...trace, status };
+  var LUNAR_WEATHER2 = /* @__PURE__ */ new Set(["Dawn", "AmberMoon"]);
+  function forecastEntries() {
+    const game = state.game;
+    if (!game) return null;
+    return Array.isArray(game.weatherForecast) ? game.weatherForecast : null;
   }
-  function gameVersion() {
-    const sources = [
-      ...Array.from(document.scripts).map((script) => script.src),
-      ...Array.from(document.querySelectorAll("link[href]")).map((link) => link.href)
-    ];
-    for (const source of sources) {
-      const found = source.match(/\/version\/([^/]+)\//);
-      if (found) return found[1];
-    }
-    return "";
-  }
-  function candidateUrls() {
-    const urls = [
-      ...Array.from(document.scripts).map((script) => script.src),
-      ...Array.from(document.querySelectorAll("link[href]")).map((link) => link.href)
-    ].filter((url) => /\.js(\?|$)/.test(url));
-    const unique = [...new Set(urls)];
-    return [...unique.filter((url) => LIKELY_CHUNK.test(url)), ...unique.filter((url) => !LIKELY_CHUNK.test(url))];
-  }
-  function aliasOf(text, name) {
-    for (const listing of text.matchAll(/export\{([^}]*)\}/g)) {
-      for (const entry of listing[1].split(",")) {
-        const trimmed = entry.trim();
-        if (trimmed.startsWith(`${name} as `)) return trimmed.slice(name.length + 4);
-      }
-    }
-    return "";
-  }
-  async function findSource() {
-    const version = gameVersion();
-    const cached = loadLocal(CACHE_KEY, {});
-    if (version && cached.version === version && cached.url && cached.alias && cached.weathers && cached.groups) return cached;
-    for (const url of candidateUrls()) {
-      let text;
-      try {
-        text = await (await fetch(url)).text();
-      } catch {
-        continue;
-      }
-      if (!text.includes("startsAtMs")) continue;
-      const shaped = text.match(SHAPE);
-      if (!shaped) continue;
-      const call = `return ${shaped[1]}(e,()=>!0)}`;
-      const at = text.indexOf(call);
-      if (at < 0) continue;
-      const wrapper = text.slice(Math.max(0, at - 80), at).match(WRAPPER_NAME);
-      const alias = wrapper ? aliasOf(text, wrapper[1]) : "";
-      if (!alias) continue;
-      const weatherTable = text.match(WEATHER_TABLE);
-      const groupTable = text.match(GROUP_TABLE);
-      const weathers = weatherTable ? aliasOf(text, weatherTable[1]) : "";
-      const groups = groupTable ? aliasOf(text, groupTable[1]) : "";
-      trace = { ...trace, url, alias, weatherVar: weatherTable?.[1] ?? "", groupVar: groupTable?.[1] ?? "", weathers, groups };
-      if (!weathers || !groups) continue;
-      const source = { version, url, alias, weathers, groups };
-      saveLocal(CACHE_KEY, source);
-      return source;
-    }
-    return null;
-  }
-  var forecast = null;
-  var status = "pending";
-  var retryAfter = 0;
   function forecastStatus() {
-    void loadForecast();
-    return status;
+    if (!state.game) return "pending";
+    return forecastEntries() ? "ready" : "unavailable";
   }
-  function loadForecast() {
-    if (forecast) return forecast;
-    if (Date.now() < retryAfter) return Promise.resolve(null);
-    return forecast = (async () => {
-      try {
-        const source = await findSource();
-        if (!source) {
-          return giveUpForNow();
-        }
-        const module = await import(
-          /* @vite-ignore */
-          source.url
-        );
-        const found = module[source.alias];
-        if (typeof found !== "function") {
-          return giveUpForNow();
-        }
-        const fixedSlot = fixedSlotWeathers(module[source.weathers], module[source.groups]);
-        trace = {
-          ...trace,
-          exportNames: Object.keys(module).length,
-          weatherExport: typeof module[source.weathers],
-          groupExport: typeof module[source.groups],
-          groupKeys: Object.keys(module[source.groups] ?? {}),
-          fixedSlot: [...fixedSlot]
-        };
-        if (!fixedSlot.size) {
-          return giveUpForNow();
-        }
-        status = "ready";
-        return { ask: found, fixedSlot };
-      } catch {
-        return giveUpForNow();
-      }
-    })();
-  }
-  function giveUpForNow() {
-    status = "unavailable";
-    retryAfter = Date.now() + 3e4;
-    forecast = null;
-    return null;
-  }
-  function fixedSlotWeathers(weathers, groups) {
-    const found = /* @__PURE__ */ new Set();
-    const weatherTable = weathers;
-    const groupTable = groups;
-    if (!weatherTable || !groupTable) return found;
-    const fixed = Object.entries(groupTable).filter(([, group]) => Array.isArray(group?.fixedTimeSlots)).map(([groupId]) => groupId);
-    for (const [weatherId, weather] of Object.entries(weatherTable)) {
-      if (typeof weather?.groupId === "string" && fixed.includes(weather.groupId)) found.add(weatherId);
-    }
-    return found;
-  }
-  var held = null;
-  var heldUntil = 0;
-  function askStation({ ask, fixedSlot }) {
-    const next = ask(/* @__PURE__ */ new Date());
-    return next ? { ...next, lunar: fixedSlot.has(next.weatherId) } : null;
+  function forecastTrace() {
+    const entries = forecastEntries();
+    return {
+      source: "gameState.weatherForecast",
+      status: forecastStatus(),
+      count: entries ? entries.length : null,
+      next: nextWeather()
+    };
   }
   function nextWeather() {
+    const entries = forecastEntries();
+    if (!entries || !entries.length) return null;
     const now = Date.now();
-    if (now < heldUntil) return held && now < held.startsAtMs ? held : null;
-    void loadForecast().then((borrowed) => {
-      if (!borrowed) return;
-      try {
-        const answer = askStation(borrowed);
-        held = answer && answer.startsAtMs > Date.now() ? answer : null;
-        heldUntil = held ? held.startsAtMs : Date.now() + 6e4;
-      } catch {
-        status = "unavailable";
-        held = null;
-        heldUntil = Date.now() + 6e4;
-      }
-    });
-    return held && now < held.startsAtMs ? held : null;
+    let best = null;
+    for (const entry of entries) {
+      const weatherId = typeof entry.weatherId === "string" ? entry.weatherId : null;
+      const startsAtMs = Number(entry.startsAtMs);
+      if (!weatherId || !Number.isFinite(startsAtMs) || startsAtMs <= now) continue;
+      if (best && startsAtMs >= best.startsAtMs) continue;
+      const endsAtMs = Number(entry.endsAtMs);
+      best = {
+        weatherId,
+        startsAtMs,
+        endsAtMs: Number.isFinite(endsAtMs) ? endsAtMs : 0,
+        lunar: LUNAR_WEATHER2.has(weatherId)
+      };
+    }
+    return best;
   }
 
   // src/features/weather-alarms.ts
@@ -4238,8 +4124,8 @@ ${eggs.map(eggCard).join("")}`;
   function signature(entry) {
     const parameters = entry.parameters ?? {};
     const idOf = (value) => {
-      const held2 = value && typeof value === "object" ? value.id : value;
-      return typeof held2 === "string" || typeof held2 === "number" ? String(held2) : "";
+      const held = value && typeof value === "object" ? value.id : value;
+      return typeof held === "string" || typeof held === "number" ? String(held) : "";
     };
     const ids = [parameters.pet, parameters.extraPet, parameters.sourcePet, parameters.eggId, parameters.itemId].map(idOf).filter(Boolean).join("/");
     return `${entry.action}|${entry.timestamp}|${ids}`;
@@ -4624,10 +4510,10 @@ ${eggs.map(eggCard).join("")}`;
     const caught = /* @__PURE__ */ new Set();
     if (!system || typeof system.draw !== "function") return { catch: () => void 0, release: () => void 0 };
     const original = system.draw;
-    const held2 = new Map(targets.map((target) => [target.id, target.hold]));
+    const held = new Map(targets.map((target) => [target.id, target.hold]));
     const wrapper = function(...args) {
       const result = original.apply(this, args);
-      for (const [id, position] of held2) {
+      for (const [id, position] of held) {
         const display = this.views?.get?.(id)?.displayObject;
         if (!display?.position || display.destroyed) continue;
         display.position.set(position.x, position.y);
@@ -6024,11 +5910,11 @@ ${eggs.map(eggCard).join("")}`;
       const mini = document.getElementById("gc-lunar-mini");
       if (!root) return;
       const shown = feature("lunarTimer") && !page.__gardenCompanionCinematicFromGame?.();
-      const forecast2 = lunarMode === "weather" ? nextWeather() : null;
+      const forecast = lunarMode === "weather" ? nextWeather() : null;
       const unavailable = lunarMode === "weather" && forecastStatus() === "unavailable";
-      const label = lunarMode === "weather" ? forecast2 ? forecast2.lunar ? "Lunar event" : weatherLabel(forecast2.weatherId) : "Next weather" : "Lunar event";
-      const remaining2 = unavailable ? "Unavailable" : lunarMode === "weather" ? forecast2 ? formatDuration(forecast2.startsAtMs - Date.now()) : forecastStatus() === "ready" ? "Not forecast" : "--" : formatDuration(nextLunarAt() - Date.now());
-      const countingDown = !unavailable && (lunarMode === "lunar" || Boolean(forecast2));
+      const label = lunarMode === "weather" ? forecast ? forecast.lunar ? "Lunar event" : weatherLabel(forecast.weatherId) : "Next weather" : "Lunar event";
+      const remaining2 = unavailable ? "Unavailable" : lunarMode === "weather" ? forecast ? formatDuration(forecast.startsAtMs - Date.now()) : forecastStatus() === "ready" ? "Not forecast" : "--" : formatDuration(nextLunarAt() - Date.now());
+      const countingDown = !unavailable && (lunarMode === "lunar" || Boolean(forecast));
       root.hidden = !shown || lunarMinimised;
       const countdown = root.querySelector(".gc-lunar-countdown");
       if (countdown) countdown.dataset.message = unavailable ? "true" : "";
@@ -6039,11 +5925,11 @@ ${eggs.map(eggCard).join("")}`;
         swap.dataset.mode = lunarMode;
         swap.title = lunarMode === "weather" ? "Showing the next weather event - switch to the lunar timer" : "Showing the lunar timer - switch to the next weather event";
       }
-      const sprite = forecast2 && !forecast2.lunar ? page.__gardenCompanionWeatherSprites?.[forecast2.weatherId] || "" : "";
+      const sprite = forecast && !forecast.lunar ? page.__gardenCompanionWeatherSprites?.[forecast.weatherId] || "" : "";
       const mark = root.querySelector(".gc-lunar-mark");
       if (mark) {
         mark.innerHTML = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-        if (sprite) mark.dataset.weather = forecast2.weatherId;
+        if (sprite) mark.dataset.weather = forecast.weatherId;
         else delete mark.dataset.weather;
       }
       if (mini) {
@@ -6065,9 +5951,9 @@ ${eggs.map(eggCard).join("")}`;
       if (socket !== watchedSocket) {
         watchedSocket = socket;
         if (socket) {
-          const setCurrentSocketStatus = (status2) => {
+          const setCurrentSocketStatus = (status) => {
             if (watchedSocket !== socket) return;
-            socketStatus = status2;
+            socketStatus = status;
             renderSocketStatus();
           };
           socket.addEventListener("open", () => setCurrentSocketStatus("connected"));
@@ -6348,14 +6234,14 @@ ${eggs.map(eggCard).join("")}`;
     }
     function renderAbilities() {
       const active = state.slot?.data?.petSlots || [];
-      const held2 = heldToolCount("XPPotion");
+      const held = heldToolCount("XPPotion");
       const xpRate = teamXpPerHour(active);
       const activeCards = active.map((pet) => {
         const metrics = petMetrics(pet);
         const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : "Max STR reached" : "Strength estimate unavailable";
         const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
         const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString(NUMBER_LOCALE)} XP potion${potionsToMax === 1 ? "" : "s"} to max` : "";
-        const potionRow = potionText ? held2 > 0 ? `<button class="gc-pet-potions" data-xp-potion="${escapeHtml(pet.id)}" title="Spend one XP Potion on this pet. ${held2} held.">${escapeHtml(potionText)}<i>Use one</i></button>` : `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : "";
+        const potionRow = potionText ? held > 0 ? `<button class="gc-pet-potions" data-xp-potion="${escapeHtml(pet.id)}" title="Spend one XP Potion on this pet. ${held} held.">${escapeHtml(potionText)}<i>Use one</i></button>` : `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>` : "";
         return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet, active)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : "STR unavailable"}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
       }).join("");
       const abilityRows = combinedAbilityRows(active);
@@ -10007,14 +9893,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function updateHud() {
       const host = panel3();
       if (!host || host.hidden || view !== "game") return;
-      const status2 = host.querySelector("[data-fishing-status]");
+      const status = host.querySelector("[data-fishing-status]");
       const weatherNode = host.querySelector("[data-fishing-weather]");
       const progressNode = host.querySelector(".gf-fight-progress");
       const zoneNode = host.querySelector(".gf-fight-zone");
       const fishNode = host.querySelector(".gf-fight-fish");
-      if (status2) {
-        status2.textContent = message;
-        status2.style.color = resultColour;
+      if (status) {
+        status.textContent = message;
+        status.style.color = resultColour;
       }
       if (weatherNode) weatherNode.textContent = weatherLabel2(weather());
       if (progressNode) {
@@ -10597,7 +10483,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let shovel = false;
     let dev = false;
     let wavesHeld = false;
-    let status2 = "Pick a seed, then click a tile to plant it.";
+    let status = "Pick a seed, then click a tile to plant it.";
     let lanes = MAX_LANES;
     let columns = MAX_COLUMNS;
     let lawn = null;
@@ -10690,7 +10576,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       running = true;
       selected = null;
       shovel = false;
-      status2 = dev ? "Tuning mode: towers are free." : "Pick a seed, then click a tile to plant it.";
+      status = dev ? "Tuning mode: towers are free." : "Pick a seed, then click a tile to plant it.";
       if (!dev) {
         record.runs++;
         save2();
@@ -10714,32 +10600,32 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (shovel) {
         if (!existing) return;
         removePlant(existing);
-        status2 = `Dug up the ${existing.def.name}.`;
+        status = `Dug up the ${existing.def.name}.`;
         shovel = false;
         renderChrome();
         return;
       }
       if (!selected) {
-        status2 = "Pick a seed first.";
+        status = "Pick a seed first.";
         renderChrome();
         return;
       }
       const def = PLANT_BY_ID.get(selected);
       if (!def) return;
       if (existing) {
-        status2 = "That tile is already planted.";
+        status = "That tile is already planted.";
         renderChrome();
         return;
       }
       if (!dev && sun < def.cost) {
-        status2 = `Not enough sun for a ${def.name}.`;
+        status = `Not enough sun for a ${def.name}.`;
         renderChrome();
         return;
       }
       if (!dev) sun -= def.cost;
       plants.push({ def, lane, column, hp: def.hp, timer: def.interval ?? 0, sprite: null, fruitSprite: null });
       if (!dev) selected = null;
-      status2 = `Planted a ${def.name}.`;
+      status = `Planted a ${def.name}.`;
       renderChrome();
     }
     function removePlant(plant) {
@@ -10778,7 +10664,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const count = Math.min(24, 2 + Math.floor(wave * 1.35));
       queued2 = Array.from({ length: count }, () => weightedPest(wave));
       spawnTimer = 0;
-      status2 = `Wave ${wave} incoming.`;
+      status = `Wave ${wave} incoming.`;
       renderChrome();
     }
     function waveHp(def) {
@@ -11049,7 +10935,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (waveNode) {
         waveNode.textContent = over ? `Overrun on wave ${wave}` : wave === 0 ? `First wave in ${Math.max(0, Math.ceil(waveTimer))}s` : queued2.length ? `Wave ${wave} - ${queued2.length} left to arrive` : `Wave ${wave} - next in ${Math.max(0, Math.ceil(waveTimer))}s`;
       }
-      if (statusNode) statusNode.textContent = status2;
+      if (statusNode) statusNode.textContent = status;
       for (const button of host.querySelectorAll("[data-seed]")) {
         const plant = PLANT_BY_ID.get(button.dataset.seed);
         const afford = Boolean(plant && affordable(plant));
@@ -11079,7 +10965,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       card.querySelector("[data-shovel]").onclick = () => {
         shovel = !shovel;
         if (shovel) selected = null;
-        status2 = shovel ? "Click a plant to dig it up." : "Shovel put away.";
+        status = shovel ? "Click a plant to dig it up." : "Shovel put away.";
         renderChrome();
       };
       for (const button of card.querySelectorAll("[data-seed]")) {
@@ -11088,7 +10974,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           selected = selected === id ? null : id;
           shovel = false;
           const def = PLANT_BY_ID.get(id);
-          status2 = selected && def ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
+          status = selected && def ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
           renderChrome();
         };
       }
@@ -11101,31 +10987,31 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           const def = PESTS.find((pest) => pest.id === button.dataset.spawn);
           if (!def) return;
           spawnPest(def);
-          status2 = `Spawned a ${def.name}.`;
+          status = `Spawned a ${def.name}.`;
           renderStatus();
         };
       }
       card.querySelector("[data-spawn-lane]").onclick = () => {
         const def = PESTS[0];
         for (let lane = 0; lane < lanes; lane++) spawnPest(def, lane);
-        status2 = `Spawned a ${def.name} in all ${lanes} lanes.`;
+        status = `Spawned a ${def.name} in all ${lanes} lanes.`;
         renderStatus();
       };
       card.querySelector("[data-clear-pests]").onclick = () => {
         for (const pest of pests) removePest(pest);
         pests = [];
         queued2 = [];
-        status2 = "Cleared every pest.";
+        status = "Cleared every pest.";
         renderStatus();
       };
       card.querySelector("[data-clear-plants]").onclick = () => {
         for (const plant of [...plants]) removePlant(plant);
-        status2 = "Cleared the board.";
+        status = "Cleared the board.";
         renderStatus();
       };
       card.querySelector("[data-hold]").onclick = () => {
         wavesHeld = !wavesHeld;
-        status2 = wavesHeld ? "Waves held. Spawn pests by hand." : "Waves running again.";
+        status = wavesHeld ? "Waves held. Spawn pests by hand." : "Waves running again.";
         renderChrome();
       };
       card.querySelector("[data-next-wave]").onclick = () => {
@@ -12012,7 +11898,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     window.addEventListener("pointerdown", mark, true);
   }
   var lastSelectedItemId = null;
-  function trace2(step, detail) {
+  function trace(step, detail) {
     try {
       if (localStorage.getItem("gcPotDebug") !== "1") return;
     } catch {
@@ -12048,13 +11934,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const targetsPlant = Boolean(pending) && performance.now() <= (pending?.expiresAt ?? 0) && typeof args[0] === "string" && Boolean(pending?.addedPlantIds.has(args[0]));
       if (targetsPlant && pending && playerReselect(pending)) pendingSelection = null;
       const redirecting = targetsPlant && Boolean(pendingSelection);
-      trace2("explicit write", { requested: args[0], redirecting });
+      trace("explicit write", { requested: args[0], redirecting });
       const value = redirecting ? pending.restoreItemId : args[0];
       return originalExplicitItemWrite.call(this, get, set, value);
     };
     onOutgoingCommand((command) => {
       if (command.type === "SetSelectedItem" || command.type === "PotPlant") {
-        trace2("command " + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
+        trace("command " + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
       }
       if (!isEnabled() || command.type !== "PotPlant" || lastSelectedItemId !== "PlanterPot") return;
       const plantItemId = command.plantItemId;
@@ -12073,7 +11959,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const targetsPlant = Boolean(pendingSelection) && typeof nextItemId === "string" && Boolean(pendingSelection?.addedPlantIds.has(nextItemId));
       if (targetsPlant && pendingSelection && playerReselect(pendingSelection)) pendingSelection = null;
       const redirecting = targetsPlant && Boolean(pendingSelection);
-      trace2("select write", { requested: nextItemId, redirecting });
+      trace("select write", { requested: nextItemId, redirecting });
       if (redirecting && pendingSelection) {
         lastSelectedItemId = pendingSelection.restoreItemId;
         set(explicitItemAtom, pendingSelection.restoreItemId);
@@ -12426,7 +12312,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function currentCelestials() {
       return Object.values(liveTiles()).flatMap((tile) => tile?.objectType === "plant" && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species) ? [tile.species] : []);
     }
-    function status2(message, tone2 = "normal") {
+    function status(message, tone2 = "normal") {
       guide.message = message;
       guide.tone = tone2;
       const element = document.querySelector("#gc-celestial-layout [data-celestial-status]");
@@ -12446,7 +12332,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function generate() {
       clearPlan();
       if (!guide.side) {
-        status2("Choose the left or right side to generate a guide.");
+        status("Choose the left or right side to generate a guide.");
         return;
       }
       const allTiles = dirtTiles();
@@ -12455,7 +12341,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const rows = new Set(tiles.map((tile) => tile.y)).size;
       const columns = new Set(tiles.map((tile) => tile.x)).size;
       if (!tiles.length || rows * columns !== tiles.length) {
-        status2("The selected farm side could not be mapped yet. Enter your garden and try Refresh.", "error");
+        status("The selected farm side could not be mapped yet. Enter your garden and try Refresh.", "error");
         return;
       }
       const plants = currentCelestials();
@@ -12467,7 +12353,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       });
       const result = generateCelestialLayout(plants, rows, columns, guide.goal, blocked, unavailable);
       if (!result.cells.length) {
-        status2(result.error, "error");
+        status(result.error, "error");
         return;
       }
       result.cells.forEach((cell, index) => {
@@ -12477,7 +12363,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         guide.covered.set(tile.localIndex, cell.met);
       });
       const buff = guide.goal === "both" ? "both buffs" : guide.goal === "amber" ? "Amberbound" : "Dawnbound";
-      status2(result.error || `${result.met} of ${result.required} celestial plants receive ${buff}.`, result.error ? "error" : "normal");
+      status(result.error || `${result.met} of ${result.required} celestial plants receive ${buff}.`, result.error ? "error" : "normal");
       new Set(guide.plan.values()).forEach((species) => templateFor(species));
       updateOverlay();
     }

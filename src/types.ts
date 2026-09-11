@@ -142,6 +142,11 @@ export interface GameState {
   userSlots?: PlayerSlot[];
   shops?: Record<string, ShopData>;
   weather?: string;
+  // Server-authoritative weather since bundle 1141: the active spell's window and
+  // the list of upcoming events. Read by weather-forecast.ts (replaces the old
+  // client-side prediction model).
+  weatherWindow?: { weatherId?: string; startsAtMs?: number; endsAtMs?: number } | null;
+  weatherForecast?: Array<{ weatherId?: string; startsAtMs?: number; endsAtMs?: number }>;
 }
 
 export interface FullState {

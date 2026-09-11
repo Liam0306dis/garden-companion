@@ -278,21 +278,23 @@ assert.match(styleSource, /\.gc-lunar-mark::after/, 'lunar timer crescent mark i
 assert.match(styleSource, /#gc-lunar-mini \{[^}]*left:50px;bottom:10px/, 'the minimised lunar icon does not sit beside the overview button');
 assert.match(companionSource, /mini\.hidden = !shown \|\| !lunarMinimised;/, 'the minimised lunar icon ignores the lunar timer feature toggle');
 assert.match(companionSource, /mini\.title = countingDown \? `\$\{label\} in \$\{remaining\}` : `\$\{label\} - \$\{remaining\}`/, 'the minimised lunar icon stops reporting the countdown');
-// The forecast is asked of the game, never worked out here - the schedule algorithm stays out of
-// this source, and nothing can ask it about a day other than today.
+// Since bundle 1141 weather is server-authoritative and arrives in game state, so the forecast is
+// read straight from `state.game.weatherForecast` - never predicted here. The old deterministic
+// model (and the chunk-borrowing that reached for it) must stay gone.
 assert.doesNotMatch(forecastSource, /minFrequencyMinutes|dropTable|4022871197/, 'the weather schedule has been reimplemented in the source');
-// Which weathers are lunar is read from the game, never named here: a renamed id would otherwise
-// slip past the guard silently and put Dawn on a timer that is meant to show rain, snow or thunder.
-assert.doesNotMatch(forecastSource, /'Dawn'|'AmberMoon'|'Lunar'|'Hydro'/, 'weather groups are classified by hardcoded name again, which a rename breaks silently');
-assert.match(forecastSource, /\.filter\(\(\[, group\]\) => Array\.isArray\(group\?\.fixedTimeSlots\)\)/, 'the lunar group is identified by something other than the game telling us');
-assert.match(forecastSource, /return next \? \{ \.\.\.next, lunar: fixedSlot\.has\(next\.weatherId\) \} : null;/, 'the next event is no longer flagged by group');
+assert.doesNotMatch(forecastSource, /import\(|fetch\(|candidateUrls|const SHAPE/, 'the forecast borrows a game chunk again instead of reading state');
+assert.match(forecastSource, /game\.weatherForecast/, 'the forecast is no longer read from game state');
+// The model that told us which group runs on fixed slots is gone, so the two lunar events are named
+// directly. Dawn/AmberMoon are stable ids; a rename would surface as the lunar timer mislabelling.
+assert.match(forecastSource, /const LUNAR_WEATHER = new Set\(\['Dawn', 'AmberMoon'\]\)/, 'the lunar events are identified some other way than the known ids');
+assert.match(forecastSource, /lunar: LUNAR_WEATHER\.has\(weatherId\)/, 'the next event is no longer flagged as lunar by id');
+assert.match(forecastSource, /startsAtMs <= now\) continue;/, 'the scan no longer skips the already-started (current) weather');
+assert.match(forecastSource, /startsAtMs >= best\.startsAtMs\) continue;/, 'the scan no longer keeps the earliest upcoming event');
 // The timer names rain, snow and thunder but never which lunar event is coming - that belongs to the
 // lunar timer, and its own icon would give it away too.
 assert.match(companionSource, /forecast\.lunar \? 'Lunar event' : weatherLabel\(forecast\.weatherId\)/, 'a lunar event is named in the weather timer');
 assert.match(companionSource, /const sprite = forecast && !forecast\.lunar \?/, 'a lunar event takes a sprite that says which one it is');
 assert.match(companionSource, /loadLocal<LunarMode>\(LUNAR_MODE_KEY, 'weather'\) === 'lunar' \? 'lunar' : 'weather'/, 'the timer no longer defaults to the next event of any kind');
-assert.match(forecastSource, /const SHAPE = \/function/, 'the borrowed function is found by name again, which changes almost every release');
-assert.match(forecastSource, /cached\.version === version/, 'the chunk is rediscovered on every load rather than once per game version');
 // A slow load must not read as a broken one.
 assert.match(companionSource, /const unavailable = lunarMode === 'weather' && forecastStatus\(\) === 'unavailable';/, 'a forecast that cannot be read no longer says so');
 assert.match(companionSource, /const remaining = unavailable \? 'Unavailable'/, 'an unreadable forecast still shows a countdown');
@@ -1655,12 +1657,6 @@ assert.doesNotMatch(companionSource, /const nextMain = panel\.querySelector\('ma
 assert.match(styleSource, /#gc-lunar-head-actions button \{ width:27px;height:27px/, 'the header controls are styled by name again, so a new one renders invisible');
 assert.doesNotMatch(styleSource, /#gc-lunar button\[data-(options|minimise)\] \{/, 'a header button is styled by name again');
 
-// The backoff has to hold whether or not there is an answer to keep. Requiring one meant the
-// deadline set for having none never applied, and the game was asked twice a second forever.
-assert.match(forecastSource, /if \(now < heldUntil\) return held && now < held\.startsAtMs \? held : null;/, 'the forecast backoff only applies when there is an answer, so having none polls every tick');
-// Without a version there is nothing to cache against, and every load rescans megabytes of chunks.
-assert.match(forecastSource, /link\[href\]'\)\)\.map\(link => link\.href\),\s*\];\s*for \(const source of sources\)/, 'the game version is read from scripts alone, so a page without one never caches discovery');
-
 // An empty data attribute still matches [data-weather], which strips the dial's face and leaves an
 // empty circle - so the attribute is removed rather than blanked when the forecast goes away.
 assert.match(companionSource, /if \(sprite\) mark\.dataset\.weather = forecast!\.weatherId;\s*else delete mark\.dataset\.weather;/, 'the weather marker is blanked instead of cleared, so the dial loses its face');
@@ -1675,11 +1671,6 @@ assert.match(petSpriteSource, /HungerShard: 'HungerCrystalShard'/, 'the amber sh
 assert.match(petSpriteSource, /artboard: PET_ARTBOARD_NAMES\[species\] \?\? species,/, 'a pet whose Rive artboard is not its species id renders nothing');
 assert.doesNotMatch(companionSource, /weatherSpritesRequested/, 'the timer still asks for a deferred group that no longer carries its icons');
 assert.match(companionSource, /renderPetFood\(\);\s*\/\/[^\n]*\n\s*updateLunarTimer\(\);/, 'the timer is not redrawn when the sprites it asked for arrive');
-
-// Discovery reads the modules the page has loaded, so asking before the game has loaded them finds
-// nothing. Memoising that answer made a startup race permanent for the life of the page.
-assert.match(forecastSource, /if \(forecast\) return forecast;\s*if \(Date\.now\(\) < retryAfter\) return Promise\.resolve\(null\);/, 'a failed discovery is cached forever, so a startup race never recovers');
-assert.match(forecastSource, /retryAfter = Date\.now\(\) \+ 30_000;\s*forecast = null;/, 'a failed discovery is not retried, or is retried without a throttle');
 
 // A move needs a Planter Pot; a click does not. Testing for one on the press answered every click in
 // the game with a toast about a tool that click was never going to use.
