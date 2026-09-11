@@ -2,6 +2,7 @@ import type { CompanionPage } from '../types.js';
 import { noteRoomSocketClosed, noteRoomSocketOpened } from '../connection-state.js';
 import { state } from '../state.js';
 import { ensureToolReady, freeInventorySlots, holdTool, shackToolCount } from '../pets.js';
+import { setQuinoaEngine } from '../quinoa-engine.js';
 
 export function initPlantDragMove(): void {
     'use strict';
@@ -22,6 +23,7 @@ export function initPlantDragMove(): void {
         tileSystem: null,
         petSystem: null,
         worldTapRouter: null,
+        gardenInfoCard: null,
         inventoryItems: [],
         inventoryReady: false,
         ownUserSlotIdx: null,
@@ -118,6 +120,14 @@ export function initPlantDragMove(): void {
             live.worldTapRouter = system;
             disarmPrivateField('registeredClaimants');
             log('Native canvas UI hit testing connected.');
+        } else if (system?.name === 'gardenInfoCard' && system.view) {
+            // The crop value / turtle timer inject into this system's view. Bundle 1141 removed the
+            // engine atom the estimates used to reach it through, so hand it over here - the same
+            // registry hook the farm systems already ride - as a minimal engine the estimates expect.
+            if (live.gardenInfoCard === system) return;
+            live.gardenInfoCard = system;
+            setQuinoaEngine({ getSystem: (name: string) => (name === 'gardenInfoCard' ? live.gardenInfoCard : undefined) });
+            log('Native garden info card connected.');
         } else return;
         releaseGlobalHooksIfIdle();
     }
@@ -170,7 +180,7 @@ export function initPlantDragMove(): void {
      */
     function releaseGlobalHooksIfIdle() {
         if (armedSystemFields.size === 0) restoreDefinePropertyCapture();
-        if (live.tapToMove && live.tileSystem && live.petSystem && live.worldTapRouter) {
+        if (live.tapToMove && live.tileSystem && live.petSystem && live.worldTapRouter && live.gardenInfoCard) {
             restoreSystemRegistryCapture();
             if (hookReleaseTimer) { clearTimeout(hookReleaseTimer); hookReleaseTimer = 0; }
         }

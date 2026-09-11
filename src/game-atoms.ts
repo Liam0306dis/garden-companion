@@ -1,6 +1,5 @@
 import type { JotaiAtom } from './types.js';
 import { page } from './page.js';
-import { setQuinoaEngine } from './quinoa-engine.js';
 import { state } from './state.js';
 import { toast } from './toast.js';
 
@@ -57,15 +56,8 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
     cinematicAtom = atom;
     watchCinematicValue(atom);
   }
-  if ((atomKey.endsWith('/quinoaEngineAtom') || atom.debugLabel === 'quinoaEngineAtom') && typeof atom.write === 'function' && !atom.__gardenCompanionEngineCapture) {
-    const originalEngineWrite = atom.write;
-    atom.write = function(get, set, ...args) {
-      const result = originalEngineWrite.call(this, get, set, ...args);
-      setQuinoaEngine(args[0]);
-      return result;
-    };
-    atom.__gardenCompanionEngineCapture = true;
-  }
+  // The engine is captured from the system registry in plant-drag-move.ts (bundle 1141 removed the
+  // engine atom this used to hook), so nothing to do here for it.
   if (gameAtomSet || typeof atom?.write !== 'function' || wrappedAtomWrites.has(atom)) return atom;
   const original = atom.write;
   const capture = function(this: JotaiAtom, get, set, ...args) {
@@ -191,6 +183,23 @@ function labelMatches(label: string, match: string): boolean {
   return label === match || label.endsWith(`/${match}`);
 }
 
+/**
+ * Bundle 1141 folded myCurrentGrowSlotsAtom and myCurrentEggAtom into the raw current garden
+ * object. Keep the old mirrored fields populated so crop estimates and the interaction helpers
+ * remain independent of that internal atom refactor.
+ */
+function mirrorAtomValue(key: string, value: unknown): void {
+  (state as unknown as Record<string, unknown>)[key] = value;
+  if (key === 'currentGardenObject') {
+    const object = value as { objectType?: unknown; slots?: unknown } | null;
+    state.currentCrop = object?.objectType === 'plant' && Array.isArray(object.slots)
+      ? object.slots as typeof state.currentCrop
+      : null;
+    state.currentEgg = object?.objectType === 'egg' ? object as typeof state.currentEgg : null;
+  }
+  if (key === 'selectedSlotId') state.selectedSlotId = value as string | number | null;
+}
+
 function hookAtom(match, key, attempt = 0) {
   const map = atomMap();
   if (!map || typeof map.values !== 'function') {
@@ -205,8 +214,7 @@ function hookAtom(match, key, attempt = 0) {
     const original = atom.read;
     atom.read = function(get, ...args) {
       const value = original.call(this, get, ...args);
-      (state as unknown as Record<string, unknown>)[key] = value;
-      if (key === 'selectedSlotId') state.selectedSlotId = value as string | number | null;
+      mirrorAtomValue(key, value);
       return value;
     };
     // A derived atom is read whenever anything depends on it, but a primitive one holds its value
@@ -218,8 +226,7 @@ function hookAtom(match, key, attempt = 0) {
         const result = originalWrite.call(this, get, set, ...args);
         try {
           const value = (get as (target: JotaiAtom) => unknown)(atom);
-          (state as unknown as Record<string, unknown>)[key] = value;
-          if (key === 'selectedSlotId') state.selectedSlotId = value as string | number | null;
+          mirrorAtomValue(key, value);
         } catch {}
         return result;
       };
@@ -231,9 +238,12 @@ function hookAtom(match, key, attempt = 0) {
 }
 
 export function installAtomHooks() {
+  // Bundle 1141 replaced the dedicated crop and egg atoms with this common raw tile object.
+  hookAtom('myCurrentGardenObjectAtom', 'currentGardenObject');
   hookAtom('myCurrentGrowSlotsAtom', 'currentCrop');
   hookAtom('myCurrentEggAtom', 'currentEgg');
   hookAtom('myOwnCurrentDirtTileIndexAtom', 'dirtTileIndex');
+  hookAtom('selectedCropSlotIdAtom', 'selectedSlotId');
   hookAtom('mySelectedSlotIdAtom', 'selectedSlotId');
   hookAtom('mySelectedItemIdAtom', 'selectedItemId');
   hookAtom('isInPreservationModeAtom', 'preservationMode');

@@ -793,7 +793,10 @@ assert.match(companionSource, /const bySlotId = \[\.\.\.crops\]\.sort\(\(left, r
 assert.match(companionSource, /bySlotId\.find\(slot => Number\(slot\?\.slotId\) >= selected\) \?\? bySlotId\[0\]/, 'a harvested slot id no longer falls through to the next crop');
 // mySelectedSlotIdAtom is a primitive atom, so its value only ever moves through a write.
 assert.match(companionSource, /if \(typeof atom\.write === 'function'\) \{\s*\n\s*const originalWrite = atom\.write;/, 'a primitive game atom changes value without the panel noticing');
-assert.match(companionSource, /endsWith\('\/quinoaEngineAtom'\)/, 'game engine capture does not use the engine atom');
+// Bundle 1141 removed the engine atom, so the engine is captured from the system registry: the
+// gardenInfoCard system is picked out of Map.set and handed over as a minimal getSystem engine.
+assert.match(plantDragSource, /system\?\.name === 'gardenInfoCard' && system\.view/, 'game engine capture no longer picks the card system out of the registry');
+assert.match(plantDragSource, /setQuinoaEngine\(\{ getSystem: /, 'the captured card system is not handed over as an engine');
 assert.match(companionSource, /engine\.getSystem\('gardenInfoCard'\)\?\.view/, 'garden card system is not captured from the game engine');
 assert.match(companionSource, /key: 'time',[\s\S]*gardenCompanionEstimate: true/, 'estimates are not inserted as native garden card attributes');
 assert.match(companionSource, /attributes: \[\.\.\.attributes, \.\.\.estimateAttributes\]/, 'native estimate attributes are not included in card measurement');

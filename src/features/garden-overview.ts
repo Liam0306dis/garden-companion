@@ -1,5 +1,10 @@
 import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
 import { ABILITY_DETAILS, MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { currentWeather } from './weather-timer.js';
+
+/** Plant Growth Boost abilities and the weather each seasonal tier needs to be active. */
+const PLANT_GROWTH_ABILITIES = new Set(['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost']);
+const PLANT_GROWTH_WEATHER: Record<string, string> = { SnowyPlantGrowthBoost: 'Frost', DawnPlantGrowthBoost: 'Dawn', AmberPlantGrowthBoost: 'AmberMoon', ThunderPlantGrowthBoost: 'Thunderstorm' };
 import { crystalStrengthBonus, mutationSprite, onSpritesReady, petMetrics, produceSprite } from '../pets.js';
 import { maxSizeMultiplier, slotIsMaxSize, slotScale } from '../crop-size.js';
 import { toast } from '../toast.js';
@@ -44,6 +49,8 @@ interface OverviewStats {
   allCrops: number;
   allTargetProgress: Record<string, number>;
   friendBonus: number;
+  /** Seconds of growth progressed per real second from active Plant Growth Boost pets. */
+  growthRate: number;
 }
 
 const FILTER_KEY = 'gardenCompanion.overviewSpecies.v1';
@@ -601,7 +608,7 @@ function calculateStats(
   ignorePreserved: boolean,
   mutationConfig: MutationConfig,
 ): OverviewStats {
-  const result: OverviewStats = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1 };
+  const result: OverviewStats = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1, growthRate: 0 };
   const bySpecies = new Map<string, SpeciesStats>();
   const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
   const friendCount = Math.min(5, Math.max(0, (runtime.room?.players?.length ?? 1) - 1));
@@ -732,6 +739,26 @@ function calculateStats(
   result.doubleHarvestMult = 1 + pDouble;
   result.cropRefundMult = pRefund < 1 ? 1 / (1 - pRefund) : 1;
   result.projectedValue = Math.round(result.value * result.doubleHarvestMult * result.cropRefundMult);
+
+  // Plant Growth Boost pets shave time off maturing crops, so the ready timers count down faster.
+  // Each proc removes plantGrowthReductionMinutes at baseProbability (data-driven per tier); seasonal
+  // tiers only count while their weather runs. This is the per-second rate the turtle card timer uses.
+  const weatherNow = currentWeather();
+  let growthRate = 0;
+  for (const pet of activePets) {
+    if (!(Number(pet.hunger) > 0)) continue;
+    const strength = petStrength(pet);
+    for (const ability of pet.abilities ?? []) {
+      if (!PLANT_GROWTH_ABILITIES.has(ability)) continue;
+      const required = PLANT_GROWTH_WEATHER[ability];
+      if (required && required !== weatherNow) continue;
+      const minutes = Number(ABILITY_DETAILS[ability]?.baseParameters?.plantGrowthReductionMinutes);
+      const chance = Number(ABILITY_DETAILS[ability]?.baseProbability) / 100;
+      if (!Number.isFinite(minutes) || !Number.isFinite(chance)) continue;
+      growthRate += (strength / 100 * minutes) * 60 * (1 - Math.pow(1 - chance * strength / 100, 1 / 60));
+    }
+  }
+  result.growthRate = growthRate;
 
   function addEta(mutation: string, ability: string | string[], chance: number, missing: number, total: number | null, countOnly = false): void {
     const abilities = Array.isArray(ability) ? ability : [ability];
@@ -937,9 +964,11 @@ function compactNumber(value: number): string {
   return Math.round(value).toLocaleString(NUMBER_LOCALE);
 }
 
-function durationUntil(timestamp: number | null): string {
+function durationUntil(timestamp: number | null, growthRate = 0): string {
   if (!timestamp) return 'Ready';
-  const seconds = Math.max(0, Math.ceil((timestamp - Date.now()) / 1000));
+  // Plant Growth Boost pets progress crops faster than real time, so the wait is the remaining time
+  // divided by that accelerated rate.
+  const seconds = Math.max(0, Math.ceil((timestamp - Date.now()) / 1000 / (1 + Math.max(0, growthRate))));
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor(seconds % 3600 / 60);
   return hours ? `${hours}h ${minutes}m` : `${minutes}m ${seconds % 60}s`;
@@ -1032,7 +1061,7 @@ export function initGardenOverview(): void {
 
   function structureSignature(stats: OverviewStats): string {
     return JSON.stringify({
-      plants: stats.plants, crops: stats.crops, mature: stats.mature, value: stats.value, projectedValue: stats.projectedValue, unmutated: stats.unmutated, notMaxSize: stats.notMaxSize,
+      plants: stats.plants, crops: stats.crops, mature: stats.mature, value: stats.value, projectedValue: stats.projectedValue, growthRate: Math.round(stats.growthRate * 1000), unmutated: stats.unmutated, notMaxSize: stats.notMaxSize,
       mutations: [...stats.mutations], species: stats.species.map(row => [row.species, row.plants, row.crops, row.mature, row.value]),
       etas: stats.granterEtas.map(row => [row.mutation, row.pets, row.missing, Math.round(row.meanSeconds), Math.round(row.totalSeconds)]),
       filter: filter ? [...filter] : null, tracked: [...trackedMutations], alarms: [...alarmTargets], mutationConfig, view, configMode,
@@ -1063,8 +1092,8 @@ export function initGardenOverview(): void {
   function updateCountdowns(panel: HTMLElement, stats: OverviewStats): void {
     const next = panel.querySelector<HTMLElement>('[data-live=next]');
     const all = panel.querySelector<HTMLElement>('[data-live=all]');
-    if (next) next.textContent = durationUntil(stats.nextMatureAt);
-    if (all) all.textContent = durationUntil(stats.allMatureAt);
+    if (next) next.textContent = durationUntil(stats.nextMatureAt, stats.growthRate);
+    if (all) all.textContent = durationUntil(stats.allMatureAt, stats.growthRate);
   }
 
   /** One heading, one switch row, one pill: the settings card only speaks in these three shapes. */
@@ -1292,9 +1321,9 @@ export function initGardenOverview(): void {
         const metrics = [
           `<div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>`,
           // Only worth a tile while nothing has matured; once something is ready it says nothing.
-          ...(stats.mature === 0 ? [`<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>`] : []),
+          ...(stats.mature === 0 ? [`<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt, stats.growthRate)}</b></div>`] : []),
           `<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div>`,
-          `<div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div>`,
+          `<div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt, stats.growthRate)}</b></div>`,
         ];
         // Three tiles share one row; a fourth would not fit beside them, so it falls back to 2x2.
         return `<div class="go-summary" data-tiles="${metrics.length}">${metrics.join('')}</div>`;

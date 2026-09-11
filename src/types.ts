@@ -72,6 +72,7 @@ export interface GardenTile {
   slots?: PlantSlot[];
   plantedAt?: number;
   maturedAt?: number;
+  endTime?: number;
 }
 
 export interface ShopItem {

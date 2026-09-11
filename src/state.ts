@@ -1,4 +1,4 @@
-import type { GameState, PlantSlot, PlayerSlot, RoomState } from './types.js';
+import type { GameState, GardenTile, PlantSlot, PlayerSlot, RoomState } from './types.js';
 import { LOG_KEY, LOG_PER_ABILITY } from './constants.js';
 import { loadLocal, saveLocalOrFail, scriptVersion } from './utils.js';
 
@@ -21,8 +21,10 @@ export interface CompanionState {
   /** The game's playerIdAtom, which starts empty and is seeded from the Welcome frame. */
   atomPlayerId: string | null;
   playerId: string | null;
+  /** The raw garden object beneath the player, used to bridge the game's post-1141 tile atoms. */
+  currentGardenObject: GardenTile | null;
   currentCrop: PlantSlot[] | null;
-  currentEgg: PlantSlot | null;
+  currentEgg: GardenTile | null;
   dirtTileIndex: string | number | null;
   selectedSlotId: string | number | null;
   selectedItemId: string | null;
@@ -58,6 +60,7 @@ export const state: CompanionState = {
   atomPlayerId: null,
   playerId: null,
   currentCrop: null,
+  currentGardenObject: null,
   currentEgg: null,
   dirtTileIndex: null,
   selectedSlotId: null,

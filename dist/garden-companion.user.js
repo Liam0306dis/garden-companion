@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.61
+// @version      0.8.62
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -857,6 +857,7 @@
     atomPlayerId: null,
     playerId: null,
     currentCrop: null,
+    currentGardenObject: null,
     currentEgg: null,
     dirtTileIndex: null,
     selectedSlotId: null,
@@ -4257,15 +4258,6 @@ ${eggs.map(eggCard).join("")}`;
       cinematicAtom = atom;
       watchCinematicValue(atom);
     }
-    if ((atomKey.endsWith("/quinoaEngineAtom") || atom.debugLabel === "quinoaEngineAtom") && typeof atom.write === "function" && !atom.__gardenCompanionEngineCapture) {
-      const originalEngineWrite = atom.write;
-      atom.write = function(get, set, ...args) {
-        const result = originalEngineWrite.call(this, get, set, ...args);
-        setQuinoaEngine(args[0]);
-        return result;
-      };
-      atom.__gardenCompanionEngineCapture = true;
-    }
     if (gameAtomSet || typeof atom?.write !== "function" || wrappedAtomWrites.has(atom)) return atom;
     const original = atom.write;
     const capture = function(get, set, ...args) {
@@ -4357,6 +4349,15 @@ ${eggs.map(eggCard).join("")}`;
   function labelMatches(label, match) {
     return label === match || label.endsWith(`/${match}`);
   }
+  function mirrorAtomValue(key, value) {
+    state[key] = value;
+    if (key === "currentGardenObject") {
+      const object = value;
+      state.currentCrop = object?.objectType === "plant" && Array.isArray(object.slots) ? object.slots : null;
+      state.currentEgg = object?.objectType === "egg" ? object : null;
+    }
+    if (key === "selectedSlotId") state.selectedSlotId = value;
+  }
   function hookAtom(match, key, attempt = 0) {
     const map = atomMap();
     if (!map || typeof map.values !== "function") {
@@ -4371,8 +4372,7 @@ ${eggs.map(eggCard).join("")}`;
       const original = atom.read;
       atom.read = function(get, ...args) {
         const value = original.call(this, get, ...args);
-        state[key] = value;
-        if (key === "selectedSlotId") state.selectedSlotId = value;
+        mirrorAtomValue(key, value);
         return value;
       };
       if (typeof atom.write === "function") {
@@ -4381,8 +4381,7 @@ ${eggs.map(eggCard).join("")}`;
           const result = originalWrite.call(this, get, set, ...args);
           try {
             const value = get(atom);
-            state[key] = value;
-            if (key === "selectedSlotId") state.selectedSlotId = value;
+            mirrorAtomValue(key, value);
           } catch {
           }
           return result;
@@ -4394,9 +4393,11 @@ ${eggs.map(eggCard).join("")}`;
     if (attempt < 180) setTimeout(() => hookAtom(match, key, attempt + 1), 500);
   }
   function installAtomHooks() {
+    hookAtom("myCurrentGardenObjectAtom", "currentGardenObject");
     hookAtom("myCurrentGrowSlotsAtom", "currentCrop");
     hookAtom("myCurrentEggAtom", "currentEgg");
     hookAtom("myOwnCurrentDirtTileIndexAtom", "dirtTileIndex");
+    hookAtom("selectedCropSlotIdAtom", "selectedSlotId");
     hookAtom("mySelectedSlotIdAtom", "selectedSlotId");
     hookAtom("mySelectedItemIdAtom", "selectedItemId");
     hookAtom("isInPreservationModeAtom", "preservationMode");
@@ -7056,6 +7057,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
   }
 
   // src/features/garden-overview.ts
+  var PLANT_GROWTH_ABILITIES = /* @__PURE__ */ new Set(["PlantGrowthBoost", "PlantGrowthBoostII", "PlantGrowthBoostIII", "SnowyPlantGrowthBoost", "DawnPlantGrowthBoost", "AmberPlantGrowthBoost", "ThunderPlantGrowthBoost"]);
+  var PLANT_GROWTH_WEATHER = { SnowyPlantGrowthBoost: "Frost", DawnPlantGrowthBoost: "Dawn", AmberPlantGrowthBoost: "AmberMoon", ThunderPlantGrowthBoost: "Thunderstorm" };
   var FILTER_KEY = "gardenCompanion.overviewSpecies.v1";
   var STYLE_ID2 = "gc-overview-style";
   var PANEL_ID = "gc-overview-panel";
@@ -7538,7 +7541,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     target.set(mutation, (target.get(mutation) ?? 0) + 1);
   }
   function calculateStats(runtime, catalog, filter, trackedMutations, ignorePreserved, mutationConfig) {
-    const result = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: /* @__PURE__ */ new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1 };
+    const result = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: /* @__PURE__ */ new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1, growthRate: 0 };
     const bySpecies = /* @__PURE__ */ new Map();
     const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
     const friendCount = Math.min(5, Math.max(0, (runtime.room?.players?.length ?? 1) - 1));
@@ -7639,6 +7642,22 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     result.doubleHarvestMult = 1 + pDouble;
     result.cropRefundMult = pRefund < 1 ? 1 / (1 - pRefund) : 1;
     result.projectedValue = Math.round(result.value * result.doubleHarvestMult * result.cropRefundMult);
+    const weatherNow = currentWeather();
+    let growthRate = 0;
+    for (const pet of activePets3) {
+      if (!(Number(pet.hunger) > 0)) continue;
+      const strength = petStrength2(pet);
+      for (const ability of pet.abilities ?? []) {
+        if (!PLANT_GROWTH_ABILITIES.has(ability)) continue;
+        const required = PLANT_GROWTH_WEATHER[ability];
+        if (required && required !== weatherNow) continue;
+        const minutes = Number(ABILITY_DETAILS[ability]?.baseParameters?.plantGrowthReductionMinutes);
+        const chance = Number(ABILITY_DETAILS[ability]?.baseProbability) / 100;
+        if (!Number.isFinite(minutes) || !Number.isFinite(chance)) continue;
+        growthRate += strength / 100 * minutes * 60 * (1 - Math.pow(1 - chance * strength / 100, 1 / 60));
+      }
+    }
+    result.growthRate = growthRate;
     function addEta(mutation, ability, chance, missing, total, countOnly = false) {
       const abilities = Array.isArray(ability) ? ability : [ability];
       const pets = activePets3.filter((pet) => pet.hunger > 0 && pet.abilities?.some((name) => abilities.includes(name)));
@@ -7829,9 +7848,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
     return Math.round(value).toLocaleString(NUMBER_LOCALE);
   }
-  function durationUntil(timestamp) {
+  function durationUntil(timestamp, growthRate = 0) {
     if (!timestamp) return "Ready";
-    const seconds = Math.max(0, Math.ceil((timestamp - Date.now()) / 1e3));
+    const seconds = Math.max(0, Math.ceil((timestamp - Date.now()) / 1e3 / (1 + Math.max(0, growthRate))));
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor(seconds % 3600 / 60);
     return hours ? `${hours}h ${minutes}m` : `${minutes}m ${seconds % 60}s`;
@@ -7919,6 +7938,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         mature: stats.mature,
         value: stats.value,
         projectedValue: stats.projectedValue,
+        growthRate: Math.round(stats.growthRate * 1e3),
         unmutated: stats.unmutated,
         notMaxSize: stats.notMaxSize,
         mutations: [...stats.mutations],
@@ -7946,8 +7966,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     function updateCountdowns(panel3, stats) {
       const next = panel3.querySelector("[data-live=next]");
       const all = panel3.querySelector("[data-live=all]");
-      if (next) next.textContent = durationUntil(stats.nextMatureAt);
-      if (all) all.textContent = durationUntil(stats.allMatureAt);
+      if (next) next.textContent = durationUntil(stats.nextMatureAt, stats.growthRate);
+      if (all) all.textContent = durationUntil(stats.allMatureAt, stats.growthRate);
     }
     function settingsHead(label, trailing = "") {
       return `<div class="go-settings-head"><span>${escapeHtml2(label)}</span>${trailing}</div>`;
@@ -8125,9 +8145,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         const metrics = [
           `<div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>`,
           // Only worth a tile while nothing has matured; once something is ready it says nothing.
-          ...stats.mature === 0 ? [`<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt)}</b></div>`] : [],
+          ...stats.mature === 0 ? [`<div class="go-metric"><small>First ready</small><b data-live="next">${durationUntil(stats.nextMatureAt, stats.growthRate)}</b></div>`] : [],
           `<div class="go-metric go-size"><small>Not max size</small><b>${stats.notMaxSize.toLocaleString(NUMBER_LOCALE)}</b></div>`,
-          `<div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt)}</b></div>`
+          `<div class="go-metric"><small>All ready</small><b data-live="all">${durationUntil(stats.allMatureAt, stats.growthRate)}</b></div>`
         ];
         return `<div class="go-summary" data-tiles="${metrics.length}">${metrics.join("")}</div>`;
       })();
@@ -11123,6 +11143,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       tileSystem: null,
       petSystem: null,
       worldTapRouter: null,
+      gardenInfoCard: null,
       inventoryItems: [],
       inventoryReady: false,
       ownUserSlotIdx: null,
@@ -11208,6 +11229,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         live.worldTapRouter = system;
         disarmPrivateField("registeredClaimants");
         log("Native canvas UI hit testing connected.");
+      } else if (system?.name === "gardenInfoCard" && system.view) {
+        if (live.gardenInfoCard === system) return;
+        live.gardenInfoCard = system;
+        setQuinoaEngine({ getSystem: (name) => name === "gardenInfoCard" ? live.gardenInfoCard : void 0 });
+        log("Native garden info card connected.");
       } else return;
       releaseGlobalHooksIfIdle();
     }
@@ -11241,7 +11267,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function releaseGlobalHooksIfIdle() {
       if (armedSystemFields.size === 0) restoreDefinePropertyCapture();
-      if (live.tapToMove && live.tileSystem && live.petSystem && live.worldTapRouter) {
+      if (live.tapToMove && live.tileSystem && live.petSystem && live.worldTapRouter && live.gardenInfoCard) {
         restoreSystemRegistryCapture();
         if (hookReleaseTimer) {
           clearTimeout(hookReleaseTimer);
