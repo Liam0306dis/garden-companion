@@ -1,3 +1,15 @@
+0.8.63
+- Re-add lunar time on weather mode
+
+0.8.62
+- Fixed Crop value / Turtle timer when standing on crops / eggs
+- Garden Overview "All Ready" should take into consideration Plant Growth Boost now
+
+0.8.61
+- Updated Next Weather - will only work if you're on 1141+
+
+0.8.60
+- fix for Instant harvest and should now walk through multi-slot plants on each harvest
 
 0.8.59
 - garden overview "est. value" now includes expected extra yield from your Double Harvest and Produce Refund pets (top 3 of each across all owned pets, scaled by strength, Strength Crystal included)

@@ -21,7 +21,7 @@ export type ForecastStatus = 'pending' | 'ready' | 'unavailable';
 // as "Lunar event" rather than by name, so we only need to know a weather IS one.
 const LUNAR_WEATHER = new Set(['Dawn', 'AmberMoon']);
 
-interface ForecastEntry { weatherId?: unknown; startsAtMs?: unknown; endsAtMs?: unknown }
+interface ForecastEntry { weatherId?: unknown; groupId?: unknown; startsAtMs?: unknown; endsAtMs?: unknown }
 
 /**
  * The upcoming-weather list from game state, or null when the game has not sent
@@ -60,16 +60,20 @@ export function nextWeather(): WeatherWindow | null {
   const now = Date.now();
   let best: WeatherWindow | null = null;
   for (const entry of entries) {
-    const weatherId = typeof entry.weatherId === 'string' ? entry.weatherId : null;
+    // Lunar events ride the forecast under groupId "Lunar" with a null weatherId - the game names
+    // them only as a group, since which of the two is coming is not meant to be read off in advance.
+    // So a Lunar entry is a valid event even without a weatherId, and the panel shows it as one.
+    const lunar = entry.groupId === 'Lunar' || (typeof entry.weatherId === 'string' && LUNAR_WEATHER.has(entry.weatherId));
+    const weatherId = typeof entry.weatherId === 'string' ? entry.weatherId : '';
     const startsAtMs = Number(entry.startsAtMs);
-    if (!weatherId || !Number.isFinite(startsAtMs) || startsAtMs <= now) continue;   // current or malformed
-    if (best && startsAtMs >= best.startsAtMs) continue;                             // keep the earliest
+    if ((!weatherId && !lunar) || !Number.isFinite(startsAtMs) || startsAtMs <= now) continue;   // current or malformed
+    if (best && startsAtMs >= best.startsAtMs) continue;                                          // keep the earliest
     const endsAtMs = Number(entry.endsAtMs);
     best = {
       weatherId,
       startsAtMs,
       endsAtMs: Number.isFinite(endsAtMs) ? endsAtMs : 0,
-      lunar: LUNAR_WEATHER.has(weatherId),
+      lunar,
     };
   }
   return best;

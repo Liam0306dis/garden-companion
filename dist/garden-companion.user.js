@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.62
+// @version      0.8.63
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3631,16 +3631,17 @@ ${groups}
     const now = Date.now();
     let best = null;
     for (const entry of entries) {
-      const weatherId = typeof entry.weatherId === "string" ? entry.weatherId : null;
+      const lunar = entry.groupId === "Lunar" || typeof entry.weatherId === "string" && LUNAR_WEATHER2.has(entry.weatherId);
+      const weatherId = typeof entry.weatherId === "string" ? entry.weatherId : "";
       const startsAtMs = Number(entry.startsAtMs);
-      if (!weatherId || !Number.isFinite(startsAtMs) || startsAtMs <= now) continue;
+      if (!weatherId && !lunar || !Number.isFinite(startsAtMs) || startsAtMs <= now) continue;
       if (best && startsAtMs >= best.startsAtMs) continue;
       const endsAtMs = Number(entry.endsAtMs);
       best = {
         weatherId,
         startsAtMs,
         endsAtMs: Number.isFinite(endsAtMs) ? endsAtMs : 0,
-        lunar: LUNAR_WEATHER2.has(weatherId)
+        lunar
       };
     }
     return best;
