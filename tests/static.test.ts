@@ -287,7 +287,9 @@ assert.match(forecastSource, /game\.weatherForecast/, 'the forecast is no longer
 // The model that told us which group runs on fixed slots is gone, so the two lunar events are named
 // directly. Dawn/AmberMoon are stable ids; a rename would surface as the lunar timer mislabelling.
 assert.match(forecastSource, /const LUNAR_WEATHER = new Set\(\['Dawn', 'AmberMoon'\]\)/, 'the lunar events are identified some other way than the known ids');
-assert.match(forecastSource, /lunar: LUNAR_WEATHER\.has\(weatherId\)/, 'the next event is no longer flagged as lunar by id');
+// Lunar events ride the forecast under groupId 'Lunar' with a null weatherId, so they must be
+// recognised by group (or a known id) or "next weather" would skip past an imminent Dawn/Amber Moon.
+assert.match(forecastSource, /entry\.groupId === 'Lunar'/, 'a lunar forecast entry is no longer recognised by its group');
 assert.match(forecastSource, /startsAtMs <= now\) continue;/, 'the scan no longer skips the already-started (current) weather');
 assert.match(forecastSource, /startsAtMs >= best\.startsAtMs\) continue;/, 'the scan no longer keeps the earliest upcoming event');
 // The timer names rain, snow and thunder but never which lunar event is coming - that belongs to the
@@ -1772,8 +1774,9 @@ assert.match(overviewSource, /return petMetrics\(pet as unknown as Parameters<ty
 // by hand, so the crystal bonus never reached it.
 assert.match(cropEstimatesSource, /return petMetrics\(pet\)\?\.strength \?\? 87 \+ crystalStrengthBonus\(\);/, 'crop estimates keep their own strength formula, so the crystal bonus misses the turtle timer');
 assert.doesNotMatch(cropEstimatesSource, /Chicken: \[2880/, 'the catalog numbers are written out by hand again, so a catalog change will not reach them');
-// Potting hands back a Plant, which stacks onto nothing, so the pot and the plant each need a slot.
-assert.match(plantDragSource, /ensureToolReady\('PlanterPot', 1, 1\)/, 'the potted plant is not given a slot of its own');
+// Potting hands back a Plant, which stacks onto nothing, so each potted plant needs a slot of its
+// own - one for a plain move, two for a swap (potsNeeded), and pots stack into a single reserved slot.
+assert.match(plantDragSource, /ensureToolReady\('PlanterPot', potsNeeded, 1\)/, 'the potted plant is not given a slot of its own');
 // The index is left off so the game appends and a stackable tool merges into the stack it has.
 assert.doesNotMatch(petsSource, /toInventoryIndex/, 'a retrieval names a slot, which is for dragging onto a particular square');
 
