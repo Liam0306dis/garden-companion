@@ -1,3 +1,7 @@
+0.8.64
+- Auto-store now skips crystals/shards that still have a timer running (no more rejected commands)
+- Plant drag can now swap two plants by dropping onto an occupied tile
+
 0.8.63
 - Re-add lunar time on weather mode
 

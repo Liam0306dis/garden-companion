@@ -20,6 +20,8 @@ interface StoredItem {
   decorId?: string;
   toolId?: string;
   quantity?: number;
+  /** Seconds left on a running crystal/shard. Absent or zero once it has burned out. */
+  remainingActiveSeconds?: number;
 }
 
 interface StoreRule {
@@ -49,6 +51,24 @@ const RULES: StoreRule[] = [
 function isBusy(rule: StoreRule, key: string): boolean {
   if (rule.itemType !== 'Tool') return false;
   return toolIsHeld(key) || state.selectedItemId === key;
+}
+
+/**
+ * A crystal or shard still counting down runs on a timer, and the server refuses to file a running
+ * one - PutItemInStorage comes back "rejected". A rejection does not change the inventory, so nothing
+ * marks it as dealt with, and every later patch that shifts the signature re-queues it, one rejected
+ * command after another. A spent one (no time left) files away like any other tool, so only a running
+ * one is held back. Keyed off the item's own timer rather than its name, since the ids do not all say
+ * "crystal" (a Strength Crystal's shard is `StrengthShard`).
+ */
+function isTimedTool(item: StoredItem): boolean {
+  return Number(item.remainingActiveSeconds) > 0;
+}
+
+/** As isTimedTool, but found by tool id - the drain recheck holds the key, not the item. */
+function toolHasTimer(key: string): boolean {
+  const item = inventoryItems().find(entry => entry.itemType === 'Tool' && entry.toolId === key);
+  return Boolean(item) && isTimedTool(item!);
 }
 
 /** Patches arrive continuously, so the work is coalesced rather than run against every one. */
@@ -114,7 +134,7 @@ function flush(): void {
     for (const item of inventoryItems()) {
       if (item.itemType !== rule.itemType) continue;
       const key = rule.key(item);
-      if (!key || !stored.has(key) || isBusy(rule, key)) continue;
+      if (!key || !stored.has(key) || isBusy(rule, key) || isTimedTool(item)) continue;
       const pending = `${rule.storageId}:${key}`;
       if (sentAt.has(pending) || queued.has(pending)) continue;
       queued.add(pending);
@@ -137,7 +157,7 @@ function drain(): void {
   queued.delete(next.pending);
   // Rechecked here as well as at queue time: a drag can start while a move for the same tool is
   // still sitting in the queue behind everything else.
-  if (next.rule.enabled() && !isBusy(next.rule, next.key)) {
+  if (next.rule.enabled() && !isBusy(next.rule, next.key) && !toolHasTimer(next.key)) {
     // Marked only once it is away, so the grace covers waiting for the echo rather than the wait
     // in the queue behind everything else.
     try {

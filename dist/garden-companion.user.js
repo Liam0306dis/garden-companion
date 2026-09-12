@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.63
+// @version      0.8.64
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3447,6 +3447,13 @@ ${groups}
     if (rule.itemType !== "Tool") return false;
     return toolIsHeld(key) || state.selectedItemId === key;
   }
+  function isTimedTool(item) {
+    return Number(item.remainingActiveSeconds) > 0;
+  }
+  function toolHasTimer(key) {
+    const item = inventoryItems().find((entry) => entry.itemType === "Tool" && entry.toolId === key);
+    return Boolean(item) && isTimedTool(item);
+  }
   var DEBOUNCE_MS = 1e3;
   var RESEND_GRACE_MS = 5e3;
   var SEND_INTERVAL_MS = 200;
@@ -3485,7 +3492,7 @@ ${groups}
       for (const item of inventoryItems()) {
         if (item.itemType !== rule.itemType) continue;
         const key = rule.key(item);
-        if (!key || !stored.has(key) || isBusy(rule, key)) continue;
+        if (!key || !stored.has(key) || isBusy(rule, key) || isTimedTool(item)) continue;
         const pending = `${rule.storageId}:${key}`;
         if (sentAt.has(pending) || queued.has(pending)) continue;
         queued.add(pending);
@@ -3500,7 +3507,7 @@ ${groups}
     if (drainTimer || !queue.length) return;
     const next = queue.shift();
     queued.delete(next.pending);
-    if (next.rule.enabled() && !isBusy(next.rule, next.key)) {
+    if (next.rule.enabled() && !isBusy(next.rule, next.key) && !toolHasTimer(next.key)) {
       try {
         sendQuinoaCommand({ type: "PutItemInStorage", itemId: next.key, storageId: next.rule.storageId });
         sentAt.set(next.pending, Date.now());
@@ -11439,10 +11446,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           if (Array.isArray(value)) {
             live.inventoryItems = value;
             live.inventoryReady = true;
-            const planterPotCount = value.reduce((total, item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" ? total + (item.quantity ?? 1) : total, 0);
-            if (planterPotCount !== lastLoggedPlanterPotCount) {
-              lastLoggedPlanterPotCount = planterPotCount;
-              log(`Planter Pots in inventory: ${planterPotCount}`);
+            const planterPotCount2 = value.reduce((total, item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" ? total + (item.quantity ?? 1) : total, 0);
+            if (planterPotCount2 !== lastLoggedPlanterPotCount) {
+              lastLoggedPlanterPotCount = planterPotCount2;
+              log(`Planter Pots in inventory: ${planterPotCount2}`);
             }
           }
         }],
@@ -11580,7 +11587,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const marker = ensureFallbackHighlight();
       if (!marker) return;
       const tile = pointToFarmTile(clientX, clientY, activePress.target);
-      const isValid = tile && tile.userSlotIdx === live.ownUserSlotIdx && !tile.object;
+      const isValid = tile && tile.userSlotIdx === live.ownUserSlotIdx && tile.localTileIndex !== activePress.source?.localTileIndex && (!tile.object || tile.object.objectType === "plant");
       marker.visible = Boolean(isValid);
       if (isValid) marker.position.set(tile.x * TILE_SIZE3 + TILE_SIZE3 / 2, tile.y * TILE_SIZE3 + TILE_SIZE3 / 2);
     }
@@ -11614,11 +11621,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       activePress.sourceAlpha = null;
       activePress.fadeFrame = 0;
     }
-    function hasPlanterPot() {
-      return inventoryItems2().some((item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" && (item?.quantity ?? 1) > 0);
+    function planterPotCount() {
+      return inventoryItems2().reduce((sum, item) => item?.itemType === "Tool" && item?.toolId === "PlanterPot" ? sum + Math.max(0, item?.quantity ?? 1) : sum, 0);
     }
-    function canGetPlanterPot() {
-      return hasPlanterPot() || shackToolCount("PlanterPot") > 0;
+    function hasPlanterPot(amount = 1) {
+      return planterPotCount() >= amount;
+    }
+    function canGetPlanterPot(amount = 1) {
+      return planterPotCount() + shackToolCount("PlanterPot") >= amount;
     }
     function inventoryItems2() {
       const items = state.slot?.data?.inventory?.items;
@@ -11674,7 +11684,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       activePress.source = source;
       activePress.phase = "dragging";
       fadeSourcePlant(activePress);
-      showToast("Drag to a highlighted empty tile and release.", "success", 0);
+      showToast("Drag to a highlighted tile and release - drop on a plant to swap them.", "success", 0);
     }
     function getValidDestination(activePress) {
       const destination = pointToFarmTile(
@@ -11686,59 +11696,79 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (destination.userSlotIdx !== live.ownUserSlotIdx) {
         throw new Error("That tile is not in your garden");
       }
-      if (destination.object) throw new Error("The destination tile is occupied");
+      if (destination.localTileIndex === activePress.source.localTileIndex) {
+        throw new Error("That is where the plant already is");
+      }
+      if (destination.object && destination.object.objectType !== "plant") {
+        throw new Error("The destination tile holds something that is not a plant, so there is nothing to swap");
+      }
       return destination;
+    }
+    async function potPlant(tile) {
+      const plantItemId = pageWindow.crypto.randomUUID();
+      showToast(`Picking up ${tile.object?.species ?? "plant"}...`, "normal", 0);
+      sendPotPlant(tile.localTileIndex, plantItemId);
+      const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
+      if (!plantItem) throw new Error("The server did not return the potted plant");
+      return plantItem;
     }
     async function commitHeldMove(activePress) {
       const destination = getValidDestination(activePress);
       activePress.destination = destination;
+      const swap = Boolean(destination.object);
       activePress.phase = "potting";
-      const species = activePress.source.object.species;
+      const potsNeeded = swap ? 2 : 1;
+      const slotsNeeded = swap ? 2 : 1;
       const releasePot = holdTool("PlanterPot");
+      let sourcePlant;
+      let destPlant = null;
       try {
-        if (!hasPlanterPot() && !await ensureToolReady("PlanterPot", 1, 1)) {
-          throw new Error("No Planter Pot could be taken from the Tool Shack. Make room in your inventory.");
+        try {
+          if (!hasPlanterPot(potsNeeded) && !await ensureToolReady("PlanterPot", potsNeeded, 1)) {
+            throw new Error(swap ? "A swap needs two Planter Pots - add another to your inventory or Tool Shack." : "No Planter Pot could be taken from the Tool Shack. Make room in your inventory.");
+          }
+          if (freeInventorySlots() < slotsNeeded) {
+            throw new Error(swap ? "A swap needs two free inventory slots for the plants it lifts." : "Your inventory is full, so the plant has nowhere to go");
+          }
+          sourcePlant = await potPlant(activePress.source);
+          restoreSourcePlant(activePress);
+          if (swap) destPlant = await potPlant(destination);
+          activePress.plantItem = sourcePlant;
+          activePress.phase = "ready";
+        } finally {
+          releasePot();
         }
-        if (freeInventorySlots() < 1) throw new Error("Your inventory is full, so the plant has nowhere to go");
-        const plantItemId = pageWindow.crypto.randomUUID();
-        showToast(`Picking up ${species ?? "plant"}...`, "normal", 0);
-        sendPotPlant(activePress.source.localTileIndex, plantItemId);
-        const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
-        restoreSourcePlant(activePress);
-        if (!plantItem) throw new Error("The server did not return the potted plant");
-        activePress.plantItem = plantItem;
-        activePress.phase = "ready";
-      } finally {
-        releasePot();
-      }
-      await placeHeldPlant(activePress, destination);
-    }
-    async function placeHeldPlant(activePress, destination) {
-      if (activePress.phase === "placing" || activePress.cancelled) return;
-      try {
-        const currentObject = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
-        if (currentObject) {
-          activePress.cancelled = true;
-          showToast("Move stopped: the destination became occupied. The plant remains in inventory.", "error", 5e3);
-          return;
-        }
-        activePress.phase = "placing";
-        showToast("Placing plant...", "normal", 0);
-        sendPlantGardenPlant(destination.localTileIndex, activePress.plantItem.id);
-        const placed = await waitFor(() => {
-          const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
-          const itemStillHeld = inventoryItems2().some((item) => item?.id === activePress.plantItem.id);
-          return !itemStillHeld && object?.objectType === "plant" && isSamePlant(object, activePress.source.object);
-        }, PLACE_TIMEOUT_MS, 150);
-        if (placed) {
-          showToast("Plant moved.", "success");
-          log(`Moved ${activePress.source.object.species} from slot ${activePress.source.localTileIndex} to ${destination.localTileIndex}.`);
-        } else {
-          showToast("Placement was not confirmed. Check your inventory before retrying.", "error", 5e3);
+        await placePlant(activePress.source.object, destination, sourcePlant.id, activePress);
+        if (swap && destPlant) {
+          await placePlant(destination.object, activePress.source, destPlant.id, activePress);
         }
       } finally {
         moveBusy = false;
       }
+    }
+    async function placePlant(plantObject, destination, plantId, activePress) {
+      if (activePress.cancelled) return false;
+      const currentObject = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
+      if (currentObject) {
+        activePress.cancelled = true;
+        showToast("Move stopped: a tile became occupied. Your plants are safe in your inventory.", "error", 5e3);
+        return false;
+      }
+      activePress.phase = "placing";
+      showToast("Placing plant...", "normal", 0);
+      sendPlantGardenPlant(destination.localTileIndex, plantId);
+      const placed = await waitFor(() => {
+        const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
+        const itemStillHeld = inventoryItems2().some((item) => item?.id === plantId);
+        return !itemStillHeld && object?.objectType === "plant" && isSamePlant(object, plantObject);
+      }, PLACE_TIMEOUT_MS, 150);
+      if (placed) {
+        showToast("Plant moved.", "success");
+        log(`Placed ${plantObject?.species ?? "plant"} on slot ${destination.localTileIndex}.`);
+      } else {
+        showToast("Placement was not confirmed. Check your inventory before retrying.", "error", 5e3);
+      }
+      return placed;
     }
     function activatePress(activePress) {
       if (press !== activePress || activePress.cancelled || activePress.released) return;
@@ -11768,6 +11798,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         activePress.cancelled = true;
         moveBusy = false;
         restoreSourcePlant(activePress);
+        clearFallbackHighlight();
+        clearPress(activePress);
         log("Move cancelled.", error);
         showToast(`Move cancelled: ${error.message}.`, "error", 4500);
       }
@@ -11816,6 +11848,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     document.addEventListener("pointermove", (event) => {
       const activePress = press;
       if (!activePress || event.pointerId !== activePress.pointerId) return;
+      if (activePress.cancelled) return;
       if (!isEnabled2()) {
         activePress.cancelled = true;
         restoreSourcePlant(activePress);
