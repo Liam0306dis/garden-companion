@@ -3,7 +3,7 @@
 - Plant drag can now swap two plants by dropping onto an occupied tile
 
 0.8.63
-- Re-add lunar time on weather mode
+- Re-added lunar time on next weather toggle if its the soonest weather
 
 0.8.62
 - Fixed Crop value / Turtle timer when standing on crops / eggs
