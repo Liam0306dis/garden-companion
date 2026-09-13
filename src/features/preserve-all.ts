@@ -38,8 +38,25 @@ let lastSignature = '';
 let holdStartedAt = 0;
 let holdFrame = 0;
 
+/**
+ * The plant being preserved is held, not stood on, so its grow slots are not in state.currentCrop
+ * (that only tracks the tile underfoot). A held potted plant is the selected inventory item with
+ * itemType 'Plant', and it carries its own grow slots - the same object the game's own preserve
+ * handler reads (Preserve is sent with itemId = that item's id, growSlotIdx = a slot's slotId).
+ */
+function heldPlantItem(): { id: string; slots: PlantSlot[] } | null {
+  const id = state.selectedItemId;
+  if (!id) return null;
+  const items = state.slot?.data?.inventory?.items as
+    | Array<{ id?: string; itemType?: string; slots?: PlantSlot[] }>
+    | undefined;
+  if (!Array.isArray(items)) return null;
+  const item = items.find(entry => entry?.id === id && entry?.itemType === 'Plant');
+  return item && Array.isArray(item.slots) ? { id, slots: item.slots } : null;
+}
+
 function heldSlots(): PlantSlot[] {
-  return Array.isArray(state.currentCrop) ? state.currentCrop : [];
+  return heldPlantItem()?.slots ?? [];
 }
 
 function preserveCost(species: string, slot: PlantSlot, mutations: readonly string[]): number {

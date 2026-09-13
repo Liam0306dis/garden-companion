@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.65
+// @version      0.8.66
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -4365,6 +4365,7 @@ ${eggs.map(eggCard).join("")}`;
       state.currentEgg = object?.objectType === "egg" ? object : null;
     }
     if (key === "selectedSlotId") state.selectedSlotId = value;
+    if (key === "currentAction") state.preservationMode = value === "preserve";
   }
   function hookAtom(match, key, attempt = 0) {
     const map = atomMap();
@@ -4408,7 +4409,6 @@ ${eggs.map(eggCard).join("")}`;
     hookAtom("selectedCropSlotIdAtom", "selectedSlotId");
     hookAtom("mySelectedSlotIdAtom", "selectedSlotId");
     hookAtom("mySelectedItemIdAtom", "selectedItemId");
-    hookAtom("isInPreservationModeAtom", "preservationMode");
     hookAtom("myUserSlotIdxAtom", "userSlotIndex");
     hookAtom("playerIdAtom", "atomPlayerId");
     hookAtom("actionAtom", "currentAction");
@@ -5844,17 +5844,26 @@ ${eggs.map(eggCard).join("")}`;
         }
         let effect;
         if (passiveGroup) {
+          const pendingByWeather = /* @__PURE__ */ new Map();
           const total = entries.reduce((sum, entry) => {
-            if (entry.pet.hunger <= 0 || !abilityActiveInWeather(entry.ability)) return sum;
+            if (entry.pet.hunger <= 0) return sum;
             const strength = petMetrics(entry.pet)?.strength ?? 100;
             const base = Number(ABILITY_DETAILS[entry.ability]?.baseParameters?.[passiveGroup.parameter] || 0);
-            return sum + base * strength / 100;
+            const contribution = base * strength / 100;
+            if (!abilityActiveInWeather(entry.ability)) {
+              const weather = PASSIVE_REQUIRED_WEATHER.get(entry.ability);
+              if (weather && contribution) pendingByWeather.set(weather, (pendingByWeather.get(weather) ?? 0) + contribution);
+              return sum;
+            }
+            return sum + contribution;
           }, 0);
           const amount = Number(total.toFixed(2)).toLocaleString(NUMBER_LOCALE);
+          const pending = [...pendingByWeather].map(([weather, value]) => `+${Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE)}% during ${weatherLabel(weather)}`).join(", ");
           if (passiveGroup.key === "HungerBoost") effect = `Reduces hunger depletion by ${amount}% combined`;
           else if (passiveGroup.key === "WeatherMutationBoost") effect = `Weather mutation chance increase: +${amount}% combined`;
           else if (passiveGroup.key === "PetMutationBoost") effect = `Egg mutation chance increase: +${amount}% combined`;
           else effect = `Active pet ability chance: +${amount}% combined`;
+          if (pending) effect += ` (${pending})`;
         } else effect = abilityEffectText(ability, averageStrength, details?.trigger, details?.baseParameters);
         const names = owners.map((pet) => pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies)).join(", ");
         const label = passiveGroup?.label ?? ABILITY_DETAILS[ability]?.name ?? humanize(ability);
@@ -12941,8 +12950,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var lastSignature = "";
   var holdStartedAt = 0;
   var holdFrame = 0;
+  function heldPlantItem() {
+    const id = state.selectedItemId;
+    if (!id) return null;
+    const items = state.slot?.data?.inventory?.items;
+    if (!Array.isArray(items)) return null;
+    const item = items.find((entry) => entry?.id === id && entry?.itemType === "Plant");
+    return item && Array.isArray(item.slots) ? { id, slots: item.slots } : null;
+  }
   function heldSlots() {
-    return Array.isArray(state.currentCrop) ? state.currentCrop : [];
+    return heldPlantItem()?.slots ?? [];
   }
   function preserveCost(species, slot, mutations) {
     const crop = PLANT_CATALOG[species]?.crop;

@@ -713,8 +713,10 @@ assert.match(companionSource, /details\?\.baseProbability \?\? proc\?\.chance/, 
 assert.match(companionSource, /Reduces hunger depletion by \$\{percent\(scaled\('hungerRefundPercentage'\)\)\}%/, 'Hunger Boost effect text is incorrect');
 assert.doesNotMatch(companionSource, /Hunger refunded:/, 'Hunger Boost is incorrectly described as refunding hunger');
 for (const passiveFamily of ['HungerBoost', 'WeatherMutationBoost', 'PetMutationBoost', 'DawnbinderBoost']) assert.match(companionSource, new RegExp(`key: '${passiveFamily}'`), `${passiveFamily} is not grouped for stacking`);
-assert.match(companionSource, /return sum \+ base \* strength \/ 100;/, 'passive ability contributions are not stacked using each pet strength');
-assert.match(companionSource, /entry\.pet\.hunger <= 0 \|\| !abilityActiveInWeather\(entry\.ability\)/, 'inactive passive ability owners are still included');
+assert.match(companionSource, /const contribution = base \* strength \/ 100;/, 'passive ability contributions are not stacked using each pet strength');
+assert.match(companionSource, /if \(entry\.pet\.hunger <= 0\) return sum;/, 'starving passive ability owners are still included');
+assert.match(companionSource, /if \(!abilityActiveInWeather\(entry\.ability\)\) \{[\s\S]*?pendingByWeather\.set\(weather/, 'a weather-gated boost out of its weather is not held aside as a potential');
+assert.match(companionSource, /\+\$\{Number\(value\.toFixed\(2\)\)\.toLocaleString\(NUMBER_LOCALE\)\}% during \$\{weatherLabel\(weather\)\}/, 'the pending weather boost is not shown as its would-be value');
 assert.match(companionSource, /ProduceEater: \{ chance: 60/, 'Crop Eater uses a stale ability id');
 assert.match(companionSource, /SellBoostI: \{ chance: 10/, 'Sell Boost I uses a stale ability id');
 assert.match(companionSource, /PetAgeBoostIII: \{ chance: 70/, 'Hatch XP Boost III calculation is missing');
@@ -979,7 +981,13 @@ assert.match(preserveAllSource, /if \(!state\.preservationMode \|\| rows\.length
 assert.match(preserveAllSource, /const progress = Math\.min\(1, \(performance\.now\(\) - holdStartedAt\) \/ HOLD_MS\);/, 'preserve all no longer needs a press and hold before spending coins');
 assert.match(preserveAllSource, /if \(progress < 1\) \{ holdFrame = requestAnimationFrame\(tick\); return; \}\s*cancelHold\(\);\s*run\(\);/, 'preserve all can send before the hold completes');
 assert.match(preserveAllSource, /const live = eligibleSlots\(\)\.find\(candidate => String\(candidate\.slotId\) === String\(row\.slotId\)\);/, 'preserve all no longer rechecks each slot as the batch runs');
-assert.match(gameAtomsSource, /hookAtom\('isInPreservationModeAtom', 'preservationMode'\);/, 'the preservation station is no longer tracked');
+// 1159 removed isInPreservationModeAtom; preservationMode is now derived from the primary action
+// (actionAtom, mirrored as currentAction), which is 'preserve' only while a potted plant is held at
+// the station. currentBuildingAtom would read cleaner but is only subscribed during the tutorial.
+assert.match(gameAtomsSource, /if \(key === 'currentAction'\) state\.preservationMode = value === 'preserve';/, 'preservationMode is derived from the preserve action');
+assert.doesNotMatch(gameAtomsSource, /hookAtom\('isInPreservationModeAtom'/, 'the removed preservation-mode atom is no longer hooked');
+// The held plant is not the tile underfoot, so its slots come from the selected inventory Plant item.
+assert.match(preserveAllSource, /entry\?\.id === id && entry\?\.itemType === 'Plant'/, 'preserve all reads the held plant from the selected inventory item');
 assert.match(gameAtomsSource, /hookAtom\('myUserSlotIdxAtom', 'userSlotIndex'\);/, 'our own user slot index is no longer read from the game');
 // debugLabels are bare names, so a hook written as a path never binds, and a bare endsWith would
 // let lastCurrencyTransactionAtom answer to actionAtom.

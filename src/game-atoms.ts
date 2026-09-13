@@ -198,6 +198,12 @@ function mirrorAtomValue(key: string, value: unknown): void {
     state.currentEgg = object?.objectType === 'egg' ? object as typeof state.currentEgg : null;
   }
   if (key === 'selectedSlotId') state.selectedSlotId = value as string | number | null;
+  // Bundle 1159 removed isInPreservationModeAtom. The primary action is 'preserve'
+  // exactly while a potted plant is held at the preservation station, and actionAtom
+  // (mirrored here) is read continuously by the on-screen action prompt, so derive
+  // the flag preserve-all reads from it. (currentBuildingAtom would look cleaner but
+  // is only subscribed during the tutorial, so its read hook almost never fires.)
+  if (key === 'currentAction') state.preservationMode = value === 'preserve';
 }
 
 function hookAtom(match, key, attempt = 0) {
@@ -246,7 +252,6 @@ export function installAtomHooks() {
   hookAtom('selectedCropSlotIdAtom', 'selectedSlotId');
   hookAtom('mySelectedSlotIdAtom', 'selectedSlotId');
   hookAtom('mySelectedItemIdAtom', 'selectedItemId');
-  hookAtom('isInPreservationModeAtom', 'preservationMode');
   // Which slot in userSlots is ours. Nothing in the room state says so any more, and the socket url
   // no longer carries a playerId, so the game's own answer is the only reliable one.
   hookAtom('myUserSlotIdxAtom', 'userSlotIndex');

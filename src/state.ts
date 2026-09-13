@@ -28,6 +28,7 @@ export interface CompanionState {
   dirtTileIndex: string | number | null;
   selectedSlotId: string | number | null;
   selectedItemId: string | null;
+  /** True while the primary action is 'preserve' - i.e. holding a potted plant at the station. */
   preservationMode: boolean;
   currentAction: string | null;
   lastShopSignature: string;

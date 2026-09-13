@@ -379,17 +379,30 @@ export function initCompanion(): void {
       }
       let effect: string;
       if (passiveGroup) {
+        // A weather-gated boost contributes nothing until its weather runs, so its live combined
+        // total is zero out of weather. Rather than let that read as broken, its would-be value is
+        // held aside per weather and shown as what it will add once that weather is up.
+        const pendingByWeather = new Map<string, number>();
         const total = entries.reduce((sum, entry) => {
-          if (entry.pet.hunger <= 0 || !abilityActiveInWeather(entry.ability)) return sum;
+          if (entry.pet.hunger <= 0) return sum;
           const strength = petMetrics(entry.pet)?.strength ?? 100;
           const base = Number(ABILITY_DETAILS[entry.ability]?.baseParameters?.[passiveGroup.parameter] || 0);
-          return sum + base * strength / 100;
+          const contribution = base * strength / 100;
+          if (!abilityActiveInWeather(entry.ability)) {
+            const weather = PASSIVE_REQUIRED_WEATHER.get(entry.ability);
+            if (weather && contribution) pendingByWeather.set(weather, (pendingByWeather.get(weather) ?? 0) + contribution);
+            return sum;
+          }
+          return sum + contribution;
         }, 0);
         const amount = Number(total.toFixed(2)).toLocaleString(NUMBER_LOCALE);
+        const pending = [...pendingByWeather].map(([weather, value]) =>
+          `+${Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE)}% during ${weatherLabel(weather)}`).join(', ');
         if (passiveGroup.key === 'HungerBoost') effect = `Reduces hunger depletion by ${amount}% combined`;
         else if (passiveGroup.key === 'WeatherMutationBoost') effect = `Weather mutation chance increase: +${amount}% combined`;
         else if (passiveGroup.key === 'PetMutationBoost') effect = `Egg mutation chance increase: +${amount}% combined`;
         else effect = `Active pet ability chance: +${amount}% combined`;
+        if (pending) effect += ` (${pending})`;
       } else effect = abilityEffectText(ability, averageStrength, details?.trigger, details?.baseParameters);
       const names = owners.map(pet => pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies)).join(', ');
       const label = passiveGroup?.label ?? ABILITY_DETAILS[ability]?.name ?? humanize(ability);

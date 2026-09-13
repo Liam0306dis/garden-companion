@@ -1,3 +1,6 @@
+0.8.66
+- Fixed the Preserve All button not appearing at the preservation station.
+
 0.8.65
 - Fixed pet team emblems not showing their pet's sprite (the game moved emblems from species to pet id)
 
