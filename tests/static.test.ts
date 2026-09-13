@@ -872,7 +872,8 @@ assert.match(companionSource, /const EMBLEM_ICONS = \['rainbow', 'gold', 'thunde
 assert.match(companionSource, /Array\.from\(\{ length: 26 \}, \(_, index\) => String\.fromCharCode\(65 \+ index\)\)/, 'emblem letters do not cover A to Z');
 assert.match(companionSource, /return \{ type: 'number', number: Number\(value\) \}/, 'letter emblems are not sent as their alphabet number');
 assert.match(companionSource, /function takenEmblemNumbers\(\)/, 'letter emblems already used by another team are still offered');
-assert.match(companionSource, /if \(teamPickerEmblem\?\.type === 'pet' && !species\.has\(teamPickerEmblem\.petSpecies\)\) teamPickerEmblem = null/, 'a pet emblem can outlive its species leaving the team');
+assert.match(companionSource, /if \(teamPickerEmblem\?\.type === 'pet' && !selectedIds\.has\(teamPickerEmblem\.petId\)\) teamPickerEmblem = null/, 'a pet emblem can outlive the pet leaving the team');
+assert.match(petTeamsSource, /if \(kind === 'pet'\) return \{ type: 'pet', petId: value \}/, 'pet emblems are not keyed on the game\'s petId');
 assert.match(companionSource, /const MAX_PET_TEAMS = 25/, 'the game team limit is not enforced');
 assert.match(companionSource, /const MAX_TEAM_PETS = 3/, 'the team pet limit is not shared');
 assert.match(companionSource, /const full = count >= MAX_TEAM_PETS && !input\.checked;\s*input\.disabled = full;/, 'the picker still allows selecting a fourth pet');
@@ -1474,7 +1475,7 @@ assert.match(cropProtectionSource, /message\.type === 'QuinoaCommand' \? message
 console.log('Static checks passed');
 // Auto-store only tops up a stack the storage already holds, and the silo and shed key their
 // contents by species and decor id rather than by an item id.
-assert.match(autoStoreSource, /if \(!key \|\| !stored\.has\(key\) \|\| isBusy\(rule, key\)\) continue;/, 'auto-store files items the storage has never held, or files a tool that is in use');
+assert.match(autoStoreSource, /if \(!key \|\| !stored\.has\(key\) \|\| isBusy\(rule, key\) \|\| isTimedTool\(item\)\) continue;/, 'auto-store files items the storage has never held, files a tool that is in use, or files a timed crystal');
 // Tools are the only kind the script fetches back out, so they are the only kind that can be filed
 // away mid-use. Both the queue and the send are guarded, since a drag can begin while a move for
 // the same tool is still queued behind others.
@@ -1488,7 +1489,7 @@ assert.match(autoStoreSource, /sendQuinoaCommand\(\{ type: 'PutItemInStorage', i
 // A whole inventory of eligible items must not leave as one burst, and the toggle can be turned
 // off while the queue is still draining.
 assert.match(autoStoreSource, /drainTimer = window\.setTimeout\(\(\) => \{ drainTimer = 0; drain\(\); \}, SEND_INTERVAL_MS\);/, 'auto-store sends every eligible move in one tick');
-assert.match(autoStoreSource, /if \(next\.rule\.enabled\(\) && !isBusy\(next\.rule, next\.key\)\) \{/, 'a draining queue ignores the toggle being turned off, or the hold taken since it was queued');
+assert.match(autoStoreSource, /if \(next\.rule\.enabled\(\) && !isBusy\(next\.rule, next\.key\) && !toolHasTimer\(next\.key\)\) \{/, 'a draining queue ignores the toggle being turned off, the hold taken since it was queued, or a timer that has since started');
 assert.match(autoStoreSource, /if \(sentAt\.has\(pending\) \|\| queued\.has\(pending\)\) continue;/, 'auto-store resends a move before the server has echoed it');
 // The grace has to start when the move leaves, not when it joins the queue: a queue longer than the
 // grace would otherwise let the same key be queued twice.

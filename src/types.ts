@@ -31,9 +31,11 @@ export interface PetTeamMember {
   name?: string | null;
 }
 
+// A pet emblem points at one specific pet on the team by its slot id, not a species: the game
+// switched from petSpecies to petId around build 1135, and draws that pet's own portrait.
 export type PetTeamEmblem =
   | { type: 'number'; number: number }
-  | { type: 'pet'; petSpecies: string }
+  | { type: 'pet'; petId: string }
   | { type: 'icon'; icon: string };
 
 export interface PetTeam {

@@ -7,7 +7,7 @@ import { sendQuinoaCommand } from '../game-connection.js';
 import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { activePets, allPets, petMetrics, petSprite } from '../pets.js';
+import { activePets, allPets, petMetrics, petSprite, petSpriteSource } from '../pets.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize } from '../utils.js';
@@ -33,22 +33,31 @@ let pendingTeamDeleteId: string | null = null;
 function emblemKey(emblem: PetTeamEmblem | null | undefined): string {
   if (!emblem) return '';
   if (emblem.type === 'number') return `number:${emblem.number}`;
-  if (emblem.type === 'pet') return `pet:${emblem.petSpecies}`;
+  if (emblem.type === 'pet') return `pet:${emblem.petId}`;
   return `icon:${emblem.icon}`;
 }
 
 function emblemFromKey(key: string): PetTeamEmblem | null {
   const [kind, value] = key.split(':', 2);
   if (kind === 'number') return { type: 'number', number: Number(value) };
-  if (kind === 'pet') return { type: 'pet', petSpecies: value };
+  if (kind === 'pet') return { type: 'pet', petId: value };
   if (kind === 'icon') return { type: 'icon', icon: value };
   return null;
+}
+
+/** The pet a pet emblem points at, or undefined once it has been sold off the roster. */
+function emblemPet(petId: string): Pet | undefined {
+  return allPets().find(pet => pet.id === petId);
+}
+
+function petLabel(pet: Pet): string {
+  return pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
 }
 
 function emblemLabel(emblem: PetTeamEmblem | null | undefined): string {
   if (!emblem) return '';
   if (emblem.type === 'number') return EMBLEM_LETTERS[emblem.number - 1] || String(emblem.number);
-  if (emblem.type === 'pet') return PET_CATALOG[emblem.petSpecies]?.name || humanize(emblem.petSpecies);
+  if (emblem.type === 'pet') { const pet = emblemPet(emblem.petId); return pet ? petLabel(pet) : 'Pet'; }
   return humanize(emblem.icon);
 }
 
@@ -106,16 +115,24 @@ function emblemChip(emblem: PetTeamEmblem): string {
     if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(humanize(emblem.icon))}" title="${escapeHtml(humanize(emblem.icon))}"></span>`;
   }
   if (emblem.type === 'pet') {
-    const sprite = page.__gardenCompanionPetSprites?.[emblem.petSpecies];
+    const pet = emblemPet(emblem.petId);
+    const sprite = pet ? petSpriteSource(pet) : undefined;
     if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(emblemLabel(emblem))}" title="${escapeHtml(emblemLabel(emblem))}"></span>`;
   }
   return `<span class="gc-team-emblem">${escapeHtml(emblemLabel(emblem))}</span>`;
 }
 
-function selectedTeamSpecies(): string[] {
+/** The picked pets themselves, since a pet emblem now names one specific pet rather than a species. */
+function selectedTeamPets(): Pet[] {
   const chosen = teamPickerSelection ?? new Set<string>();
-  const species = allPets().filter(pet => chosen.has(pet.id)).map(pet => pet.petSpecies);
-  return [...new Set(species)];
+  return allPets().filter(pet => chosen.has(pet.id));
+}
+
+function petEmblemOption(pet: Pet): { key: string; inner: string; label: string } {
+  const sprite = petSpriteSource(pet);
+  const label = petLabel(pet);
+  const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
+  return { key: `pet:${pet.id}`, inner, label };
 }
 
 function takenEmblemNumbers(): Set<number> {
@@ -136,13 +153,11 @@ function renderEmblemOptions(): string {
     taken.has(index + 1),
   )).join('');
   const icons = EMBLEM_ICONS.map(icon => option(`icon:${icon}`, emblemIconMarkup(icon), humanize(icon))).join('');
-  const species = selectedTeamSpecies();
-  const pets = species.length ? species.map(name => {
-    const sprite = page.__gardenCompanionPetSprites?.[name];
-    const label = PET_CATALOG[name]?.name || humanize(name);
-    const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
-    return option(`pet:${name}`, inner, label);
-  }).join('') : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
+  const teamPets = selectedTeamPets();
+  const pets = teamPets.length ? teamPets.map(pet => {
+    const { key, inner, label } = petEmblemOption(pet);
+    return option(key, inner, label);
+  }).join('') : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a pet on the team.</p>';
   const groups: Array<[string, string]> = [['number', letters], ['icon', icons], ['pet', pets]];
   const tabs = groups.map(([kind]) => `<button data-emblem-kind="${kind}" class="${kind === teamPickerEmblemKind ? 'active' : ''}">${kind === 'number' ? 'Letters' : kind === 'icon' ? 'Icons' : 'Pets'}</button>`).join('');
   const strips = groups.map(([kind, markup]) => `<div class="gc-emblem-strip" data-emblem-group="${kind}" ${kind === teamPickerEmblemKind ? '' : 'hidden'}>${markup}</div>`).join('');
@@ -151,16 +166,15 @@ function renderEmblemOptions(): string {
 }
 
 function refreshEmblemUi(picker: HTMLElement): void {
-  const species = new Set(selectedTeamSpecies());
-  if (teamPickerEmblem?.type === 'pet' && !species.has(teamPickerEmblem.petSpecies)) teamPickerEmblem = null;
+  const teamPets = selectedTeamPets();
+  const selectedIds = new Set(teamPets.map(pet => pet.id));
+  if (teamPickerEmblem?.type === 'pet' && !selectedIds.has(teamPickerEmblem.petId)) teamPickerEmblem = null;
   const petGroup = picker.querySelector<HTMLElement>('[data-emblem-group=pet]');
   if (petGroup) {
-    petGroup.innerHTML = species.size ? [...species].map(name => {
-      const sprite = page.__gardenCompanionPetSprites?.[name];
-      const label = PET_CATALOG[name]?.name || humanize(name);
-      const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
-      return `<button data-emblem-option="pet:${escapeHtml(name)}" title="${escapeHtml(label)}">${inner}</button>`;
-    }).join('') : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a species on the team.</p>';
+    petGroup.innerHTML = teamPets.length ? teamPets.map(pet => {
+      const { key, inner, label } = petEmblemOption(pet);
+      return `<button data-emblem-option="${escapeHtml(key)}" title="${escapeHtml(label)}">${inner}</button>`;
+    }).join('') : '<p class="gc-emblem-hint">Choose pets first. A pet emblem has to be a pet on the team.</p>';
     petGroup.querySelectorAll<HTMLButtonElement>('[data-emblem-option]').forEach(button => button.onclick = () => {
       const key = button.dataset.emblemOption!;
       teamPickerEmblem = emblemFromKey(key);
