@@ -340,10 +340,11 @@ export function initPlantDragMove(): void {
     }
 
     /**
-     * The label is a list, not a name. Build 1029 renamed the inventory atom for its prediction and
-     * rollback work - myOptimisticInventoryItemsAtom to myPredictedInventoryItemsAtom - and a hook
-     * that knows one name simply stops firing, which is how a plant move started reporting that
-     * there was no Planter Pot while the inventory was full of them.
+     * The label is a list, not a name, so the current build's atom and any renamed
+     * alias can be watched together. Build 1029 renamed the inventory atom
+     * (myOptimisticInventoryItemsAtom -> myPredictedInventoryItemsAtom) and a hook
+     * that knew only the old name stopped firing, which is how a plant move started
+     * reporting no Planter Pot while the inventory was full of them.
      */
     function hookAtom(labels, onValue) {
         const wanted = Array.isArray(labels) ? labels : [labels];
@@ -376,7 +377,7 @@ export function initPlantDragMove(): void {
 
     function installAtomHooks() {
         const hooks = [
-            [['myPredictedInventoryItemsAtom', 'myOptimisticInventoryItemsAtom'], value => {
+            [['myPredictedInventoryItemsAtom'], value => {
                 if (Array.isArray(value)) {
                     live.inventoryItems = value;
                     live.inventoryReady = true;

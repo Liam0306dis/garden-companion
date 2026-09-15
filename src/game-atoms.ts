@@ -244,13 +244,11 @@ function hookAtom(match, key, attempt = 0) {
 }
 
 export function installAtomHooks() {
-  // Bundle 1141 replaced the dedicated crop and egg atoms with this common raw tile object.
+  // Bundle 1141 replaced the dedicated crop and egg atoms with this common raw tile
+  // object; mirrorAtomValue derives currentCrop/currentEgg from it.
   hookAtom('myCurrentGardenObjectAtom', 'currentGardenObject');
-  hookAtom('myCurrentGrowSlotsAtom', 'currentCrop');
-  hookAtom('myCurrentEggAtom', 'currentEgg');
   hookAtom('myOwnCurrentDirtTileIndexAtom', 'dirtTileIndex');
   hookAtom('selectedCropSlotIdAtom', 'selectedSlotId');
-  hookAtom('mySelectedSlotIdAtom', 'selectedSlotId');
   hookAtom('mySelectedItemIdAtom', 'selectedItemId');
   // Which slot in userSlots is ours. Nothing in the room state says so any more, and the socket url
   // no longer carries a playerId, so the game's own answer is the only reliable one.

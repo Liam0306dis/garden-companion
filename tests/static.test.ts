@@ -569,7 +569,7 @@ assert.match(styleSource, /#gc-celestial-overlay/, 'celestial layout overlay sty
 // going out is earlier, and since 1029 it names the plant it is about to create.
 assert.match(planterPotSelectionSource, /onOutgoingCommand\(command => \{[\s\S]*?command\.type !== 'PotPlant'/, 'selection keeper does not watch inventory changes');
 assert.match(planterPotSelectionSource, /addedPlantIds: new Set\(\[plantItemId\]\)/, 'the keeper deduces the potted plant instead of reading the id it was given');
-assert.match(plantDragSource, /\['myPredictedInventoryItemsAtom', 'myOptimisticInventoryItemsAtom'\]/, 'plant drag watches only one name for the inventory atom');
+assert.match(plantDragSource, /\['myPredictedInventoryItemsAtom'\]/, 'plant drag watches the current inventory atom by its live name');
 // The wrapped getter must never throw: the throw comes out of the game's own call site.
 assert.match(gameAtomsSource, /if \(!atom\) return atom;\s*const atomKey = String\(key\);/, 'an unregistered atom throws out of the wrapped cache getter');
 assert.match(planterPotSelectionSource, /mySelectedItemIdAtom/, 'selection keeper does not watch selected items');
@@ -795,7 +795,7 @@ assert.match(companionSource, /`\$\{GROWTH_PREFIX\}\$\{formatDuration/, 'growth 
 // The estimate has to land on the crop the game's own card is showing, gaps in slot ids and all.
 assert.match(companionSource, /const bySlotId = \[\.\.\.crops\]\.sort\(\(left, right\) => Number\(left\?\.slotId\) - Number\(right\?\.slotId\)\);/, 'crop estimates pick a slot by array order rather than by slot id');
 assert.match(companionSource, /bySlotId\.find\(slot => Number\(slot\?\.slotId\) >= selected\) \?\? bySlotId\[0\]/, 'a harvested slot id no longer falls through to the next crop');
-// mySelectedSlotIdAtom is a primitive atom, so its value only ever moves through a write.
+// A primitive game atom (e.g. playerIdAtom, which starts empty) changes value only through a write.
 assert.match(companionSource, /if \(typeof atom\.write === 'function'\) \{\s*\n\s*const originalWrite = atom\.write;/, 'a primitive game atom changes value without the panel noticing');
 // Bundle 1141 removed the engine atom, so the engine is captured from the system registry: the
 // gardenInfoCard system is picked out of Map.set and handed over as a minimal getSystem engine.

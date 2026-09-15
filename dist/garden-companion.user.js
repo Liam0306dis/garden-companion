@@ -4403,11 +4403,8 @@ ${eggs.map(eggCard).join("")}`;
   }
   function installAtomHooks() {
     hookAtom("myCurrentGardenObjectAtom", "currentGardenObject");
-    hookAtom("myCurrentGrowSlotsAtom", "currentCrop");
-    hookAtom("myCurrentEggAtom", "currentEgg");
     hookAtom("myOwnCurrentDirtTileIndexAtom", "dirtTileIndex");
     hookAtom("selectedCropSlotIdAtom", "selectedSlotId");
-    hookAtom("mySelectedSlotIdAtom", "selectedSlotId");
     hookAtom("mySelectedItemIdAtom", "selectedItemId");
     hookAtom("myUserSlotIdxAtom", "userSlotIndex");
     hookAtom("playerIdAtom", "atomPlayerId");
@@ -11463,7 +11460,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function installAtomHooks2() {
       const hooks = [
-        [["myPredictedInventoryItemsAtom", "myOptimisticInventoryItemsAtom"], (value) => {
+        [["myPredictedInventoryItemsAtom"], (value) => {
           if (Array.isArray(value)) {
             live.inventoryItems = value;
             live.inventoryReady = true;
