@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.68
+// @version      0.8.69
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -13404,13 +13404,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (target.closest("[data-mgr-run]")) return;
       if (target.closest("[data-mgr-all]")) {
         event.preventDefault();
-        for (const plant of managerPlants()) for (const row of plant.rows) selected.add(row.key);
+        for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected.add(row.key);
         onManagerSelectionChanged();
         return;
       }
       if (target.closest("[data-mgr-none]")) {
         event.preventDefault();
-        selected.clear();
+        if (managerSearch.trim()) {
+          for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected.delete(row.key);
+        } else {
+          selected.clear();
+        }
         onManagerSelectionChanged();
         return;
       }
@@ -13564,19 +13568,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     };
     step();
   }
-  function anchorAboveCard(element) {
+  function positionPanel(element) {
     const card = findPixiCard();
     const rect = element.getBoundingClientRect();
-    if (!card || !rect.width) return;
-    element.style.left = `${Math.round(Math.max(8, card.centerX - rect.width / 2))}px`;
-    element.style.top = `${Math.round(Math.max(8, card.top - rect.height - ANCHOR_GAP))}px`;
-    element.style.right = "auto";
-    element.style.bottom = "auto";
-    element.style.transform = "none";
-  }
-  function positionPanel(element, aboveCard) {
-    if (aboveCard) {
-      anchorAboveCard(element);
+    if (card && rect.width) {
+      element.style.left = `${Math.round(Math.max(8, card.centerX - rect.width / 2))}px`;
+      element.style.top = `${Math.round(Math.max(8, card.top - rect.height - ANCHOR_GAP))}px`;
+      element.style.right = "auto";
+      element.style.bottom = "auto";
+      element.style.transform = "none";
       return;
     }
     element.style.left = "";
@@ -13605,7 +13605,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const element = ensurePanel2();
     element.hidden = false;
     if (!force && signature2 === lastSignature) {
-      positionPanel(element, canPreserveAll);
+      positionPanel(element);
       return;
     }
     lastSignature = signature2;
@@ -13626,7 +13626,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     manageButton.hidden = !canManage;
     manageButton.textContent = "Open Preservation Manager";
     element.dataset.holding = holding ? "true" : "false";
-    positionPanel(element, canPreserveAll);
+    positionPanel(element);
   }
   function initPreserveAll() {
     window.setInterval(() => {

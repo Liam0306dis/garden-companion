@@ -1,3 +1,6 @@
+0.8.69
+- Preservation Manager: "Select all" now only selects the filtered results, and the Open button sits above the crop card for single-slot plants instead of covering it.
+
 0.8.68
 - Preservation Manager: mutation and plant icons now appear reliably when opened on its own (sprite load fix).
 

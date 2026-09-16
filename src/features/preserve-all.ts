@@ -614,13 +614,19 @@ function openManager(): void {
     if (target.closest('[data-mgr-run]')) return; // driven by the hold handlers, not a click
     if (target.closest('[data-mgr-all]')) {
       event.preventDefault();
-      for (const plant of managerPlants()) for (const row of plant.rows) selected.add(row.key);
+      // Only the plants the search is showing, so "Select all" acts on what is in front of the player.
+      for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected.add(row.key);
       onManagerSelectionChanged();
       return;
     }
     if (target.closest('[data-mgr-none]')) {
       event.preventDefault();
-      selected.clear();
+      // Symmetrically, clear only the shown results, leaving ticks on plants filtered out.
+      if (managerSearch.trim()) {
+        for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected.delete(row.key);
+      } else {
+        selected.clear();
+      }
       onManagerSelectionChanged();
       return;
     }
@@ -808,24 +814,23 @@ function run(): void {
  * keeps the bar clear of the buttons either way. The CSS position is the fallback for when the
  * scene cannot be read.
  */
-function anchorAboveCard(element: HTMLElement): void {
+/**
+ * Sat above the held plant's card whenever one is on screen - the spot the Preserve All bar uses -
+ * so a single-slot plant that only offers the Manage button still sits there rather than over the
+ * crop card. When no card can be read the inline anchor is cleared, dropping back to the stylesheet's
+ * fixed spot (bottom centre) so nothing is left stranded at a stale position.
+ */
+function positionPanel(element: HTMLElement): void {
   const card = findPixiCard();
   const rect = element.getBoundingClientRect();
-  if (!card || !rect.width) return;
-  element.style.left = `${Math.round(Math.max(8, card.centerX - rect.width / 2))}px`;
-  element.style.top = `${Math.round(Math.max(8, card.top - rect.height - ANCHOR_GAP))}px`;
-  element.style.right = 'auto';
-  element.style.bottom = 'auto';
-  element.style.transform = 'none';
-}
-
-/**
- * The bar sits above the held plant's card only while it is that plant's Preserve All. With no
- * preservable held plant it is just the Manage button, which belongs to no card - so it drops back
- * to the stylesheet's fixed spot (bottom centre) by clearing the inline anchor a prior frame set.
- */
-function positionPanel(element: HTMLElement, aboveCard: boolean): void {
-  if (aboveCard) { anchorAboveCard(element); return; }
+  if (card && rect.width) {
+    element.style.left = `${Math.round(Math.max(8, card.centerX - rect.width / 2))}px`;
+    element.style.top = `${Math.round(Math.max(8, card.top - rect.height - ANCHOR_GAP))}px`;
+    element.style.right = 'auto';
+    element.style.bottom = 'auto';
+    element.style.transform = 'none';
+    return;
+  }
   element.style.left = '';
   element.style.top = '';
   element.style.right = '';
@@ -853,7 +858,7 @@ function render(force = false): void {
   const element = ensurePanel();
   element.hidden = false;
   if (!force && signature === lastSignature) {
-    positionPanel(element, canPreserveAll);
+    positionPanel(element);
     return;
   }
   lastSignature = signature;
@@ -874,7 +879,7 @@ function render(force = false): void {
   manageButton.hidden = !canManage;
   manageButton.textContent = 'Open Preservation Manager';
   element.dataset.holding = holding ? 'true' : 'false';
-  positionPanel(element, canPreserveAll);
+  positionPanel(element);
 }
 
 export function initPreserveAll(): void {
