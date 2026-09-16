@@ -1,3 +1,6 @@
+0.8.68
+- Preservation Manager: mutation and plant icons now appear reliably when opened on its own (sprite load fix).
+
 0.8.67
 - New Preservation Manager at the station: tick individual ready slots across your whole inventory (favourites excluded), search, and see the total; preserves 15 per press with a progress bar and connection-safe queueing.
 
