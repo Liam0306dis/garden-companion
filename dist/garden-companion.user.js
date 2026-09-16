@@ -13367,6 +13367,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       closeManager();
     }
   }
+  var managerSpritesHooked = false;
+  function onManagerSpritesReady() {
+    managerListSignature = "";
+    refreshManagerModal();
+  }
   function closeManager() {
     managerCancelHold();
     managerModal()?.remove();
@@ -13384,12 +13389,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     backdrop.innerHTML = managerModalMarkup();
     document.body.appendChild(backdrop);
     managerListSignature = managerDataSignature(managerPlants());
+    if (!managerSpritesHooked) {
+      managerSpritesHooked = true;
+      onSpritesReady(onManagerSpritesReady);
+    }
     page.__gardenCompanionLoadSprites?.();
     page.__gardenCompanionLoadSpriteGroup?.("deferred");
-    onSpritesReady(() => {
-      managerListSignature = "";
-      refreshManagerModal();
-    });
     backdrop.addEventListener("click", (event) => {
       const target = event.target;
       if (target === backdrop || target.closest("[data-mgr-close]")) {

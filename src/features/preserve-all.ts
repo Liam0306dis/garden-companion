@@ -569,6 +569,17 @@ function onManagerKey(event: KeyboardEvent): void {
   if (event.key === 'Escape') { event.stopPropagation(); closeManager(); }
 }
 
+/**
+ * Registered once (onSpritesReady keeps a set keyed by reference, so a fresh closure per open would
+ * pile up). Sprite readiness is not in the list signature, so clear it to force one rebuild that
+ * flips the mutation and plant text fallbacks to their icons; a no-op while the manager is closed.
+ */
+let managerSpritesHooked = false;
+function onManagerSpritesReady(): void {
+  managerListSignature = '';
+  refreshManagerModal();
+}
+
 function closeManager(): void {
   managerCancelHold();
   managerModal()?.remove();
@@ -591,11 +602,11 @@ function openManager(): void {
   managerListSignature = managerDataSignature(managerPlants());
 
   // Plant and mutation icons decode in the deferred sprite stage, which the main panel normally
-  // triggers - the manager can open without it, so ask for them here. Sprite readiness is not in the
-  // list signature, so force one rebuild when the art lands to flip the text fallbacks to icons.
+  // triggers - the manager can open without it, so ask for them here. The redraw once the art lands
+  // is hooked a single time, not per open.
+  if (!managerSpritesHooked) { managerSpritesHooked = true; onSpritesReady(onManagerSpritesReady); }
   page.__gardenCompanionLoadSprites?.();
   page.__gardenCompanionLoadSpriteGroup?.('deferred');
-  onSpritesReady(() => { managerListSignature = ''; refreshManagerModal(); });
 
   backdrop.addEventListener('click', event => {
     const target = event.target as HTMLElement;
