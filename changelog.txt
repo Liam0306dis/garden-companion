@@ -1,3 +1,6 @@
+0.8.67
+- New Preservation Manager at the station: tick individual ready slots across your whole inventory (favourites excluded), search, and see the total; preserves 15 per press with a progress bar and connection-safe queueing.
+
 0.8.66
 - Fixed the Preserve All button not appearing at the preservation station.
 

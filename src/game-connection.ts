@@ -215,6 +215,11 @@ export function noteGameSocket(socket: WebSocket): void {
   activeSocket = socket;
 }
 
+/** Whether a command could be sent right now: a socket exists and is open. */
+export function gameConnectionReady(): boolean {
+  return !!activeSocket && activeSocket.readyState === WebSocket.OPEN;
+}
+
 type CommandListener = (command: Record<string, unknown>) => void;
 
 const commandListeners = new Set<CommandListener>();

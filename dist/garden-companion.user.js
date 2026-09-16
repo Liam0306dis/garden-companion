@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.66
+// @version      0.8.67
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -644,6 +644,14 @@
     const size = BASE_SIZE + (MAX_SIZE - BASE_SIZE) * (scale - 1) / (maxMult - 1);
     return Math.round(Math.max(BASE_SIZE, Math.min(MAX_SIZE, size)));
   }
+  function slotSizePercent(crop, slot) {
+    if (slot?.size != null) return Math.round(clampSize(slot.size));
+    const max = Number(crop?.maxScale) || 1;
+    const scale = Number(slot?.targetScale ?? 1);
+    if (scale <= 1 || max <= 1) return BASE_SIZE;
+    if (scale >= max) return MAX_SIZE;
+    return Math.floor(BASE_SIZE + 50 * (scale - 1) / (max - 1));
+  }
 
   // src/list-search.ts
   function bindListSearch(input) {
@@ -805,6 +813,9 @@
   var activeSocket = null;
   function noteGameSocket(socket) {
     activeSocket = socket;
+  }
+  function gameConnectionReady() {
+    return !!activeSocket && activeSocket.readyState === WebSocket.OPEN;
   }
   var commandListeners = /* @__PURE__ */ new Set();
   function onOutgoingCommand(listener) {
@@ -1486,12 +1497,12 @@
     if (scale >= maxScale) return 100;
     return Math.floor(50 + 50 * (scale - 1) / (maxScale - 1));
   }
-  function cropValueFor(species, sizeFraction, selected, friends) {
+  function cropValueFor(species, sizeFraction, selected2, friends) {
     const crop = cropCatalog(species);
     const base = Number(crop?.baseSellPrice) || 0;
     const maxScale = maxSizeMultiplier(crop);
     const scale = 1 + Math.max(0, Math.min(1, sizeFraction)) * (maxScale - 1);
-    const mutation = catalogMutationMultiplier(selected);
+    const mutation = catalogMutationMultiplier(selected2);
     const friend = friendMultiplier(friends);
     const each = Math.round(base * scale * mutation);
     return {
@@ -1538,8 +1549,8 @@
   function setCalculatorTab(tab) {
     calculatorTab = tab;
   }
-  function toggleDustPet(petId, selected) {
-    if (selected) dustSelection.add(petId);
+  function toggleDustPet(petId, selected2) {
+    if (selected2) dustSelection.add(petId);
     else dustSelection.delete(petId);
   }
   function setDustSelection(petIds) {
@@ -1605,8 +1616,8 @@
   function renderValueCalculator() {
     const species = currentValueSpecies();
     if (!species) return '<p class="gc-empty">No crops with a sell price were found in the catalog.</p>';
-    const selected = selectedValueMutations();
-    const value = cropValueFor(species, valueSizeFraction, selected, valueFriends);
+    const selected2 = selectedValueMutations();
+    const value = cropValueFor(species, valueSizeFraction, selected2, valueFriends);
     const sprite = produceSprite(species);
     const options = valueSpeciesList().map((id) => `<option value="${escapeHtml(id)}" ${id === species ? "selected" : ""}>${escapeHtml(plantName(id))}</option>`).join("");
     const groups = VALUE_GROUPS.map((group) => {
@@ -2652,11 +2663,11 @@ ${groups}
   var LOCK = "🔒";
   function selectedCrop(crops) {
     if (!crops.length) return null;
-    const selected = Number(state.selectedSlotId) || 0;
-    const exact = crops.find((slot) => Number(slot?.slotId) === selected);
+    const selected2 = Number(state.selectedSlotId) || 0;
+    const exact = crops.find((slot) => Number(slot?.slotId) === selected2);
     if (exact) return exact;
     const bySlotId = [...crops].sort((left, right) => Number(left?.slotId) - Number(right?.slotId));
-    return bySlotId.find((slot) => Number(slot?.slotId) >= selected) ?? bySlotId[0] ?? null;
+    return bySlotId.find((slot) => Number(slot?.slotId) >= selected2) ?? bySlotId[0] ?? null;
   }
   function estimateLines() {
     const pets = state.slot?.data?.petSlots || [];
@@ -4816,8 +4827,8 @@ ${eggs.map(eggCard).join("")}`;
     return new Set(teams().filter((team) => team.id !== editingTeamId && team.emblem?.type === "number").map((team) => team.emblem.number));
   }
   function renderEmblemOptions() {
-    const selected = emblemKey(teamPickerEmblem);
-    const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml(key)}" data-active="${key === selected}" title="${escapeHtml(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
+    const selected2 = emblemKey(teamPickerEmblem);
+    const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml(key)}" data-active="${key === selected2}" title="${escapeHtml(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
     const taken = takenEmblemNumbers();
     const letters = EMBLEM_LETTERS.map((letter, index) => option(
       `number:${index + 1}`,
@@ -4853,9 +4864,9 @@ ${eggs.map(eggCard).join("")}`;
         refreshEmblemUi(picker);
       });
     }
-    const selected = emblemKey(teamPickerEmblem);
+    const selected2 = emblemKey(teamPickerEmblem);
     picker.querySelectorAll("[data-emblem-option]").forEach((button) => {
-      button.dataset.active = String(button.dataset.emblemOption === selected);
+      button.dataset.active = String(button.dataset.emblemOption === selected2);
     });
     picker.querySelectorAll("[data-emblem-kind]").forEach((button) => {
       button.classList.toggle("active", button.dataset.emblemKind === teamPickerEmblemKind);
@@ -5874,13 +5885,13 @@ ${eggs.map(eggCard).join("")}`;
         if (state.currentAction && state.currentAction !== "none" && !["harvest", "rainbowHarvest", "goldHarvest", "rarePatchHarvest"].includes(state.currentAction)) return;
         const tileObjects = state.slot?.data?.garden?.tileObjects ?? {};
         const current = Array.isArray(state.currentCrop) ? state.currentCrop : [];
-        const slotKey = (slot2) => `${slot2?.slotId}|${slot2?.species}|${slot2?.endTime}`;
-        const currentSignature = current.map(slotKey).join(",");
+        const slotKey2 = (slot2) => `${slot2?.slotId}|${slot2?.species}|${slot2?.endTime}`;
+        const currentSignature = current.map(slotKey2).join(",");
         let dirtIndex = state.dirtTileIndex;
         if ((dirtIndex == null || !tileObjects[String(dirtIndex)]?.slots?.length) && current.length) {
           const match = Object.keys(tileObjects).find((key) => {
             const slots = tileObjects[key]?.slots;
-            return Array.isArray(slots) && slots.length === current.length && slots.map(slotKey).join(",") === currentSignature;
+            return Array.isArray(slots) && slots.length === current.length && slots.map(slotKey2).join(",") === currentSignature;
           });
           if (match !== void 0) dirtIndex = match;
         }
@@ -5894,8 +5905,8 @@ ${eggs.map(eggCard).join("")}`;
         }
         const qualifyingIds = tile.slots.filter((slot2) => readyRareGold(slot2) && !harvested.ids.has(Number(slot2.slotId))).map((slot2) => Number(slot2.slotId)).sort((left, right) => left - right);
         if (!qualifyingIds.length) return;
-        const selected = Number(state.selectedSlotId);
-        const targetId = qualifyingIds.find((id) => id >= selected) ?? qualifyingIds[0];
+        const selected2 = Number(state.selectedSlotId);
+        const targetId = qualifyingIds.find((id) => id >= selected2) ?? qualifyingIds[0];
         const index = tile.slots.findIndex((slot2) => Number(slot2.slotId) === targetId);
         if (index < 0) return;
         event.preventDefault();
@@ -6277,8 +6288,8 @@ ${eggs.map(eggCard).join("")}`;
       return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? "" : "s"}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><div class="gc-list">${hungerToggle}</div><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
     }
     function renderSilence() {
-      const selected = new Set(config.silencedAbilities || []);
-      return `<label class="gc-toggle"><span><b>Hide pet level-up popups</b><small>Hides the "Level up!" and "Fully grown!" toasts.</small></span><input type="checkbox" data-feature="silenceLevelUps" ${feature("silenceLevelUps") ? "checked" : ""}><i></i></label><p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
+      const selected2 = new Set(config.silencedAbilities || []);
+      return `<label class="gc-toggle"><span><b>Hide pet level-up popups</b><small>Hides the "Level up!" and "Fully grown!" toasts.</small></span><input type="checkbox" data-feature="silenceLevelUps" ${feature("silenceLevelUps") ? "checked" : ""}><i></i></label><p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected2.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
     }
     function bindTabEvents(main) {
       main.querySelectorAll("[data-feature]").forEach((input) => input.onchange = () => {
@@ -6908,9 +6919,69 @@ body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
 #gc-preserve-all button { pointer-events:auto;position:relative;overflow:hidden;isolation:isolate;padding:11px 20px;border:0;border-radius:15px;color:#fff;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d);box-shadow:0 5px 0 #0d7466,0 12px 24px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28);cursor:pointer;font:800 17px/1 system-ui,sans-serif;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.35);white-space:nowrap; }
 #gc-preserve-all button:hover:not(:disabled) { filter:brightness(1.06); }
 #gc-preserve-all button:disabled { cursor:not-allowed;background:linear-gradient(180deg,#8a9490,#6b7570);box-shadow:0 5px 0 #4a524e,0 12px 24px rgba(0,0,0,.4); }
-#gc-preserve-all[data-holding=true] button { transform:translateY(2px);box-shadow:0 3px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28); }
+#gc-preserve-all[data-holding=true] [data-preserve-run] { transform:translateY(2px);box-shadow:0 3px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28); }
 #gc-preserve-all [data-preserve-fill] { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399);box-shadow:0 0 14px rgba(167,243,208,.5); }
 #gc-preserve-all [data-preserve-label] { position:relative; }
+/* The secondary button opens the per-slot manager: smaller and quieter than the green pill so it
+   reads as the "or pick them yourself" option beneath the one-press action. */
+#gc-preserve-all [data-preserve-manage] { margin-top:2px;padding:6px 14px;border-radius:11px;background:linear-gradient(180deg,#3a3a52,#26263a);box-shadow:0 3px 0 #16162a,0 6px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);color:#e9e6ff;font:800 12px/1 system-ui,sans-serif; }
+#gc-preserve-all [data-preserve-manage][hidden] { display:none; }
+
+/* Preservation manager: every ready slot across the inventory, ticked one by one. */
+/* The game page is not border-box, so full-width rows with padding would overflow and clip their
+   right edge (the cost and the header tick); scope a reset to the manager. */
+.gc-preserve-manager, .gc-preserve-manager * { box-sizing:border-box; }
+.gc-preserve-manager { width:480px;max-width:calc(100vw - 40px);max-height:min(82vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(52,211,153,.28);border-radius:12px;background:#0b0f0d;box-shadow:0 24px 60px rgba(0,0,0,.7);color:var(--gc-text);font:12px/1.4 system-ui,sans-serif; }
+.gc-preserve-manager .gc-modal-body { display:flex;flex-direction:column;gap:8px; }
+/* The body is a fixed-height flex column; without this its children shrink to fit instead of
+   scrolling, so a long inventory collapses every plant to a thin line. */
+.gc-preserve-manager .gc-modal-body>* { flex:0 0 auto; }
+.gc-preserve-manager .gc-modal-tools { gap:10px; }
+.gc-preserve-manager .gc-modal-tools button { white-space:nowrap!important; }
+.gc-pm-search { flex:1 1 auto;min-width:0;padding:6px 10px!important;border:1px solid var(--gc-line)!important;border-radius:7px!important;color:var(--gc-text)!important;background:rgba(255,255,255,.04)!important;font:600 11px system-ui,sans-serif!important; }
+.gc-pm-search::placeholder { color:var(--gc-muted); }
+.gc-pm-search:focus { outline:none;border-color:rgba(52,211,153,.55)!important; }
+.gc-pm-summary-row { padding:6px 12px;border-bottom:1px solid var(--gc-line); }
+.gc-pm-summary-row .gc-modal-summary { color:var(--gc-muted);font-size:10px;font-weight:700; }
+.gc-pm-empty { margin:12px 4px;color:var(--gc-muted);text-align:center; }
+.gc-pm-plant { border:1px solid var(--gc-line);border-radius:9px;overflow:hidden;background:rgba(255,255,255,.02); }
+.gc-pm-plant-head { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;width:100%;padding:7px 10px!important;border:0!important;border-bottom:1px solid var(--gc-line)!important;border-radius:0!important;background:rgba(52,211,153,.06)!important;color:var(--gc-text)!important;text-align:left;font:700 12px system-ui,sans-serif!important; }
+.gc-pm-plant-head:hover { background:rgba(52,211,153,.12)!important; }
+.gc-pm-plant-head b { flex:1 1 auto; }
+.gc-pm-plant-head small { color:var(--gc-muted);font-weight:700; }
+.gc-pm-icon { width:22px;height:22px;object-fit:contain; }
+.gc-pm-icon-text { display:grid;place-items:center;width:22px;height:22px;border-radius:5px;background:rgba(255,255,255,.08);font-weight:800; }
+.gc-pm-check { flex:0 0 auto;display:grid;place-items:center;width:18px;height:18px;border:1px solid var(--gc-line);border-radius:5px;color:var(--gc-green);font-style:normal;font-weight:800; }
+.gc-pm-plant-head[data-state=all] .gc-pm-check,.gc-pm-plant-head[data-state=some] .gc-pm-check { border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.14); }
+.gc-pm-slots { display:flex;flex-direction:column; }
+.gc-pm-slot { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;width:100%;padding:6px 10px 6px 14px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--gc-text)!important;text-align:left;font:600 11px system-ui,sans-serif!important;cursor:pointer; }
+.gc-pm-slot+.gc-pm-slot { border-top:1px solid rgba(255,255,255,.04)!important; }
+.gc-pm-slot:hover { background:rgba(255,255,255,.04)!important; }
+.gc-pm-slot[data-active=true] .gc-pm-check { border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.16); }
+.gc-pm-size { flex:0 0 auto!important;min-width:40px;color:var(--gc-muted);font-weight:700;white-space:nowrap!important; }
+.gc-pm-crop { flex:0 0 auto!important;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap!important;color:var(--gc-text);font-weight:700; }
+/* The game styles button descendants, so the mutation column's flex and its chips' wrapping are
+   both pinned - without this the column is squeezed to a character wide and each letter stacks. */
+.gc-pm-muts { flex:1 1 auto!important;display:flex!important;flex-flow:row wrap!important;align-items:center;gap:3px;min-width:0!important; }
+.gc-pm-mut { flex:0 0 auto!important;width:15px;height:15px;object-fit:contain; }
+.gc-pm-mut-text { flex:0 0 auto!important;padding:1px 5px;border:1px solid var(--gc-line);border-radius:9px;color:var(--gc-muted);font-size:9px;font-weight:700;white-space:nowrap!important; }
+.gc-pm-cost { flex:0 0 auto!important;color:var(--gc-gold);font-weight:800;white-space:nowrap!important; }
+.gc-pm-foot { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid var(--gc-line); }
+.gc-pm-foot-info { display:flex;flex-direction:column;gap:2px;min-width:0; }
+.gc-pm-total { color:var(--gc-text);font-weight:800; }
+.gc-pm-total[data-short=true] { color:var(--gc-danger);font-weight:700; }
+.gc-pm-hint { color:var(--gc-muted);font-size:10px;font-weight:700; }
+.gc-preserve-manager[data-awaiting=true] .gc-pm-hint { color:var(--gc-green); }
+.gc-preserve-manager[data-offline=true] .gc-pm-hint { color:var(--gc-danger); }
+.gc-pm-run { display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;position:relative;overflow:hidden;isolation:isolate;padding:10px 20px!important;border:0!important;border-radius:12px!important;color:#062018!important;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d)!important;box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45)!important;cursor:pointer;font:800 14px/1 system-ui,sans-serif!important;white-space:nowrap; }
+.gc-pm-run:hover:not(:disabled) { filter:brightness(1.06); }
+.gc-pm-run:disabled { cursor:not-allowed;background:linear-gradient(180deg,#5a635f,#454d49)!important;box-shadow:0 4px 0 #333a37,0 8px 18px rgba(0,0,0,.4)!important;color:rgba(255,255,255,.7)!important; }
+/* After a capped run the button pulses to say "press again for the rest". */
+.gc-preserve-manager[data-awaiting=true] .gc-pm-run:not(:disabled) { animation:gc-pm-pulse 1.4s ease-in-out infinite; }
+@keyframes gc-pm-pulse { 0%,100% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 0 rgba(52,211,153,.5); } 50% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 6px rgba(52,211,153,0); } }
+.gc-preserve-manager[data-holding=true] .gc-pm-run { transform:translateY(2px); }
+.gc-pm-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399); }
+.gc-pm-run [data-mgr-label],.gc-pm-run span { position:relative; }
 #gc-lunar[data-dragging=true] { opacity:.9; }
 #gc-lunar button { cursor:pointer; }
 button.gc-pet-potions { width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left; }
@@ -7159,8 +7230,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     try {
       const stored = JSON.parse(localStorage.getItem(MUTATION_KEY) || "null");
       if (Array.isArray(stored)) {
-        const selected = new Set(stored);
-        return { ...MUTATION_DEFAULTS, ...Object.fromEntries(Object.entries(MUTATION_IDS).map(([key, id]) => [key, selected.has(id)])) };
+        const selected2 = new Set(stored);
+        return { ...MUTATION_DEFAULTS, ...Object.fromEntries(Object.entries(MUTATION_IDS).map(([key, id]) => [key, selected2.has(id)])) };
       }
       return { ...MUTATION_DEFAULTS, ...stored && typeof stored === "object" ? stored : {} };
     } catch {
@@ -7295,9 +7366,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     }
     function matches(tile, slot, config2) {
       if (ignorePreserved() && slot.preserved) return false;
-      const selected = selectedSpecies();
+      const selected2 = selectedSpecies();
       const slotSpecies = slot.species ?? tile.species;
-      const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected || selected.has(slotSpecies)) || config2.scope === slotSpecies;
+      const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected2 || selected2.has(slotSpecies)) || config2.scope === slotSpecies;
       const mutations = slot.mutations || [];
       const conditions = config2.mutations.map((name) => mutations.includes(name));
       if (config2.maxSize) conditions.push((tile.slots || []).some((candidate) => {
@@ -8022,17 +8093,17 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     }
     function configHtml(species) {
       if (configMode === "species") {
-        const selected = filter ?? new Set(species);
+        const selected2 = filter ?? new Set(species);
         const counts = ownedSpeciesCounts();
         const plantPill = (name) => {
           const label = displayName(name);
           const sprite = produceSprite(name);
-          return `<button class="go-pill go-pill-plant ${selected.has(name) ? "on" : ""}" data-species-toggle="${escapeHtml2(name)}" data-filter-text="${escapeHtml2(label.toLowerCase())}" title="${escapeHtml2(label)}">${sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : '<i class="go-plant-blank"></i>'}<span>${escapeHtml2(label)}</span>${counts.has(name) ? `<small>${counts.get(name)}</small>` : ""}</button>`;
+          return `<button class="go-pill go-pill-plant ${selected2.has(name) ? "on" : ""}" data-species-toggle="${escapeHtml2(name)}" data-filter-text="${escapeHtml2(label.toLowerCase())}" title="${escapeHtml2(label)}">${sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : '<i class="go-plant-blank"></i>'}<span>${escapeHtml2(label)}</span>${counts.has(name) ? `<small>${counts.get(name)}</small>` : ""}</button>`;
         };
         const section = (label, names) => names.length ? `<div class="go-pill-group">${settingsHead(label, `<em>${names.length}</em>`)}<div class="go-pill-section"><div>${names.map(plantPill).join("")}</div></div></div>` : "";
-        const tracked = species.filter((name) => selected.has(name));
-        const owned = species.filter((name) => !selected.has(name) && counts.has(name));
-        const rest = species.filter((name) => !selected.has(name) && !counts.has(name));
+        const tracked = species.filter((name) => selected2.has(name));
+        const owned = species.filter((name) => !selected2.has(name) && counts.has(name));
+        const rest = species.filter((name) => !selected2.has(name) && !counts.has(name));
         return `<section class="go-section"><p class="go-muted">Only tracked plants are counted in the overview and its estimates.</p><input class="go-search" data-species-search placeholder="Search plants"><div class="go-tools"><button data-all>All</button><button data-none>None</button><button data-owned>Track owned</button></div><div class="go-pill-list">${section("Tracked", tracked)}${section("In your garden", owned)}${section("Everything else", rest)}</div></section>`;
       }
       if (configMode === "mutations") {
@@ -8347,10 +8418,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       });
       const syncAlarmTargetControls = () => {
         panel3.querySelectorAll("[data-alarm-target]").forEach((button) => {
-          const selected = alarmTargets.has(button.dataset.alarmTarget ?? "");
-          button.classList.toggle("on", selected);
+          const selected2 = alarmTargets.has(button.dataset.alarmTarget ?? "");
+          button.classList.toggle("on", selected2);
           const check = button.querySelector("i");
-          if (check) check.innerHTML = selected ? "&#10003;" : "";
+          if (check) check.innerHTML = selected2 ? "&#10003;" : "";
         });
         const count = panel3.querySelector("[data-alarm-count]");
         if (count) count.textContent = `${alarmTargets.size}/${ALARM_TARGETS.length} selected`;
@@ -8497,10 +8568,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       });
       panel3.querySelectorAll("[data-focus-mutation]").forEach((button) => button.onclick = () => {
         const mutation = button.dataset.focusMutation ?? "";
-        const selected = new Set(focus.mutations);
-        const adding = !selected.has(mutation);
-        adding ? selected.add(mutation) : selected.delete(mutation);
-        focus.mutations = [...selected];
+        const selected2 = new Set(focus.mutations);
+        const adding = !selected2.has(mutation);
+        adding ? selected2.add(mutation) : selected2.delete(mutation);
+        focus.mutations = [...selected2];
         enforceGroupExclusivity(adding ? mutation : void 0);
         saveFocusControls();
         renderAndRefocus(`[data-focus-mutation="${mutation}"]`);
@@ -10525,7 +10596,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let skyTimer = SKY_SUN_INTERVAL;
     let queued2 = [];
     let spawnTimer = 0;
-    let selected = null;
+    let selected2 = null;
     let shovel = false;
     let dev = false;
     let wavesHeld = false;
@@ -10620,7 +10691,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       spawnTimer = 0;
       over = false;
       running = true;
-      selected = null;
+      selected2 = null;
       shovel = false;
       status = dev ? "Tuning mode: towers are free." : "Pick a seed, then click a tile to plant it.";
       if (!dev) {
@@ -10651,12 +10722,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         renderChrome();
         return;
       }
-      if (!selected) {
+      if (!selected2) {
         status = "Pick a seed first.";
         renderChrome();
         return;
       }
-      const def = PLANT_BY_ID.get(selected);
+      const def = PLANT_BY_ID.get(selected2);
       if (!def) return;
       if (existing) {
         status = "That tile is already planted.";
@@ -10670,7 +10741,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       if (!dev) sun -= def.cost;
       plants.push({ def, lane, column, hp: def.hp, timer: def.interval ?? 0, sprite: null, fruitSprite: null });
-      if (!dev) selected = null;
+      if (!dev) selected2 = null;
       status = `Planted a ${def.name}.`;
       renderChrome();
     }
@@ -10968,7 +11039,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const sprite = towerSpriteSource(plant);
         const afford = affordable(plant);
         const icon = sprite ? `<img src="${sprite}" alt="">` : `<i style="height:26px;background:none"></i>`;
-        return `<button class="gd-seed" data-seed="${plant.id}" data-selected="${selected === plant.id}" data-afford="${afford}" ${afford ? "" : "disabled"} title="${escapeHtml(plant.detail)}">${icon}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
+        return `<button class="gd-seed" data-seed="${plant.id}" data-selected="${selected2 === plant.id}" data-afford="${afford}" ${afford ? "" : "disabled"} title="${escapeHtml(plant.detail)}">${icon}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
       }).join("");
     }
     function renderStatus() {
@@ -10986,7 +11057,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const plant = PLANT_BY_ID.get(button.dataset.seed);
         const afford = Boolean(plant && affordable(plant));
         button.dataset.afford = String(afford);
-        button.dataset.selected = String(selected === button.dataset.seed);
+        button.dataset.selected = String(selected2 === button.dataset.seed);
         button.disabled = !afford;
       }
     }
@@ -11010,17 +11081,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       };
       card.querySelector("[data-shovel]").onclick = () => {
         shovel = !shovel;
-        if (shovel) selected = null;
+        if (shovel) selected2 = null;
         status = shovel ? "Click a plant to dig it up." : "Shovel put away.";
         renderChrome();
       };
       for (const button of card.querySelectorAll("[data-seed]")) {
         button.onclick = () => {
           const id = button.dataset.seed;
-          selected = selected === id ? null : id;
+          selected2 = selected2 === id ? null : id;
           shovel = false;
           const def = PLANT_BY_ID.get(id);
-          status = selected && def ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
+          status = selected2 && def ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
           renderChrome();
         };
       }
@@ -12942,6 +13013,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   // src/features/preserve-all.ts
   var HOLD_MS = 650;
   var SEND_INTERVAL = 100;
+  var MANAGER_BATCH_CAP = 15;
   var ANCHOR_GAP = 12;
   var sending = false;
   var lastSignature = "";
@@ -12958,15 +13030,31 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function heldSlots() {
     return heldPlantItem()?.slots ?? [];
   }
+  function favouritedItemIds() {
+    const ids = state.slot?.data?.inventory?.favoritedItemIds;
+    return new Set(Array.isArray(ids) ? ids.filter((id) => typeof id === "string") : []);
+  }
+  function allPlantItems() {
+    const items = state.slot?.data?.inventory?.items;
+    if (!Array.isArray(items)) return [];
+    const favourites = favouritedItemIds();
+    const out = [];
+    for (const item of items) {
+      if (item?.itemType !== "Plant" || !item.id || !Array.isArray(item.slots)) continue;
+      if (favourites.has(item.id)) continue;
+      out.push({ id: item.id, species: item.species || "", slots: item.slots });
+    }
+    return out;
+  }
   function preserveCost(species, slot, mutations) {
     const crop = PLANT_CATALOG[species]?.crop;
     const base = Number(crop?.baseSellPrice) || 0;
     return Math.round(base * slotScale(crop, slot) * catalogMutationMultiplier(mutations));
   }
-  function eligibleSlots() {
+  function eligibleFrom(slots) {
     const now = Date.now();
     const rows = [];
-    for (const slot of heldSlots()) {
+    for (const slot of slots) {
       if (!slot || slot.preserved === true || slot.slotId == null) continue;
       if (Number(slot.endTime || 0) > now) continue;
       const species = slot.species || "";
@@ -12975,12 +13063,390 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     return rows;
   }
+  function eligibleSlots() {
+    return eligibleFrom(heldSlots());
+  }
   function coins() {
     return Number(state.slot?.data?.coinsCount) || 0;
   }
   function cropLabel(rows) {
     const species = [...new Set(rows.map((row) => row.species))];
     return species.length === 1 ? plantName(species[0]) : `${species.length} crops`;
+  }
+  var MANAGER_ID = "gc-preserve-manager";
+  var selected = /* @__PURE__ */ new Set();
+  var managerSearch = "";
+  var managerHoldAt = 0;
+  var managerHoldFrame = 0;
+  var batchTotal = 0;
+  var batchDone = 0;
+  var managerAwaitingContinue = false;
+  function slotKey(itemId2, slotId) {
+    return `${itemId2}::${slotId}`;
+  }
+  function managerPlants() {
+    const plants = [];
+    for (const item of allPlantItems()) {
+      const rows = [];
+      const now = Date.now();
+      for (const slot of item.slots) {
+        if (!slot || slot.preserved === true || slot.slotId == null) continue;
+        if (Number(slot.endTime || 0) > now) continue;
+        const species = slot.species || item.species || "";
+        if (!species) continue;
+        const crop = PLANT_CATALOG[species]?.crop;
+        rows.push({
+          key: slotKey(item.id, slot.slotId),
+          itemId: item.id,
+          slotId: slot.slotId,
+          species,
+          cost: preserveCost(species, slot, slot.mutations || []),
+          sizePercent: slotSizePercent(crop, slot),
+          mutations: Array.isArray(slot.mutations) ? slot.mutations.filter((m) => typeof m === "string") : []
+        });
+      }
+      if (rows.length) {
+        const species = item.species || rows[0].species;
+        plants.push({ itemId: item.id, species, name: patchName(species), rows });
+      }
+    }
+    plants.sort((a, b) => a.name.localeCompare(b.name) || a.itemId.localeCompare(b.itemId));
+    return plants;
+  }
+  function allEligibleCount() {
+    return managerPlants().reduce((total, plant) => total + plant.rows.length, 0);
+  }
+  function selectedManagerRows() {
+    const rows = [];
+    for (const plant of managerPlants()) for (const row of plant.rows) if (selected.has(row.key)) rows.push(row);
+    return rows;
+  }
+  function nextBatchRows() {
+    return selectedManagerRows().slice(0, MANAGER_BATCH_CAP);
+  }
+  function visibleManagerPlants(plants) {
+    const query = managerSearch.trim();
+    if (!query) return plants;
+    return plants.filter((plant) => {
+      const haystack = `${plant.name} ${plant.rows.map((row) => `${plantName(row.species)} ${row.mutations.map(mutationName).join(" ")}`).join(" ")}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }
+  function managerModal() {
+    return document.getElementById(MANAGER_ID);
+  }
+  function managerOpen() {
+    return !!managerModal();
+  }
+  function mutationChips(mutations) {
+    return mutations.map((mutation) => {
+      const sprite = mutationSprite(mutation);
+      const label = escapeHtml(mutationName(mutation));
+      return sprite ? `<img class="gc-pm-mut" src="${escapeHtml(sprite)}" alt="${label}" title="${label}">` : `<span class="gc-pm-mut-text" title="${label}">${label}</span>`;
+    }).join("");
+  }
+  function plantMark(plant) {
+    const on = plant.rows.reduce((count, row) => count + (selected.has(row.key) ? 1 : 0), 0);
+    const mark = on === 0 ? "" : on === plant.rows.length ? "&#10003;" : "&#8211;";
+    return { on, mark };
+  }
+  function managerListMarkup(plants) {
+    if (!plants.length) {
+      return managerSearch ? '<p class="gc-pm-empty">No plants match that search.</p>' : '<p class="gc-pm-empty">No plants have ready slots to preserve.</p>';
+    }
+    return plants.map((plant) => {
+      const sprite = produceSprite(plant.species);
+      const icon = sprite ? `<img class="gc-pm-icon" src="${escapeHtml(sprite)}" alt="">` : `<span class="gc-pm-icon gc-pm-icon-text">${escapeHtml(plant.name.slice(0, 1))}</span>`;
+      const { on, mark } = plantMark(plant);
+      const slots = plant.rows.map((row) => {
+        const active = selected.has(row.key);
+        const crop = row.species ? `<span class="gc-pm-crop">${escapeHtml(plantName(row.species))}</span>` : "";
+        return `<div class="gc-pm-slot" role="button" tabindex="0" data-mgr-slot="${escapeHtml(row.key)}" data-active="${active}"><i class="gc-pm-check">${active ? "&#10003;" : ""}</i><span class="gc-pm-size">${row.sizePercent}%</span>` + crop + `<span class="gc-pm-muts">${mutationChips(row.mutations)}</span><span class="gc-pm-cost">&#129689; ${row.cost.toLocaleString(NUMBER_LOCALE)}</span></div>`;
+      }).join("");
+      return `<section class="gc-pm-plant"><div class="gc-pm-plant-head" role="button" tabindex="0" data-mgr-plant="${escapeHtml(plant.itemId)}" data-state="${on === 0 ? "none" : on === plant.rows.length ? "all" : "some"}">${icon}<b>${escapeHtml(plant.name)}</b><small>${on}/${plant.rows.length}</small><i class="gc-pm-check">${mark}</i></div><div class="gc-pm-slots">${slots}</div></section>`;
+    }).join("");
+  }
+  function managerModalMarkup() {
+    return `<div class="gc-preserve-manager" role="dialog" aria-label="Preservation manager"><header class="gc-modal-head"><h3>Preservation manager</h3><button class="gc-modal-close" data-mgr-close aria-label="Close">&times;</button></header><div class="gc-modal-tools"><input class="gc-pm-search" type="text" data-mgr-search placeholder="Search plants" spellcheck="false" value="${escapeHtml(managerSearch)}"><div><button data-mgr-all>Select all</button><button data-mgr-none>Clear</button></div></div><div class="gc-pm-summary-row"><span class="gc-modal-summary" data-mgr-summary></span></div><div class="gc-modal-body" data-mgr-list>${managerListMarkup(visibleManagerPlants(managerPlants()))}</div><footer class="gc-pm-foot"><div class="gc-pm-foot-info"><span class="gc-pm-total" data-mgr-total></span><span class="gc-pm-hint" data-mgr-hint></span></div><button class="gc-pm-run" data-mgr-run><i class="gc-pm-fill" data-mgr-fill></i><span data-mgr-label></span></button></footer></div>`;
+  }
+  function managerDataSignature(plants) {
+    return managerSearch + "\n" + plants.map((plant) => `${plant.itemId}:${plant.name}:` + plant.rows.map((row) => `${row.slotId},${row.sizePercent},${row.cost},${row.mutations.join("|")}`).join(";")).join("\n");
+  }
+  var managerListSignature = "";
+  function redrawManagerList(plants) {
+    const root = managerModal();
+    if (!root || managerHoldAt || sending) return;
+    const list = root.querySelector("[data-mgr-list]");
+    if (!list) return;
+    const scroll = list.scrollTop;
+    list.innerHTML = managerListMarkup(visibleManagerPlants(plants));
+    list.scrollTop = scroll;
+    managerListSignature = managerDataSignature(plants);
+  }
+  function syncManagerSelectionDom() {
+    const root = managerModal();
+    if (!root) return;
+    root.querySelectorAll(".gc-pm-plant").forEach((section) => {
+      const slots = [...section.querySelectorAll(".gc-pm-slot[data-mgr-slot]")];
+      let on = 0;
+      for (const el of slots) {
+        const active = selected.has(el.dataset.mgrSlot || "");
+        if (active) on += 1;
+        el.dataset.active = String(active);
+        const check2 = el.querySelector(".gc-pm-check");
+        if (check2) check2.innerHTML = active ? "&#10003;" : "";
+      }
+      const head = section.querySelector(".gc-pm-plant-head");
+      if (!head) return;
+      const total = slots.length;
+      head.dataset.state = on === 0 ? "none" : on === total ? "all" : "some";
+      const small = head.querySelector("small");
+      if (small) small.textContent = `${on}/${total}`;
+      const check = head.querySelector(".gc-pm-check");
+      if (check) check.innerHTML = on === 0 ? "" : on === total ? "&#10003;" : "&#8211;";
+    });
+  }
+  function onManagerSelectionChanged() {
+    managerAwaitingContinue = false;
+    syncManagerSelectionDom();
+    updateManagerFooter();
+  }
+  function updateManagerFooter() {
+    const root = managerModal();
+    if (!root) return;
+    const selectedRows = selectedManagerRows();
+    const batch = nextBatchRows();
+    const selectedCost = selectedRows.reduce((sum, row) => sum + row.cost, 0);
+    const batchCost = batch.reduce((sum, row) => sum + row.cost, 0);
+    const affordable = batchCost <= coins();
+    const plants = new Set(selectedRows.map((row) => row.itemId)).size;
+    const capped = selectedRows.length > MANAGER_BATCH_CAP;
+    const summary = root.querySelector("[data-mgr-summary]");
+    if (summary) summary.textContent = selectedRows.length ? `${selectedRows.length} slot${selectedRows.length === 1 ? "" : "s"} ticked across ${plants} plant${plants === 1 ? "" : "s"}` + (capped ? ` · ${MANAGER_BATCH_CAP} per press` : "") : "Tick the slots you want to preserve.";
+    const totalEl = root.querySelector("[data-mgr-total]");
+    if (totalEl) {
+      totalEl.textContent = selectedRows.length ? affordable ? `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)}` : `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)} - more than you have` : "";
+      totalEl.dataset.short = affordable ? "false" : "true";
+    }
+    const awaiting = managerAwaitingContinue && selectedRows.length > 0 && !sending;
+    const ready = gameConnectionReady();
+    const label = root.querySelector("[data-mgr-label]");
+    if (label) label.textContent = sending ? `Preserving ${Math.min(batchDone + 1, batchTotal)}/${batchTotal}...` : managerHoldAt ? "Keep holding..." : !batch.length ? "Preserve" : awaiting ? `Continue (${batch.length})` : `Preserve ${batch.length}`;
+    const hint = root.querySelector("[data-mgr-hint]");
+    if (hint) hint.textContent = sending ? "" : !selectedRows.length ? "" : !ready ? "Waiting for the game connection - your ticks are kept" : awaiting ? `${selectedRows.length} slot${selectedRows.length === 1 ? "" : "s"} left - press & hold to continue` : capped ? `${MANAGER_BATCH_CAP} per press - press & hold` : "Press & hold to preserve";
+    if (sending) managerPaintHold(batchTotal ? batchDone / batchTotal : 0);
+    else if (!managerHoldAt) managerPaintHold(0);
+    const button = root.querySelector("[data-mgr-run]");
+    if (button) {
+      button.disabled = sending || batch.length === 0 || !affordable || !ready;
+      button.title = !ready ? "The game connection is not ready." : affordable ? "" : "Not enough coins to preserve this batch.";
+    }
+    root.dataset.holding = managerHoldAt || sending ? "true" : "false";
+    root.dataset.awaiting = awaiting && ready ? "true" : "false";
+    root.dataset.offline = !ready && selectedRows.length > 0 ? "true" : "false";
+  }
+  function refreshManagerModal() {
+    if (!managerOpen()) return;
+    const plants = managerPlants();
+    const live = new Set(plants.flatMap((plant) => plant.rows.map((row) => row.key)));
+    let pruned = false;
+    for (const key of [...selected]) if (!live.has(key)) {
+      selected.delete(key);
+      pruned = true;
+    }
+    if (managerDataSignature(plants) !== managerListSignature) redrawManagerList(plants);
+    else if (pruned) syncManagerSelectionDom();
+    updateManagerFooter();
+  }
+  function managerPaintHold(progress) {
+    const fill = managerModal()?.querySelector("[data-mgr-fill]");
+    if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
+  }
+  function managerStartHold() {
+    if (sending || managerHoldAt) return;
+    const button = managerModal()?.querySelector("[data-mgr-run]");
+    if (!button || button.disabled) return;
+    managerHoldAt = performance.now();
+    const tick = () => {
+      if (!managerHoldAt) return;
+      if (!managerOpen()) {
+        managerCancelHold();
+        return;
+      }
+      const progress = Math.min(1, (performance.now() - managerHoldAt) / HOLD_MS);
+      managerPaintHold(progress);
+      if (progress < 1) {
+        managerHoldFrame = requestAnimationFrame(tick);
+        return;
+      }
+      managerCancelHold();
+      runManager();
+    };
+    managerHoldFrame = requestAnimationFrame(tick);
+    updateManagerFooter();
+  }
+  function managerCancelHold() {
+    if (!managerHoldAt) return;
+    managerHoldAt = 0;
+    cancelAnimationFrame(managerHoldFrame);
+    managerPaintHold(0);
+    updateManagerFooter();
+  }
+  function runManager() {
+    if (sending) return;
+    const rows = nextBatchRows();
+    if (!rows.length) return;
+    if (!gameConnectionReady()) {
+      managerAwaitingContinue = true;
+      toast("The game connection is not ready. Your ticks are kept - press again once it reconnects.", "error");
+      updateManagerFooter();
+      return;
+    }
+    const total = rows.reduce((sum, row) => sum + row.cost, 0);
+    if (total > coins()) {
+      toast(`Preserving these ${rows.length} slots costs ${total.toLocaleString(NUMBER_LOCALE)} coins, which is more than you have.`, "error");
+      return;
+    }
+    sending = true;
+    batchTotal = rows.length;
+    batchDone = 0;
+    let index = 0;
+    let sent = 0;
+    const step = () => {
+      if (index < rows.length && !gameConnectionReady()) {
+        sending = false;
+        batchTotal = 0;
+        batchDone = 0;
+        managerAwaitingContinue = selectedManagerRows().length > 0;
+        toast(sent ? `Preserved ${sent} before the connection dropped. The rest are kept - press to continue when it is back.` : "The connection dropped. Your ticks are kept - press to continue when it is back.", "error");
+        refreshManagerModal();
+        render2();
+        return;
+      }
+      if (index >= rows.length) {
+        sending = false;
+        batchTotal = 0;
+        batchDone = 0;
+        const remaining2 = selectedManagerRows().length;
+        managerAwaitingContinue = remaining2 > 0;
+        const plants = new Set(rows.map((row2) => row2.itemId)).size;
+        const done = sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} across ${plants} plant${plants === 1 ? "" : "s"}.` : "Nothing was left to preserve.";
+        toast(remaining2 ? `${done} ${remaining2} still ticked - press to continue.` : done, sent ? "success" : "error");
+        refreshManagerModal();
+        render2();
+        return;
+      }
+      const row = rows[index++];
+      batchDone = index;
+      const liveItem = allPlantItems().find((item) => item.id === row.itemId);
+      const stillReady = liveItem && eligibleFrom(liveItem.slots).some((slot) => String(slot.slotId) === String(row.slotId));
+      if (stillReady) {
+        try {
+          sendQuinoaCommand({ type: "Preserve", itemId: row.itemId, growSlotIdx: row.slotId });
+          selected.delete(row.key);
+          sent++;
+        } catch (error) {
+          sending = false;
+          batchTotal = 0;
+          batchDone = 0;
+          toast(error.message, "error");
+          refreshManagerModal();
+          render2();
+          return;
+        }
+      }
+      refreshManagerModal();
+      render2();
+      window.setTimeout(step, SEND_INTERVAL);
+    };
+    step();
+  }
+  function onManagerKey(event) {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      closeManager();
+    }
+  }
+  function closeManager() {
+    managerCancelHold();
+    managerModal()?.remove();
+    managerListSignature = "";
+    document.removeEventListener("keydown", onManagerKey, true);
+  }
+  function openManager() {
+    if (managerOpen()) return;
+    selected.clear();
+    managerSearch = "";
+    managerAwaitingContinue = false;
+    const backdrop = document.createElement("div");
+    backdrop.id = MANAGER_ID;
+    backdrop.className = "gc-modal-backdrop";
+    backdrop.innerHTML = managerModalMarkup();
+    document.body.appendChild(backdrop);
+    managerListSignature = managerDataSignature(managerPlants());
+    page.__gardenCompanionLoadSprites?.();
+    page.__gardenCompanionLoadSpriteGroup?.("deferred");
+    onSpritesReady(() => {
+      managerListSignature = "";
+      refreshManagerModal();
+    });
+    backdrop.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target === backdrop || target.closest("[data-mgr-close]")) {
+        closeManager();
+        return;
+      }
+      if (target.closest("[data-mgr-run]")) return;
+      if (target.closest("[data-mgr-all]")) {
+        event.preventDefault();
+        for (const plant of managerPlants()) for (const row of plant.rows) selected.add(row.key);
+        onManagerSelectionChanged();
+        return;
+      }
+      if (target.closest("[data-mgr-none]")) {
+        event.preventDefault();
+        selected.clear();
+        onManagerSelectionChanged();
+        return;
+      }
+      const head = target.closest("[data-mgr-plant]");
+      if (head) {
+        event.preventDefault();
+        const plant = managerPlants().find((entry) => entry.itemId === head.dataset.mgrPlant);
+        if (!plant) return;
+        const turningOff = plant.rows.every((row) => selected.has(row.key));
+        for (const row of plant.rows) turningOff ? selected.delete(row.key) : selected.add(row.key);
+        onManagerSelectionChanged();
+        return;
+      }
+      const slot = target.closest("[data-mgr-slot]");
+      if (slot) {
+        event.preventDefault();
+        const key = slot.dataset.mgrSlot;
+        selected.has(key) ? selected.delete(key) : selected.add(key);
+        onManagerSelectionChanged();
+        return;
+      }
+    });
+    const runButton = backdrop.querySelector("[data-mgr-run]");
+    runButton.addEventListener("pointerdown", (event) => {
+      if (runButton.disabled || event.button !== 0) return;
+      event.preventDefault();
+      try {
+        runButton.setPointerCapture(event.pointerId);
+      } catch {
+      }
+      managerStartHold();
+    });
+    for (const type of ["pointerup", "pointercancel", "pointerleave"]) runButton.addEventListener(type, managerCancelHold);
+    backdrop.querySelector("[data-mgr-search]")?.addEventListener("input", (event) => {
+      managerSearch = event.target.value.toLowerCase();
+      refreshManagerModal();
+      const list = managerModal()?.querySelector("[data-mgr-list]");
+      if (list) list.scrollTop = 0;
+    });
+    document.addEventListener("keydown", onManagerKey, true);
+    updateManagerFooter();
   }
   function panel2() {
     return document.getElementById("gc-preserve-all");
@@ -12991,7 +13457,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const root = document.createElement("section");
     root.id = "gc-preserve-all";
     root.hidden = true;
-    root.innerHTML = "<small data-preserve-caption></small><small data-preserve-hint></small><button data-preserve-run><i data-preserve-fill></i><span data-preserve-label></span></button>";
+    root.innerHTML = "<small data-preserve-caption></small><small data-preserve-hint></small><button data-preserve-run><i data-preserve-fill></i><span data-preserve-label></span></button><button data-preserve-manage>Open Preservation Manager</button>";
     document.body.appendChild(root);
     const button = root.querySelector("[data-preserve-run]");
     button.addEventListener("pointerdown", (event) => {
@@ -13004,6 +13470,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       startHold();
     });
     for (const type of ["pointerup", "pointercancel", "pointerleave"]) button.addEventListener(type, cancelHold);
+    root.querySelector("[data-preserve-manage]").addEventListener("click", (event) => {
+      event.preventDefault();
+      openManager();
+    });
     return root;
   }
   function startHold() {
@@ -13042,6 +13512,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (sending) return;
     const rows = eligibleSlots();
     if (!state.preservationMode || rows.length < 2) return;
+    if (!gameConnectionReady()) {
+      toast("The game connection is not ready. Try again once it reconnects.", "error");
+      return;
+    }
     const total = rows.reduce((sum, row) => sum + row.cost, 0);
     if (total > coins()) {
       toast(`Preserving all ${rows.length} slots costs ${total.toLocaleString(NUMBER_LOCALE)} coins, which is more than you have.`, "error");
@@ -13056,6 +13530,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let index = 0;
     let sent = 0;
     const step = () => {
+      if (index < rows.length && !gameConnectionReady()) {
+        sending = false;
+        toast(sent ? `Preserved ${sent} before the connection dropped. Try the rest once it is back.` : "The connection dropped before anything was preserved.", "error");
+        render2();
+        return;
+      }
       if (index >= rows.length) {
         sending = false;
         toast(sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : "Nothing was left to preserve.", sent ? "success" : "error");
@@ -13089,10 +13569,24 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     element.style.bottom = "auto";
     element.style.transform = "none";
   }
+  function positionPanel(element, aboveCard) {
+    if (aboveCard) {
+      anchorAboveCard(element);
+      return;
+    }
+    element.style.left = "";
+    element.style.top = "";
+    element.style.right = "";
+    element.style.bottom = "";
+    element.style.transform = "";
+  }
   function render2(force = false) {
     const root = panel2();
     const rows = eligibleSlots();
-    const active = state.preservationMode && rows.length >= 2 && !page.__gardenCompanionCinematicFromGame?.();
+    const manageCount = allEligibleCount();
+    const canPreserveAll = rows.length >= 2;
+    const canManage = manageCount >= 1;
+    const active = state.preservationMode && (canPreserveAll || canManage) && !page.__gardenCompanionCinematicFromGame?.();
     if (!active) {
       lastSignature = "";
       if (root) root.hidden = true;
@@ -13100,26 +13594,40 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     const total = rows.reduce((sum, row) => sum + row.cost, 0);
     const affordable = total <= coins();
+    const ready = gameConnectionReady();
     const holding = holdStartedAt > 0;
-    const signature2 = `${rows.length}|${total}|${affordable}|${sending}|${holding}|${cropLabel(rows)}`;
+    const signature2 = `${rows.length}|${total}|${affordable}|${ready}|${sending}|${holding}|${canPreserveAll}|${canManage}|${manageCount}|${cropLabel(rows)}`;
     const element = ensurePanel2();
     element.hidden = false;
     if (!force && signature2 === lastSignature) {
-      anchorAboveCard(element);
+      positionPanel(element, canPreserveAll);
       return;
     }
     lastSignature = signature2;
-    element.querySelector("[data-preserve-caption]").textContent = `${cropLabel(rows)} - ${rows.length} ready slot${rows.length === 1 ? "" : "s"}`;
-    element.querySelector("[data-preserve-hint]").textContent = sending ? "Preserving..." : holding ? "Keep holding..." : "Press & Hold";
-    element.querySelector("[data-preserve-label]").textContent = `Preserve All 🪙 ${total.toLocaleString(NUMBER_LOCALE)}`;
-    const button = element.querySelector("[data-preserve-run]");
-    button.disabled = sending || !affordable;
-    button.title = affordable ? "" : "Not enough coins to preserve every ready slot.";
+    const caption = element.querySelector("[data-preserve-caption]");
+    const hint = element.querySelector("[data-preserve-hint]");
+    const runButton = element.querySelector("[data-preserve-run]");
+    const manageButton = element.querySelector("[data-preserve-manage]");
+    caption.hidden = !canPreserveAll;
+    hint.hidden = !canPreserveAll;
+    runButton.hidden = !canPreserveAll;
+    if (canPreserveAll) {
+      caption.textContent = `${cropLabel(rows)} - ${rows.length} ready slot${rows.length === 1 ? "" : "s"}`;
+      hint.textContent = sending ? "Preserving..." : !ready ? "Waiting for connection..." : holding ? "Keep holding..." : "Press & Hold";
+      element.querySelector("[data-preserve-label]").textContent = `Preserve All 🪙 ${total.toLocaleString(NUMBER_LOCALE)}`;
+      runButton.disabled = sending || !affordable || !ready;
+      runButton.title = !ready ? "The game connection is not ready." : affordable ? "" : "Not enough coins to preserve every ready slot.";
+    }
+    manageButton.hidden = !canManage;
+    manageButton.textContent = "Open Preservation Manager";
     element.dataset.holding = holding ? "true" : "false";
-    anchorAboveCard(element);
+    positionPanel(element, canPreserveAll);
   }
   function initPreserveAll() {
-    window.setInterval(render2, 300);
+    window.setInterval(() => {
+      render2();
+      refreshManagerModal();
+    }, 300);
     render2();
   }
 

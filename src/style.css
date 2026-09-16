@@ -554,9 +554,69 @@ body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
 #gc-preserve-all button { pointer-events:auto;position:relative;overflow:hidden;isolation:isolate;padding:11px 20px;border:0;border-radius:15px;color:#fff;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d);box-shadow:0 5px 0 #0d7466,0 12px 24px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28);cursor:pointer;font:800 17px/1 system-ui,sans-serif;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.35);white-space:nowrap; }
 #gc-preserve-all button:hover:not(:disabled) { filter:brightness(1.06); }
 #gc-preserve-all button:disabled { cursor:not-allowed;background:linear-gradient(180deg,#8a9490,#6b7570);box-shadow:0 5px 0 #4a524e,0 12px 24px rgba(0,0,0,.4); }
-#gc-preserve-all[data-holding=true] button { transform:translateY(2px);box-shadow:0 3px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28); }
+#gc-preserve-all[data-holding=true] [data-preserve-run] { transform:translateY(2px);box-shadow:0 3px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28); }
 #gc-preserve-all [data-preserve-fill] { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399);box-shadow:0 0 14px rgba(167,243,208,.5); }
 #gc-preserve-all [data-preserve-label] { position:relative; }
+/* The secondary button opens the per-slot manager: smaller and quieter than the green pill so it
+   reads as the "or pick them yourself" option beneath the one-press action. */
+#gc-preserve-all [data-preserve-manage] { margin-top:2px;padding:6px 14px;border-radius:11px;background:linear-gradient(180deg,#3a3a52,#26263a);box-shadow:0 3px 0 #16162a,0 6px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);color:#e9e6ff;font:800 12px/1 system-ui,sans-serif; }
+#gc-preserve-all [data-preserve-manage][hidden] { display:none; }
+
+/* Preservation manager: every ready slot across the inventory, ticked one by one. */
+/* The game page is not border-box, so full-width rows with padding would overflow and clip their
+   right edge (the cost and the header tick); scope a reset to the manager. */
+.gc-preserve-manager, .gc-preserve-manager * { box-sizing:border-box; }
+.gc-preserve-manager { width:480px;max-width:calc(100vw - 40px);max-height:min(82vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(52,211,153,.28);border-radius:12px;background:#0b0f0d;box-shadow:0 24px 60px rgba(0,0,0,.7);color:var(--gc-text);font:12px/1.4 system-ui,sans-serif; }
+.gc-preserve-manager .gc-modal-body { display:flex;flex-direction:column;gap:8px; }
+/* The body is a fixed-height flex column; without this its children shrink to fit instead of
+   scrolling, so a long inventory collapses every plant to a thin line. */
+.gc-preserve-manager .gc-modal-body>* { flex:0 0 auto; }
+.gc-preserve-manager .gc-modal-tools { gap:10px; }
+.gc-preserve-manager .gc-modal-tools button { white-space:nowrap!important; }
+.gc-pm-search { flex:1 1 auto;min-width:0;padding:6px 10px!important;border:1px solid var(--gc-line)!important;border-radius:7px!important;color:var(--gc-text)!important;background:rgba(255,255,255,.04)!important;font:600 11px system-ui,sans-serif!important; }
+.gc-pm-search::placeholder { color:var(--gc-muted); }
+.gc-pm-search:focus { outline:none;border-color:rgba(52,211,153,.55)!important; }
+.gc-pm-summary-row { padding:6px 12px;border-bottom:1px solid var(--gc-line); }
+.gc-pm-summary-row .gc-modal-summary { color:var(--gc-muted);font-size:10px;font-weight:700; }
+.gc-pm-empty { margin:12px 4px;color:var(--gc-muted);text-align:center; }
+.gc-pm-plant { border:1px solid var(--gc-line);border-radius:9px;overflow:hidden;background:rgba(255,255,255,.02); }
+.gc-pm-plant-head { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;width:100%;padding:7px 10px!important;border:0!important;border-bottom:1px solid var(--gc-line)!important;border-radius:0!important;background:rgba(52,211,153,.06)!important;color:var(--gc-text)!important;text-align:left;font:700 12px system-ui,sans-serif!important; }
+.gc-pm-plant-head:hover { background:rgba(52,211,153,.12)!important; }
+.gc-pm-plant-head b { flex:1 1 auto; }
+.gc-pm-plant-head small { color:var(--gc-muted);font-weight:700; }
+.gc-pm-icon { width:22px;height:22px;object-fit:contain; }
+.gc-pm-icon-text { display:grid;place-items:center;width:22px;height:22px;border-radius:5px;background:rgba(255,255,255,.08);font-weight:800; }
+.gc-pm-check { flex:0 0 auto;display:grid;place-items:center;width:18px;height:18px;border:1px solid var(--gc-line);border-radius:5px;color:var(--gc-green);font-style:normal;font-weight:800; }
+.gc-pm-plant-head[data-state=all] .gc-pm-check,.gc-pm-plant-head[data-state=some] .gc-pm-check { border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.14); }
+.gc-pm-slots { display:flex;flex-direction:column; }
+.gc-pm-slot { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;width:100%;padding:6px 10px 6px 14px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--gc-text)!important;text-align:left;font:600 11px system-ui,sans-serif!important;cursor:pointer; }
+.gc-pm-slot+.gc-pm-slot { border-top:1px solid rgba(255,255,255,.04)!important; }
+.gc-pm-slot:hover { background:rgba(255,255,255,.04)!important; }
+.gc-pm-slot[data-active=true] .gc-pm-check { border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.16); }
+.gc-pm-size { flex:0 0 auto!important;min-width:40px;color:var(--gc-muted);font-weight:700;white-space:nowrap!important; }
+.gc-pm-crop { flex:0 0 auto!important;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap!important;color:var(--gc-text);font-weight:700; }
+/* The game styles button descendants, so the mutation column's flex and its chips' wrapping are
+   both pinned - without this the column is squeezed to a character wide and each letter stacks. */
+.gc-pm-muts { flex:1 1 auto!important;display:flex!important;flex-flow:row wrap!important;align-items:center;gap:3px;min-width:0!important; }
+.gc-pm-mut { flex:0 0 auto!important;width:15px;height:15px;object-fit:contain; }
+.gc-pm-mut-text { flex:0 0 auto!important;padding:1px 5px;border:1px solid var(--gc-line);border-radius:9px;color:var(--gc-muted);font-size:9px;font-weight:700;white-space:nowrap!important; }
+.gc-pm-cost { flex:0 0 auto!important;color:var(--gc-gold);font-weight:800;white-space:nowrap!important; }
+.gc-pm-foot { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid var(--gc-line); }
+.gc-pm-foot-info { display:flex;flex-direction:column;gap:2px;min-width:0; }
+.gc-pm-total { color:var(--gc-text);font-weight:800; }
+.gc-pm-total[data-short=true] { color:var(--gc-danger);font-weight:700; }
+.gc-pm-hint { color:var(--gc-muted);font-size:10px;font-weight:700; }
+.gc-preserve-manager[data-awaiting=true] .gc-pm-hint { color:var(--gc-green); }
+.gc-preserve-manager[data-offline=true] .gc-pm-hint { color:var(--gc-danger); }
+.gc-pm-run { display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;position:relative;overflow:hidden;isolation:isolate;padding:10px 20px!important;border:0!important;border-radius:12px!important;color:#062018!important;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d)!important;box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45)!important;cursor:pointer;font:800 14px/1 system-ui,sans-serif!important;white-space:nowrap; }
+.gc-pm-run:hover:not(:disabled) { filter:brightness(1.06); }
+.gc-pm-run:disabled { cursor:not-allowed;background:linear-gradient(180deg,#5a635f,#454d49)!important;box-shadow:0 4px 0 #333a37,0 8px 18px rgba(0,0,0,.4)!important;color:rgba(255,255,255,.7)!important; }
+/* After a capped run the button pulses to say "press again for the rest". */
+.gc-preserve-manager[data-awaiting=true] .gc-pm-run:not(:disabled) { animation:gc-pm-pulse 1.4s ease-in-out infinite; }
+@keyframes gc-pm-pulse { 0%,100% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 0 rgba(52,211,153,.5); } 50% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 6px rgba(52,211,153,0); } }
+.gc-preserve-manager[data-holding=true] .gc-pm-run { transform:translateY(2px); }
+.gc-pm-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399); }
+.gc-pm-run [data-mgr-label],.gc-pm-run span { position:relative; }
 #gc-lunar[data-dragging=true] { opacity:.9; }
 #gc-lunar button { cursor:pointer; }
 button.gc-pet-potions { width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left; }

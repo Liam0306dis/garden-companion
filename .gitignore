@@ -13,6 +13,8 @@ tests/*
 coverage/
 *.tsbuildinfo
 *.log
+companionstate.json
+gardenCompanionState.json
 
 # Temporary files
 *.tmp
