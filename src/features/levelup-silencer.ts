@@ -1,49 +1,37 @@
 import type { CompanionPage, JotaiAtom } from '../types.js';
-
-function atomMap(page: CompanionPage): Map<unknown, JotaiAtom> | null {
-  const cache = page.jotaiAtomCache;
-  if (cache instanceof Map) return cache;
-  return cache?.cache ?? null;
-}
+import { onCurrentRoomState } from '../game-room-state.js';
 
 /**
- * Silences the pet "Level up!" / "Fully grown!" popup by removing it from the toast atom the game
+ * Silences the pet "Level up!" / "Fully grown!" popup by removing it from the toast list the game
  * renders from. Unlike ability popups (a pet's lastActionEvent, which the ability silencer strips),
- * level-ups are toasts pushed onto quinoaToastsAtom by a React effect that diffs each pet's
- * strength, so they need their own hook. The level-up toast is the only one in the game that is
- * both stackable and the "success" variant, which makes it safe to match without depending on its
+ * level-ups are toasts pushed onto the room toast list by a React effect that diffs each pet's
+ * strength, so they need their own hook. The level-up toast is the only one in the game that is both
+ * stackable and the "success" variant, which makes it safe to match without depending on its
  * (localised) title text. The pet's own sound effect is fired separately by that same effect and is
  * not affected here.
+ *
+ * Bundle 1206 folded the old standalone quinoaToastsAtom into `currentRoomAtom`'s state instance as a
+ * `toasts` field atom (game-room-state.ts hands it over); the hook itself is unchanged - it is still
+ * on the toast list atom's write.
  */
-export function initLevelUpSilencer(attempt = 0): void {
+const isLevelUpToast = (entry: unknown): boolean => {
+  const toast = entry as Record<string, unknown> | null;
+  return Boolean(toast && typeof toast === 'object' && toast.isStackable === true && toast.variant === 'success');
+};
+
+function hookToastsAtom(atom: JotaiAtom): void {
+  if (!atom || typeof atom.write !== 'function' || atom.__gardenCompanionLevelUpSilencer) return;
   const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
-  const map = atomMap(page);
-  if (!map) {
-    if (attempt < 240) setTimeout(() => initLevelUpSilencer(attempt + 1), 500);
-    return;
-  }
 
-  const atom = [...map.values()].find(candidate => String(candidate.debugLabel ?? '').endsWith('quinoaToastsAtom'));
-  if (!atom?.write) {
-    if (attempt < 240) setTimeout(() => initLevelUpSilencer(attempt + 1), 500);
-    return;
-  }
-  if (atom.__gardenCompanionLevelUpSilencer) return;
-
-  // quinoaToastsAtom is a primitive atom: jotai stores its value on write and hands it straight
-  // back without re-running read, so wrapping read (the way the ability silencer does for the
-  // derived pet-slot atom) never fires here - the hook has to be on write.
+  // The toasts atom is a primitive atom: jotai stores its value on write and hands it straight back
+  // without re-running read, so wrapping read never fires here - the hook has to be on write.
   //
   // The original write is left to run exactly as before rather than swapping out its setter: the
   // game reaches into a write's own `set` to capture a store setter (see game-atoms.ts), so feeding
-  // it a wrapped setter is not safe. Instead, once the write has completed, the current toast list
-  // is read back and the level-up toast removed with an ordinary self-set - the same thing the
-  // game's own toast dismissal does. Everything is guarded so a failure here can never take the
-  // real write (or whatever effect triggered it) down with it.
-  const isLevelUpToast = (entry: unknown): boolean => {
-    const toast = entry as Record<string, unknown> | null;
-    return Boolean(toast && typeof toast === 'object' && toast.isStackable === true && toast.variant === 'success');
-  };
+  // it a wrapped setter is not safe. Instead, once the write has completed, the current toast list is
+  // read back and the level-up toast removed with an ordinary self-set - the same thing the game's
+  // own toast dismissal does. Everything is guarded so a failure here can never take the real write
+  // (or whatever effect triggered it) down with it.
   const originalWrite = atom.write;
   atom.write = function(get: unknown, set: (target: JotaiAtom, value: unknown, ...rest: unknown[]) => unknown, ...args: unknown[]): unknown {
     const result = originalWrite.call(this, get, set, ...args);
@@ -58,4 +46,10 @@ export function initLevelUpSilencer(attempt = 0): void {
     return result;
   };
   atom.__gardenCompanionLevelUpSilencer = true;
+}
+
+export function initLevelUpSilencer(): void {
+  onCurrentRoomState(state => {
+    if (state.toasts) hookToastsAtom(state.toasts);
+  });
 }

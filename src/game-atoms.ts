@@ -2,6 +2,7 @@ import type { JotaiAtom } from './types.js';
 import { page } from './page.js';
 import { state } from './state.js';
 import { toast } from './toast.js';
+import { onCurrentRoomState, type RoomStateInstance } from './game-room-state.js';
 
 /**
  * Reading and driving the game through its own jotai atoms: mirroring the values the panel needs
@@ -52,10 +53,9 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
   if (!atom) return atom;
   const atomKey = String(key);
   if (atomKey.endsWith('/activeModalStateAtom')) activeModalStateAtom = atom;
-  if (atomKey.endsWith('/isCinematicModeAtom')) {
-    cinematicAtom = atom;
-    watchCinematicValue(atom);
-  }
+  // Bundle 1206 removed the standalone isCinematicModeAtom; cinematic mode is now the
+  // `isCinematicMode` field atom on currentRoomAtom's state instance, captured in
+  // installGameRoomStateHooks below rather than here.
   // The engine is captured from the system registry in plant-drag-move.ts (bundle 1141 removed the
   // engine atom this used to hook), so nothing to do here for it.
   if (gameAtomSet || typeof atom?.write !== 'function' || wrappedAtomWrites.has(atom)) return atom;
@@ -243,13 +243,58 @@ function hookAtom(match, key, attempt = 0) {
   if (attempt < 180) setTimeout(() => hookAtom(match, key, attempt + 1), 500);
 }
 
+/**
+ * Mirror a field atom's value into our state under `key`, wrapping both read and write. A primitive
+ * field atom (like selection.itemId, `atom(null)`) holds its value and the store need not call read,
+ * so the write side reads it back to keep the mirror live either way - the same pairing hookAtom uses.
+ */
+function mirrorFieldAtom(atom: JotaiAtom, key: string): void {
+  const flag = `__gardenCompanion:${key}`;
+  if (!atom || atom[flag]) return;
+  if (typeof atom.read === 'function') {
+    const original = atom.read;
+    atom.read = function(get, ...args) {
+      const value = original.call(this, get, ...args);
+      mirrorAtomValue(key, value);
+      return value;
+    };
+  }
+  if (typeof atom.write === 'function') {
+    const originalWrite = atom.write;
+    atom.write = function(get, set, ...args) {
+      const result = originalWrite.call(this, get, set, ...args);
+      try { mirrorAtomValue(key, (get as (target: JotaiAtom) => unknown)(atom)); } catch {}
+      return result;
+    };
+  }
+  atom[flag] = true;
+}
+
+/**
+ * Bundle 1206 folded selectedItemId and cinematic mode into currentRoomAtom's state instance. The
+ * instance is re-handed on a room reset, so cinematic is re-captured and the selection mirror
+ * re-installed against whichever field atoms are live.
+ */
+function installGameRoomStateHooks(): void {
+  onCurrentRoomState((roomState: RoomStateInstance) => {
+    const cinematic = roomState.isCinematicMode;
+    if (cinematic && cinematic !== cinematicAtom) {
+      cinematicAtom = cinematic;
+      watchCinematicValue(cinematic);
+    }
+    if (roomState.selection?.itemId) mirrorFieldAtom(roomState.selection.itemId, 'selectedItemId');
+  });
+}
+
 export function installAtomHooks() {
   // Bundle 1141 replaced the dedicated crop and egg atoms with this common raw tile
   // object; mirrorAtomValue derives currentCrop/currentEgg from it.
   hookAtom('myCurrentGardenObjectAtom', 'currentGardenObject');
   hookAtom('myOwnCurrentDirtTileIndexAtom', 'dirtTileIndex');
   hookAtom('selectedCropSlotIdAtom', 'selectedSlotId');
-  hookAtom('mySelectedItemIdAtom', 'selectedItemId');
+  // selectedItemId (the held item's id) and cinematic mode moved onto currentRoomAtom's state
+  // instance in bundle 1206; both are wired up from there.
+  installGameRoomStateHooks();
   // Which slot in userSlots is ours. Nothing in the room state says so any more, and the socket url
   // no longer carries a playerId, so the game's own answer is the only reliable one.
   hookAtom('myUserSlotIdxAtom', 'userSlotIndex');

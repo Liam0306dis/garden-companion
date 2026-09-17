@@ -56,6 +56,7 @@ const searchSource = await readSource('src', 'list-search.ts');
 const roomsSource = await readSource('src', 'features', 'rooms.ts');
 const catalogSource = await readSource('src', 'game-catalogs.ts');
 const gameAtomsSource = await readSource('src', 'game-atoms.ts');
+const gameRoomStateSource = await readSource('src', 'game-room-state.ts');
 const calculatorsSource = await readSource('src', 'features', 'calculators.ts');
 const abilityLogSource = await readSource('src', 'features', 'ability-log.ts');
 const abilityEffectSource = await readSource('src', 'ability-effect.ts');
@@ -572,14 +573,16 @@ assert.match(planterPotSelectionSource, /addedPlantIds: new Set\(\[plantItemId\]
 assert.match(plantDragSource, /\['myPredictedInventoryItemsAtom'\]/, 'plant drag watches the current inventory atom by its live name');
 // The wrapped getter must never throw: the throw comes out of the game's own call site.
 assert.match(gameAtomsSource, /if \(!atom\) return atom;\s*const atomKey = String\(key\);/, 'an unregistered atom throws out of the wrapped cache getter');
-assert.match(planterPotSelectionSource, /mySelectedItemIdAtom/, 'selection keeper does not watch selected items');
+assert.match(planterPotSelectionSource, /state\.selection\?\.itemId/, 'selection keeper does not watch selected items');
 assert.match(planterPotSelectionSource, /lastSelectedItemId !== 'PlanterPot'/, 'selection keeper is not limited to Planter Pot use');
 assert.match(planterPotSelectionSource, /pendingSelection\?\.addedPlantIds\.has\(nextItemId\)/, 'selection keeper does not target the newly potted plant');
 assert.match(planterPotSelectionSource, /__gardenCompanionFeature\?\.\('keepPlanterPotSelected'\) === true/, 'selection keeper is not strictly opt-in');
 assert.match(gameAtomsSource, /if \(atom\.write === capture\) atom\.write = original/, 'game atom capture cleanup can remove a later feature hook');
-assert.match(planterPotSelectionSource, /MAX_INSTALL_ATTEMPTS = 240/, 'selection keeper atom retry is not bounded');
-assert.match(planterPotSelectionSource, /attempts >= MAX_INSTALL_ATTEMPTS/, 'selection keeper atom retry cap is not enforced');
-assert.match(planterPotSelectionSource, /selection keeper could not find the game inventory atoms/, 'selection keeper does not report atom installation failure');
+// Bundle 1206 moved the selection atoms onto currentRoomAtom's state instance, re-handed on a room
+// reset, so the keeper installs against whichever atoms are live rather than retrying a cache scan.
+assert.match(planterPotSelectionSource, /onCurrentRoomState\(state => \{ installHooks\(state\); \}\)/, 'the selection keeper does not install from the room state instance');
+assert.match(planterPotSelectionSource, /watchPotCommands\(\);/, 'the pot command watcher is not registered once at init');
+assert.match(gameRoomStateSource, /label === 'currentRoomAtom' \|\| label\.endsWith\('\/currentRoomAtom'\)/, 'the room state instance is not found through currentRoomAtom');
 assert.match(companionSource, /Keep Planter Pot selected/, 'selection keeper toggle is missing from Features');
 assert.match(companionSource, /keepPlanterPotSelected: false/, 'selection keeper must default off');
 assert.doesNotMatch(indexSource, /if \(page\.__gardenCompanionFeature\?\.\('dragMove'\)\) initPlantDragMove/, 'plant drag still requires a reload to install');
@@ -1127,7 +1130,9 @@ assert.match(styleSource, /#gc-panel \.gc-launch-row button \{[^}]*width:132px[^
 assert.match(plannerSource, /const NATIVE_UI_LABELS = \['GardenInfoCardSystem', 'ActionHud', 'PetActionButtons'\]/, 'the native crop card and action buttons are not hidden while planning');
 assert.match(plannerSource, /function restoreNativeCardUi\(\)/, 'the native crop card is never restored');
 assert.match(plannerSource, /restoreNativeCardUi\(\);\s*document\.body\.classList\.remove\('gc-planning'\)/, 'leaving the planner does not restore the native crop card');
-assert.match(companionSource, /atomKey\.endsWith\('\/isCinematicModeAtom'\)/, 'the cinematic atom is not captured');
+// Bundle 1206 removed the standalone isCinematicModeAtom; cinematic mode is now the isCinematicMode
+// field atom on currentRoomAtom's state instance, re-captured whenever the room is reset.
+assert.match(gameAtomsSource, /if \(cinematic && cinematic !== cinematicAtom\) \{\s*cinematicAtom = cinematic;\s*watchCinematicValue\(cinematic\);/, 'the cinematic atom is not captured from the room state');
 assert.match(plannerSource, /page\.__gardenCompanionSetCinematic\?\.\(true, 'gardenPlanner'\)/, 'the planner does not use the games cinematic mode');
 assert.match(plannerSource, /page\.__gardenCompanionSetCinematic\?\.\(false, 'gardenPlanner'\)/, 'cinematic mode is not turned off when leaving the planner');
 assert.match(gameAtomsSource, /const cinematicOwners = new Set<string>\(\);/, 'cinematic users can disable one another when their views overlap');
@@ -1696,7 +1701,7 @@ assert.doesNotMatch(plantDragSource.slice(plantDragSource.indexOf("addEventListe
 // What the interface shows is validated, not stored: the index derives from the selected id and is
 // then discarded unless the item it lands on is the one last explicitly selected. Restoring the id
 // alone failed that test and resolved to null, which is the interface holding nothing.
-assert.match(planterPotSelectionSource, /findAtom\(map, 'myLastExplicitlySelectedItemIdAtom'\)/, 'only half the selection is restored, so validation discards it');
+assert.match(planterPotSelectionSource, /state\.selection\?\.lastExplicitItemId/, 'only half the selection is restored, so validation discards it');
 assert.match(planterPotSelectionSource, /\(set as AtomSetter\)\(explicitItemAtom!, pendingSelection\.restoreItemId\)/, 'the explicit selection is not put back alongside the id');
 assert.match(planterPotSelectionSource, /lastSelectedItemId = nextItemId;/, 'the keeper no longer tracks what is selected, so it cannot tell the pot was in use');
 // The drag reads inventory from reported state: an observer on a derived atom hears nothing while

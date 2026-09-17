@@ -1,6 +1,7 @@
 import { page } from '../page.js';
 import type { JotaiAtom } from '../types.js';
 import { onOutgoingCommand } from '../game-connection.js';
+import { onCurrentRoomState, type RoomStateInstance } from '../game-room-state.js';
 
 type AtomGetter = (atom: JotaiAtom) => unknown;
 type AtomSetter = (atom: JotaiAtom, value: unknown) => unknown;
@@ -15,8 +16,6 @@ interface PendingPotSelection {
 }
 
 const wrappedAtoms = new WeakSet<JotaiAtom>();
-const INSTALL_INTERVAL_MS = 250;
-const MAX_INSTALL_ATTEMPTS = 240;
 /** A hotbar press this much after the pot counts as the player overriding, not the pot's auto-select. */
 const GESTURE_GAP_MS = 30;
 /** How fresh that press must be when the selection write lands, so a stale click does not count. */
@@ -63,36 +62,25 @@ function isEnabled(): boolean {
   return page.__gardenCompanionFeature?.('keepPlanterPotSelected') === true;
 }
 
-function atomMap(): Map<unknown, JotaiAtom> | null {
-  const cache = page.jotaiAtomCache;
-  if (cache instanceof Map) return cache;
-  return cache?.cache instanceof Map ? cache.cache : null;
-}
-
-function findAtom(map: Map<unknown, JotaiAtom>, debugLabel: string): JotaiAtom | null {
-  for (const atom of map.values()) {
-    if (atom?.debugLabel === debugLabel) return atom;
-  }
-  return null;
-}
-
-function installHooks(): boolean {
-  const map = atomMap();
-  if (!map) return false;
-
-  /**
-   * Both halves of a selection, and both are plain writable atoms.
-   *
-   * What the interface shows is validated rather than stored: the index is derived from the selected
-   * id, then discarded unless the item it lands on is the one last explicitly selected -
-   *
-   *   (item.itemType === Tool && lastExplicitlySelected !== itemKey) ? null : index
-   *
-   * Putting the id back while the explicit id still named the new plant failed that test and
-   * resolved to null, which is the interface holding nothing at all. Both have to go back.
-   */
-  const selectedItemAtom = findAtom(map, 'mySelectedItemIdAtom');
-  const explicitItemAtom = findAtom(map, 'myLastExplicitlySelectedItemIdAtom');
+/**
+ * Both halves of a selection, and both are plain writable atoms.
+ *
+ * Bundle 1206 moved them into `currentRoomAtom`'s state instance - `selection.itemId` and
+ * `selection.lastExplicitItemId` - from the old standalone mySelectedItemIdAtom /
+ * myLastExplicitlySelectedItemIdAtom; game-room-state.ts hands over the field atoms. The wrapping is
+ * unchanged.
+ *
+ * What the interface shows is validated rather than stored: the index is derived from the selected
+ * id, then discarded unless the item it lands on is the one last explicitly selected -
+ *
+ *   (item.itemType === Tool && lastExplicitlySelected !== itemKey) ? null : index
+ *
+ * Putting the id back while the explicit id still named the new plant failed that test and resolved
+ * to null, which is the interface holding nothing at all. Both have to go back.
+ */
+function installHooks(state: RoomStateInstance): boolean {
+  const selectedItemAtom = state.selection?.itemId ?? null;
+  const explicitItemAtom = state.selection?.lastExplicitItemId ?? null;
   if (!selectedItemAtom?.write || !explicitItemAtom?.write) return false;
   if (wrappedAtoms.has(selectedItemAtom)) return true;
 
@@ -111,35 +99,6 @@ function installHooks(): boolean {
     const value = redirecting ? pending!.restoreItemId : args[0];
     return originalExplicitItemWrite.call(this, get as AtomGetter, set as AtomSetter, value);
   };
-
-  /**
-   * Armed from the command rather than from the inventory.
-   *
-   * This used to intercept the inventory write and work out what had just been potted. Build 1029
-   * left no write to intercept - the inventory became a value derived from the predicted state -
-   * and watching its read is too late, because the game acts on its own prediction and moves the
-   * selection before that value is ever recomputed.
-   *
-   * The command going out is both earlier and exact: since 1029 it carries the id of the plant it
-   * is about to create, so there is nothing left to deduce.
-   */
-  onOutgoingCommand(command => {
-    if (command.type === 'SetSelectedItem' || command.type === 'PotPlant') {
-      trace('command ' + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
-    }
-    // Only when the pot is what is in hand. Our own plant drag pots a plant too, and there the
-    // player never picked up a pot, so there is nothing to put back.
-    if (!isEnabled() || command.type !== 'PotPlant' || lastSelectedItemId !== 'PlanterPot') return;
-    const plantItemId = command.plantItemId;
-    if (typeof plantItemId !== 'string') return;
-    pendingSelection = {
-      addedPlantIds: new Set([plantItemId]),
-      restoreItemId: 'PlanterPot',
-      expiresAt: performance.now() + 2_000,
-      armedAt: performance.now(),
-    };
-  });
-
 
   selectedItemAtom.write = function(get, set, ...args) {
     const pending = pendingSelection;
@@ -173,15 +132,40 @@ function installHooks(): boolean {
   return true;
 }
 
+/**
+ * Armed from the command rather than from the inventory. Registered once, independent of the atoms.
+ *
+ * This used to intercept the inventory write and work out what had just been potted. Build 1029 left
+ * no write to intercept - the inventory became a value derived from the predicted state - and
+ * watching its read is too late, because the game acts on its own prediction and moves the selection
+ * before that value is ever recomputed.
+ *
+ * The command going out is both earlier and exact: since 1029 it carries the id of the plant it is
+ * about to create, so there is nothing left to deduce.
+ */
+function watchPotCommands(): void {
+  onOutgoingCommand(command => {
+    if (command.type === 'SetSelectedItem' || command.type === 'PotPlant') {
+      trace('command ' + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
+    }
+    // Only when the pot is what is in hand. Our own plant drag pots a plant too, and there the
+    // player never picked up a pot, so there is nothing to put back.
+    if (!isEnabled() || command.type !== 'PotPlant' || lastSelectedItemId !== 'PlanterPot') return;
+    const plantItemId = command.plantItemId;
+    if (typeof plantItemId !== 'string') return;
+    pendingSelection = {
+      addedPlantIds: new Set([plantItemId]),
+      restoreItemId: 'PlanterPot',
+      expiresAt: performance.now() + 2_000,
+      armedAt: performance.now(),
+    };
+  });
+}
+
 export function initPlanterPotSelection(): void {
   watchUserGestures();
-  if (installHooks()) return;
-  let attempts = 0;
-  const timer = window.setInterval(() => {
-    if (installHooks()) window.clearInterval(timer);
-    else if (++attempts >= MAX_INSTALL_ATTEMPTS) {
-      window.clearInterval(timer);
-      console.warn('[Garden Companion] Planter Pot selection keeper could not find the game inventory atoms.');
-    }
-  }, INSTALL_INTERVAL_MS);
+  watchPotCommands();
+  // The selection atoms live on the room state instance, re-handed on a room reset so a reconnect
+  // re-wraps the fresh atoms rather than the dead ones.
+  onCurrentRoomState(state => { installHooks(state); });
 }

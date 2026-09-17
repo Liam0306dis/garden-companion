@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.69
+// @version      0.8.70
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -34,7 +34,7 @@
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: true, sprite: "StringLights" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: true, sprite: "ColoredStringLights" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: true, sprite: "PaperLantern" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: true, sprite: "FanousLantern" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: true, sprite: "WindchimeMoon" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: true, sprite: "WindchimeStar" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
 
   // <define:__EGG_CATALOG__>
-  var define_EGG_CATALOG_default = { CommonEgg: { name: "Common Egg", spawnWeights: { Worm: 65, Snail: 30, Bee: 5 }, pityThresholds: { Bee: 40 } }, UncommonEgg: { name: "Uncommon Egg", spawnWeights: { Chicken: 65, Bunny: 30, Dragonfly: 5 }, pityThresholds: { Dragonfly: 40 } }, RareEgg: { name: "Rare Egg", spawnWeights: { Pig: 65, Cow: 30, Turkey: 5 }, pityThresholds: { Turkey: 40 } }, LegendaryEgg: { name: "Legendary Egg", spawnWeights: { Squirrel: 65, Turtle: 30, Goat: 5 }, pityThresholds: { Goat: 40 } }, SnowEgg: { name: "Snow Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 }, pityThresholds: { WhiteCaribou: 40 } }, DawnEgg: { name: "Dawn Egg", spawnWeights: { Sheep: 65, Horse: 30, Ostrich: 5 }, pityThresholds: { Ostrich: 40 } }, ThunderEgg: { name: "Thunder Egg", spawnWeights: { Bat: 65, Platypus: 30, ThunderWolf: 5 }, pityThresholds: { ThunderWolf: 40 } }, AmberEgg: { name: "Amber Egg", spawnWeights: { Rooster: 60, RedFox: 33, FireHorse: 5, Phoenix: 2 }, pityThresholds: { FireHorse: 40, Phoenix: 100 } }, HorseEgg: { name: "Horse Egg", spawnWeights: { Pony: 65, Horse: 30, FireHorse: 5 }, pityThresholds: { FireHorse: 40 } }, MythicalEgg: { name: "Mythical Egg", spawnWeights: { Butterfly: 65, Peacock: 30, Capybara: 5 }, pityThresholds: { Capybara: 40 } }, WinterEgg: { name: "Winter Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 }, pityThresholds: { WhiteCaribou: 40 } } };
+  var define_EGG_CATALOG_default = { CommonEgg: { name: "Common Egg", spawnWeights: { Worm: 65, Snail: 30, Bee: 5 }, pityThresholds: {} }, UncommonEgg: { name: "Uncommon Egg", spawnWeights: { Chicken: 65, Bunny: 30, Dragonfly: 5 }, pityThresholds: {} }, RareEgg: { name: "Rare Egg", spawnWeights: { Pig: 65, Cow: 30, Turkey: 5 }, pityThresholds: {} }, LegendaryEgg: { name: "Legendary Egg", spawnWeights: { Squirrel: 65, Turtle: 30, Goat: 5 }, pityThresholds: {} }, SnowEgg: { name: "Snow Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 }, pityThresholds: {} }, DawnEgg: { name: "Dawn Egg", spawnWeights: { Sheep: 65, Horse: 30, Ostrich: 5 }, pityThresholds: {} }, ThunderEgg: { name: "Thunder Egg", spawnWeights: { Bat: 65, Platypus: 30, ThunderWolf: 5 }, pityThresholds: {} }, AmberEgg: { name: "Amber Egg", spawnWeights: { Rooster: 60, RedFox: 33, FireHorse: 5, Phoenix: 2 }, pityThresholds: { Phoenix: 100 } }, HorseEgg: { name: "Horse Egg", spawnWeights: { Pony: 65, Horse: 30, FireHorse: 5 }, pityThresholds: {} }, MythicalEgg: { name: "Mythical Egg", spawnWeights: { Butterfly: 65, Peacock: 30, Capybara: 5 }, pityThresholds: {} }, WinterEgg: { name: "Winter Egg", spawnWeights: { SnowFox: 65, Stoat: 30, WhiteCaribou: 5 }, pityThresholds: {} } };
 
   // <define:__MUTATION_CATALOG__>
   var define_MUTATION_CATALOG_default = { Gold: { name: "Gold", group: "Growth", coinMultiplier: 25, sprite: "Gold" }, Rainbow: { name: "Rainbow", group: "Growth", coinMultiplier: 50, sprite: "Rainbow" }, Wet: { name: "Wet", group: "Hydro", coinMultiplier: 2, sprite: "Wet" }, Chilled: { name: "Chilled", group: "Hydro", coinMultiplier: 2, sprite: "Chilled" }, Frozen: { name: "Frozen", group: "Hydro", coinMultiplier: 6, sprite: "Frozen" }, Thunderstruck: { name: "Thunderstruck", group: "Hydro", coinMultiplier: 5, sprite: "Thunderstruck" }, Dawnlit: { name: "Dawnlit", group: "Lunar", coinMultiplier: 4, sprite: "Dawnlit" }, Ambershine: { name: "Amberlit", group: "Lunar", coinMultiplier: 6, sprite: "Amberlit" }, Dawncharged: { name: "Dawnbound", group: "Lunar", coinMultiplier: 7, sprite: "Dawncharged" }, Ambercharged: { name: "Amberbound", group: "Lunar", coinMultiplier: 10, sprite: "Ambercharged" }, Thundercharged: { name: "Thundercharged", group: "Hydro", coinMultiplier: 7, sprite: "Thundercharged" } };
@@ -4242,8 +4242,79 @@ ${eggs.map(eggCard).join("")}`;
     });
   }
 
-  // src/game-atoms.ts
+  // src/game-room-state.ts
+  var INSTALL_INTERVAL_MS = 500;
+  var MAX_INSTALL_ATTEMPTS = 240;
+  var listeners2 = /* @__PURE__ */ new Set();
+  var roomAtom = null;
+  var instance = null;
+  var installing = false;
   function atomMap() {
+    const cache = page.jotaiAtomCache;
+    if (cache instanceof Map) return cache;
+    return cache?.cache ?? null;
+  }
+  function findRoomAtom(map) {
+    for (const atom of map.values()) {
+      const label = String(atom?.debugLabel ?? "");
+      if (label === "currentRoomAtom" || label.endsWith("/currentRoomAtom")) return atom;
+    }
+    return null;
+  }
+  function isRoomState(value) {
+    return Boolean(value) && typeof value === "object";
+  }
+  function captureInstance(next) {
+    if (!isRoomState(next) || next === instance) return;
+    instance = next;
+    for (const listener of listeners2) {
+      try {
+        listener(next);
+      } catch {
+      }
+    }
+  }
+  function install(attempt = 0) {
+    const map = atomMap();
+    const atom = map ? findRoomAtom(map) : null;
+    if (!atom) {
+      if (attempt < MAX_INSTALL_ATTEMPTS) setTimeout(() => install(attempt + 1), INSTALL_INTERVAL_MS);
+      return;
+    }
+    roomAtom = atom;
+    if (atom.init !== void 0) captureInstance(atom.init);
+    if (!atom.__gardenCompanionRoomWatch && typeof atom.write === "function") {
+      const originalWrite = atom.write;
+      atom.write = function(get, set, ...args) {
+        const result = originalWrite.call(this, get, set, ...args);
+        try {
+          captureInstance(get(atom));
+        } catch {
+        }
+        return result;
+      };
+      atom.__gardenCompanionRoomWatch = true;
+    }
+    if (!instance && attempt < MAX_INSTALL_ATTEMPTS) setTimeout(() => install(attempt + 1), INSTALL_INTERVAL_MS);
+  }
+  function onCurrentRoomState(listener) {
+    listeners2.add(listener);
+    if (instance) {
+      try {
+        listener(instance);
+      } catch {
+      }
+    }
+    if (!installing) {
+      installing = true;
+      install();
+    } else if (roomAtom && !instance && roomAtom.init !== void 0) {
+      captureInstance(roomAtom.init);
+    }
+  }
+
+  // src/game-atoms.ts
+  function atomMap2() {
     const cache = page.jotaiAtomCache;
     if (cache instanceof Map) return cache;
     return cache?.cache ?? null;
@@ -4273,10 +4344,6 @@ ${eggs.map(eggCard).join("")}`;
     if (!atom) return atom;
     const atomKey = String(key);
     if (atomKey.endsWith("/activeModalStateAtom")) activeModalStateAtom = atom;
-    if (atomKey.endsWith("/isCinematicModeAtom")) {
-      cinematicAtom = atom;
-      watchCinematicValue(atom);
-    }
     if (gameAtomSet || typeof atom?.write !== "function" || wrappedAtomWrites.has(atom)) return atom;
     const original = atom.write;
     const capture = function(get, set, ...args) {
@@ -4379,7 +4446,7 @@ ${eggs.map(eggCard).join("")}`;
     if (key === "currentAction") state.preservationMode = value === "preserve";
   }
   function hookAtom(match, key, attempt = 0) {
-    const map = atomMap();
+    const map = atomMap2();
     if (!map || typeof map.values !== "function") {
       if (attempt < 180) setTimeout(() => hookAtom(match, key, attempt + 1), 500);
       return;
@@ -4412,11 +4479,45 @@ ${eggs.map(eggCard).join("")}`;
     }
     if (attempt < 180) setTimeout(() => hookAtom(match, key, attempt + 1), 500);
   }
+  function mirrorFieldAtom(atom, key) {
+    const flag = `__gardenCompanion:${key}`;
+    if (!atom || atom[flag]) return;
+    if (typeof atom.read === "function") {
+      const original = atom.read;
+      atom.read = function(get, ...args) {
+        const value = original.call(this, get, ...args);
+        mirrorAtomValue(key, value);
+        return value;
+      };
+    }
+    if (typeof atom.write === "function") {
+      const originalWrite = atom.write;
+      atom.write = function(get, set, ...args) {
+        const result = originalWrite.call(this, get, set, ...args);
+        try {
+          mirrorAtomValue(key, get(atom));
+        } catch {
+        }
+        return result;
+      };
+    }
+    atom[flag] = true;
+  }
+  function installGameRoomStateHooks() {
+    onCurrentRoomState((roomState) => {
+      const cinematic = roomState.isCinematicMode;
+      if (cinematic && cinematic !== cinematicAtom) {
+        cinematicAtom = cinematic;
+        watchCinematicValue(cinematic);
+      }
+      if (roomState.selection?.itemId) mirrorFieldAtom(roomState.selection.itemId, "selectedItemId");
+    });
+  }
   function installAtomHooks() {
     hookAtom("myCurrentGardenObjectAtom", "currentGardenObject");
     hookAtom("myOwnCurrentDirtTileIndexAtom", "dirtTileIndex");
     hookAtom("selectedCropSlotIdAtom", "selectedSlotId");
-    hookAtom("mySelectedItemIdAtom", "selectedItemId");
+    installGameRoomStateHooks();
     hookAtom("myUserSlotIdxAtom", "userSlotIndex");
     hookAtom("playerIdAtom", "atomPlayerId");
     hookAtom("actionAtom", "currentAction");
@@ -5348,9 +5449,9 @@ ${eggs.map(eggCard).join("")}`;
 
   // src/connection-state.ts
   var roomSocketOpens = 0;
-  var listeners2 = /* @__PURE__ */ new Set();
+  var listeners3 = /* @__PURE__ */ new Set();
   function emit() {
-    for (const listener of listeners2) {
+    for (const listener of listeners3) {
       try {
         listener();
       } catch (error) {
@@ -5366,7 +5467,7 @@ ${eggs.map(eggCard).join("")}`;
     if (roomSocketOpens > 0) emit();
   }
   function onRoomConnectionInterrupted(listener) {
-    listeners2.add(listener);
+    listeners3.add(listener);
   }
 
   // src/features/shop-alarms.ts
@@ -7074,14 +7175,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
   }
 
   // src/features/ability-silencer.ts
-  function atomMap2(page3) {
+  function atomMap3(page3) {
     const cache = page3.jotaiAtomCache;
     if (cache instanceof Map) return cache;
     return cache?.cache ?? null;
   }
   function initAbilitySilencer(attempt = 0) {
     const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
-    const map = atomMap2(page3);
+    const map = atomMap3(page3);
     if (!map) {
       if (attempt < 240) setTimeout(() => initAbilitySilencer(attempt + 1), 500);
       return;
@@ -7114,28 +7215,13 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
   }
 
   // src/features/levelup-silencer.ts
-  function atomMap3(page3) {
-    const cache = page3.jotaiAtomCache;
-    if (cache instanceof Map) return cache;
-    return cache?.cache ?? null;
-  }
-  function initLevelUpSilencer(attempt = 0) {
+  var isLevelUpToast = (entry) => {
+    const toast2 = entry;
+    return Boolean(toast2 && typeof toast2 === "object" && toast2.isStackable === true && toast2.variant === "success");
+  };
+  function hookToastsAtom(atom) {
+    if (!atom || typeof atom.write !== "function" || atom.__gardenCompanionLevelUpSilencer) return;
     const page3 = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
-    const map = atomMap3(page3);
-    if (!map) {
-      if (attempt < 240) setTimeout(() => initLevelUpSilencer(attempt + 1), 500);
-      return;
-    }
-    const atom = [...map.values()].find((candidate) => String(candidate.debugLabel ?? "").endsWith("quinoaToastsAtom"));
-    if (!atom?.write) {
-      if (attempt < 240) setTimeout(() => initLevelUpSilencer(attempt + 1), 500);
-      return;
-    }
-    if (atom.__gardenCompanionLevelUpSilencer) return;
-    const isLevelUpToast = (entry) => {
-      const toast2 = entry;
-      return Boolean(toast2 && typeof toast2 === "object" && toast2.isStackable === true && toast2.variant === "success");
-    };
     const originalWrite = atom.write;
     atom.write = function(get, set, ...args) {
       const result = originalWrite.call(this, get, set, ...args);
@@ -7151,6 +7237,11 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       return result;
     };
     atom.__gardenCompanionLevelUpSilencer = true;
+  }
+  function initLevelUpSilencer() {
+    onCurrentRoomState((state2) => {
+      if (state2.toasts) hookToastsAtom(state2.toasts);
+    });
   }
 
   // src/features/garden-overview.ts
@@ -11495,7 +11586,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         }, duration);
       }
     }
-    function atomMap5() {
+    function atomMap4() {
       const cache = pageWindow.jotaiAtomCache;
       if (cache instanceof Map) return cache;
       return cache?.cache ?? null;
@@ -11503,7 +11594,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function hookAtom2(labels, onValue) {
       const wanted = Array.isArray(labels) ? labels : [labels];
       const debugLabel = wanted[0];
-      const map = atomMap5();
+      const map = atomMap4();
       if (!map || typeof map.values !== "function") return false;
       for (const atom of map.values()) {
         if (!wanted.includes(atom?.debugLabel) || typeof atom.read !== "function") continue;
@@ -12026,8 +12117,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
 
   // src/features/planter-pot-selection.ts
   var wrappedAtoms = /* @__PURE__ */ new WeakSet();
-  var INSTALL_INTERVAL_MS = 250;
-  var MAX_INSTALL_ATTEMPTS = 240;
   var GESTURE_GAP_MS = 30;
   var GESTURE_RECENT_MS = 250;
   var pendingSelection = null;
@@ -12058,22 +12147,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function isEnabled() {
     return page.__gardenCompanionFeature?.("keepPlanterPotSelected") === true;
   }
-  function atomMap4() {
-    const cache = page.jotaiAtomCache;
-    if (cache instanceof Map) return cache;
-    return cache?.cache instanceof Map ? cache.cache : null;
-  }
-  function findAtom(map, debugLabel) {
-    for (const atom of map.values()) {
-      if (atom?.debugLabel === debugLabel) return atom;
-    }
-    return null;
-  }
-  function installHooks() {
-    const map = atomMap4();
-    if (!map) return false;
-    const selectedItemAtom = findAtom(map, "mySelectedItemIdAtom");
-    const explicitItemAtom = findAtom(map, "myLastExplicitlySelectedItemIdAtom");
+  function installHooks(state2) {
+    const selectedItemAtom = state2.selection?.itemId ?? null;
+    const explicitItemAtom = state2.selection?.lastExplicitItemId ?? null;
     if (!selectedItemAtom?.write || !explicitItemAtom?.write) return false;
     if (wrappedAtoms.has(selectedItemAtom)) return true;
     const originalSelectedItemWrite = selectedItemAtom.write;
@@ -12087,20 +12163,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const value = redirecting ? pending.restoreItemId : args[0];
       return originalExplicitItemWrite.call(this, get, set, value);
     };
-    onOutgoingCommand((command) => {
-      if (command.type === "SetSelectedItem" || command.type === "PotPlant") {
-        trace("command " + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
-      }
-      if (!isEnabled() || command.type !== "PotPlant" || lastSelectedItemId !== "PlanterPot") return;
-      const plantItemId = command.plantItemId;
-      if (typeof plantItemId !== "string") return;
-      pendingSelection = {
-        addedPlantIds: /* @__PURE__ */ new Set([plantItemId]),
-        restoreItemId: "PlanterPot",
-        expiresAt: performance.now() + 2e3,
-        armedAt: performance.now()
-      };
-    });
     selectedItemAtom.write = function(get, set, ...args) {
       const pending = pendingSelection;
       if (!isEnabled() || pending && performance.now() > pending.expiresAt) pendingSelection = null;
@@ -12121,17 +12183,28 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     wrappedAtoms.add(explicitItemAtom);
     return true;
   }
+  function watchPotCommands() {
+    onOutgoingCommand((command) => {
+      if (command.type === "SetSelectedItem" || command.type === "PotPlant") {
+        trace("command " + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
+      }
+      if (!isEnabled() || command.type !== "PotPlant" || lastSelectedItemId !== "PlanterPot") return;
+      const plantItemId = command.plantItemId;
+      if (typeof plantItemId !== "string") return;
+      pendingSelection = {
+        addedPlantIds: /* @__PURE__ */ new Set([plantItemId]),
+        restoreItemId: "PlanterPot",
+        expiresAt: performance.now() + 2e3,
+        armedAt: performance.now()
+      };
+    });
+  }
   function initPlanterPotSelection() {
     watchUserGestures();
-    if (installHooks()) return;
-    let attempts = 0;
-    const timer = window.setInterval(() => {
-      if (installHooks()) window.clearInterval(timer);
-      else if (++attempts >= MAX_INSTALL_ATTEMPTS) {
-        window.clearInterval(timer);
-        console.warn("[Garden Companion] Planter Pot selection keeper could not find the game inventory atoms.");
-      }
-    }, INSTALL_INTERVAL_MS);
+    watchPotCommands();
+    onCurrentRoomState((state2) => {
+      installHooks(state2);
+    });
   }
 
   // src/celestial-layout.ts
