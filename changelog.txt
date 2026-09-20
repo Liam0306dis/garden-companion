@@ -1,3 +1,6 @@
+0.8.71
+- Size focus now highlights or fades each crop individually in multi-harvest and patch plants instead of matching the whole plant when one crop is max size
+
 0.8.70
 - Fixed several features that broke with the last game update: Keep Planter Pot selected, pet level-up silencing, Layout Planner & Fishing
 

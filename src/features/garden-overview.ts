@@ -295,10 +295,7 @@ function installPlantFocus(
     const scopeMatches = config.scope === 'all' || config.scope === 'tracked' && (!selected || selected.has(slotSpecies)) || config.scope === slotSpecies;
     const mutations = slot.mutations || [];
     const conditions = config.mutations.map(name => mutations.includes(name));
-    if (config.maxSize) conditions.push((tile.slots || []).some((candidate: PlantSlot) => {
-      if (ignorePreserved() && candidate.preserved) return false;
-      return slotIsMaxSize(PLANT_CATALOG[candidate.species ?? tile.species ?? '']?.crop, candidate);
-    }));
+    if (config.maxSize) conditions.push(slotIsMaxSize(PLANT_CATALOG[slotSpecies ?? '']?.crop, slot));
     // No conditions picked means the scope is the only filter — not "unmutated crops only".
     const ruleMatches = !conditions.length
       || (config.mutationRule === 'none' ? conditions.every(match => !match)
