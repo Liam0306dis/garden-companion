@@ -1,3 +1,6 @@
+0.8.79
+- Shop alarms: an item bought out before a restock is no longer treated as still sold out after the shop restocks
+
 0.8.78
 - Wrapped plant-drag-move commands to avoid them being rejected in future
 - Crop values are now correct for Wet or Chilled crops that are also Dawnbound or Amberbound (they were one step low)
