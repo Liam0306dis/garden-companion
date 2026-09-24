@@ -6413,7 +6413,6 @@ ${eggs.map(eggCard).join("")}`;
     const tabIcon = (id) => `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICONS[id] ?? ""}</svg>`;
     const CHEVRON_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
     const CLOSE_ICON2 = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
-    const BRAND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2Z"/><path d="M12 15.5c0-3.2-2.5-5.7-7-5.7 0 3.2 2.5 5.7 7 5.7Z"/></svg>';
     const NAV_COLLAPSED_KEY = "gardenCompanion.navCollapsed.v1";
     let collapsedNavGroups = /* @__PURE__ */ new Set();
     try {
@@ -6439,7 +6438,7 @@ ${eggs.map(eggCard).join("")}`;
       if (!panel3) return;
       const navTop = panel3.querySelector("nav")?.scrollTop ?? 0;
       const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || "";
-      panel3.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">${BRAND_ICON}</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside><section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></section></div>`;
+      panel3.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside><section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></section></div>`;
       const main = panel3.querySelector("main");
       main.addEventListener("pointerleave", () => {
         if (refreshPending) setTimeout(refreshOpenPanel, 0);
@@ -6691,8 +6690,7 @@ ${eggs.map(eggCard).join("")}`;
 /* Sidebar: brand on top, grouped tabs beneath. */
 .gc-side { min-height:0;display:flex;flex-direction:column;background:var(--gc-side);border-right:1px solid var(--gc-line); }
 .gc-brand { display:flex;align-items:center;gap:10px;padding:16px 14px 14px; }
-.gc-brand-mark { width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border-radius:9px;color:#fff;background:var(--gc-accent); }
-.gc-brand-mark svg { width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }
+.gc-brand-mark { width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border:1px solid var(--gc-line);border-radius:9px;background:var(--gc-surface-2);font-size:16px;font-style:normal;line-height:1; }
 .gc-brand > div { min-width:0;display:flex;flex-direction:column; }
 .gc-brand b { color:var(--gc-strong);font-size:13px;font-weight:650;line-height:1.2;white-space:nowrap; }
 .gc-brand .gc-version { margin-top:1px;color:var(--gc-faint);font-size:11px;font-style:normal;font-variant-numeric:tabular-nums; }

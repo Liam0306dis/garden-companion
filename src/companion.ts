@@ -834,7 +834,6 @@ export function initCompanion(): void {
   const tabIcon = (id: string): string => `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICONS[id] ?? ''}</svg>`;
   const CHEVRON_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
-  const BRAND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2Z"/><path d="M12 15.5c0-3.2-2.5-5.7-7-5.7 0 3.2 2.5 5.7 7 5.7Z"/></svg>';
   const NAV_COLLAPSED_KEY = 'gardenCompanion.navCollapsed.v1';
   let collapsedNavGroups = new Set<string>();
   try { collapsedNavGroups = new Set(JSON.parse(localStorage.getItem(NAV_COLLAPSED_KEY) || '[]')); } catch {}
@@ -868,7 +867,7 @@ export function initCompanion(): void {
     if (!panel) return;
     const navTop = panel.querySelector('nav')?.scrollTop ?? 0;
     const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || '';
-    panel.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">${BRAND_ICON}</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside>`
+    panel.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside>`
       + `<section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></section></div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
