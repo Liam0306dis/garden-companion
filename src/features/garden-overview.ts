@@ -823,7 +823,6 @@ function calculateStats(
 
 // Stroke icons on a 24px grid, matching the companion panel's set.
 const svgIcon = (paths: string): string => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
-const LEAF_ICON = svgIcon('<path d="M12 21v-8"/><path d="M12 13c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2Z"/><path d="M12 15.5c0-3.2-2.5-5.7-7-5.7 0 3.2 2.5 5.7 7 5.7Z"/>');
 const GEAR_ICON = svgIcon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>');
 const FOCUS_ICON = svgIcon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>');
 const CLOSE_ICON = svgIcon('<path d="M6 6l12 12M18 6 6 18"/>');
@@ -852,9 +851,7 @@ function injectStyles(): void {
     #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:2}
     #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 8px 10px 12px;color:var(--go-strong);border-bottom:1px solid var(--go-line);cursor:move;touch-action:none;user-select:none}
     #${PANEL_ID} .go-config-card header{padding-left:16px}
-    #${PANEL_ID} h2{flex:0 0 auto;display:flex;align-items:center;gap:9px;margin:0;white-space:nowrap;font:650 14px/1.2 var(--go-font);letter-spacing:-.005em}
-    #${PANEL_ID} .go-mark{width:26px;height:26px;display:grid;place-items:center;flex:0 0 auto;border-radius:8px;color:#fff;background:var(--go-accent)}
-    #${PANEL_ID} .go-mark svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    #${PANEL_ID} h2{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap;font:650 14px/1.2 var(--go-font);letter-spacing:-.005em}
     #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:2px}
     #${PANEL_ID} button{min-height:28px;padding:5px 10px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-surface-2);color:var(--go-text);cursor:pointer;font:500 12px/1.2 var(--go-font);white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
     #${PANEL_ID} button:hover{color:var(--go-strong);border-color:rgba(255,255,255,.18);background:var(--go-surface-3)}
@@ -1476,7 +1473,7 @@ export function initGardenOverview(): void {
     }</div>`;
     const configTitle = configMode === 'alarms' ? 'Alarm Config' : 'Overview Settings';
     const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml(configTitle)}</h2><button data-config-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : '';
-    panel.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2><i class="go-mark">${LEAF_ICON}</i>Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== 'alarms'}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? 'Turn plant focus off' : 'Turn plant focus on'}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
+    panel.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== 'alarms'}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? 'Turn plant focus off' : 'Turn plant focus on'}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
     const nextBody = panel.querySelector<HTMLElement>('.go-body');
     if (nextBody) nextBody.scrollTop = scrollTop;
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = close;
