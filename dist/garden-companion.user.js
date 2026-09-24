@@ -6412,7 +6412,7 @@ ${eggs.map(eggCard).join("")}`;
     };
     const tabIcon = (id) => `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICONS[id] ?? ""}</svg>`;
     const CHEVRON_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-    const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+    const CLOSE_ICON2 = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
     const BRAND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2Z"/><path d="M12 15.5c0-3.2-2.5-5.7-7-5.7 0 3.2 2.5 5.7 7 5.7Z"/></svg>';
     const NAV_COLLAPSED_KEY = "gardenCompanion.navCollapsed.v1";
     let collapsedNavGroups = /* @__PURE__ */ new Set();
@@ -6439,7 +6439,7 @@ ${eggs.map(eggCard).join("")}`;
       if (!panel3) return;
       const navTop = panel3.querySelector("nav")?.scrollTop ?? 0;
       const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || "";
-      panel3.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">${BRAND_ICON}</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside><section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></section></div>`;
+      panel3.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">${BRAND_ICON}</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside><section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></section></div>`;
       const main = panel3.querySelector("main");
       main.addEventListener("pointerleave", () => {
         if (refreshPending) setTimeout(refreshOpenPanel, 0);
@@ -8194,134 +8194,206 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     addEta("Bee Size", "ProduceScaleBoost", 0.3, beeSizeBoosts, null, true);
     return result;
   }
+  var svgIcon = (paths) => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
+  var LEAF_ICON = svgIcon('<path d="M12 21v-8"/><path d="M12 13c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2Z"/><path d="M12 15.5c0-3.2-2.5-5.7-7-5.7 0 3.2 2.5 5.7 7 5.7Z"/>');
+  var GEAR_ICON = svgIcon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>');
+  var FOCUS_ICON = svgIcon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>');
+  var CLOSE_ICON = svgIcon('<path d="M6 6l12 12M18 6 6 18"/>');
+  var BELL_ICON = svgIcon('<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0 1 9 0c0 2.5.5 3.8 1.5 5Z"/><path d="M10 19a2 2 0 0 0 4 0"/>');
+  var BELL_OFF_ICON = svgIcon('<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0 1 9 0c0 2.5.5 3.8 1.5 5Z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>');
+  var CHEVRON_UP = svgIcon('<path d="m6 15 6-6 6 6"/>');
+  var CHEVRON_DOWN = svgIcon('<path d="m6 9 6 6 6-6"/>');
   function injectStyles() {
     if (document.getElementById(STYLE_ID2)) return;
     const style = document.createElement("style");
     style.id = STYLE_ID2;
     style.textContent = `
-    #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-raised,#121219);color:var(--gc-text,#e4e4e7);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
-    /* Layered over the solid base rather than replacing it: this button sits on the game canvas,
-       so a translucent hover would show the garden through it instead of lighting it up. */
-    #${BUTTON_ID}:hover{border-color:rgba(167,139,250,.35);background:linear-gradient(rgba(167,139,250,.16),rgba(167,139,250,.16)),var(--gc-raised,#121219)}
-    #${PANEL_ID}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
+    #${PANEL_ID},#${BUTTON_ID}{--go-bg:var(--gc-bg,#141417);--go-surface:var(--gc-surface,#1a1a1e);--go-surface-2:var(--gc-surface-2,#222227);--go-surface-3:var(--gc-surface-3,#2a2a30);--go-input:var(--gc-input,#0e0e10);--go-line:var(--gc-line,rgba(255,255,255,.07));--go-line-strong:var(--gc-line-strong,rgba(255,255,255,.12));--go-text:var(--gc-text,#ececef);--go-strong:var(--gc-strong,#fafafa);--go-muted:var(--gc-muted,#a1a1aa);--go-faint:var(--gc-faint,#83838d);--go-accent:var(--gc-accent,#7c6cf2);--go-accent-text:var(--gc-accent-text,#b3a9ff);--go-accent-soft:var(--gc-accent-soft,rgba(124,108,242,.14));--go-accent-line:var(--gc-accent-line,rgba(124,108,242,.45));--go-green:var(--gc-green,#3ecf8e);--go-gold:var(--gc-gold,#f5c04a);--go-font:var(--gc-font,"Segoe UI",system-ui,sans-serif);--go-mono:var(--gc-mono,ui-monospace,Consolas,monospace)}
+    #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--go-line-strong);border-radius:9px;background:var(--go-bg);color:var(--go-green);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+    #${BUTTON_ID} svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    /* Solid on hover rather than translucent: this button sits on the game canvas, so a see-through
+       fill would show the garden through it instead of lighting it up. */
+    #${BUTTON_ID}:hover{background:var(--go-surface-2)}
+    #${PANEL_ID}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--go-text);font:13px/1.45 var(--go-font);-webkit-font-smoothing:antialiased}
+    #${PANEL_ID} *,#${PANEL_ID} *::before,#${PANEL_ID} *::after{box-sizing:border-box}
     #${PANEL_ID}[hidden]{display:none}
     #${PANEL_ID} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
-    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.035);z-index:1}
-    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 30px 90px rgba(0,0,0,.8);z-index:2}
-    #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move;touch-action:none;user-select:none}
-    #${PANEL_ID} h2{flex:0 0 auto;margin:0;white-space:nowrap;font:700 14px/1.2 system-ui,sans-serif;letter-spacing:.02em}
-    #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:4px}
-    #${PANEL_ID} header button,#${PANEL_ID} button{padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);cursor:pointer;font:700 10px system-ui,sans-serif}
-    #${PANEL_ID} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
-    #${PANEL_ID} header button[data-close]{border-radius:50%;color:var(--gc-muted,rgba(255,255,255,.72));background:transparent}
-    #${PANEL_ID} header button[data-close]:hover{color:#fff;background:rgba(255,255,255,.07)}
-    #${PANEL_ID} header button:hover,#${PANEL_ID} button:hover{color:#ddd6fe;border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.1)}
-    #${PANEL_ID} header button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
-    #${PANEL_ID} .go-body{min-height:0;overflow:auto;padding:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
-    #${PANEL_ID} .go-config-body{min-height:0;overflow:auto;padding:0 12px 12px}
-    #${PANEL_ID} .go-section{padding:11px 14px;border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075))}#${PANEL_ID} .go-growth,#${PANEL_ID} .go-estimates{padding:12px 14px}
-    #${PANEL_ID} .go-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-    #${PANEL_ID} .go-section-title::after{content:'';height:1px;flex:1;margin-left:8px;background:var(--gc-line,rgba(255,255,255,.075))}
-    #${PANEL_ID} .go-section-title>span:last-child{order:2;margin-left:8px;white-space:nowrap;font-size:9px;font-weight:400;letter-spacing:0}
-    #${PANEL_ID} .go-section-title>span>small{margin-left:6px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--gc-text,#e4e4e7);font-size:9px;font-weight:700;letter-spacing:0}
+    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:1}
+    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:2}
+    #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 8px 10px 12px;color:var(--go-strong);border-bottom:1px solid var(--go-line);cursor:move;touch-action:none;user-select:none}
+    #${PANEL_ID} .go-config-card header{padding-left:16px}
+    #${PANEL_ID} h2{flex:0 0 auto;display:flex;align-items:center;gap:9px;margin:0;white-space:nowrap;font:650 14px/1.2 var(--go-font);letter-spacing:-.005em}
+    #${PANEL_ID} .go-mark{width:26px;height:26px;display:grid;place-items:center;flex:0 0 auto;border-radius:8px;color:#fff;background:var(--go-accent)}
+    #${PANEL_ID} .go-mark svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:2px}
+    #${PANEL_ID} button{min-height:28px;padding:5px 10px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-surface-2);color:var(--go-text);cursor:pointer;font:500 12px/1.2 var(--go-font);white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
+    #${PANEL_ID} button:hover{color:var(--go-strong);border-color:rgba(255,255,255,.18);background:var(--go-surface-3)}
+    #${PANEL_ID} button:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:1px}
+    #${PANEL_ID} button:disabled{opacity:.45;cursor:default}
+    /* Icon buttons: header actions and section tools. Borderless until hovered or switched on. */
+    #${PANEL_ID} header button,#${PANEL_ID} .go-section-actions button{width:30px;min-width:30px;height:30px;min-height:0;display:grid;place-items:center;padding:0;border-color:transparent;background:transparent;color:var(--go-muted)}
+    #${PANEL_ID} header button svg,#${PANEL_ID} .go-section-actions button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    #${PANEL_ID} header button:hover,#${PANEL_ID} .go-section-actions button:hover{color:var(--go-text);border-color:transparent;background:var(--go-surface-2)}
+    #${PANEL_ID} header button[data-active=true],#${PANEL_ID} .go-section-actions button[data-active=true]{color:var(--go-accent-text);border-color:transparent;background:var(--go-accent-soft)}
+    #${PANEL_ID} .go-body{min-height:0;overflow:auto;padding:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+    #${PANEL_ID} .go-config-body{min-height:0;overflow:auto;padding:0 14px 14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+    #${PANEL_ID} .go-config-body .go-section{padding:4px 0 0;border-bottom:0}
+    #${PANEL_ID} .go-section{padding:14px 14px;border-bottom:1px solid var(--go-line)}
+    #${PANEL_ID} .go-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+    #${PANEL_ID} .go-section-title>span:first-child{display:flex;align-items:center}
+    #${PANEL_ID} .go-section-title>span:last-child:not(:first-child){order:2;margin-left:8px;white-space:nowrap;color:var(--go-muted);font-size:11px;font-weight:500;letter-spacing:0;text-transform:none}
+    #${PANEL_ID} .go-section-title>span>small{margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-collapsible{cursor:pointer;margin:0}
+    #${PANEL_ID} .go-collapsible:hover{color:var(--go-text)}
     /* A bordered control rather than a loose glyph, so it reads as something you can press. */
-    #${PANEL_ID} .go-chevron{order:2;display:grid;place-items:center;width:22px;height:22px;flex:0 0 22px;margin-left:8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.04);color:var(--gc-accent,#a78bfa);font-size:9px;text-decoration:none}
-    #${PANEL_ID} .go-collapsible:hover .go-chevron{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
-    #${PANEL_ID} .go-collapsible:hover>span>small{background:rgba(167,139,250,.16);color:#ddd6fe}
+    #${PANEL_ID} .go-chevron{order:2;display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;margin-left:8px;border:1px solid var(--go-line);border-radius:7px;background:transparent;color:var(--go-muted);text-decoration:none;transition:background .12s,color .12s}
+    #${PANEL_ID} .go-chevron svg,#${PANEL_ID} .go-plant-row>span>u svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    #${PANEL_ID} .go-collapsible:hover .go-chevron{color:var(--go-text);background:var(--go-surface-2)}
+    #${PANEL_ID} [data-section]{margin-top:10px}
+    #${PANEL_ID} .go-collapsible:hover>span>small{background:var(--go-surface-3)}
+    /* Growth */
     #${PANEL_ID} .go-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0}
     #${PANEL_ID} .go-summary[data-tiles="3"]{grid-template-columns:repeat(3,1fr)}
-    #${PANEL_ID} .go-metric small{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-    #${PANEL_ID} .go-metric b{white-space:nowrap}
-    #${PANEL_ID} .go-metric{padding:8px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035))}
-    #${PANEL_ID} .go-metric small{display:block;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;text-transform:uppercase;letter-spacing:.08em}#${PANEL_ID} .go-metric b{color:var(--gc-green,#34d399);font:700 15px/1.3 system-ui,sans-serif}
-    #${PANEL_ID} .go-metric.go-growing b{color:var(--gc-gold,#fbbf24);font-size:17px}#${PANEL_ID} .go-metric.go-size b{color:#fb923c;font-size:17px}
-    #${PANEL_ID} .go-progress{padding:5px 0}
-    #${PANEL_ID} .go-progress>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;color:var(--gc-text,#e4e4e7);font-size:12px}
-    #${PANEL_ID} .go-progress span{display:flex;align-items:center;gap:7px}#${PANEL_ID} .go-progress span i{width:6px;height:6px;flex:0 0 auto;border-radius:50%}
-    #${PANEL_ID} .go-progress b{font:700 12px system-ui,sans-serif}#${PANEL_ID} .go-progress>i{display:block;height:5px;overflow:hidden;border-radius:3px;background:rgba(255,255,255,.07)}
-    #${PANEL_ID} .go-progress>i u{display:block;height:100%;border-radius:3px;text-decoration:none}
-    #${PANEL_ID} .go-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}#${PANEL_ID} .go-section-head .go-section-title{flex:1;margin:0}
-    #${PANEL_ID} .go-section-head button{width:26px;height:26px;padding:0;font-size:13px}#${PANEL_ID} .go-section-actions{display:flex;align-items:center;gap:4px}
-    #${PANEL_ID} .go-eta-detail,#${PANEL_ID} .go-eta-done{padding:8px 10px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-text,#e4e4e7)}
-    #${PANEL_ID} .go-eta-detail+.go-eta-detail,#${PANEL_ID} .go-eta-detail+.go-eta-done,#${PANEL_ID} .go-eta-done+.go-eta-detail,#${PANEL_ID} .go-eta-done+.go-eta-done{margin-top:5px}
+    #${PANEL_ID} .go-metric{min-width:0;padding:9px 10px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
+    #${PANEL_ID} .go-metric small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--go-muted);font-size:11px;font-weight:500}
+    #${PANEL_ID} .go-metric b{display:block;margin-top:2px;white-space:nowrap;color:var(--go-strong);font:650 16px/1.25 var(--go-font);font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-metric.go-growing b{color:var(--go-gold)}
+    #${PANEL_ID} .go-metric.go-size b{color:#fb923c}
+    #${PANEL_ID} .go-status{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);font-size:13px}
+    #${PANEL_ID} .go-status::before{content:'';width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--go-gold)}
+    #${PANEL_ID} .go-status b{color:var(--go-strong);font-weight:650;font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-status[data-tone=done]{color:var(--go-green);border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07);font-weight:600}
+    #${PANEL_ID} .go-status[data-tone=done]::before{background:var(--go-green)}
+    /* Mutation progress */
+    #${PANEL_ID} .go-progress{padding:6px 0}
+    #${PANEL_ID} .go-progress:first-child{padding-top:0}
+    #${PANEL_ID} .go-progress>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-text);font-size:13px}
+    #${PANEL_ID} .go-progress span{display:flex;align-items:center;gap:8px}
+    #${PANEL_ID} .go-progress span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
+    #${PANEL_ID} .go-progress b{font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-of{color:var(--go-faint);font-weight:400}
+    #${PANEL_ID} .go-progress>i{display:block;height:6px;overflow:hidden;border-radius:999px;background:var(--go-surface-3)}
+    #${PANEL_ID} .go-progress>i u{display:block;height:100%;border-radius:999px;text-decoration:none}
+    /* Mutation estimates */
+    #${PANEL_ID} .go-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-6px 0 8px}
+    #${PANEL_ID} .go-section-head .go-section-title{flex:1;margin:0}
+    #${PANEL_ID} .go-section-actions{display:flex;align-items:center;gap:2px;margin-right:-6px}
+    #${PANEL_ID} .go-eta-detail,#${PANEL_ID} .go-eta-done{padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);color:var(--go-text)}
+    #${PANEL_ID} .go-eta-detail+.go-eta-detail,#${PANEL_ID} .go-eta-detail+.go-eta-done,#${PANEL_ID} .go-eta-done+.go-eta-detail,#${PANEL_ID} .go-eta-done+.go-eta-done{margin-top:6px}
     #${PANEL_ID} .go-eta-detail>div,#${PANEL_ID} .go-eta-done{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    #${PANEL_ID} .go-eta-detail span,#${PANEL_ID} .go-eta-done span{display:flex;min-width:0;align-items:center;gap:7px;font-size:12px}
-    #${PANEL_ID} .go-eta-detail span i,#${PANEL_ID} .go-eta-done span i{width:7px;height:7px;flex:0 0 auto;border-radius:50%}
-    #${PANEL_ID} .go-eta-detail b{flex:0 0 auto;font:700 12px system-ui,sans-serif}
-    #${PANEL_ID} .go-eta-detail em{margin-left:1px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:11px;font-weight:400;font-style:normal;opacity:.65}
-    #${PANEL_ID} .go-eta-detail>u{display:block;height:4px;margin-top:7px;overflow:hidden;border-radius:2px;background:rgba(255,255,255,.07);text-decoration:none}
-    #${PANEL_ID} .go-eta-detail>u i{display:block;height:100%;border-radius:2px}
-    #${PANEL_ID} .go-eta-detail>small{display:block;margin-top:6px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;opacity:.62}
-    #${PANEL_ID} .go-eta-done{border-color:rgba(52,211,153,.28);background:rgba(52,211,153,.07)}#${PANEL_ID} .go-eta-done span i{background:var(--gc-green,#34d399)}#${PANEL_ID} .go-eta-done b{color:var(--gc-green,#34d399);font:700 11px system-ui,sans-serif}
-    #${PANEL_ID} .go-plant-row{display:grid;grid-template-columns:minmax(0,1fr) 42px 42px;align-items:center;gap:6px;padding:3px 0;color:var(--gc-text,#e4e4e7);font-size:12px}
-    #${PANEL_ID} .go-plant-row>span{display:flex;min-width:0;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-    #${PANEL_ID} .go-plant-row>b{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-plant-row img,#${PANEL_ID} .go-plant-blank{width:18px;height:18px;flex:0 0 18px;object-fit:contain;image-rendering:auto}
-    #${PANEL_ID} .go-plant-row>span>u{display:grid;place-items:center;width:14px;height:14px;flex:0 0 14px;border-radius:4px;color:var(--gc-muted,#a1a1aa);font-size:8px;text-decoration:none}
-    #${PANEL_ID} .go-plant-family>span>u{border:1px solid var(--gc-line,rgba(255,255,255,.075));background:rgba(255,255,255,.05);color:var(--gc-accent,#a78bfa)}
-    #${PANEL_ID} .go-plant-family:hover>span>u{border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.2);color:#ddd6fe}
+    #${PANEL_ID} .go-eta-detail span,#${PANEL_ID} .go-eta-done span{display:flex;min-width:0;align-items:center;gap:8px;font-size:13px;font-weight:500}
+    #${PANEL_ID} .go-eta-detail span i,#${PANEL_ID} .go-eta-done span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
+    #${PANEL_ID} .go-eta-detail b{flex:0 0 auto;font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-eta-detail em{margin-left:1px;color:var(--go-faint);font-size:12px;font-weight:400;font-style:normal}
+    #${PANEL_ID} .go-eta-detail>u{display:block;height:5px;margin-top:8px;overflow:hidden;border-radius:999px;background:var(--go-surface-3);text-decoration:none}
+    #${PANEL_ID} .go-eta-detail>u i{display:block;height:100%;border-radius:999px}
+    #${PANEL_ID} .go-eta-detail>small{display:block;margin-top:7px;color:var(--go-muted);font-size:11px;font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-eta-done{border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07)}
+    #${PANEL_ID} .go-eta-done span i{background:var(--go-green)}
+    #${PANEL_ID} .go-eta-done b{color:var(--go-green);font:600 12px var(--go-font)}
+    /* Plants table */
+    #${PANEL_ID} .go-plants{overflow:hidden;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
+    #${PANEL_ID} .go-plants>p{margin:0;padding:10px}
+    #${PANEL_ID} .go-plant-row{display:grid;grid-template-columns:minmax(0,1fr) 42px 42px;align-items:center;gap:6px;padding:5px 0;color:var(--go-text);font-size:13px}
+    #${PANEL_ID} .go-plant-row+.go-plant-row{border-top:1px solid var(--go-line)}
+    #${PANEL_ID} .go-plant-row>span{display:flex;min-width:0;align-items:center;gap:7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    #${PANEL_ID} .go-plant-row>b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-plant-row img,#${PANEL_ID} .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto}
+    #${PANEL_ID} .go-plant-row>span>u{display:grid;place-items:center;width:18px;height:18px;flex:0 0 18px;border-radius:5px;color:var(--go-muted);text-decoration:none}
+    #${PANEL_ID} .go-plant-family>span>u{color:var(--go-accent-text)}
+    #${PANEL_ID} .go-plant-family:hover>span>u{background:var(--go-accent-soft)}
+    #${PANEL_ID} .go-plant-row>span>u svg{width:12px;height:12px}
     /* Indenting the name cell rather than the row, so the tiles and crops columns stay aligned. */
-    #${PANEL_ID} .go-plant-row[data-child=true]{color:var(--gc-muted,#a1a1aa)}
-    #${PANEL_ID} .go-plant-row[data-child=true]>span{padding-left:15px}
+    #${PANEL_ID} .go-plant-row[data-child=true]{color:var(--go-muted);background:rgba(0,0,0,.14)}
+    #${PANEL_ID} .go-plant-row[data-child=true]>span{padding-left:18px}
     #${PANEL_ID} .go-plant-family{cursor:pointer}
-    #${PANEL_ID} .go-plant-family:hover{color:#fff}
+    #${PANEL_ID} .go-plant-family:hover{color:#fff;background:rgba(255,255,255,.03)}
     /* Only on rows that are not children: a child inherits the muted row colour instead. */
-    #${PANEL_ID} .go-plant-row:not([data-child=true])>span{color:#c4b5fd}
+    #${PANEL_ID} .go-plant-row:not([data-child=true])>span{color:var(--go-strong)}
     #${PANEL_ID} .go-plant-family:hover>span{color:#fff}
-    #${PANEL_ID} .go-plant-row>b:nth-of-type(1){color:var(--gc-muted,#a1a1aa);font-weight:400}
-    #${PANEL_ID} .go-plant-units{padding:0 9px 3px;color:var(--gc-muted,#a1a1aa);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-    #${PANEL_ID} .go-plant-units>b,#${PANEL_ID} .go-plant-units>b:nth-of-type(1){color:var(--gc-muted,#a1a1aa);font-weight:700}
-    #${PANEL_ID} .go-plant-row:not(.go-plant-units){padding-left:9px;padding-right:9px}
-    #${PANEL_ID} .go-config-tabs{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:4px;position:sticky;top:0;z-index:1;padding:10px 0 9px;background:var(--gc-bg,#0c0c11)}
-    #${PANEL_ID} .go-config-tabs button{padding:7px 4px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:rgba(255,255,255,.03);color:var(--gc-muted,rgba(255,255,255,.72));font-size:11px;font-weight:700}
-    #${PANEL_ID} .go-config-tabs button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}
-    #${PANEL_ID} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,0,0,.18);border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72))}
-    #${PANEL_ID} .go-footer span{display:flex;align-items:center;gap:8px}#${PANEL_ID} .go-footer span small{padding:2px 7px;border-radius:5px;border:1px solid var(--gc-line,rgba(255,255,255,.075));background:rgba(255,255,255,.03);color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px}#${PANEL_ID} .go-footer b{color:var(--gc-gold,#fbbf24);font-size:19px}
-    #${PANEL_ID} .go-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:250px;margin:8px 0 12px;overflow:auto}#${PANEL_ID} .go-filter label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-text,#e4e4e7);cursor:pointer}
-    #${PANEL_ID} .go-filter label:hover{border-color:rgba(255,255,255,.13)}
-    #${PANEL_ID} .go-tools{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 8px}#${PANEL_ID} .go-search{width:100%;box-sizing:border-box;height:32px;margin-bottom:8px;padding:0 10px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;outline:none;background:#08080c;color:var(--gc-text,#e4e4e7);font:11px system-ui,sans-serif}
-    #${PANEL_ID} .go-pill-list{max-height:320px;overflow:auto}#${PANEL_ID} .go-pill-section{margin:9px 0}#${PANEL_ID} .go-pill-section>b{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}#${PANEL_ID} .go-pill-section>b button{padding:3px 8px;font-size:9px;text-transform:none}#${PANEL_ID} .go-pill-section>div{display:flex;flex-wrap:wrap;gap:4px}
-    #${PANEL_ID} button.go-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:6px;background:rgba(255,255,255,.03);color:var(--gc-text,#e4e4e7);font-size:10px;white-space:nowrap}#${PANEL_ID} button.go-pill.on{color:#ddd6fe;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.16)}#${PANEL_ID} button.go-pill i{width:9px;flex:0 0 9px;color:var(--gc-accent,#a78bfa);font-size:9px;font-style:normal;text-align:center}#${PANEL_ID} button.go-pill small{opacity:.5;font-size:9px}
-    #${PANEL_ID} .go-search:focus{border-color:rgba(167,139,250,.5);box-shadow:0 0 0 2px rgba(167,139,250,.09)}#${PANEL_ID} .go-collapsible{cursor:pointer;margin:0}#${PANEL_ID} .go-muted{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;opacity:.7}
-    #${PANEL_ID} .go-config-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--gc-line,rgba(255,255,255,.075))}
+    #${PANEL_ID} .go-plant-row>b:nth-of-type(1){color:var(--go-muted);font-weight:400}
+    #${PANEL_ID} .go-plant-units{padding:7px 10px;background:var(--go-input);color:var(--go-faint);font-size:11px;font-weight:600}
+    #${PANEL_ID} .go-plant-units>b,#${PANEL_ID} .go-plant-units>b:nth-of-type(1){color:var(--go-faint);font-weight:600}
+    #${PANEL_ID} .go-plant-row:not(.go-plant-units){padding-left:10px;padding-right:10px}
+    /* Footer: the headline number */
+    #${PANEL_ID} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:var(--go-muted);font-size:12px;font-weight:500}
+    #${PANEL_ID} .go-footer span{display:flex;align-items:center;gap:8px}
+    #${PANEL_ID} .go-footer span small{padding:2px 8px;border-radius:999px;background:rgba(62,207,142,.12);color:var(--go-green);font-size:11px;font-weight:600}
+    #${PANEL_ID} .go-footer b{color:var(--go-gold);font:700 21px/1 var(--go-font);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+    /* Settings card */
+    #${PANEL_ID} .go-config-tabs{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:2px;position:sticky;top:0;z-index:1;margin:0 -14px 4px;padding:12px 14px 10px;background:var(--go-bg)}
+    #${PANEL_ID} .go-config-tabs::before{content:'';position:absolute;inset:12px 14px 10px;z-index:-1;border:1px solid var(--go-line);border-radius:10px;background:var(--go-input)}
+    #${PANEL_ID} .go-config-tabs button{margin:3px 0;padding:6px 4px;border-color:transparent;background:transparent;color:var(--go-muted);font-size:12px;font-weight:500}
+    #${PANEL_ID} .go-config-tabs button:first-child{margin-left:3px}
+    #${PANEL_ID} .go-config-tabs button:last-child{margin-right:3px}
+    #${PANEL_ID} .go-config-tabs button:hover{border-color:transparent;background:rgba(255,255,255,.03);color:var(--go-text)}
+    #${PANEL_ID} .go-config-tabs button[data-active=true]{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+    #${PANEL_ID} .go-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:250px;margin:8px 0 12px;overflow:auto}
+    #${PANEL_ID} .go-filter label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid var(--go-line);border-radius:8px;background:var(--go-surface);color:var(--go-text);cursor:pointer}
+    #${PANEL_ID} .go-filter label:hover{border-color:var(--go-line-strong)}
+    #${PANEL_ID} .go-tools{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+    #${PANEL_ID} .go-tools button{flex:1}
+    #${PANEL_ID} .go-search{width:100%;height:32px;margin-bottom:8px;padding:0 11px;border:1px solid var(--go-line-strong);border-radius:7px;outline:none;background:var(--go-input);color:var(--go-text);font:13px var(--go-font);transition:border-color .12s,box-shadow .12s}
+    #${PANEL_ID} .go-search::placeholder{color:rgba(255,255,255,.5)}
+    #${PANEL_ID} .go-search:focus{border-color:var(--go-accent-line);box-shadow:0 0 0 3px rgba(124,108,242,.16)}
+    #${PANEL_ID} .go-pill-list{max-height:320px;overflow:auto}
+    #${PANEL_ID} .go-pill-section{margin:10px 0}
+    #${PANEL_ID} .go-pill-section>b{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-muted);font-size:12px;font-weight:500}
+    #${PANEL_ID} .go-pill-section>b button{min-height:24px;padding:3px 8px;font-size:11px}
+    #${PANEL_ID} .go-pill-section>b em{color:var(--go-faint);font-size:11px;font-style:normal;font-weight:400}
+    #${PANEL_ID} .go-pill-section>div{display:flex;flex-wrap:wrap;gap:4px}
+    #${PANEL_ID} button.go-pill{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 10px;border:1px solid var(--go-line);border-radius:999px;background:var(--go-surface);color:var(--go-text);font-size:12px;white-space:nowrap}
+    #${PANEL_ID} button.go-pill:hover{border-color:var(--go-line-strong);background:var(--go-surface-2)}
+    #${PANEL_ID} button.go-pill.on{color:var(--go-strong);border-color:var(--go-accent-line);background:var(--go-accent-soft)}
+    #${PANEL_ID} button.go-pill i{width:9px;flex:0 0 9px;color:var(--go-accent-text);font-size:10px;font-style:normal;text-align:center}
+    #${PANEL_ID} button.go-pill small{color:var(--go-muted);font-size:11px}
+    #${PANEL_ID} .go-muted{margin:0 0 10px;color:var(--go-muted);font-size:12px;line-height:1.45}
+    #${PANEL_ID} .go-config-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--go-line);font-size:13px}
     #${PANEL_ID} .go-config-row:first-child{border-top:none}
-    #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;background:#08080c;color:var(--gc-text,#e4e4e7);font:11px system-ui,sans-serif;cursor:pointer}
-    #${PANEL_ID} .go-config-row input[type=range]{width:130px;flex:0 0 130px;accent-color:var(--gc-accent,#a78bfa)}
-    #${PANEL_ID} .go-pill-choice{display:flex;gap:4px}
+    #${PANEL_ID} .go-config-row>span{min-width:0}
+    #${PANEL_ID} .go-config-row>span>b{color:var(--go-strong);font-variant-numeric:tabular-nums}
+    #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-input);color:var(--go-text);font:12px var(--go-font);cursor:pointer;outline:none}
+    #${PANEL_ID} .go-config-row select:focus{border-color:var(--go-accent-line)}
+    #${PANEL_ID} .go-config-row select:disabled{opacity:.5;cursor:default}
+    #${PANEL_ID} .go-config-row input[type=range]{width:120px;flex:0 0 120px;accent-color:var(--go-accent)}
+    /* Pick-one choices as a segmented control rather than loose pills. */
+    #${PANEL_ID} .go-pill-choice{display:flex;gap:2px;padding:2px;border:1px solid var(--go-line);border-radius:9px;background:var(--go-input)}
+    #${PANEL_ID} .go-pill-choice button.go-pill{min-height:24px;padding:3px 9px;border-color:transparent;border-radius:7px;background:transparent;color:var(--go-muted)}
+    #${PANEL_ID} .go-pill-choice button.go-pill:hover{color:var(--go-text);background:rgba(255,255,255,.03)}
+    #${PANEL_ID} .go-pill-choice button.go-pill.on{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3)}
     #${PANEL_ID} .go-preset-row{display:flex;align-items:center;gap:4px;margin:6px 0 2px}
     #${PANEL_ID} .go-preset-row .go-search{flex:1;min-width:0;height:30px;margin:0}
     #${PANEL_ID} .go-preset-row button{flex:0 0 auto;height:30px}
-    #${PANEL_ID} button.go-pill.go-pill-icon{width:34px;height:34px;padding:0;justify-content:center}
-    #${PANEL_ID} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.5}
-    #${PANEL_ID} button.go-pill.go-pill-icon span{max-width:30px;overflow:hidden;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-weight:700;text-overflow:ellipsis}
+    #${PANEL_ID} button.go-pill.go-pill-icon{width:36px;height:36px;padding:0;justify-content:center;border-radius:9px}
+    #${PANEL_ID} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.45}
+    #${PANEL_ID} button.go-pill.go-pill-icon span{max-width:32px;overflow:hidden;color:var(--go-muted);font-size:9px;font-weight:700;text-overflow:ellipsis}
     #${PANEL_ID} button.go-pill.go-pill-icon:hover img{opacity:.8}
     #${PANEL_ID} button.go-pill.go-pill-icon.on img{opacity:1}
-    #${PANEL_ID} button.go-pill.go-pill-icon.on span{color:#ddd6fe}
-    #${PANEL_ID} .go-pill-section>b em{color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px;font-style:normal;font-weight:400;letter-spacing:.04em;text-transform:none;opacity:.75}
+    #${PANEL_ID} button.go-pill.go-pill-icon.on span{color:var(--go-accent-text)}
     #${PANEL_ID} .go-pill-group:first-child .go-settings-head{margin-top:4px;padding-top:0;border-top:none}
-    #${PANEL_ID} .go-settings-head{display:flex;align-items:center;gap:8px;margin:13px 0 3px;padding-top:10px;border-top:1px solid var(--gc-line,rgba(255,255,255,.075));color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-    #${PANEL_ID} .go-settings-head::after{content:'';height:1px;flex:1;background:var(--gc-line,rgba(255,255,255,.075))}
-    #${PANEL_ID} .go-settings-head>em,#${PANEL_ID} .go-settings-head>button{order:2;flex:0 0 auto;font-style:normal}
-    #${PANEL_ID} .go-settings-head>em{color:var(--gc-text,#e4e4e7);font-size:9px;font-weight:700;letter-spacing:0}
-    #${PANEL_ID} .go-settings-head>button{padding:3px 8px;font-size:9px;text-transform:none}
+    #${PANEL_ID} .go-settings-head{display:flex;align-items:center;gap:8px;margin:16px 0 4px;padding-top:12px;border-top:1px solid var(--go-line);color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+    #${PANEL_ID} .go-settings-head>span{flex:1}
+    #${PANEL_ID} .go-settings-head>em,#${PANEL_ID} .go-settings-head>button{flex:0 0 auto;font-style:normal}
+    #${PANEL_ID} .go-settings-head>em{padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}
+    #${PANEL_ID} .go-settings-head>button{min-height:24px;padding:3px 9px;font-size:11px;letter-spacing:0;text-transform:none}
     /* One switch everywhere a setting is on or off, instead of checkboxes next to check-marked pills. */
-    #${PANEL_ID} .go-switch{appearance:none;-webkit-appearance:none;position:relative;width:34px;height:20px;flex:0 0 34px;margin:0;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:999px;background:rgba(255,255,255,.06);cursor:pointer;transition:background .15s,border-color .15s}
-    #${PANEL_ID} .go-switch::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--gc-muted,#a1a1aa);transition:transform .15s,background .15s}
-    #${PANEL_ID} .go-switch:checked{border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.35)}
-    #${PANEL_ID} .go-switch:checked::after{transform:translateX(14px);background:#ddd6fe}
-    #${PANEL_ID} .go-switch:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(167,139,250,.35)}
-    #${PANEL_ID} .go-config-row>span>small{display:block;margin-top:2px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;font-weight:400;letter-spacing:0;opacity:.8}
+    #${PANEL_ID} .go-switch{appearance:none;-webkit-appearance:none;position:relative;width:34px;height:20px;flex:0 0 34px;margin:0;border:0;border-radius:999px;background:var(--go-surface-3);box-shadow:inset 0 0 0 1px var(--go-line);cursor:pointer;transition:background .18s}
+    #${PANEL_ID} .go-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#d4d4d8;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .18s,background .18s}
+    #${PANEL_ID} .go-switch:checked{background:var(--go-accent);box-shadow:none}
+    #${PANEL_ID} .go-switch:checked::after{transform:translateX(14px);background:var(--go-strong)}
+    #${PANEL_ID} .go-switch:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:2px}
+    #${PANEL_ID} .go-config-row>span>small{display:block;margin-top:2px;color:var(--go-muted);font-size:12px;font-weight:400;letter-spacing:0}
     #${PANEL_ID} .go-config-row:has(.go-switch){cursor:pointer}
-    #${PANEL_ID} button.go-pill.go-pill-plant{max-width:100%;padding:4px 8px 4px 5px}
-    #${PANEL_ID} button.go-pill.go-pill-plant img,#${PANEL_ID} button.go-pill.go-pill-plant .go-plant-blank{width:18px;height:18px;flex:0 0 18px;object-fit:contain;image-rendering:auto;opacity:.75}
+    #${PANEL_ID} button.go-pill.go-pill-plant{max-width:100%;padding:3px 9px 3px 5px}
+    #${PANEL_ID} button.go-pill.go-pill-plant img,#${PANEL_ID} button.go-pill.go-pill-plant .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto;opacity:.7}
     #${PANEL_ID} button.go-pill.go-pill-plant.on img{opacity:1}
     #${PANEL_ID} button.go-pill.go-pill-plant>span{overflow:hidden;text-overflow:ellipsis}
-    #${PANEL_ID} button.go-pill.go-pill-plant>small{padding:1px 5px;border-radius:999px;background:rgba(255,255,255,.08);opacity:1}
-    #${PANEL_ID} .go-focus-summary{margin:8px 0 2px;padding:9px 10px;border:1px solid rgba(167,139,250,.3);border-radius:8px;background:rgba(167,139,250,.09);color:var(--gc-text,#e4e4e7);font-size:11px;line-height:1.45}
-    #${PANEL_ID} .go-focus-summary b{color:#ddd6fe;font-weight:700}
-    #${PANEL_ID} .go-focus-summary[data-off]{border-color:var(--gc-line,rgba(255,255,255,.075));background:var(--gc-soft,rgba(255,255,255,.035));color:var(--gc-muted,rgba(255,255,255,.72))}
-    #${PANEL_ID} .go-focus-summary[data-off] b{color:var(--gc-text,#e4e4e7)}
-    @media(max-width:760px){#${PANEL_ID}{padding:6px}#${PANEL_ID} .go-stage{max-height:100%;flex-direction:column;overflow:auto}#${PANEL_ID} .go-card{width:min(344px,94vw)}#${PANEL_ID} .go-config-card{width:min(300px,94vw)}#${PANEL_ID} header{padding:10px}#${PANEL_ID} header .go-actions{gap:2px}}
+    #${PANEL_ID} button.go-pill.go-pill-plant>small{padding:0 6px;border-radius:999px;background:var(--go-surface-3);color:var(--go-text);font-weight:600}
+    #${PANEL_ID} .go-focus-summary{margin:12px 0 2px;padding:10px 12px;border:1px solid var(--go-accent-line);border-radius:10px;background:rgba(124,108,242,.08);color:var(--go-text);font-size:12px;line-height:1.5}
+    #${PANEL_ID} .go-focus-summary b{color:var(--go-accent-text);font-weight:600}
+    #${PANEL_ID} .go-focus-summary[data-off]{border-color:var(--go-line);background:var(--go-surface);color:var(--go-muted)}
+    #${PANEL_ID} .go-focus-summary[data-off] b{color:var(--go-text)}
+    @media(max-width:760px){#${PANEL_ID}{padding:6px}#${PANEL_ID} .go-stage{max-height:100%;flex-direction:column;overflow:auto}#${PANEL_ID} .go-card{width:min(344px,94vw)}#${PANEL_ID} .go-config-card{width:min(300px,94vw)}#${PANEL_ID} header .go-actions{gap:0}}
   `;
     document.head.appendChild(style);
   }
@@ -8576,7 +8648,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       const mutationRows = rows.filter(([, , count2]) => count2 > 0).map(([label, colorKey, count2]) => {
         const percent = stats.crops ? Math.min(100, count2 / stats.crops * 100) : 0;
         const color = mutationColors[colorKey] || "#4fc3f7";
-        return `<div class="go-progress"><div><span><i style="background:${color}"></i>${escapeHtml2(label)}</span><b style="color:${color}">${count2}<small style="color:#444;font-weight:normal">/${stats.crops}</small></b></div><i><u style="width:${percent.toFixed(2)}%;background:${color}"></u></i></div>`;
+        return `<div class="go-progress"><div><span><i style="background:${color}"></i>${escapeHtml2(label)}</span><b style="color:${color}">${count2}<small class="go-of">/${stats.crops}</small></b></div><i><u style="width:${percent.toFixed(2)}%;background:${color}"></u></i></div>`;
       }).join("");
       function etaDuration(seconds) {
         const minutes = Math.round(seconds / 60);
@@ -8593,21 +8665,21 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         return hours ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}` : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
       }
       const etaLabels = {
-        Rainbow: ["&#127752; Rainbow", "Rainbow"],
-        Gold: ["&#129716; Gold", "Gold"],
-        Frozen: ["&#10052;&#65039; Frozen", "Frozen"],
-        Thunderstruck: ["&#9889; Thunderstruck", "Thunderstruck"],
-        Wet: ["&#128167; Wet", "Wet"],
-        Chilled: ["&#10053;&#65039; Chilled", "Chilled"],
-        Ambershine: ["&#10024; Amberlit", "Ambershine"],
-        Dawnlit: ["&#127749; Dawnlit", "Dawnlit"],
-        "Max Size": ["&#127793; Max Size", "Dawncharged"],
-        "Bee Size": ["&#128029; Bee Size", "Dawncharged"]
+        Rainbow: ["Rainbow", "Rainbow"],
+        Gold: ["Gold", "Gold"],
+        Frozen: ["Frozen", "Frozen"],
+        Thunderstruck: ["Thunderstruck", "Thunderstruck"],
+        Wet: ["Wet", "Wet"],
+        Chilled: ["Chilled", "Chilled"],
+        Ambershine: ["Amberlit", "Ambershine"],
+        Dawnlit: ["Dawnlit", "Dawnlit"],
+        "Max Size": ["Max Size", "Dawncharged"],
+        "Bee Size": ["Bee Size", "Dawncharged"]
       };
       const etaRows = stats.granterEtas.map((row) => {
         const [label, colorKey] = etaLabels[row.mutation] ?? [escapeHtml2(displayName(row.mutation)), row.mutation];
         const color = mutationColors[colorKey] || "#a78bfa";
-        if (row.missing === 0) return `<div class="go-eta-done"><span><i></i>${label}</span><b>&#10003; done</b></div>`;
+        if (row.missing === 0) return `<div class="go-eta-done"><span><i></i>${label}</span><b>Done</b></div>`;
         const summary = `<small>avg ${averageDuration(row.meanSeconds)} &middot; ~${etaDuration(row.totalSeconds)} total</small>`;
         if (row.countOnly) return `<div class="go-eta-detail"><div><span><i style="background:${color}"></i>${label}</span><b>${row.missing} <em>remaining</em></b></div>${summary}</div>`;
         const have = Math.max(0, (row.total ?? 0) - row.missing);
@@ -8619,13 +8691,13 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       const plantRows2 = plantList.map((row) => {
         const sprite = produceSprite(row.species);
         const icon = sprite ? `<img src="${escapeHtml2(sprite)}" alt="">` : '<i class="go-plant-blank"></i>';
-        const chevron = row.child ? "" : `<u>${row.family ? row.open ? "&#9650;" : "&#9660;" : ""}</u>`;
+        const chevron = row.child ? "" : `<u>${row.family ? row.open ? CHEVRON_UP : CHEVRON_DOWN : ""}</u>`;
         const name = `<span>${chevron}${icon}${escapeHtml2(row.label)}</span>`;
         const cells = `<b>${row.tiles ? count(row.tiles) : ""}</b><b>${count(row.crops)}</b>`;
         return row.family ? `<div class="go-plant-row go-plant-family" data-family="${escapeHtml2(row.family)}" title="Show the crops in this patch">${name}${cells}</div>` : `<div class="go-plant-row"${row.child ? ' data-child="true"' : ""}>${name}${cells}</div>`;
       }).join("");
       const growing = Math.max(0, stats.crops - stats.mature);
-      const growth = growing === 0 && stats.notMaxSize === 0 ? '<div style="font-size:12px;color:#34d399;font-weight:bold;padding:2px 0">&#10004; All mature &amp; max size</div>' : growing === 0 ? `<div style="font-size:12px;color:#ffd700;padding:2px 0">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : (() => {
+      const growth = growing === 0 && stats.notMaxSize === 0 ? '<div class="go-status" data-tone="done">All mature &amp; max size</div>' : growing === 0 ? `<div class="go-status">All mature - <b>${stats.notMaxSize}</b> not max size</div>` : (() => {
         const metrics = [
           `<div class="go-metric go-growing"><small>Growing</small><b>${growing.toLocaleString(NUMBER_LOCALE)}</b></div>`,
           // Only worth a tile while nothing has matured; once something is ready it says nothing.
@@ -8636,8 +8708,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         return `<div class="go-summary" data-tiles="${metrics.length}">${metrics.join("")}</div>`;
       })();
       const bonus = Math.round((stats.friendBonus - 1) * 100);
-      const collapsible = (key, label, total, open2) => `<div class="go-section-title go-collapsible" data-collapse="${key}" title="${open2 ? "Hide" : "Show"} ${escapeHtml2(label.toLowerCase())}"><span>${escapeHtml2(label)}<small>${total}</small></span><u class="go-chevron">${open2 ? "&#9650;" : "&#9660;"}</u></div>`;
-      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">&#9881;</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? "&#128276;" : "&#128277;"}</button></div></div>${etaRows}</section>` : ""}<section class="go-section">${collapsible("mutations", "Mutations", rows.filter(([, , value]) => value > 0).length, view.mutationsOpen)}<div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section">${collapsible("plants", "Plants", plantList.filter((row) => !row.child).length, view.plantsOpen)}<div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}>${plantRows2 ? `<div class="go-plant-row go-plant-units"><span></span><b>Tiles</b><b>Crops</b></div>${plantRows2}` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b title="Estimated value including expected DoubleHarvest and ProduceRefund yield from your top pets">${compactNumber(stats.projectedValue || stats.value)}</b></div>`;
+      const collapsible = (key, label, total, open2) => `<div class="go-section-title go-collapsible" data-collapse="${key}" title="${open2 ? "Hide" : "Show"} ${escapeHtml2(label.toLowerCase())}"><span>${escapeHtml2(label)}<small>${total}</small></span><u class="go-chevron">${open2 ? CHEVRON_UP : CHEVRON_DOWN}</u></div>`;
+      return `<section class="go-section go-growth"><div class="go-section-title"><span>Growth</span></div>${growth}</section>${etaRows ? `<section class="go-section go-estimates"><div class="go-section-head"><div class="go-section-title"><span>Mutation Estimates</span></div><div class="go-section-actions"><button data-alarm-config title="Configure completion alarms">${GEAR_ICON}</button><button data-alarm data-active="${view.alarm}" title="${view.alarm ? "Disable" : "Enable"} completion alarm">${view.alarm ? BELL_ICON : BELL_OFF_ICON}</button></div></div>${etaRows}</section>` : ""}<section class="go-section">${collapsible("mutations", "Mutations", rows.filter(([, , value]) => value > 0).length, view.mutationsOpen)}<div data-section="mutations" ${view.mutationsOpen ? "" : "hidden"}>${mutationRows || '<p class="go-muted">No selected mutations are present.</p>'}</div></section><section class="go-section">${collapsible("plants", "Plants", plantList.filter((row) => !row.child).length, view.plantsOpen)}<div class="go-plants" data-section="plants" ${view.plantsOpen ? "" : "hidden"}>${plantRows2 ? `<div class="go-plant-row go-plant-units"><span></span><b>Tiles</b><b>Crops</b></div>${plantRows2}` : '<p class="go-muted">No tracked plants found.</p>'}</div></section><div class="go-footer"><span>Est. value ${bonus ? `<small>+${bonus}% bonus</small>` : ""}</span><b title="Estimated value including expected DoubleHarvest and ProduceRefund yield from your top pets">${compactNumber(stats.projectedValue || stats.value)}</b></div>`;
     }
     function installDrag(card, header, save2 = null) {
       header.onpointerdown = (event) => {
@@ -8708,8 +8780,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
       const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"], ["panel", "Panel"]].map(([tab, label]) => `<button data-config-tab="${tab}" data-active="${configMode === tab}">${label}</button>`).join("")}</div>`;
       const configTitle = configMode === "alarms" ? "Alarm Config" : "Overview Settings";
-      const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml2(configTitle)}</h2><button data-config-close aria-label="Close">&#10005;</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : "";
-      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">&#9881;</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">&#9680;</button><button data-close aria-label="Close">&#10005;</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
+      const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml2(configTitle)}</h2><button data-config-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : "";
+      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2><i class="go-mark">${LEAF_ICON}</i>Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
       const nextBody = panel3.querySelector(".go-body");
       if (nextBody) nextBody.scrollTop = scrollTop;
       panel3.querySelector("[data-close]").onclick = close;
@@ -9042,7 +9114,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       page3.__gardenCompanionToggleOverview = toggle2;
       const button = document.createElement("button");
       button.id = BUTTON_ID;
-      button.innerHTML = "&#x1F33F;";
+      button.innerHTML = LEAF_ICON;
       button.title = "Garden Overview";
       button.onclick = toggle2;
       const panel3 = document.createElement("div");

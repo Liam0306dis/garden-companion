@@ -394,7 +394,7 @@ assert.match(overviewSource, /mergeRow\('granterAllGarden', 'Whole garden'/, 'ov
 assert.match(overviewSource, /const ungrouped = \(Object\.keys\(MUTATION_IDS\)[^;]*\)\.filter\(key => !grouped\.has\(key\)\)/, 'ungrouped mutations must still be offered');
 assert.match(overviewSource, /\$\{ungrouped\.map\(key => trackPill\(key, MUTATION_IDS\[key\]\)\)\.join\(''\)\}/, 'the Other group must render ungrouped mutation pills');
 // Colouring the name cell directly would beat the muted child row and the family hover.
-assert.match(overviewSource, /\.go-plant-row:not\(\[data-child=true\]\)>span\{color:#c4b5fd\}/, 'only non-child plant names take the accent colour');
+assert.match(overviewSource, /\.go-plant-row:not\(\[data-child=true\]\)>span\{color:var\(--go-strong\)\}/, 'only non-child plant names take the accent colour');
 assert.match(overviewSource, /\.go-plant-family:hover>span\{color:#fff\}/, 'hovering a patch family must still brighten its name');
 // Plants, mutations and focus share one card, so the header no longer carries a button each.
 assert.match(overviewSource, /data-config-tab="\$\{tab\}"/, 'the settings card must offer its tabs');
@@ -414,7 +414,7 @@ assert.match(overviewSource, /\.go-summary\[data-tiles="3"\]\{grid-template-colu
 assert.match(overviewSource, /<div class="go-summary" data-tiles="\$\{metrics\.length\}">/, 'the growth grid must report how many tiles it holds');
 // A collapsible section has to look collapsible, and say what is inside without being opened.
 assert.match(overviewSource, /const collapsible = \(key: string, label: string, total: number, open: boolean\)/, 'collapsible section headers must be built from one helper');
-assert.match(overviewSource, /<u class="go-chevron">\$\{open \? '&#9650;' : '&#9660;'\}<\/u>/, 'collapsible sections must show an up/down chevron');
+assert.match(overviewSource, /<u class="go-chevron">\$\{open \? CHEVRON_UP : CHEVRON_DOWN\}<\/u>/, 'collapsible sections must show an up/down chevron');
 assert.match(overviewSource, /\.go-chevron\{order:2;display:grid[^}]*border:1px solid/, 'the collapse chevron must be drawn as a pressable control');
 assert.match(overviewSource, /\.go-section-title>span>small\{[^}]*border-radius:999px/, 'collapsible sections must carry a count badge');
 assert.match(overviewSource, /installDrag\(panel\.querySelector\('\.go-card'\)!.*\(left, top\)/s, 'overview position is not isolated from config window dragging');
