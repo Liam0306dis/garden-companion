@@ -231,8 +231,8 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   const chipsByLine = findEstimateChips(card, lines);
   if (!chipsByLine.size) return;
 
-  const oldWidth = Number(card.hitArea.width), oldHeight = Number(card.hitArea.height);
-  if (!(oldWidth > 0) || !(oldHeight > 0)) return;
+  const oldWidth = Number(card.hitArea.width);
+  if (!(oldWidth > 0)) return;
   // The game's own responsive sizes: its card is 220 wide at the md breakpoint and 210 or less below it.
   const md = oldWidth >= 220;
   const edgePad = md ? 14 : 10, verticalPad = md ? 14 : 8, rowGap = md ? 8 : 4, lineGap = md ? 5 : 2;
@@ -240,6 +240,12 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   const mount = card.children.find((child: PixiNode) => child.label === 'GardenInfoMiniCardMount');
   const dots = card.children.find((child: PixiNode) => child.label === 'GardenInfoCropPageDots');
   if (!background || !mount) return;
+  // The height the game built, read from where it centred the crop picture rather than from the hit
+  // area: another mod may already have made the card taller, and starting from that size added our
+  // lines on top of its growth and left a band of empty card underneath.
+  const drawnHeight = Number(card.hitArea.height);
+  const oldHeight = Number(mount.y) > 0 ? Number(mount.y) * 2 : drawnHeight;
+  if (!(oldHeight > 0)) return;
   // The mini card sits one inset in from the left and the column starts one gap after it; the game
   // uses the same value for both, so the column's left edge is exactly twice the mount's centre.
   const columnLeft = Number(mount.x) * 2;
@@ -262,7 +268,7 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   // A foreign overlay the size of the card is stretched with it, so a border stays on the card's edge.
   // Looked for beside the card as well, in the frame that holds it, since a mod may draw there instead.
   const cardSized = (child: PixiNode) => Math.abs(Number(child.width) - oldWidth) <= 8
-    && Math.abs(Number(child.height) - oldHeight) <= 8 && typeof child.scale?.set === 'function';
+    && [oldHeight, drawnHeight].some(height => Math.abs(Number(child.height) - height) <= 8) && typeof child.scale?.set === 'function';
   const frameSiblings = (card.parent?.children || []).filter((child: PixiNode) => child !== card && child.label !== 'GardenInfoPreservedBadge');
   const overlays = [...others.filter((child: PixiNode) => !isGameRow(child)), ...frameSiblings].filter(cardSized);
   const original = rows.map((row: PixiNode) => ({ row, y: Number(row.y), height: Number(row.height) })).sort((a, b) => a.y - b.y);
@@ -334,7 +340,7 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   }
 
   const extraHeight = newHeight - oldHeight;
-  if (!extraWidth && !extraHeight) return;
+  if (!extraWidth && !extraHeight && drawnHeight === oldHeight) return;
   // The background is two nine-slice sprites drawn at a bake scale; resize them the way its draw does.
   for (const sprite of [background.fillSprite, background.borderSprite]) {
     if (!sprite?.visible || typeof sprite.setSize !== 'function') continue;
@@ -342,7 +348,7 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
     sprite.setSize(newWidth * bake, newHeight * bake);
   }
   for (const area of [background.hitArea, card.hitArea]) if (area) { area.width = newWidth; area.height = newHeight; }
-  for (const overlay of overlays) overlay.scale.set(Number(overlay.scale.x) * newWidth / oldWidth, Number(overlay.scale.y) * newHeight / oldHeight);
+  for (const overlay of overlays) overlay.scale.set(Number(overlay.scale.x) * newWidth / Number(overlay.width), Number(overlay.scale.y) * newHeight / Number(overlay.height));
   mount.y = newHeight / 2;
   if (dots) { dots.x += extraWidth / 2; dots.y += extraHeight; }
 

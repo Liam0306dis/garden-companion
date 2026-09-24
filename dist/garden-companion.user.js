@@ -2780,14 +2780,17 @@ ${groups}
     const lines = signature2.split("\n");
     const chipsByLine = findEstimateChips(card, lines);
     if (!chipsByLine.size) return;
-    const oldWidth = Number(card.hitArea.width), oldHeight = Number(card.hitArea.height);
-    if (!(oldWidth > 0) || !(oldHeight > 0)) return;
+    const oldWidth = Number(card.hitArea.width);
+    if (!(oldWidth > 0)) return;
     const md = oldWidth >= 220;
     const edgePad = md ? 14 : 10, verticalPad = md ? 14 : 8, rowGap = md ? 8 : 4, lineGap = md ? 5 : 2;
     const background = card.children.find((child) => "fillSprite" in child);
     const mount = card.children.find((child) => child.label === "GardenInfoMiniCardMount");
     const dots = card.children.find((child) => child.label === "GardenInfoCropPageDots");
     if (!background || !mount) return;
+    const drawnHeight = Number(card.hitArea.height);
+    const oldHeight = Number(mount.y) > 0 ? Number(mount.y) * 2 : drawnHeight;
+    if (!(oldHeight > 0)) return;
     const columnLeft = Number(mount.x) * 2;
     const oldColumn = oldWidth - edgePad - columnLeft;
     if (!(oldColumn > 0)) return;
@@ -2796,7 +2799,7 @@ ${groups}
     const holdsGameLabel = (node, depth = 0) => depth < 3 && Array.isArray(node.children) && node.children.some((child) => String(child.label || "").startsWith("GardenInfo") || holdsGameLabel(child, depth + 1));
     const isGameRow = (child) => Number(child.x) >= columnLeft - 2 && (GAME_ROW_LABELS.includes(child.label) || !child.label && holdsGameLabel(child));
     const rows = others.filter(isGameRow);
-    const cardSized = (child) => Math.abs(Number(child.width) - oldWidth) <= 8 && Math.abs(Number(child.height) - oldHeight) <= 8 && typeof child.scale?.set === "function";
+    const cardSized = (child) => Math.abs(Number(child.width) - oldWidth) <= 8 && [oldHeight, drawnHeight].some((height) => Math.abs(Number(child.height) - height) <= 8) && typeof child.scale?.set === "function";
     const frameSiblings = (card.parent?.children || []).filter((child) => child !== card && child.label !== "GardenInfoPreservedBadge");
     const overlays = [...others.filter((child) => !isGameRow(child)), ...frameSiblings].filter(cardSized);
     const original = rows.map((row) => ({ row, y: Number(row.y), height: Number(row.height) })).sort((a, b) => a.y - b.y);
@@ -2864,7 +2867,7 @@ ${groups}
       y += Number(entry.row.height);
     }
     const extraHeight = newHeight - oldHeight;
-    if (!extraWidth && !extraHeight) return;
+    if (!extraWidth && !extraHeight && drawnHeight === oldHeight) return;
     for (const sprite of [background.fillSprite, background.borderSprite]) {
       if (!sprite?.visible || typeof sprite.setSize !== "function") continue;
       const bake = 1 / (Number(sprite.scale?.y) || 1);
@@ -2874,7 +2877,7 @@ ${groups}
       area.width = newWidth;
       area.height = newHeight;
     }
-    for (const overlay of overlays) overlay.scale.set(Number(overlay.scale.x) * newWidth / oldWidth, Number(overlay.scale.y) * newHeight / oldHeight);
+    for (const overlay of overlays) overlay.scale.set(Number(overlay.scale.x) * newWidth / Number(overlay.width), Number(overlay.scale.y) * newHeight / Number(overlay.height));
     mount.y = newHeight / 2;
     if (dots) {
       dots.x += extraWidth / 2;
