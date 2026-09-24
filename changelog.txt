@@ -1,3 +1,7 @@
+0.8.77
+- Crop card no longer slides behind the Harvest button or grows extra empty space when another mod also changes it
+- Egg card timer no longer overlaps the game's own countdown
+
 0.8.76
 - Crop card no longer gets stretched or pushed out of shape when another mod draws on the card
 
