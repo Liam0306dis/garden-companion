@@ -1,3 +1,6 @@
+0.8.73
+- Redesigned the companion interface: cleaner neutral theme, sidebar navigation with icons, and restyled controls, cards and popups
+
 0.8.72
 - Crop card: the coin value and turtle timer get their own line in the game's size colour, and the card widens so the size and mutation row no longer shrinks
 - Crop value and turtle timer reattach to the card after the game rebuilds itself instead of falling back to the overlay
