@@ -1,3 +1,7 @@
+0.8.72
+- Crop card: the coin value and turtle timer get their own line in the game's size colour, and the card widens so the size and mutation row no longer shrinks
+- Crop value and turtle timer reattach to the card after the game rebuilds itself instead of falling back to the overlay
+
 0.8.71
 - Size focus now highlights or fades each crop individually in multi-harvest and patch plants instead of matching the whole plant when one crop is max size
 

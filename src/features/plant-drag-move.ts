@@ -61,6 +61,14 @@ export function initPlantDragMove(): void {
     let originalMapSet: typeof Map.prototype.set | undefined;
     let hookReleaseTimer = 0;
     const armedSystemFields = new Set();
+    /**
+     * Which systems have been caught since the hooks were last armed. The old references are kept
+     * across a reconnect (it does not always rebuild them), so "every field is set" says nothing
+     * about whether the rebuilt ones have arrived - releasing on that dropped the hooks after the
+     * first new system and left the card estimates on a destroyed view.
+     */
+    const capturedSinceArm = new Set<string>();
+    const CAPTURED_SYSTEMS = ['tapToMove', 'tileObject', 'pet', 'worldTapRouter', 'gardenInfoCard'];
 
     function resetPrivateSystems(reason) {
         live.fallbackHighlight?.destroy?.();
@@ -100,6 +108,7 @@ export function initPlantDragMove(): void {
     }
 
     function captureNamedSystem(system) {
+        if (CAPTURED_SYSTEMS.includes(system?.name)) capturedSinceArm.add(system.name);
         if (system?.name === 'tapToMove') {
             if (live.tapToMove === system) return;
             live.tapToMove = system;
@@ -180,7 +189,7 @@ export function initPlantDragMove(): void {
      */
     function releaseGlobalHooksIfIdle() {
         if (armedSystemFields.size === 0) restoreDefinePropertyCapture();
-        if (live.tapToMove && live.tileSystem && live.petSystem && live.worldTapRouter && live.gardenInfoCard) {
+        if (CAPTURED_SYSTEMS.every(name => capturedSinceArm.has(name))) {
             restoreSystemRegistryCapture();
             if (hookReleaseTimer) { clearTimeout(hookReleaseTimer); hookReleaseTimer = 0; }
         }
@@ -205,6 +214,7 @@ export function initPlantDragMove(): void {
     }
 
     function armPrivateSystemCapture() {
+        capturedSinceArm.clear();
         installDefinePropertyCapture();
         installSystemRegistryCapture();
         scheduleHookRelease();

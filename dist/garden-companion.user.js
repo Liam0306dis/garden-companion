@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.71
+// @version      0.8.72
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -2661,6 +2661,7 @@ ${groups}
   var VALUE_PREFIX = "🪙 ";
   var GROWTH_PREFIX = "🐢 ";
   var LOCK = "🔒";
+  var GAME_ATTRIBUTE_COLOR = 11908533;
   function selectedCrop(crops) {
     if (!crops.length) return null;
     const selected2 = Number(state.selectedSlotId) || 0;
@@ -2728,10 +2729,11 @@ ${groups}
     if (!clean.card || !signature2) return clean;
     const lines = signature2.split("\n");
     const attributes = [...clean.card.attributes || []];
-    const estimateAttributes = lines.map((text, index) => ({
+    const estimateAttributes = lines.map((text) => ({
       key: "time",
       text,
-      color: text.startsWith(LOCK) ? 16557477 : index === 0 && text.startsWith(VALUE_PREFIX) ? 16767053 : 11137023,
+      // The same grey the game gives a crop's size, so our lines read as part of its card.
+      color: text.startsWith(LOCK) ? 16557477 : GAME_ATTRIBUTE_COLOR,
       gardenCompanionEstimate: true
     }));
     return {
@@ -2741,42 +2743,154 @@ ${groups}
   }
   function nativeEstimateChip(node) {
     let chip = node;
-    while (chip.parent && !["GardenInfoAttributeRow", "GardenInfoWrappedAttributeBand"].includes(chip.parent.label)) chip = chip.parent;
+    while (chip.parent && !["GardenInfoAttributeRow", "GardenInfoAttributeBand"].includes(chip.parent.label)) chip = chip.parent;
     return chip.parent ? chip : null;
   }
-  function shiftNativeRowToCardCenter(card, row, chip) {
-    const peers = (row.children || []).filter((candidate) => Math.abs(Number(candidate.y) - Number(chip.y)) < 0.5);
-    if (!peers.length) return;
-    const bounds = peers.map((peer) => peer.getBounds?.()).filter(Boolean);
-    if (!bounds.length) return;
-    const left = Math.min(...bounds.map((item) => item.x));
-    const right = Math.max(...bounds.map((item) => item.x + item.width));
-    const cardBounds = card.getBounds();
-    const offset = cardBounds.x + cardBounds.width / 2 - (left + right) / 2;
-    const worldScale = Math.abs(Number(row.worldTransform?.a)) || 1;
-    if (Number.isFinite(offset) && Math.abs(offset) > 0.25) for (const peer of peers) peer.x += offset / worldScale;
+  function nodeText(node) {
+    return typeof node.text === "string" ? node.text : typeof node._text === "string" ? node._text : "";
   }
-  function layoutNativeEstimates(view, signature2) {
-    if (!signature2) return false;
-    const card = view.container?.getChildByLabel?.("GardenInfoObjectCard", true);
-    if (!card || typeof card.getBounds !== "function") return false;
-    const estimateLines2 = new Set(signature2.split("\n"));
-    const estimateChips = [];
+  function findEstimateChips(card, lines) {
+    const wanted = new Set(lines);
+    const found = /* @__PURE__ */ new Map();
     const stack = [...card.children || []];
     while (stack.length) {
       const node = stack.pop();
       if (!node || typeof node !== "object") continue;
-      const text = typeof node.text === "string" ? node.text : typeof node._text === "string" ? node._text : "";
-      if (estimateLines2.has(text)) {
+      const text = nodeText(node);
+      if (wanted.has(text) && !found.has(text)) {
         const chip = nativeEstimateChip(node);
-        if (chip && !estimateChips.includes(chip)) estimateChips.push(chip);
+        if (chip) found.set(text, chip);
       }
       if (Array.isArray(node.children)) stack.push(...node.children);
     }
-    if (!estimateChips.length) return false;
-    if (!signature2.startsWith(VALUE_PREFIX)) return false;
-    for (const chip of estimateChips) shiftNativeRowToCardCenter(card, chip.parent, chip);
-    return false;
+    return found;
+  }
+  function packChips(chips, gap) {
+    let x = 0;
+    for (const chip of chips) {
+      chip.x = x;
+      x += chip.width + gap;
+    }
+    return chips.length ? x - gap : 0;
+  }
+  function relayoutNativeEstimates(view, signature2) {
+    if (!signature2) return;
+    const card = view.container?.getChildByLabel?.("GardenInfoObjectCard", true);
+    if (!card?.hitArea || !Array.isArray(card.children)) return;
+    const lines = signature2.split("\n");
+    const chipsByLine = findEstimateChips(card, lines);
+    if (!chipsByLine.size) return;
+    const oldWidth = Number(card.hitArea.width), oldHeight = Number(card.hitArea.height);
+    if (!(oldWidth > 0) || !(oldHeight > 0)) return;
+    const md = oldWidth >= 220;
+    const edgePad = md ? 14 : 10, verticalPad = md ? 14 : 8, rowGap = md ? 8 : 4, lineGap = md ? 5 : 2;
+    const background = card.children.find((child) => "fillSprite" in child);
+    const mount = card.children.find((child) => child.label === "GardenInfoMiniCardMount");
+    const dots = card.children.find((child) => child.label === "GardenInfoCropPageDots");
+    if (!background || !mount) return;
+    const columnLeft = Number(mount.x) * 2;
+    const oldColumn = oldWidth - edgePad - columnLeft;
+    if (!(oldColumn > 0)) return;
+    const rows = card.children.filter((child) => child !== background && child !== mount && child !== dots);
+    const original = rows.map((row) => ({ row, y: Number(row.y), height: Number(row.height) })).sort((a, b) => a.y - b.y);
+    const bands = [];
+    for (const parent of new Set([...chipsByLine.values()].map((chip) => chip.parent))) {
+      const before = [...parent.children].sort((a, b) => a.x - b.x);
+      const gap = before.length > 1 ? Math.max(0, before[1].x - before[0].x - before[0].width) : 0;
+      for (const chip of chipsByLine.values()) if (chip.parent === parent) parent.removeChild(chip);
+      const remaining2 = before.filter((child) => child.parent === parent);
+      if (!remaining2.length) {
+        parent.parent?.removeChild(parent);
+        parent.destroy({ children: true });
+        continue;
+      }
+      bands.push({ row: parent, width: packChips(remaining2, gap) });
+    }
+    const lock = chipsByLine.get(LOCK);
+    const estimates = lines.filter((line) => line !== LOCK).map((line) => chipsByLine.get(line)).filter(Boolean);
+    const groups = estimates.length ? estimates.map((chip, index) => index === 0 && lock ? [lock, chip] : [chip]) : lock ? [[lock]] : [];
+    const ourRows = groups.map((group) => {
+      const row = new card.constructor();
+      row.label = "GardenCompanionEstimateRow";
+      const height = Math.max(...group.map((chip) => Number(chip.height)));
+      for (const chip of group) {
+        row.addChild(chip);
+        chip.y = (height - Number(chip.height)) / 2;
+      }
+      return { row, width: packChips(group, md ? 6 : 4) };
+    });
+    const rendererWidth = Number(view.lastRendererWidth) || 0;
+    const maxWidth = rendererWidth > 0 ? Math.max(oldWidth, 160, rendererWidth - (32 + (md ? 8 : 2)) * 2 - 24) : oldWidth;
+    const wanted = Math.max(
+      oldColumn,
+      ...bands.map((band) => band.width),
+      ...ourRows.map((ours) => ours.width)
+    );
+    const column = Math.min(wanted, maxWidth - edgePad - columnLeft);
+    const extraWidth = Math.max(0, column - oldColumn);
+    const newWidth = oldWidth + extraWidth;
+    for (const band of bands) band.row.scale.set(Math.min(1, column / band.width));
+    for (const ours of ourRows) ours.row.scale.set(Math.min(1, column / ours.width));
+    const title = card.children.find((child) => child.label === "GardenInfoObjectTitleRow");
+    if (extraWidth && title?.children?.length === 1 && "maxWidth" in title.children[0]) title.children[0].maxWidth = column;
+    const stack = [];
+    let previousBottom = null;
+    for (const entry of original) {
+      const gap = previousBottom === null ? 0 : Math.max(0, entry.y - previousBottom);
+      previousBottom = entry.y + entry.height;
+      if (entry.row.destroyed || entry.row.parent !== card) continue;
+      stack.push({ row: entry.row, gap: stack.length ? gap : 0 });
+    }
+    ourRows.forEach((ours, index) => {
+      card.addChild(ours.row);
+      stack.push({ row: ours.row, gap: stack.length ? index === 0 ? rowGap : lineGap : 0 });
+    });
+    const contentHeight = stack.reduce((sum, entry) => sum + entry.gap + Number(entry.row.height), 0);
+    const bottomPad = dots ? Math.max(verticalPad, oldHeight - Number(dots.y) + 2) : verticalPad;
+    const newHeight = Math.max(oldHeight, verticalPad + contentHeight + bottomPad);
+    let y = verticalPad + (newHeight - verticalPad - bottomPad - contentHeight) / 2;
+    const centre = columnLeft + column / 2;
+    for (const entry of stack) {
+      y += entry.gap;
+      const width = Number(entry.row.width);
+      entry.row.position.set(Math.max(columnLeft, centre - width / 2), y);
+      y += Number(entry.row.height);
+    }
+    const extraHeight = newHeight - oldHeight;
+    if (!extraWidth && !extraHeight) return;
+    for (const sprite of [background.fillSprite, background.borderSprite]) {
+      if (!sprite?.visible || typeof sprite.setSize !== "function") continue;
+      const bake = 1 / (Number(sprite.scale?.y) || 1);
+      sprite.setSize(newWidth * bake, newHeight * bake);
+    }
+    for (const area of [background.hitArea, card.hitArea]) if (area) {
+      area.width = newWidth;
+      area.height = newHeight;
+    }
+    mount.y = newHeight / 2;
+    if (dots) {
+      dots.x += extraWidth / 2;
+      dots.y += extraHeight;
+    }
+    const frame = card.parent;
+    const badge = frame?.getChildByLabel?.("GardenInfoPreservedBadge");
+    if (badge) badge.x += extraWidth;
+    const section = (view.sections || []).find((candidate) => candidate.container === frame || candidate.container === frame?.parent);
+    if (!section) return;
+    const overhang = Math.max(0, Number(section.height) - Number(card.y) - oldHeight);
+    const newOverhang = Math.max(0, Math.ceil(overhang - extraHeight / 2));
+    const heightChange = extraHeight - overhang + newOverhang;
+    section.width += extraWidth;
+    section.height = Number(section.height) + heightChange;
+    if (section.topOverhang) section.topOverhang.openToXPx += extraWidth;
+    const right = section.container.getChildByLabel?.("GardenInfoBrowseButton:right");
+    const left = section.container.getChildByLabel?.("GardenInfoBrowseButton:left");
+    if (right) right.x += extraWidth;
+    for (const button of [left, right]) if (button) button.y += extraHeight;
+    if (view.cropPopTarget?.container === frame) {
+      view.cropPopTarget.width += extraWidth;
+      view.cropPopTarget.height += heightChange;
+    }
   }
   var cardShowsPet = false;
   function cardStateIsPet(nextState) {
@@ -2791,7 +2905,7 @@ ${groups}
     const view = engine2.getSystem("gardenInfoCard")?.view;
     if (!view || typeof view.setState !== "function" || nativeGardenCardHook?.view === view || view.__gardenCompanionEstimateHook) return;
     const originalSetState = view.setState;
-    const originalLayout = view.layout;
+    const originalRebuild = view.rebuild;
     const hook = { view, originalSetState, sourceState: null, signature: "" };
     view.setState = function(nextState) {
       cardShowsPet = cardStateIsPet(nextState);
@@ -2799,9 +2913,13 @@ ${groups}
       hook.signature = nativeEstimateSignature();
       return originalSetState.call(this, decorateGardenCardState(hook.sourceState, hook.signature));
     };
-    if (typeof originalLayout === "function") view.layout = function(...args) {
-      const result = originalLayout.apply(this, args);
-      layoutNativeEstimates(this, hook.signature);
+    if (typeof originalRebuild === "function") view.rebuild = function(...args) {
+      const result = originalRebuild.apply(this, args);
+      try {
+        relayoutNativeEstimates(this, hook.signature);
+      } catch (error) {
+        console.warn("[GC] card estimate layout failed", error);
+      }
       return result;
     };
     view.__gardenCompanionEstimateHook = true;
@@ -11359,6 +11477,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let originalMapSet;
     let hookReleaseTimer = 0;
     const armedSystemFields = /* @__PURE__ */ new Set();
+    const capturedSinceArm = /* @__PURE__ */ new Set();
+    const CAPTURED_SYSTEMS = ["tapToMove", "tileObject", "pet", "worldTapRouter", "gardenInfoCard"];
     function resetPrivateSystems(reason) {
       live.fallbackHighlight?.destroy?.();
       live.tapToMove = null;
@@ -11394,6 +11514,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     }
     function captureNamedSystem(system) {
+      if (CAPTURED_SYSTEMS.includes(system?.name)) capturedSinceArm.add(system.name);
       if (system?.name === "tapToMove") {
         if (live.tapToMove === system) return;
         live.tapToMove = system;
@@ -11452,7 +11573,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function releaseGlobalHooksIfIdle() {
       if (armedSystemFields.size === 0) restoreDefinePropertyCapture();
-      if (live.tapToMove && live.tileSystem && live.petSystem && live.worldTapRouter && live.gardenInfoCard) {
+      if (CAPTURED_SYSTEMS.every((name) => capturedSinceArm.has(name))) {
         restoreSystemRegistryCapture();
         if (hookReleaseTimer) {
           clearTimeout(hookReleaseTimer);
@@ -11473,6 +11594,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }, HOOK_RELEASE_TIMEOUT_MS);
     }
     function armPrivateSystemCapture() {
+      capturedSinceArm.clear();
       installDefinePropertyCapture();
       installSystemRegistryCapture();
       scheduleHookRelease();

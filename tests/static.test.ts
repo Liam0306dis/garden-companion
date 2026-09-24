@@ -353,7 +353,7 @@ assert.doesNotMatch(overviewSource, /go-focus-heading/, 'the focus-only heading 
 assert.match(overviewSource, /mode: stored\.mode \?\? \(stored\.invert \? 'hide' : 'highlight'\)/, 'saved invert setups must migrate to hide mode');
 assert.match(overviewSource, /config\.mode === 'hide' \? !result : result/, 'plant focus hide mode must flip the match');
 assert.match(overviewSource, /data-focus-max-size/, 'plant focus max-size toggle is missing');
-assert.match(overviewSource, /if \(config\.maxSize\) conditions\.push\(\(tile\.slots \|\| \[\]\)\.some/, 'plant focus max-size rule must inspect the whole plant');
+assert.match(overviewSource, /if \(config\.maxSize\) conditions\.push\(slotIsMaxSize\(PLANT_CATALOG\[slotSpecies \?\? ''\]\?\.crop, slot\)\)/, 'plant focus max-size rule must match each crop individually');
 assert.match(overviewSource, /config\.mutationRule === 'any' \? conditions\.some\(Boolean\)/, 'plant focus max-size rule must participate in Any matching');
 assert.match(overviewSource, /config\.mutationRule === 'none' \? conditions\.every\(match => !match\)/, 'plant focus max-size rule must participate in None matching');
 assert.match(overviewSource, /if \(Number\(tile\.maturedAt \?\? 0\) > now\) \{[\s\S]*fade\(plantVisual\?\.container[\s\S]*crops\.forEach\(\(crop: any\) => fade\(cropContainer\(crop\)/, 'growing base plants and their slots must always remain faded');
@@ -808,8 +808,11 @@ assert.match(companionSource, /engine\.getSystem\('gardenInfoCard'\)\?\.view/, '
 assert.match(companionSource, /key: 'time',[\s\S]*gardenCompanionEstimate: true/, 'estimates are not inserted as native garden card attributes');
 assert.match(companionSource, /attributes: \[\.\.\.attributes, \.\.\.estimateAttributes\]/, 'native estimate attributes are not included in card measurement');
 assert.doesNotMatch(companionSource, /nativeTimer\.text\}\\n/, 'native timer still uses the unsupported multiline layout');
-assert.match(companionSource, /function shiftNativeRowToCardCenter[\s\S]*for \(const peer of peers\) peer\.x \+= offset \/ worldScale/, 'crop timer and estimate row is not centred as one unit');
-assert.match(companionSource, /if \(!signature\.startsWith\(VALUE_PREFIX\)\) return false/, 'egg estimate is still repositioned away from the native timer row');
+// Bundle 1246 fixed the card width and shrinks the attribute band to fit, so our estimates move to
+// their own larger lines and the card widens and grows to fit them.
+assert.match(companionSource, /view\.rebuild = function[\s\S]*relayoutNativeEstimates\(this, hook\.signature\)/, 'card estimates are not relaid out after the card rebuilds');
+assert.match(companionSource, /band\.row\.scale\.set\(Math\.min\(1, column \/ band\.width\)\)/, 'the attribute band is not unshrunk on the widened card');
+assert.match(companionSource, /if \(dots\) \{ dots\.x \+= extraWidth \/ 2; dots\.y \+= extraHeight; \}/, 'multi-harvest page dots are not kept under the taller card');
 assert.doesNotMatch(companionSource, /gardenCompanionEggEstimateLayout|nativeBottom|section\.height \+= extraHeight/, 'legacy egg second-row layout remains');
 assert.match(companionSource, /if \(refreshNativeGardenCard\(\)\) return;/, 'HTML estimate fallback remains active after the native hook succeeds');
 assert.doesNotMatch(companionSource, /requestAnimationFrame\(renderTurtleOverlay\)/, 'garden card estimates still run every animation frame');
@@ -1408,11 +1411,13 @@ assert.match(plantDragSource, /function restoreDefinePropertyCapture\(\)[\s\S]*o
 assert.match(plantDragSource, /function restoreSystemRegistryCapture\(\)[\s\S]*mapProto\.set = originalMapSet;/, 'the patched Map.prototype.set is never restored');
 assert.match(plantDragSource, /function releaseGlobalHooksIfIdle\(\)\s*\{\s*if \(armedSystemFields\.size === 0\) restoreDefinePropertyCapture\(\);/, 'the global hooks are not released once every system is captured');
 assert.match(plantDragSource, /\} else return;\s*releaseGlobalHooksIfIdle\(\);/, 'capturing a system does not check whether the global hooks can come off');
+// Old references survive a reconnect, so release waits for each system to be caught again.
+assert.match(plantDragSource, /if \(CAPTURED_SYSTEMS\.every\(name => capturedSinceArm\.has\(name\)\)\)/, 'the hooks come off before the rebuilt systems have been caught');
 // A system that never arrives must not leave the page permanently patched.
 assert.match(plantDragSource, /const HOOK_RELEASE_TIMEOUT_MS = 60_000;/, 'there is no backstop for hooks waiting on a system that never arrives');
 assert.match(plantDragSource, /function scheduleHookRelease\(\)[\s\S]*for \(const key of \[\.\.\.armedSystemFields\]\) disarmPrivateField\(key\);[\s\S]*restoreDefinePropertyCapture\(\);\s*restoreSystemRegistryCapture\(\);/, 'the backstop does not remove every global hook');
 // A reconnect rebuilds the systems, so the hooks have to go back on with it.
-assert.match(plantDragSource, /function armPrivateSystemCapture\(\)\s*\{\s*installDefinePropertyCapture\(\);\s*installSystemRegistryCapture\(\);\s*scheduleHookRelease\(\);/, 'a reconnect does not re-install the capture hooks it needs');
+assert.match(plantDragSource, /function armPrivateSystemCapture\(\)\s*\{\s*capturedSinceArm\.clear\(\);\s*installDefinePropertyCapture\(\);\s*installSystemRegistryCapture\(\);\s*scheduleHookRelease\(\);/, 'a reconnect does not re-install the capture hooks it needs');
 assert.match(plantDragSource, /installDefinePropertyCapture\(\) \{\s*if \(\(objectCtor\.defineProperty as any\)\?\.\[WRAPPED_FLAG\]\) return;/, 'the defineProperty hook can be installed on top of itself');
 
 // A switch for measuring what the sprite pipeline costs on a cold load. It has to live in storage:
