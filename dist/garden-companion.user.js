@@ -7161,11 +7161,12 @@ ${eggs.map(eggCard).join("")}`;
 .gc-team-picker-grid { max-height:none;height:100%;margin:0;padding:0 20px 14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;align-content:start; }
 .gc-team-picker-grid label { padding:9px 10px; }
 .gc-team-picker-shell > footer { display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--gc-line); }
-.gc-team-picker-shell button { min-height:30px;padding:6px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }
-.gc-team-picker-shell button:hover:not(:disabled) { background:var(--gc-surface-3); }
-.gc-team-picker-shell .gc-primary { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }
-.gc-team-picker-shell .gc-primary:hover:not(:disabled) { background:var(--gc-accent-hover); }
-.gc-team-picker-shell > footer button { padding:8px 18px; }
+/* Footer only: a shell-wide button rule ties with the emblem tab and tile rules and, coming later,
+   would override them. */
+.gc-team-picker-shell > footer button { min-height:30px;padding:8px 18px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }
+.gc-team-picker-shell > footer button:hover:not(:disabled) { background:var(--gc-surface-3); }
+.gc-team-picker-shell > footer .gc-primary { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }
+.gc-team-picker-shell > footer .gc-primary:hover:not(:disabled) { background:var(--gc-accent-hover); }
 
 /* ── Docked pet food buttons ─────────────────────────────────────────────────────────────────── */
 #gc-petfood { position:fixed;left:0;top:0;z-index:99991;width:0;height:0;pointer-events:none;font:12px/1.3 var(--gc-font);user-select:none; }
