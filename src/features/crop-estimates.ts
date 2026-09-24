@@ -246,7 +246,19 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   const oldColumn = oldWidth - edgePad - columnLeft;
   if (!(oldColumn > 0)) return;
 
-  const rows = card.children.filter((child: PixiNode) => child !== background && child !== mount && child !== dots);
+  // Only the game's own rows are restacked: they all sit in the column right of the mini card and
+  // inside the card. Other mods add their own children to this card too - an outline drawn over the
+  // whole card, for one - and treating one of those as a row stacked everything else underneath it.
+  const others = card.children.filter((child: PixiNode) => child !== background && child !== mount && child !== dots);
+  const isGameRow = (child: PixiNode) => Number(child.x) >= columnLeft - 2 && Number(child.y) >= -1
+    && Number(child.y) + Number(child.height) <= oldHeight + 1;
+  const rows = others.filter(isGameRow);
+  // A foreign overlay the size of the card is stretched with it, so a border stays on the card's edge.
+  // Looked for beside the card as well, in the frame that holds it, since a mod may draw there instead.
+  const cardSized = (child: PixiNode) => Math.abs(Number(child.width) - oldWidth) <= 8
+    && Math.abs(Number(child.height) - oldHeight) <= 8 && typeof child.scale?.set === 'function';
+  const frameSiblings = (card.parent?.children || []).filter((child: PixiNode) => child !== card && child.label !== 'GardenInfoPreservedBadge');
+  const overlays = [...others.filter((child: PixiNode) => !isGameRow(child)), ...frameSiblings].filter(cardSized);
   const original = rows.map((row: PixiNode) => ({ row, y: Number(row.y), height: Number(row.height) })).sort((a, b) => a.y - b.y);
 
   // Pull our chips out of the rows the game put them in, and close up whatever they leave behind.
@@ -324,6 +336,7 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
     sprite.setSize(newWidth * bake, newHeight * bake);
   }
   for (const area of [background.hitArea, card.hitArea]) if (area) { area.width = newWidth; area.height = newHeight; }
+  for (const overlay of overlays) overlay.scale.set(Number(overlay.scale.x) * newWidth / oldWidth, Number(overlay.scale.y) * newHeight / oldHeight);
   mount.y = newHeight / 2;
   if (dots) { dots.x += extraWidth / 2; dots.y += extraHeight; }
 

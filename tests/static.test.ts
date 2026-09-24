@@ -812,6 +812,9 @@ assert.doesNotMatch(companionSource, /nativeTimer\.text\}\\n/, 'native timer sti
 // Bundle 1246 fixed the card width and shrinks the attribute band to fit, so our estimates move to
 // their own larger lines and the card widens and grows to fit them.
 assert.match(companionSource, /view\.rebuild = function[\s\S]*relayoutNativeEstimates\(this, hook\.signature\)/, 'card estimates are not relaid out after the card rebuilds');
+// Other mods add children to the game's card; restacking one of those as a row pushed the card's own rows below it.
+assert.match(estimatesSource, /const rows = others\.filter\(isGameRow\);/, "card relayout must only restack the game rows, not another mod's children");
+assert.match(estimatesSource, /for \(const overlay of overlays\) overlay\.scale\.set\(/, 'a card-sized overlay from another mod must be stretched with the card');
 assert.match(companionSource, /band\.row\.scale\.set\(Math\.min\(1, column \/ band\.width\)\)/, 'the attribute band is not unshrunk on the widened card');
 assert.match(companionSource, /if \(dots\) \{ dots\.x \+= extraWidth \/ 2; dots\.y \+= extraHeight; \}/, 'multi-harvest page dots are not kept under the taller card');
 assert.doesNotMatch(companionSource, /gardenCompanionEggEstimateLayout|nativeBottom|section\.height \+= extraHeight/, 'legacy egg second-row layout remains');

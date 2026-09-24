@@ -2791,7 +2791,12 @@ ${groups}
     const columnLeft = Number(mount.x) * 2;
     const oldColumn = oldWidth - edgePad - columnLeft;
     if (!(oldColumn > 0)) return;
-    const rows = card.children.filter((child) => child !== background && child !== mount && child !== dots);
+    const others = card.children.filter((child) => child !== background && child !== mount && child !== dots);
+    const isGameRow = (child) => Number(child.x) >= columnLeft - 2 && Number(child.y) >= -1 && Number(child.y) + Number(child.height) <= oldHeight + 1;
+    const rows = others.filter(isGameRow);
+    const cardSized = (child) => Math.abs(Number(child.width) - oldWidth) <= 8 && Math.abs(Number(child.height) - oldHeight) <= 8 && typeof child.scale?.set === "function";
+    const frameSiblings = (card.parent?.children || []).filter((child) => child !== card && child.label !== "GardenInfoPreservedBadge");
+    const overlays = [...others.filter((child) => !isGameRow(child)), ...frameSiblings].filter(cardSized);
     const original = rows.map((row) => ({ row, y: Number(row.y), height: Number(row.height) })).sort((a, b) => a.y - b.y);
     const bands = [];
     for (const parent of new Set([...chipsByLine.values()].map((chip) => chip.parent))) {
@@ -2867,6 +2872,7 @@ ${groups}
       area.width = newWidth;
       area.height = newHeight;
     }
+    for (const overlay of overlays) overlay.scale.set(Number(overlay.scale.x) * newWidth / oldWidth, Number(overlay.scale.y) * newHeight / oldHeight);
     mount.y = newHeight / 2;
     if (dots) {
       dots.x += extraWidth / 2;
