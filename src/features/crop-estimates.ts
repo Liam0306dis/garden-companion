@@ -250,8 +250,14 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   // inside the card. Other mods add their own children to this card too - an outline drawn over the
   // whole card, for one - and treating one of those as a row stacked everything else underneath it.
   const others = card.children.filter((child: PixiNode) => child !== background && child !== mount && child !== dots);
-  const isGameRow = (child: PixiNode) => Number(child.x) >= columnLeft - 2 && Number(child.y) >= -1
-    && Number(child.y) + Number(child.height) <= oldHeight + 1;
+  // Told apart by the game's own labels rather than by position: a mod's invisible container sitting in
+  // the column still counted as a row, and a full-height one doubled the card. The one unlabelled
+  // game row (abilities, display crop) is recognised by the labelled pieces inside it.
+  const GAME_ROW_LABELS = ['GardenInfoObjectTitleRow', 'GardenInfoAttributeRow', 'GardenInfoAttributeBand'];
+  const holdsGameLabel = (node: PixiNode, depth = 0): boolean => depth < 3 && Array.isArray(node.children)
+    && node.children.some((child: PixiNode) => String(child.label || '').startsWith('GardenInfo') || holdsGameLabel(child, depth + 1));
+  const isGameRow = (child: PixiNode) => Number(child.x) >= columnLeft - 2
+    && (GAME_ROW_LABELS.includes(child.label) || (!child.label && holdsGameLabel(child)));
   const rows = others.filter(isGameRow);
   // A foreign overlay the size of the card is stretched with it, so a border stays on the card's edge.
   // Looked for beside the card as well, in the frame that holds it, since a mod may draw there instead.

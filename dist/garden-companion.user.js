@@ -2792,7 +2792,9 @@ ${groups}
     const oldColumn = oldWidth - edgePad - columnLeft;
     if (!(oldColumn > 0)) return;
     const others = card.children.filter((child) => child !== background && child !== mount && child !== dots);
-    const isGameRow = (child) => Number(child.x) >= columnLeft - 2 && Number(child.y) >= -1 && Number(child.y) + Number(child.height) <= oldHeight + 1;
+    const GAME_ROW_LABELS = ["GardenInfoObjectTitleRow", "GardenInfoAttributeRow", "GardenInfoAttributeBand"];
+    const holdsGameLabel = (node, depth = 0) => depth < 3 && Array.isArray(node.children) && node.children.some((child) => String(child.label || "").startsWith("GardenInfo") || holdsGameLabel(child, depth + 1));
+    const isGameRow = (child) => Number(child.x) >= columnLeft - 2 && (GAME_ROW_LABELS.includes(child.label) || !child.label && holdsGameLabel(child));
     const rows = others.filter(isGameRow);
     const cardSized = (child) => Math.abs(Number(child.width) - oldWidth) <= 8 && Math.abs(Number(child.height) - oldHeight) <= 8 && typeof child.scale?.set === "function";
     const frameSiblings = (card.parent?.children || []).filter((child) => child !== card && child.label !== "GardenInfoPreservedBadge");
