@@ -1,6 +1,6 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { posix, resolve } from 'node:path';
+import { basename, posix, resolve } from 'node:path';
 
 /**
  * Captured copies of the game's own client bundle. The build reads its catalogs out of one, and the
@@ -86,11 +86,62 @@ export function extractChunkReferences(source: string, assetsBase: string): { ch
   return { chunks: [...chunks.values()], externalScripts: [...externalScripts] };
 }
 
-/** Pulls the whole live module graph into a new snapshot folder and returns it. */
+/** The version the live game is serving right now. */
+export async function liveVersion(origin = DEFAULT_ORIGIN): Promise<string> {
+  const version = String(JSON.parse(await get(`${origin.replace(/\/+$/, '')}/platform/v1/version`)).version || '').trim();
+  if (!version) throw new Error('could not read the game version');
+  return version;
+}
+
+/** The game version a snapshot folder was captured from, read from its name. */
+export function snapshotVersion(dir: string): number {
+  return Number(/bundle-(\d+)-\d+$/.exec(dir)?.[1] ?? NaN);
+}
+
+/**
+ * Snapshot folders for a build, newest first, pulling the live bundle first when the game has moved
+ * past the newest capture (or there is none). The game ships most days and a stale capture means
+ * stale catalogs, so this is checked on every build rather than left to someone remembering.
+ *
+ * Offline, or with `offline` set, the newest existing capture is used as it is - a build should not
+ * fail just because the game cannot be reached.
+ */
+export async function ensureLatestSnapshot(options: { offline?: boolean; log?: (text: string) => void } = {}): Promise<string[]> {
+  const log = options.log ?? (text => process.stdout.write(text));
+  const existing = await snapshotDirs();
+  if (options.offline) {
+    if (!existing.length) throw new Error('No captured game bundle in bundles/, and --offline was given.');
+    return existing;
+  }
+  let version: string;
+  try { version = await liveVersion(); }
+  catch (error) {
+    if (!existing.length) throw new Error(`No captured game bundle, and the live version could not be read: ${(error as Error).message}`);
+    log(`Could not reach the game to check its version (${(error as Error).message}) - building from ${basename(existing[0])}.\n`);
+    return existing;
+  }
+  if (existing.length && snapshotVersion(existing[0]) >= Number(version)) return existing;
+  log(existing.length
+    ? `The game is on version ${version}, newer than ${basename(existing[0])} - pulling the live bundle...`
+    : 'No captured game bundle in bundles/ - pulling the live one...');
+  const snapshot = await pullSnapshot(DEFAULT_ORIGIN, log);
+  log('\n');
+  if (snapshot.failed.length) {
+    if (!existing.length) throw new Error(`${snapshot.failed.length} bundle chunk(s) failed to download; run the build again.`);
+    log(`${snapshot.failed.length} chunk(s) failed to download, so the new capture was not kept - building from ${basename(existing[0])}.\n`);
+    return existing;
+  }
+  return snapshotDirs();
+}
+
+/**
+ * Pulls the whole live module graph into a new snapshot folder and returns it. The files land in a
+ * `.partial` folder first and are only moved into place once every chunk arrived, so an interrupted
+ * or incomplete pull can never become the newest capture a build reads.
+ */
 export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) => void = () => {}): Promise<Snapshot> {
   const base = origin.replace(/\/+$/, '');
-  const version = String(JSON.parse(await get(`${base}/platform/v1/version`)).version || '').trim();
-  if (!version) throw new Error('could not read the game version');
+  const version = await liveVersion(base);
   const html = await get(`${base}/`);
   const originUrl = new URL(base);
   const entryUrls = [...html.matchAll(/(?:src|href)=["']([^"']+\.js)["']/g)].map(match => new URL(match[1], originUrl));
@@ -99,7 +150,9 @@ export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) 
   const assetsBase = new URL('.', localEntries.find(url => url.pathname.includes('/assets/')) ?? localEntries[0]).toString();
 
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const dir = resolve(BUNDLES_DIR, `bundle-${version}-${date}`);
+  const finalDir = resolve(BUNDLES_DIR, `bundle-${version}-${date}`);
+  const dir = `${finalDir}.partial`;
+  await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
   await writeFile(resolve(dir, 'index.html'), html);
 
@@ -127,7 +180,11 @@ export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) 
   await writeFile(resolve(dir, '_meta.json'), JSON.stringify({
     version, date: new Date().toISOString(), files: files.size, failed, externalScripts: [...externalScripts],
   }, null, 2));
-  return { dir, version, files, failed, externalScripts: [...externalScripts] };
+  if (failed.length) return { dir, version, files, failed, externalScripts: [...externalScripts] };
+  // Complete, so it takes its real name - replacing a same-day capture of the same version.
+  await rm(finalDir, { recursive: true, force: true });
+  await rename(dir, finalDir);
+  return { dir: finalDir, version, files, failed, externalScripts: [...externalScripts] };
 }
 
 /** `--flag value` from the command line. */

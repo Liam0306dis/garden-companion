@@ -45,8 +45,11 @@ npm.cmd test
 ```
 
 The build reads the game's catalogs out of a captured copy of the game's own
-client bundle in `bundles/`. A clone has none, so the first build pulls the
-live one. The captures are the game's code, so they are gitignored and never
+client bundle in `bundles/`. Every build first asks the game for its current
+version and pulls the live bundle when it is newer than the newest capture (or
+when there is none, as in a fresh clone). If the game can't be reached, the
+newest capture is used as it is; `npm.cmd run build -- --offline` skips the
+check. The captures are the game's code, so they are gitignored and never
 published.
 
 Two drift checks compare the script against a captured bundle, and `npm test`

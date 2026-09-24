@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { catalogsFromSnapshots } from './bundle-catalogs.js';
-import { argValue, pullSnapshot, ROOT as root, snapshotDirs } from './bundle-snapshot.js';
+import { argValue, ensureLatestSnapshot, ROOT as root, snapshotDirs } from './bundle-snapshot.js';
 
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
 const wasmSource = await readFile(resolve(root, 'vendor', 'wasm_b64.js'), 'utf8');
@@ -11,18 +11,13 @@ if (!wasmBase64) throw new Error('Pet sprite decoder data was not found in vendo
 
 /**
  * The catalogs come from a captured game bundle. `--bundles <dir>` reads snapshots from somewhere
- * else; otherwise `bundles/` is used, and a fresh clone with none there pulls one first.
+ * else as they are. Otherwise `bundles/` is used, and the live bundle is pulled first whenever the
+ * game has moved past the newest capture; `--offline` skips that check.
  */
 async function bundleDirs(): Promise<string[]> {
   const override = argValue('--bundles');
   if (override) return snapshotDirs(resolve(override));
-  const existing = await snapshotDirs();
-  if (existing.length) return existing;
-  console.log('No captured game bundle in bundles/ - pulling the live one first...');
-  const snapshot = await pullSnapshot(undefined, text => process.stdout.write(text));
-  process.stdout.write('\n');
-  if (snapshot.failed.length) throw new Error(`${snapshot.failed.length} bundle chunk(s) failed to download; run the build again.`);
-  return [snapshot.dir];
+  return ensureLatestSnapshot({ offline: process.argv.includes('--offline') });
 }
 
 const header = `// ==UserScript==
