@@ -93,13 +93,15 @@ function readServerFrontier(): void {
   }).MagicCircle_RoomConnection;
   if (!connection) return;
   const publication = connection.lastDistributedRoomPublication;
-  const raw = publication?.executedCommandSequence;
+  // Probed only once a publication exists. The first frames of a connection arrive before one does,
+  // and judging the property then recorded it as missing for the whole session.
+  if (!publication) return;
+  const raw = publication.executedCommandSequence;
   if (!diagnostics.propertyProbed) {
     diagnostics.propertyProbed = true;
     diagnostics.propertyPresent = typeof raw === 'number' && Number.isFinite(raw);
     console.info('[Garden Companion] Command frontier property probe.', {
       hasRoomConnection: true,
-      hasLastDistributedRoomPublication: !!publication,
       executedCommandSequence: raw,
       present: diagnostics.propertyPresent,
     });
@@ -177,10 +179,11 @@ const RESULT_FRAME_MAX = 20_000;
  */
 export function noteServerFrame(data: unknown): void {
   if (sequence < 0 || typeof data !== 'string') return;
-  // Probe the property once a connection exists; after that it is read at allocate/heal time, so the
-  // per-frame frontier scan is only needed as a fallback on a build where the property is absent.
+  // Probe the property until a publication exists; after that it is read at allocate/heal time, so
+  // the per-frame frontier scan only runs until the probe succeeds, or for good on a build where the
+  // property is absent.
   if (!diagnostics.propertyProbed) readServerFrontier();
-  if (diagnostics.propertyProbed && !diagnostics.propertyPresent) noteFrontierFromFrame(data);
+  if (!diagnostics.propertyPresent) noteFrontierFromFrame(data);
   if (data.length > RESULT_FRAME_MAX || !data.includes('QuinoaCommandResult') || !data.includes('invalid_sequence')) return;
   try {
     const frame = JSON.parse(data) as Record<string, unknown>;
@@ -198,14 +201,23 @@ export function noteServerFrame(data: unknown): void {
  * allocateSequence, which keeps it anchored to the server's frontier even when a second mod is
  * renumbering alongside us.
  */
-export function renumberOutgoingCommand(data: unknown): unknown {
-  if (sequence < 0 || typeof data !== 'string' || !data.includes('QuinoaCommand')) return data;
+export function renumberOutgoingCommand(frame: Record<string, unknown>): boolean {
+  if (sequence < 0 || frame.type !== 'QuinoaCommand') return false;
+  frame.commandSequence = allocateSequence();
+  return true;
+}
+
+/**
+ * An outgoing frame, parsed once for everything that inspects it on the way out. Only frames that
+ * can be a command are parsed: position updates leave several times a second and are never looked
+ * at, so they pay one substring scan and nothing more.
+ */
+export function parseOutgoingFrame(data: unknown): Record<string, unknown> | null {
+  if (typeof data !== 'string' || !(data.includes('QuinoaCommand') || data.includes('HarvestCrop'))) return null;
   try {
-    const frame = JSON.parse(data) as Record<string, unknown>;
-    if (frame?.type !== 'QuinoaCommand') return data;
-    frame.commandSequence = allocateSequence();
-    return JSON.stringify(frame);
-  } catch { return data; }
+    const frame = JSON.parse(data);
+    return frame && typeof frame === 'object' ? frame as Record<string, unknown> : null;
+  } catch { return null; }
 }
 
 /** The socket the game is using, kept so our commands can leave by the same door as everything else. */
@@ -236,27 +248,15 @@ export function onOutgoingCommand(listener: CommandListener): void {
   commandListeners.add(listener);
 }
 
-export function noteOutgoingCommand(data: unknown): void {
-  if (!commandListeners.size || typeof data !== 'string' || !data.includes('QuinoaCommand')) return;
-  try {
-    const frame = JSON.parse(data) as Record<string, unknown>;
-    const command = frame?.type === 'QuinoaCommand' ? frame.command : frame;
-    if (!command || typeof command !== 'object') return;
-    for (const listener of commandListeners) {
-      try { listener(command as Record<string, unknown>); } catch { /* one watcher must not stop the rest */ }
-    }
-  } catch { /* not a frame we can read */ }
+export function noteOutgoingCommand(frame: Record<string, unknown>): void {
+  if (!commandListeners.size) return;
+  const command = frame.type === 'QuinoaCommand' ? frame.command : frame;
+  if (!command || typeof command !== 'object') return;
+  for (const listener of commandListeners) {
+    try { listener(command as Record<string, unknown>); } catch { /* one watcher must not stop the rest */ }
+  }
 }
 
-/**
- * Sent down the socket rather than through the game's connection, and with no sequence of its own.
- *
- * Both halves of that matter. sendMessage does not pass the socket send we wrap, so a command sent
- * that way left with no sequence at all and the server refused it; numbering it here instead fixed
- * that but set a second counter running beside the game's, and the two started picking the same
- * numbers. Going out through the socket puts our commands past the single stamp, which is the only
- * arrangement where two senders never collide.
- */
 /**
  * Sends one of the commands the game still sends bare, outside the envelope.
  *
@@ -269,6 +269,15 @@ export function sendBareCommand(command: Record<string, unknown>): void {
   activeSocket.send(JSON.stringify({ scopePath: ['Room', 'Quinoa'], ...command }));
 }
 
+/**
+ * Sent down the socket rather than through the game's connection, and with no sequence of its own.
+ *
+ * Both halves of that matter. sendMessage does not pass the socket send we wrap, so a command sent
+ * that way left with no sequence at all and the server refused it; numbering it here instead fixed
+ * that but set a second counter running beside the game's, and the two started picking the same
+ * numbers. Going out through the socket puts our commands past the single stamp, which is the only
+ * arrangement where two senders never collide.
+ */
 export function sendQuinoaCommand(command: Record<string, unknown>): string {
   const requestId = crypto.randomUUID();
   const frame = { scopePath: ['Room', 'Quinoa'], type: 'QuinoaCommand', requestId, command };

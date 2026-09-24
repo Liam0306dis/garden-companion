@@ -65,8 +65,6 @@ const REEL_LIMIT = 45000;
 /** Rod back-swing then forward whip. The flight lands as the cast splash in the audio plays. */
 const CAST_WINDUP = 150;
 const CAST_FLIGHT = 210;
-/** Far above anything the game assigns, so the pond and rod always sort over the world. */
-const WORLD_OVERLAY_Z_INDEX = 0xe8d4a51000;
 /**
  * Hook zone control. Friction is what makes this steerable: without it, holding accelerates without
  * bound and the zone can only ever overshoot, so the smaller a zone gets the more it oscillates

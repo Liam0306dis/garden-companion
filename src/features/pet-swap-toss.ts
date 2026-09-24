@@ -108,7 +108,7 @@ function screenCentre(surface: PixiSurface, display: Record<string, any> | undef
 }
 
 function petSystem(): Record<string, any> | undefined {
-  return page.__gardenCompanionFarmSystems?.petSystem;
+  return page.__gardenCompanionFarmSystems?.petSystem ?? undefined;
 }
 
 /** Where a pet is on screen right now. Read every frame, so the camera moving is followed. */

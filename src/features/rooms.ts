@@ -3,7 +3,10 @@ import { escapeHtml } from '../utils.js';
 
 /** The Rooms tab: a list of public rooms fetched from the community API, with Discord avatars. */
 
-let roomRows = null, roomError = '', roomLoading = false;
+interface RoomSlot { name?: string; avatar_url?: string }
+interface RoomRow { id?: string; is_private?: boolean; players_count?: number; user_slots?: RoomSlot[] }
+
+let roomRows: RoomRow[] | null = null, roomError = '', roomLoading = false;
 
 /**
  * The Discord activity serves the game from its own origin with no room in the path, and there is
@@ -22,7 +25,7 @@ function safeImageUrl(value: unknown): string {
   } catch { return ''; }
 }
 
-function roomAvatars(slots: Array<{ name?: string; avatar_url?: string }>): string {
+function roomAvatars(slots: RoomSlot[]): string {
   const faces = slots.map(slot => {
     const url = safeImageUrl(slot?.avatar_url);
     const name = String(slot?.name || '').trim();
@@ -33,7 +36,7 @@ function roomAvatars(slots: Array<{ name?: string; avatar_url?: string }>): stri
   return faces ? `<div class="gc-room-faces">${faces}</div>` : '';
 }
 
-export function renderRooms() {
+export function renderRooms(): string {
   if (inDiscordActivity()) {
     return '<p class="gc-note">Room browsing is not available in the Discord activity: it has no way to move between rooms. Open the game in a browser to join another room.</p>';
   }
@@ -46,18 +49,18 @@ export function renderRooms() {
   return `<div class="gc-row"><p class="gc-note">Public rooms with one or two open slots.</p><button data-refresh-rooms>Refresh</button></div><section class="gc-stack">${body}</section>`;
 }
 
-function requestJson(url) {
+function requestJson(url: string): Promise<unknown> {
   return new Promise((resolve, reject) => GM_xmlhttpRequest({ method: 'GET', url, onload: response => { try { response.status >= 200 && response.status < 300 ? resolve(JSON.parse(response.responseText)) : reject(new Error(`Request failed (${response.status})`)); } catch (error) { reject(error); } }, onerror: () => reject(new Error('Network request failed')) }));
 }
 
-export async function reloadRooms() {
+export async function reloadRooms(): Promise<void> {
   roomRows = null; roomLoading = true; roomError = ''; panelActions.refreshOpenPanel();
   try {
     const rows = await requestJson('https://ariesmod-api.ariedam.fr/rooms?limit=200');
     roomRows = Array.isArray(rows) ? rows
       .filter(room => !room.is_private && [4, 5].includes(Number(room.players_count)))
       .sort((left, right) => Number(right.players_count) - Number(left.players_count)) : [];
-  } catch (error) { roomError = error.message; roomRows = []; }
+  } catch (error) { roomError = (error as Error).message; roomRows = []; }
   roomLoading = false;
   const panel = document.getElementById('gc-panel');
   if (panel && !panel.hidden && panelActions.activeTab() === 'rooms') panelActions.renderPanel();

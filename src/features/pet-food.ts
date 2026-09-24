@@ -1,10 +1,10 @@
+import { createTicker } from '../ticker.js';
 import type { Pet, ProduceItem } from '../types.js';
 import { config, saveConfig, feature } from '../config.js';
 import { PET_CATALOG } from '../constants.js';
 import { sendQuinoaCommand } from '../game-connection.js';
-import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { activePets, allPets, heldProduce, heldToolCount, petDiet, petSprite, produceSprite, produceValue, useReplenishPotion } from '../pets.js';
+import { activePets, allPets, heldProduce, heldToolCount, petDiet, produceSprite, produceValue, useReplenishPotion } from '../pets.js';
 import { type PixiSurface, findVisiblePixiNodes, pixiNodeVisible, pixiSurface } from '../pixi.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import { toast } from '../toast.js';
@@ -129,6 +129,8 @@ function createPetFoodPanel(): HTMLElement {
   return panel;
 }
 
+const positionTicker = createTicker(() => positionPetFood(), 250);
+
 export function renderPetFood(): void {
   if (!document.body) return;
   const existing = document.getElementById('gc-petfood');
@@ -136,13 +138,17 @@ export function renderPetFood(): void {
   if (!rows.length) {
     existing?.remove();
     petFoodSignature = '';
+    positionTicker.stop();
     return;
   }
+  // The buttons track the game's pet panel as it moves, so they are repositioned on a tick - but
+  // only while they exist, which is only while the feature is on and pets are out.
+  positionTicker.start();
   const signature = JSON.stringify(rows.map(row => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice))]));
   const panel = existing || createPetFoodPanel();
   // Only when the buttons actually change: positioning reads the scene graph and forces a hit-test
-  // (petPanelCovered -> elementFromPoint), which is wasteful to run on every state patch. The 250ms
-  // interval keeps the buttons tracking the dock as it moves, so the reposition rides the rebuild.
+  // (petPanelCovered -> elementFromPoint), which is wasteful to run on every state patch. The
+  // position ticker keeps the buttons tracking the dock as it moves.
   if (!existing || signature !== petFoodSignature) {
     petFoodSignature = signature;
     panel.querySelector('.gc-petfood-list')!.innerHTML = rows.map(row => {

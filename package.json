@@ -6,9 +6,13 @@
   "scripts": {
     "build": "tsx scripts/build.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx tests/static.test.ts"
+    "check-bundle": "tsx scripts/check-bundle.ts",
+    "check-atoms": "tsx scripts/check-atoms.ts",
+    "test": "tsx --import ./tests/setup.ts --test \"tests/*.test.ts\""
   },
   "devDependencies": {
+    "@h00w/basis-universal-transcoder": "2.0.5",
+    "@happy-dom/global-registrator": "^20.14.5",
     "@types/node": "^24.0.0",
     "@types/tampermonkey": "^5.0.0",
     "esbuild": "^0.25.0",

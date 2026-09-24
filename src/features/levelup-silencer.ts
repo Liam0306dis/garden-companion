@@ -1,4 +1,5 @@
-import type { CompanionPage, JotaiAtom } from '../types.js';
+import { page } from '../page.js';
+import type { JotaiAtom } from '../types.js';
 import { onCurrentRoomState } from '../game-room-state.js';
 
 /**
@@ -21,7 +22,6 @@ const isLevelUpToast = (entry: unknown): boolean => {
 
 function hookToastsAtom(atom: JotaiAtom): void {
   if (!atom || typeof atom.write !== 'function' || atom.__gardenCompanionLevelUpSilencer) return;
-  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
 
   // The toasts atom is a primitive atom: jotai stores its value on write and hands it straight back
   // without re-running read, so wrapping read never fires here - the hook has to be on write.

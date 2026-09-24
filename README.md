@@ -35,13 +35,30 @@ actions. It does not perform unattended gameplay.
 
 ## Install
 
-For a release build, run:
+From a fresh clone, run:
 
 ```powershell
+npm.cmd install
 npm.cmd run typecheck
 npm.cmd run build
 npm.cmd test
 ```
+
+The build reads the game's catalogs out of a captured copy of the game's own
+client bundle in `bundles/`. A clone has none, so the first build pulls the
+live one. The captures are the game's code, so they are gitignored and never
+published.
+
+Two drift checks compare the script against a captured bundle, and `npm test`
+runs both:
+
+- `npm.cmd run check-bundle` (or `check-bundle.bat`) pulls a fresh capture and
+  checks that every command the script sends is still sent the same way
+  (wrapped or bare), that the command envelope and weather forecast fields are
+  unchanged, and that the catalogs can still be read. Add
+  `-- --dir bundles\bundle-<version>-<date>` to check an existing capture offline.
+- `npm.cmd run check-atoms` (or `check-atoms.bat`) checks that every game atom
+  the script hooks is still defined in the newest capture.
 
 Then install `dist/garden-companion.user.js` in Tampermonkey or another
 compatible userscript manager. The compiled distribution file is JavaScript;
@@ -59,12 +76,14 @@ disabled, with changes taking effect after a reload.
 
 Plant drag movement, Planter Pot selection, crop and egg estimates, and instant harvest can be enabled
 or disabled without reloading. Background mode changes apply after a reload.
-When recording a keybind, press Escape to cancel or clear it. Assigning an
-existing key to a new action clears its previous assignment.
+When recording a keybind, press Escape to clear it. Assigning an existing key
+to a new action clears its previous assignment.
 
-The build extracts the current ability catalog from the latest captured game
-bundle and bundles the project into one userscript with esbuild. No external
-userscript or vendored JavaScript is concatenated into the output.
+The build extracts the game catalogs from the newest captured game bundle and
+bundles the project into one userscript with esbuild. The sprite pipeline's
+Basis texture transcoder is bundled from npm, pinned to the version whose wasm
+is vendored in `vendor/wasm_b64.js`, so nothing third-party is imported from a
+CDN at runtime except the pinned Rive runtime.
 
 The shared game-state and command models are declared in `src/types.ts`, and
 the complete source tree is checked by TypeScript before release builds.

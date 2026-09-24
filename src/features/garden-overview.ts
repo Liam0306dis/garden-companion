@@ -1,5 +1,11 @@
-import type { CompanionPage, PlantSlot, PlayerSlot, RoomState } from '../types.js';
-import { ABILITY_DETAILS, MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { installPlantFocus, loadFocus, loadFocusPresets, presetConfigOf, PRESET_LIMIT, PRESET_NAME_LIMIT, saveFocus, saveFocusPresets, type FocusConfig } from './overview-focus.js';
+import { BUTTON_ID, injectOverviewStyles, PANEL_ID } from './overview-styles.js';
+import { escapeHtml } from '../utils.js';
+import { page } from '../page.js';
+import { comboFromEvent, overviewShortcut } from '../key-combo.js';
+import { catalogMutationMultiplier } from '../mutation-value.js';
+import type { PlantSlot, PlayerSlot, RoomState } from '../types.js';
+import { ABILITY_DETAILS, MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PLANT_CATALOG, plantName } from '../constants.js';
 import { currentWeather } from './weather-timer.js';
 
 /** Plant Growth Boost abilities and the weather each seasonal tier needs to be active. */
@@ -14,7 +20,7 @@ interface PlantCatalogEntry {
   crop?: { baseSellPrice?: number; maxScale?: number; maxSizeMultiplier?: number };
 }
 
-interface OverviewRuntimeState {
+export interface OverviewRuntimeState {
   slot?: PlayerSlot | null;
   room?: RoomState | null;
 }
@@ -54,9 +60,6 @@ interface OverviewStats {
 }
 
 const FILTER_KEY = 'gardenCompanion.overviewSpecies.v1';
-const STYLE_ID = 'gc-overview-style';
-const PANEL_ID = 'gc-overview-panel';
-const BUTTON_ID = 'gc-overview-button';
 const MUTATION_KEY = 'gardenCompanion.overviewMutations.v2';
 const VIEW_KEY = 'gardenCompanion.overviewView.v1';
 const OPEN_FAMILIES_KEY = 'gardenCompanion.overviewOpenFamilies.v1';
@@ -70,10 +73,7 @@ const openFamilies = new Set<string>((() => {
 function saveOpenFamilies(): void {
   try { localStorage.setItem(OPEN_FAMILIES_KEY, JSON.stringify([...openFamilies])); } catch {}
 }
-const FOCUS_KEY = 'gardenCompanion.overviewFocus.v1';
-const FOCUS_PRESETS_KEY = 'gardenCompanion.overviewFocusPresets.v1';
 const ALARM_TARGETS_KEY = 'gardenCompanion.overviewAlarmTargets.v1';
-const SHORTCUT_KEY = 'gardenCompanion.overviewShortcut.v1';
 const POSITION_KEY = 'gardenCompanion.overviewPosition.v1';
 const DEFAULT_TARGETS = ['Rainbow', 'Gold', 'Frozen', 'Thunderstruck', 'Thundercharged', 'Wet', 'Chilled', 'Dawnlit', 'Dawncharged', 'Ambershine', 'Ambercharged'];
 const GRANTERS: Record<string, { mutation: string; chance: number }> = {
@@ -152,294 +152,7 @@ function saveAlarmTargets(targets: Set<string>): void {
   try { localStorage.setItem(ALARM_TARGETS_KEY, JSON.stringify([...targets])); } catch {}
 }
 
-interface FocusConfig {
-  enabled: boolean;
-  scope: string;
-  mutations: string[];
-  mutationRule: 'all' | 'any' | 'none';
-  maxSize: boolean;
-  mode: 'highlight' | 'hide';
-  opacity: number;
-}
-
-function focusDefaults(): FocusConfig {
-  return { enabled: false, scope: 'tracked', mutations: [], mutationRule: 'all', maxSize: false, mode: 'highlight', opacity: .2 };
-}
-
-function loadFocus(): FocusConfig {
-  try {
-    // `invert` was the old name for hide mode; migrate it so existing setups keep behaving the same.
-    const stored = JSON.parse(localStorage.getItem(FOCUS_KEY) || '{}');
-    const migrating = stored.mode === undefined && Boolean(stored.invert);
-    const config = { ...focusDefaults(), ...stored, mode: stored.mode ?? (stored.invert ? 'hide' : 'highlight') } as FocusConfig & { invert?: boolean };
-    // An inverted setup with nothing selected used to mean "fade the unmutated crops". Under the
-    // current matcher no conditions means no filter, so carrying it straight over to hide would dim
-    // the entire garden on first load. Only the migration is clamped: choosing Faded out with no
-    // conditions afterwards is a deliberate way to dim one species.
-    if (migrating && !config.mutations.length && !config.maxSize) config.mode = 'highlight';
-    delete config.invert;
-    return config;
-  } catch { return focusDefaults(); }
-}
-
-function saveFocus(config: FocusConfig): void {
-  try { localStorage.setItem(FOCUS_KEY, JSON.stringify(config)); } catch {}
-}
-
-/** Everything but `enabled`: loading a preset changes what focus looks for, not whether it is on. */
-type FocusPresetConfig = Omit<FocusConfig, 'enabled'>;
-interface FocusPreset { name: string; config: FocusPresetConfig }
-
-const PRESET_NAME_LIMIT = 28;
-const PRESET_LIMIT = 24;
-
-function presetConfigOf(config: FocusConfig): FocusPresetConfig {
-  const { enabled, ...rest } = config;
-  void enabled;
-  return { ...rest, mutations: [...rest.mutations] };
-}
-
-/**
- * Rebuilt field by field rather than trusted wholesale: these come back from storage, where a half
- * written entry or an older shape would otherwise flow straight into the matcher.
- */
-function loadFocusPresets(): FocusPreset[] {
-  try {
-    const stored = JSON.parse(localStorage.getItem(FOCUS_PRESETS_KEY) || '[]');
-    if (!Array.isArray(stored)) return [];
-    const seen = new Set<string>();
-    return stored.flatMap((entry: unknown) => {
-      const row = entry as { name?: unknown; config?: Partial<FocusConfig> } | null;
-      const name = typeof row?.name === 'string' ? row.name.trim().slice(0, PRESET_NAME_LIMIT) : '';
-      if (!name || seen.has(name)) return [];
-      seen.add(name);
-      return [{ name, config: presetConfigOf({ ...focusDefaults(), ...(row?.config ?? {}) }) }];
-    }).slice(0, PRESET_LIMIT);
-  } catch { return []; }
-}
-
-function saveFocusPresets(presets: readonly FocusPreset[]): void {
-  try { localStorage.setItem(FOCUS_PRESETS_KEY, JSON.stringify(presets)); } catch {}
-}
-
-function installPlantFocus(
-  page: CompanionPage,
-  runtime: () => OverviewRuntimeState & { slotIndex?: number | null },
-  selectedSpecies: () => Set<string> | null,
-  focusConfig: () => FocusConfig,
-  ignorePreserved: () => boolean,
-): () => void {
-  let tileSystem: any = null;
-  const originalAlpha = new WeakMap<object, number>();
-  const desiredAlpha = new WeakMap<object, number>();
-  const managed = new Set<any>();
-  const systemsByViews = new WeakMap<object, any>();
-
-  function restore(display: any): void {
-    if (!display || !originalAlpha.has(display)) return;
-    if (!display.destroyed) display.alpha = originalAlpha.get(display);
-    originalAlpha.delete(display);
-    desiredAlpha.delete(display);
-    managed.delete(display);
-  }
-
-  function restoreAll(): void {
-    [...managed].forEach(restore);
-  }
-
-  function fade(display: any, opacity: number, seen: Set<any>): void {
-    if (!display) return;
-    if (!originalAlpha.has(display)) originalAlpha.set(display, Number.isFinite(display.alpha) ? display.alpha : 1);
-    managed.add(display);
-    const alpha = (originalAlpha.get(display) ?? 1) * opacity;
-    desiredAlpha.set(display, alpha);
-    display.alpha = alpha;
-    seen.add(display);
-  }
-
-  function enforce(display: any): void {
-    if (!display || !managed.has(display)) return;
-    if (display.destroyed) {
-      originalAlpha.delete(display);
-      desiredAlpha.delete(display);
-      managed.delete(display);
-      return;
-    }
-    const alpha = desiredAlpha.get(display);
-    if (Number.isFinite(alpha) && display.alpha !== alpha) display.alpha = alpha;
-  }
-
-  function cropContainer(crop: any): any {
-    return crop?.cropVisual?.container || crop?.container || null;
-  }
-
-  function armView(view: any): void {
-    if (!view || typeof view.draw !== 'function' || view.__gardenCompanionFocusDrawWrapped) return;
-    const originalDraw = view.draw;
-    view.__gardenCompanionFocusDrawWrapped = true;
-    view.draw = function(...args: any[]) {
-      const result = originalDraw.apply(this, args);
-      enforce(view.childView?.plantVisual?.container);
-      const crops = view.childView?.plantVisual?.getCropVisuals?.() || [];
-      crops.forEach((crop: any) => enforce(cropContainer(crop)));
-      return result;
-    };
-  }
-
-  function matches(tile: any, slot: PlantSlot, config: FocusConfig): boolean {
-    if (ignorePreserved() && slot.preserved) return false;
-    const selected = selectedSpecies();
-    // Rare variants live on the slot, so a Purple Daisy inside a Daisy patch is matched by its own
-    // name rather than the patch it grew in.
-    const slotSpecies = slot.species ?? tile.species;
-    const scopeMatches = config.scope === 'all' || config.scope === 'tracked' && (!selected || selected.has(slotSpecies)) || config.scope === slotSpecies;
-    const mutations = slot.mutations || [];
-    const conditions = config.mutations.map(name => mutations.includes(name));
-    if (config.maxSize) conditions.push(slotIsMaxSize(PLANT_CATALOG[slotSpecies ?? '']?.crop, slot));
-    // No conditions picked means the scope is the only filter — not "unmutated crops only".
-    const ruleMatches = !conditions.length
-      || (config.mutationRule === 'none' ? conditions.every(match => !match)
-        : config.mutationRule === 'any' ? conditions.some(Boolean)
-          : conditions.every(Boolean));
-    const result = scopeMatches && ruleMatches;
-    return config.mode === 'hide' ? !result : result;
-  }
-
-  function capture(system: any): void {
-    if (!system?.tileViews || !system?.map?.globalTileIdxToDirtTile || system === tileSystem) return;
-    restoreAll();
-    tileSystem = system;
-    if (typeof system.destroy === 'function' && !system.__gardenCompanionFocusDestroyWrapped) {
-      const originalDestroy = system.destroy;
-      system.__gardenCompanionFocusDestroyWrapped = true;
-      system.destroy = function(...args: any[]) {
-        if (tileSystem === system) {
-          restoreAll();
-          tileSystem = null;
-          setTimeout(armTileViewsCapture, 0);
-        }
-        return originalDestroy.apply(this, args);
-      };
-    }
-    setTimeout(apply, 0);
-  }
-
-  const PageMap = page.Map as MapConstructor;
-  const PageObject = page.Object as ObjectConstructor & { __gardenCompanionFocusDefineWrapped?: boolean };
-
-  function armTileViewsCapture(): void {
-    if (tileSystem) return;
-    const prototype = PageObject.prototype as object;
-    const existing = PageObject.getOwnPropertyDescriptor(prototype, 'tileViews');
-    const existingGetter = existing?.get as (() => unknown) & { __gardenCompanionFocusTrap?: boolean } | undefined;
-    if (existingGetter?.__gardenCompanionFocusTrap || existing && !existing.configurable) return;
-    let storedValue: unknown;
-    const getter = function(this: any) { return existingGetter ? existingGetter.call(this) : storedValue; } as (() => unknown) & { __gardenCompanionFocusTrap?: boolean };
-    getter.__gardenCompanionFocusTrap = true;
-    PageObject.defineProperty(prototype, 'tileViews', {
-      configurable: true,
-      get: getter,
-      set: function(this: any, value: unknown) {
-        if (existing?.set) existing.set.call(this, value);
-        else PageObject.defineProperty(this, 'tileViews', { configurable: true, enumerable: true, writable: true, value });
-        if (this?.name === 'tileObject' && value instanceof PageMap) capture(this);
-      },
-    });
-  }
-
-  const mapPrototype = PageMap?.prototype as Map<unknown, unknown> & { set: (...args: any[]) => any; __gardenCompanionFocusWrapped?: boolean };
-  if (mapPrototype && !mapPrototype.__gardenCompanionFocusWrapped) {
-    const originalSet = mapPrototype.set;
-    mapPrototype.set = function(key: unknown, value: any) {
-      const result = originalSet.call(this, key, value);
-      try {
-        const map = value?.map;
-        const looksLikeTileView = Number.isInteger(key) && value?.globalTileIdx === key && value?.displayObject &&
-          'tileObject' in value && typeof value.onDataChanged === 'function' && map?.globalTileIdxToDirtTile && map?.globalTileIdxToBoardwalk;
-        if (looksLikeTileView && tileSystem?.tileViews !== this) {
-          let system = systemsByViews.get(this);
-          if (!system) { system = { name: 'tileObject', tileViews: this, map }; systemsByViews.set(this, system); }
-          capture(system);
-        }
-      } catch {}
-      return result;
-    };
-    mapPrototype.__gardenCompanionFocusWrapped = true;
-  }
-
-  if (!PageObject.__gardenCompanionFocusDefineWrapped) {
-    const originalDefineProperty = PageObject.defineProperty;
-    const wrappedDefineProperty = function(this: ObjectConstructor, target: object, property: PropertyKey, attributes: PropertyDescriptor & ThisType<any>): object {
-      const result = originalDefineProperty(target, property, attributes) as object;
-      try {
-        if (property === 'tileViews' && (target as any)?.name === 'tileObject' && attributes?.value instanceof PageMap) capture(target);
-      } catch {}
-      return result;
-    };
-    PageObject.defineProperty = wrappedDefineProperty as typeof Object.defineProperty;
-    PageObject.__gardenCompanionFocusDefineWrapped = true;
-  }
-
-  armTileViewsCapture();
-
-  function apply(): void {
-    const config = focusConfig();
-    const slotIndex = runtime().slotIndex;
-    const views = tileSystem?.tileViews;
-    const dirtMap = tileSystem?.map?.globalTileIdxToDirtTile;
-    if (!config.enabled || slotIndex == null || !(views instanceof PageMap) || !dirtMap) {
-      restoreAll();
-      return;
-    }
-    const seen = new Set<any>();
-    const now = Date.now();
-    views.forEach((view: any, globalIndex: number) => {
-      const dirt = typeof dirtMap.get === 'function' ? dirtMap.get(globalIndex) : dirtMap[globalIndex];
-      const tile = view?.tileObject;
-      if (!dirt || dirt.userSlotIdx !== slotIndex || tile?.objectType !== 'plant') return;
-      const slots: PlantSlot[] = tile.slots || [];
-      const plantVisual = view.childView?.plantVisual;
-      const crops = plantVisual?.getCropVisuals?.() || [];
-      armView(view);
-      if (Number(tile.maturedAt ?? 0) > now) {
-        fade(plantVisual?.container, config.opacity, seen);
-        crops.forEach((crop: any) => fade(cropContainer(crop), config.opacity, seen));
-        return;
-      }
-      const visible = new Map(slots.map(slot => [slot.slotId, matches(tile, slot, config)]));
-      if (![...visible.values()].some(Boolean)) {
-        fade(plantVisual?.container, config.opacity, seen);
-        crops.forEach((crop: any) => restore(cropContainer(crop)));
-      } else {
-        restore(plantVisual?.container);
-        crops.forEach((crop: any) => visible.get(crop?.slotId) === false ? fade(cropContainer(crop), config.opacity, seen) : restore(cropContainer(crop)));
-      }
-    });
-    [...managed].forEach(display => { if (!seen.has(display)) restore(display); });
-  }
-
-  setInterval(apply, 600);
-  return apply;
-}
-
-const COLOR_MULTIPLIERS: Record<string, number> = { Gold: 25, Rainbow: 50 };
-const WEATHER_MULTIPLIERS: Record<string, number> = {
-  Wet: 2,
-  Chilled: 2,
-  Frozen: 6,
-  Thunderstruck: 5,
-  Thundercharged: 7,
-};
-const TIME_MULTIPLIERS: Record<string, number> = {
-  Dawnlit: 4,
-  Dawnbound: 7,
-  Dawncharged: 7,
-  Ambershine: 6,
-  Amberbound: 10,
-  Ambercharged: 10,
-};
-// A crop only ever carries one mutation from each catalog group, which is why the value maths above
-// takes the best of each. The focus picker reuses that to stop people asking for combinations no
+// A crop only ever carries one mutation from each catalog group. The focus picker reuses that to stop people asking for combinations no
 // crop can satisfy. Labels match the value calculator so the two pickers read the same.
 const ZOOM_LEVELS = [1, 1.25, 1.5];
 const MUTATION_GROUP_ORDER = ['Growth', 'Hydro', 'Lunar'];
@@ -451,30 +164,6 @@ function mutationGroupOf(mutation: string): string | null {
 function mutationLabel(mutation: string): string {
   return MUTATION_CATALOG[mutation]?.name || displayName(mutation);
 }
-const COMBINED_MULTIPLIERS: Record<string, number> = {
-  'Wet+Dawnlit': 5,
-  'Chilled+Dawnlit': 5,
-  'Wet+Ambershine': 7,
-  'Chilled+Ambershine': 7,
-  'Frozen+Dawnlit': 9,
-  'Frozen+Dawnbound': 12,
-  'Frozen+Dawncharged': 12,
-  'Frozen+Ambershine': 11,
-  'Frozen+Amberbound': 15,
-  'Frozen+Ambercharged': 15,
-  'Thunderstruck+Dawnlit': 8,
-  'Thunderstruck+Dawnbound': 11,
-  'Thunderstruck+Dawncharged': 11,
-  'Thunderstruck+Ambershine': 10,
-  'Thunderstruck+Amberbound': 14,
-  'Thunderstruck+Ambercharged': 14,
-  'Thundercharged+Dawnlit': 10,
-  'Thundercharged+Dawnbound': 13,
-  'Thundercharged+Dawncharged': 13,
-  'Thundercharged+Ambershine': 12,
-  'Thundercharged+Amberbound': 16,
-  'Thundercharged+Ambercharged': 16,
-};
 
 function loadFilter(): Set<string> | null {
   try {
@@ -491,17 +180,6 @@ function saveFilter(filter: Set<string>): void {
   try { localStorage.setItem(FILTER_KEY, JSON.stringify([...filter].sort())); } catch {}
 }
 
-function loadStringSet(key: string, fallback: string[]): Set<string> {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) || 'null');
-    return Array.isArray(value) ? new Set(value.filter(item => typeof item === 'string')) : new Set(fallback);
-  } catch { return new Set(fallback); }
-}
-
-function saveStringSet(key: string, value: Set<string>): void {
-  try { localStorage.setItem(key, JSON.stringify([...value])); } catch {}
-}
-
 function loadView(): { ignorePreserved: boolean; mutationsOpen: boolean; plantsOpen: boolean; zoom: number; alarm: boolean } {
   try { return { ignorePreserved: true, mutationsOpen: true, plantsOpen: true, zoom: 1, alarm: false, ...JSON.parse(localStorage.getItem(VIEW_KEY) || '{}') }; }
   catch { return { ignorePreserved: true, mutationsOpen: true, plantsOpen: true, zoom: 1, alarm: false }; }
@@ -509,12 +187,6 @@ function loadView(): { ignorePreserved: boolean; mutationsOpen: boolean; plantsO
 
 function saveView(view: { ignorePreserved: boolean; mutationsOpen: boolean; plantsOpen: boolean; zoom: number; alarm: boolean }): void {
   try { localStorage.setItem(VIEW_KEY, JSON.stringify(view)); } catch {}
-}
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>'"]/g, character => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
-  })[character] ?? character);
 }
 
 /**
@@ -576,21 +248,6 @@ function plantRowList(rows: readonly SpeciesStats[]): PlantRow[] {
     if (family.row.open) list.push(...family.children);
   }
   return list;
-}
-
-function mutationMultiplier(mutations: readonly string[]): number {
-  let color = 1;
-  let weather: string | null = null;
-  let time: string | null = null;
-  for (const mutation of mutations) {
-    color = Math.max(color, COLOR_MULTIPLIERS[mutation] ?? 1);
-    if (WEATHER_MULTIPLIERS[mutation] && (!weather || WEATHER_MULTIPLIERS[mutation] > WEATHER_MULTIPLIERS[weather])) weather = mutation;
-    if (TIME_MULTIPLIERS[mutation] && (!time || TIME_MULTIPLIERS[mutation] > TIME_MULTIPLIERS[time])) time = mutation;
-  }
-  const condition = weather && time
-    ? COMBINED_MULTIPLIERS[`${weather}+${time}`] ?? Math.max(WEATHER_MULTIPLIERS[weather], TIME_MULTIPLIERS[time])
-    : weather ? WEATHER_MULTIPLIERS[weather] : time ? TIME_MULTIPLIERS[time] : 1;
-  return color * condition;
 }
 
 function countMutation(target: Map<string, number>, mutation: string): void {
@@ -686,7 +343,7 @@ function calculateStats(
       // Only crops that can actually grow count towards "not max size", matching the old maxScale gate.
       if (maxSizeMultiplier(crop) > 1 && !slotIsMaxSize(crop, slot)) result.notMaxSize++;
       const base = crop?.baseSellPrice ?? 0;
-      const value = Math.round(base * slotScale(crop, slot) * mutationMultiplier(slot.mutations ?? []) * friendMultiplier);
+      const value = Math.round(base * slotScale(crop, slot) * catalogMutationMultiplier(slot.mutations ?? []) * friendMultiplier);
       result.value += value;
       species.value += value;
     }
@@ -831,200 +488,6 @@ const BELL_OFF_ICON = svgIcon('<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0
 const CHEVRON_UP = svgIcon('<path d="m6 15 6-6 6 6"/>');
 const CHEVRON_DOWN = svgIcon('<path d="m6 9 6 6 6-6"/>');
 
-function injectStyles(): void {
-  if (document.getElementById(STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = STYLE_ID;
-  // Local aliases for the companion's design tokens, each with the companion's value as fallback,
-  // so the overview keeps its look even if it ever mounts before the main stylesheet.
-  style.textContent = `
-    #${PANEL_ID},#${BUTTON_ID}{--go-bg:var(--gc-bg,#141417);--go-surface:var(--gc-surface,#1a1a1e);--go-surface-2:var(--gc-surface-2,#222227);--go-surface-3:var(--gc-surface-3,#2a2a30);--go-input:var(--gc-input,#0e0e10);--go-line:var(--gc-line,rgba(255,255,255,.07));--go-line-strong:var(--gc-line-strong,rgba(255,255,255,.12));--go-text:var(--gc-text,#ececef);--go-strong:var(--gc-strong,#fafafa);--go-muted:var(--gc-muted,#a1a1aa);--go-faint:var(--gc-faint,#83838d);--go-accent:var(--gc-accent,#7c6cf2);--go-accent-text:var(--gc-accent-text,#b3a9ff);--go-accent-soft:var(--gc-accent-soft,rgba(124,108,242,.14));--go-accent-line:var(--gc-accent-line,rgba(124,108,242,.45));--go-green:var(--gc-green,#3ecf8e);--go-gold:var(--gc-gold,#f5c04a);--go-font:var(--gc-font,"Segoe UI",system-ui,sans-serif);--go-mono:var(--gc-mono,ui-monospace,Consolas,monospace)}
-    #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--go-line-strong);border-radius:9px;background:var(--go-bg);color:var(--go-text);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
-    /* Solid on hover rather than translucent: this button sits on the game canvas, so a see-through
-       fill would show the garden through it instead of lighting it up. */
-    #${BUTTON_ID}:hover{background:var(--go-surface-2)}
-    #${PANEL_ID}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--go-text);font:13px/1.45 var(--go-font);-webkit-font-smoothing:antialiased}
-    #${PANEL_ID} *,#${PANEL_ID} *::before,#${PANEL_ID} *::after{box-sizing:border-box}
-    #${PANEL_ID}[hidden]{display:none}
-    #${PANEL_ID} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
-    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:1}
-    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:2}
-    #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 8px 10px 12px;color:var(--go-strong);border-bottom:1px solid var(--go-line);cursor:move;touch-action:none;user-select:none}
-    #${PANEL_ID} .go-config-card header{padding-left:16px}
-    #${PANEL_ID} h2{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap;font:650 14px/1.2 var(--go-font);letter-spacing:-.005em}
-    #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:2px}
-    #${PANEL_ID} button{min-height:28px;padding:5px 10px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-surface-2);color:var(--go-text);cursor:pointer;font:500 12px/1.2 var(--go-font);white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
-    #${PANEL_ID} button:hover{color:var(--go-strong);border-color:rgba(255,255,255,.18);background:var(--go-surface-3)}
-    #${PANEL_ID} button:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:1px}
-    #${PANEL_ID} button:disabled{opacity:.45;cursor:default}
-    /* Icon buttons: header actions and section tools. Borderless until hovered or switched on. */
-    #${PANEL_ID} header button,#${PANEL_ID} .go-section-actions button{width:30px;min-width:30px;height:30px;min-height:0;display:grid;place-items:center;padding:0;border-color:transparent;background:transparent;color:var(--go-muted)}
-    #${PANEL_ID} header button svg,#${PANEL_ID} .go-section-actions button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    #${PANEL_ID} header button:hover,#${PANEL_ID} .go-section-actions button:hover{color:var(--go-text);border-color:transparent;background:var(--go-surface-2)}
-    #${PANEL_ID} header button[data-active=true],#${PANEL_ID} .go-section-actions button[data-active=true]{color:var(--go-accent-text);border-color:transparent;background:var(--go-accent-soft)}
-    #${PANEL_ID} .go-body{min-height:0;overflow:auto;padding:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
-    #${PANEL_ID} .go-config-body{min-height:0;overflow:auto;padding:0 14px 14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
-    #${PANEL_ID} .go-config-body .go-section{padding:4px 0 0;border-bottom:0}
-    #${PANEL_ID} .go-section{padding:14px 14px;border-bottom:1px solid var(--go-line)}
-    #${PANEL_ID} .go-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-    #${PANEL_ID} .go-section-title>span:first-child{display:flex;align-items:center}
-    #${PANEL_ID} .go-section-title>span:last-child:not(:first-child){order:2;margin-left:8px;white-space:nowrap;color:var(--go-muted);font-size:11px;font-weight:500;letter-spacing:0;text-transform:none}
-    #${PANEL_ID} .go-section-title>span>small{margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-collapsible{cursor:pointer;margin:0}
-    #${PANEL_ID} .go-collapsible:hover{color:var(--go-text)}
-    /* A bordered control rather than a loose glyph, so it reads as something you can press. */
-    #${PANEL_ID} .go-chevron{order:2;display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;margin-left:8px;border:1px solid var(--go-line);border-radius:7px;background:transparent;color:var(--go-muted);text-decoration:none;transition:background .12s,color .12s}
-    #${PANEL_ID} .go-chevron svg,#${PANEL_ID} .go-plant-row>span>u svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    #${PANEL_ID} .go-collapsible:hover .go-chevron{color:var(--go-text);background:var(--go-surface-2)}
-    #${PANEL_ID} [data-section]{margin-top:10px}
-    #${PANEL_ID} .go-collapsible:hover>span>small{background:var(--go-surface-3)}
-    /* Growth */
-    #${PANEL_ID} .go-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0}
-    #${PANEL_ID} .go-summary[data-tiles="3"]{grid-template-columns:repeat(3,1fr)}
-    #${PANEL_ID} .go-metric{min-width:0;padding:9px 10px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
-    #${PANEL_ID} .go-metric small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--go-muted);font-size:11px;font-weight:500}
-    #${PANEL_ID} .go-metric b{display:block;margin-top:2px;white-space:nowrap;color:var(--go-strong);font:650 16px/1.25 var(--go-font);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-metric.go-growing b{color:var(--go-gold)}
-    #${PANEL_ID} .go-metric.go-size b{color:#fb923c}
-    #${PANEL_ID} .go-status{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);font-size:13px}
-    #${PANEL_ID} .go-status::before{content:'';width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--go-gold)}
-    #${PANEL_ID} .go-status b{color:var(--go-strong);font-weight:650;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-status[data-tone=done]{color:var(--go-green);border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07);font-weight:600}
-    #${PANEL_ID} .go-status[data-tone=done]::before{background:var(--go-green)}
-    /* Mutation progress */
-    #${PANEL_ID} .go-progress{padding:6px 0}
-    #${PANEL_ID} .go-progress:first-child{padding-top:0}
-    #${PANEL_ID} .go-progress>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-text);font-size:13px}
-    #${PANEL_ID} .go-progress span{display:flex;align-items:center;gap:8px}
-    #${PANEL_ID} .go-progress span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
-    #${PANEL_ID} .go-progress b{font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-of{color:var(--go-faint);font-weight:400}
-    #${PANEL_ID} .go-progress>i{display:block;height:6px;overflow:hidden;border-radius:999px;background:var(--go-surface-3)}
-    #${PANEL_ID} .go-progress>i u{display:block;height:100%;border-radius:999px;text-decoration:none}
-    /* Mutation estimates */
-    #${PANEL_ID} .go-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-6px 0 8px}
-    #${PANEL_ID} .go-section-head .go-section-title{flex:1;margin:0}
-    #${PANEL_ID} .go-section-actions{display:flex;align-items:center;gap:2px;margin-right:-6px}
-    #${PANEL_ID} .go-eta-detail,#${PANEL_ID} .go-eta-done{padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);color:var(--go-text)}
-    #${PANEL_ID} .go-eta-detail+.go-eta-detail,#${PANEL_ID} .go-eta-detail+.go-eta-done,#${PANEL_ID} .go-eta-done+.go-eta-detail,#${PANEL_ID} .go-eta-done+.go-eta-done{margin-top:6px}
-    #${PANEL_ID} .go-eta-detail>div,#${PANEL_ID} .go-eta-done{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    #${PANEL_ID} .go-eta-detail span,#${PANEL_ID} .go-eta-done span{display:flex;min-width:0;align-items:center;gap:8px;font-size:13px;font-weight:500}
-    #${PANEL_ID} .go-eta-detail span i,#${PANEL_ID} .go-eta-done span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
-    #${PANEL_ID} .go-eta-detail b{flex:0 0 auto;font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-eta-detail em{margin-left:1px;color:var(--go-faint);font-size:12px;font-weight:400;font-style:normal}
-    #${PANEL_ID} .go-eta-detail>u{display:block;height:5px;margin-top:8px;overflow:hidden;border-radius:999px;background:var(--go-surface-3);text-decoration:none}
-    #${PANEL_ID} .go-eta-detail>u i{display:block;height:100%;border-radius:999px}
-    #${PANEL_ID} .go-eta-detail>small{display:block;margin-top:7px;color:var(--go-muted);font-size:11px;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-eta-done{border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07)}
-    #${PANEL_ID} .go-eta-done span i{background:var(--go-green)}
-    #${PANEL_ID} .go-eta-done b{color:var(--go-green);font:600 12px var(--go-font)}
-    /* Plants table */
-    #${PANEL_ID} .go-plants{overflow:hidden;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
-    #${PANEL_ID} .go-plants>p{margin:0;padding:10px}
-    #${PANEL_ID} .go-plant-row{display:grid;grid-template-columns:minmax(0,1fr) 42px 42px;align-items:center;gap:6px;padding:5px 0;color:var(--go-text);font-size:13px}
-    #${PANEL_ID} .go-plant-row+.go-plant-row{border-top:1px solid var(--go-line)}
-    #${PANEL_ID} .go-plant-row>span{display:flex;min-width:0;align-items:center;gap:7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-    #${PANEL_ID} .go-plant-row>b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-plant-row img,#${PANEL_ID} .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto}
-    #${PANEL_ID} .go-plant-row>span>u{display:grid;place-items:center;width:18px;height:18px;flex:0 0 18px;border-radius:5px;color:var(--go-muted);text-decoration:none}
-    #${PANEL_ID} .go-plant-family>span>u{color:var(--go-accent-text)}
-    #${PANEL_ID} .go-plant-family:hover>span>u{background:var(--go-accent-soft)}
-    #${PANEL_ID} .go-plant-row>span>u svg{width:12px;height:12px}
-    /* Indenting the name cell rather than the row, so the tiles and crops columns stay aligned. */
-    #${PANEL_ID} .go-plant-row[data-child=true]{color:var(--go-muted);background:rgba(0,0,0,.14)}
-    #${PANEL_ID} .go-plant-row[data-child=true]>span{padding-left:18px}
-    #${PANEL_ID} .go-plant-family{cursor:pointer}
-    #${PANEL_ID} .go-plant-family:hover{color:#fff;background:rgba(255,255,255,.03)}
-    /* Only on rows that are not children: a child inherits the muted row colour instead. */
-    #${PANEL_ID} .go-plant-row:not([data-child=true])>span{color:var(--go-strong)}
-    #${PANEL_ID} .go-plant-family:hover>span{color:#fff}
-    #${PANEL_ID} .go-plant-row>b:nth-of-type(1){color:var(--go-muted);font-weight:400}
-    #${PANEL_ID} .go-plant-units{padding:7px 10px;background:var(--go-input);color:var(--go-faint);font-size:11px;font-weight:600}
-    #${PANEL_ID} .go-plant-units>b,#${PANEL_ID} .go-plant-units>b:nth-of-type(1){color:var(--go-faint);font-weight:600}
-    #${PANEL_ID} .go-plant-row:not(.go-plant-units){padding-left:10px;padding-right:10px}
-    /* Footer: the headline number */
-    #${PANEL_ID} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:var(--go-muted);font-size:12px;font-weight:500}
-    #${PANEL_ID} .go-footer span{display:flex;align-items:center;gap:8px}
-    #${PANEL_ID} .go-footer span small{padding:2px 8px;border-radius:999px;background:rgba(62,207,142,.12);color:var(--go-green);font-size:11px;font-weight:600}
-    #${PANEL_ID} .go-footer b{color:var(--go-gold);font:700 21px/1 var(--go-font);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-    /* Settings card */
-    #${PANEL_ID} .go-config-tabs{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:2px;position:sticky;top:0;z-index:1;margin:0 -14px 4px;padding:12px 14px 10px;background:var(--go-bg)}
-    #${PANEL_ID} .go-config-tabs::before{content:'';position:absolute;inset:12px 14px 10px;z-index:-1;border:1px solid var(--go-line);border-radius:10px;background:var(--go-input)}
-    #${PANEL_ID} .go-config-tabs button{margin:3px 0;padding:6px 4px;border-color:transparent;background:transparent;color:var(--go-muted);font-size:12px;font-weight:500}
-    #${PANEL_ID} .go-config-tabs button:first-child{margin-left:3px}
-    #${PANEL_ID} .go-config-tabs button:last-child{margin-right:3px}
-    #${PANEL_ID} .go-config-tabs button:hover{border-color:transparent;background:rgba(255,255,255,.03);color:var(--go-text)}
-    #${PANEL_ID} .go-config-tabs button[data-active=true]{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3);box-shadow:0 1px 2px rgba(0,0,0,.35)}
-    #${PANEL_ID} .go-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:250px;margin:8px 0 12px;overflow:auto}
-    #${PANEL_ID} .go-filter label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid var(--go-line);border-radius:8px;background:var(--go-surface);color:var(--go-text);cursor:pointer}
-    #${PANEL_ID} .go-filter label:hover{border-color:var(--go-line-strong)}
-    #${PANEL_ID} .go-tools{display:flex;align-items:center;gap:6px;margin:0 0 8px}
-    #${PANEL_ID} .go-tools button{flex:1}
-    #${PANEL_ID} .go-search{width:100%;height:32px;margin-bottom:8px;padding:0 11px;border:1px solid var(--go-line-strong);border-radius:7px;outline:none;background:var(--go-input);color:var(--go-text);font:13px var(--go-font);transition:border-color .12s,box-shadow .12s}
-    #${PANEL_ID} .go-search::placeholder{color:rgba(255,255,255,.5)}
-    #${PANEL_ID} .go-search:focus{border-color:var(--go-accent-line);box-shadow:0 0 0 3px rgba(124,108,242,.16)}
-    #${PANEL_ID} .go-pill-list{max-height:320px;overflow:auto}
-    #${PANEL_ID} .go-pill-section{margin:10px 0}
-    #${PANEL_ID} .go-pill-section>b{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-muted);font-size:12px;font-weight:500}
-    #${PANEL_ID} .go-pill-section>b button{min-height:24px;padding:3px 8px;font-size:11px}
-    #${PANEL_ID} .go-pill-section>b em{color:var(--go-faint);font-size:11px;font-style:normal;font-weight:400}
-    #${PANEL_ID} .go-pill-section>div{display:flex;flex-wrap:wrap;gap:4px}
-    #${PANEL_ID} button.go-pill{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 10px;border:1px solid var(--go-line);border-radius:999px;background:var(--go-surface);color:var(--go-text);font-size:12px;white-space:nowrap}
-    #${PANEL_ID} button.go-pill:hover{border-color:var(--go-line-strong);background:var(--go-surface-2)}
-    #${PANEL_ID} button.go-pill.on{color:var(--go-strong);border-color:var(--go-accent-line);background:var(--go-accent-soft)}
-    #${PANEL_ID} button.go-pill i{width:9px;flex:0 0 9px;color:var(--go-accent-text);font-size:10px;font-style:normal;text-align:center}
-    #${PANEL_ID} button.go-pill small{color:var(--go-muted);font-size:11px}
-    #${PANEL_ID} .go-muted{margin:0 0 10px;color:var(--go-muted);font-size:12px;line-height:1.45}
-    #${PANEL_ID} .go-config-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--go-line);font-size:13px}
-    #${PANEL_ID} .go-config-row:first-child{border-top:none}
-    #${PANEL_ID} .go-config-row>span{min-width:0}
-    #${PANEL_ID} .go-config-row>span>b{color:var(--go-strong);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-input);color:var(--go-text);font:12px var(--go-font);cursor:pointer;outline:none}
-    #${PANEL_ID} .go-config-row select:focus{border-color:var(--go-accent-line)}
-    #${PANEL_ID} .go-config-row select:disabled{opacity:.5;cursor:default}
-    #${PANEL_ID} .go-config-row input[type=range]{width:120px;flex:0 0 120px;accent-color:var(--go-accent)}
-    /* Pick-one choices as a segmented control rather than loose pills. */
-    #${PANEL_ID} .go-pill-choice{display:flex;gap:2px;padding:2px;border:1px solid var(--go-line);border-radius:9px;background:var(--go-input)}
-    #${PANEL_ID} .go-pill-choice button.go-pill{min-height:24px;padding:3px 9px;border-color:transparent;border-radius:7px;background:transparent;color:var(--go-muted)}
-    #${PANEL_ID} .go-pill-choice button.go-pill:hover{color:var(--go-text);background:rgba(255,255,255,.03)}
-    #${PANEL_ID} .go-pill-choice button.go-pill.on{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3)}
-    #${PANEL_ID} .go-preset-row{display:flex;align-items:center;gap:4px;margin:6px 0 2px}
-    #${PANEL_ID} .go-preset-row .go-search{flex:1;min-width:0;height:30px;margin:0}
-    #${PANEL_ID} .go-preset-row button{flex:0 0 auto;height:30px}
-    #${PANEL_ID} button.go-pill.go-pill-icon{width:36px;height:36px;padding:0;justify-content:center;border-radius:9px}
-    #${PANEL_ID} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.45}
-    #${PANEL_ID} button.go-pill.go-pill-icon span{max-width:32px;overflow:hidden;color:var(--go-muted);font-size:9px;font-weight:700;text-overflow:ellipsis}
-    #${PANEL_ID} button.go-pill.go-pill-icon:hover img{opacity:.8}
-    #${PANEL_ID} button.go-pill.go-pill-icon.on img{opacity:1}
-    #${PANEL_ID} button.go-pill.go-pill-icon.on span{color:var(--go-accent-text)}
-    #${PANEL_ID} .go-pill-group:first-child .go-settings-head{margin-top:4px;padding-top:0;border-top:none}
-    #${PANEL_ID} .go-settings-head{display:flex;align-items:center;gap:8px;margin:16px 0 4px;padding-top:12px;border-top:1px solid var(--go-line);color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-    #${PANEL_ID} .go-settings-head>span{flex:1}
-    #${PANEL_ID} .go-settings-head>em,#${PANEL_ID} .go-settings-head>button{flex:0 0 auto;font-style:normal}
-    #${PANEL_ID} .go-settings-head>em{padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}
-    #${PANEL_ID} .go-settings-head>button{min-height:24px;padding:3px 9px;font-size:11px;letter-spacing:0;text-transform:none}
-    /* One switch everywhere a setting is on or off, instead of checkboxes next to check-marked pills. */
-    #${PANEL_ID} .go-switch{appearance:none;-webkit-appearance:none;position:relative;width:34px;height:20px;flex:0 0 34px;margin:0;border:0;border-radius:999px;background:var(--go-surface-3);box-shadow:inset 0 0 0 1px var(--go-line);cursor:pointer;transition:background .18s}
-    #${PANEL_ID} .go-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#d4d4d8;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .18s,background .18s}
-    #${PANEL_ID} .go-switch:checked{background:var(--go-accent);box-shadow:none}
-    #${PANEL_ID} .go-switch:checked::after{transform:translateX(14px);background:var(--go-strong)}
-    #${PANEL_ID} .go-switch:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:2px}
-    #${PANEL_ID} .go-config-row>span>small{display:block;margin-top:2px;color:var(--go-muted);font-size:12px;font-weight:400;letter-spacing:0}
-    #${PANEL_ID} .go-config-row:has(.go-switch){cursor:pointer}
-    #${PANEL_ID} button.go-pill.go-pill-plant{max-width:100%;padding:3px 9px 3px 5px}
-    #${PANEL_ID} button.go-pill.go-pill-plant img,#${PANEL_ID} button.go-pill.go-pill-plant .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto;opacity:.7}
-    #${PANEL_ID} button.go-pill.go-pill-plant.on img{opacity:1}
-    #${PANEL_ID} button.go-pill.go-pill-plant>span{overflow:hidden;text-overflow:ellipsis}
-    #${PANEL_ID} button.go-pill.go-pill-plant>small{padding:0 6px;border-radius:999px;background:var(--go-surface-3);color:var(--go-text);font-weight:600}
-    #${PANEL_ID} .go-focus-summary{margin:12px 0 2px;padding:10px 12px;border:1px solid var(--go-accent-line);border-radius:10px;background:rgba(124,108,242,.08);color:var(--go-text);font-size:12px;line-height:1.5}
-    #${PANEL_ID} .go-focus-summary b{color:var(--go-accent-text);font-weight:600}
-    #${PANEL_ID} .go-focus-summary[data-off]{border-color:var(--go-line);background:var(--go-surface);color:var(--go-muted)}
-    #${PANEL_ID} .go-focus-summary[data-off] b{color:var(--go-text)}
-    @media(max-width:760px){#${PANEL_ID}{padding:6px}#${PANEL_ID} .go-stage{max-height:100%;flex-direction:column;overflow:auto}#${PANEL_ID} .go-card{width:min(344px,94vw)}#${PANEL_ID} .go-config-card{width:min(300px,94vw)}#${PANEL_ID} header .go-actions{gap:0}}
-  `;
-  document.head.appendChild(style);
-}
-
 function compactNumber(value: number): string {
   if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
   if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
@@ -1044,7 +507,6 @@ function durationUntil(timestamp: number | null, growthRate = 0): string {
 }
 
 export function initGardenOverview(): void {
-  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
   // Catalogs are captured once at start-up and shared, so this is simply the live view.
   const getCatalog = () => PLANT_CATALOG;
   let filter = loadFilter();
@@ -1054,7 +516,7 @@ export function initGardenOverview(): void {
   let view = loadView();
   view.ignorePreserved = mutationConfig.ignorePreserved;
   let focus = loadFocus();
-  let shortcut = localStorage.getItem(SHORTCUT_KEY) || '';
+  let shortcut = overviewShortcut();
   page.__gardenCompanionOverviewShortcutChanged = nextShortcut => { shortcut = nextShortcut; };
   let position: { left: number; top: number } | null = null;
   let configPosition: { left: number; top: number } | null = null;
@@ -1074,15 +536,6 @@ export function initGardenOverview(): void {
   let keyboardDriven = false;
   let lastSignature = '';
   const previousMissing = new Map<string, number>();
-
-  function keyCombo(event: KeyboardEvent): string {
-    const parts = [];
-    if (event.ctrlKey) parts.push('Ctrl');
-    if (event.altKey) parts.push('Alt');
-    if (event.shiftKey) parts.push('Shift');
-    parts.push(event.key.length === 1 ? event.key.toUpperCase() : event.key);
-    return parts.join('+');
-  }
 
   function stopCompletionAlarm(): void {
     page.__gardenCompanionStopAlarm?.('overview');
@@ -1757,7 +1210,7 @@ export function initGardenOverview(): void {
   }
 
   function mount(): void {
-    injectStyles();
+    injectOverviewStyles();
     // The companion panel offers its own way in, so the toggle is published for it.
     page.__gardenCompanionToggleOverview = toggle;
     const button = document.createElement('button');
@@ -1783,7 +1236,7 @@ export function initGardenOverview(): void {
     onSpritesReady(() => { if (configMode === 'focus') render(true); });
     window.addEventListener('keydown', event => {
       if (!shortcut || event.repeat || ['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement as HTMLElement | null)?.tagName || '')) return;
-      if (keyCombo(event) !== shortcut) return;
+      if (comboFromEvent(event) !== shortcut) return;
       event.preventDefault(); event.stopImmediatePropagation(); toggle();
     }, true);
   }

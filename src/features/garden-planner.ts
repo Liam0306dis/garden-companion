@@ -1,7 +1,9 @@
-import type { CompanionPage, GardenTile } from '../types.js';
+import { page } from '../page.js';
+import type { GardenTile } from '../types.js';
 import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { maxSizeMultiplier, sizeFromScale, slotScale } from '../crop-size.js';
 import { quinoaEngine } from '../quinoa-engine.js';
+import { createTicker } from '../ticker.js';
 import { NUMBER_LOCALE } from '../utils.js';
 
 /**
@@ -11,9 +13,6 @@ import { NUMBER_LOCALE } from '../utils.js';
  * restores every tile from live state.
  */
 export function initGardenPlanner(): void {
-  'use strict';
-
-  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
   const PLANTS = PLANT_CATALOG;
   const MUTATIONS = MUTATION_CATALOG;
   const DECOR = DECOR_CATALOG;
@@ -529,6 +528,20 @@ export function initGardenPlanner(): void {
     hiddenNodes.clear();
   }
 
+  /**
+   * The updateTileData hook keeps the plan in place synchronously; this is a backstop for any redraw
+   * path that bypasses it, and keeps the native card UI hidden and the tile index fresh. It runs only
+   * while the planner is open.
+   */
+  const backstop = createTicker(() => {
+    if (!planner.open) return;
+    rebuildTileIndex();
+    patchTileUpdates();
+    patchWeatherDraw();
+    applyAllTiles();
+    hideNativeCardUi();
+  }, 1000);
+
   function open(): void {
     // Decor and growing-plant artwork is only decoded on demand, and the planner draws decor and full plants.
     page.__gardenCompanionLoadSpriteGroup?.('deferred');
@@ -546,11 +559,13 @@ export function initGardenPlanner(): void {
     window.addEventListener('pointerup', onPointerUp, true);
     window.addEventListener('contextmenu', blockEvent, true);
     renderPanel();
+    backstop.start();
   }
 
   function close(): void {
     if (!planner.open) return;
     planner.open = false;
+    backstop.stop();
     // Back to the real weather. The draw wrapper stays installed but passes straight through now.
     planner.weather = 'live';
     unpatchTileUpdates();
@@ -865,16 +880,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
   }
 
-  // The updateTileData hook keeps the plan in place synchronously; this poll is a backstop for any
-  // redraw path that bypasses it, and keeps the native card UI hidden and the tile index fresh.
-  setInterval(() => {
-    if (!planner.open) return;
-    rebuildTileIndex();
-    patchTileUpdates();
-    patchWeatherDraw();
-    applyAllTiles();
-    hideNativeCardUi();
-  }, 1000);
 
   page.__gardenCompanionTogglePlanner = () => (planner.open ? close() : open());
   page.__gardenCompanionPlannerOpen = () => planner.open;

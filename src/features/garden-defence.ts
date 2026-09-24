@@ -114,7 +114,6 @@ interface Shot { lane: number; x: number; speed: number; damage: number; slow?: 
 interface Sun { x: number; y: number; targetY: number; value: number; expires: number }
 interface Record_ { best: number; runs: number; sun: number }
 
-const EMPTY_RECORD: Record_ = { best: 0, runs: 0, sun: 0 };
 
 function loadRecord(): Record_ {
   const stored = loadLocal<Partial<Record_>>(RECORD_KEY, {});

@@ -1,4 +1,5 @@
 import { page } from './page.js';
+import { VENDOR_URLS } from './vendor-urls.js';
 
 /**
  * The sprite loader is over half of this script: a 485KB WebAssembly texture transcoder carried as
@@ -68,7 +69,7 @@ function whenIdle(run: () => void): void {
 function installVendorBridge(): void {
   page.__gardenCompanionVendorSource = (url: string, done: (source: string | null) => void) => {
     try {
-      if (typeof GM_xmlhttpRequest !== 'function') { done(null); return; }
+      if (typeof GM_xmlhttpRequest !== 'function' || !VENDOR_URLS.has(url)) { done(null); return; }
       GM_xmlhttpRequest({
         method: 'GET',
         url,

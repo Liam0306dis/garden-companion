@@ -1,19 +1,10 @@
-import type {
-  CompanionPage,
-  FullState,
-  GameState,
-  Pet,
-  PlayerSlot,
-  RoomState,
-} from './types.js';
+import type { FullState, GameState, PlayerSlot, RoomState } from './types.js';
 import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
-import { ABILITY_DETAILS, GRANTER_CHANCES, KOFI_URL, LUNAR_MINIMISED_KEY, LUNAR_POSITION_KEY, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PROC_RULES, STACKED_PASSIVE_BY_ABILITY, TRACKED_ABILITY_CATALOG, UPDATE_URL, XP_PER_POTION } from './constants.js';
+import { ABILITY_DETAILS, KOFI_URL, TRACKED_ABILITY_CATALOG } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
-import { installAlarms, showAlarmBanner, stopAlarm } from './alarms.js';
-import { worldSceneActive } from './world-scene.js';
-import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, renumberOutgoingCommand, seedCommandSequence, sendQuinoaCommand } from './game-connection.js';
-import { abilityChips } from './ability-chips.js';
-import { installCropEstimates, renderTurtleOverlay } from './features/crop-estimates.js';
+import { installAlarms } from './alarms.js';
+import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, renumberOutgoingCommand, seedCommandSequence } from './game-connection.js';
+import { installCropEstimates, syncCropEstimates } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
 import {
   abilityLogUiState,
@@ -23,8 +14,8 @@ import {
   setAbilityFilterMenuOpen,
 } from './features/ability-log.js';
 import { processAutoStore } from './features/auto-store.js';
-import { noteWeatherChange, weatherLabel } from './features/weather-timer.js';
-import { forecastStatus, forecastTrace, nextWeather } from './weather-forecast.js';
+import { noteWeatherChange } from './features/weather-timer.js';
+import { forecastTrace } from './weather-forecast.js';
 import { bindWeatherAlarmEvents, processWeatherAlarms, renderWeatherAlarms, weatherAlarmSignature } from './features/weather-alarms.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
@@ -33,28 +24,15 @@ import { processActivityLog } from './activity-log.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
-import { makeDraggable } from './draggable.js';
 import { bindListSearch } from './list-search.js';
-import { abilityEffectText } from './ability-effect.js';
 import { page } from './page.js';
 import { setPanelActions } from './panel-actions.js';
+import { retryUntil } from './retry.js';
 import { installPixiCapture } from './pixi.js';
-import {
-  abilityActiveInWeather,
-  activePets,
-  allActivePetsStarving,
-  allPets,
-  formatEstimate,
-  heldProduce,
-  heldToolCount,
-  hungerDisplay,
-  onSpritesReady,
-  petMetrics,
-  petSprite,
-  refreshHungerDisplay,
-  teamXpPerHour,
-  useXpPotion,
-} from './pets.js';
+import { processPetHunger, renderAbilities } from './features/active-pets.js';
+import { installInstantHarvest } from './features/instant-harvest.js';
+import { mountLunarTimer, updateLunarTimer, watchSocketHealth } from './features/lunar-timer.js';
+import { allPets, heldProduce, onSpritesReady, refreshHungerDisplay, useXpPotion } from './pets.js';
 import {
   closeTeamPicker,
   bindPetTeamEvents,
@@ -63,17 +41,14 @@ import {
   refreshCompletedTeamSave,
   refreshTeamActiveMarkers,
   renderTeams,
-  teams,
   teamsSignature,
 } from './features/pet-teams.js';
 import { bindShopEvents, processShops, renderShops } from './features/shop-alarms.js';
 import { toast } from './toast.js';
-import { state } from './state.js';
-import { escapeHtml, formatDuration, humanize, loadLocal, NUMBER_LOCALE, saveLocal, scriptVersion } from './utils.js';
+import { notifyStateChange, state } from './state.js';
+import { escapeHtml, humanize, scriptVersion } from './utils.js';
 
 export function initCompanion(): void {
-  'use strict';
-
   pruneStaleConfig();
   setPanelActions({
     renderPanel, renderPanelPreservingScroll, refreshOpenPanel, cancelPanelRefresh,
@@ -83,7 +58,6 @@ export function initCompanion(): void {
 
   page.__gardenCompanionClaimKeybind = claimKeybind;
 
-  (window as unknown as CompanionPage).__gardenCompanionFeature = feature;
   page.__gardenCompanionFeature = feature;
   page.__gardenCompanionConfig = () => config;
   page.__gardenCompanionForecastTrace = forecastTrace;
@@ -120,15 +94,17 @@ export function initCompanion(): void {
   function guardOutgoingHarvests(socket: WebSocket): void {
     const originalSend = socket.send;
     socket.send = function(data: Parameters<WebSocket['send']>[0]) {
-      const blocked = blockOutgoingHarvest(data);
+      const frame = parseOutgoingFrame(data);
+      if (!frame) return originalSend.call(this, data);
+      const blocked = blockOutgoingHarvest(frame);
       if (blocked) {
         if (blocked.requestId) refuseCommand(socket, blocked.requestId);
         return;
       }
-      noteOutgoingCommand(data);
+      noteOutgoingCommand(frame);
       // Renumbered on the way out so one counter covers the game's commands and ours, which is the
       // only way two senders can share a sequence without ever picking the same number.
-      return originalSend.call(this, renumberOutgoingCommand(data) as Parameters<WebSocket['send']>[0]);
+      return originalSend.call(this, renumberOutgoingCommand(frame) ? JSON.stringify(frame) : data);
     };
   }
 
@@ -147,7 +123,10 @@ export function initCompanion(): void {
       // Only the room socket is worth remembering as the one to send on. Every socket the page opens
       // passes through here, so noting them all let a later one - anything at all - take the place of
       // the game connection and quietly carry our commands nowhere.
-      if (String(args[0] ?? '').includes('/api/rooms/')) noteGameSocket(socket);
+      if (String(args[0] ?? '').includes('/api/rooms/')) {
+        noteGameSocket(socket);
+        watchSocketHealth(socket);
+      }
       return socket;
     } as unknown as typeof WebSocket;
     Object.setPrototypeOf(GardenCompanionWebSocket, OriginalWebSocket);
@@ -233,15 +212,13 @@ export function initCompanion(): void {
   /**
    * Sockets are caught as they are constructed, so this only has to cover one case: a socket that
    * already existed when we loaded, which happens when the script updates mid-session. Its Welcome
-   * is long gone, and only the next reconnect can supply another.
+   * is long gone, and only the next reconnect can supply another - and that one is constructed.
    */
-  function watchWelcome(): void {
-    const attach = () => {
-      const socket = page.MagicCircle_RoomConnection?.currentWebSocket;
-      if (socket) listenForWelcome(socket);
-    };
-    attach();
-    setInterval(attach, 1000);
+  function watchExistingSocket(): void {
+    const socket = page.MagicCircle_RoomConnection?.currentWebSocket;
+    if (!socket) return;
+    listenForWelcome(socket);
+    watchSocketHealth(socket);
   }
 
   function readPlayerId(): string | null {
@@ -281,12 +258,9 @@ export function initCompanion(): void {
     return { slot: null, index: null };
   }
 
-  function subscribeToState(attempt = 0) {
+  function subscribeToState(): boolean {
     const connection = page.MagicCircle_RoomConnection;
-    if (typeof connection?.subscribeToPatches !== 'function') {
-      if (attempt < 180) setTimeout(() => subscribeToState(attempt + 1), 500);
-      return;
-    }
+    if (typeof connection?.subscribeToPatches !== 'function') return false;
     connection.subscribeToPatches((_patches: unknown[], fullState: FullState) => {
       state.room = fullState?.data || null;
       state.game = fullState?.child?.data || null;
@@ -307,377 +281,14 @@ export function initCompanion(): void {
       renderPetFood();
       refreshTeamActiveMarkers();
       refreshOpenPanel();
+      notifyStateChange('patch');
     });
-  }
-
-  const HUNGER_ALARM_OWNER = 'pets:hunger';
-  let hungerAlarmRaised = false;
-
-  /**
-   * Fires once per starvation, not once per state update. It re-arms only after a pet is fed, so a
-   * team left at zero overnight does not queue an alarm behind every frame the game sends.
-   */
-  function processPetHunger(): void {
-    if (!feature('petHungerAlarm')) {
-      if (hungerAlarmRaised) { stopAlarm(HUNGER_ALARM_OWNER); hungerAlarmRaised = false; }
-      return;
-    }
-    const starving = allActivePetsStarving();
-    if (!starving) {
-      if (hungerAlarmRaised) { stopAlarm(HUNGER_ALARM_OWNER); hungerAlarmRaised = false; }
-      return;
-    }
-    if (hungerAlarmRaised) return;
-    hungerAlarmRaised = true;
-    const count = activePets().filter(pet => pet?.id).length;
-    showAlarmBanner({
-      owner: HUNGER_ALARM_OWNER,
-      label: 'PET ALARM | HUNGER',
-      title: `All ${count} pets have zero hunger`,
-      // No detail or action button: the title says it, feeding happens on the docked pet food
-      // buttons rather than in a panel, and Stop holds until something is actually fed.
-    });
-  }
-
-  function combinedAbilityRows(pets: Pet[]): string {
-    const groups = new Map<string, Array<{ ability: string; pet: Pet }>>();
-    for (const pet of pets) {
-      if (pet.hunger <= 0) continue;
-      for (const ability of pet.abilities ?? []) {
-        const key = STACKED_PASSIVE_BY_ABILITY.get(ability)?.key ?? ability;
-        const group = groups.get(key) ?? [];
-        group.push({ ability, pet });
-        groups.set(key, group);
-      }
-    }
-    return [...groups].map(([, entries]) => {
-      const ability = entries[0].ability;
-      const owners = entries.map(entry => entry.pet);
-      const strengths = owners.map(pet => petMetrics(pet)?.strength ?? 100);
-      const averageStrength = strengths.reduce((sum, value) => sum + value, 0) / strengths.length;
-      const details = ABILITY_DETAILS[ability];
-      const passiveGroup = STACKED_PASSIVE_BY_ABILITY.get(ability);
-      const proc = PROC_RULES[ability];
-      const baseChance = passiveGroup ? undefined : details?.baseProbability ?? proc?.chance ?? GRANTER_CHANCES[ability];
-      const requiredWeather = PASSIVE_REQUIRED_WEATHER.get(ability);
-      let chance = '';
-      // A weather-gated proc does not fire outside its weather, so show that rather than a live rate
-      // the ETA (which gates the same abilities) would disagree with.
-      if (baseChance != null && !abilityActiveInWeather(ability)) {
-        chance = `<div class="gc-ability-rate"><b>--</b><small>needs ${escapeHtml(humanize(requiredWeather || ''))}</small></div>`;
-      } else if (baseChance != null) {
-        const tick = details?.trigger ? details.trigger === 'continuous' : proc?.tick !== false;
-        if (tick) {
-          const tickRate = 1 - strengths.reduce((remaining, strength) => remaining * Math.pow(1 - baseChance * strength / 10000, 1 / 60), 1);
-          const perMinute = (1 - Math.pow(1 - tickRate, 60)) * 100;
-          const mean = tickRate > 0 ? 1 / tickRate : null;
-          chance = `<div class="gc-ability-rate"><b>${Math.floor(perMinute * 100) / 100}%/min</b>${mean ? `<small>avg ~${formatEstimate(mean)}</small><small>95% within ${formatEstimate(Math.log(20) * mean)}</small>` : ''}</div>`;
-        } else {
-          const combined = (1 - strengths.reduce((remaining, strength) => remaining * (1 - baseChance * strength / 10000), 1)) * 100;
-          chance = `<div class="gc-ability-rate"><b>${combined.toFixed(1)}%</b><small>per trigger</small></div>`;
-        }
-      }
-      let effect: string;
-      if (passiveGroup) {
-        // A weather-gated boost contributes nothing until its weather runs, so its live combined
-        // total is zero out of weather. Rather than let that read as broken, its would-be value is
-        // held aside per weather and shown as what it will add once that weather is up.
-        const pendingByWeather = new Map<string, number>();
-        const total = entries.reduce((sum, entry) => {
-          if (entry.pet.hunger <= 0) return sum;
-          const strength = petMetrics(entry.pet)?.strength ?? 100;
-          const base = Number(ABILITY_DETAILS[entry.ability]?.baseParameters?.[passiveGroup.parameter] || 0);
-          const contribution = base * strength / 100;
-          if (!abilityActiveInWeather(entry.ability)) {
-            const weather = PASSIVE_REQUIRED_WEATHER.get(entry.ability);
-            if (weather && contribution) pendingByWeather.set(weather, (pendingByWeather.get(weather) ?? 0) + contribution);
-            return sum;
-          }
-          return sum + contribution;
-        }, 0);
-        const amount = Number(total.toFixed(2)).toLocaleString(NUMBER_LOCALE);
-        const pending = [...pendingByWeather].map(([weather, value]) =>
-          `+${Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE)}% during ${weatherLabel(weather)}`).join(', ');
-        if (passiveGroup.key === 'HungerBoost') effect = `Reduces hunger depletion by ${amount}% combined`;
-        else if (passiveGroup.key === 'WeatherMutationBoost') effect = `Weather mutation chance increase: +${amount}% combined`;
-        else if (passiveGroup.key === 'PetMutationBoost') effect = `Egg mutation chance increase: +${amount}% combined`;
-        else effect = `Active pet ability chance: +${amount}% combined`;
-        if (pending) effect += ` (${pending})`;
-      } else effect = abilityEffectText(ability, averageStrength, details?.trigger, details?.baseParameters);
-      const names = owners.map(pet => pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies)).join(', ');
-      const label = passiveGroup?.label ?? ABILITY_DETAILS[ability]?.name ?? humanize(ability);
-      return `<article class="gc-card gc-ability-summary"><div><h3>${escapeHtml(label)}</h3><p>${escapeHtml(names)}</p><small>${escapeHtml(effect)}</small></div>${chance}</article>`;
-    }).join('');
-  }
-
-  function installInstantHarvest() {
-    // The just-harvested slot, so a second press before the server confirms the first still advances
-    // to the next crop rather than firing at the same one again - the game auto-advances selection the
-    // same way, but we bypass that when we skip its press-and-hold.
-    // Slots harvested on the current tile whose harvest the state has not caught up to yet. The game
-    // depletes its own ready set as it harvests and resolves the current crop as the next slot at or
-    // after the selection, wrapping - we mirror that, but suppress our just-harvested slots ourselves
-    // because we get no optimistic update for a command we sent, so they still look ready for a beat.
-    let harvested: { tile: string; ids: Set<number> } | null = null;
-    window.addEventListener('keydown', event => {
-      // Any minigame holding the farm owns the keyboard too, or space harvests behind the scene.
-      // Crop Protection exists to stop harvests this key exists to fire, so it wins outright.
-      if (!feature('instantHarvest') || feature('cropProtection') || worldSceneActive() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
-      // Only a guard against harvesting while busy elsewhere - at a shop, the trough, the preserve
-      // station. Which crop is eligible is decided below, so every flavour of harvest passes here.
-      // rarePatchHarvest earns its place because the action describes the selected slot: once
-      // harvesting has left gaps in the slot ids that selection often matches nothing on the tile,
-      // and the scan below then settles on a crop the action was never describing.
-      // preservedHarvest is deliberately absent: preserving is permanent and the game guards it
-      // behind a press and hold, which is the one thing this key exists to skip.
-      if (state.currentAction && state.currentAction !== 'none' && !['harvest', 'rainbowHarvest', 'goldHarvest', 'rarePatchHarvest'].includes(state.currentAction)) return;
-      // myOwnCurrentDirtTileIndexAtom reports null the moment a plant is on the tile - which is exactly
-      // when you harvest - so state.dirtTileIndex is null here. The current grow-slots (currentCrop) are
-      // still populated though, so recover which dirt tile they belong to by matching them back to the
-      // garden, then use that index both to read the tile and to name the slot in the command.
-      const tileObjects = state.slot?.data?.garden?.tileObjects ?? {};
-      const current = Array.isArray(state.currentCrop) ? state.currentCrop : [];
-      const slotKey = (slot: { slotId?: unknown; species?: unknown; endTime?: unknown }) => `${slot?.slotId}|${slot?.species}|${slot?.endTime}`;
-      const currentSignature = current.map(slotKey).join(',');
-      let dirtIndex: string | number | null = state.dirtTileIndex;
-      if ((dirtIndex == null || !tileObjects[String(dirtIndex)]?.slots?.length) && current.length) {
-        const match = Object.keys(tileObjects).find(key => {
-          const slots = tileObjects[key]?.slots;
-          return Array.isArray(slots) && slots.length === current.length && slots.map(slotKey).join(',') === currentSignature;
-        });
-        if (match !== undefined) dirtIndex = match;
-      }
-      const tile = dirtIndex == null ? undefined : tileObjects[String(dirtIndex)];
-      if (!tile?.slots?.length) return;
-      const now = Date.now();
-      // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
-      // which is exactly what this key skips, so a preserved slot is never a candidate here.
-      const readyRareGold = slot => slot?.preserved !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
-      // Reset the pending set when the tile changes, and drop any slot the state now agrees is gone -
-      // once it reads as not-ready the harvest has landed and it no longer needs suppressing (and a
-      // future regrow can be taken again).
-      if (!harvested || harvested.tile !== String(dirtIndex)) harvested = { tile: String(dirtIndex), ids: new Set() };
-      for (const id of [...harvested.ids]) {
-        if (!readyRareGold(tile.slots.find(slot => Number(slot.slotId) === id))) harvested.ids.delete(id);
-      }
-      // The ready Gold/Rainbow slots the game would still offer, minus the ones we have already taken.
-      const qualifyingIds = tile.slots.filter(slot => readyRareGold(slot) && !harvested.ids.has(Number(slot.slotId))).map(slot => Number(slot.slotId)).sort((left, right) => left - right);
-      if (!qualifyingIds.length) return;
-      // The game's own resolver: the slot at or after the selection, wrapping to the first.
-      const selected = Number(state.selectedSlotId);
-      const targetId = qualifyingIds.find(id => id >= selected) ?? qualifyingIds[0];
-      const index = tile.slots.findIndex(slot => Number(slot.slotId) === targetId);
-      if (index < 0) return;
-      event.preventDefault(); event.stopImmediatePropagation();
-      const slot = tile.slots[index];
-      harvested.ids.add(targetId);
-      // Harvest is one of the commands the game sends inside the QuinoaCommand envelope, so it
-      // needs the sequence too - sent raw the server rejects it and the crop simply stays put.
-      // Since bundle 1116 it also carries a client-minted cropItemId: the reducer uses it as the id
-      // of the produce the harvest drops into the inventory, and a harvest without one is rejected.
-      // Any fresh unique UUID works - the server assigns it to the produce and we never read it back.
-      sendQuinoaCommand({ type: 'HarvestCrop', slot: Number(dirtIndex), slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
-      toast('Harvest requested.', 'success');
-    }, true);
+    return true;
   }
 
   installPixiCapture();
   installCropEstimates();
   initKeybinds();
-
-  function nextLunarAt(now = Date.now()) {
-    const date = new Date(now);
-    const midnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-    const slots = [0, 48, 96, 144, 192, 240];
-    for (const day of [0, 1]) for (const slot of slots) {
-      const at = midnight + day * 86400000 + slot * 300000;
-      if (at > now) return at;
-    }
-    return midnight + 86400000;
-  }
-
-  /**
-   * Minimised, the timer becomes an icon parked beside the Garden Overview button. The countdown
-   * still ticks into its tooltip, so the panel is worth collapsing rather than turning off.
-   */
-  let lunarMinimised = loadLocal<boolean>(LUNAR_MINIMISED_KEY, false);
-  /**
-   * Which timer is showing. Lunar events are on fixed slots and the weather between them is not, so
-   * the two answer different questions - and the panel only has room to answer one.
-   */
-  const LUNAR_MODE_KEY = 'gardenCompanion.lunarMode.v1';
-  type LunarMode = 'lunar' | 'weather';
-  let lunarMode: LunarMode = loadLocal<LunarMode>(LUNAR_MODE_KEY, 'weather') === 'lunar' ? 'lunar' : 'weather';
-
-  function setLunarMode(mode: LunarMode): void {
-    lunarMode = mode;
-    saveLocal(LUNAR_MODE_KEY, mode);
-    updateLunarTimer();
-  }
-
-  function setLunarMinimised(minimised: boolean): void {
-    lunarMinimised = minimised;
-    saveLocal(LUNAR_MINIMISED_KEY, minimised);
-    updateLunarTimer();
-  }
-
-  function updateLunarTimer() {
-    const root = document.getElementById('gc-lunar');
-    const mini = document.getElementById('gc-lunar-mini');
-    if (!root) return;
-    // Cinematic mode is for screenshots, so the panel and its icon both step aside - but only when
-    // the player asked for it. Our own scenes claim cinematic as well, and hiding there would take
-    // the timer away from the very screens it was opened alongside.
-    const shown = feature('lunarTimer') && !page.__gardenCompanionCinematicFromGame?.();
-    // The game is asked what is coming rather than us working it out, so there is nothing to show
-    // when it has not answered yet - or cannot, which is what a game update would look like.
-    const forecast = lunarMode === 'weather' ? nextWeather() : null;
-    // Unavailable is a settled answer, not a slow one: the borrow reached a game that no longer
-    // offers what it needs. Saying so beats a countdown that would never start moving.
-    const unavailable = lunarMode === 'weather' && forecastStatus() === 'unavailable';
-    // A lunar event is announced as one rather than by name: which of the two it is belongs to the
-    // lunar timer, and naming it here would say more than the game's own station does at a glance.
-    const label = lunarMode === 'weather'
-      ? forecast ? forecast.lunar ? 'Lunar event' : weatherLabel(forecast.weatherId) : 'Next weather'
-      : 'Lunar event';
-    const remaining = unavailable ? 'Unavailable'
-      : lunarMode === 'weather'
-        ? forecast ? formatDuration(forecast.startsAtMs - Date.now())
-          : forecastStatus() === 'ready' ? 'Not forecast' : '--'
-        : formatDuration(nextLunarAt() - Date.now());
-    const countingDown = !unavailable && (lunarMode === 'lunar' || Boolean(forecast));
-    root.hidden = !shown || lunarMinimised;
-    const countdown = root.querySelector<HTMLElement>('.gc-lunar-countdown');
-    // Marked rather than measured, so the word can be set at a size that fits where the digits sat.
-    if (countdown) countdown.dataset.message = unavailable ? 'true' : '';
-    root.querySelector('strong').textContent = remaining;
-    root.querySelector('.gc-lunar-title span').textContent = label;
-    const swap = root.querySelector<HTMLElement>('[data-swap]');
-    if (swap) {
-      swap.dataset.mode = lunarMode;
-      // Says what the press will do rather than what the button is, since the two modes look alike
-      // once the countdown is the only thing on screen.
-      swap.title = lunarMode === 'weather'
-        ? 'Showing the next weather event - switch to the lunar timer'
-        : 'Showing the lunar timer - switch to the next weather event';
-    }
-    // The dial becomes the weather it is counting down to. These decode with the first pass rather
-    // than the deferred one, so they are here without a panel ever being opened; onSpritesReady
-    // redraws the timer for the moment between the first tick and the decode finishing.
-    // Only the weather takes a sprite. A lunar event keeps the mod's dial, since its own icon would
-    // give away which of the two is coming.
-    const sprite = forecast && !forecast.lunar ? page.__gardenCompanionWeatherSprites?.[forecast.weatherId] || '' : '';
-    const mark = root.querySelector<HTMLElement>('.gc-lunar-mark');
-    if (mark) {
-      mark.innerHTML = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
-      // Removed rather than blanked: an empty attribute still answers to [data-weather], which would
-      // strip the dial of its face and leave an empty circle behind.
-      if (sprite) mark.dataset.weather = forecast!.weatherId;
-      else delete mark.dataset.weather;
-    }
-    if (mini) {
-      mini.hidden = !shown || !lunarMinimised;
-      // The heading drops the "in" because the number sits under it; the tooltip is one line, so it
-      // reads as a sentence - unless the value is a message, which nothing can be "in".
-      mini.title = countingDown ? `${label} in ${remaining}` : `${label} - ${remaining}`;
-    }
-  }
-
-  type SocketStatus = 'connecting' | 'connected' | 'disconnected';
-  let socketStatus: SocketStatus = 'connecting';
-  let watchedSocket: WebSocket | null = null;
-
-  function renderSocketStatus(): void {
-    const indicator = document.getElementById('gc-ws-health');
-    if (!indicator) return;
-    indicator.dataset.status = socketStatus;
-    const label = indicator.querySelector('b');
-    if (label) label.textContent = socketStatus === 'connected' ? 'Connected' : socketStatus === 'connecting' ? 'Connecting' : 'Disconnected';
-  }
-
-  function watchSocketHealth(): void {
-    const socket = page.MagicCircle_RoomConnection?.currentWebSocket ?? null;
-    if (socket !== watchedSocket) {
-      watchedSocket = socket;
-      if (socket) {
-        const setCurrentSocketStatus = (status: SocketStatus) => {
-          if (watchedSocket !== socket) return;
-          socketStatus = status;
-          renderSocketStatus();
-        };
-        socket.addEventListener('open', () => setCurrentSocketStatus('connected'));
-        socket.addEventListener('close', event => {
-          setCurrentSocketStatus('disconnected');
-          handleGameSocketClose(event);
-        });
-        socket.addEventListener('error', () => setCurrentSocketStatus('disconnected'));
-      }
-    }
-    socketStatus = !socket ? 'connecting'
-      : socket.readyState === WebSocket.OPEN ? 'connected'
-      : socket.readyState === WebSocket.CONNECTING ? 'connecting'
-      : 'disconnected';
-    renderSocketStatus();
-  }
-
-  type UpdateStatus = 'checking' | 'current' | 'available' | 'failed';
-  let updateStatus: UpdateStatus = 'checking';
-  let availableVersion = '';
-
-  function versionParts(version: string): number[] {
-    return version.split('.').map(part => Number.parseInt(part, 10) || 0);
-  }
-
-  function isNewerVersion(candidate: string, current: string): boolean {
-    const next = versionParts(candidate);
-    const installed = versionParts(current);
-    const length = Math.max(next.length, installed.length);
-    for (let index = 0; index < length; index++) {
-      const difference = (next[index] ?? 0) - (installed[index] ?? 0);
-      if (difference !== 0) return difference > 0;
-    }
-    return false;
-  }
-
-  function renderUpdateStatus(): void {
-    const button = document.getElementById('gc-update-health') as HTMLButtonElement | null;
-    if (!button) return;
-    button.dataset.status = updateStatus;
-    button.textContent = updateStatus === 'checking' ? 'Checking update'
-      : updateStatus === 'available' ? `Update ${availableVersion}`
-      : updateStatus === 'failed' ? 'Check update'
-      : 'Up to date';
-    button.title = updateStatus === 'available'
-      ? `Install Garden Companion ${availableVersion}`
-      : updateStatus === 'failed' ? 'Update check failed. Click to retry.' : 'Click to check for updates.';
-  }
-
-  function checkForUpdate(): void {
-    updateStatus = 'checking';
-    renderUpdateStatus();
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: `${UPDATE_URL}?check=${Date.now()}`,
-      headers: { 'Cache-Control': 'no-cache' },
-      onload: response => {
-        const match = response.responseText.match(/^\/\/\s*@version\s+([^\s]+)\s*$/m);
-        availableVersion = match?.[1] ?? '';
-        updateStatus = response.status >= 200 && response.status < 300 && availableVersion
-          ? isNewerVersion(availableVersion, scriptVersion()) ? 'available' : 'current'
-          : 'failed';
-        renderUpdateStatus();
-      },
-      onerror: () => { updateStatus = 'failed'; renderUpdateStatus(); },
-    });
-  }
-
-  function handleUpdateClick(): void {
-    if (updateStatus === 'available') {
-      window.open(UPDATE_URL, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    checkForUpdate();
-  }
 
   function checkForGameUpdateDialog(): boolean {
     const dialogs = document.querySelectorAll<HTMLElement>('[role="alertdialog"], section.chakra-modal__content');
@@ -689,11 +300,22 @@ export function initCompanion(): void {
     return false;
   }
 
+  /**
+   * The game redraws its DOM constantly, so the observer only notes that something was added and
+   * looks at most twice a second; the socket's own close code usually reports an update first. It
+   * disconnects once an update is found, since there is nothing left to watch for.
+   */
   function watchForGameUpdateDialog(): void {
-    const observer = new MutationObserver(() => { if (!gameUpdateDetected) checkForGameUpdateDialog(); });
+    let scheduled = 0;
+    const observer = new MutationObserver(mutations => {
+      if (scheduled || !mutations.some(mutation => mutation.addedNodes.length)) return;
+      scheduled = window.setTimeout(() => {
+        scheduled = 0;
+        if (gameUpdateDetected || checkForGameUpdateDialog()) observer.disconnect();
+      }, 500);
+    });
+    if (checkForGameUpdateDialog()) return;
     observer.observe(document.body, { childList: true, subtree: true });
-    checkForGameUpdateDialog();
-    setInterval(checkForGameUpdateDialog, 5_000);
   }
 
   let activeTab = 'abilities';
@@ -764,6 +386,8 @@ export function initCompanion(): void {
 
   const LIVE_REFRESH_TABS = ['abilities', 'abilityLog', 'petFood', 'teams', 'calculators', 'journal', 'eggLuck', 'weatherAlarms'];
   let lastTabSignature = '';
+  /** What the content pane was last drawn from, so an identical redraw can be skipped. */
+  let lastTabHtml = '';
   let refreshPending = false;
 
   function tabRefreshSignature(): string {
@@ -796,7 +420,7 @@ export function initCompanion(): void {
       if (panelRefreshBlocked(panel)) { refreshPending = true; return; }
       const current = tabRefreshSignature();
       if (current && current === lastTabSignature) return;
-      renderPanelPreservingScroll();
+      refreshTabContent();
     }, 1000);
   }
 
@@ -876,9 +500,10 @@ export function initCompanion(): void {
     const panel = document.getElementById('gc-panel');
     if (!panel) return;
     const navTop = panel.querySelector('nav')?.scrollTop ?? 0;
+    const renderedTabHtml = renderTab();
     const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || '';
     panel.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b></div></div><nav>${navHtml()}</nav></aside>`
-      + `<section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></section>${footerHtml()}</div>`;
+      + `<section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderedTabHtml}</main></section>${footerHtml()}</div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = closePanel;
@@ -900,6 +525,27 @@ export function initCompanion(): void {
     });
     bindTabEvents(main);
     lastTabSignature = tabRefreshSignature();
+    lastTabHtml = renderedTabHtml;
+  }
+
+  /**
+   * A live refresh redraws the content pane alone, and only when what it would draw has changed.
+   * Rebuilding the whole panel recreated the nav as well, so the tab under the pointer was replaced
+   * every second and its hover highlight faded in again each time - a flash on every refresh.
+   */
+  function refreshTabContent(): void {
+    const panel = document.getElementById('gc-panel');
+    const main = panel?.querySelector<HTMLElement>('main');
+    if (!panel || !main) { renderPanelPreservingScroll(); return; }
+    const html = renderTab();
+    lastTabSignature = tabRefreshSignature();
+    if (html === lastTabHtml) return;
+    cancelKeybindCapture();
+    const scrollTop = main.scrollTop;
+    main.innerHTML = html;
+    lastTabHtml = html;
+    bindTabEvents(main);
+    main.scrollTop = scrollTop;
   }
 
   /**
@@ -962,31 +608,6 @@ export function initCompanion(): void {
     return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`).join('')}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Overlay a buff layout for your current celestial plants on either side of the farm.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
   }
 
-  function renderAbilities() {
-    const active = state.slot?.data?.petSlots || [];
-    const held = heldToolCount('XPPotion');
-    const xpRate = teamXpPerHour(active);
-    const activeCards = active.map(pet => {
-      const metrics = petMetrics(pet);
-      const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : 'Max STR reached' : 'Strength estimate unavailable';
-      const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
-      const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString(NUMBER_LOCALE)} XP potion${potionsToMax === 1 ? '' : 's'} to max` : '';
-      // The button only appears when a potion is actually held, so it can never send a doomed request.
-      const potionRow = potionText
-        ? held > 0
-          ? `<button class="gc-pet-potions" data-xp-potion="${escapeHtml(pet.id)}" title="Spend one XP Potion on this pet. ${held} held.">${escapeHtml(potionText)}<i>Use one</i></button>`
-          : `<div class="gc-pet-potions">${escapeHtml(potionText)}</div>`
-        : '';
-      return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet, active)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
-    }).join('');
-    const abilityRows = combinedAbilityRows(active);
-    const starving = allActivePetsStarving();
-    const hungerToggle = `<label class="gc-toggle"><span><b>Alarm when every pet has zero hunger</b><small>${
-      starving ? 'All active pets are at zero right now.' : 'Sounds once the whole team hits zero hunger, not for a single hungry pet.'
-    }</small></span><input type="checkbox" data-feature="petHungerAlarm" ${feature('petHungerAlarm') ? 'checked' : ''}><i></i></label>`;
-    return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><div class="gc-list">${hungerToggle}</div><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
-  }
-
   function renderSilence() {
     const selected = new Set(config.silencedAbilities || []);
     return `<label class="gc-toggle"><span><b>Hide pet level-up popups</b><small>Hides the "Level up!" and "Fully grown!" toasts.</small></span><input type="checkbox" data-feature="silenceLevelUps" ${feature('silenceLevelUps') ? 'checked' : ''}><i></i></label><p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map(ability => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected.has(ability) ? 'checked' : ''}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join('')}</div>`;
@@ -1004,6 +625,7 @@ export function initCompanion(): void {
       if (input.dataset.feature === 'petHungerAlarm') processPetHunger();
       updateLunarTimer();
       renderPetFood();
+      syncCropEstimates();
     });
     main.querySelector('[data-open-planner]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionTogglePlanner?.(); });
     main.querySelector('[data-open-celestial-layout]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionToggleCelestialLayout?.(); });
@@ -1052,22 +674,7 @@ export function initCompanion(): void {
     const style = document.createElement('style');
     style.textContent = __GARDEN_COMPANION_CSS__;
     document.head.appendChild(style);
-    const lunar = document.createElement('div');
-    lunar.id = 'gc-lunar';
-    lunar.innerHTML = '<div class="gc-lunar-head"><div class="gc-lunar-title"><i class="gc-lunar-mark"></i><span>Next lunar event</span></div><div id="gc-lunar-head-actions"><button data-swap aria-label="Switch which timer is shown"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13l-3.5-3.5"/><path d="M20 15H7l3.5 3.5"/></svg></button><button data-minimise aria-label="Minimise the lunar timer" title="Minimise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button><button data-options aria-label="Open Garden Companion options" title="Open Garden Companion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.1 13.5c.1-.5.1-1 0-1.5l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.3-.8L15 4.8h-4l-.4 2.5c-.5.2-.9.5-1.3.8l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.8.6 1.3.8l.4 2.5h4l.4-2.5c.5-.2.9-.5 1.3-.8l2.4 1 2-3.4-2-1.5Z"/></svg></button></div></div><div class="gc-lunar-countdown"><strong>--</strong></div><div class="gc-health"><span id="gc-ws-health" data-status="connecting"><i></i><b>Connecting</b></span><button id="gc-update-health" data-status="checking">Checking update</button></div>';
-    lunar.querySelector<HTMLButtonElement>('[data-options]')!.onclick = togglePanel;
-    lunar.querySelector<HTMLButtonElement>('[data-minimise]')!.onclick = () => setLunarMinimised(true);
-    lunar.querySelector<HTMLButtonElement>('[data-swap]')!.onclick = () => setLunarMode(lunarMode === 'lunar' ? 'weather' : 'lunar');
-    lunar.querySelector<HTMLButtonElement>('#gc-update-health')!.onclick = handleUpdateClick;
-    document.body.appendChild(lunar);
-    makeDraggable(lunar, LUNAR_POSITION_KEY);
-    const lunarMini = document.createElement('button');
-    lunarMini.id = 'gc-lunar-mini';
-    lunarMini.hidden = true;
-    lunarMini.setAttribute('aria-label', 'Restore the lunar timer');
-    lunarMini.innerHTML = '<i class="gc-lunar-mark"></i>';
-    lunarMini.onclick = () => setLunarMinimised(false);
-    document.body.appendChild(lunarMini);
+    mountLunarTimer(togglePanel);
     onSpritesReady(() => {
       const panel = document.getElementById('gc-panel');
       if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood', 'calculators'].includes(activeTab)) renderPanel();
@@ -1076,26 +683,15 @@ export function initCompanion(): void {
       // The forecast sprite is asked for from the timer itself, so this is where it arrives.
       updateLunarTimer();
     });
-    // Reacting to the write rather than the next tick, so entering cinematic mode is not a second
-    // of the timer sitting in the shot.
-    page.__gardenCompanionOnCinematicChange?.(updateLunarTimer);
-    updateLunarTimer();
-    watchSocketHealth();
-    checkForUpdate();
-    setInterval(updateLunarTimer, 1000);
-    setInterval(watchSocketHealth, 1000);
-    setInterval(checkForUpdate, 30 * 60 * 1000);
+    watchExistingSocket();
     watchForGameUpdateDialog();
-    renderTurtleOverlay();
-    setInterval(renderTurtleOverlay, 250);
+    syncCropEstimates();
     renderPetFood();
-    setInterval(positionPetFood, 250);
     page.addEventListener('pointerup', () => requestAnimationFrame(positionPetFood), true);
   }
 
   installGameModalAccess();
-  watchWelcome();
-  subscribeToState();
+  retryUntil(subscribeToState, 'the room state subscription');
   installAtomHooks();
   installInstantHarvest();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });

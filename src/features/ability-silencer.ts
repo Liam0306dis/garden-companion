@@ -1,25 +1,15 @@
-import type { CompanionPage, JotaiAtom } from '../types.js';
+import { findAtom } from '../atom-cache.js';
+import { page } from '../page.js';
+import { retryUntil } from '../retry.js';
 
-function atomMap(page: CompanionPage): Map<unknown, JotaiAtom> | null {
-  const cache = page.jotaiAtomCache;
-  if (cache instanceof Map) return cache;
-  return cache?.cache ?? null;
+export function initAbilitySilencer(): void {
+  retryUntil(installSilencer, 'the ability silencer');
 }
 
-export function initAbilitySilencer(attempt = 0): void {
-  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
-  const map = atomMap(page);
-  if (!map) {
-    if (attempt < 240) setTimeout(() => initAbilitySilencer(attempt + 1), 500);
-    return;
-  }
-
-  const atom = [...map.values()].find(candidate => String(candidate.debugLabel ?? '').endsWith('myPetSlotInfosAtom'));
-  if (!atom?.read) {
-    if (attempt < 240) setTimeout(() => initAbilitySilencer(attempt + 1), 500);
-    return;
-  }
-  if (atom.__gardenCompanionSilencer) return;
+function installSilencer(): boolean {
+  const atom = findAtom('myPetSlotInfosAtom');
+  if (typeof atom?.read !== 'function') return false;
+  if (atom.__gardenCompanionSilencer) return true;
 
   const originalRead = atom.read;
   atom.read = function(get: unknown, ...args: unknown[]): unknown {
@@ -41,4 +31,5 @@ export function initAbilitySilencer(attempt = 0): void {
     return filtered ?? value;
   };
   atom.__gardenCompanionSilencer = true;
+  return true;
 }

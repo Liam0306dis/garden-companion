@@ -1,4 +1,6 @@
-import type { CompanionPage } from './types.js';
+import { page } from './page.js';
+import { BasisUniversal, TranscoderTextureFormat } from '@h00w/basis-universal-transcoder';
+import { RIVE_RUNTIME_URL } from './vendor-urls.js';
 
 interface AtlasFrame {
   frame: { x: number; y: number; w: number; h: number };
@@ -20,11 +22,6 @@ interface BasisTranscoder {
 
 interface BasisInstance {
   createKTX2Transcoder(): BasisTranscoder;
-}
-
-interface BasisModule {
-  BasisUniversal: { getInstance(factory: (imports: unknown) => Promise<unknown>): Promise<BasisInstance> };
-  TranscoderTextureFormat: { cTFRGBA32: number };
 }
 
 interface RiveRuntime {
@@ -66,8 +63,6 @@ function bestSource(sources: ManifestSource[]): string {
   return best;
 }
 
-const TRANSCODER_URL = 'https://unpkg.com/@h00w/basis-universal-transcoder?module';
-const RIVE_RUNTIME_URL = 'https://unpkg.com/@rive-app/canvas-single@2.38.5/rive.js';
 
 const DECOR_IDS = Object.keys(__DECOR_CATALOG__);
 
@@ -213,7 +208,6 @@ async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[];
  * Only used when the direct load fails, so nothing changes anywhere it already works.
  */
 async function blobUrlFor(url: string): Promise<string> {
-  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
   const source = await new Promise<string>((resolve, reject) => {
     const bridge = page.__gardenCompanionVendorSource;
     if (typeof bridge === 'function') {
@@ -377,8 +371,11 @@ type SpriteBundle = Record<string, SpriteMap>;
 /** A decoded stage plus whether every atlas it needed loaded, which is what gates caching it. */
 interface StageResult { bundle: SpriteBundle; complete: boolean }
 
+let cacheConnection: Promise<IDBDatabase | null> | null = null;
+
+/** One connection for the whole load, rather than a fresh open for every read and write. */
 function openCache(): Promise<IDBDatabase | null> {
-  return new Promise(resolve => {
+  return cacheConnection ??= new Promise(resolve => {
     try {
       const request = indexedDB.open(CACHE_DB, 1);
       request.onupgradeneeded = () => {
@@ -403,28 +400,22 @@ async function readCache(key: string): Promise<SpriteBundle | null> {
 }
 
 /**
- * Writes this fingerprint's bundle and drops every other one's, so the cache cannot grow forever.
- *
- * Eviction only happens when the atlases were actually identified. A load that fell back to the
- * asset version does not know what the artwork is, and letting it sweep would mean one slow request
- * deleted a good bundle and forced a rebuild on the next load as well as its own.
- */
-/**
  * The atlas fingerprint says whether the game's artwork changed. It cannot say whether *we* changed
  * which sprites we ask for - and when the winter egg was added to the egg list, every cache holding
  * a bundle without it kept serving that bundle until the game happened to reship its atlases. So
  * the request set is hashed into the key too, and adding a sprite invalidates the cache by itself.
  */
 function requestSignature(wanted: Set<string>, trimmedWanted: Set<string>): string {
-  const source = `${[...wanted].sort().join('|')}#${[...trimmedWanted].sort().join('|')}`;
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < source.length; index++) {
-    hash ^= source.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(36);
+  return hashText(`${[...wanted].sort().join('|')}#${[...trimmedWanted].sort().join('|')}`);
 }
 
+/**
+ * Writes this fingerprint's bundle and drops every other one's, so the cache cannot grow forever.
+ *
+ * Eviction only happens when the atlases were actually identified. A load that fell back to the
+ * asset version does not know what the artwork is, and letting it sweep would mean one slow request
+ * deleted a good bundle and forced a rebuild on the next load as well as its own.
+ */
 async function writeCache(key: string, value: SpriteBundle, fingerprint: string, evict: boolean): Promise<void> {
   const db = await openCache();
   if (!db) return;
@@ -432,13 +423,13 @@ async function writeCache(key: string, value: SpriteBundle, fingerprint: string,
     const store = db.transaction(CACHE_STORE, 'readwrite').objectStore(CACHE_STORE);
     store.put(value, key);
     if (!evict) return;
+    // Other fingerprints are stale artwork; the same stage under a different signature is a stale
+    // request set. Both are dead weight the moment this key is written.
+    const stalePrefix = key.slice(0, key.lastIndexOf(':') + 1);
     const keys = store.getAllKeys();
     keys.onsuccess = () => {
       for (const existing of keys.result) {
         if (typeof existing !== 'string' || existing === key) continue;
-        // Other fingerprints are stale artwork; the same stage under a different signature is a
-        // stale request set. Both are dead weight the moment this key is written.
-        const stalePrefix = key.slice(0, key.lastIndexOf(':') + 1);
         if (!existing.startsWith(`${fingerprint}:`) || existing.startsWith(stalePrefix)) store.delete(existing);
       }
     };
@@ -494,15 +485,22 @@ function hashText(value: string): string {
   return (hash >>> 0).toString(36);
 }
 
-async function basisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
+let decoder: Promise<{ basis: BasisInstance; rgbaFormat: number }> | null = null;
+
+/** Instantiated once and shared by both stages: the wasm is half a megabyte to compile. */
+function basisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
+  // A failure is not cached, so a stage that is retried gets a fresh attempt.
+  return decoder ??= createBasisDecoder().catch(error => { decoder = null; throw error; });
+}
+
+async function createBasisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
   const binary = atob(__PET_WASM_B64__.replace(/\s/g, ''));
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-  // Same fallback as the Rive runtime: the direct import first, then through the userscript
-  // manager when the page will not allow the request itself.
-  const module = await import(TRANSCODER_URL).catch(async () => import(await blobUrlFor(TRANSCODER_URL))) as BasisModule;
-  const basis = await module.BasisUniversal.getInstance(imports => WebAssembly.instantiate(bytes.buffer, imports as WebAssembly.Imports));
-  return { basis, rgbaFormat: module.TranscoderTextureFormat.cTFRGBA32 };
+  // Bundled at build time rather than imported from a CDN, and pinned to the version this wasm
+  // belongs to: the two are only compatible as a pair.
+  const basis = await BasisUniversal.getInstance(imports => WebAssembly.instantiate(bytes.buffer, imports as WebAssembly.Imports)) as unknown as BasisInstance;
+  return { basis, rgbaFormat: TranscoderTextureFormat.cTFRGBA32 };
 }
 
 async function decodeSheet(url: string, basis: BasisInstance, rgbaFormat: number): Promise<HTMLCanvasElement | null> {
@@ -615,7 +613,6 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
 }
 
 export async function initPetSprites(): Promise<void> {
-  const page = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage;
   // The first base whose manifest actually answers wins, so a wrong guess costs one failed fetch
   // rather than every sprite on the page.
   const bases = await detectAssetBases();

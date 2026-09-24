@@ -63,7 +63,8 @@ function rarityOf(value: unknown): string {
   return typeof value === 'string' && value ? value : 'Common';
 }
 
-function absorb(candidate: Row, keys: string[]): void {
+/** Fills in anything a recognised catalog adds, and says which catalog it was, if any. */
+function absorb(candidate: Row, keys: string[]): string | null {
   if (looksLike(keys, candidate[firstMember(keys, PLANT_MEMBERS)], PLANT_MEMBERS, plantProbe)) {
     const added = addMissing(PLANT_CATALOG, candidate, row => {
       const crop = row.crop as Row;
@@ -86,7 +87,7 @@ function absorb(candidate: Row, keys: string[]): void {
       } as (typeof PLANT_CATALOG)[string];
     });
     report('plants', added);
-    return;
+    return 'plants';
   }
   if (looksLike(keys, candidate[firstMember(keys, PET_MEMBERS)], PET_MEMBERS, petProbe)) {
     report('pets', addMissing(PET_CATALOG, candidate, row => ({
@@ -97,7 +98,7 @@ function absorb(candidate: Row, keys: string[]): void {
       diet: (row.diet as unknown[]).filter(item => typeof item === 'string') as string[],
       rarity: rarityOf(row.rarity),
     })));
-    return;
+    return 'pets';
   }
   if (looksLike(keys, candidate[firstMember(keys, EGG_MEMBERS)], EGG_MEMBERS, eggProbe)) {
     report('eggs', addMissing(EGG_CATALOG, candidate, row => ({
@@ -108,7 +109,7 @@ function absorb(candidate: Row, keys: string[]): void {
       // assumption that every egg guarantees its rarest at forty.
       pityThresholds: { ...(row.speciesPityThresholdPulls as Record<string, number>) },
     })));
-    return;
+    return 'eggs';
   }
   if (looksLike(keys, candidate[firstMember(keys, MUTATION_MEMBERS)], MUTATION_MEMBERS, mutationProbe)) {
     report('mutations', addMissing(MUTATION_CATALOG, candidate, row => ({
@@ -117,7 +118,9 @@ function absorb(candidate: Row, keys: string[]): void {
       coinMultiplier: Number(row.coinMultiplier) || 1,
       sprite: String(row.sprite || row.name || ''),
     })));
+    return 'mutations';
   }
+  return null;
 }
 
 const PLANT_MEMBERS = ['Carrot', 'Cabbage', 'Strawberry', 'Aloe', 'Beet', 'Clover'];
@@ -130,6 +133,8 @@ function report(kind: string, added: string[]): void {
 }
 
 let watching = false;
+/** Which catalogs have been seen. All four arrive together at start-up. */
+const seenCatalogs = new Set<string>();
 let scanning = false;
 
 /**
@@ -153,13 +158,19 @@ export function initCatalogCapture(): void {
     let keys: string[];
     try { keys = previous(value); } catch { return; }
     if (!keys.length) return;
-    absorb(value, keys);
+    const kind = absorb(value, keys);
+    if (kind) seenCatalogs.add(kind);
     if (depth >= 3) return;
     for (const key of keys) {
       let child: unknown;
       try { child = value[key]; } catch { continue; }
       if (isObject(child)) scan(child, depth + 1);
     }
+  }
+
+  function stopWatching(): void {
+    watching = false;
+    if (objectConstructor.keys === hook) objectConstructor.keys = previous;
   }
 
   const hook = function (this: unknown, value: never): string[] {
@@ -169,6 +180,8 @@ export function initCatalogCapture(): void {
       try { scan(value, 0); }
       catch { /* a scan must never break the game's own call */ }
       finally { scanning = false; }
+      // Once every catalog has been seen there is nothing left to find, so later calls are spared.
+      if (seenCatalogs.size >= 4) stopWatching();
     }
     return previous.call(this, value) as string[];
   };
@@ -178,11 +191,9 @@ export function initCatalogCapture(): void {
   // One owner for the price lookup other features read.
   page.__gardenCompanionPlantPrice = species => PLANT_CATALOG[species ?? '']?.crop?.baseSellPrice;
 
-  // The catalogs are read during start-up, so scanning past that is pure overhead. The wrapper is
+  // The catalogs are read during start-up, so scanning past that is pure overhead; this is the
+  // backstop for a build where one of them is never recognised. The wrapper is
   // only removed when it is still the outermost one; otherwise it stays as a cheap pass-through so
   // a hook installed after ours is not discarded.
-  setTimeout(() => {
-    watching = false;
-    if (objectConstructor.keys === hook) objectConstructor.keys = previous;
-  }, 30_000);
+  setTimeout(stopWatching, 30_000);
 }

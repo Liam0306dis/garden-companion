@@ -72,7 +72,7 @@ function setPetTeamEmblem(teamId: string, emblem: PetTeamEmblem): void {
  * id of a new team to come from the client. Without the flag every create was read as an edit of a
  * team that did not exist yet, which the reducer answers by doing nothing at all.
  */
-export function saveTeam(name, petIds, teamId = null) {
+export function saveTeam(name: string, petIds: string[], teamId: string | null = null): void {
   if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
   if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
   const isCreate = !teamId;

@@ -1,6 +1,7 @@
 import type { CompanionAlarmOptions } from './types.js';
 import { config, feature } from './config.js';
 import { page } from './page.js';
+import { toast } from './toast.js';
 import { escapeHtml } from './utils.js';
 
 /**
@@ -136,7 +137,18 @@ function renderAlarmBanner(options: CompanionAlarmOptions): void {
   document.body.appendChild(banner);
   banner.querySelector<HTMLButtonElement>('[data-stop]')!.onclick = dismissCurrentAlarm;
   const actionButton = banner.querySelector<HTMLButtonElement>('[data-buy]');
-  if (actionButton && options.onAction) actionButton.onclick = event => { void options.onAction?.(event.currentTarget as HTMLButtonElement); };
+  if (actionButton && options.onAction) {
+    actionButton.onclick = async () => {
+      // An action that throws part way (a buy loop losing its connection) must not leave the button
+      // stuck on its busy label with the alarm still ringing.
+      try { await options.onAction?.(actionButton); }
+      catch (error) {
+        actionButton.disabled = false;
+        actionButton.textContent = options.actionLabel ?? '';
+        toast((error as Error).message || 'The action failed.', 'error');
+      }
+    };
+  }
   alarmPhase = 0;
   // The timer runs while any alarm is up; each tick decides whether to sound, so a muted banner on
   // top still rings for unmuted alarms queued behind it, and later arrivals start it sounding again.

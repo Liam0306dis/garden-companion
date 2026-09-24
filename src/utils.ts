@@ -9,8 +9,10 @@ export function scriptVersion(): string {
   try { return GM_info.script.version || '0.0.0'; } catch { return '0.0.0'; }
 }
 
+const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+
 export function escapeHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
+  return String(value ?? '').replace(/[&<>'"]/g, char => HTML_ESCAPES[char] ?? char);
 }
 
 /**
@@ -32,7 +34,9 @@ export const NAME_OVERRIDES: Record<string, string> = {
 export function humanize(value: unknown): string {
   const id = String(value || '');
   return NAME_OVERRIDES[id]
-    ?? id.replace(/_NEW$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Za-z])([IVX]+)$/g, '$1 $2');
+    // Splitting on case already separates a tier numeral (BoostII is Boost II); a second pass for
+    // numerals split the numeral itself, which is how Boost II came out as Boost I I.
+    ?? id.replace(/_NEW$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 
 /**

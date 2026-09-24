@@ -28,23 +28,25 @@ const INITIAL_SHOP_SETTLE_MS = 500;
  */
 const RECONNECT_SETTLE_MS = 2500;
 
-function itemId(item): string {
+function itemId(item: ShopItem | undefined): string {
   for (const key of ITEM_KEYS) if (item?.[key]) return String(item[key]);
   return '';
 }
 
-function itemType(item, shop) {
+const SHOP_ITEM_TYPES: Record<string, string> = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool' };
+
+function itemType(item: ShopItem, shop: string): string {
   if (item?.itemType) return item.itemType;
-  return { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool' }[shop] || (item?.eggId ? 'Egg' : item?.decorId ? 'Decor' : item?.toolId ? 'Tool' : 'Seed');
+  return SHOP_ITEM_TYPES[shop] || (item?.eggId ? 'Egg' : item?.decorId ? 'Decor' : item?.toolId ? 'Tool' : 'Seed');
 }
 
-function itemPayload(item, shop) {
-  const payload = { itemType: itemType(item, shop) };
+function itemPayload(item: ShopItem, shop: string): Record<string, string> {
+  const payload: Record<string, string> = { itemType: itemType(item, shop) };
   for (const key of ITEM_KEYS) if (item?.[key]) payload[key] = item[key];
   return payload;
 }
 
-function purchasedCount(shop, id) {
+function purchasedCount(shop: string, id: string): number {
   const purchases = state.slot?.data?.shopPurchases?.[shop]?.purchases || {};
   return Number(purchases[id] || 0);
 }
@@ -226,7 +228,11 @@ function showShopAlarm(row: AvailableShopItem): void {
       const live = availableShopItems().find(item => item.shop === row.shop && item.id === row.id);
       if (!live) { toast('This item is no longer available.', 'error'); stopAlarm(owner); return; }
       for (let index = 0; index < live.remaining; index++) {
-        sendQuinoaCommand({ type: 'PurchaseShopItem', shop: live.shop, item: itemPayload(live.item, live.shop) });
+        try { sendQuinoaCommand({ type: 'PurchaseShopItem', shop: live.shop, item: itemPayload(live.item, live.shop) }); }
+        catch (error) {
+          // The alarm stays up so the rest can be bought once the connection is back.
+          throw new Error(index ? `Requested ${index} of ${live.remaining} before the connection dropped.` : (error as Error).message);
+        }
         if (index + 1 < live.remaining) await new Promise(resolve => setTimeout(resolve, 180));
       }
       toast(`Requested ${live.remaining} ${humanize(live.id)}.`, 'success');
@@ -248,7 +254,8 @@ export function setShopAlarmTab(tab: string): void {
 
 /** Turning an alarm on checks current stock, so a selection made while stocked fires straight away. */
 export function toggleShopAlert(key: string, enabled: boolean): void {
-  config.shopAlerts[key] = enabled;
+  if (enabled) config.shopAlerts[key] = true;
+  else delete config.shopAlerts[key];
   if (enabled) {
     armAlarmAudio();
     showSelectedShopAlarm(key);

@@ -12,7 +12,7 @@ import { initCelestialLayoutGuide } from './features/celestial-layout-guide.js';
 import { initCropCleanserHelper } from './features/crop-cleanser-helper.js';
 import { initPreserveAll } from './features/preserve-all.js';
 import { installPetSpriteLoader } from './pet-sprites-injector.js';
-import type { CompanionPage } from './types.js';
+import { feature } from './config.js';
 
 // First, so the game's own catalogs are seen before it finishes starting up.
 initCatalogCapture();
@@ -21,8 +21,7 @@ initAbilitySilencer();
 initLevelUpSilencer();
 installPetSpriteLoader();
 
-const page = window as unknown as CompanionPage;
-if (page.__gardenCompanionFeature?.('overview')) initGardenOverview();
+if (feature('overview')) initGardenOverview();
 initPlantDragMove();
 initPlanterPotSelection();
 initCelestialLayoutGuide();

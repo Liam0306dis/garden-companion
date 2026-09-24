@@ -1,4 +1,4 @@
-import { ABILITY_DETAILS, mutationName, PROC_RULES } from './constants.js';
+import { mutationName, PROC_RULES } from './constants.js';
 import { formatDuration, humanize, NUMBER_LOCALE } from './utils.js';
 
 /**

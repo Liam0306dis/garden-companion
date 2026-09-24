@@ -1,4 +1,3 @@
-import { feature } from '../config.js';
 import { ABILITY_DETAILS, ABILITY_FILTER_OPTIONS, ABILITY_GROUP_BY_ID, ABILITY_SET, LOG_PER_ABILITY, LOG_VISIBLE_ROWS, mutationName, PET_CATALOG } from '../constants.js';
 import { config, saveConfig } from '../config.js';
 import { allPets, petOverlay, petSpriteSource } from '../pets.js';

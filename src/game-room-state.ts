@@ -1,5 +1,6 @@
 import type { JotaiAtom } from './types.js';
-import { page } from './page.js';
+import { findAtom } from './atom-cache.js';
+import { retryUntil } from './retry.js';
 
 /**
  * Bundle 1206 dissolved a batch of standalone jotai atoms - mySelectedItemIdAtom,
@@ -38,27 +39,10 @@ export interface RoomStateInstance {
 
 type RoomStateListener = (state: RoomStateInstance) => void;
 
-const INSTALL_INTERVAL_MS = 500;
-const MAX_INSTALL_ATTEMPTS = 240;
-
 const listeners = new Set<RoomStateListener>();
 let roomAtom: JotaiAtom | null = null;
 let instance: RoomStateInstance | null = null;
 let installing = false;
-
-function atomMap(): Map<unknown, JotaiAtom> | null {
-  const cache = page.jotaiAtomCache;
-  if (cache instanceof Map) return cache;
-  return cache?.cache ?? null;
-}
-
-function findRoomAtom(map: Map<unknown, JotaiAtom>): JotaiAtom | null {
-  for (const atom of map.values()) {
-    const label = String(atom?.debugLabel ?? '');
-    if (label === 'currentRoomAtom' || label.endsWith('/currentRoomAtom')) return atom;
-  }
-  return null;
-}
 
 function isRoomState(value: unknown): value is RoomStateInstance {
   // The marker is the field atoms themselves: a bare object with a `selection` holding atom-like
@@ -74,13 +58,10 @@ function captureInstance(next: unknown): void {
   }
 }
 
-function install(attempt = 0): void {
-  const map = atomMap();
-  const atom = map ? findRoomAtom(map) : null;
-  if (!atom) {
-    if (attempt < MAX_INSTALL_ATTEMPTS) setTimeout(() => install(attempt + 1), INSTALL_INTERVAL_MS);
-    return;
-  }
+/** One attempt at hooking currentRoomAtom. True once an instance is in hand. */
+function install(): boolean {
+  const atom = findAtom('currentRoomAtom');
+  if (!atom) return false;
   roomAtom = atom;
   // The initial value of `atom(new Rr())`; the live instance until a room reset swaps it.
   if (atom.init !== undefined) captureInstance(atom.init);
@@ -95,7 +76,7 @@ function install(attempt = 0): void {
     };
     atom.__gardenCompanionRoomWatch = true;
   }
-  if (!instance && attempt < MAX_INSTALL_ATTEMPTS) setTimeout(() => install(attempt + 1), INSTALL_INTERVAL_MS);
+  return Boolean(instance);
 }
 
 /**
@@ -110,7 +91,7 @@ export function onCurrentRoomState(listener: RoomStateListener): void {
   }
   if (!installing) {
     installing = true;
-    install();
+    retryUntil(install, 'the room state hooks');
   } else if (roomAtom && !instance && roomAtom.init !== undefined) {
     captureInstance(roomAtom.init);
   }

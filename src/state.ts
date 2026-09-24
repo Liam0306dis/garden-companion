@@ -84,3 +84,37 @@ export function saveAbilityLog(): void {
     if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
   }
 }
+
+type StateListener = (reason: string) => void;
+const stateListeners = new Set<StateListener>();
+
+/**
+ * Runs whenever the game's state moves: a room patch arrives, or a mirrored atom (the tile you
+ * stand on, the held item, the current action) takes a new value. Features that only need to act
+ * when something changed subscribe here rather than polling on a timer.
+ */
+export function onStateChange(listener: StateListener): void {
+  stateListeners.add(listener);
+}
+
+const pendingReasons = new Set<string>();
+
+/**
+ * Coalesced and deferred to a microtask. Atom mirrors call this from inside the game's own atom
+ * reads, which must not run our listeners (or throw out of them) mid-read, and a patch that moves
+ * several mirrors at once should wake each listener once per reason rather than once per read.
+ */
+export function notifyStateChange(reason: string): void {
+  const idle = pendingReasons.size === 0;
+  pendingReasons.add(reason);
+  if (!idle) return;
+  queueMicrotask(() => {
+    const reasons = [...pendingReasons];
+    pendingReasons.clear();
+    for (const listener of stateListeners) {
+      for (const pending of reasons) {
+        try { listener(pending); } catch (error) { console.warn('[Garden Companion] A state listener failed.', error); }
+      }
+    }
+  });
+}

@@ -5,7 +5,7 @@ import { slotIsMaxSize } from '../crop-size.js';
 import { bindListSearch } from '../list-search.js';
 import { mutationSprite, produceSprite } from '../pets.js';
 import { panelActions } from '../panel-actions.js';
-import { state } from '../state.js';
+import { notifyStateChange, state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize } from '../utils.js';
 
@@ -87,15 +87,10 @@ function announce(target: HarvestTarget, message: string): HarvestTarget {
   return target;
 }
 
-/**
- * Whether this outgoing frame should be dropped. Nothing is parsed unless the frame mentions a
- * harvest, so an ordinary session pays one substring scan per message.
- */
-export function blockOutgoingHarvest(data: unknown): HarvestTarget | null {
-  if (!feature('cropProtection') || typeof data !== 'string' || !data.includes('HarvestCrop')) return null;
-  let target: HarvestTarget | null = null;
-  try { target = harvestTarget(JSON.parse(data) as Record<string, any>); }
-  catch { return null; }
+/** Whether this outgoing frame, already parsed by the socket hook, should be dropped. */
+export function blockOutgoingHarvest(frame: Record<string, any>): HarvestTarget | null {
+  if (!feature('cropProtection')) return null;
+  const target = harvestTarget(frame);
   if (!target) return null;
   // Nothing to check against yet. A harvest cannot be taken back, so the moments after connecting
   // or changing room - where our garden has not arrived - hold rather than wave crops through.
@@ -175,6 +170,8 @@ export function bindCropProtectionEvents(main: HTMLElement): void {
     // The two features want opposite things from the same crops, so only one may be on.
     if (enabled.checked) config.instantHarvest = false;
     saveConfig();
+    // The padlock row on the game's crop card follows this switch.
+    notifyStateChange('config');
     panelActions.renderPanelPreservingScroll();
   };
   bindListSearch(main.querySelector('[data-protect-search]'));

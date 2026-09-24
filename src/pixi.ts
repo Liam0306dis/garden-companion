@@ -14,7 +14,7 @@ export function installPixiCapture() {
   const store = page.__GARDEN_COMPANION_PIXI__ ||= { app: null, renderer: null };
   for (const name of ['__PIXI_APP_INIT__', '__PIXI_RENDERER_INIT__']) {
     const previous = page[name];
-    page[name] = function(value, ...args) {
+    page[name] = function(this: unknown, value: any, ...args: unknown[]) {
       if (name.includes('APP') && value) { store.app = value; store.renderer = value.renderer || store.renderer; }
       else if (value) store.renderer = value;
       if (typeof previous === 'function') return previous.call(this, value, ...args);

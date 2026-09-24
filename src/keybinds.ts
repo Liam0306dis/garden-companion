@@ -1,10 +1,10 @@
 import { config, feature, saveConfig } from './config.js';
-import { OVERVIEW_SHORTCUT_KEY } from './constants.js';
 import { activeTeamIds, applyPetTeam, teams } from './features/pet-teams.js';
 import { currentWeather } from './features/weather-timer.js';
 import { GAME_INTERFACES, openGameInterface, type GameInterface } from './game-atoms.js';
 import { page } from './page.js';
 import { panelActions } from './panel-actions.js';
+import { comboFromEvent, overviewShortcut, setOverviewShortcut } from './key-combo.js';
 import { toast } from './toast.js';
 import { escapeHtml } from './utils.js';
 
@@ -47,7 +47,7 @@ function refreshVisibleKeybindInputs(): void {
     field.value = config.interfaceKeybinds[field.dataset.interfaceKey!] || '';
   });
   document.querySelectorAll<HTMLInputElement>('#gc-panel [data-overview-key]').forEach(field => {
-    field.value = localStorage.getItem(OVERVIEW_SHORTCUT_KEY) || '';
+    field.value = overviewShortcut();
   });
 }
 export function claimKeybind(owner: string, combo: string): void {
@@ -56,7 +56,7 @@ export function claimKeybind(owner: string, combo: string): void {
   if (kind === 'interface') delete config.interfaceKeybinds[id];
   let overviewShortcutChanged: string | null = null;
   if (owner === 'overview') {
-    localStorage.removeItem(OVERVIEW_SHORTCUT_KEY);
+    setOverviewShortcut('');
     overviewShortcutChanged = '';
   }
 
@@ -67,14 +67,14 @@ export function claimKeybind(owner: string, combo: string): void {
     for (const key of Object.keys(config.teamKeybinds)) {
       if (config.teamKeybinds[key] === combo) delete config.teamKeybinds[key];
     }
-    if (owner !== 'overview' && localStorage.getItem(OVERVIEW_SHORTCUT_KEY) === combo) {
-      localStorage.removeItem(OVERVIEW_SHORTCUT_KEY);
+    if (owner !== 'overview' && overviewShortcut() === combo) {
+      setOverviewShortcut('');
       overviewShortcutChanged = '';
     }
     if (kind === 'team') config.teamKeybinds[id] = combo;
     if (kind === 'interface') config.interfaceKeybinds[id] = combo;
     if (owner === 'overview') {
-      localStorage.setItem(OVERVIEW_SHORTCUT_KEY, combo);
+      setOverviewShortcut(combo);
       overviewShortcutChanged = combo;
     }
   }
@@ -84,15 +84,6 @@ export function claimKeybind(owner: string, combo: string): void {
   if (overviewShortcutChanged !== null) page.__gardenCompanionOverviewShortcutChanged?.(overviewShortcutChanged);
 }
 
-function comboFromEvent(event) {
-  const parts = [];
-  if (event.ctrlKey) parts.push('Ctrl');
-  if (event.altKey) parts.push('Alt');
-  if (event.shiftKey) parts.push('Shift');
-  parts.push(event.key.length === 1 ? event.key.toUpperCase() : event.key);
-  return parts.join('+');
-}
-
 export function isTyping() {
   const element = document.activeElement;
   return Boolean(element && (['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName) || (element as HTMLElement).isContentEditable));
@@ -100,49 +91,49 @@ export function isTyping() {
 
 function installShortcutListener(): void {
   window.addEventListener('keydown', event => {
-  if (isTyping() || event.repeat) return;
-  const combo = comboFromEvent(event);
-  if (config.interfaceKeybinds.companionPanel === combo) {
+    if (isTyping() || event.repeat) return;
+    const combo = comboFromEvent(event);
+    if (config.interfaceKeybinds.companionPanel === combo) {
+      event.preventDefault(); event.stopPropagation();
+      panelActions.togglePanel();
+      return;
+    }
+    if (config.interfaceKeybinds[CROP_CLEANSER_KEY.id] === combo) {
+      event.preventDefault(); event.stopPropagation();
+      page.__gardenCompanionToggleCropCleanser?.();
+      return;
+    }
+    const gameInterface = feature('interfaceShortcuts')
+      ? GAME_INTERFACES.find(item => config.interfaceKeybinds[item.id] === combo)
+      : undefined;
+    if (gameInterface) {
+      event.preventDefault(); event.stopPropagation();
+      openGameInterface(gameInterface.id);
+      return;
+    }
+    if (feature('interfaceShortcuts') && config.interfaceKeybinds[WEATHER_SHOP_KEY.id] === combo) {
+      event.preventDefault(); event.stopPropagation();
+      const shop = WEATHER_SHOP_MODALS[currentWeather()];
+      if (shop) openGameInterface(shop);
+      return;
+    }
+    if (!feature('petTeams')) return;
+    if (config.interfaceKeybinds[PLANNER_KEY.id] === combo) {
+      event.preventDefault(); event.stopPropagation();
+      page.__gardenCompanionTogglePlanner?.();
+      return;
+    }
+    const cycle = TEAM_CYCLE_KEYS.find(item => config.interfaceKeybinds[item.id] === combo);
+    if (cycle) {
+      event.preventDefault(); event.stopPropagation();
+      cyclePetTeam(cycle.step);
+      return;
+    }
+    const team = teams().find(item => config.teamKeybinds[item.id] === combo);
+    if (!team) return;
     event.preventDefault(); event.stopPropagation();
-    panelActions.togglePanel();
-    return;
-  }
-  if (config.interfaceKeybinds[CROP_CLEANSER_KEY.id] === combo) {
-    event.preventDefault(); event.stopPropagation();
-    page.__gardenCompanionToggleCropCleanser?.();
-    return;
-  }
-  const gameInterface = feature('interfaceShortcuts')
-    ? GAME_INTERFACES.find(item => config.interfaceKeybinds[item.id] === combo)
-    : undefined;
-  if (gameInterface) {
-    event.preventDefault(); event.stopPropagation();
-    openGameInterface(gameInterface.id);
-    return;
-  }
-  if (feature('interfaceShortcuts') && config.interfaceKeybinds[WEATHER_SHOP_KEY.id] === combo) {
-    event.preventDefault(); event.stopPropagation();
-    const shop = WEATHER_SHOP_MODALS[currentWeather()];
-    if (shop) openGameInterface(shop);
-    return;
-  }
-  if (!feature('petTeams')) return;
-  if (config.interfaceKeybinds[PLANNER_KEY.id] === combo) {
-    event.preventDefault(); event.stopPropagation();
-    page.__gardenCompanionTogglePlanner?.();
-    return;
-  }
-  const cycle = TEAM_CYCLE_KEYS.find(item => config.interfaceKeybinds[item.id] === combo);
-  if (cycle) {
-    event.preventDefault(); event.stopPropagation();
-    cyclePetTeam(cycle.step);
-    return;
-  }
-  const team = teams().find(item => config.teamKeybinds[item.id] === combo);
-  if (!team) return;
-  event.preventDefault(); event.stopPropagation();
-  applyPetTeam(team.id);
-  toast(`Switching to ${team.name}.`, 'success');
+    applyPetTeam(team.id);
+    toast(`Switching to ${team.name}.`, 'success');
   }, true);
 }
 
@@ -178,7 +169,7 @@ export function renderKeybinds() {
   const shortcutRow = (label: string, attribute: string, value: string) => `<label class="gc-shortcut-row"><b>${escapeHtml(label)}</b><input readonly ${attribute} value="${escapeHtml(value)}" placeholder="Click, then press keys"></label>`;
   const interfaces = [
     shortcutRow('Garden Companion', 'data-interface-key="companionPanel"', config.interfaceKeybinds.companionPanel || ''),
-    shortcutRow('Garden Overview', 'data-overview-key', localStorage.getItem(OVERVIEW_SHORTCUT_KEY) || ''),
+    shortcutRow('Garden Overview', 'data-overview-key', overviewShortcut()),
     ...GAME_INTERFACES.flatMap(item => {
       const row = shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '');
       // The weather shop sits directly under the seed shop, one key for whichever weather is running.
@@ -228,12 +219,12 @@ export function cancelKeybindCapture(): void {
 
 export function bindKeybindEvents(main: HTMLElement): void {
   main.querySelectorAll<HTMLInputElement>('[data-team-key]').forEach(input => {
-    input.onclick = () => beginKeybindCapture(input, `team:${input.dataset.teamKey}`, 'Press keys... Esc cancels');
+    input.onclick = () => beginKeybindCapture(input, `team:${input.dataset.teamKey}`, 'Press keys... Esc clears');
   });
   main.querySelectorAll<HTMLInputElement>('[data-interface-key]').forEach(input => {
-    input.onclick = () => beginKeybindCapture(input, `interface:${input.dataset.interfaceKey}`, 'Press keys...');
+    input.onclick = () => beginKeybindCapture(input, `interface:${input.dataset.interfaceKey}`, 'Press keys... Esc clears');
   });
   main.querySelectorAll<HTMLInputElement>('[data-overview-key]').forEach(input => {
-    input.onclick = () => beginKeybindCapture(input, 'overview', 'Press keys...');
+    input.onclick = () => beginKeybindCapture(input, 'overview', 'Press keys... Esc clears');
   });
 }

@@ -1,8 +1,10 @@
 import type { JotaiAtom } from './types.js';
 import { page } from './page.js';
-import { state } from './state.js';
+import { notifyStateChange, state } from './state.js';
 import { toast } from './toast.js';
 import { onCurrentRoomState, type RoomStateInstance } from './game-room-state.js';
+import { findAtom } from './atom-cache.js';
+import { retryUntil } from './retry.js';
 
 /**
  * Reading and driving the game through its own jotai atoms: mirroring the values the panel needs
@@ -13,12 +15,6 @@ export type GameInterface = 'weatherStation' | 'seedShop' | 'eggShop' | 'toolSho
   // Weather shops, only openable while their weather runs. Kept out of GAME_INTERFACES because one
   // keybind opens whichever is running (see WEATHER_SHOP_KEY), rather than one row each.
   | 'snowShop' | 'thunderShop' | 'dawnShop' | 'amberShop' | 'rainShop';
-
-function atomMap(): Map<unknown, JotaiAtom> | null {
-  const cache = page.jotaiAtomCache;
-  if (cache instanceof Map) return cache;
-  return cache?.cache ?? null;
-}
 
 export const GAME_INTERFACES: ReadonlyArray<{ id: GameInterface; label: string }> = [
   { id: 'weatherStation', label: 'Weather station' },
@@ -60,7 +56,7 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
   // engine atom this used to hook), so nothing to do here for it.
   if (gameAtomSet || typeof atom?.write !== 'function' || wrappedAtomWrites.has(atom)) return atom;
   const original = atom.write;
-  const capture = function(this: JotaiAtom, get, set, ...args) {
+  const capture: NonNullable<JotaiAtom['write']> = function(this: JotaiAtom, get, set, ...args) {
     gameAtomSet = (target, value) => set(target, value);
     restoreAtomWriteCaptures();
     return original.call(this, get, set, ...args);
@@ -175,20 +171,13 @@ page.__gardenCompanionSetCinematic = (enabled: boolean, owner = 'default') => {
 };
 
 /**
- * Atoms are found by debugLabel, which the game sets to a bare name. A plain endsWith would let one
- * label swallow another - lastCurrencyTransactionAtom ends with actionAtom - and which of the two
- * won would come down to Map order, so a match is either exact or a whole path segment.
- */
-function labelMatches(label: string, match: string): boolean {
-  return label === match || label.endsWith(`/${match}`);
-}
-
-/**
  * Bundle 1141 folded myCurrentGrowSlotsAtom and myCurrentEggAtom into the raw current garden
  * object. Keep the old mirrored fields populated so crop estimates and the interaction helpers
  * remain independent of that internal atom refactor.
  */
 function mirrorAtomValue(key: string, value: unknown): void {
+  // Derived atoms are read far more often than they change, so only a new value is news.
+  const changed = (state as unknown as Record<string, unknown>)[key] !== value;
   (state as unknown as Record<string, unknown>)[key] = value;
   if (key === 'currentGardenObject') {
     const object = value as { objectType?: unknown; slots?: unknown } | null;
@@ -204,49 +193,24 @@ function mirrorAtomValue(key: string, value: unknown): void {
   // the flag preserve-all reads from it. (currentBuildingAtom would look cleaner but
   // is only subscribed during the tutorial, so its read hook almost never fires.)
   if (key === 'currentAction') state.preservationMode = value === 'preserve';
+  if (changed) notifyStateChange(key);
 }
 
-function hookAtom(match, key, attempt = 0) {
-  const map = atomMap();
-  if (!map || typeof map.values !== 'function') {
-    if (attempt < 180) setTimeout(() => hookAtom(match, key, attempt + 1), 500);
-    return;
-  }
-  for (const atom of map.values()) {
-    const label = String(atom?.debugLabel || '');
-    if (!labelMatches(label, match) || typeof atom.read !== 'function') continue;
-    const flag = `__gardenCompanion:${key}`;
-    if (atom[flag]) return;
-    const original = atom.read;
-    atom.read = function(get, ...args) {
-      const value = original.call(this, get, ...args);
-      mirrorAtomValue(key, value);
-      return value;
-    };
-    // A derived atom is read whenever anything depends on it, but a primitive one holds its value
-    // and the store need never call read at all - mySelectedSlotIdAtom is `atom(0)`, so cycling
-    // slots only ever showed up as a write. Reading it back after the write keeps both kinds live.
-    if (typeof atom.write === 'function') {
-      const originalWrite = atom.write;
-      atom.write = function(get, set, ...args) {
-        const result = originalWrite.call(this, get, set, ...args);
-        try {
-          const value = (get as (target: JotaiAtom) => unknown)(atom);
-          mirrorAtomValue(key, value);
-        } catch {}
-        return result;
-      };
-    }
-    atom[flag] = true;
-    return;
-  }
-  if (attempt < 180) setTimeout(() => hookAtom(match, key, attempt + 1), 500);
+/** Mirror a labelled atom's value into our state under `key`, once the game has created it. */
+function hookAtom(match: string, key: string): void {
+  retryUntil(() => {
+    const atom = findAtom(match);
+    if (typeof atom?.read !== 'function') return false;
+    mirrorFieldAtom(atom, key);
+    return true;
+  }, `the ${key} mirror`);
 }
 
 /**
- * Mirror a field atom's value into our state under `key`, wrapping both read and write. A primitive
- * field atom (like selection.itemId, `atom(null)`) holds its value and the store need not call read,
- * so the write side reads it back to keep the mirror live either way - the same pairing hookAtom uses.
+ * Mirror an atom's value into our state under `key`, wrapping both read and write. A derived atom is
+ * read whenever anything depends on it, but a primitive one (mySelectedSlotIdAtom is `atom(0)`,
+ * selection.itemId is `atom(null)`) holds its value and the store need never call read, so the write
+ * side reads it back to keep the mirror live either way.
  */
 function mirrorFieldAtom(atom: JotaiAtom, key: string): void {
   const flag = `__gardenCompanion:${key}`;

@@ -1,13 +1,41 @@
-import type { CompanionPage } from '../types.js';
+import type { CompanionPage, FarmSystems } from '../types.js';
 import { noteRoomSocketClosed, noteRoomSocketOpened } from '../connection-state.js';
 import { state } from '../state.js';
 import { ensureToolReady, freeInventorySlots, holdTool, shackToolCount } from '../pets.js';
 import { setQuinoaEngine } from '../quinoa-engine.js';
+import { atomMap } from '../atom-cache.js';
+import { page } from '../page.js';
+import { retryUntil } from '../retry.js';
+
+/**
+ * The engine's systems and views are untyped minified objects reached by name, so they are held as
+ * open records; a press carries the drag's working state between the pointer handlers.
+ */
+type GameObject = Record<string, any>;
+type Press = Record<string, any>;
+type FarmTile = { x: number; y: number; globalIndex: number; object: GameObject | null; [key: string]: any };
+
+interface LiveSystems extends FarmSystems {
+    tapToMove: GameObject | null;
+    tileSystem: GameObject | null;
+    petSystem: GameObject | null;
+    worldTapRouter: GameObject | null;
+    gardenInfoCard: GameObject | null;
+    inventoryItems: GameObject[];
+    inventoryReady: boolean;
+    ownUserSlotIdx: number | null;
+    currentGlobalTile: unknown;
+    currentGardenTile: GameObject | null;
+    isInMyGarden: boolean;
+    hudSuppressed: boolean;
+    nativeActionHolding: boolean;
+    blockDragUntil: number;
+    activeSocket: WebSocket | null;
+    fallbackHighlight: GameObject | null;
+}
 
 export function initPlantDragMove(): void {
-    'use strict';
-
-    const pageWindow = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window) as unknown as CompanionPage & typeof globalThis;
+    const pageWindow = page as CompanionPage & typeof globalThis;
     const HOLD_MS = 1000;
     const HOLD_MOVE_TOLERANCE_PX = 12;
     const POT_TIMEOUT_MS = 10_000;
@@ -18,7 +46,7 @@ export function initPlantDragMove(): void {
     const HOOK_RELEASE_TIMEOUT_MS = 60_000;
     const WRAPPED_FLAG = '__plantDragMoverWrapped';
 
-    const live = {
+    const live: LiveSystems = {
         tapToMove: null,
         tileSystem: null,
         petSystem: null,
@@ -37,9 +65,9 @@ export function initPlantDragMove(): void {
         fallbackHighlight: null,
     };
 
-    let press = null;
+    let press: Press | null = null;
     let toastTimer = 0;
-    let lastLoggedPlanterPotCount = null;
+    let lastLoggedPlanterPotCount: number | null = null;
     let openedRoomSocketCount = 0;
     let moveBusy = false;
 
@@ -47,7 +75,7 @@ export function initPlantDragMove(): void {
         return pageWindow.__gardenCompanionFeature?.('dragMove') !== false;
     }
 
-    function log(message, detail?) {
+    function log(message: string, detail?: unknown) {
         if (detail === undefined) console.log(`[PlantDrag] ${message}`);
         else console.log(`[PlantDrag] ${message}`, detail);
     }
@@ -60,7 +88,7 @@ export function initPlantDragMove(): void {
     const originalDefineProperty = objectCtor.defineProperty;
     let originalMapSet: typeof Map.prototype.set | undefined;
     let hookReleaseTimer = 0;
-    const armedSystemFields = new Set();
+    const armedSystemFields = new Set<string>();
     /**
      * Which systems have been caught since the hooks were last armed. The old references are kept
      * across a reconnect (it does not always rebuild them), so "every field is set" says nothing
@@ -70,7 +98,7 @@ export function initPlantDragMove(): void {
     const capturedSinceArm = new Set<string>();
     const CAPTURED_SYSTEMS = ['tapToMove', 'tileObject', 'pet', 'worldTapRouter', 'gardenInfoCard'];
 
-    function resetPrivateSystems(reason) {
+    function resetPrivateSystems(reason: string) {
         live.fallbackHighlight?.destroy?.();
         live.tapToMove = null;
         live.tileSystem = null;
@@ -86,11 +114,11 @@ export function initPlantDragMove(): void {
         log(`${reason}; waiting for the rebuilt farm systems.`);
     }
 
-    function watchTileSystemTeardown(system) {
+    function watchTileSystemTeardown(system: GameObject) {
         const originalDestroy = system?.destroy;
         if (typeof originalDestroy !== 'function' || originalDestroy[WRAPPED_FLAG]) return;
 
-        function watchedDestroy(this: unknown, ...args) {
+        function watchedDestroy(this: unknown, ...args: unknown[]) {
             if (live.tileSystem === system || live.tileSystem === null) {
                 resetPrivateSystems('Quinoa engine teardown detected');
             }
@@ -100,14 +128,14 @@ export function initPlantDragMove(): void {
         system.destroy = watchedDestroy;
     }
 
-    function disarmPrivateField(key) {
+    function disarmPrivateField(key: string) {
         armedSystemFields.delete(key);
         try {
-            delete objectProto[key];
+            delete (objectProto as GameObject)[key];
         } catch {}
     }
 
-    function captureNamedSystem(system) {
+    function captureNamedSystem(system: GameObject) {
         if (CAPTURED_SYSTEMS.includes(system?.name)) capturedSinceArm.add(system.name);
         if (system?.name === 'tapToMove') {
             if (live.tapToMove === system) return;
@@ -141,7 +169,7 @@ export function initPlantDragMove(): void {
         releaseGlobalHooksIfIdle();
     }
 
-    function capturePrivateSystem(target, key, value) {
+    function capturePrivateSystem(target: GameObject, key: PropertyKey, value: unknown) {
         if (key === 'lastHoverGridX' && target?.name === 'tapToMove') {
             captureNamedSystem(target);
         } else if (key === 'tileViews' && target?.name === 'tileObject' && value instanceof pageWindow.Map) {
@@ -163,9 +191,9 @@ export function initPlantDragMove(): void {
      */
     function installDefinePropertyCapture() {
         if ((objectCtor.defineProperty as any)?.[WRAPPED_FLAG]) return;
-        function watchedDefineProperty(this: unknown, target, key, descriptor) {
+        function watchedDefineProperty(this: unknown, target: GameObject, key: PropertyKey, descriptor: PropertyDescriptor) {
             const result = originalDefineProperty.call(this, target, key, descriptor);
-            if (armedSystemFields.has(key)) capturePrivateSystem(target, key, descriptor?.value);
+            if (typeof key === 'string' && armedSystemFields.has(key)) capturePrivateSystem(target, key, descriptor?.value);
             return result;
         }
         watchedDefineProperty[WRAPPED_FLAG] = true;
@@ -244,12 +272,12 @@ export function initPlantDragMove(): void {
     function installSystemRegistryCapture() {
         const mapProto = pageWindow.Map?.prototype;
         const originalSet = mapProto?.set;
-        if (typeof originalSet !== 'function' || originalSet[WRAPPED_FLAG]) return;
+        if (typeof originalSet !== 'function' || (originalSet as unknown as GameObject)[WRAPPED_FLAG]) return;
         originalMapSet = originalSet;
 
-        function watchedMapSet(this: unknown, key, value) {
+        function watchedMapSet(this: unknown, key: unknown, value: unknown) {
             const result = originalSet.call(this, key, value);
-            const system = value?.system;
+            const system = (value as GameObject | null)?.system;
             if (system?.name === key) captureNamedSystem(system);
             return result;
         }
@@ -263,7 +291,7 @@ export function initPlantDragMove(): void {
 
     function captureGameSocket() {
         const OriginalWebSocket = pageWindow.WebSocket;
-        if (!OriginalWebSocket || OriginalWebSocket[WRAPPED_FLAG]) return;
+        if (!OriginalWebSocket || (OriginalWebSocket as unknown as GameObject)[WRAPPED_FLAG]) return;
 
         function PlantDragWebSocket(...args: ConstructorParameters<typeof WebSocket>) {
             const socket = new OriginalWebSocket(...args);
@@ -322,7 +350,7 @@ export function initPlantDragMove(): void {
         return toast;
     }
 
-    function showToast(message, tone = 'normal', duration = 2200) {
+    function showToast(message: string, tone = 'normal', duration = 2200) {
         if (!document.documentElement) return;
         const toast = ensureToast();
         toast.textContent = message;
@@ -343,12 +371,6 @@ export function initPlantDragMove(): void {
         }
     }
 
-    function atomMap() {
-        const cache = pageWindow.jotaiAtomCache;
-        if (cache instanceof Map) return cache;
-        return cache?.cache ?? null;
-    }
-
     /**
      * The label is a list, not a name, so the current build's atom and any renamed
      * alias can be watched together. Build 1029 renamed the inventory atom
@@ -356,14 +378,14 @@ export function initPlantDragMove(): void {
      * that knew only the old name stopped firing, which is how a plant move started
      * reporting no Planter Pot while the inventory was full of them.
      */
-    function hookAtom(labels, onValue) {
+    function hookAtom(labels: string | string[], onValue: (value: any) => void) {
         const wanted = Array.isArray(labels) ? labels : [labels];
         const debugLabel = wanted[0];
         const map = atomMap();
         if (!map || typeof map.values !== 'function') return false;
 
         for (const atom of map.values()) {
-            if (!wanted.includes(atom?.debugLabel) || typeof atom.read !== 'function') continue;
+            if (!wanted.includes(String(atom?.debugLabel ?? '')) || typeof atom.read !== 'function') continue;
             const flag = `${WRAPPED_FLAG}:${debugLabel}`;
             if (atom[flag]) return true;
 
@@ -386,8 +408,8 @@ export function initPlantDragMove(): void {
     }
 
     function installAtomHooks() {
-        const hooks = [
-            [['myPredictedInventoryItemsAtom'], value => {
+        const hooks: Array<[string | string[], (value: any) => void]> = [
+            [['myPredictedInventoryItemsAtom'], (value: any) => {
                 if (Array.isArray(value)) {
                     live.inventoryItems = value;
                     live.inventoryReady = true;
@@ -401,23 +423,23 @@ export function initPlantDragMove(): void {
                     }
                 }
             }],
-            ['myCurrentGlobalTileIndexAtom', value => {
+            ['myCurrentGlobalTileIndexAtom', (value: any) => {
                 live.currentGlobalTile = value;
             }],
-            ['myCurrentGardenTileAtom', value => {
+            ['myCurrentGardenTileAtom', (value: any) => {
                 live.currentGardenTile = value;
             }],
-            ['isInMyGardenAtom', value => {
+            ['isInMyGardenAtom', (value: any) => {
                 live.isInMyGarden = value === true;
                 refreshOwnUserSlot();
             }],
-            ['hudSuppressedByOverlayAtom', value => {
+            ['hudSuppressedByOverlayAtom', (value: any) => {
                 live.hudSuppressed = value === true;
                 if (live.hudSuppressed) {
                     live.blockDragUntil = Math.max(live.blockDragUntil, performance.now() + NATIVE_INPUT_GRACE_MS);
                 }
             }],
-            ['actionHoldVisualStateAtom', value => {
+            ['actionHoldVisualStateAtom', (value: any) => {
                 live.nativeActionHolding = value?.kind === 'holding';
                 if (live.nativeActionHolding) {
                     live.blockDragUntil = Math.max(live.blockDragUntil, performance.now() + NATIVE_INPUT_GRACE_MS);
@@ -443,20 +465,19 @@ export function initPlantDragMove(): void {
         return installed === hooks.length;
     }
 
-    const atomHookInterval = setInterval(() => {
-        if (installAtomHooks()) {
-            clearInterval(atomHookInterval);
-            log('Native inventory state connected.');
-        }
-    }, 250);
+    retryUntil(() => {
+        if (!installAtomHooks()) return false;
+        log('Native inventory state connected.');
+        return true;
+    }, 'plant drag move');
 
-    function isGameCanvas(target) {
+    function isGameCanvas(target: any) {
         // Our own panels draw on canvases too, and these listeners run in the capture phase, so a
         // companion window cannot stop them by other means. Anything inside our UI is not the game.
         return target?.tagName === 'CANVAS' && !target.closest?.('[data-gc-ui]');
     }
 
-    function waitFor(condition, timeoutMs, intervalMs = 100) {
+    function waitFor<T>(condition: () => T, timeoutMs: number, intervalMs = 100): Promise<T | null> {
         const started = performance.now();
         return new Promise(resolve => {
             const poll = setInterval(() => {
@@ -470,7 +491,7 @@ export function initPlantDragMove(): void {
         });
     }
 
-    function clientToGameGlobal(clientX, clientY, canvas) {
+    function clientToGameGlobal(clientX: number, clientY: number, canvas: HTMLCanvasElement) {
         const renderer = live.worldTapRouter?.renderer ?? live.tapToMove?.renderer;
         if (!renderer) return null;
         const rect = canvas.getBoundingClientRect();
@@ -481,9 +502,9 @@ export function initPlantDragMove(): void {
         };
     }
 
-    function isPointerOverGameUi(event) {
+    function isPointerOverGameUi(event: PointerEvent) {
         const router = live.worldTapRouter;
-        const global = clientToGameGlobal(event.clientX, event.clientY, event.target);
+        const global = event.target instanceof HTMLCanvasElement ? clientToGameGlobal(event.clientX, event.clientY, event.target) : null;
         if (!router?.isWorldPointerSuppressed || !global) return false;
         try {
             return router.isWorldPointerSuppressed(global, event.pointerType) === true;
@@ -493,7 +514,7 @@ export function initPlantDragMove(): void {
         }
     }
 
-    function pointToFarmTile(clientX, clientY, canvas) {
+    function pointToFarmTile(clientX: number, clientY: number, canvas: HTMLCanvasElement): FarmTile | null {
         const tapToMove = live.tapToMove;
         const tileSystem = live.tileSystem;
         if (!tapToMove?.renderer || !tileSystem?.worldContainer || !tileSystem?.map) return null;
@@ -544,7 +565,7 @@ export function initPlantDragMove(): void {
         }
     }
 
-    function updateFallbackHighlight(activePress, clientX, clientY) {
+    function updateFallbackHighlight(activePress: Press, clientX: number, clientY: number) {
         if (live.tapToMove?.isTapToMoveEnabled !== false) return;
         const marker = ensureFallbackHighlight();
         if (!marker) return;
@@ -564,7 +585,7 @@ export function initPlantDragMove(): void {
         if (live.fallbackHighlight) live.fallbackHighlight.visible = false;
     }
 
-    function fadeSourcePlant(activePress) {
+    function fadeSourcePlant(activePress: Press) {
         const tileView = live.tileSystem?.tileViews?.get(activePress.source.globalIndex);
         const displayObject = tileView?.displayObject;
         if (!displayObject) return;
@@ -573,7 +594,7 @@ export function initPlantDragMove(): void {
         const startedAt = performance.now();
         const fromAlpha = displayObject.alpha;
         const toAlpha = Math.min(fromAlpha, 0.28);
-        const animate = now => {
+        const animate = (now: number) => {
             if (activePress.fadedDisplayObject !== displayObject || displayObject.destroyed) return;
             const progress = Math.min(1, (now - startedAt) / 180);
             displayObject.alpha = fromAlpha + (toAlpha - fromAlpha) * progress;
@@ -582,7 +603,7 @@ export function initPlantDragMove(): void {
         activePress.fadeFrame = pageWindow.requestAnimationFrame(animate);
     }
 
-    function restoreSourcePlant(activePress) {
+    function restoreSourcePlant(activePress: Press) {
         if (activePress.fadeFrame) pageWindow.cancelAnimationFrame(activePress.fadeFrame);
         const displayObject = activePress.fadedDisplayObject;
         if (displayObject && !displayObject.destroyed && activePress.sourceAlpha != null) {
@@ -624,12 +645,12 @@ export function initPlantDragMove(): void {
      * watching a mirror that had gone quiet - the pot went out, the plant came back, and nothing
      * here ever saw it. The slot state arrives with every patch and cannot go stale that way.
      */
-    function inventoryItems() {
-        const items = state.slot?.data?.inventory?.items;
+    function inventoryItems(): GameObject[] {
+        const items = state.slot?.data?.inventory?.items as GameObject[] | undefined;
         return Array.isArray(items) && items.length ? items : live.inventoryItems;
     }
 
-    function isSamePlant(candidate, source) {
+    function isSamePlant(candidate: GameObject | undefined, source: GameObject | undefined) {
         if (candidate?.species !== source?.species) return false;
         if (source?.plantedAt != null && candidate?.plantedAt !== source.plantedAt) return false;
         if (source?.maturedAt != null && candidate?.maturedAt !== source.maturedAt) return false;
@@ -637,11 +658,11 @@ export function initPlantDragMove(): void {
     }
 
     /** The item we named on the way out, once it has come back. */
-    function findPottedPlant(plantItemId) {
+    function findPottedPlant(plantItemId: string) {
         return inventoryItems().find(item => item?.itemType === 'Plant' && item?.id === plantItemId);
     }
 
-    function sendMessage(message) {
+    function sendMessage(message: Record<string, unknown>) {
         const socket = live.activeSocket;
         if (!socket || socket.readyState !== pageWindow.WebSocket.OPEN) {
             throw new Error('Game WebSocket is not connected');
@@ -658,7 +679,7 @@ export function initPlantDragMove(): void {
      * looked for it afterwards ever found it. Naming it also means there is nothing to search for:
      * the item that comes back is the one we asked for.
      */
-    function sendPotPlant(slot, plantItemId) {
+    function sendPotPlant(slot: number, plantItemId: string) {
         const requestId = pageWindow.crypto.randomUUID();
         // No sequence here: it is stamped on the way out of the socket, from the same counter the
         // game's own commands are renumbered by.
@@ -671,19 +692,20 @@ export function initPlantDragMove(): void {
         log(`Sent PotPlant for farm slot ${slot}.`, { requestId });
     }
 
-    function sendPlantGardenPlant(slot, itemId) {
-        // The native v730 client still sends PlantGardenPlant through its legacy
-        // fire-and-forget path; unlike PotPlant, it is not a QuinoaCommand RPC.
+    function sendPlantGardenPlant(slot: number, itemId: string) {
+        // The game has sent PlantGardenPlant inside the QuinoaCommand envelope since its commands
+        // moved onto the shared reducer; sent bare the server refuses it. check-bundle watches this.
+        const requestId = pageWindow.crypto.randomUUID();
         sendMessage({
             scopePath: ['Room', 'Quinoa'],
-            type: 'PlantGardenPlant',
-            slot,
-            itemId,
+            type: 'QuinoaCommand',
+            requestId,
+            command: { type: 'PlantGardenPlant', slot, itemId },
         });
-        log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId });
+        log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId, requestId });
     }
 
-    function prepareHeldPlant(activePress) {
+    function prepareHeldPlant(activePress: Press) {
         const source = pointToFarmTile(activePress.startX, activePress.startY, activePress.target);
         if (!source || source.object?.objectType !== 'plant') {
             throw new Error('That is not a Plant!');
@@ -704,7 +726,7 @@ export function initPlantDragMove(): void {
         showToast('Drag to a highlighted tile and release - drop on a plant to swap them.', 'success', 0);
     }
 
-    function getValidDestination(activePress) {
+    function getValidDestination(activePress: Press) {
         const destination = pointToFarmTile(
             activePress.releaseX,
             activePress.releaseY,
@@ -729,7 +751,7 @@ export function initPlantDragMove(): void {
      * Pot the plant off one tile and hand back the inventory item it becomes, named by us so it can
      * be found again (see sendPotPlant). Throws if the server never returns it.
      */
-    async function potPlant(tile) {
+    async function potPlant(tile: FarmTile) {
         const plantItemId = pageWindow.crypto.randomUUID();
         showToast(`Picking up ${tile.object?.species ?? 'plant'}...`, 'normal', 0);
         sendPotPlant(tile.localTileIndex, plantItemId);
@@ -738,7 +760,7 @@ export function initPlantDragMove(): void {
         return plantItem;
     }
 
-    async function commitHeldMove(activePress) {
+    async function commitHeldMove(activePress: Press) {
         const destination = getValidDestination(activePress);
         activePress.destination = destination;
         // A plant already on the destination is swapped with the one being moved, not treated as a block.
@@ -751,8 +773,8 @@ export function initPlantDragMove(): void {
         // Held for the whole move, not just the fetch: a pot is spent by each PotPlant, and auto-store
         // filing one back in between is what would make a drag fail outright.
         const releasePot = holdTool('PlanterPot');
-        let sourcePlant;
-        let destPlant = null;
+        let sourcePlant: GameObject;
+        let destPlant: GameObject | null = null;
         try {
             try {
                 if (!hasPlanterPot(potsNeeded) && !await ensureToolReady('PlanterPot', potsNeeded, 1)) {
@@ -792,7 +814,7 @@ export function initPlantDragMove(): void {
      * Plant an inventory item onto a tile and confirm the server placed it. `plantObject` is the tile
      * data the plant was lifted from, used only to recognise it once it lands. Returns whether it settled.
      */
-    async function placePlant(plantObject, destination, plantId, activePress) {
+    async function placePlant(plantObject: GameObject | null, destination: FarmTile, plantId: string, activePress: Press) {
         if (activePress.cancelled) return false;
         const currentObject = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
         if (currentObject) {
@@ -809,7 +831,7 @@ export function initPlantDragMove(): void {
             const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
             const itemStillHeld = inventoryItems().some(item => item?.id === plantId);
             return !itemStillHeld && object?.objectType === 'plant'
-                && isSamePlant(object, plantObject);
+                && isSamePlant(object, plantObject ?? undefined);
         }, PLACE_TIMEOUT_MS, 150);
 
         if (placed) {
@@ -821,7 +843,7 @@ export function initPlantDragMove(): void {
         return placed;
     }
 
-    function activatePress(activePress) {
+    function activatePress(activePress: Press) {
         if (press !== activePress || activePress.cancelled || activePress.released) return;
         if (!isEnabled()) {
             activePress.cancelled = true;
@@ -860,11 +882,11 @@ export function initPlantDragMove(): void {
             clearFallbackHighlight();
             clearPress(activePress);
             log('Move cancelled.', error);
-            showToast(`Move cancelled: ${error.message}.`, 'error', 4500);
+            showToast(`Move cancelled: ${(error as Error).message}.`, 'error', 4500);
         }
     }
 
-    function clearPress(activePress) {
+    function clearPress(activePress: Press) {
         clearTimeout(activePress.holdTimer);
         if (press === activePress) press = null;
         clearFallbackHighlight();

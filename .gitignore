@@ -7,9 +7,9 @@ node_modules/
 !.env.example
 
 # Test and compiler output
-# The static checks are tracked; the scratch screenshots beside them are not.
+# The tests are tracked; the scratch screenshots beside them are not.
 tests/*
-!tests/static.test.ts
+!tests/*.ts
 coverage/
 *.tsbuildinfo
 *.log
@@ -30,3 +30,6 @@ desktop.ini
 
 push.bat
 build.bat
+
+# Captured game bundles (npm run check-bundle). The game's own code, never published.
+bundles/

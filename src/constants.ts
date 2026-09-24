@@ -109,7 +109,8 @@ export const STACKED_PASSIVE_GROUPS = [
   { key: 'DawnbinderBoost', label: 'Dawnbinder Boost', parameter: 'plantAbilityChanceBoostPercentage', abilities: ['DawnbinderBoost'] },
 ] as const;
 
-export const STACKED_PASSIVE_BY_ABILITY = new Map(STACKED_PASSIVE_GROUPS.flatMap(group => group.abilities.map(ability => [ability, group] as const)));
+export const STACKED_PASSIVE_BY_ABILITY = new Map<string, (typeof STACKED_PASSIVE_GROUPS)[number]>(
+  STACKED_PASSIVE_GROUPS.flatMap(group => group.abilities.map(ability => [ability, group] as const)));
 
 export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
   ['SnowyHungerBoost', 'Frost'], ['SnowyHungerRestore', 'Frost'], ['SnowyCropMutationBoost', 'Frost'], ['DawnBoost', 'Dawn'],
@@ -120,7 +121,7 @@ export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
   ['SnowyEggGrowthBoost', 'Frost'], ['ThunderEggGrowthBoost', 'Thunderstorm'],
 ]);
 
-export const SHOP_NAMES = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber' };
+export const SHOP_NAMES: Record<string, string> = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber' };
 export const SHOP_TABS = [['seed', 'Seeds'], ['amber', 'Amber'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['rain', 'Rain'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
 
 export const SEASONAL_SHOP_ITEMS: Record<string, string[]> = {
@@ -135,7 +136,7 @@ export const SEASONAL_SHOP_ITEMS: Record<string, string[]> = {
   amber: ['Persimmon', 'Habanero', 'Marigold', 'Emberbloom', 'MoonCelestial', 'AmberEgg', 'HungerShard', 'XPShard', 'StrengthShard', 'StoneMoonGate', 'StoneTorch', 'StoneFirepit'],
 };
 
-export const ITEM_KEYS = ['species', 'eggId', 'toolId', 'decorId'];
+export const ITEM_KEYS = ['species', 'eggId', 'toolId', 'decorId'] as const;
 
 export const GRANTER_CHANCES: Record<string, number> = {
   RainbowGranter: .72, GoldGranter: .72, AmberlitGranter: 2, DawnlitGranter: 4, FrostGranter: 6,

@@ -55,13 +55,21 @@ function migrate(saved: Record<string, unknown>): Record<string, unknown> {
   return saved;
 }
 
+/**
+ * A fresh copy of the defaults. A spread alone would share their arrays and maps with the live
+ * config, so the first setting pushed into one of them would quietly rewrite the defaults too.
+ */
+function defaults(): CompanionConfig {
+  return structuredClone(DEFAULTS);
+}
+
 function readConfig(): CompanionConfig {
   try {
     const saved = GM_getValue(STORE_KEY, {});
-    return { ...DEFAULTS, ...migrate((saved && typeof saved === 'object' ? saved : {}) as Record<string, unknown>) } as CompanionConfig;
+    return { ...defaults(), ...migrate((saved && typeof saved === 'object' ? saved : {}) as Record<string, unknown>) } as CompanionConfig;
   } catch {
-    try { return { ...DEFAULTS, ...migrate(JSON.parse(localStorage.getItem(STORE_KEY) || '{}')) } as CompanionConfig; }
-    catch { return { ...DEFAULTS }; }
+    try { return { ...defaults(), ...migrate(JSON.parse(localStorage.getItem(STORE_KEY) || '{}')) } as CompanionConfig; }
+    catch { return defaults(); }
   }
 }
 
@@ -69,7 +77,10 @@ export const config = readConfig();
 
 export function saveConfig(): void {
   try { GM_setValue(STORE_KEY, config); }
-  catch { localStorage.setItem(STORE_KEY, JSON.stringify(config)); }
+  catch {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(config)); }
+    catch (error) { console.warn('[Garden Companion] Settings could not be saved.', error); }
+  }
 }
 
 export function feature(name: string): boolean {
@@ -85,9 +96,11 @@ export function pruneStaleConfig(): void {
   const savedSilencedAbilities = Array.isArray(config.silencedAbilities) ? config.silencedAbilities : [];
   config.silencedAbilities = savedSilencedAbilities.filter(ability => !EXCLUDED_TRACKED_ABILITIES.has(ability));
   const savedShopAlerts = config.shopAlerts && typeof config.shopAlerts === 'object' ? config.shopAlerts : {};
-  config.shopAlerts = Object.fromEntries(Object.entries(savedShopAlerts).filter(([key]) => {
+  // Only armed alerts are kept: an unticked one reads the same as an absent one, and keeping them
+  // grew the saved config by a row for every item ever toggled off.
+  config.shopAlerts = Object.fromEntries(Object.entries(savedShopAlerts).filter(([key, on]) => {
     const [shop, itemId] = key.split(':');
-    return shop !== 'tool' || !EXCLUDED_TOOL_ALERTS.has(itemId);
+    return on === true && (shop !== 'tool' || !EXCLUDED_TOOL_ALERTS.has(itemId));
   }));
   const savedFoodChoices = config.petFoodChoices && typeof config.petFoodChoices === 'object' ? config.petFoodChoices : {};
   // A pet the baked catalog has never heard of is passed over rather than dropped: this runs before
@@ -109,5 +122,6 @@ export function pruneStaleConfig(): void {
   config.protectedSpecies = Object.fromEntries(Object.entries(savedProtectedSpecies).filter(([, on]) => on === true));
   if (config.silencedAbilities.length !== savedSilencedAbilities.length
     || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length
+    || Object.keys(config.petFoodChoices).length !== Object.keys(savedFoodChoices).length
     || Object.keys(config.protectedSpecies).length !== Object.keys(savedProtectedSpecies).length) saveConfig();
 }

@@ -3,7 +3,7 @@ import { makeDraggable } from '../draggable.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
 import { ensureToolReady, heldToolCount, holdTool, mutationSprite } from '../pets.js';
-import { state } from '../state.js';
+import { onStateChange, state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 
@@ -33,7 +33,6 @@ let rowSnapshot: CleanserRow[] = [];
 let displayedCleanserCount = 0;
 let lastLiveCleanserCount = 0;
 let optimisticCountUntil = 0;
-let reconcileTimer: number | null = null;
 const cleansedRows = new Set<string>();
 const changedRows = new Set<string>();
 
@@ -125,17 +124,6 @@ function reconcileCleanserCount(): void {
   if (body) updateCleanserControls(body);
 }
 
-function startCountReconciliation(): void {
-  if (reconcileTimer !== null) return;
-  reconcileTimer = window.setInterval(reconcileCleanserCount, 500);
-}
-
-function stopCountReconciliation(): void {
-  if (reconcileTimer === null) return;
-  window.clearInterval(reconcileTimer);
-  reconcileTimer = null;
-}
-
 function render(): void {
   const root = panel();
   if (!root) return;
@@ -196,7 +184,9 @@ function render(): void {
       toast((error as Error).message, 'error');
     } finally {
       release();
-      button.disabled = false;
+      // Recomputed rather than simply re-enabled: a cleansed row must stay disabled, or a second
+      // press before the server echoes the first spends another cleanser on the same slot.
+      updateCleanserControls(body);
     }
   });
 }
@@ -210,7 +200,6 @@ function ensurePanel(): HTMLElement {
   root.innerHTML = '<header><div><i></i><span>Crop Cleanser Helper</span></div><button data-cleanser-close aria-label="Close">×</button></header><main data-cleanser-body></main>';
   root.querySelector<HTMLButtonElement>('[data-cleanser-close]')!.onclick = () => {
     root.hidden = true;
-    stopCountReconciliation();
   };
   document.body.appendChild(root);
   makeDraggable(root, POSITION_KEY);
@@ -223,12 +212,12 @@ function toggle(): void {
   if (!root.hidden) {
     refreshSnapshot();
     render();
-    startCountReconciliation();
-  } else {
-    stopCountReconciliation();
   }
 }
 
 export function initCropCleanserHelper(): void {
   page.__gardenCompanionToggleCropCleanser = toggle;
+  // The count follows the inventory, so it is reconciled when the state moves rather than polled;
+  // reconcileCleanserCount does nothing while the helper is closed.
+  onStateChange(reconcileCleanserCount);
 }

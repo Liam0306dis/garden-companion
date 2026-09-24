@@ -1,7 +1,7 @@
 import type { Pet, ProduceItem } from './types.js';
 import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PLANT_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
 import { slotScale } from './crop-size.js';
-import { mutationMultiplier } from './mutation-value.js';
+import { catalogMutationMultiplier } from './mutation-value.js';
 import { sendBareCommand, sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
@@ -34,7 +34,7 @@ export function produceValue(item: ProduceItem): number {
   // `scale`, which is the fallback when there is no size to read.
   const crop = PLANT_CATALOG[item.species ?? '']?.crop;
   const scale = item.size != null && crop?.maxSizeMultiplier != null ? slotScale(crop, item) : Number(item.scale || 1);
-  return base * scale * mutationMultiplier([...(item.mutations || [])]);
+  return base * scale * catalogMutationMultiplier(item.mutations || []);
 }
 
 export function petDiet(species: string): string[] {
@@ -511,14 +511,6 @@ function inventoryCanTakeTool(toolId: string, reserveSlots: number): boolean {
 }
 
 /**
- * Takes a tool out of the Shack when none is to hand, and waits for it to arrive.
- *
- * Answers whether the tool is usable by the time it returns, so a caller can simply not act when it
- * says no. The wait is for the server's own state rather than a fixed delay: the command is
- * predicted locally, but a prediction that is rolled back would leave us acting on a tool we do not
- * have.
- */
-/**
  * Tools the script is in the middle of using, which auto-store must leave alone.
  *
  * Fetching a tool out of the Tool Shack and filing it straight back is the one way these two
@@ -553,13 +545,22 @@ export function holdTool(toolId: string): () => void {
   };
 }
 
+/** Held while an operation is using the tool, and for a short grace after its release. */
 export function toolIsHeld(toolId: string): boolean {
   const held = toolHolds.get(toolId);
   if (!held) return false;
   if (Date.now() > held.until) { toolHolds.delete(toolId); return false; }
-  return held.count > 0 || Date.now() <= held.until;
+  return true;
 }
 
+/**
+ * Takes a tool out of the Shack when none is to hand, and waits for it to arrive.
+ *
+ * Answers whether the tool is usable by the time it returns, so a caller can simply not act when it
+ * says no. The wait is for the server's own state rather than a fixed delay: the command is
+ * predicted locally, but a prediction that is rolled back would leave us acting on a tool we do not
+ * have.
+ */
 export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots = 0): Promise<boolean> {
   if (looseToolCount(toolId) >= wanted) return true;
   const shortfall = wanted - looseToolCount(toolId);

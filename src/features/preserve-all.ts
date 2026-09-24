@@ -6,7 +6,8 @@ import { findPixiCard } from '../pixi.js';
 import { sendQuinoaCommand, gameConnectionReady } from '../game-connection.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { produceSprite, mutationSprite, onSpritesReady } from '../pets.js';
-import { state } from '../state.js';
+import { onStateChange, state } from '../state.js';
+import { createTicker } from '../ticker.js';
 import { toast } from '../toast.js';
 import { escapeHtml, NUMBER_LOCALE } from '../utils.js';
 
@@ -377,7 +378,6 @@ function updateManagerFooter(): void {
   if (!root) return;
   const selectedRows = selectedManagerRows();
   const batch = nextBatchRows();
-  const selectedCost = selectedRows.reduce((sum, row) => sum + row.cost, 0);
   const batchCost = batch.reduce((sum, row) => sum + row.cost, 0);
   const affordable = batchCost <= coins();
   const plants = new Set(selectedRows.map(row => row.itemId)).size;
@@ -808,17 +808,12 @@ function run(): void {
 }
 
 /**
- * Sat directly above the game's own crop card. The action buttons live in a PIXI container that
- * also holds the press-and-hold hint and any secondary buttons, so its bounds are a poor guide to
- * where the button itself is; the card already has a reader in `findPixiCard`, and being above it
- * keeps the bar clear of the buttons either way. The CSS position is the fallback for when the
- * scene cannot be read.
- */
-/**
  * Sat above the held plant's card whenever one is on screen - the spot the Preserve All bar uses -
  * so a single-slot plant that only offers the Manage button still sits there rather than over the
  * crop card. When no card can be read the inline anchor is cleared, dropping back to the stylesheet's
- * fixed spot (bottom centre) so nothing is left stranded at a stale position.
+ * fixed spot (bottom centre) so nothing is left stranded at a stale position. Above the card rather
+ * than on the action buttons, whose PIXI container also holds the hold hint and secondary buttons and
+ * so is a poor guide to where the button itself is.
  */
 function positionPanel(element: HTMLElement): void {
   const card = findPixiCard();
@@ -840,11 +835,18 @@ function positionPanel(element: HTMLElement): void {
 
 function render(force = false): void {
   const root = panel();
+  // Checked before anything is counted: away from the station there is nothing to show, and this
+  // runs on every state change.
+  if (!state.preservationMode || page.__gardenCompanionCinematicFromGame?.()) {
+    lastSignature = '';
+    if (root) root.hidden = true;
+    return;
+  }
   const rows = eligibleSlots();
   const manageCount = allEligibleCount();
   const canPreserveAll = rows.length >= 2;
   const canManage = manageCount >= 1;
-  const active = state.preservationMode && (canPreserveAll || canManage) && !page.__gardenCompanionCinematicFromGame?.();
+  const active = canPreserveAll || canManage;
   if (!active) {
     lastSignature = '';
     if (root) root.hidden = true;
@@ -882,7 +884,20 @@ function render(force = false): void {
   positionPanel(element);
 }
 
+/**
+ * The bar sits over the game's crop card, which moves with the camera, so while the player is at
+ * the preservation station it is repositioned on a tick. Everywhere else it is hidden and nothing
+ * runs; the manager dialog only needs redrawing when the inventory it lists changes.
+ */
+const positionTicker = createTicker(() => render(), 300);
+
+function syncPreserveAll(): void {
+  positionTicker.sync(state.preservationMode);
+  if (!state.preservationMode) render();
+  refreshManagerModal();
+}
+
 export function initPreserveAll(): void {
-  window.setInterval(() => { render(); refreshManagerModal(); }, 300);
-  render();
+  onStateChange(syncPreserveAll);
+  syncPreserveAll();
 }

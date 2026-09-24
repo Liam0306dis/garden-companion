@@ -1,14 +1,15 @@
-import type { PlantSlot } from '../types.js';
+import type { Pet, PlantSlot } from '../types.js';
 import { feature } from '../config.js';
 import { PLANT_CATALOG } from '../constants.js';
 import { slotScale } from '../crop-size.js';
 import { protectionReason } from './crop-protection.js';
-import { mutationMultiplier } from '../mutation-value.js';
+import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
-import { activePets, crystalStrengthBonus, petMetrics } from '../pets.js';
+import { crystalStrengthBonus, petMetrics } from '../pets.js';
 import { findPixiCard } from '../pixi.js';
 import { onQuinoaEngine, quinoaEngine } from '../quinoa-engine.js';
-import { state } from '../state.js';
+import { onStateChange, state } from '../state.js';
+import { createTicker } from '../ticker.js';
 import { formatDuration, NUMBER_LOCALE } from '../utils.js';
 
 /**
@@ -25,20 +26,20 @@ import { formatDuration, NUMBER_LOCALE } from '../utils.js';
  * Strength Crystal's ten had to be remembered in three places, and the turtle timer was the one that
  * got missed. petMetrics carries the bonus, so nothing here has to know about crystals at all.
  */
-function petStrength(pet) {
+function petStrength(pet: Pet): number {
   return petMetrics(pet)?.strength ?? 87 + crystalStrengthBonus();
 }
 
-function turtleRate(pets) {
+function turtleRate(pets: Pet[]): number {
   return pets.filter(pet => pet.hunger > 0 && pet.petSpecies === 'Turtle' && (pet.abilities || []).includes('PlantGrowthBoostII')).reduce((sum, pet) => {
     const strength = petStrength(pet);
     return sum + (strength / 100 * 5) * 60 * (1 - Math.pow(1 - 0.27 * strength / 100, 1 / 60));
   }, 0);
 }
 
-const EGG_ABILITIES = { EggGrowthBoost: [7, .21], EggGrowthBoostI: [9, .24], EggGrowthBoostII_NEW: [9, .24], EggGrowthBoostII: [11, .27] };
+const EGG_ABILITIES: Record<string, [minutes: number, chance: number]> = { EggGrowthBoost: [7, .21], EggGrowthBoostI: [9, .24], EggGrowthBoostII_NEW: [9, .24], EggGrowthBoostII: [11, .27] };
 const EGG_PETS = new Set(['Chicken', 'Turkey', 'Turtle']);
-function eggRate(pets) {
+function eggRate(pets: Pet[]): number {
   let total = 0;
   for (const pet of pets) {
     if (!EGG_PETS.has(pet.petSpecies) || pet.hunger <= 0) continue;
@@ -93,7 +94,7 @@ function estimateLines(): string[] {
   const lines = [];
   if (feature('cropValues')) {
     const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * slotScale(PLANT_CATALOG[crop.species ?? '']?.crop, crop) * mutationMultiplier([...(crop.mutations || [])]) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
+    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * slotScale(PLANT_CATALOG[crop.species ?? '']?.crop, crop) * catalogMutationMultiplier(crop.mutations || []) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
   }
   if (feature('turtleTimer')) {
     const end = Number(crop.endTime || 0), rate = turtleRate(pets);
@@ -449,6 +450,7 @@ function hookGardenInfoCard(engine: ReturnType<typeof quinoaEngine>): void {
   nativeGardenCardHook = hook;
   if (view.state) view.setState(view.state);
   document.getElementById('gc-turtle')?.remove();
+  syncCropEstimates();
 }
 
 function refreshNativeGardenCard(): boolean {
@@ -466,11 +468,11 @@ function refreshNativeGardenCard(): boolean {
   return true;
 }
 
-export function renderTurtleOverlay() {
+function renderTurtleOverlay(): void {
   if (refreshNativeGardenCard()) return;
   let overlay = document.getElementById('gc-turtle');
-  // Lines first: finding the card walks the scene graph, and this runs four times a second, so
-  // there is no reason to look for a card when nothing wants to be drawn on it.
+  // Lines first: finding the card walks the scene graph, and in fallback mode this runs four times a
+  // second, so there is no reason to look for a card when nothing wants to be drawn on it.
   const lines = cardLines();
   if (!lines.length) { overlay?.remove(); return; }
   const bounds = findPixiCard();
@@ -481,6 +483,26 @@ export function renderTurtleOverlay() {
   overlay.style.top = `${Math.round(bounds.top - 5)}px`;
 }
 
+/**
+ * The growth row counts down, so the card is refreshed on a tick - but only while a crop or egg is
+ * selected and a row could be showing. On the game's own card that is once a second, which is as
+ * fine as the countdown reads; the DOM fallback also has to follow the card as the camera moves, so
+ * it keeps the quicker tick.
+ */
+const cardTicker = createTicker(renderTurtleOverlay, 1000);
+const overlayTicker = createTicker(renderTurtleOverlay, 250);
+
+export function syncCropEstimates(): void {
+  const wanted = (feature('turtleTimer') || feature('cropValues') || feature('cropProtection'))
+    && Boolean(state.currentEgg || (Array.isArray(state.currentCrop) && state.currentCrop.length));
+  const native = Boolean(nativeGardenCardHook && !nativeGardenCardHook.view.container?.destroyed);
+  cardTicker.sync(wanted && native);
+  overlayTicker.sync(wanted && !native);
+  // One last pass on the way out, so rows for a crop that is no longer selected are taken down.
+  if (!wanted) renderTurtleOverlay();
+}
+
 export function installCropEstimates(): void {
   onQuinoaEngine(hookGardenInfoCard);
+  onStateChange(syncCropEstimates);
 }
