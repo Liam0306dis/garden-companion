@@ -363,6 +363,22 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
 }
 
 /**
+ * Grows the card section's stored height to what it actually draws, returning whether it changed.
+ * Only ever grows it, so the game's own overhang allowances are never trimmed.
+ */
+function fitCardSectionHeight(view: PixiNode): boolean {
+  const row = view.container?.getChildByLabel?.('GardenInfoCardRow', true);
+  if (!row || typeof row.getLocalBounds !== 'function') return false;
+  const section = (view.sections || []).find((candidate: PixiNode) => candidate.container === row);
+  if (!section) return false;
+  const bounds = row.getLocalBounds();
+  const drawn = Math.ceil(Number(bounds.y) + Number(bounds.height));
+  if (!Number.isFinite(drawn) || drawn <= Number(section.height) + .5) return false;
+  section.height = drawn;
+  return true;
+}
+
+/**
  * The garden info card is shared: it shows a crop, an egg, a decor or a pet, whichever you last
  * opened. The estimate belongs only on a crop or egg card, but `state.currentCrop` can still be set
  * from the tile you are standing on while the card itself has switched to a pet you moused over - so
@@ -404,6 +420,16 @@ function hookGardenInfoCard(engine: ReturnType<typeof quinoaEngine>): void {
   if (typeof originalRebuild === 'function') view.rebuild = function(...args: unknown[]) {
     const result = originalRebuild.apply(this, args);
     try { relayoutNativeEstimates(this, hook.signature); } catch (error) { console.warn('[GC] card estimate layout failed', error); }
+    return result;
+  };
+  // The layout pass stacks the card above the action buttons from each section's stored height. If
+  // anything grows the card after our relayout - another mod reshaping it too - that height is stale
+  // and the card slides down behind the Harvest button. Measured after the pass, and when the card
+  // has outgrown its height the pass is run once more (no rebuild this time) with the corrected one.
+  const originalLayout = view.layout;
+  if (typeof originalLayout === 'function') view.layout = function(...args: unknown[]) {
+    const result = originalLayout.apply(this, args);
+    try { if (fitCardSectionHeight(this)) originalLayout.apply(this, args); } catch (error) { console.warn('[GC] card height check failed', error); }
     return result;
   };
   view.__gardenCompanionEstimateHook = true;

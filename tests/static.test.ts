@@ -815,6 +815,7 @@ assert.match(companionSource, /view\.rebuild = function[\s\S]*relayoutNativeEsti
 // Other mods add children to the game's card; restacking one of those as a row pushed the card's own rows below it.
 assert.match(estimatesSource, /const rows = others\.filter\(isGameRow\);/, "card relayout must only restack the game rows, not another mod's children");
 assert.match(estimatesSource, /for \(const overlay of overlays\) overlay\.scale\.set\(/, 'a card-sized overlay from another mod must be stretched with the card');
+assert.match(estimatesSource, /if \(fitCardSectionHeight\(this\)\) originalLayout\.apply\(this, args\)/, 'a card grown after our relayout must not slide behind the action buttons');
 assert.match(companionSource, /band\.row\.scale\.set\(Math\.min\(1, column \/ band\.width\)\)/, 'the attribute band is not unshrunk on the widened card');
 assert.match(companionSource, /if \(dots\) \{ dots\.x \+= extraWidth \/ 2; dots\.y \+= extraHeight; \}/, 'multi-harvest page dots are not kept under the taller card');
 assert.doesNotMatch(companionSource, /gardenCompanionEggEstimateLayout|nativeBottom|section\.height \+= extraHeight/, 'legacy egg second-row layout remains');

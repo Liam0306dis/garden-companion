@@ -2898,6 +2898,17 @@ ${groups}
       view.cropPopTarget.height += heightChange;
     }
   }
+  function fitCardSectionHeight(view) {
+    const row = view.container?.getChildByLabel?.("GardenInfoCardRow", true);
+    if (!row || typeof row.getLocalBounds !== "function") return false;
+    const section = (view.sections || []).find((candidate) => candidate.container === row);
+    if (!section) return false;
+    const bounds = row.getLocalBounds();
+    const drawn = Math.ceil(Number(bounds.y) + Number(bounds.height));
+    if (!Number.isFinite(drawn) || drawn <= Number(section.height) + 0.5) return false;
+    section.height = drawn;
+    return true;
+  }
   var cardShowsPet = false;
   function cardStateIsPet(nextState) {
     const attributes = nextState?.card?.attributes;
@@ -2925,6 +2936,16 @@ ${groups}
         relayoutNativeEstimates(this, hook.signature);
       } catch (error) {
         console.warn("[GC] card estimate layout failed", error);
+      }
+      return result;
+    };
+    const originalLayout = view.layout;
+    if (typeof originalLayout === "function") view.layout = function(...args) {
+      const result = originalLayout.apply(this, args);
+      try {
+        if (fitCardSectionHeight(this)) originalLayout.apply(this, args);
+      } catch (error) {
+        console.warn("[GC] card height check failed", error);
       }
       return result;
     };
