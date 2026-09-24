@@ -6425,8 +6425,14 @@ ${eggs.map(eggCard).join("")}`;
       } catch {
       }
     }
+    const FOOTER_GROUPS = /* @__PURE__ */ new Set(["Setup", "Support"]);
+    const FOOTER_LABELS = { supporter: "Support the Tool" };
+    function footerHtml() {
+      const tabs = TAB_GROUPS.filter(([group]) => FOOTER_GROUPS.has(group)).flatMap(([, tabs2]) => tabs2);
+      return `<footer class="gc-footer"><div>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? "active" : ""}">${tabIcon(id)}<span>${FOOTER_LABELS[id] ?? navLabel ?? title}</span></button>`).join("")}</div><em class="gc-version">v${escapeHtml(scriptVersion())}</em></footer>`;
+    }
     function navHtml() {
-      return TAB_GROUPS.map(([group, tabs]) => {
+      return TAB_GROUPS.filter(([group]) => !FOOTER_GROUPS.has(group)).map(([group, tabs]) => {
         const holdsActive = tabs.some(([id]) => id === activeTab);
         const open = !collapsedNavGroups.has(group);
         return `<div class="gc-nav-group"><button class="gc-nav-head" data-nav-group="${escapeHtml(group)}" aria-expanded="${open}" data-holds-active="${holdsActive && !open}"><span>${escapeHtml(group)}</span>${CHEVRON_ICON}</button><div class="gc-nav-items"${open ? "" : " hidden"}>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? "active" : ""}">${tabIcon(id)}<span>${navLabel ?? title}</span></button>`).join("")}</div></div>`;
@@ -6438,7 +6444,7 @@ ${eggs.map(eggCard).join("")}`;
       if (!panel3) return;
       const navTop = panel3.querySelector("nav")?.scrollTop ?? 0;
       const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || "";
-      panel3.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside><section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></section></div>`;
+      panel3.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b></div></div><nav>${navHtml()}</nav></aside><section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderTab()}</main></section>${footerHtml()}</div>`;
       const main = panel3.querySelector("main");
       main.addEventListener("pointerleave", () => {
         if (refreshPending) setTimeout(refreshOpenPanel, 0);
@@ -6686,14 +6692,13 @@ ${eggs.map(eggCard).join("")}`;
 #gc-panel { position:fixed;inset:0;z-index:999995;padding:18px;box-sizing:border-box;display:grid;place-items:center;background:transparent;pointer-events:none;color:var(--gc-text);font:13px/1.45 var(--gc-font);-webkit-font-smoothing:antialiased; }
 #gc-panel[hidden] { display:none; }
 #gc-panel *,#gc-panel *::before,#gc-panel *::after { box-sizing:border-box; }
-.gc-shell { width:min(940px,96vw);height:min(720px,92vh);overflow:hidden;display:grid;grid-template-columns:188px minmax(0,1fr);pointer-events:auto;background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:14px;box-shadow:var(--gc-shadow); }
+.gc-shell { width:min(940px,96vw);height:min(720px,92vh);overflow:hidden;display:grid;grid-template-columns:188px minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;pointer-events:auto;background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:14px;box-shadow:var(--gc-shadow); }
 /* Sidebar: brand on top, grouped tabs beneath. */
 .gc-side { min-height:0;display:flex;flex-direction:column;background:var(--gc-side);border-right:1px solid var(--gc-line); }
 .gc-brand { display:flex;align-items:center;gap:10px;padding:16px 14px 14px; }
 .gc-brand-mark { width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border:1px solid var(--gc-line);border-radius:9px;background:var(--gc-surface-2);font-size:16px;font-style:normal;line-height:1; }
 .gc-brand > div { min-width:0;display:flex;flex-direction:column; }
 .gc-brand b { color:var(--gc-strong);font-size:13px;font-weight:650;line-height:1.2;white-space:nowrap; }
-.gc-brand .gc-version { margin-top:1px;color:var(--gc-faint);font-size:11px;font-style:normal;font-variant-numeric:tabular-nums; }
 .gc-side nav { min-height:0;flex:1;overflow:auto;padding:2px 8px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent; }
 .gc-nav-group + .gc-nav-group { margin-top:10px; }
 /* Scoped under #gc-panel so these outrank both the game's button styles and the panel-wide button
@@ -6718,6 +6723,15 @@ ${eggs.map(eggCard).join("")}`;
 #gc-panel .gc-content > header [data-close] { width:32px;height:32px;display:grid;place-items:center;padding:0;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent; }
 #gc-panel .gc-content > header [data-close]:hover { color:var(--gc-text);background:var(--gc-surface-2); }
 .gc-content > header [data-close] svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round; }
+/* Footer bar under both columns: Keybinds, Features and support on the left, the version on the right. */
+.gc-footer { grid-column:1 / -1;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 18px 0 8px;background:var(--gc-side);border-top:1px solid var(--gc-line); }
+.gc-footer > div { display:flex;align-items:center;gap:2px;min-width:0; }
+#gc-panel .gc-footer button { height:34px;min-height:0;display:flex;align-items:center;gap:9px;padding:0 12px;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent;font:500 13px var(--gc-font); }
+#gc-panel .gc-footer button:hover:not(:disabled) { color:var(--gc-text);background:var(--gc-soft); }
+#gc-panel .gc-footer button.active { color:var(--gc-strong);background:var(--gc-surface-2); }
+.gc-footer button svg { width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85; }
+#gc-panel .gc-footer button.active svg { color:var(--gc-accent-text);opacity:1; }
+.gc-footer .gc-version { flex:0 0 auto;color:var(--gc-faint);font-size:12px;font-style:normal;font-variant-numeric:tabular-nums; }
 .gc-content main { min-height:0;flex:1;overflow:auto;padding:18px 22px 22px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent; }
 
 /* ── Shared building blocks ──────────────────────────────────────────────────────────────────── */

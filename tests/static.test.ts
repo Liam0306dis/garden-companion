@@ -635,7 +635,7 @@ assert.match(styleSource, /#gc-panel nav \.gc-nav-head\[data-holds-active=true\]
 assert.match(styleSource, /#gc-panel nav \.gc-nav-head \{[^}]*border:0[^}]*background:transparent/, 'nav group headings must outrank the panel button rule');
 assert.match(styleSource, /#gc-panel nav \.gc-nav-items button \{[^}]*border:0[^}]*background:transparent/, 'nav tabs must outrank the panel button rule, or every tab renders as a boxed button');
 assert.doesNotMatch(styleSource, /\n\.gc-nav-head[ :[]/, 'nav heading rules must not be left at class-only specificity');
-assert.match(companionSource, /<b>Garden Companion<\/b><em class="gc-version">v\$\{escapeHtml\(scriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
+assert.match(companionSource, /<em class="gc-version">v\$\{escapeHtml\(scriptVersion\(\)\)\}<\/em><\/footer>/, 'the panel footer must show the script version');
 // One reader of GM_info, so the header, the update check and the shared state cannot disagree.
 assert.match(companionSource, /export function scriptVersion\(\): string \{\s*try \{ return GM_info\.script\.version \|\| '0\.0\.0'; \}/, 'the script version must come from one shared helper');
 assert.match(companionSource, /version: scriptVersion\(\),/, 'the shared state must carry the running version');

@@ -840,8 +840,18 @@ export function initCompanion(): void {
   function saveCollapsedNavGroups(): void {
     try { localStorage.setItem(NAV_COLLAPSED_KEY, JSON.stringify([...collapsedNavGroups])); } catch {}
   }
+  // Setup and support are occasional visits rather than places you work in, so they sit in a footer
+  // bar under the whole window instead of taking up nav groups of one or two tabs each.
+  const FOOTER_GROUPS = new Set(['Setup', 'Support']);
+  const FOOTER_LABELS: Record<string, string> = { supporter: 'Support the Tool' };
+  function footerHtml(): string {
+    const tabs = TAB_GROUPS.filter(([group]) => FOOTER_GROUPS.has(group)).flatMap(([, tabs]) => tabs);
+    return `<footer class="gc-footer"><div>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${tabIcon(id)}<span>${FOOTER_LABELS[id] ?? navLabel ?? title}</span></button>`).join('')}</div>`
+      + `<em class="gc-version">v${escapeHtml(scriptVersion())}</em></footer>`;
+  }
+
   function navHtml(): string {
-    return TAB_GROUPS.map(([group, tabs]) => {
+    return TAB_GROUPS.filter(([group]) => !FOOTER_GROUPS.has(group)).map(([group, tabs]) => {
       // Collapsing is honoured straight away even when the open tab lives here - waiting until you
       // navigate away made the click feel broken. The heading is marked instead, so a collapsed
       // group still shows which one you are inside.
@@ -867,8 +877,8 @@ export function initCompanion(): void {
     if (!panel) return;
     const navTop = panel.querySelector('nav')?.scrollTop ?? 0;
     const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || '';
-    panel.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside>`
-      + `<section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></section></div>`;
+    panel.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b></div></div><nav>${navHtml()}</nav></aside>`
+      + `<section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></section>${footerHtml()}</div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = closePanel;
