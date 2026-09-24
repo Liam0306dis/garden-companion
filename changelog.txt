@@ -1,3 +1,14 @@
+0.8.78
+- Wrapped plant-drag-move commands to avoid them being rejected in future
+- Crop values are now correct for Wet or Chilled crops that are also Dawnbound or Amberbound (they were one step low)
+- Fixed ability names showing as "Boost I I" instead of "Boost II"
+- Crop Cleanser: a cleansed row stays disabled, so a second click can no longer try to spend another cleanser
+- Shop alarm Buy all recovers if the connection drops part way instead of getting stuck on Buying...
+- Panel no longer flashes the tab under your mouse while Active Pets or Abilities refreshes
+- Keybinds: Escape clears a binding, and Mac users can bind Cmd shortcuts
+- Less background work: timers only run while their panel or feature is in use
+- The sprite decoder is now built into the script instead of downloaded at runtime
+
 0.8.77
 - Crop card no longer slides behind the Harvest button or grows extra empty space when another mod also changes it
 - Egg card timer no longer overlaps the game's own countdown
