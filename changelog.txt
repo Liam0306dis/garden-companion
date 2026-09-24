@@ -1,3 +1,6 @@
+0.8.74
+- Fixed the team picker's emblem tabs and tiles picking up the wrong button styling
+
 0.8.73
 - Redesigned the companion interface - cleaner neutral theme, sidebar navigation with icons, and restyled cards and popups
 
