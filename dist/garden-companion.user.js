@@ -2797,7 +2797,7 @@ ${groups}
     const others = card.children.filter((child) => child !== background && child !== mount && child !== dots);
     const GAME_ROW_LABELS = ["GardenInfoObjectTitleRow", "GardenInfoAttributeRow", "GardenInfoAttributeBand"];
     const holdsGameLabel = (node, depth = 0) => depth < 3 && Array.isArray(node.children) && node.children.some((child) => String(child.label || "").startsWith("GardenInfo") || holdsGameLabel(child, depth + 1));
-    const isGameRow = (child) => Number(child.x) >= columnLeft - 2 && (GAME_ROW_LABELS.includes(child.label) || !child.label && holdsGameLabel(child));
+    const isGameRow = (child) => GAME_ROW_LABELS.includes(child.label) || !child.label && holdsGameLabel(child);
     const rows = others.filter(isGameRow);
     const cardSized = (child) => Math.abs(Number(child.width) - oldWidth) <= 8 && [oldHeight, drawnHeight].some((height) => Math.abs(Number(child.height) - height) <= 8) && typeof child.scale?.set === "function";
     const frameSiblings = (card.parent?.children || []).filter((child) => child !== card && child.label !== "GardenInfoPreservedBadge");
