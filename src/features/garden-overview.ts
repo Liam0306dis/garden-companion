@@ -840,8 +840,7 @@ function injectStyles(): void {
   // so the overview keeps its look even if it ever mounts before the main stylesheet.
   style.textContent = `
     #${PANEL_ID},#${BUTTON_ID}{--go-bg:var(--gc-bg,#141417);--go-surface:var(--gc-surface,#1a1a1e);--go-surface-2:var(--gc-surface-2,#222227);--go-surface-3:var(--gc-surface-3,#2a2a30);--go-input:var(--gc-input,#0e0e10);--go-line:var(--gc-line,rgba(255,255,255,.07));--go-line-strong:var(--gc-line-strong,rgba(255,255,255,.12));--go-text:var(--gc-text,#ececef);--go-strong:var(--gc-strong,#fafafa);--go-muted:var(--gc-muted,#a1a1aa);--go-faint:var(--gc-faint,#83838d);--go-accent:var(--gc-accent,#7c6cf2);--go-accent-text:var(--gc-accent-text,#b3a9ff);--go-accent-soft:var(--gc-accent-soft,rgba(124,108,242,.14));--go-accent-line:var(--gc-accent-line,rgba(124,108,242,.45));--go-green:var(--gc-green,#3ecf8e);--go-gold:var(--gc-gold,#f5c04a);--go-font:var(--gc-font,"Segoe UI",system-ui,sans-serif);--go-mono:var(--gc-mono,ui-monospace,Consolas,monospace)}
-    #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--go-line-strong);border-radius:9px;background:var(--go-bg);color:var(--go-green);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
-    #${BUTTON_ID} svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--go-line-strong);border-radius:9px;background:var(--go-bg);color:var(--go-text);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
     /* Solid on hover rather than translucent: this button sits on the game canvas, so a see-through
        fill would show the garden through it instead of lighting it up. */
     #${BUTTON_ID}:hover{background:var(--go-surface-2)}
@@ -1766,7 +1765,7 @@ export function initGardenOverview(): void {
     page.__gardenCompanionToggleOverview = toggle;
     const button = document.createElement('button');
     button.id = BUTTON_ID;
-    button.innerHTML = LEAF_ICON;
+    button.innerHTML = '&#x1F33F;';
     button.title = 'Garden Overview';
     button.onclick = toggle;
     const panel = document.createElement('div');
