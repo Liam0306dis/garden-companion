@@ -63,3 +63,23 @@ test('a tool in use, or a running crystal, stays out', () => {
   config.autoStoreTools = false;
   config.autoStoreSeeds = false;
 });
+
+test('a pause holds a kind back until every pause on it is released', async () => {
+  const { pauseAutoStore } = await import('../src/features/auto-store.js');
+  socket.sent.length = 0;
+  config.autoStoreSeeds = true;
+  const first = pauseAutoStore('Seed');
+  const second = pauseAutoStore('Seed', 'Tool');
+  inventory([{ itemType: 'Seed', species: 'Pear', quantity: 1 }], [{ decorId: 'SeedSilo', items: [{ itemType: 'Seed', species: 'Pear' }] }]);
+  run();
+  first();
+  first();
+  run();
+  assert.equal(stores().length, 0, 'still paused while the second pause holds');
+  second();
+  inventory([{ itemType: 'Seed', species: 'Pear', quantity: 2 }], [{ decorId: 'SeedSilo', items: [{ itemType: 'Seed', species: 'Pear' }] }]);
+  run();
+  assert.deepEqual(stores().map(command => command.itemId), ['Pear']);
+  assert.equal(config.autoStoreSeeds, true, 'the saved setting is never touched');
+  config.autoStoreSeeds = false;
+});

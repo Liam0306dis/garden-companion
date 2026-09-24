@@ -89,6 +89,9 @@ export interface ShopItem {
 export interface ShopData {
   inventory?: ShopItem[];
   secondsUntilRestock?: number;
+  /** The current restock cycle; null while the shop has none. */
+  restockId?: string | null;
+  startedAtMs?: number;
 }
 
 export interface ActivityLogEntry {
@@ -110,7 +113,8 @@ export interface PlayerData {
   petSlots?: Pet[];
   petTeams?: PetTeam[];
   activityLogs?: ActivityLogEntry[];
-  shopPurchases?: Record<string, { purchases?: Record<string, number> }>;
+  /** Sparse per shop, and only rewritten on the next purchase - see purchasedCount. */
+  shopPurchases?: Record<string, { restockId?: string; startedAtMs?: number; purchases?: Record<string, number> } | null>;
   /** The game logs the first sighting of each variant, with no counts. */
   journal?: {
     produce?: Record<string, { variantsLogged?: Array<{ variant?: string; createdAt?: number }> }>;

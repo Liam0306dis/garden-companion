@@ -508,6 +508,71 @@
     setTimeout(stopWatching, 3e4);
   }
 
+  // src/state.ts
+  function trimAbilityLogs(logs, perAbility = LOG_PER_ABILITY) {
+    const retained = /* @__PURE__ */ new Map();
+    return logs.filter((log) => {
+      const count = retained.get(log.ability) ?? 0;
+      if (count >= perAbility) return false;
+      retained.set(log.ability, count + 1);
+      return true;
+    });
+  }
+  var state = {
+    version: scriptVersion(),
+    room: null,
+    game: null,
+    slot: null,
+    slotIndex: null,
+    userSlotIndex: null,
+    atomPlayerId: null,
+    playerId: null,
+    currentCrop: null,
+    currentGardenObject: null,
+    currentEgg: null,
+    dirtTileIndex: null,
+    selectedSlotId: null,
+    selectedItemId: null,
+    preservationMode: false,
+    currentAction: null,
+    lastShopSignature: "",
+    initializedShops: false,
+    abilityLog: trimAbilityLogs(loadLocal(LOG_KEY, []))
+  };
+  function saveAbilityLog() {
+    if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
+    for (let perAbility = LOG_PER_ABILITY >> 1; perAbility >= 25; perAbility >>= 1) {
+      state.abilityLog = trimAbilityLogs(state.abilityLog, perAbility);
+      if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
+    }
+  }
+  var stateListeners = /* @__PURE__ */ new Set();
+  function onStateChange(listener) {
+    stateListeners.add(listener);
+    return () => {
+      stateListeners.delete(listener);
+    };
+  }
+  var pendingReasons = /* @__PURE__ */ new Set();
+  function notifyStateChange(reason) {
+    const idle = pendingReasons.size === 0;
+    pendingReasons.add(reason);
+    if (!idle) return;
+    queueMicrotask(() => {
+      const reasons = [...pendingReasons];
+      pendingReasons.clear();
+      for (const listener of stateListeners) {
+        for (const pending of reasons) {
+          try {
+            listener(pending);
+          } catch (error) {
+            console.warn("[Garden Companion] A state listener failed.", error);
+          }
+        }
+      }
+    });
+  }
+
   // src/config.ts
   var ALWAYS_ENABLED = /* @__PURE__ */ new Set(["overview", "petTeams", "abilities", "rooms", "shopAlarms", "interfaceShortcuts", "abilitySilencer", "lunarTimer"]);
   var DEFAULTS = {
@@ -568,6 +633,7 @@
   }
   var config = readConfig();
   function saveConfig() {
+    notifyStateChange("config");
     try {
       GM_setValue(STORE_KEY, config);
     } catch {
@@ -836,7 +902,7 @@
     if (!command || typeof command !== "object") return;
     for (const listener of commandListeners) {
       try {
-        listener(command);
+        listener(command, frame);
       } catch {
       }
     }
@@ -851,68 +917,6 @@
     if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error("The game connection is not ready.");
     activeSocket.send(JSON.stringify(frame));
     return requestId;
-  }
-
-  // src/state.ts
-  function trimAbilityLogs(logs, perAbility = LOG_PER_ABILITY) {
-    const retained = /* @__PURE__ */ new Map();
-    return logs.filter((log) => {
-      const count = retained.get(log.ability) ?? 0;
-      if (count >= perAbility) return false;
-      retained.set(log.ability, count + 1);
-      return true;
-    });
-  }
-  var state = {
-    version: scriptVersion(),
-    room: null,
-    game: null,
-    slot: null,
-    slotIndex: null,
-    userSlotIndex: null,
-    atomPlayerId: null,
-    playerId: null,
-    currentCrop: null,
-    currentGardenObject: null,
-    currentEgg: null,
-    dirtTileIndex: null,
-    selectedSlotId: null,
-    selectedItemId: null,
-    preservationMode: false,
-    currentAction: null,
-    lastShopSignature: "",
-    initializedShops: false,
-    abilityLog: trimAbilityLogs(loadLocal(LOG_KEY, []))
-  };
-  function saveAbilityLog() {
-    if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
-    for (let perAbility = LOG_PER_ABILITY >> 1; perAbility >= 25; perAbility >>= 1) {
-      state.abilityLog = trimAbilityLogs(state.abilityLog, perAbility);
-      if (saveLocalOrFail(LOG_KEY, state.abilityLog)) return;
-    }
-  }
-  var stateListeners = /* @__PURE__ */ new Set();
-  function onStateChange(listener) {
-    stateListeners.add(listener);
-  }
-  var pendingReasons = /* @__PURE__ */ new Set();
-  function notifyStateChange(reason) {
-    const idle = pendingReasons.size === 0;
-    pendingReasons.add(reason);
-    if (!idle) return;
-    queueMicrotask(() => {
-      const reasons = [...pendingReasons];
-      pendingReasons.clear();
-      for (const listener of stateListeners) {
-        for (const pending of reasons) {
-          try {
-            listener(pending);
-          } catch (error) {
-            console.warn("[Garden Companion] A state listener failed.", error);
-          }
-        }
-      }
-    });
   }
 
   // src/pets.ts
@@ -3317,9 +3321,11 @@ ${groups}
     { storageId: "ToolShack", itemType: "Tool", key: (item) => item.toolId ?? "", enabled: () => feature("autoStoreTools") }
   ];
   function isBusy(rule, key) {
+    if ((pauses.get(rule.itemType) ?? 0) > 0) return true;
     if (rule.itemType !== "Tool") return false;
     return toolIsHeld(key) || state.selectedItemId === key;
   }
+  var pauses = /* @__PURE__ */ new Map();
   function isTimedTool(item) {
     return Number(item.remainingActiveSeconds) > 0;
   }
@@ -6033,8 +6039,11 @@ ${eggs.map(eggCard).join("")}`;
     return payload;
   }
   function purchasedCount(shop, id) {
-    const purchases = state.slot?.data?.shopPurchases?.[shop]?.purchases || {};
-    return Number(purchases[id] || 0);
+    const entry = state.slot?.data?.shopPurchases?.[shop];
+    if (!entry) return 0;
+    const shopData = state.game?.shops?.[shop];
+    if (shopData && "restockId" in shopData && (shopData.restockId == null || entry.restockId !== shopData.restockId)) return 0;
+    return Number(entry.purchases?.[id] || 0);
   }
   function shopStateReady() {
     if (!state.playerId) return false;

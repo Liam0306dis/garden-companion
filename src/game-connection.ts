@@ -232,7 +232,8 @@ export function gameConnectionReady(): boolean {
   return !!activeSocket && activeSocket.readyState === WebSocket.OPEN;
 }
 
-type CommandListener = (command: Record<string, unknown>) => void;
+/** The command, and the frame it left in - which carries the requestId the server answers with. */
+type CommandListener = (command: Record<string, unknown>, frame: Record<string, unknown>) => void;
 
 const commandListeners = new Set<CommandListener>();
 
@@ -253,7 +254,7 @@ export function noteOutgoingCommand(frame: Record<string, unknown>): void {
   const command = frame.type === 'QuinoaCommand' ? frame.command : frame;
   if (!command || typeof command !== 'object') return;
   for (const listener of commandListeners) {
-    try { listener(command as Record<string, unknown>); } catch { /* one watcher must not stop the rest */ }
+    try { listener(command as Record<string, unknown>, frame); } catch { /* one watcher must not stop the rest */ }
   }
 }
 

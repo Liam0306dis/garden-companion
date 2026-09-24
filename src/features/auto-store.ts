@@ -49,8 +49,31 @@ const RULES: StoreRule[] = [
  * Shack exists to free, which is the whole point of storing them.
  */
 function isBusy(rule: StoreRule, key: string): boolean {
+  if ((pauses.get(rule.itemType) ?? 0) > 0) return true;
   if (rule.itemType !== 'Tool') return false;
   return toolIsHeld(key) || state.selectedItemId === key;
+}
+
+/**
+ * Item kinds whose filing is paused, counted so two operations pausing the same kind cannot resume
+ * each other early.
+ *
+ * Deliberately in memory and never written to the config. A caller that switched the saved setting
+ * off and back on would leave it off for good if two such callers overlapped, if anything saved
+ * the config in between, or if the page reloaded mid-operation - a pause here just ends with the
+ * page.
+ */
+const pauses = new Map<string, number>();
+
+/** Stops auto-store filing the given item kinds until the returned release is called. */
+export function pauseAutoStore(...itemTypes: Array<'Seed' | 'Decor' | 'Tool'>): () => void {
+  for (const type of itemTypes) pauses.set(type, (pauses.get(type) ?? 0) + 1);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    for (const type of itemTypes) pauses.set(type, Math.max(0, (pauses.get(type) ?? 0) - 1));
+  };
 }
 
 /**

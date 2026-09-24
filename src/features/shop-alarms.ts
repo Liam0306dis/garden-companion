@@ -13,7 +13,7 @@ import { escapeHtml, humanize } from '../utils.js';
 
 /** Watches shop stock and raises an alarm when an item the player selected comes back in stock. */
 
-interface AvailableShopItem {
+export interface AvailableShopItem {
   shop: string;
   id: string;
   item: ShopItem;
@@ -28,7 +28,7 @@ const INITIAL_SHOP_SETTLE_MS = 500;
  */
 const RECONNECT_SETTLE_MS = 2500;
 
-function itemId(item: ShopItem | undefined): string {
+export function itemId(item: ShopItem | undefined): string {
   for (const key of ITEM_KEYS) if (item?.[key]) return String(item[key]);
   return '';
 }
@@ -40,15 +40,23 @@ function itemType(item: ShopItem, shop: string): string {
   return SHOP_ITEM_TYPES[shop] || (item?.eggId ? 'Egg' : item?.decorId ? 'Decor' : item?.toolId ? 'Tool' : 'Seed');
 }
 
-function itemPayload(item: ShopItem, shop: string): Record<string, string> {
+export function itemPayload(item: ShopItem, shop: string): Record<string, string> {
   const payload: Record<string, string> = { itemType: itemType(item, shop) };
   for (const key of ITEM_KEYS) if (item?.[key]) payload[key] = item[key];
   return payload;
 }
 
-function purchasedCount(shop: string, id: string): number {
-  const purchases = state.slot?.data?.shopPurchases?.[shop]?.purchases || {};
-  return Number(purchases[id] || 0);
+/**
+ * How many of an item were bought this restock. A shop's purchase entry outlives its restock (it is
+ * only rewritten by the next purchase), so its counts apply only while its restockId matches the
+ * shop's current one - the same lookup the game client does. Builds without restockId just read it.
+ */
+export function purchasedCount(shop: string, id: string): number {
+  const entry = state.slot?.data?.shopPurchases?.[shop];
+  if (!entry) return 0;
+  const shopData = state.game?.shops?.[shop];
+  if (shopData && 'restockId' in shopData && (shopData.restockId == null || entry.restockId !== shopData.restockId)) return 0;
+  return Number(entry.purchases?.[id] || 0);
 }
 
 /**
@@ -58,7 +66,7 @@ function purchasedCount(shop: string, id: string): number {
  * and the settle timer happily agrees because the half-built picture holds still. So no snapshot is
  * trusted, baselined or alarmed on until both halves are in hand.
  */
-function shopStateReady(): boolean {
+export function shopStateReady(): boolean {
   if (!state.playerId) return false;
   // Inventory stands in for the slot being fully delivered rather than a stub: every field on the
   // payload is optional, so `data` existing proves nothing about `shopPurchases` having arrived,
@@ -69,7 +77,7 @@ function shopStateReady(): boolean {
   return Object.values(shops).some(shop => Array.isArray((shop as { inventory?: unknown })?.inventory));
 }
 
-function availableShopItems(): AvailableShopItem[] {
+export function availableShopItems(): AvailableShopItem[] {
   const output: AvailableShopItem[] = [];
   for (const [shop, data] of Object.entries(state.game?.shops || {})) {
     for (const item of Array.isArray(data?.inventory) ? data.inventory : []) {

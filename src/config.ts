@@ -1,4 +1,5 @@
 import type { CompanionConfig } from './types.js';
+import { notifyStateChange } from './state.js';
 import { ABILITY_CATALOG, EXCLUDED_TOOL_ALERTS, EXCLUDED_TRACKED_ABILITIES, PET_CATALOG, STORE_KEY } from './constants.js';
 
 /** Features that cannot be turned off, so their toggles never appear in the panel. */
@@ -76,6 +77,8 @@ function readConfig(): CompanionConfig {
 export const config = readConfig();
 
 export function saveConfig(): void {
+  // Anything that runs only while a setting is on hears it change here, rather than polling for it.
+  notifyStateChange('config');
   try { GM_setValue(STORE_KEY, config); }
   catch {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(config)); }

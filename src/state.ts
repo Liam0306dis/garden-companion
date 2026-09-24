@@ -93,8 +93,9 @@ const stateListeners = new Set<StateListener>();
  * stand on, the held item, the current action) takes a new value. Features that only need to act
  * when something changed subscribe here rather than polling on a timer.
  */
-export function onStateChange(listener: StateListener): void {
+export function onStateChange(listener: StateListener): () => void {
   stateListeners.add(listener);
+  return () => { stateListeners.delete(listener); };
 }
 
 const pendingReasons = new Set<string>();
