@@ -626,15 +626,16 @@ assert.match(companionSource, /\['Crops', \[\['protection', 'Crop Protection', '
 assert.match(companionSource, /\['Alerts', \[\['shops', 'Shop Alarms', 'Shops'\], \['weatherAlarms', 'Weather Alarms', 'Weather'\], \['silence', 'Ignore Alerts', 'Ignore abilities'\]\]\]/, 'alert tabs must be grouped together');
 assert.match(companionSource, /const TABS = TAB_GROUPS\.flatMap\(\(\[, tabs\]\) => tabs\)/, 'the flat tab list must come from the groups');
 // The panel title takes the full name; only the nav uses the shortened one.
-assert.match(companionSource, /tabs\.map\(\(\[id, title, navLabel\]\) =>[^)]*\$\{navLabel \?\? title\}/, 'the nav must prefer the short label and fall back to the full one');
+assert.match(companionSource, /tabs\.map\(\(\[id, title, navLabel\]\) =>.*\$\{navLabel \?\? title\}/, 'the nav must prefer the short label and fall back to the full one');
 // Collapsing must take effect on the click, not once you navigate away from the group.
 assert.match(companionSource, /const open = !collapsedNavGroups\.has\(group\);/, 'collapsing a group must apply immediately');
 assert.match(companionSource, /data-holds-active="\$\{holdsActive && !open\}"/, 'a collapsed group holding the active tab must be marked');
-assert.match(styleSource, /\.gc-layout nav \.gc-nav-head\[data-holds-active=true\] \{[^}]*box-shadow:inset 2px 0 var\(--gc-accent\)/, 'the marked group heading needs the active accent');
-// `.gc-layout nav button` outranks a lone class, so the heading rules have to be scoped past it.
-assert.match(styleSource, /\.gc-layout nav \.gc-nav-head \{[^}]*font:800 9px/, 'nav group headings must outrank the tab button rule');
+assert.match(styleSource, /#gc-panel nav \.gc-nav-head\[data-holds-active=true\] \{[^}]*box-shadow:inset 2px 0 var\(--gc-accent\)/, 'the marked group heading needs the active accent');
+// `#gc-panel button` outranks a lone class, so the heading rules have to be scoped past it.
+assert.match(styleSource, /#gc-panel nav \.gc-nav-head \{[^}]*border:0[^}]*background:transparent/, 'nav group headings must outrank the panel button rule');
+assert.match(styleSource, /#gc-panel nav \.gc-nav-items button \{[^}]*border:0[^}]*background:transparent/, 'nav tabs must outrank the panel button rule, or every tab renders as a boxed button');
 assert.doesNotMatch(styleSource, /\n\.gc-nav-head[ :[]/, 'nav heading rules must not be left at class-only specificity');
-assert.match(companionSource, /GARDEN COMPANION <em class="gc-version">v\$\{escapeHtml\(scriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
+assert.match(companionSource, /<b>Garden Companion<\/b><em class="gc-version">v\$\{escapeHtml\(scriptVersion\(\)\)\}<\/em>/, 'the panel header must show the script version');
 // One reader of GM_info, so the header, the update check and the shared state cannot disagree.
 assert.match(companionSource, /export function scriptVersion\(\): string \{\s*try \{ return GM_info\.script\.version \|\| '0\.0\.0'; \}/, 'the script version must come from one shared helper');
 assert.match(companionSource, /version: scriptVersion\(\),/, 'the shared state must carry the running version');
@@ -1061,7 +1062,9 @@ assert.match(companionSource, /\{ id: 'teamCycleNext', label: 'Next pet team', s
 assert.match(companionSource, /function cyclePetTeam\(step: number\)/, 'pet team cycling is not implemented');
 assert.match(companionSource, /TEAM_CYCLE_KEYS\.map\(item => shortcutRow\(/, 'team cycling keybinds are not shown on the Features tab');
 assert.match(companionSource, /list\[\(\(\(current < 0 \? -step : current \+ step\) % list\.length\) \+ list\.length\) % list\.length\]/, 'team cycling does not wrap around');
-assert.match(styleSource, /--gc-muted: rgba\(255,255,255,\.72\)/, 'secondary text is too dim to read');
+// #a1a1aa holds about 6.5:1 on the card surface, and the faint tier still clears 4.5:1.
+assert.match(styleSource, /--gc-muted: #a1a1aa;/, 'secondary text is too dim to read');
+assert.match(styleSource, /--gc-faint: #83838d;/, 'tertiary text is too dim to read');
 assert.doesNotMatch(styleSource, /(?<![a-z-])color:rgba\(255,255,255,\.(0|1|2|3|4)[0-9]?\)/, 'low-contrast text colours remain');
 assert.match(styleSource, /input::placeholder \{ color:rgba\(255,255,255,\.5\)/, 'placeholder text is unreadable');
 assert.match(companionSource, /function renderKeybinds\(\)/, 'the keybinds tab is missing');
@@ -1678,7 +1681,7 @@ assert.doesNotMatch(companionSource, /const nextMain = panel\.querySelector\('ma
 
 // Naming each header button in the stylesheet meant a new one arrived unsized, unbordered and with
 // an unstroked icon - in the DOM and invisible. One rule covers whatever is in there.
-assert.match(styleSource, /#gc-lunar-head-actions button \{ width:27px;height:27px/, 'the header controls are styled by name again, so a new one renders invisible');
+assert.match(styleSource, /#gc-lunar-head-actions button \{ width:26px;height:26px/, 'the header controls are styled by name again, so a new one renders invisible');
 assert.doesNotMatch(styleSource, /#gc-lunar button\[data-(options|minimise)\] \{/, 'a header button is styled by name again');
 
 // An empty data attribute still matches [data-weather], which strips the dial's face and leaves an

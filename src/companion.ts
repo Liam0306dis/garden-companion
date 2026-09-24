@@ -813,6 +813,28 @@ export function initCompanion(): void {
     ['Support', [['supporter', 'Supporter']]],
   ];
   const TABS = TAB_GROUPS.flatMap(([, tabs]) => tabs);
+  // Stroke icons on a 24px grid, drawn by the nav's own stroke rule so they follow the tab colour.
+  const TAB_ICONS: Record<string, string> = {
+    abilities: '<circle cx="6.5" cy="10" r="1.8"/><circle cx="10" cy="6" r="1.8"/><circle cx="14.5" cy="6" r="1.8"/><circle cx="18" cy="10" r="1.8"/><path d="M12 11.5c-2.6 0-5 3.2-5 5.6 0 1.6 1.3 2.4 2.7 2.4 1 0 1.5-.5 2.3-.5s1.3.5 2.3.5c1.4 0 2.7-.8 2.7-2.4 0-2.4-2.4-5.6-5-5.6Z"/>',
+    abilityLog: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>',
+    teams: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.3a3 3 0 0 1 0 5.4"/><path d="M17.5 14.2c1.9.7 3 2.5 3 4.8"/>',
+    petFood: '<path d="M12 7.5c-1.6-1.3-5-1.5-6.4 1.4-1.3 2.8-.2 7.1 2 9.3 1.4 1.4 3.3 1.8 4.4 1.2 1.1.6 3 .2 4.4-1.2 2.2-2.2 3.3-6.5 2-9.3C17 6 13.6 6.2 12 7.5Z"/><path d="M12 7.5c0-2 .9-3.4 2.8-4"/>',
+    eggLuck: '<path d="M12 3c3.6 0 6.5 5.4 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.4 8.4 3 12 3Z"/>',
+    protection: '<path d="M12 3 5 6v5.5c0 4.4 3 7.8 7 9.5 4-1.7 7-5.1 7-9.5V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>',
+    journal: '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5v-15Z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 7.5h6"/>',
+    shops: '<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>',
+    weatherAlarms: '<path d="M7 18a4 4 0 0 1-.6-8A5.5 5.5 0 0 1 17 8.6a4.5 4.5 0 0 1 .5 9.4H7Z"/>',
+    silence: '<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0 1 9 0c0 2.5.5 3.8 1.5 5Z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>',
+    calculators: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7h7"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01"/>',
+    rooms: '<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
+    keybinds: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7.5 14h9"/>',
+    features: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+    supporter: '<path d="M12 20s-7-4.3-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.7-7 10-7 10Z"/>',
+  };
+  const tabIcon = (id: string): string => `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICONS[id] ?? ''}</svg>`;
+  const CHEVRON_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  const BRAND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4.2 3-7.2 8-7.2 0 4.2-3 7.2-8 7.2Z"/><path d="M12 15.5c0-3.2-2.5-5.7-7-5.7 0 3.2 2.5 5.7 7 5.7Z"/></svg>';
   const NAV_COLLAPSED_KEY = 'gardenCompanion.navCollapsed.v1';
   let collapsedNavGroups = new Set<string>();
   try { collapsedNavGroups = new Set(JSON.parse(localStorage.getItem(NAV_COLLAPSED_KEY) || '[]')); } catch {}
@@ -827,8 +849,8 @@ export function initCompanion(): void {
       const holdsActive = tabs.some(([id]) => id === activeTab);
       const open = !collapsedNavGroups.has(group);
       return `<div class="gc-nav-group"><button class="gc-nav-head" data-nav-group="${escapeHtml(group)}" aria-expanded="${open}" data-holds-active="${holdsActive && !open}">`
-        + `<span>${escapeHtml(group)}</span><i>${open ? '&#9650;' : '&#9660;'}</i></button>`
-        + `<div class="gc-nav-items"${open ? '' : ' hidden'}>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${navLabel ?? title}</button>`).join('')}</div></div>`;
+        + `<span>${escapeHtml(group)}</span>${CHEVRON_ICON}</button>`
+        + `<div class="gc-nav-items"${open ? '' : ' hidden'}>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${tabIcon(id)}<span>${navLabel ?? title}</span></button>`).join('')}</div></div>`;
     }).join('');
   }
 
@@ -845,7 +867,9 @@ export function initCompanion(): void {
     const panel = document.getElementById('gc-panel');
     if (!panel) return;
     const navTop = panel.querySelector('nav')?.scrollTop ?? 0;
-    panel.innerHTML = `<div class="gc-shell"><header><div><small>GARDEN COMPANION <em class="gc-version">v${escapeHtml(scriptVersion())}</em></small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close">x</button></header><div class="gc-layout"><nav>${navHtml()}</nav><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></div></div>`;
+    const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || '';
+    panel.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">${BRAND_ICON}</i><div><b>Garden Companion</b><em class="gc-version">v${escapeHtml(scriptVersion())}</em></div></div><nav>${navHtml()}</nav></aside>`
+      + `<section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderTab()}</main></section></div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = closePanel;
