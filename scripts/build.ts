@@ -87,6 +87,13 @@ async function buildSpriteLoader(): Promise<string> {
   return result.outputFiles[0].text;
 }
 
+// The caps are matched out of the game's item catalog by shape. A game update that reshapes it
+// would leave this empty, and every capped tool would quietly go back to alarming at 99, so an
+// empty list is called out rather than built in silence.
+if (!Object.keys(catalogs.toolLimits).length) {
+  console.warn('WARNING: no tool inventory caps (maxInventoryQuantity) were found in the bundle - shop alarms will not skip capped tools. Check the pattern in scripts/bundle-catalogs.ts.');
+}
+
 const petSpriteLoader = await buildSpriteLoader();
 
 await build({

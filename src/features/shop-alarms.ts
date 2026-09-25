@@ -99,13 +99,29 @@ export function availableShopItems(): AvailableShopItem[] {
  * and decor. The cap list only holds tool ids, so an item is judged by its id, unless the shop's own
  * entry says it is some other kind of item.
  */
-export function atInventoryCap(_shop: string, id: string, item?: ShopItem): boolean {
+export function atInventoryCap(id: string, item?: ShopItem): boolean {
+  return capRoom(id, item) <= 0;
+}
+
+/** How many more of this item the inventory can take - Infinity for anything uncapped. */
+function capRoom(id: string, item?: ShopItem): number {
   const limit = TOOL_LIMITS[id];
-  if (!limit) return false;
-  if (item && !item.toolId && item.itemType && item.itemType !== 'Tool') return false;
+  if (!limit) return Infinity;
+  if (item && !item.toolId && item.itemType && item.itemType !== 'Tool') return Infinity;
   const items = state.slot?.data?.inventory?.items as Array<{ itemType?: string; toolId?: string; quantity?: number }> | undefined;
   const stack = Array.isArray(items) ? items.find(entry => entry?.itemType === 'Tool' && entry.toolId === id) : undefined;
-  return Number(stack?.quantity || 0) >= limit;
+  return Math.max(0, limit - Number(stack?.quantity || 0));
+}
+
+/**
+ * An alarm already up for an item the player has since filled to its cap - bought elsewhere, or
+ * pulled out of storage - has nothing left to offer, so it is taken down rather than left ringing.
+ * Only watched items can have an alarm, so only those are checked.
+ */
+function stopCappedAlarms(available: AvailableShopItem[]): void {
+  for (const row of available) {
+    if (config.shopAlerts[`${row.shop}:${row.id}`] && atInventoryCap(row.id, row.item)) stopAlarm(`shop:${row.shop}:${row.id}`);
+  }
 }
 
 const restockClocks = new Map<string, number>();
@@ -145,7 +161,7 @@ function applyShopSnapshot(available: AvailableShopItem[], signature: string, re
   state.lastShopSignature = signature;
   for (const row of available) {
     const key = `${row.shop}:${row.id}`;
-    if (!config.shopAlerts[key] || atInventoryCap(row.shop, row.id, row.item)) continue;
+    if (!config.shopAlerts[key] || atInventoryCap(row.id, row.item)) continue;
     if (!state.initializedShops || !old.has(key) || restocked.has(row.shop)) showShopAlarm(row);
   }
   state.initializedShops = true;
@@ -238,6 +254,7 @@ export function processShops(): void {
     return;
   }
   applyShopSnapshot(available, signature, restocked);
+  stopCappedAlarms(available);
 }
 
 function showShopAlarm(row: AvailableShopItem): void {
@@ -254,15 +271,18 @@ function showShopAlarm(row: AvailableShopItem): void {
       button.textContent = 'Buying...';
       const live = availableShopItems().find(item => item.shop === row.shop && item.id === row.id);
       if (!live) { toast('This item is no longer available.', 'error'); stopAlarm(owner); return; }
-      for (let index = 0; index < live.remaining; index++) {
+      // A capped tool is only bought up to its cap: the server refuses every purchase past it.
+      const count = Math.min(live.remaining, capRoom(live.id, live.item));
+      if (!count) { toast(`You already hold the most ${humanize(live.id)} the game allows.`, 'error'); stopAlarm(owner); return; }
+      for (let index = 0; index < count; index++) {
         try { sendQuinoaCommand({ type: 'PurchaseShopItem', shop: live.shop, item: itemPayload(live.item, live.shop) }); }
         catch (error) {
           // The alarm stays up so the rest can be bought once the connection is back.
-          throw new Error(index ? `Requested ${index} of ${live.remaining} before the connection dropped.` : (error as Error).message);
+          throw new Error(index ? `Requested ${index} of ${count} before the connection dropped.` : (error as Error).message);
         }
-        if (index + 1 < live.remaining) await new Promise(resolve => setTimeout(resolve, 180));
+        if (index + 1 < count) await new Promise(resolve => setTimeout(resolve, 180));
       }
-      toast(`Requested ${live.remaining} ${humanize(live.id)}.`, 'success');
+      toast(`Requested ${count} ${humanize(live.id)}${count < live.remaining ? ' - that fills it to the cap' : ''}.`, 'success');
       stopAlarm(owner);
     },
   });
@@ -270,7 +290,7 @@ function showShopAlarm(row: AvailableShopItem): void {
 
 export function showSelectedShopAlarm(key: string): void {
   const row = availableShopItems().find(item => `${item.shop}:${item.id}` === key);
-  if (row && !atInventoryCap(row.shop, row.id, row.item)) showShopAlarm(row);
+  if (row && !atInventoryCap(row.id, row.item)) showShopAlarm(row);
 }
 
 let shopAlarmTab = 'seed';
@@ -308,7 +328,7 @@ export function renderShops(): string {
   const rows = itemIds.map(id => {
     const key = `${shopAlarmTab}:${id}`;
     const sprite = page.__gardenCompanionShopSprites?.[id];
-    return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? 'checked' : ''}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(id))}</b><small>${atInventoryCap(shopAlarmTab, id, liveItems.get(id)) ? `Holding ${TOOL_LIMITS[id]} - no alarm` : available.has(id) ? 'Available now' : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
+    return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? 'checked' : ''}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(id))}</b><small>${atInventoryCap(id, liveItems.get(id)) ? `Holding ${TOOL_LIMITS[id]} - no alarm` : available.has(id) ? 'Available now' : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
   });
   const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? 'active' : ''}">${label}</button>`).join('');
   return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join('') || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;

@@ -113,3 +113,31 @@ test('a capped potion in the Snow shop does not alarm either', () => {
   assert.equal(alarmTitle(), null);
   toggleShopAlert('snow:FrozenPotion', false);
 });
+
+function toolWorld(held: number, stock = 5): void {
+  state.playerId = 'me';
+  state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: held }] }, shopPurchases: {} } } as unknown as PlayerSlot;
+  state.game = { shops: { tool: { secondsUntilRestock: 100, inventory: [{ toolId: 'WateringCan', initialStock: stock }] } } } as unknown as GameState;
+}
+
+test('Buy all only buys up to the cap', async () => {
+  stopAlarm();
+  toolWorld(97);
+  toggleShopAlert('tool:WateringCan', true);
+  socket.sent.length = 0;
+  document.querySelector<HTMLButtonElement>('#gc-alarm [data-buy]')!.click();
+  for (let index = 0; index < 5; index++) { await Promise.resolve(); mock.timers.tick(200); await Promise.resolve(); }
+  assert.equal(socket.commands().filter(command => command.type === 'PurchaseShopItem').length, 2);
+  toggleShopAlert('tool:WateringCan', false);
+});
+
+test('an alarm already up comes down once the item reaches its cap', () => {
+  stopAlarm();
+  toolWorld(98);
+  toggleShopAlert('tool:WateringCan', true);
+  assert.equal(alarmTitle(), 'Watering Can is available');
+  toolWorld(99);
+  processShops();
+  assert.equal(alarmTitle(), null);
+  toggleShopAlert('tool:WateringCan', false);
+});

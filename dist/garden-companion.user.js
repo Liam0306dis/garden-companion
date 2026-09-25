@@ -1984,6 +1984,7 @@ ${groups}
         alarmAudioContext = new AudioConstructor({ latencyHint: "interactive" });
       }
       if (alarmAudioContext.state !== "running") void alarmAudioContext.resume().catch(() => void 0);
+      if (alarmSoundSettings().preset === "custom") void loadCustomSound(alarmAudioContext);
       return alarmAudioContext;
     } catch {
       return null;
@@ -1998,6 +1999,7 @@ ${groups}
   function setAlarmSilenced(owner, silent) {
     if (alarm?.options.owner === owner) alarm.options.silent = silent;
     for (const options of alarmQueue) if (options.owner === owner) options.silent = silent;
+    if (!anyUnmutedAlarm()) stopCustomSound();
   }
   function playAlarmTone() {
     const context = armAlarmAudio();
@@ -2022,6 +2024,7 @@ ${groups}
   var CUSTOM_SOUND_KEY = "gardenCompanion.alarmSound.v1";
   var customBuffer = null;
   var customLoading = null;
+  var customUnavailable = false;
   var customSource = null;
   var customEndsAt = 0;
   function alarmSoundSettings() {
@@ -2068,9 +2071,23 @@ ${groups}
   function loadCustomSound(context) {
     if (customBuffer) return Promise.resolve(customBuffer);
     if (customLoading) return customLoading;
+    if (customUnavailable) return Promise.resolve(null);
     const sound = savedCustomSound();
-    if (!sound) return Promise.resolve(null);
-    customLoading = context.decodeAudioData(base64Bytes(sound.data)).then((buffer) => customBuffer = buffer).catch(() => null).finally(() => {
+    if (!sound) {
+      customUnavailable = true;
+      return Promise.resolve(null);
+    }
+    let bytes;
+    try {
+      bytes = base64Bytes(sound.data);
+    } catch {
+      customUnavailable = true;
+      return Promise.resolve(null);
+    }
+    customLoading = context.decodeAudioData(bytes).then((buffer) => customBuffer = buffer).catch(() => {
+      customUnavailable = true;
+      return null;
+    }).finally(() => {
       customLoading = null;
     });
     return customLoading;
@@ -2133,12 +2150,14 @@ ${groups}
     }
     stopCustomSound();
     customBuffer = buffer;
+    customUnavailable = false;
     return trimmed;
   }
   function clearCustomAlarmSound() {
     stopCustomSound();
     writeCustomSound(null);
     customBuffer = null;
+    customUnavailable = false;
   }
   function stopCustomSound() {
     try {
@@ -2210,7 +2229,7 @@ ${groups}
     const settings = alarmSoundSettings();
     if (settings.preset === "custom") {
       if (customBuffer) {
-        if (context.currentTime >= customEndsAt + 0.3) playCustom(context, customBuffer, settings);
+        if (!customEndsAt || context.currentTime >= customEndsAt + 0.3) playCustom(context, customBuffer, settings);
         return;
       }
       void loadCustomSound(context);
@@ -6750,13 +6769,21 @@ ${eggs.map(eggCard).join("")}`;
     }
     return output;
   }
-  function atInventoryCap(_shop, id, item) {
+  function atInventoryCap(id, item) {
+    return capRoom(id, item) <= 0;
+  }
+  function capRoom(id, item) {
     const limit = TOOL_LIMITS[id];
-    if (!limit) return false;
-    if (item && !item.toolId && item.itemType && item.itemType !== "Tool") return false;
+    if (!limit) return Infinity;
+    if (item && !item.toolId && item.itemType && item.itemType !== "Tool") return Infinity;
     const items = state.slot?.data?.inventory?.items;
     const stack = Array.isArray(items) ? items.find((entry) => entry?.itemType === "Tool" && entry.toolId === id) : void 0;
-    return Number(stack?.quantity || 0) >= limit;
+    return Math.max(0, limit - Number(stack?.quantity || 0));
+  }
+  function stopCappedAlarms(available) {
+    for (const row of available) {
+      if (config.shopAlerts[`${row.shop}:${row.id}`] && atInventoryCap(row.id, row.item)) stopAlarm(`shop:${row.shop}:${row.id}`);
+    }
   }
   var restockClocks = /* @__PURE__ */ new Map();
   var initialShopTimer = 0;
@@ -6789,7 +6816,7 @@ ${eggs.map(eggCard).join("")}`;
     state.lastShopSignature = signature2;
     for (const row of available) {
       const key = `${row.shop}:${row.id}`;
-      if (!config.shopAlerts[key] || atInventoryCap(row.shop, row.id, row.item)) continue;
+      if (!config.shopAlerts[key] || atInventoryCap(row.id, row.item)) continue;
       if (!state.initializedShops || !old.has(key) || restocked.has(row.shop)) showShopAlarm(row);
     }
     state.initializedShops = true;
@@ -6871,6 +6898,7 @@ ${eggs.map(eggCard).join("")}`;
       return;
     }
     applyShopSnapshot(available, signature2, restocked);
+    stopCappedAlarms(available);
   }
   function showShopAlarm(row) {
     const owner = `shop:${row.shop}:${row.id}`;
@@ -6890,22 +6918,28 @@ ${eggs.map(eggCard).join("")}`;
           stopAlarm(owner);
           return;
         }
-        for (let index = 0; index < live.remaining; index++) {
+        const count = Math.min(live.remaining, capRoom(live.id, live.item));
+        if (!count) {
+          toast(`You already hold the most ${humanize(live.id)} the game allows.`, "error");
+          stopAlarm(owner);
+          return;
+        }
+        for (let index = 0; index < count; index++) {
           try {
             sendQuinoaCommand({ type: "PurchaseShopItem", shop: live.shop, item: itemPayload(live.item, live.shop) });
           } catch (error) {
-            throw new Error(index ? `Requested ${index} of ${live.remaining} before the connection dropped.` : error.message);
+            throw new Error(index ? `Requested ${index} of ${count} before the connection dropped.` : error.message);
           }
-          if (index + 1 < live.remaining) await new Promise((resolve) => setTimeout(resolve, 180));
+          if (index + 1 < count) await new Promise((resolve) => setTimeout(resolve, 180));
         }
-        toast(`Requested ${live.remaining} ${humanize(live.id)}.`, "success");
+        toast(`Requested ${count} ${humanize(live.id)}${count < live.remaining ? " - that fills it to the cap" : ""}.`, "success");
         stopAlarm(owner);
       }
     });
   }
   function showSelectedShopAlarm(key) {
     const row = availableShopItems().find((item) => `${item.shop}:${item.id}` === key);
-    if (row && !atInventoryCap(row.shop, row.id, row.item)) showShopAlarm(row);
+    if (row && !atInventoryCap(row.id, row.item)) showShopAlarm(row);
   }
   var shopAlarmTab = "seed";
   function setShopAlarmTab(tab) {
@@ -6936,7 +6970,7 @@ ${eggs.map(eggCard).join("")}`;
     const rows = itemIds.map((id) => {
       const key = `${shopAlarmTab}:${id}`;
       const sprite = page.__gardenCompanionShopSprites?.[id];
-      return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(id))}</b><small>${atInventoryCap(shopAlarmTab, id, liveItems.get(id)) ? `Holding ${TOOL_LIMITS[id]} - no alarm` : available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
+      return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? "checked" : ""}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}</span><span><b>${escapeHtml(humanize(id))}</b><small>${atInventoryCap(id, liveItems.get(id)) ? `Holding ${TOOL_LIMITS[id]} - no alarm` : available.has(id) ? "Available now" : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
     });
     const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? "active" : ""}">${label}</button>`).join("");
     return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join("") || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;

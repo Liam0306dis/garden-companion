@@ -32,6 +32,9 @@ export function armAlarmAudio(): AudioContext | null {
       alarmAudioContext = new AudioConstructor({ latencyHint: 'interactive' });
     }
     if (alarmAudioContext.state !== 'running') void alarmAudioContext.resume().catch(() => undefined);
+    // Decoded here, on the first click of the session, rather than when the first alarm fires -
+    // otherwise that alarm opens on a Classic beep or two while the file is still decoding.
+    if (alarmSoundSettings().preset === 'custom') void loadCustomSound(alarmAudioContext);
     return alarmAudioContext;
   } catch {
     return null;
@@ -55,6 +58,9 @@ function maybePlayAlarmTone(): void {
 export function setAlarmSilenced(owner: string, silent: boolean): void {
   if (alarm?.options.owner === owner) alarm.options.silent = silent;
   for (const options of alarmQueue) if (options.owner === owner) options.silent = silent;
+  // A preset goes quiet on its next beep, but a custom clip would play on for up to ten seconds, so
+  // muting the last alarm that wanted sound cuts it off there and then.
+  if (!anyUnmutedAlarm()) stopCustomSound();
 }
 
 function playAlarmTone(): void {
@@ -101,6 +107,12 @@ export interface CustomAlarmSound { name: string; data: string }
 
 let customBuffer: AudioBuffer | null = null;
 let customLoading: Promise<AudioBuffer | null> | null = null;
+/**
+ * Set once the saved file turns out to be missing or undecodable, so the alarm settles on the
+ * Classic tone instead of re-reading and re-decoding the file on every tick. Cleared whenever a
+ * file is saved or removed.
+ */
+let customUnavailable = false;
 let customSource: AudioBufferSourceNode | null = null;
 let customEndsAt = 0;
 
@@ -147,11 +159,15 @@ function bytesBase64(buffer: ArrayBuffer): string {
 function loadCustomSound(context: AudioContext): Promise<AudioBuffer | null> {
   if (customBuffer) return Promise.resolve(customBuffer);
   if (customLoading) return customLoading;
+  if (customUnavailable) return Promise.resolve(null);
   const sound = savedCustomSound();
-  if (!sound) return Promise.resolve(null);
-  customLoading = context.decodeAudioData(base64Bytes(sound.data))
+  if (!sound) { customUnavailable = true; return Promise.resolve(null); }
+  let bytes: ArrayBuffer;
+  try { bytes = base64Bytes(sound.data); }
+  catch { customUnavailable = true; return Promise.resolve(null); }
+  customLoading = context.decodeAudioData(bytes)
     .then(buffer => (customBuffer = buffer))
-    .catch(() => null)
+    .catch(() => { customUnavailable = true; return null; })
     .finally(() => { customLoading = null; });
   return customLoading;
 }
@@ -210,6 +226,7 @@ export async function setCustomAlarmSound(file: File): Promise<boolean> {
   catch { throw new Error('The sound could not be saved - storage is full.'); }
   stopCustomSound();
   customBuffer = buffer;
+  customUnavailable = false;
   return trimmed;
 }
 
@@ -217,6 +234,7 @@ export function clearCustomAlarmSound(): void {
   stopCustomSound();
   writeCustomSound(null);
   customBuffer = null;
+  customUnavailable = false;
 }
 
 function stopCustomSound(): void {
@@ -286,7 +304,8 @@ function alarmTone(context: AudioContext): void {
   if (settings.preset === 'custom') {
     if (customBuffer) {
       // A file is played through, then again after a short gap, rather than restarted every tick.
-      if (context.currentTime >= customEndsAt + .3) playCustom(context, customBuffer, settings);
+      // An end time of 0 means nothing has played yet, which must not wait on the clock passing 0.3s.
+      if (!customEndsAt || context.currentTime >= customEndsAt + .3) playCustom(context, customBuffer, settings);
       return;
     }
     // Still decoding (or the file has gone): the classic tone covers the gap so the alarm is never silent.
