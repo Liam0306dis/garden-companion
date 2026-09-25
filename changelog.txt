@@ -1,3 +1,8 @@
+0.8.84
+- Fixed shop alarm Buy all after the latest game update (purchases were being refused)
+- Buy all now buys the whole stack in one purchase, like the game's own Buy All button
+- Fixed the build failing to read crop data from the latest game update
+
 0.8.83
 - The 99 cap for shop alarms now counts tools in your Tool Shack as well as your inventory
 
