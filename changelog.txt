@@ -1,3 +1,10 @@
+0.8.82
+- Shop alarms no longer sound for tools you already hold 99 of (Watering Can, Crop Cleanser, potions), in any shop
+- Shop alarm Buy all only buys up to the 99 cap, and an alarm already showing goes away once you reach it
+- Custom alarm sound plays from the very first alarm instead of starting with a Classic beep
+- Muting an alarm now stops a custom sound straight away
+- A missing or broken custom sound falls back to Classic without slowing the game down
+
 0.8.81
 - New Crop Locker on the Protection tab: lock or unlock any crop in your garden with the games own system
 - Crop Locker lists every crop grouped by plant, with search and All / Unlocked / Locked filters
