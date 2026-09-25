@@ -1,4 +1,4 @@
-import type { CompanionAlarmOptions } from './types.js';
+import type { AlarmSoundSettings, CompanionAlarmOptions } from './types.js';
 import { config, feature } from './config.js';
 import { page } from './page.js';
 import { toast } from './toast.js';
@@ -67,22 +67,262 @@ function playAlarmTone(): void {
   else void context.resume().then(play).catch(() => undefined);
 }
 
-function alarmTone(context: AudioContext): void {
-  const now = context.currentTime;
-  const frequency = [880, 660, 880, 660, 0][alarmPhase++ % 5];
-  if (!frequency) return;
-  const oscillator = context.createOscillator();
+/**
+ * The built-in sounds. Each step is one 420ms tick of the alarm timer and a 0 is a rest, so the
+ * pattern repeats for as long as the banner is up. `level` evens out how loud each waveform reads -
+ * a square wave at the same gain as a sine is far harsher.
+ *
+ * A step given as [from, to] glides between the two over its length. `hold` keeps the note at full
+ * volume until it ends instead of letting it ring away, which is what makes a buzzer or a siren
+ * sound continuous rather than struck. `detune` adds a second voice that many cents off, and the
+ * beating between the two is the rasp of a buzzer.
+ */
+type AlarmStep = number | [number, number];
+export const ALARM_PRESETS: Record<string, { label: string; wave: OscillatorType; steps: AlarmStep[]; length: number; level: number; hold?: boolean; detune?: number }> = {
+  classic: { label: 'Classic', wave: 'sine', steps: [880, 660, 880, 660, 0], length: .38, level: 1 },
+  chime: { label: 'Chime', wave: 'triangle', steps: [1047, 1319, 1568, 0, 0, 0], length: .9, level: 1.3 },
+  beep: { label: 'Soft beep', wave: 'sine', steps: [660, 0, 660, 0, 0, 0], length: .25, level: .8 },
+  buzzer: { label: 'Buzzer', wave: 'sawtooth', steps: [110, 110, 0], length: .36, level: .55, hold: true, detune: 40 },
+  // Each step runs slightly past its tick so the next one starts before it has let go, and the
+  // wail up and down reads as one unbroken sweep.
+  siren: { label: 'Siren', wave: 'triangle', steps: [[620, 1150], [1150, 620]], length: .44, level: 1.4, hold: true },
+};
+
+/** Longest custom file kept, both on disk and in playback, so a stray song cannot become the alarm. */
+export const CUSTOM_SOUND_MAX_BYTES = 1024 * 1024;
+export const CUSTOM_SOUND_MAX_SECONDS = 10;
+/**
+ * Kept apart from the main config: that is rewritten on every toggle anywhere in the panel, and
+ * dragging a megabyte of audio through each of those saves would be waste.
+ */
+const CUSTOM_SOUND_KEY = 'gardenCompanion.alarmSound.v1';
+
+export interface CustomAlarmSound { name: string; data: string }
+
+let customBuffer: AudioBuffer | null = null;
+let customLoading: Promise<AudioBuffer | null> | null = null;
+let customSource: AudioBufferSourceNode | null = null;
+let customEndsAt = 0;
+
+export function alarmSoundSettings(): AlarmSoundSettings {
+  const saved: Partial<AlarmSoundSettings> = config.alarmSound && typeof config.alarmSound === 'object' ? config.alarmSound : {};
+  const number = (value: unknown, fallback: number, min: number, max: number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+  };
+  const preset = typeof saved.preset === 'string' && (saved.preset === 'custom' || ALARM_PRESETS[saved.preset]) ? saved.preset : 'classic';
+  return { preset, volume: number(saved.volume, 60, 0, 100), pitch: Math.round(number(saved.pitch, 0, -12, 12)) };
+}
+
+export function savedCustomSound(): CustomAlarmSound | null {
+  let saved: unknown = null;
+  try { saved = GM_getValue(CUSTOM_SOUND_KEY, null); }
+  catch {
+    try { saved = JSON.parse(localStorage.getItem(CUSTOM_SOUND_KEY) || 'null'); } catch {}
+  }
+  const sound = saved as CustomAlarmSound | null;
+  return sound && typeof sound.name === 'string' && typeof sound.data === 'string' ? sound : null;
+}
+
+function writeCustomSound(sound: CustomAlarmSound | null): void {
+  try { GM_setValue(CUSTOM_SOUND_KEY, sound); }
+  catch { localStorage.setItem(CUSTOM_SOUND_KEY, JSON.stringify(sound)); }
+}
+
+function base64Bytes(data: string): ArrayBuffer {
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+  return bytes.buffer;
+}
+
+function bytesBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  return btoa(binary);
+}
+
+/** Decoded once and kept; the saved copy is only the file's bytes, which every alarm would re-decode. */
+function loadCustomSound(context: AudioContext): Promise<AudioBuffer | null> {
+  if (customBuffer) return Promise.resolve(customBuffer);
+  if (customLoading) return customLoading;
+  const sound = savedCustomSound();
+  if (!sound) return Promise.resolve(null);
+  customLoading = context.decodeAudioData(base64Bytes(sound.data))
+    .then(buffer => (customBuffer = buffer))
+    .catch(() => null)
+    .finally(() => { customLoading = null; });
+  return customLoading;
+}
+
+/**
+ * The first ten seconds of a sound as a mono 22kHz WAV - about 440KB at most, whatever went in.
+ * Resampled through an offline context, which also mixes the channels down.
+ */
+async function trimmedWav(buffer: AudioBuffer): Promise<{ bytes: ArrayBuffer; buffer: AudioBuffer }> {
+  const rate = 22050;
+  const length = Math.ceil(Math.min(buffer.duration, CUSTOM_SOUND_MAX_SECONDS) * rate);
+  const Offline = (page.OfflineAudioContext as typeof OfflineAudioContext | undefined) || OfflineAudioContext;
+  const offline = new Offline(1, length, rate);
+  const source = offline.createBufferSource();
+  source.buffer = buffer;
+  source.connect(offline.destination);
+  source.start();
+  const rendered = await offline.startRendering();
+  const samples = rendered.getChannelData(0);
+  const bytes = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(bytes);
+  const text = (offset: number, value: string) => { for (let index = 0; index < value.length; index++) view.setUint8(offset + index, value.charCodeAt(index)); };
+  text(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); text(8, 'WAVE');
+  text(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  text(36, 'data'); view.setUint32(40, samples.length * 2, true);
+  for (let index = 0; index < samples.length; index++) view.setInt16(44 + index * 2, Math.max(-1, Math.min(1, samples[index])) * 0x7fff, true);
+  return { bytes, buffer: rendered };
+}
+
+/**
+ * Checks and stores a file the player picked. Decoding it here is the format check: whatever the
+ * browser can play is accepted, and anything it cannot is refused with a reason rather than saved
+ * and left to fail silently at the next alarm.
+ *
+ * A file that is short and small is kept as it came. Anything longer or larger is cut to its first
+ * ten seconds and re-encoded, so a whole song is accepted rather than refused. Resolves true when
+ * the sound was trimmed.
+ */
+export async function setCustomAlarmSound(file: File): Promise<boolean> {
+  // Only a guard against decoding something enormous; what is saved is capped far below this.
+  if (file.size > 50 * 1024 * 1024) throw new Error('That file is over 50 MB. Pick a smaller one.');
+  const context = armAlarmAudio();
+  if (!context) throw new Error('This browser has no audio support.');
+  let bytes = await file.arrayBuffer();
+  let buffer: AudioBuffer;
+  // decodeAudioData detaches what it is handed, so it gets a copy and the original is what is saved.
+  try { buffer = await context.decodeAudioData(bytes.slice(0)); }
+  catch { throw new Error('That file could not be played. Try an MP3, WAV, OGG or M4A.'); }
+  const trimmed = buffer.duration > CUSTOM_SOUND_MAX_SECONDS + .05;
+  if (trimmed || bytes.byteLength > CUSTOM_SOUND_MAX_BYTES) {
+    try { ({ bytes, buffer } = await trimmedWav(buffer)); }
+    catch { throw new Error('That sound could not be shortened. Try a shorter file.'); }
+  }
+  try { writeCustomSound({ name: file.name, data: bytesBase64(bytes) }); }
+  catch { throw new Error('The sound could not be saved - storage is full.'); }
+  stopCustomSound();
+  customBuffer = buffer;
+  return trimmed;
+}
+
+export function clearCustomAlarmSound(): void {
+  stopCustomSound();
+  writeCustomSound(null);
+  customBuffer = null;
+}
+
+function stopCustomSound(): void {
+  try { customSource?.stop(); } catch {}
+  customSource = null;
+  customEndsAt = 0;
+}
+
+/** Everything a preview has scheduled, so a newer preview can cut it off instead of playing over it. */
+let previewNodes: OscillatorNode[] = [];
+
+function stopPreview(): void {
+  for (const node of previewNodes) { try { node.stop(); } catch {} }
+  previewNodes = [];
+}
+
+function presetTone(context: AudioContext, at: number, step: AlarmStep, settings: AlarmSoundSettings, preview = false): void {
+  const preset = ALARM_PRESETS[settings.preset] || ALARM_PRESETS.classic;
+  const level = .25 * preset.level * settings.volume / 60;
+  if (!level) return;
+  const shift = 2 ** (settings.pitch / 12);
+  const [from, to] = Array.isArray(step) ? step : [step, step];
+  const end = at + preset.length;
   const gain = context.createGain();
-  oscillator.type = 'sine';
-  oscillator.connect(gain); gain.connect(context.destination);
-  oscillator.frequency.setValueAtTime(frequency, now);
-  gain.gain.setValueAtTime(.25, now);
-  gain.gain.exponentialRampToValueAtTime(.001, now + .38);
-  oscillator.start(now); oscillator.stop(now + .4);
+  gain.connect(context.destination);
+  if (preset.hold) {
+    // A few milliseconds in and out, or the square edges of a held note click.
+    gain.gain.setValueAtTime(0, at);
+    gain.gain.linearRampToValueAtTime(level, at + .008);
+    gain.gain.setValueAtTime(level, end - .02);
+    gain.gain.linearRampToValueAtTime(0, end);
+  } else {
+    gain.gain.setValueAtTime(level, at);
+    gain.gain.exponentialRampToValueAtTime(.001, end);
+  }
+  for (const cents of preset.detune ? [0, preset.detune] : [0]) {
+    const oscillator = context.createOscillator();
+    oscillator.type = preset.wave;
+    oscillator.detune.value = cents;
+    oscillator.connect(gain);
+    oscillator.frequency.setValueAtTime(from * shift, at);
+    if (to !== from) oscillator.frequency.linearRampToValueAtTime(to * shift, end);
+    oscillator.start(at); oscillator.stop(end + .02);
+    if (preview) previewNodes.push(oscillator);
+  }
+}
+
+/** Pitch on a file is its playback rate, so it runs faster as it goes higher, like a record would. */
+function playCustom(context: AudioContext, buffer: AudioBuffer, settings: AlarmSoundSettings): void {
+  stopCustomSound();
+  const rate = 2 ** (settings.pitch / 12);
+  const source = context.createBufferSource();
+  const gain = context.createGain();
+  source.buffer = buffer;
+  source.playbackRate.value = rate;
+  gain.gain.value = settings.volume / 100;
+  source.connect(gain); gain.connect(context.destination);
+  const length = Math.min(buffer.duration, CUSTOM_SOUND_MAX_SECONDS);
+  source.start(context.currentTime, 0, length);
+  source.onended = () => { if (customSource === source) customSource = null; };
+  customSource = source;
+  customEndsAt = context.currentTime + length / rate;
+}
+
+function alarmTone(context: AudioContext): void {
+  const settings = alarmSoundSettings();
+  if (settings.preset === 'custom') {
+    if (customBuffer) {
+      // A file is played through, then again after a short gap, rather than restarted every tick.
+      if (context.currentTime >= customEndsAt + .3) playCustom(context, customBuffer, settings);
+      return;
+    }
+    // Still decoding (or the file has gone): the classic tone covers the gap so the alarm is never silent.
+    void loadCustomSound(context);
+  }
+  const preset = ALARM_PRESETS[settings.preset] || ALARM_PRESETS.classic;
+  const step = preset.steps[alarmPhase++ % preset.steps.length];
+  if (step) presetTone(context, context.currentTime, step, settings);
+}
+
+/**
+ * One pass of the chosen sound, for the settings tab. Each call replaces the last rather than
+ * joining it, so nudging a slider several times never stacks previews on top of each other.
+ */
+export async function previewAlarmSound(): Promise<void> {
+  const context = armAlarmAudio();
+  if (!context) return;
+  stopPreview();
+  stopCustomSound();
+  if (context.state !== 'running') await context.resume().catch(() => undefined);
+  const settings = alarmSoundSettings();
+  if (settings.preset === 'custom') {
+    const buffer = await loadCustomSound(context);
+    if (buffer) playCustom(context, buffer, settings);
+    return;
+  }
+  // The pattern twice through, less its trailing rest, so it sounds the way the alarm will.
+  const preset = ALARM_PRESETS[settings.preset] || ALARM_PRESETS.classic;
+  const steps = [...preset.steps, ...preset.steps];
+  while (steps.length && !steps[steps.length - 1]) steps.pop();
+  steps.forEach((step, index) => { if (step) presetTone(context, context.currentTime + index * .42, step, settings, true); });
 }
 
 function clearActiveAlarm(): void {
   if (alarm?.timer) clearInterval(alarm.timer);
+  stopCustomSound();
   document.getElementById('gc-alarm')?.remove();
   alarm = null;
 }

@@ -468,6 +468,11 @@
 .gc-value-size i { margin-left:-4px;color:var(--gc-muted);font-size:11px;font-style:normal; }
 .gc-value-size em { padding:1px 7px;border-radius:999px;background:rgba(62,207,142,.14);color:var(--gc-green);font-size:11px;font-style:normal;font-weight:600; }
 .gc-value-size input[type=range] { width:100%;accent-color:var(--gc-accent); }
+.gc-alarm-sound > * + * { margin-top:14px; }
+.gc-alarm-sound h3 + * { margin-top:10px; }
+/* Two buttons where a launch row expects one, so they size to their labels and the row gives them room first. */
+.gc-launch-row > .gc-alarm-file-actions { display:flex;flex:0 0 auto;gap:8px; }
+#gc-panel .gc-alarm-file-actions button { width:auto;min-width:84px; }
 .gc-value-readout { display:flex;align-items:baseline;gap:7px;margin-top:-4px; }
 .gc-value-readout b { color:var(--gc-text);font:650 14px/1 var(--gc-font);font-variant-numeric:tabular-nums; }
 .gc-value-readout span { color:var(--gc-muted);font-size:11px;font-weight:500; }

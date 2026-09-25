@@ -1,3 +1,7 @@
+0.8.80
+- New Sound Settings tab under Alerts: pick an alarm sound (Classic, Chime, Soft beep, Buzzer, Siren), set its volume and pitch, and preview it
+- Custom alarm sounds: upload your own MP3, WAV, OGG or M4A - anything over 10 seconds is trimmed to its start
+
 0.8.79
 - Shop alarms: an item bought out before a restock is no longer treated as still sold out after the shop restocks
 

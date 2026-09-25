@@ -38,6 +38,7 @@ export const DEFAULTS: CompanionConfig = {
   shopAlertsMuted: {},
   weatherAlerts: {},
   weatherAlertsMuted: {},
+  alarmSound: { preset: 'classic', volume: 60, pitch: 0 },
   petFoodChoices: {},
   teamKeybinds: {},
   interfaceKeybinds: {},

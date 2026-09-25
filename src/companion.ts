@@ -16,6 +16,7 @@ import {
 import { processAutoStore } from './features/auto-store.js';
 import { noteWeatherChange } from './features/weather-timer.js';
 import { forecastTrace } from './weather-forecast.js';
+import { bindAlarmSoundEvents, renderAlarmSound } from './features/alarm-sound.js';
 import { bindWeatherAlarmEvents, processWeatherAlarms, renderWeatherAlarms, weatherAlarmSignature } from './features/weather-alarms.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
@@ -431,7 +432,7 @@ export function initCompanion(): void {
   const TAB_GROUPS: Array<[string, Array<[string, string, string?]>]> = [
     ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food'], ['eggLuck', 'Egg Luck', 'Eggs']]],
     ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
-    ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
+    ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['alarmSound', 'Sound Settings'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
     ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
     ['Support', [['supporter', 'Supporter']]],
@@ -448,6 +449,7 @@ export function initCompanion(): void {
     journal: '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5v-15Z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 7.5h6"/>',
     shops: '<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>',
     weatherAlarms: '<path d="M7 18a4 4 0 0 1-.6-8A5.5 5.5 0 0 1 17 8.6a4.5 4.5 0 0 1 .5 9.4H7Z"/>',
+    alarmSound: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>',
     silence: '<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0 1 9 0c0 2.5.5 3.8 1.5 5Z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>',
     calculators: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7h7"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01"/>',
     rooms: '<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
@@ -573,6 +575,7 @@ export function initCompanion(): void {
     if (activeTab === 'rooms') return renderRooms();
     if (activeTab === 'shops') return renderShops();
     if (activeTab === 'weatherAlarms') return renderWeatherAlarms();
+    if (activeTab === 'alarmSound') return renderAlarmSound();
     if (activeTab === 'silence') return renderSilence();
     if (activeTab === 'protection') return renderCropProtection();
     if (activeTab === 'journal') return renderJournal();
@@ -663,6 +666,7 @@ export function initCompanion(): void {
     bindAbilityLogEvents(main);
     bindShopEvents(main);
     bindWeatherAlarmEvents(main);
+    bindAlarmSoundEvents(main, renderPanelPreservingScroll);
     bindJournalEvents(main);
     bindEggLuckEvents(main);
     bindCropProtectionEvents(main);

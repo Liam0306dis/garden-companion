@@ -275,8 +275,18 @@ export interface CompanionConfig {
   weatherAlerts: Record<string, boolean>;
   /** Weather alerts whose sound is muted. */
   weatherAlertsMuted: Record<string, boolean>;
+  alarmSound: AlarmSoundSettings;
   petFoodChoices: Record<string, string>;
   teamKeybinds: Record<string, string>;
   interfaceKeybinds: Record<string, string>;
-  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string>;
+  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string> | AlarmSoundSettings;
+}
+
+/** How every alarm sounds: a built-in preset or the player's own file, with volume and pitch on top. */
+export interface AlarmSoundSettings {
+  preset: string;
+  /** 0-100. */
+  volume: number;
+  /** Semitones either side of the preset's own pitch, -12 to 12. */
+  pitch: number;
 }

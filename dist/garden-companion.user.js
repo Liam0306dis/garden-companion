@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.79
+// @version      0.8.80
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -608,6 +608,7 @@
     shopAlertsMuted: {},
     weatherAlerts: {},
     weatherAlertsMuted: {},
+    alarmSound: { preset: "classic", volume: 60, pitch: 0 },
     petFoodChoices: {},
     teamKeybinds: {},
     interfaceKeybinds: {}
@@ -2003,23 +2004,239 @@ ${groups}
     if (context.state === "running") play();
     else void context.resume().then(play).catch(() => void 0);
   }
-  function alarmTone(context) {
-    const now = context.currentTime;
-    const frequency = [880, 660, 880, 660, 0][alarmPhase++ % 5];
-    if (!frequency) return;
-    const oscillator = context.createOscillator();
+  var ALARM_PRESETS = {
+    classic: { label: "Classic", wave: "sine", steps: [880, 660, 880, 660, 0], length: 0.38, level: 1 },
+    chime: { label: "Chime", wave: "triangle", steps: [1047, 1319, 1568, 0, 0, 0], length: 0.9, level: 1.3 },
+    beep: { label: "Soft beep", wave: "sine", steps: [660, 0, 660, 0, 0, 0], length: 0.25, level: 0.8 },
+    buzzer: { label: "Buzzer", wave: "sawtooth", steps: [110, 110, 0], length: 0.36, level: 0.55, hold: true, detune: 40 },
+    // Each step runs slightly past its tick so the next one starts before it has let go, and the
+    // wail up and down reads as one unbroken sweep.
+    siren: { label: "Siren", wave: "triangle", steps: [[620, 1150], [1150, 620]], length: 0.44, level: 1.4, hold: true }
+  };
+  var CUSTOM_SOUND_MAX_BYTES = 1024 * 1024;
+  var CUSTOM_SOUND_MAX_SECONDS = 10;
+  var CUSTOM_SOUND_KEY = "gardenCompanion.alarmSound.v1";
+  var customBuffer = null;
+  var customLoading = null;
+  var customSource = null;
+  var customEndsAt = 0;
+  function alarmSoundSettings() {
+    const saved = config.alarmSound && typeof config.alarmSound === "object" ? config.alarmSound : {};
+    const number = (value, fallback, min, max) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+    };
+    const preset = typeof saved.preset === "string" && (saved.preset === "custom" || ALARM_PRESETS[saved.preset]) ? saved.preset : "classic";
+    return { preset, volume: number(saved.volume, 60, 0, 100), pitch: Math.round(number(saved.pitch, 0, -12, 12)) };
+  }
+  function savedCustomSound() {
+    let saved = null;
+    try {
+      saved = GM_getValue(CUSTOM_SOUND_KEY, null);
+    } catch {
+      try {
+        saved = JSON.parse(localStorage.getItem(CUSTOM_SOUND_KEY) || "null");
+      } catch {
+      }
+    }
+    const sound = saved;
+    return sound && typeof sound.name === "string" && typeof sound.data === "string" ? sound : null;
+  }
+  function writeCustomSound(sound) {
+    try {
+      GM_setValue(CUSTOM_SOUND_KEY, sound);
+    } catch {
+      localStorage.setItem(CUSTOM_SOUND_KEY, JSON.stringify(sound));
+    }
+  }
+  function base64Bytes(data) {
+    const binary = atob(data);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    return bytes.buffer;
+  }
+  function bytesBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let index = 0; index < bytes.length; index += 32768) binary += String.fromCharCode(...bytes.subarray(index, index + 32768));
+    return btoa(binary);
+  }
+  function loadCustomSound(context) {
+    if (customBuffer) return Promise.resolve(customBuffer);
+    if (customLoading) return customLoading;
+    const sound = savedCustomSound();
+    if (!sound) return Promise.resolve(null);
+    customLoading = context.decodeAudioData(base64Bytes(sound.data)).then((buffer) => customBuffer = buffer).catch(() => null).finally(() => {
+      customLoading = null;
+    });
+    return customLoading;
+  }
+  async function trimmedWav(buffer) {
+    const rate = 22050;
+    const length = Math.ceil(Math.min(buffer.duration, CUSTOM_SOUND_MAX_SECONDS) * rate);
+    const Offline = page.OfflineAudioContext || OfflineAudioContext;
+    const offline = new Offline(1, length, rate);
+    const source = offline.createBufferSource();
+    source.buffer = buffer;
+    source.connect(offline.destination);
+    source.start();
+    const rendered = await offline.startRendering();
+    const samples = rendered.getChannelData(0);
+    const bytes = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(bytes);
+    const text = (offset, value) => {
+      for (let index = 0; index < value.length; index++) view.setUint8(offset + index, value.charCodeAt(index));
+    };
+    text(0, "RIFF");
+    view.setUint32(4, 36 + samples.length * 2, true);
+    text(8, "WAVE");
+    text(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, rate, true);
+    view.setUint32(28, rate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    text(36, "data");
+    view.setUint32(40, samples.length * 2, true);
+    for (let index = 0; index < samples.length; index++) view.setInt16(44 + index * 2, Math.max(-1, Math.min(1, samples[index])) * 32767, true);
+    return { bytes, buffer: rendered };
+  }
+  async function setCustomAlarmSound(file) {
+    if (file.size > 50 * 1024 * 1024) throw new Error("That file is over 50 MB. Pick a smaller one.");
+    const context = armAlarmAudio();
+    if (!context) throw new Error("This browser has no audio support.");
+    let bytes = await file.arrayBuffer();
+    let buffer;
+    try {
+      buffer = await context.decodeAudioData(bytes.slice(0));
+    } catch {
+      throw new Error("That file could not be played. Try an MP3, WAV, OGG or M4A.");
+    }
+    const trimmed = buffer.duration > CUSTOM_SOUND_MAX_SECONDS + 0.05;
+    if (trimmed || bytes.byteLength > CUSTOM_SOUND_MAX_BYTES) {
+      try {
+        ({ bytes, buffer } = await trimmedWav(buffer));
+      } catch {
+        throw new Error("That sound could not be shortened. Try a shorter file.");
+      }
+    }
+    try {
+      writeCustomSound({ name: file.name, data: bytesBase64(bytes) });
+    } catch {
+      throw new Error("The sound could not be saved - storage is full.");
+    }
+    stopCustomSound();
+    customBuffer = buffer;
+    return trimmed;
+  }
+  function clearCustomAlarmSound() {
+    stopCustomSound();
+    writeCustomSound(null);
+    customBuffer = null;
+  }
+  function stopCustomSound() {
+    try {
+      customSource?.stop();
+    } catch {
+    }
+    customSource = null;
+    customEndsAt = 0;
+  }
+  var previewNodes = [];
+  function stopPreview() {
+    for (const node of previewNodes) {
+      try {
+        node.stop();
+      } catch {
+      }
+    }
+    previewNodes = [];
+  }
+  function presetTone(context, at, step, settings, preview = false) {
+    const preset = ALARM_PRESETS[settings.preset] || ALARM_PRESETS.classic;
+    const level = 0.25 * preset.level * settings.volume / 60;
+    if (!level) return;
+    const shift = 2 ** (settings.pitch / 12);
+    const [from, to] = Array.isArray(step) ? step : [step, step];
+    const end = at + preset.length;
     const gain = context.createGain();
-    oscillator.type = "sine";
-    oscillator.connect(gain);
     gain.connect(context.destination);
-    oscillator.frequency.setValueAtTime(frequency, now);
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(1e-3, now + 0.38);
-    oscillator.start(now);
-    oscillator.stop(now + 0.4);
+    if (preset.hold) {
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(level, at + 8e-3);
+      gain.gain.setValueAtTime(level, end - 0.02);
+      gain.gain.linearRampToValueAtTime(0, end);
+    } else {
+      gain.gain.setValueAtTime(level, at);
+      gain.gain.exponentialRampToValueAtTime(1e-3, end);
+    }
+    for (const cents of preset.detune ? [0, preset.detune] : [0]) {
+      const oscillator = context.createOscillator();
+      oscillator.type = preset.wave;
+      oscillator.detune.value = cents;
+      oscillator.connect(gain);
+      oscillator.frequency.setValueAtTime(from * shift, at);
+      if (to !== from) oscillator.frequency.linearRampToValueAtTime(to * shift, end);
+      oscillator.start(at);
+      oscillator.stop(end + 0.02);
+      if (preview) previewNodes.push(oscillator);
+    }
+  }
+  function playCustom(context, buffer, settings) {
+    stopCustomSound();
+    const rate = 2 ** (settings.pitch / 12);
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    source.buffer = buffer;
+    source.playbackRate.value = rate;
+    gain.gain.value = settings.volume / 100;
+    source.connect(gain);
+    gain.connect(context.destination);
+    const length = Math.min(buffer.duration, CUSTOM_SOUND_MAX_SECONDS);
+    source.start(context.currentTime, 0, length);
+    source.onended = () => {
+      if (customSource === source) customSource = null;
+    };
+    customSource = source;
+    customEndsAt = context.currentTime + length / rate;
+  }
+  function alarmTone(context) {
+    const settings = alarmSoundSettings();
+    if (settings.preset === "custom") {
+      if (customBuffer) {
+        if (context.currentTime >= customEndsAt + 0.3) playCustom(context, customBuffer, settings);
+        return;
+      }
+      void loadCustomSound(context);
+    }
+    const preset = ALARM_PRESETS[settings.preset] || ALARM_PRESETS.classic;
+    const step = preset.steps[alarmPhase++ % preset.steps.length];
+    if (step) presetTone(context, context.currentTime, step, settings);
+  }
+  async function previewAlarmSound() {
+    const context = armAlarmAudio();
+    if (!context) return;
+    stopPreview();
+    stopCustomSound();
+    if (context.state !== "running") await context.resume().catch(() => void 0);
+    const settings = alarmSoundSettings();
+    if (settings.preset === "custom") {
+      const buffer = await loadCustomSound(context);
+      if (buffer) playCustom(context, buffer, settings);
+      return;
+    }
+    const preset = ALARM_PRESETS[settings.preset] || ALARM_PRESETS.classic;
+    const steps = [...preset.steps, ...preset.steps];
+    while (steps.length && !steps[steps.length - 1]) steps.pop();
+    steps.forEach((step, index) => {
+      if (step) presetTone(context, context.currentTime + index * 0.42, step, settings, true);
+    });
   }
   function clearActiveAlarm() {
     if (alarm?.timer) clearInterval(alarm.timer);
+    stopCustomSound();
     document.getElementById("gc-alarm")?.remove();
     alarm = null;
   }
@@ -3531,6 +3748,86 @@ ${groups}
       };
     }
     return best;
+  }
+
+  // src/features/alarm-sound.ts
+  function saveSettings(change) {
+    config.alarmSound = { ...alarmSoundSettings(), ...change };
+    saveConfig();
+  }
+  var pitchText = (pitch) => pitch > 0 ? `+${pitch}` : String(pitch);
+  function renderAlarmSound() {
+    const settings = alarmSoundSettings();
+    const custom = savedCustomSound();
+    const options = Object.entries(ALARM_PRESETS).map(([id, preset]) => [id, preset.label]);
+    if (custom) options.push(["custom", "Custom file"]);
+    return `<p class="gc-note">Every alarm uses this sound. The speaker button on each alert still mutes that one alert.</p>
+<section class="gc-card gc-alarm-sound"><h3>Sound</h3>
+<select data-alarm-preset>${options.map(([id, label]) => `<option value="${id}" ${id === settings.preset ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
+<label class="gc-value-size"><span>Volume<b data-alarm-volume-value>${settings.volume}%</b></span><input type="range" min="0" max="100" step="5" value="${settings.volume}" data-alarm-volume></label>
+<label class="gc-value-size"><span>Pitch<b data-alarm-pitch-value>${pitchText(settings.pitch)}</b><i>semitones</i></span><input type="range" min="-12" max="12" step="1" value="${settings.pitch}" data-alarm-pitch></label>
+<button class="gc-primary" data-alarm-preview>Play preview</button></section>
+<section class="gc-card gc-launch-row"><div><h3>Custom sound</h3><p>${custom ? `Using <b>${escapeHtml(custom.name)}</b>.` : `MP3, WAV, OGG or M4A. Anything over ${CUSTOM_SOUND_MAX_SECONDS} seconds is trimmed to its start.`} It repeats until the alarm is stopped.</p></div>
+<div class="gc-alarm-file-actions">${custom ? '<button class="gc-danger" data-alarm-remove>Remove</button>' : ""}<button data-alarm-upload>${custom ? "Replace" : "Choose file"}</button></div>
+<input type="file" accept="audio/*" hidden data-alarm-file></section>`;
+  }
+  function bindAlarmSoundEvents(main, rerender) {
+    const preset = main.querySelector("[data-alarm-preset]");
+    if (!preset) return;
+    preset.onchange = () => {
+      saveSettings({ preset: preset.value });
+      void previewAlarmSound();
+    };
+    let previewTimer = null;
+    const previewSoon = () => {
+      if (previewTimer) clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => {
+        previewTimer = null;
+        void previewAlarmSound();
+      }, 300);
+    };
+    const volume = main.querySelector("[data-alarm-volume]");
+    const volumeValue = main.querySelector("[data-alarm-volume-value]");
+    volume.oninput = () => {
+      volumeValue.textContent = `${volume.value}%`;
+    };
+    volume.onchange = () => {
+      saveSettings({ volume: Number(volume.value) });
+      previewSoon();
+    };
+    const pitch = main.querySelector("[data-alarm-pitch]");
+    const pitchValue = main.querySelector("[data-alarm-pitch-value]");
+    pitch.oninput = () => {
+      pitchValue.textContent = pitchText(Number(pitch.value));
+    };
+    pitch.onchange = () => {
+      saveSettings({ pitch: Number(pitch.value) });
+      previewSoon();
+    };
+    main.querySelector("[data-alarm-preview]").onclick = () => {
+      void previewAlarmSound();
+    };
+    const file = main.querySelector("[data-alarm-file]");
+    main.querySelector("[data-alarm-upload]").onclick = () => file.click();
+    file.onchange = async () => {
+      const picked = file.files?.[0];
+      file.value = "";
+      if (!picked) return;
+      try {
+        const trimmed = await setCustomAlarmSound(picked);
+        saveSettings({ preset: "custom" });
+        toast(trimmed ? `Custom alarm sound saved - trimmed to its first ${CUSTOM_SOUND_MAX_SECONDS} seconds.` : "Custom alarm sound saved.", "success");
+        rerender();
+        void previewAlarmSound();
+      } catch (error) {
+        toast(error.message, "error");
+      }
+    };
+    main.querySelector("[data-alarm-remove]")?.addEventListener("click", () => {
+      clearCustomAlarmSound();
+      if (alarmSoundSettings().preset === "custom") saveSettings({ preset: "classic" });
+      rerender();
+    });
   }
 
   // src/features/weather-alarms.ts
@@ -6569,7 +6866,7 @@ ${eggs.map(eggCard).join("")}`;
     const TAB_GROUPS = [
       ["Pets", [["abilities", "Active Pets", "Active"], ["abilityLog", "Pet Abilities", "Abilities"], ["teams", "Pet Teams", "Teams"], ["petFood", "Pet Food", "Food"], ["eggLuck", "Egg Luck", "Eggs"]]],
       ["Crops", [["protection", "Crop Protection", "Protection"], ["journal", "Journal"]]],
-      ["Alerts", [["shops", "Shop Alarms", "Shops"], ["weatherAlarms", "Weather Alarms", "Weather"], ["silence", "Ignore Alerts", "Ignore abilities"]]],
+      ["Alerts", [["shops", "Shop Alarms", "Shops"], ["weatherAlarms", "Weather Alarms", "Weather"], ["alarmSound", "Sound Settings"], ["silence", "Ignore Alerts", "Ignore abilities"]]],
       ["Tools", [["calculators", "Calculators"], ["rooms", "Rooms"]]],
       ["Setup", [["keybinds", "Keybinds"], ["features", "Features"]]],
       ["Support", [["supporter", "Supporter"]]]
@@ -6585,6 +6882,7 @@ ${eggs.map(eggCard).join("")}`;
       journal: '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5v-15Z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 7.5h6"/>',
       shops: '<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>',
       weatherAlarms: '<path d="M7 18a4 4 0 0 1-.6-8A5.5 5.5 0 0 1 17 8.6a4.5 4.5 0 0 1 .5 9.4H7Z"/>',
+      alarmSound: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>',
       silence: '<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0 1 9 0c0 2.5.5 3.8 1.5 5Z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>',
       calculators: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7h7"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01"/>',
       rooms: '<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
@@ -6689,6 +6987,7 @@ ${eggs.map(eggCard).join("")}`;
       if (activeTab === "rooms") return renderRooms();
       if (activeTab === "shops") return renderShops();
       if (activeTab === "weatherAlarms") return renderWeatherAlarms();
+      if (activeTab === "alarmSound") return renderAlarmSound();
       if (activeTab === "silence") return renderSilence();
       if (activeTab === "protection") return renderCropProtection();
       if (activeTab === "journal") return renderJournal();
@@ -6786,6 +7085,7 @@ ${eggs.map(eggCard).join("")}`;
       bindAbilityLogEvents(main);
       bindShopEvents(main);
       bindWeatherAlarmEvents(main);
+      bindAlarmSoundEvents(main, renderPanelPreservingScroll);
       bindJournalEvents(main);
       bindEggLuckEvents(main);
       bindCropProtectionEvents(main);
@@ -7264,6 +7564,11 @@ ${eggs.map(eggCard).join("")}`;
 .gc-value-size i { margin-left:-4px;color:var(--gc-muted);font-size:11px;font-style:normal; }
 .gc-value-size em { padding:1px 7px;border-radius:999px;background:rgba(62,207,142,.14);color:var(--gc-green);font-size:11px;font-style:normal;font-weight:600; }
 .gc-value-size input[type=range] { width:100%;accent-color:var(--gc-accent); }
+.gc-alarm-sound > * + * { margin-top:14px; }
+.gc-alarm-sound h3 + * { margin-top:10px; }
+/* Two buttons where a launch row expects one, so they size to their labels and the row gives them room first. */
+.gc-launch-row > .gc-alarm-file-actions { display:flex;flex:0 0 auto;gap:8px; }
+#gc-panel .gc-alarm-file-actions button { width:auto;min-width:84px; }
 .gc-value-readout { display:flex;align-items:baseline;gap:7px;margin-top:-4px; }
 .gc-value-readout b { color:var(--gc-text);font:650 14px/1 var(--gc-font);font-variant-numeric:tabular-nums; }
 .gc-value-readout span { color:var(--gc-muted);font-size:11px;font-weight:500; }

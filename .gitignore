@@ -24,6 +24,7 @@ gardenCompanionState.json
 # Editor and operating system files
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db
 desktop.ini
