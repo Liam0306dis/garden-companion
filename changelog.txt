@@ -1,3 +1,6 @@
+0.8.83
+- The 99 cap for shop alarms now counts tools in your Tool Shack as well as your inventory
+
 0.8.82
 - Shop alarms no longer sound for tools you already hold 99 of (Watering Can, Crop Cleanser, potions), in any shop
 - Shop alarm Buy all only buys up to the 99 cap, and an alarm already showing goes away once you reach it
