@@ -6930,14 +6930,13 @@ ${eggs.map(eggCard).join("")}`;
           stopAlarm(owner);
           return;
         }
-        for (let index = 0; index < count; index++) {
-          try {
-            sendQuinoaCommand({ type: "PurchaseShopItem", shop: live.shop, item: itemPayload(live.item, live.shop) });
-          } catch (error) {
-            throw new Error(index ? `Requested ${index} of ${count} before the connection dropped.` : error.message);
-          }
-          if (index + 1 < count) await new Promise((resolve) => setTimeout(resolve, 180));
-        }
+        sendQuinoaCommand({
+          type: "PurchaseShopItem",
+          shop: live.shop,
+          viewMode: "list",
+          item: itemPayload(live.item, live.shop),
+          ...count === 1 ? {} : { quantity: count }
+        });
         toast(`Requested ${count} ${humanize(live.id)}${count < live.remaining ? " - that fills it to the cap" : ""}.`, "success");
         stopAlarm(owner);
       }

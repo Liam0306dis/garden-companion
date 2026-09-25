@@ -71,17 +71,17 @@ test('a reconnect re-adopts the shelf silently', () => {
   assert.equal(alarmTitle(), null);
 });
 
-test('turning an alert on while in stock fires straight away, and Buy all buys every remaining one', async () => {
+test('turning an alert on while in stock fires straight away, and Buy all buys every remaining one in one purchase', async () => {
   world({ Beet: 3 }, { Beet: 1 }, 8980);
   toggleShopAlert('seed:Beet', true);
   assert.equal(alarmTitle(), 'Beet is available');
   socket.sent.length = 0;
   document.querySelector<HTMLButtonElement>('#gc-alarm [data-buy]')!.click();
-  // The purchases leave 180ms apart; each tick lets the loop's await resume.
-  for (let index = 0; index < 5; index++) { await Promise.resolve(); mock.timers.tick(200); await Promise.resolve(); }
+  await Promise.resolve();
+  // One purchase for the whole remaining stock, as the game's own Buy All sends it.
   const purchases = socket.commands().filter(command => command.type === 'PurchaseShopItem');
-  assert.equal(purchases.length, 2);
-  assert.deepEqual(purchases[0], { type: 'PurchaseShopItem', shop: 'seed', item: { itemType: 'Seed', species: 'Beet' } });
+  assert.equal(purchases.length, 1);
+  assert.deepEqual(purchases[0], { type: 'PurchaseShopItem', shop: 'seed', viewMode: 'list', item: { itemType: 'Seed', species: 'Beet' }, quantity: 2 });
   assert.equal(alarmTitle(), null, 'the alarm stops once the purchases are sent');
 });
 
@@ -126,8 +126,10 @@ test('Buy all only buys up to the cap', async () => {
   toggleShopAlert('tool:WateringCan', true);
   socket.sent.length = 0;
   document.querySelector<HTMLButtonElement>('#gc-alarm [data-buy]')!.click();
-  for (let index = 0; index < 5; index++) { await Promise.resolve(); mock.timers.tick(200); await Promise.resolve(); }
-  assert.equal(socket.commands().filter(command => command.type === 'PurchaseShopItem').length, 2);
+  await Promise.resolve();
+  const purchases = socket.commands().filter(command => command.type === 'PurchaseShopItem');
+  assert.equal(purchases.length, 1);
+  assert.equal(purchases[0].quantity, 2, '99 cap - 97 held');
   toggleShopAlert('tool:WateringCan', false);
 });
 

@@ -292,14 +292,13 @@ function showShopAlarm(row: AvailableShopItem): void {
       // A capped tool is only bought up to its cap: the server refuses every purchase past it.
       const count = Math.min(live.remaining, capRoom(live.id, live.item));
       if (!count) { toast(`You already hold the most ${humanize(live.id)} the game allows.`, 'error'); stopAlarm(owner); return; }
-      for (let index = 0; index < count; index++) {
-        try { sendQuinoaCommand({ type: 'PurchaseShopItem', shop: live.shop, item: itemPayload(live.item, live.shop) }); }
-        catch (error) {
-          // The alarm stays up so the rest can be bought once the connection is back.
-          throw new Error(index ? `Requested ${index} of ${count} before the connection dropped.` : (error as Error).message);
-        }
-        if (index + 1 < count) await new Promise(resolve => setTimeout(resolve, 180));
-      }
+      // One purchase for the whole amount, as the game's own Buy All sends since v1291. viewMode (the
+      // shop's list/grid setting) is required or the server rejects it; quantity is omitted for one.
+      // A throw leaves the alarm up so it can be retried once the connection is back.
+      sendQuinoaCommand({
+        type: 'PurchaseShopItem', shop: live.shop, viewMode: 'list', item: itemPayload(live.item, live.shop),
+        ...(count === 1 ? {} : { quantity: count }),
+      });
       toast(`Requested ${count} ${humanize(live.id)}${count < live.remaining ? ' - that fills it to the cap' : ''}.`, 'success');
       stopAlarm(owner);
     },
