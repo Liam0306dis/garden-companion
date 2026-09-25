@@ -2,7 +2,7 @@ import type { ShopItem } from '../types.js';
 import { alertMuteButton, armAlarmAudio, setAlarmSilenced, showAlarmBanner, stopAlarm, updateAlarmDetail } from '../alarms.js';
 import { config, feature, saveConfig } from '../config.js';
 import { onRoomConnectionInterrupted } from '../connection-state.js';
-import { EXCLUDED_TOOL_ALERTS, ITEM_KEYS, SEASONAL_SHOP_ITEMS, SHOP_NAMES, SHOP_TABS } from '../constants.js';
+import { EXCLUDED_TOOL_ALERTS, ITEM_KEYS, SEASONAL_SHOP_ITEMS, SHOP_NAMES, SHOP_TABS, TOOL_LIMITS } from '../constants.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
@@ -89,6 +89,25 @@ export function availableShopItems(): AvailableShopItem[] {
   return output;
 }
 
+/**
+ * Whether the inventory already holds as many of this tool as the game allows (99 for the capped
+ * ones), in which case the shop will not sell another and an alarm would only be noise. Mirrors the
+ * game's own check: only tools carry a cap, and it is the first inventory stack of that tool that
+ * counts - storage is not part of it, since a purchase lands in the inventory.
+ *
+ * Any shop, not just the Tool shop: the Snow shop sells Chilled and Frozen Potions among its seeds
+ * and decor. The cap list only holds tool ids, so an item is judged by its id, unless the shop's own
+ * entry says it is some other kind of item.
+ */
+export function atInventoryCap(_shop: string, id: string, item?: ShopItem): boolean {
+  const limit = TOOL_LIMITS[id];
+  if (!limit) return false;
+  if (item && !item.toolId && item.itemType && item.itemType !== 'Tool') return false;
+  const items = state.slot?.data?.inventory?.items as Array<{ itemType?: string; toolId?: string; quantity?: number }> | undefined;
+  const stack = Array.isArray(items) ? items.find(entry => entry?.itemType === 'Tool' && entry.toolId === id) : undefined;
+  return Number(stack?.quantity || 0) >= limit;
+}
+
 const restockClocks = new Map<string, number>();
 let initialShopTimer = 0;
 let pendingInitialSignature = '';
@@ -126,7 +145,7 @@ function applyShopSnapshot(available: AvailableShopItem[], signature: string, re
   state.lastShopSignature = signature;
   for (const row of available) {
     const key = `${row.shop}:${row.id}`;
-    if (!config.shopAlerts[key]) continue;
+    if (!config.shopAlerts[key] || atInventoryCap(row.shop, row.id, row.item)) continue;
     if (!state.initializedShops || !old.has(key) || restocked.has(row.shop)) showShopAlarm(row);
   }
   state.initializedShops = true;
@@ -251,7 +270,7 @@ function showShopAlarm(row: AvailableShopItem): void {
 
 export function showSelectedShopAlarm(key: string): void {
   const row = availableShopItems().find(item => `${item.shop}:${item.id}` === key);
-  if (row) showShopAlarm(row);
+  if (row && !atInventoryCap(row.shop, row.id, row.item)) showShopAlarm(row);
 }
 
 let shopAlarmTab = 'seed';
@@ -289,7 +308,7 @@ export function renderShops(): string {
   const rows = itemIds.map(id => {
     const key = `${shopAlarmTab}:${id}`;
     const sprite = page.__gardenCompanionShopSprites?.[id];
-    return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? 'checked' : ''}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(id))}</b><small>${available.has(id) ? 'Available now' : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
+    return `<label class="gc-check" data-filter-text="${escapeHtml(humanize(id).toLowerCase())}"><input type="checkbox" data-shop-alert="${escapeHtml(key)}" ${config.shopAlerts[key] ? 'checked' : ''}><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span><span><b>${escapeHtml(humanize(id))}</b><small>${atInventoryCap(shopAlarmTab, id, liveItems.get(id)) ? `Holding ${TOOL_LIMITS[id]} - no alarm` : available.has(id) ? 'Available now' : `${SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab)} shop`}</small></span>${alertMuteButton(`data-shop-mute="${escapeHtml(key)}"`, Boolean(config.shopAlertsMuted[key]))}</label>`;
   });
   const tabs = SHOP_TABS.map(([id, label]) => `<button data-shop-tab="${id}" class="${shopAlarmTab === id ? 'active' : ''}">${label}</button>`).join('');
   return `<p class="gc-note">An alarm appears when a selected item becomes available. Buy all only runs after you click it.</p><div class="gc-shop-tabs">${tabs}</div><input class="gc-search" data-shop-search placeholder="Search ${escapeHtml(SHOP_NAMES[shopAlarmTab] || humanize(shopAlarmTab))} shop"><div class="gc-check-grid gc-filter-list">${rows.join('') || '<p class="gc-empty">Waiting for shop data.</p>'}</div>`;

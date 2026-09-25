@@ -19,6 +19,8 @@ export interface BundleCatalogs {
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
   decor: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean }>;
+  /** Tools the game caps at a number held in the inventory (maxInventoryQuantity), by tool id. */
+  toolLimits: Record<string, number>;
 }
 
 /**
@@ -171,7 +173,12 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
           }]));
         if (Object.keys(decor).length < 10) continue;
         const abilityColours = abilityColoursFromSnapshot(snapshot);
-        return { source: directory, abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours, mutations, decor };
+        // Only tools carry a cap - the game's own max-quantity check returns nothing for any other
+        // item type. Matched within one catalog entry, so a cap is never pinned on its neighbour.
+        const toolLimits = Object.fromEntries([...bundle.matchAll(
+          /([A-Za-z][A-Za-z0-9_]*):\{sprite:[A-Za-z_$]+\.Item\.[A-Za-z0-9_]+,[^{}]*?maxInventoryQuantity:(\d+)/g)]
+          .map(match => [match[1], Number(match[2])]));
+        return { source: directory, abilities: Object.keys(abilityDetails).sort(), abilityDetails, pets, plants, eggs, abilityColours, mutations, decor, toolLimits };
       }
     }
   }

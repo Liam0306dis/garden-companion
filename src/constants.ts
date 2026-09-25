@@ -22,6 +22,8 @@ export const EGG_CATALOG = __EGG_CATALOG__;
 export const PLANT_CATALOG = __PLANT_CATALOG__;
 export const MUTATION_CATALOG = __MUTATION_CATALOG__;
 export const DECOR_CATALOG = __DECOR_CATALOG__;
+/** The most of each capped tool the inventory can hold (99 for most), read from the game's catalog. */
+export const TOOL_LIMITS = __TOOL_LIMITS__;
 export const ABILITY_COLOURS = __ABILITY_COLOURS__;
 export const ABILITY_COLOUR_FALLBACK = '#969696';
 

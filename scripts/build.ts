@@ -108,6 +108,7 @@ await build({
     __EGG_CATALOG__: JSON.stringify(catalogs.eggs),
     __MUTATION_CATALOG__: JSON.stringify(catalogs.mutations),
     __DECOR_CATALOG__: JSON.stringify(catalogs.decor),
+    __TOOL_LIMITS__: JSON.stringify(catalogs.toolLimits),
     __ABILITY_COLOURS__: JSON.stringify(catalogs.abilityColours),
     __PET_SPRITE_LOADER__: JSON.stringify(petSpriteLoader),
     __GARDEN_COMPANION_CSS__: JSON.stringify(css),

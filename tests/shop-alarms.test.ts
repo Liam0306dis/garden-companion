@@ -89,3 +89,27 @@ test('turning an alert off removes it from the saved config', () => {
   toggleShopAlert('seed:Beet', false);
   assert.equal('seed:Beet' in config.shopAlerts, false);
 });
+
+test('a tool already held at its cap does not alarm', () => {
+  stopAlarm();
+  state.playerId = 'me';
+  state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: 99 }] }, shopPurchases: {} } } as unknown as PlayerSlot;
+  state.game = { shops: { tool: { secondsUntilRestock: 100, inventory: [{ toolId: 'WateringCan', initialStock: 5 }] } } } as unknown as GameState;
+  toggleShopAlert('tool:WateringCan', true);
+  assert.equal(alarmTitle(), null, 'at 99 the shop will not sell another');
+  (state.slot!.data!.inventory!.items as unknown as Array<{ quantity: number }>)[0].quantity = 98;
+  toggleShopAlert('tool:WateringCan', true);
+  assert.equal(alarmTitle(), 'Watering Can is available');
+  stopAlarm();
+  toggleShopAlert('tool:WateringCan', false);
+});
+
+test('a capped potion in the Snow shop does not alarm either', () => {
+  stopAlarm();
+  state.playerId = 'me';
+  state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'FrozenPotion', quantity: 99 }] }, shopPurchases: {} } } as unknown as PlayerSlot;
+  state.game = { shops: { snow: { secondsUntilRestock: 100, inventory: [{ itemType: 'Tool', toolId: 'FrozenPotion', initialStock: 2 }] } } } as unknown as GameState;
+  toggleShopAlert('snow:FrozenPotion', true);
+  assert.equal(alarmTitle(), null);
+  toggleShopAlert('snow:FrozenPotion', false);
+});

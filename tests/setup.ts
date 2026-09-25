@@ -23,6 +23,7 @@ Object.assign(globals, {
   __EGG_CATALOG__: catalogs.eggs,
   __MUTATION_CATALOG__: catalogs.mutations,
   __DECOR_CATALOG__: catalogs.decor,
+  __TOOL_LIMITS__: catalogs.toolLimits,
   __ABILITY_COLOURS__: catalogs.abilityColours,
   __PET_WASM_B64__: '',
   __PET_SPRITE_LOADER__: '',
