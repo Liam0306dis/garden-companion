@@ -60,6 +60,8 @@ export interface PlantSlot {
   /** New size model: an integer 50-100 the game shows directly as the crop's size. */
   size?: number;
   preserved?: boolean;
+  /** Set by the game's own crop lock (SetGrowSlotLock); a locked crop cannot be harvested. */
+  locked?: boolean;
 }
 
 export interface GardenTile {

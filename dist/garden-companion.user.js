@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.80
+// @version      0.8.81
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1530,12 +1530,12 @@
     if (scale >= maxScale) return 100;
     return Math.floor(50 + 50 * (scale - 1) / (maxScale - 1));
   }
-  function cropValueFor(species, sizeFraction, selected2, friends) {
+  function cropValueFor(species, sizeFraction, selected3, friends) {
     const crop = cropCatalog(species);
     const base = Number(crop?.baseSellPrice) || 0;
     const maxScale = maxSizeMultiplier(crop);
     const scale = 1 + Math.max(0, Math.min(1, sizeFraction)) * (maxScale - 1);
-    const mutation = catalogMutationMultiplier(selected2);
+    const mutation = catalogMutationMultiplier(selected3);
     const friend = friendMultiplier(friends);
     const each = Math.round(base * scale * mutation);
     return {
@@ -1582,8 +1582,8 @@
   function setCalculatorTab(tab) {
     calculatorTab = tab;
   }
-  function toggleDustPet(petId, selected2) {
-    if (selected2) dustSelection.add(petId);
+  function toggleDustPet(petId, selected3) {
+    if (selected3) dustSelection.add(petId);
     else dustSelection.delete(petId);
   }
   function setDustSelection(petIds) {
@@ -1649,8 +1649,8 @@
   function renderValueCalculator() {
     const species = currentValueSpecies();
     if (!species) return '<p class="gc-empty">No crops with a sell price were found in the catalog.</p>';
-    const selected2 = selectedValueMutations();
-    const value = cropValueFor(species, valueSizeFraction, selected2, valueFriends);
+    const selected3 = selectedValueMutations();
+    const value = cropValueFor(species, valueSizeFraction, selected3, valueFriends);
     const sprite = produceSprite(species);
     const options = valueSpeciesList().map((id) => `<option value="${escapeHtml(id)}" ${id === species ? "selected" : ""}>${escapeHtml(plantName(id))}</option>`).join("");
     const groups = VALUE_GROUPS.map((group) => {
@@ -2277,8 +2277,8 @@ ${groups}
     const banner = document.createElement("div");
     banner.id = "gc-alarm";
     const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : "";
-    const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : "";
-    banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
+    const action2 = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : "";
+    banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action2}<button data-stop>Stop alarm</button>`;
     document.body.appendChild(banner);
     banner.querySelector("[data-stop]").onclick = dismissCurrentAlarm;
     const actionButton = banner.querySelector("[data-buy]");
@@ -2318,6 +2318,387 @@ ${groups}
     page.__gardenCompanionArmAlarm = armAlarmAudio;
     page.__gardenCompanionStopAlarm = stopAlarm;
     page.__gardenCompanionShowAlarm = showAlarmBanner;
+  }
+
+  // src/features/crop-locks.ts
+  var MODAL_ID = "gc-crop-locks";
+  var HOLD_MS = 650;
+  var SEND_INTERVAL = 100;
+  var BATCH_CAP = 15;
+  var selected = /* @__PURE__ */ new Set();
+  var search = "";
+  var filter = "all";
+  var sending = false;
+  var sendTotal = 0;
+  var sendDone = 0;
+  var holdAt = 0;
+  var holdFrame = 0;
+  var action = null;
+  var listSignature = "";
+  var unsubscribe = null;
+  var spritesHooked = false;
+  var rowKey = (tile, slotId) => `${tile}::${slotId}`;
+  function lockGroups() {
+    const tiles = state.slot?.data?.garden?.tileObjects ?? {};
+    const now = Date.now();
+    const bySpecies = /* @__PURE__ */ new Map();
+    for (const [tileKey, tile] of Object.entries(tiles)) {
+      if (tile?.objectType !== "plant" || !Array.isArray(tile.slots)) continue;
+      const tileIndex = Number(tileKey);
+      if (!Number.isFinite(tileIndex)) continue;
+      for (const slot of tile.slots) {
+        if (!slot || slot.slotId == null) continue;
+        const slotId = Number(slot.slotId);
+        if (!Number.isFinite(slotId)) continue;
+        const species = slot.species || tile.species || "";
+        if (!species) continue;
+        const rows = bySpecies.get(species) ?? [];
+        rows.push({
+          key: rowKey(tileIndex, slotId),
+          tile: tileIndex,
+          slotId,
+          species,
+          locked: slot.locked === true,
+          growing: Number(slot.endTime || 0) > now,
+          sizePercent: slotSizePercent(PLANT_CATALOG[species]?.crop, slot),
+          mutations: Array.isArray(slot.mutations) ? slot.mutations.filter((m) => typeof m === "string") : []
+        });
+        bySpecies.set(species, rows);
+      }
+    }
+    const groups = [...bySpecies].map(([species, rows]) => ({
+      species,
+      name: patchName(species),
+      rows: rows.sort((a, b) => a.tile - b.tile || a.slotId - b.slotId)
+    }));
+    return groups.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  function visibleGroups(groups) {
+    const query = search.trim();
+    return groups.map((group) => {
+      const rows = group.rows.filter((row) => {
+        if (filter === "locked" && !row.locked) return false;
+        if (filter === "unlocked" && row.locked) return false;
+        if (!query) return true;
+        return `${group.name} ${plantName(row.species)}`.toLowerCase().includes(query);
+      });
+      return { ...group, rows };
+    }).filter((group) => group.rows.length);
+  }
+  function allRows(groups) {
+    return groups.flatMap((group) => group.rows);
+  }
+  function modal() {
+    return document.getElementById(MODAL_ID);
+  }
+  function mutationChips(mutations) {
+    return mutations.map((mutation) => {
+      const sprite = mutationSprite(mutation);
+      const label = escapeHtml(mutationName(mutation));
+      return sprite ? `<img class="gc-pm-mut" src="${escapeHtml(sprite)}" alt="${label}" title="${label}">` : `<span class="gc-pm-mut-text" title="${label}">${label}</span>`;
+    }).join("");
+  }
+  var PADLOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  var PADLOCK_OPEN = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.7"/></svg>';
+  function groupState(group) {
+    const on = group.rows.reduce((count, row) => count + (selected.has(row.key) ? 1 : 0), 0);
+    const all = on === group.rows.length;
+    return { on, state: on === 0 ? "none" : all ? "all" : "some", mark: on === 0 ? "" : all ? "&#10003;" : "&#8211;" };
+  }
+  function listMarkup(groups) {
+    if (!groups.length) {
+      return search.trim() || filter !== "all" ? '<p class="gc-pm-empty">No crops match.</p>' : '<p class="gc-pm-empty">Your garden has no crops to lock.</p>';
+    }
+    return groups.map((group) => {
+      const sprite = produceSprite(group.species);
+      const icon = sprite ? `<img class="gc-pm-icon" src="${escapeHtml(sprite)}" alt="">` : `<span class="gc-pm-icon gc-pm-icon-text">${escapeHtml(group.name.slice(0, 1))}</span>`;
+      const lockedCount = group.rows.filter((row) => row.locked).length;
+      const mark = groupState(group);
+      const rows = group.rows.map((row) => {
+        const active = selected.has(row.key);
+        return `<div class="gc-pm-slot" role="button" tabindex="0" data-lock-row="${row.key}" data-active="${active}"><i class="gc-pm-check">${active ? "&#10003;" : ""}</i><span class="gc-pm-size">${row.sizePercent}%</span><span class="gc-pm-muts">${mutationChips(row.mutations)}${row.growing ? '<span class="gc-cl-growing">Growing</span>' : ""}</span><span class="gc-cl-state" data-locked="${row.locked}" title="${row.locked ? "Locked" : "Unlocked"}">${row.locked ? PADLOCK : PADLOCK_OPEN}</span></div>`;
+      }).join("");
+      return `<section class="gc-pm-plant"><div class="gc-pm-plant-head" role="button" tabindex="0" data-lock-group="${escapeHtml(group.species)}" data-state="${mark.state}">${icon}<b>${escapeHtml(group.name)}</b><small>${lockedCount}/${group.rows.length} locked</small><i class="gc-pm-check">${mark.mark}</i></div><div class="gc-pm-slots">${rows}</div></section>`;
+    }).join("");
+  }
+  function modalMarkup() {
+    const filters = [["all", "All"], ["unlocked", "Unlocked"], ["locked", "Locked"]];
+    return `<div class="gc-preserve-manager gc-crop-locks" role="dialog" aria-label="Crop Locker"><header class="gc-modal-head"><h3>Crop Locker</h3><button class="gc-modal-close" data-lock-close aria-label="Close">&times;</button></header><div class="gc-modal-tools"><input class="gc-pm-search" type="text" data-lock-search placeholder="Search crops" spellcheck="false" value="${escapeHtml(search)}"><div><button data-lock-all>Select all</button><button data-lock-none>Clear</button></div></div><div class="gc-cl-filters">${filters.map(([id, label]) => `<button data-lock-filter="${id}" data-active="${id === filter}">${label}</button>`).join("")}<span class="gc-modal-summary" data-lock-summary></span></div><div class="gc-modal-body" data-lock-list>${listMarkup(visibleGroups(lockGroups()))}</div><footer class="gc-pm-foot"><div class="gc-pm-foot-info"><span class="gc-pm-total" data-lock-total></span><span class="gc-pm-hint" data-lock-hint></span></div><div class="gc-cl-actions">${["unlock", "lock"].map((kind) => `<button class="gc-cl-${kind}" data-lock-run="${kind}"><i class="gc-cl-fill" data-lock-fill></i><span data-lock-label></span></button>`).join("")}</div></footer></div>`;
+  }
+  function dataSignature(groups) {
+    return `${search}
+${filter}
+` + groups.map((group) => `${group.species}:` + group.rows.map((row) => `${row.key},${row.locked ? 1 : 0},${row.growing ? 1 : 0},${row.sizePercent},${row.mutations.join("|")}`).join(";")).join("\n");
+  }
+  function redrawList() {
+    const root = modal();
+    const list = root?.querySelector("[data-lock-list]");
+    if (!list) return;
+    const groups = visibleGroups(lockGroups());
+    const scroll = list.scrollTop;
+    list.innerHTML = listMarkup(groups);
+    list.scrollTop = scroll;
+    listSignature = dataSignature(groups);
+  }
+  function syncSelectionDom() {
+    modal()?.querySelectorAll(".gc-pm-plant").forEach((section) => {
+      const rows = [...section.querySelectorAll("[data-lock-row]")];
+      let on = 0;
+      for (const row of rows) {
+        const active = selected.has(row.dataset.lockRow || "");
+        if (active) on++;
+        row.dataset.active = String(active);
+        const check2 = row.querySelector(".gc-pm-check");
+        if (check2) check2.innerHTML = active ? "&#10003;" : "";
+      }
+      const head = section.querySelector("[data-lock-group]");
+      if (!head) return;
+      head.dataset.state = on === 0 ? "none" : on === rows.length ? "all" : "some";
+      const check = head.querySelector(".gc-pm-check");
+      if (check) check.innerHTML = on === 0 ? "" : on === rows.length ? "&#10003;" : "&#8211;";
+    });
+  }
+  function selectedSplit() {
+    const rows = allRows(lockGroups()).filter((row) => selected.has(row.key));
+    return { toLock: rows.filter((row) => !row.locked), toUnlock: rows.filter((row) => row.locked), total: rows.length };
+  }
+  function updateFooter() {
+    const root = modal();
+    if (!root) return;
+    const groups = lockGroups();
+    const every = allRows(groups);
+    const lockedCount = every.filter((row) => row.locked).length;
+    const { toLock, toUnlock, total } = selectedSplit();
+    const ready = gameConnectionReady();
+    const capped = toLock.length > BATCH_CAP || toUnlock.length > BATCH_CAP;
+    const summary = root.querySelector("[data-lock-summary]");
+    if (summary) summary.textContent = `${lockedCount} of ${every.length} locked`;
+    const totalEl = root.querySelector("[data-lock-total]");
+    if (totalEl) totalEl.textContent = sending ? `Updating ${Math.min(sendDone + 1, sendTotal)}/${sendTotal}...` : total ? `${total} crop${total === 1 ? "" : "s"} selected` : "Tick the crops to change.";
+    const hint = root.querySelector("[data-lock-hint]");
+    if (hint) hint.textContent = sending ? "" : !ready && total ? "Waiting for the game connection - your ticks are kept" : holdAt ? "Keep holding..." : total ? capped ? `${BATCH_CAP} per press - press & hold` : "Press & hold to apply" : "";
+    root.dataset.offline = !ready && total > 0 ? "true" : "false";
+    for (const [kind, rows, verb, busy] of [["lock", toLock, "Lock", "Locking"], ["unlock", toUnlock, "Unlock", "Unlocking"]]) {
+      const button = root.querySelector(`[data-lock-run="${kind}"]`);
+      if (!button) continue;
+      const batch = Math.min(rows.length, BATCH_CAP);
+      const label = button.querySelector("[data-lock-label]");
+      if (label) label.textContent = sending && action === kind ? `${busy} ${Math.min(sendDone + 1, sendTotal)}/${sendTotal}...` : batch ? `${verb} ${batch}` : verb;
+      button.disabled = sending || !ready || !batch || holdAt > 0 && action !== kind;
+      if (sending && action === kind) paintFill(button, sendTotal ? sendDone / sendTotal : 0);
+      else if (!(holdAt && action === kind)) paintFill(button, 0);
+    }
+    root.dataset.holding = holdAt || sending ? "true" : "false";
+  }
+  function paintFill(button, progress) {
+    const fill = button.querySelector("[data-lock-fill]");
+    if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
+  }
+  function startHold(kind, button) {
+    if (sending || holdAt || button.disabled) return;
+    action = kind;
+    holdAt = performance.now();
+    const tick = () => {
+      if (!holdAt) return;
+      if (!modal()) {
+        cancelHold();
+        return;
+      }
+      const progress = Math.min(1, (performance.now() - holdAt) / HOLD_MS);
+      paintFill(button, progress);
+      if (progress < 1) {
+        holdFrame = requestAnimationFrame(tick);
+        return;
+      }
+      holdAt = 0;
+      run(kind === "lock");
+    };
+    holdFrame = requestAnimationFrame(tick);
+    updateFooter();
+  }
+  function cancelHold() {
+    if (!holdAt) return;
+    holdAt = 0;
+    cancelAnimationFrame(holdFrame);
+    updateFooter();
+  }
+  function refresh() {
+    if (!modal()) return;
+    const groups = lockGroups();
+    const live = new Set(allRows(groups).map((row) => row.key));
+    let pruned = false;
+    for (const key of [...selected]) if (!live.has(key)) {
+      selected.delete(key);
+      pruned = true;
+    }
+    if (!sending && dataSignature(visibleGroups(groups)) !== listSignature) redrawList();
+    else if (pruned) syncSelectionDom();
+    updateFooter();
+  }
+  function run(locking) {
+    if (sending) return;
+    const { toLock, toUnlock } = selectedSplit();
+    const rows = (locking ? toLock : toUnlock).slice(0, BATCH_CAP);
+    if (!rows.length) return;
+    if (!gameConnectionReady()) {
+      toast("The game connection is not ready. Your ticks are kept - try again once it reconnects.", "error");
+      return;
+    }
+    sending = true;
+    action = locking ? "lock" : "unlock";
+    sendTotal = rows.length;
+    sendDone = 0;
+    let index = 0;
+    let sent = 0;
+    const finish = (message, ok) => {
+      sending = false;
+      sendTotal = 0;
+      sendDone = 0;
+      action = null;
+      toast(message, ok ? "success" : "error");
+      refresh();
+    };
+    const verb = locking ? "Locked" : "Unlocked";
+    const step = () => {
+      if (index < rows.length && !gameConnectionReady()) {
+        finish(sent ? `${verb} ${sent} before the connection dropped. The rest are still ticked.` : "The connection dropped. Your ticks are kept.", false);
+        return;
+      }
+      if (index >= rows.length) {
+        const split = selectedSplit();
+        const left = (locking ? split.toLock : split.toUnlock).length;
+        const done = sent ? `${verb} ${sent} crop${sent === 1 ? "" : "s"}.` : "Nothing was left to change.";
+        finish(left ? `${done} ${left} still ticked - press & hold to continue.` : done, sent > 0);
+        return;
+      }
+      const row = rows[index++];
+      sendDone = index;
+      const live = allRows(lockGroups()).find((candidate) => candidate.key === row.key);
+      if (live && live.locked !== locking) {
+        try {
+          sendQuinoaCommand({ type: "SetGrowSlotLock", slot: row.tile, growSlotId: row.slotId, locked: locking });
+          sent++;
+        } catch (error) {
+          finish(error.message, false);
+          return;
+        }
+      }
+      selected.delete(row.key);
+      updateFooter();
+      window.setTimeout(step, SEND_INTERVAL);
+    };
+    updateFooter();
+    step();
+  }
+  function onKey(event) {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      closeCropLocks();
+    }
+  }
+  function onSprites() {
+    listSignature = "";
+    refresh();
+  }
+  function closeCropLocks() {
+    cancelHold();
+    modal()?.remove();
+    listSignature = "";
+    unsubscribe?.();
+    unsubscribe = null;
+    document.removeEventListener("keydown", onKey, true);
+  }
+  function openCropLocks() {
+    if (modal()) return;
+    selected.clear();
+    search = "";
+    filter = "all";
+    const backdrop = document.createElement("div");
+    backdrop.id = MODAL_ID;
+    backdrop.className = "gc-modal-backdrop";
+    backdrop.innerHTML = modalMarkup();
+    document.body.appendChild(backdrop);
+    listSignature = dataSignature(visibleGroups(lockGroups()));
+    if (!spritesHooked) {
+      spritesHooked = true;
+      onSpritesReady(onSprites);
+    }
+    page.__gardenCompanionLoadSprites?.();
+    page.__gardenCompanionLoadSpriteGroup?.("deferred");
+    let pressedBackdrop = false;
+    backdrop.addEventListener("pointerdown", (event) => {
+      pressedBackdrop = event.target === backdrop;
+    });
+    backdrop.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target === backdrop && pressedBackdrop || target.closest("[data-lock-close]")) {
+        closeCropLocks();
+        return;
+      }
+      if (target === backdrop) return;
+      if (target.closest("[data-lock-run]")) return;
+      const filterButton = target.closest("[data-lock-filter]");
+      if (filterButton) {
+        filter = filterButton.dataset.lockFilter;
+        backdrop.querySelectorAll("[data-lock-filter]").forEach((button) => {
+          button.dataset.active = String(button === filterButton);
+        });
+        redrawList();
+        updateFooter();
+        return;
+      }
+      if (target.closest("[data-lock-all]")) {
+        for (const row2 of allRows(visibleGroups(lockGroups()))) selected.add(row2.key);
+        syncSelectionDom();
+        updateFooter();
+        return;
+      }
+      if (target.closest("[data-lock-none]")) {
+        selected.clear();
+        syncSelectionDom();
+        updateFooter();
+        return;
+      }
+      const head = target.closest("[data-lock-group]");
+      if (head) {
+        const group = visibleGroups(lockGroups()).find((entry) => entry.species === head.dataset.lockGroup);
+        if (!group) return;
+        const turningOff = group.rows.every((row2) => selected.has(row2.key));
+        for (const row2 of group.rows) turningOff ? selected.delete(row2.key) : selected.add(row2.key);
+        syncSelectionDom();
+        updateFooter();
+        return;
+      }
+      const row = target.closest("[data-lock-row]");
+      if (row) {
+        const key = row.dataset.lockRow;
+        selected.has(key) ? selected.delete(key) : selected.add(key);
+        syncSelectionDom();
+        updateFooter();
+      }
+    });
+    backdrop.querySelectorAll("[data-lock-run]").forEach((button) => {
+      const kind = button.dataset.lockRun === "lock" ? "lock" : "unlock";
+      button.addEventListener("pointerdown", (event) => {
+        if (button.disabled || event.button !== 0) return;
+        event.preventDefault();
+        try {
+          button.setPointerCapture(event.pointerId);
+        } catch {
+        }
+        startHold(kind, button);
+      });
+      for (const type of ["pointerup", "pointercancel", "pointerleave"]) button.addEventListener(type, cancelHold);
+    });
+    backdrop.querySelector("[data-lock-search]")?.addEventListener("input", (event) => {
+      search = event.target.value.toLowerCase();
+      redrawList();
+      const list = modal()?.querySelector("[data-lock-list]");
+      if (list) list.scrollTop = 0;
+    });
+    document.addEventListener("keydown", onKey, true);
+    unsubscribe = onStateChange(refresh);
+    updateFooter();
   }
 
   // src/features/crop-protection.ts
@@ -2408,7 +2789,8 @@ ${groups}
       return `<label class="gc-check" data-filter-text="${escapeHtml(`${plantName(id)} ${id}`.toLowerCase())}"><input type="checkbox" data-protect-species="${escapeHtml(id)}" ${species[id] === true ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small>${where}</small></span></label>`;
     }).join("");
     return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Ticking Gold or Rainbow locks them outright, rather than leaving them on the game's own press and hold. Crop Protection and the instant harvest key cannot both be on.</p>
-<div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Block harvest commands aimed at a protected crop</small></span><input type="checkbox" data-protect-enabled ${on ? "checked" : ""}><i></i></label></div>
+<section class="gc-card gc-launch-row"><div><h3>Crop Locker</h3><p>Lock or unlock any crop in your garden with the games own system.</p></div><button class="gc-primary" data-open-crop-locks>Crop Locker</button></section>
+<div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Blocks harvest commands - doesn't use the games own system</small></span><input type="checkbox" data-protect-enabled ${on ? "checked" : ""}><i></i></label></div>
 <section class="gc-card"><div class="gc-row"><h3>Mutations and size</h3></div><p class="gc-note">A crop matching any of these stays protected even when its species is switched off below.</p><div class="gc-check-grid">${mutationRows}</div></section>
 <section class="gc-card"><div class="gc-row"><h3>Species</h3></div><input class="gc-search" data-protect-search placeholder="Search plants"><div class="gc-check-grid gc-filter-list">${speciesRows}</div></section>`;
   }
@@ -2440,6 +2822,10 @@ ${groups}
       notifyStateChange("config");
       panelActions.renderPanelPreservingScroll();
     };
+    main.querySelector("[data-open-crop-locks]")?.addEventListener("click", () => {
+      panelActions.closePanel();
+      openCropLocks();
+    });
     bindListSearch(main.querySelector("[data-protect-search]"));
   }
 
@@ -2526,7 +2912,7 @@ ${groups}
   // src/ticker.ts
   function createTicker(job, intervalMs) {
     let timer = 0;
-    const run2 = () => {
+    const run3 = () => {
       try {
         job();
       } catch (error) {
@@ -2536,8 +2922,8 @@ ${groups}
     const ticker = {
       start() {
         if (timer) return;
-        timer = window.setInterval(run2, intervalMs);
-        run2();
+        timer = window.setInterval(run3, intervalMs);
+        run3();
       },
       stop() {
         if (!timer) return;
@@ -2583,11 +2969,11 @@ ${groups}
   var GAME_ATTRIBUTE_COLOR = 11908533;
   function selectedCrop(crops) {
     if (!crops.length) return null;
-    const selected2 = Number(state.selectedSlotId) || 0;
-    const exact = crops.find((slot) => Number(slot?.slotId) === selected2);
+    const selected3 = Number(state.selectedSlotId) || 0;
+    const exact = crops.find((slot) => Number(slot?.slotId) === selected3);
     if (exact) return exact;
     const bySlotId = [...crops].sort((left, right) => Number(left?.slotId) - Number(right?.slotId));
-    return bySlotId.find((slot) => Number(slot?.slotId) >= selected2) ?? bySlotId[0] ?? null;
+    return bySlotId.find((slot) => Number(slot?.slotId) >= selected3) ?? bySlotId[0] ?? null;
   }
   function estimateLines() {
     const pets = state.slot?.data?.petSlots || [];
@@ -3297,7 +3683,7 @@ ${groups}
     }
     return enabled;
   }
-  function groupState(items, enabled) {
+  function groupState2(items, enabled) {
     const on = items.reduce((total, ability) => total + (enabled.has(ability) ? 1 : 0), 0);
     return on === 0 ? "none" : on === items.length ? "all" : "some";
   }
@@ -3370,10 +3756,10 @@ ${groups}
     });
   }
   function renderAbilityLogRows(enabled) {
-    const search = abilityLogSearch.trim().toLowerCase();
-    const matched = state.abilityLog.filter((log) => enabled.has(log.ability) && (!search || searchText(log).includes(search)));
+    const search2 = abilityLogSearch.trim().toLowerCase();
+    const matched = state.abilityLog.filter((log) => enabled.has(log.ability) && (!search2 || searchText(log).includes(search2)));
     const recent = matched.slice(0, LOG_VISIBLE_ROWS);
-    if (!recent.length) return search ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
+    if (!recent.length) return search2 ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
     const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : "";
     const owners = indexOwnedPets();
     logSpriteSources.clear();
@@ -3392,7 +3778,7 @@ ${groups}
     return `<div class="gc-ability-standalone"><button data-ability-item="${escapeHtml(ability)}" data-active="${active}"><span>${escapeHtml(option.label)}</span><i>${active ? "&#10003;" : ""}</i></button></div>`;
   }
   function renderFilterGroup(option, enabled) {
-    const state2 = groupState(option.items, enabled);
+    const state2 = groupState2(option.items, enabled);
     const on = option.items.reduce((count, ability) => count + (enabled.has(ability) ? 1 : 0), 0);
     const expanded = expandedGroups.has(option.key);
     const items = option.items.map((ability) => {
@@ -3486,7 +3872,7 @@ ${groups}
         const option = VISIBLE_FILTER_OPTIONS.find((entry) => entry.key === group.dataset.abilityGroup);
         if (!option) return;
         const enabled = enabledAbilities();
-        const turningOff = groupState(option.items, enabled) === "all";
+        const turningOff = groupState2(option.items, enabled) === "all";
         for (const ability of option.items) turningOff ? enabled.delete(ability) : enabled.add(ability);
         commit(enabled);
         return;
@@ -4100,10 +4486,10 @@ ${rows}</div>`;
       toggleIncompleteOnly();
       panelActions.renderPanelPreservingScroll();
     });
-    const search = main.querySelector("[data-journal-search]");
-    bindListSearch(search);
-    search?.addEventListener("input", () => {
-      journalSearch = search.value;
+    const search2 = main.querySelector("[data-journal-search]");
+    bindListSearch(search2);
+    search2?.addEventListener("input", () => {
+      journalSearch = search2.value;
     });
   }
 
@@ -4445,7 +4831,7 @@ ${eggs.map(eggCard).join("")}`;
   function retryUntil(attempt, label) {
     const started = Date.now();
     let warned = false;
-    const run2 = () => {
+    const run3 = () => {
       let done = false;
       try {
         done = attempt();
@@ -4458,9 +4844,9 @@ ${eggs.map(eggCard).join("")}`;
         warned = true;
         console.info(`[Garden Companion] Still waiting for the game before ${label} can start; checking every few seconds.`);
       }
-      setTimeout(run2, waited < FAST_PHASE_MS ? FAST_INTERVAL_MS : SLOW_INTERVAL_MS);
+      setTimeout(run3, waited < FAST_PHASE_MS ? FAST_INTERVAL_MS : SLOW_INTERVAL_MS);
     };
-    run2();
+    run3();
   }
 
   // src/game-room-state.ts
@@ -5099,8 +5485,8 @@ ${eggs.map(eggCard).join("")}`;
     return new Set(teams().filter((team) => team.id !== editingTeamId && team.emblem?.type === "number").map((team) => team.emblem.number));
   }
   function renderEmblemOptions() {
-    const selected2 = emblemKey(teamPickerEmblem);
-    const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml(key)}" data-active="${key === selected2}" title="${escapeHtml(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
+    const selected3 = emblemKey(teamPickerEmblem);
+    const option = (key, inner, title, disabled = false) => `<button data-emblem-option="${escapeHtml(key)}" data-active="${key === selected3}" title="${escapeHtml(title)}" ${disabled ? "disabled" : ""}>${inner}</button>`;
     const taken = takenEmblemNumbers();
     const letters = EMBLEM_LETTERS.map((letter, index) => option(
       `number:${index + 1}`,
@@ -5136,9 +5522,9 @@ ${eggs.map(eggCard).join("")}`;
         refreshEmblemUi(picker);
       });
     }
-    const selected2 = emblemKey(teamPickerEmblem);
+    const selected3 = emblemKey(teamPickerEmblem);
     picker.querySelectorAll("[data-emblem-option]").forEach((button) => {
-      button.dataset.active = String(button.dataset.emblemOption === selected2);
+      button.dataset.active = String(button.dataset.emblemOption === selected3);
     });
     picker.querySelectorAll("[data-emblem-kind]").forEach((button) => {
       button.classList.toggle("active", button.dataset.emblemKind === teamPickerEmblemKind);
@@ -6067,7 +6453,7 @@ ${eggs.map(eggCard).join("")}`;
       const tile = dirtIndex == null ? void 0 : tileObjects[String(dirtIndex)];
       if (!tile?.slots?.length) return;
       const now = Date.now();
-      const readyRareGold = (slot2) => slot2?.preserved !== true && Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow");
+      const readyRareGold = (slot2) => slot2?.preserved !== true && slot2?.locked !== true && Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow");
       if (!harvested || harvested.tile !== String(dirtIndex)) harvested = { tile: String(dirtIndex), ids: /* @__PURE__ */ new Set() };
       const taken = harvested.ids;
       for (const id of [...taken]) {
@@ -6075,8 +6461,8 @@ ${eggs.map(eggCard).join("")}`;
       }
       const qualifyingIds = tile.slots.filter((slot2) => readyRareGold(slot2) && !taken.has(Number(slot2.slotId))).map((slot2) => Number(slot2.slotId)).sort((left, right) => left - right);
       if (!qualifyingIds.length) return;
-      const selected2 = Number(state.selectedSlotId);
-      const targetId = qualifyingIds.find((id) => id >= selected2) ?? qualifyingIds[0];
+      const selected3 = Number(state.selectedSlotId);
+      const targetId = qualifyingIds.find((id) => id >= selected3) ?? qualifyingIds[0];
       const index = tile.slots.findIndex((slot2) => Number(slot2.slotId) === targetId);
       if (index < 0) return;
       event.preventDefault();
@@ -7017,8 +7403,8 @@ ${eggs.map(eggCard).join("")}`;
       return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Overlay a buff layout for your current celestial plants on either side of the farm.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderSilence() {
-      const selected2 = new Set(config.silencedAbilities || []);
-      return `<label class="gc-toggle"><span><b>Hide pet level-up popups</b><small>Hides the "Level up!" and "Fully grown!" toasts.</small></span><input type="checkbox" data-feature="silenceLevelUps" ${feature("silenceLevelUps") ? "checked" : ""}><i></i></label><p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected2.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
+      const selected3 = new Set(config.silencedAbilities || []);
+      return `<label class="gc-toggle"><span><b>Hide pet level-up popups</b><small>Hides the "Level up!" and "Fully grown!" toasts.</small></span><input type="checkbox" data-feature="silenceLevelUps" ${feature("silenceLevelUps") ? "checked" : ""}><i></i></label><p class="gc-note">Selected abilities keep their rewards but hide the game popup and sound. Pet history is still recorded.</p><div class="gc-row"><button data-silence-finders>Select finders</button><button data-silence-clear>Clear all</button></div><input class="gc-search" data-silence-search placeholder="Search abilities"><div class="gc-check-grid gc-filter-list">${TRACKED_ABILITY_CATALOG.map((ability) => `<label class="gc-check" data-filter-text="${escapeHtml(`${ABILITY_DETAILS[ability]?.name || humanize(ability)} ${ability}`.toLowerCase())}"><input type="checkbox" data-silence="${escapeHtml(ability)}" ${selected3.has(ability) ? "checked" : ""}><span><b>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))}</b><small>${escapeHtml(ability)}</small></span></label>`).join("")}</div>`;
     }
     function bindTabEvents(main) {
       main.querySelectorAll("[data-feature]").forEach((input) => input.onchange = () => {
@@ -7884,6 +8270,28 @@ body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
 .gc-preserve-manager[data-holding=true] .gc-pm-run { transform:translateY(2px); }
 .gc-pm-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399); }
 .gc-pm-run [data-mgr-label],.gc-pm-run span { position:relative; }
+/* Crop locks: the Preservation manager's dialog, with a filter strip and a lock state per row. */
+/* A fixed height, not one that follows the list: filtering shrinks the list, and a centred dialog
+   that shrinks moves every control out from under the pointer mid-click. */
+.gc-crop-locks { height:min(82vh,680px); }
+.gc-crop-locks .gc-modal-body { flex:1 1 auto; }
+.gc-cl-filters { display:flex;align-items:center;gap:4px;padding:8px 16px;border-bottom:1px solid var(--gc-line); }
+.gc-cl-filters button { min-height:26px!important;padding:4px 10px!important;border-color:transparent!important;background:transparent!important;color:var(--gc-muted)!important; }
+.gc-cl-filters button:hover { color:var(--gc-text)!important;background:var(--gc-soft)!important; }
+.gc-cl-filters button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-line-strong)!important;background:var(--gc-surface-3)!important; }
+.gc-cl-filters .gc-modal-summary { margin-left:auto;color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-cl-growing { flex:0 0 auto;padding:1px 6px;border-radius:999px;background:var(--gc-soft);color:var(--gc-faint);font-size:10px;font-weight:600; }
+.gc-cl-state { flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;border-radius:6px;color:var(--gc-faint); }
+.gc-cl-state svg { width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }
+.gc-cl-state[data-locked=true] { color:var(--gc-gold);background:rgba(245,196,81,.12); }
+.gc-cl-actions { display:flex;gap:8px; }
+.gc-cl-actions button { position:relative;overflow:hidden;isolation:isolate;min-width:104px;min-height:34px!important;font-weight:600!important; }
+.gc-cl-actions button span { position:relative; }
+.gc-cl-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:rgba(255,255,255,.28); }
+.gc-crop-locks .gc-cl-lock:not(:disabled) { color:#1a1405!important;border-color:var(--gc-gold)!important;background:var(--gc-gold)!important; }
+.gc-crop-locks .gc-cl-lock:not(:disabled):hover { filter:brightness(1.08); }
+.gc-cl-actions button:disabled { opacity:.45;cursor:default; }
+#gc-crop-locks[data-offline=true] .gc-pm-hint { color:var(--gc-danger); }
 #gc-lunar[data-dragging=true] { opacity:.9; }
 #gc-lunar button { cursor:pointer; }
 #gc-panel button.gc-pet-potions { width:100%;white-space:normal;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left;color:#c4b5fd;font-size:11px; }
@@ -8117,9 +8525,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     }
     function matches(tile, slot, config2) {
       if (ignorePreserved() && slot.preserved) return false;
-      const selected2 = selectedSpecies();
+      const selected3 = selectedSpecies();
       const slotSpecies = slot.species ?? tile.species;
-      const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected2 || selected2.has(slotSpecies)) || config2.scope === slotSpecies;
+      const scopeMatches = config2.scope === "all" || config2.scope === "tracked" && (!selected3 || selected3.has(slotSpecies)) || config2.scope === slotSpecies;
       const mutations = slot.mutations || [];
       const conditions = config2.mutations.map((name) => mutations.includes(name));
       if (config2.maxSize) conditions.push(slotIsMaxSize(PLANT_CATALOG[slotSpecies ?? ""]?.crop, slot));
@@ -8514,8 +8922,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     try {
       const stored = JSON.parse(localStorage.getItem(MUTATION_KEY) || "null");
       if (Array.isArray(stored)) {
-        const selected2 = new Set(stored);
-        return { ...MUTATION_DEFAULTS, ...Object.fromEntries(Object.entries(MUTATION_IDS).map(([key, id]) => [key, selected2.has(id)])) };
+        const selected3 = new Set(stored);
+        return { ...MUTATION_DEFAULTS, ...Object.fromEntries(Object.entries(MUTATION_IDS).map(([key, id]) => [key, selected3.has(id)])) };
       }
       return { ...MUTATION_DEFAULTS, ...stored && typeof stored === "object" ? stored : {} };
     } catch {
@@ -8566,9 +8974,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       return null;
     }
   }
-  function saveFilter(filter) {
+  function saveFilter(filter2) {
     try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify([...filter].sort()));
+      localStorage.setItem(FILTER_KEY, JSON.stringify([...filter2].sort()));
     } catch {
     }
   }
@@ -8627,7 +9035,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
   function countMutation(target, mutation) {
     target.set(mutation, (target.get(mutation) ?? 0) + 1);
   }
-  function calculateStats(runtime, catalog, filter, trackedMutations, ignorePreserved, mutationConfig) {
+  function calculateStats(runtime, catalog, filter2, trackedMutations, ignorePreserved, mutationConfig) {
     const result = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: /* @__PURE__ */ new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1, growthRate: 0 };
     const bySpecies = /* @__PURE__ */ new Map();
     const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
@@ -8673,9 +9081,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         result.allCrops++;
         for (const mutation of slot.mutations ?? []) result.allTargetProgress[mutation] = (result.allTargetProgress[mutation] ?? 0) + 1;
         recordMissing(allMissing, slot.mutations ?? []);
-        eligibleSlots2.push({ slot, species: slot.species ?? tile.species, tracked: !filter || filter.has(slot.species ?? tile.species) });
+        eligibleSlots2.push({ slot, species: slot.species ?? tile.species, tracked: !filter2 || filter2.has(slot.species ?? tile.species) });
       }
-      const tileTracked = !filter || filter.has(tile.species);
+      const tileTracked = !filter2 || filter2.has(tile.species);
       if (tileTracked) {
         result.plants++;
         speciesRow3(tile.species).plants++;
@@ -8683,7 +9091,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       for (const slot of tile.slots) {
         if (ignorePreserved && slot.preserved) continue;
         const slotSpecies = slot.species ?? tile.species;
-        if (filter && !filter.has(slotSpecies)) continue;
+        if (filter2 && !filter2.has(slotSpecies)) continue;
         const species = speciesRow3(slotSpecies);
         result.crops++;
         species.crops++;
@@ -8821,7 +9229,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
   }
   function initGardenOverview() {
     const getCatalog = () => PLANT_CATALOG;
-    let filter = loadFilter();
+    let filter2 = loadFilter();
     let mutationConfig = loadMutationConfig();
     let trackedMutations = selectedMutations(mutationConfig);
     let alarmTargets = loadAlarmTargets(trackedMutations);
@@ -8879,7 +9287,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     function runtime() {
       return page.__gardenCompanionState ?? {};
     }
-    const applyPlantFocus = installPlantFocus(page, runtime, () => filter, () => focus, () => view.ignorePreserved);
+    const applyPlantFocus = installPlantFocus(page, runtime, () => filter2, () => focus, () => view.ignorePreserved);
     function knownSpecies() {
       const catalog = getCatalog();
       if (catalog) return Object.keys(catalog).sort();
@@ -8899,7 +9307,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         mutations: [...stats.mutations],
         species: stats.species.map((row) => [row.species, row.plants, row.crops, row.mature, row.value]),
         etas: stats.granterEtas.map((row) => [row.mutation, row.pets, row.missing, Math.round(row.meanSeconds), Math.round(row.totalSeconds)]),
-        filter: filter ? [...filter] : null,
+        filter: filter2 ? [...filter2] : null,
         tracked: [...trackedMutations],
         alarms: [...alarmTargets],
         mutationConfig,
@@ -8951,17 +9359,17 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     }
     function configHtml(species) {
       if (configMode === "species") {
-        const selected2 = filter ?? new Set(species);
+        const selected3 = filter2 ?? new Set(species);
         const counts = ownedSpeciesCounts();
         const plantPill = (name) => {
           const label = displayName(name);
           const sprite = produceSprite(name);
-          return `<button class="go-pill go-pill-plant ${selected2.has(name) ? "on" : ""}" data-species-toggle="${escapeHtml(name)}" data-filter-text="${escapeHtml(label.toLowerCase())}" title="${escapeHtml(label)}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '<i class="go-plant-blank"></i>'}<span>${escapeHtml(label)}</span>${counts.has(name) ? `<small>${counts.get(name)}</small>` : ""}</button>`;
+          return `<button class="go-pill go-pill-plant ${selected3.has(name) ? "on" : ""}" data-species-toggle="${escapeHtml(name)}" data-filter-text="${escapeHtml(label.toLowerCase())}" title="${escapeHtml(label)}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '<i class="go-plant-blank"></i>'}<span>${escapeHtml(label)}</span>${counts.has(name) ? `<small>${counts.get(name)}</small>` : ""}</button>`;
         };
         const section = (label, names) => names.length ? `<div class="go-pill-group">${settingsHead(label, `<em>${names.length}</em>`)}<div class="go-pill-section"><div>${names.map(plantPill).join("")}</div></div></div>` : "";
-        const tracked = species.filter((name) => selected2.has(name));
-        const owned = species.filter((name) => !selected2.has(name) && counts.has(name));
-        const rest = species.filter((name) => !selected2.has(name) && !counts.has(name));
+        const tracked = species.filter((name) => selected3.has(name));
+        const owned = species.filter((name) => !selected3.has(name) && counts.has(name));
+        const rest = species.filter((name) => !selected3.has(name) && !counts.has(name));
         return `<section class="go-section"><p class="go-muted">Only tracked plants are counted in the overview and its estimates.</p><input class="go-search" data-species-search placeholder="Search plants"><div class="go-tools"><button data-all>All</button><button data-none>None</button><button data-owned>Track owned</button></div><div class="go-pill-list">${section("Tracked", tracked)}${section("In your garden", owned)}${section("Everything else", rest)}</div></section>`;
       }
       if (configMode === "mutations") {
@@ -9155,7 +9563,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     function render3(force = false) {
       const panel3 = document.getElementById(PANEL_ID);
       if (!panel3 || panel3.hidden && !view.alarm) return;
-      const stats = calculateStats(runtime(), getCatalog(), filter, trackedMutations, view.ignorePreserved, mutationConfig);
+      const stats = calculateStats(runtime(), getCatalog(), filter2, trackedMutations, view.ignorePreserved, mutationConfig);
       checkCompletions(stats);
       if (panel3.hidden) return;
       if (activeDrag) {
@@ -9224,26 +9632,26 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         renderAndRefocus(`[data-zoom-level="${button.dataset.zoomLevel}"]`);
       });
       panel3.querySelector("[data-all]")?.addEventListener("click", () => {
-        filter = null;
+        filter2 = null;
         localStorage.removeItem(FILTER_KEY);
         render3(true);
       });
       panel3.querySelector("[data-none]")?.addEventListener("click", () => {
-        filter = /* @__PURE__ */ new Set();
-        saveFilter(filter);
+        filter2 = /* @__PURE__ */ new Set();
+        saveFilter(filter2);
         render3(true);
       });
       panel3.querySelector("[data-owned]")?.addEventListener("click", () => {
-        filter = new Set(filter ?? []);
-        for (const name of ownedSpeciesCounts().keys()) filter.add(name);
-        saveFilter(filter);
+        filter2 = new Set(filter2 ?? []);
+        for (const name of ownedSpeciesCounts().keys()) filter2.add(name);
+        saveFilter(filter2);
         render3(true);
       });
       panel3.querySelectorAll("[data-species-toggle]").forEach((button) => button.onclick = () => {
         const name = button.dataset.speciesToggle ?? "";
-        filter = new Set(filter ?? species);
-        filter.has(name) ? filter.delete(name) : filter.add(name);
-        saveFilter(filter);
+        filter2 = new Set(filter2 ?? species);
+        filter2.has(name) ? filter2.delete(name) : filter2.add(name);
+        saveFilter(filter2);
         render3(true);
       });
       const releaseUnlessTyping = (element) => {
@@ -9276,10 +9684,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       });
       const syncAlarmTargetControls = () => {
         panel3.querySelectorAll("[data-alarm-target]").forEach((button) => {
-          const selected2 = alarmTargets.has(button.dataset.alarmTarget ?? "");
-          button.classList.toggle("on", selected2);
+          const selected3 = alarmTargets.has(button.dataset.alarmTarget ?? "");
+          button.classList.toggle("on", selected3);
           const check = button.querySelector("i");
-          if (check) check.innerHTML = selected2 ? "&#10003;" : "";
+          if (check) check.innerHTML = selected3 ? "&#10003;" : "";
         });
         const count = panel3.querySelector("[data-alarm-count]");
         if (count) count.textContent = `${alarmTargets.size}/${ALARM_TARGETS.length} selected`;
@@ -9426,10 +9834,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       });
       panel3.querySelectorAll("[data-focus-mutation]").forEach((button) => button.onclick = () => {
         const mutation = button.dataset.focusMutation ?? "";
-        const selected2 = new Set(focus.mutations);
-        const adding = !selected2.has(mutation);
-        adding ? selected2.add(mutation) : selected2.delete(mutation);
-        focus.mutations = [...selected2];
+        const selected3 = new Set(focus.mutations);
+        const adding = !selected3.has(mutation);
+        adding ? selected3.add(mutation) : selected3.delete(mutation);
+        focus.mutations = [...selected3];
         enforceGroupExclusivity(adding ? mutation : void 0);
         saveFocusControls();
         renderAndRefocus(`[data-focus-mutation="${mutation}"]`);
@@ -10255,17 +10663,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const source = context.createBufferSource();
     source.buffer = noise(context);
     source.playbackRate.value = 0.8 + Math.random() * 0.4;
-    const filter = context.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.Q.value = 0.7;
-    filter.frequency.setValueAtTime(2200 * strength, at);
-    filter.frequency.exponentialRampToValueAtTime(280, at + 0.36 * strength);
+    const filter2 = context.createBiquadFilter();
+    filter2.type = "bandpass";
+    filter2.Q.value = 0.7;
+    filter2.frequency.setValueAtTime(2200 * strength, at);
+    filter2.frequency.exponentialRampToValueAtTime(280, at + 0.36 * strength);
     const gain = context.createGain();
     gain.gain.setValueAtTime(1e-4, at);
     gain.gain.linearRampToValueAtTime(volume * strength, at + 0.012);
     gain.gain.exponentialRampToValueAtTime(8e-4, at + 0.44 * strength);
-    source.connect(filter);
-    filter.connect(gain);
+    source.connect(filter2);
+    filter2.connect(gain);
     gain.connect(context.destination);
     source.start(at, Math.random() * 0.5);
     source.stop(at + 0.5 * strength + 0.06);
@@ -10306,18 +10714,18 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const now = context.currentTime;
     const source = context.createBufferSource();
     source.buffer = noise(context);
-    const filter = context.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.Q.value = 4;
-    filter.frequency.setValueAtTime(700, now);
-    filter.frequency.exponentialRampToValueAtTime(2600, now + 0.16);
-    filter.frequency.exponentialRampToValueAtTime(900, now + 0.32);
+    const filter2 = context.createBiquadFilter();
+    filter2.type = "bandpass";
+    filter2.Q.value = 4;
+    filter2.frequency.setValueAtTime(700, now);
+    filter2.frequency.exponentialRampToValueAtTime(2600, now + 0.16);
+    filter2.frequency.exponentialRampToValueAtTime(900, now + 0.32);
     const gain = context.createGain();
     gain.gain.setValueAtTime(1e-4, now);
     gain.gain.linearRampToValueAtTime(0.13, now + 0.06);
     gain.gain.exponentialRampToValueAtTime(8e-4, now + 0.34);
-    source.connect(filter);
-    filter.connect(gain);
+    source.connect(filter2);
+    filter2.connect(gain);
     gain.connect(context.destination);
     source.start(now, Math.random() * 0.5);
     source.stop(now + 0.38);
@@ -10343,16 +10751,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const source = context.createBufferSource();
     source.buffer = noise(context);
     source.playbackRate.value = inside ? 1.5 : 1;
-    const filter = context.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.Q.value = 9;
-    filter.frequency.setValueAtTime(inside ? 2100 : 1350, now);
+    const filter2 = context.createBiquadFilter();
+    filter2.type = "bandpass";
+    filter2.Q.value = 9;
+    filter2.frequency.setValueAtTime(inside ? 2100 : 1350, now);
     const gain = context.createGain();
     gain.gain.setValueAtTime(1e-4, now);
     gain.gain.linearRampToValueAtTime(inside ? 0.075 : 0.055, now + 3e-3);
     gain.gain.exponentialRampToValueAtTime(8e-4, now + 0.035);
-    source.connect(filter);
-    filter.connect(gain);
+    source.connect(filter2);
+    filter2.connect(gain);
     gain.connect(context.destination);
     source.start(now, Math.random() * 0.5);
     source.stop(now + 0.05);
@@ -11140,13 +11548,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           const owned = Boolean(record.equipment[item.id]);
           const equipped = record.equipped[slot] === item.id;
           const sourceFish = item.foundFrom ? FISH_BY_ID.get(item.foundFrom)?.name : null;
-          let action = "";
-          if (equipped) action = "<button disabled>Equipped</button>";
-          else if (owned) action = `<button data-equip="${item.id}">Equip</button>`;
-          else if (item.price) action = `<button data-buy="${item.id}" ${record.coins < item.price ? "disabled" : ""}>${item.price.toLocaleString(NUMBER_LOCALE)} coins</button>`;
-          else action = `<button disabled>Find</button>`;
+          let action2 = "";
+          if (equipped) action2 = "<button disabled>Equipped</button>";
+          else if (owned) action2 = `<button data-equip="${item.id}">Equip</button>`;
+          else if (item.price) action2 = `<button data-buy="${item.id}" ${record.coins < item.price ? "disabled" : ""}>${item.price.toLocaleString(NUMBER_LOCALE)} coins</button>`;
+          else action2 = `<button disabled>Find</button>`;
           const acquisition = sourceFish && !owned ? `Caught from ${sourceFish}` : item.detail;
-          return `<div class="gf-gear" data-locked="${!owned && !item.price}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(acquisition)}</small></span>${action}</div>`;
+          return `<div class="gf-gear" data-locked="${!owned && !item.price}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(acquisition)}</small></span>${action2}</div>`;
         }).join("");
         return `<div class="gf-tier"><span>${slotNames[slot]}</span><span>${record.equipped[slot] ? escapeHtml(EQUIPMENT_BY_ID.get(record.equipped[slot])?.name ?? "") : "Empty"}</span></div><div class="gf-gear-grid">${rows}</div>`;
       }).join("");
@@ -11454,7 +11862,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let skyTimer = SKY_SUN_INTERVAL;
     let queued2 = [];
     let spawnTimer = 0;
-    let selected2 = null;
+    let selected3 = null;
     let shovel = false;
     let dev = false;
     let wavesHeld = false;
@@ -11549,7 +11957,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       spawnTimer = 0;
       over = false;
       running = true;
-      selected2 = null;
+      selected3 = null;
       shovel = false;
       status = dev ? "Tuning mode: towers are free." : "Pick a seed, then click a tile to plant it.";
       if (!dev) {
@@ -11580,12 +11988,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         renderChrome();
         return;
       }
-      if (!selected2) {
+      if (!selected3) {
         status = "Pick a seed first.";
         renderChrome();
         return;
       }
-      const def = PLANT_BY_ID.get(selected2);
+      const def = PLANT_BY_ID.get(selected3);
       if (!def) return;
       if (existing) {
         status = "That tile is already planted.";
@@ -11599,7 +12007,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       if (!dev) sun -= def.cost;
       plants.push({ def, lane, column, hp: def.hp, timer: def.interval ?? 0, sprite: null, fruitSprite: null });
-      if (!dev) selected2 = null;
+      if (!dev) selected3 = null;
       status = `Planted a ${def.name}.`;
       renderChrome();
     }
@@ -11897,7 +12305,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const sprite = towerSpriteSource(plant);
         const afford = affordable(plant);
         const icon = sprite ? `<img src="${sprite}" alt="">` : `<i style="height:26px;background:none"></i>`;
-        return `<button class="gd-seed" data-seed="${plant.id}" data-selected="${selected2 === plant.id}" data-afford="${afford}" ${afford ? "" : "disabled"} title="${escapeHtml(plant.detail)}">${icon}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
+        return `<button class="gd-seed" data-seed="${plant.id}" data-selected="${selected3 === plant.id}" data-afford="${afford}" ${afford ? "" : "disabled"} title="${escapeHtml(plant.detail)}">${icon}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
       }).join("");
     }
     function renderStatus() {
@@ -11915,7 +12323,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const plant = PLANT_BY_ID.get(button.dataset.seed);
         const afford = Boolean(plant && affordable(plant));
         button.dataset.afford = String(afford);
-        button.dataset.selected = String(selected2 === button.dataset.seed);
+        button.dataset.selected = String(selected3 === button.dataset.seed);
         button.disabled = !afford;
       }
     }
@@ -11939,17 +12347,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       };
       card.querySelector("[data-shovel]").onclick = () => {
         shovel = !shovel;
-        if (shovel) selected2 = null;
+        if (shovel) selected3 = null;
         status = shovel ? "Click a plant to dig it up." : "Shovel put away.";
         renderChrome();
       };
       for (const button of card.querySelectorAll("[data-seed]")) {
         button.onclick = () => {
           const id = button.dataset.seed;
-          selected2 = selected2 === id ? null : id;
+          selected3 = selected3 === id ? null : id;
           shovel = false;
           const def = PLANT_BY_ID.get(id);
-          status = selected2 && def ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
+          status = selected3 && def ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
           renderChrome();
         };
       }
@@ -12084,7 +12492,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   // src/features/plant-drag-move.ts
   function initPlantDragMove() {
     const pageWindow = page;
-    const HOLD_MS2 = 1e3;
+    const HOLD_MS3 = 1e3;
     const HOLD_MOVE_TOLERANCE_PX = 12;
     const POT_TIMEOUT_MS = 1e4;
     const PLACE_TIMEOUT_MS = 12e3;
@@ -12787,7 +13195,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         phase: "holding",
         holdTimer: 0
       };
-      activePress.holdTimer = window.setTimeout(() => activatePress(activePress), HOLD_MS2);
+      activePress.holdTimer = window.setTimeout(() => activatePress(activePress), HOLD_MS3);
       press = activePress;
     }, true);
     document.addEventListener("pointermove", (event) => {
@@ -12877,7 +13285,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       event.preventDefault();
       event.stopImmediatePropagation();
     }, true);
-    log(`Loaded. Hold a plant for ${HOLD_MS2 / 1e3} second before dragging.`);
+    log(`Loaded. Hold a plant for ${HOLD_MS3 / 1e3} second before dragging.`);
   }
 
   // src/features/planter-pot-selection.ts
@@ -13836,14 +14244,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/preserve-all.ts
-  var HOLD_MS = 650;
-  var SEND_INTERVAL = 100;
+  var HOLD_MS2 = 650;
+  var SEND_INTERVAL2 = 100;
   var MANAGER_BATCH_CAP = 15;
   var ANCHOR_GAP = 12;
-  var sending = false;
+  var sending2 = false;
   var lastSignature = "";
   var holdStartedAt = 0;
-  var holdFrame = 0;
+  var holdFrame2 = 0;
   function heldPlantItem() {
     const id = state.selectedItemId;
     if (!id) return null;
@@ -13899,7 +14307,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return species.length === 1 ? plantName(species[0]) : `${species.length} crops`;
   }
   var MANAGER_ID = "gc-preserve-manager";
-  var selected = /* @__PURE__ */ new Set();
+  var selected2 = /* @__PURE__ */ new Set();
   var managerSearch = "";
   var managerHoldAt = 0;
   var managerHoldFrame = 0;
@@ -13943,7 +14351,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function selectedManagerRows() {
     const rows = [];
-    for (const plant of managerPlants()) for (const row of plant.rows) if (selected.has(row.key)) rows.push(row);
+    for (const plant of managerPlants()) for (const row of plant.rows) if (selected2.has(row.key)) rows.push(row);
     return rows;
   }
   function nextBatchRows() {
@@ -13963,7 +14371,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function managerOpen() {
     return !!managerModal();
   }
-  function mutationChips(mutations) {
+  function mutationChips2(mutations) {
     return mutations.map((mutation) => {
       const sprite = mutationSprite(mutation);
       const label = escapeHtml(mutationName(mutation));
@@ -13971,7 +14379,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }).join("");
   }
   function plantMark(plant) {
-    const on = plant.rows.reduce((count, row) => count + (selected.has(row.key) ? 1 : 0), 0);
+    const on = plant.rows.reduce((count, row) => count + (selected2.has(row.key) ? 1 : 0), 0);
     const mark = on === 0 ? "" : on === plant.rows.length ? "&#10003;" : "&#8211;";
     return { on, mark };
   }
@@ -13984,9 +14392,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const icon = sprite ? `<img class="gc-pm-icon" src="${escapeHtml(sprite)}" alt="">` : `<span class="gc-pm-icon gc-pm-icon-text">${escapeHtml(plant.name.slice(0, 1))}</span>`;
       const { on, mark } = plantMark(plant);
       const slots = plant.rows.map((row) => {
-        const active = selected.has(row.key);
+        const active = selected2.has(row.key);
         const crop = row.species ? `<span class="gc-pm-crop">${escapeHtml(plantName(row.species))}</span>` : "";
-        return `<div class="gc-pm-slot" role="button" tabindex="0" data-mgr-slot="${escapeHtml(row.key)}" data-active="${active}"><i class="gc-pm-check">${active ? "&#10003;" : ""}</i><span class="gc-pm-size">${row.sizePercent}%</span>` + crop + `<span class="gc-pm-muts">${mutationChips(row.mutations)}</span><span class="gc-pm-cost">&#129689; ${row.cost.toLocaleString(NUMBER_LOCALE)}</span></div>`;
+        return `<div class="gc-pm-slot" role="button" tabindex="0" data-mgr-slot="${escapeHtml(row.key)}" data-active="${active}"><i class="gc-pm-check">${active ? "&#10003;" : ""}</i><span class="gc-pm-size">${row.sizePercent}%</span>` + crop + `<span class="gc-pm-muts">${mutationChips2(row.mutations)}</span><span class="gc-pm-cost">&#129689; ${row.cost.toLocaleString(NUMBER_LOCALE)}</span></div>`;
       }).join("");
       return `<section class="gc-pm-plant"><div class="gc-pm-plant-head" role="button" tabindex="0" data-mgr-plant="${escapeHtml(plant.itemId)}" data-state="${on === 0 ? "none" : on === plant.rows.length ? "all" : "some"}">${icon}<b>${escapeHtml(plant.name)}</b><small>${on}/${plant.rows.length}</small><i class="gc-pm-check">${mark}</i></div><div class="gc-pm-slots">${slots}</div></section>`;
     }).join("");
@@ -14000,7 +14408,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var managerListSignature = "";
   function redrawManagerList(plants) {
     const root = managerModal();
-    if (!root || managerHoldAt || sending) return;
+    if (!root || managerHoldAt || sending2) return;
     const list = root.querySelector("[data-mgr-list]");
     if (!list) return;
     const scroll = list.scrollTop;
@@ -14015,7 +14423,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const slots = [...section.querySelectorAll(".gc-pm-slot[data-mgr-slot]")];
       let on = 0;
       for (const el of slots) {
-        const active = selected.has(el.dataset.mgrSlot || "");
+        const active = selected2.has(el.dataset.mgrSlot || "");
         if (active) on += 1;
         el.dataset.active = String(active);
         const check2 = el.querySelector(".gc-pm-check");
@@ -14052,20 +14460,20 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       totalEl.textContent = selectedRows.length ? affordable ? `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)}` : `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)} - more than you have` : "";
       totalEl.dataset.short = affordable ? "false" : "true";
     }
-    const awaiting = managerAwaitingContinue && selectedRows.length > 0 && !sending;
+    const awaiting = managerAwaitingContinue && selectedRows.length > 0 && !sending2;
     const ready = gameConnectionReady();
     const label = root.querySelector("[data-mgr-label]");
-    if (label) label.textContent = sending ? `Preserving ${Math.min(batchDone + 1, batchTotal)}/${batchTotal}...` : managerHoldAt ? "Keep holding..." : !batch.length ? "Preserve" : awaiting ? `Continue (${batch.length})` : `Preserve ${batch.length}`;
+    if (label) label.textContent = sending2 ? `Preserving ${Math.min(batchDone + 1, batchTotal)}/${batchTotal}...` : managerHoldAt ? "Keep holding..." : !batch.length ? "Preserve" : awaiting ? `Continue (${batch.length})` : `Preserve ${batch.length}`;
     const hint = root.querySelector("[data-mgr-hint]");
-    if (hint) hint.textContent = sending ? "" : !selectedRows.length ? "" : !ready ? "Waiting for the game connection - your ticks are kept" : awaiting ? `${selectedRows.length} slot${selectedRows.length === 1 ? "" : "s"} left - press & hold to continue` : capped ? `${MANAGER_BATCH_CAP} per press - press & hold` : "Press & hold to preserve";
-    if (sending) managerPaintHold(batchTotal ? batchDone / batchTotal : 0);
+    if (hint) hint.textContent = sending2 ? "" : !selectedRows.length ? "" : !ready ? "Waiting for the game connection - your ticks are kept" : awaiting ? `${selectedRows.length} slot${selectedRows.length === 1 ? "" : "s"} left - press & hold to continue` : capped ? `${MANAGER_BATCH_CAP} per press - press & hold` : "Press & hold to preserve";
+    if (sending2) managerPaintHold(batchTotal ? batchDone / batchTotal : 0);
     else if (!managerHoldAt) managerPaintHold(0);
     const button = root.querySelector("[data-mgr-run]");
     if (button) {
-      button.disabled = sending || batch.length === 0 || !affordable || !ready;
+      button.disabled = sending2 || batch.length === 0 || !affordable || !ready;
       button.title = !ready ? "The game connection is not ready." : affordable ? "" : "Not enough coins to preserve this batch.";
     }
-    root.dataset.holding = managerHoldAt || sending ? "true" : "false";
+    root.dataset.holding = managerHoldAt || sending2 ? "true" : "false";
     root.dataset.awaiting = awaiting && ready ? "true" : "false";
     root.dataset.offline = !ready && selectedRows.length > 0 ? "true" : "false";
   }
@@ -14074,8 +14482,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const plants = managerPlants();
     const live = new Set(plants.flatMap((plant) => plant.rows.map((row) => row.key)));
     let pruned = false;
-    for (const key of [...selected]) if (!live.has(key)) {
-      selected.delete(key);
+    for (const key of [...selected2]) if (!live.has(key)) {
+      selected2.delete(key);
       pruned = true;
     }
     if (managerDataSignature(plants) !== managerListSignature) redrawManagerList(plants);
@@ -14087,7 +14495,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
   }
   function managerStartHold() {
-    if (sending || managerHoldAt) return;
+    if (sending2 || managerHoldAt) return;
     const button = managerModal()?.querySelector("[data-mgr-run]");
     if (!button || button.disabled) return;
     managerHoldAt = performance.now();
@@ -14097,7 +14505,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         managerCancelHold();
         return;
       }
-      const progress = Math.min(1, (performance.now() - managerHoldAt) / HOLD_MS);
+      const progress = Math.min(1, (performance.now() - managerHoldAt) / HOLD_MS2);
       managerPaintHold(progress);
       if (progress < 1) {
         managerHoldFrame = requestAnimationFrame(tick);
@@ -14117,7 +14525,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     updateManagerFooter();
   }
   function runManager() {
-    if (sending) return;
+    if (sending2) return;
     const rows = nextBatchRows();
     if (!rows.length) return;
     if (!gameConnectionReady()) {
@@ -14131,14 +14539,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       toast(`Preserving these ${rows.length} slots costs ${total.toLocaleString(NUMBER_LOCALE)} coins, which is more than you have.`, "error");
       return;
     }
-    sending = true;
+    sending2 = true;
     batchTotal = rows.length;
     batchDone = 0;
     let index = 0;
     let sent = 0;
     const step = () => {
       if (index < rows.length && !gameConnectionReady()) {
-        sending = false;
+        sending2 = false;
         batchTotal = 0;
         batchDone = 0;
         managerAwaitingContinue = selectedManagerRows().length > 0;
@@ -14148,7 +14556,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         return;
       }
       if (index >= rows.length) {
-        sending = false;
+        sending2 = false;
         batchTotal = 0;
         batchDone = 0;
         const remaining2 = selectedManagerRows().length;
@@ -14167,10 +14575,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (stillReady) {
         try {
           sendQuinoaCommand({ type: "Preserve", itemId: row.itemId, growSlotIdx: row.slotId });
-          selected.delete(row.key);
+          selected2.delete(row.key);
           sent++;
         } catch (error) {
-          sending = false;
+          sending2 = false;
           batchTotal = 0;
           batchDone = 0;
           toast(error.message, "error");
@@ -14181,7 +14589,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       refreshManagerModal();
       render2();
-      window.setTimeout(step, SEND_INTERVAL);
+      window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
   }
@@ -14204,7 +14612,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function openManager() {
     if (managerOpen()) return;
-    selected.clear();
+    selected2.clear();
     managerSearch = "";
     managerAwaitingContinue = false;
     const backdrop = document.createElement("div");
@@ -14228,16 +14636,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (target.closest("[data-mgr-run]")) return;
       if (target.closest("[data-mgr-all]")) {
         event.preventDefault();
-        for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected.add(row.key);
+        for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected2.add(row.key);
         onManagerSelectionChanged();
         return;
       }
       if (target.closest("[data-mgr-none]")) {
         event.preventDefault();
         if (managerSearch.trim()) {
-          for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected.delete(row.key);
+          for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected2.delete(row.key);
         } else {
-          selected.clear();
+          selected2.clear();
         }
         onManagerSelectionChanged();
         return;
@@ -14247,8 +14655,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         event.preventDefault();
         const plant = managerPlants().find((entry) => entry.itemId === head.dataset.mgrPlant);
         if (!plant) return;
-        const turningOff = plant.rows.every((row) => selected.has(row.key));
-        for (const row of plant.rows) turningOff ? selected.delete(row.key) : selected.add(row.key);
+        const turningOff = plant.rows.every((row) => selected2.has(row.key));
+        for (const row of plant.rows) turningOff ? selected2.delete(row.key) : selected2.add(row.key);
         onManagerSelectionChanged();
         return;
       }
@@ -14256,7 +14664,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (slot) {
         event.preventDefault();
         const key = slot.dataset.mgrSlot;
-        selected.has(key) ? selected.delete(key) : selected.add(key);
+        selected2.has(key) ? selected2.delete(key) : selected2.add(key);
         onManagerSelectionChanged();
         return;
       }
@@ -14300,40 +14708,40 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         button.setPointerCapture(event.pointerId);
       } catch {
       }
-      startHold();
+      startHold2();
     });
-    for (const type of ["pointerup", "pointercancel", "pointerleave"]) button.addEventListener(type, cancelHold);
+    for (const type of ["pointerup", "pointercancel", "pointerleave"]) button.addEventListener(type, cancelHold2);
     root.querySelector("[data-preserve-manage]").addEventListener("click", (event) => {
       event.preventDefault();
       openManager();
     });
     return root;
   }
-  function startHold() {
-    if (sending || holdStartedAt) return;
+  function startHold2() {
+    if (sending2 || holdStartedAt) return;
     holdStartedAt = performance.now();
     const tick = () => {
       if (!holdStartedAt) return;
       if (!state.preservationMode) {
-        cancelHold();
+        cancelHold2();
         return;
       }
-      const progress = Math.min(1, (performance.now() - holdStartedAt) / HOLD_MS);
+      const progress = Math.min(1, (performance.now() - holdStartedAt) / HOLD_MS2);
       paintHold(progress);
       if (progress < 1) {
-        holdFrame = requestAnimationFrame(tick);
+        holdFrame2 = requestAnimationFrame(tick);
         return;
       }
-      cancelHold();
-      run();
+      cancelHold2();
+      run2();
     };
-    holdFrame = requestAnimationFrame(tick);
+    holdFrame2 = requestAnimationFrame(tick);
     render2(true);
   }
-  function cancelHold() {
+  function cancelHold2() {
     if (!holdStartedAt) return;
     holdStartedAt = 0;
-    cancelAnimationFrame(holdFrame);
+    cancelAnimationFrame(holdFrame2);
     paintHold(0);
     render2(true);
   }
@@ -14341,8 +14749,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const fill = panel2()?.querySelector("[data-preserve-fill]");
     if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
   }
-  function run() {
-    if (sending) return;
+  function run2() {
+    if (sending2) return;
     const rows = eligibleSlots();
     if (!state.preservationMode || rows.length < 2) return;
     if (!gameConnectionReady()) {
@@ -14359,18 +14767,18 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       toast("The held plant could not be identified. Reselect it and try again.", "error");
       return;
     }
-    sending = true;
+    sending2 = true;
     let index = 0;
     let sent = 0;
     const step = () => {
       if (index < rows.length && !gameConnectionReady()) {
-        sending = false;
+        sending2 = false;
         toast(sent ? `Preserved ${sent} before the connection dropped. Try the rest once it is back.` : "The connection dropped before anything was preserved.", "error");
         render2();
         return;
       }
       if (index >= rows.length) {
-        sending = false;
+        sending2 = false;
         toast(sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : "Nothing was left to preserve.", sent ? "success" : "error");
         render2();
         return;
@@ -14382,13 +14790,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           sendQuinoaCommand({ type: "Preserve", itemId: itemId2, growSlotIdx: row.slotId });
           sent++;
         } catch (error) {
-          sending = false;
+          sending2 = false;
           toast(error.message, "error");
           return;
         }
       }
       render2();
-      window.setTimeout(step, SEND_INTERVAL);
+      window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
   }
@@ -14430,7 +14838,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const affordable = total <= coins();
     const ready = gameConnectionReady();
     const holding = holdStartedAt > 0;
-    const signature2 = `${rows.length}|${total}|${affordable}|${ready}|${sending}|${holding}|${canPreserveAll}|${canManage}|${manageCount}|${cropLabel(rows)}`;
+    const signature2 = `${rows.length}|${total}|${affordable}|${ready}|${sending2}|${holding}|${canPreserveAll}|${canManage}|${manageCount}|${cropLabel(rows)}`;
     const element = ensurePanel2();
     element.hidden = false;
     if (!force && signature2 === lastSignature) {
@@ -14447,9 +14855,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     runButton.hidden = !canPreserveAll;
     if (canPreserveAll) {
       caption.textContent = `${cropLabel(rows)} - ${rows.length} ready slot${rows.length === 1 ? "" : "s"}`;
-      hint.textContent = sending ? "Preserving..." : !ready ? "Waiting for connection..." : holding ? "Keep holding..." : "Press & Hold";
+      hint.textContent = sending2 ? "Preserving..." : !ready ? "Waiting for connection..." : holding ? "Keep holding..." : "Press & Hold";
       element.querySelector("[data-preserve-label]").textContent = `Preserve All 🪙 ${total.toLocaleString(NUMBER_LOCALE)}`;
-      runButton.disabled = sending || !affordable || !ready;
+      runButton.disabled = sending2 || !affordable || !ready;
       runButton.title = !ready ? "The game connection is not ready." : affordable ? "" : "Not enough coins to preserve every ready slot.";
     }
     manageButton.hidden = !canManage;
@@ -14502,10 +14910,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     external.onerror = () => URL.revokeObjectURL(url);
     (document.head || document.documentElement).appendChild(external);
   }
-  function whenIdle(run2) {
+  function whenIdle(run3) {
     const idle = page.requestIdleCallback;
-    if (typeof idle === "function") idle.call(page, run2, { timeout: 15e3 });
-    else setTimeout(run2, 5e3);
+    if (typeof idle === "function") idle.call(page, run3, { timeout: 15e3 });
+    else setTimeout(run3, 5e3);
   }
   function installVendorBridge() {
     page.__gardenCompanionVendorSource = (url, done) => {

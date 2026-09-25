@@ -50,7 +50,8 @@ export function installInstantHarvest(): void {
     const now = Date.now();
     // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
     // which is exactly what this key skips, so a preserved slot is never a candidate here.
-    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
+    // A slot the game has locked is skipped the same way: the lock exists to stop harvests.
+    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && slot?.locked !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
     // Reset the pending set when the tile changes, and drop any slot the state now agrees is gone -
     // once it reads as not-ready the harvest has landed and it no longer needs suppressing (and a
     // future regrow can be taken again).

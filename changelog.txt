@@ -1,3 +1,9 @@
+0.8.81
+- New Crop Locker on the Protection tab: lock or unlock any crop in your garden with the games own system
+- Crop Locker lists every crop grouped by plant, with search and All / Unlocked / Locked filters
+- Crop Locker uses press & hold and changes up to 15 crops per press, like the Preservation manager
+- Instant harvest no longer targets crops the game has locked
+
 0.8.80
 - New Sound Settings tab under Alerts: pick an alarm sound (Classic, Chime, Soft beep, Buzzer, Siren), set its volume and pitch, and preview it
 - Custom alarm sounds: upload your own MP3, WAV, OGG or M4A - anything over 10 seconds is trimmed to its start
