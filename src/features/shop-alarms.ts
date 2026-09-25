@@ -90,10 +90,14 @@ export function availableShopItems(): AvailableShopItem[] {
 }
 
 /**
- * Whether the inventory already holds as many of this tool as the game allows (99 for the capped
- * ones), in which case the shop will not sell another and an alarm would only be noise. Mirrors the
- * game's own check: only tools carry a cap, and it is the first inventory stack of that tool that
- * counts - storage is not part of it, since a purchase lands in the inventory.
+ * Whether the player already holds as many of this tool as the game allows (99 for the capped
+ * ones), in which case an alarm would only be noise. Only tools carry a cap, as in the game's own
+ * check.
+ *
+ * Held means the inventory and the Tool Shack together. The game's own limit is per stack - it
+ * would still sell into an inventory of 40 beside a shack of 60 - but 99 between the two is already
+ * as many as either could ever hold, which is the point past which a restock is not news. It also
+ * keeps auto-store from hiding a full stack: tools filed into the shack still count.
  *
  * Any shop, not just the Tool shop: the Snow shop sells Chilled and Frozen Potions among its seeds
  * and decor. The cap list only holds tool ids, so an item is judged by its id, unless the shop's own
@@ -103,14 +107,28 @@ export function atInventoryCap(id: string, item?: ShopItem): boolean {
   return capRoom(id, item) <= 0;
 }
 
-/** How many more of this item the inventory can take - Infinity for anything uncapped. */
+type HeldTool = { itemType?: string; toolId?: string; quantity?: number };
+
+/** The first stack of this tool in a list, the way the game finds it. */
+function toolStack(items: unknown, id: string): number {
+  if (!Array.isArray(items)) return 0;
+  const stack = (items as HeldTool[]).find(entry => entry?.itemType === 'Tool' && entry.toolId === id);
+  return Number(stack?.quantity || 0);
+}
+
+/**
+ * How many more of this item to buy before inventory and Tool Shack together reach the cap -
+ * Infinity for anything uncapped. Never more than the inventory itself can take, since that is where
+ * a purchase lands; with the shack counted in, that bound always holds anyway.
+ */
 function capRoom(id: string, item?: ShopItem): number {
   const limit = TOOL_LIMITS[id];
   if (!limit) return Infinity;
   if (item && !item.toolId && item.itemType && item.itemType !== 'Tool') return Infinity;
-  const items = state.slot?.data?.inventory?.items as Array<{ itemType?: string; toolId?: string; quantity?: number }> | undefined;
-  const stack = Array.isArray(items) ? items.find(entry => entry?.itemType === 'Tool' && entry.toolId === id) : undefined;
-  return Math.max(0, limit - Number(stack?.quantity || 0));
+  const inventory = state.slot?.data?.inventory;
+  const shack = (inventory?.storages ?? []).find(entry => entry?.decorId === 'ToolShack');
+  const held = toolStack(inventory?.items, id) + toolStack(shack?.items, id);
+  return Math.max(0, limit - held);
 }
 
 /**

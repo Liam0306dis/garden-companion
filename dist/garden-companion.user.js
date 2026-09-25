@@ -6772,13 +6772,19 @@ ${eggs.map(eggCard).join("")}`;
   function atInventoryCap(id, item) {
     return capRoom(id, item) <= 0;
   }
+  function toolStack(items, id) {
+    if (!Array.isArray(items)) return 0;
+    const stack = items.find((entry) => entry?.itemType === "Tool" && entry.toolId === id);
+    return Number(stack?.quantity || 0);
+  }
   function capRoom(id, item) {
     const limit = TOOL_LIMITS[id];
     if (!limit) return Infinity;
     if (item && !item.toolId && item.itemType && item.itemType !== "Tool") return Infinity;
-    const items = state.slot?.data?.inventory?.items;
-    const stack = Array.isArray(items) ? items.find((entry) => entry?.itemType === "Tool" && entry.toolId === id) : void 0;
-    return Math.max(0, limit - Number(stack?.quantity || 0));
+    const inventory = state.slot?.data?.inventory;
+    const shack = (inventory?.storages ?? []).find((entry) => entry?.decorId === "ToolShack");
+    const held = toolStack(inventory?.items, id) + toolStack(shack?.items, id);
+    return Math.max(0, limit - held);
   }
   function stopCappedAlarms(available) {
     for (const row of available) {
