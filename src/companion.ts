@@ -32,6 +32,7 @@ import { retryUntil } from './retry.js';
 import { installPixiCapture } from './pixi.js';
 import { processPetHunger, renderAbilities } from './features/active-pets.js';
 import { installInstantHarvest } from './features/instant-harvest.js';
+import { noteServerClock } from './server-clock.js';
 import { mountLunarTimer, updateLunarTimer, watchSocketHealth } from './features/lunar-timer.js';
 import { allPets, heldProduce, onSpritesReady, refreshHungerDisplay, useXpPotion } from './pets.js';
 import {
@@ -195,6 +196,8 @@ export function initCompanion(): void {
     // Track the server's command frontier and catch the invalid_sequence rejection that says our
     // numbering has desynced, so the sequencer resyncs to the frontier instead of freezing.
     noteServerFrame(data);
+    // Keep the server's clock, so weather countdowns tick against it rather than this PC's.
+    noteServerClock(data);
     if (typeof data !== 'string' || !data.includes('"selfPlayerId"')) return;
     try {
       const frame = JSON.parse(data) as { selfPlayerId?: unknown; executedCommandSequence?: unknown };

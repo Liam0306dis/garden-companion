@@ -1,3 +1,4 @@
+import { serverNow } from '../server-clock.js';
 import { state } from '../state.js';
 import { humanize } from '../utils.js';
 
@@ -48,7 +49,7 @@ let lastBoundaryAt = 0;
  * the exact answer, and nobody is hovering the button at the moment it happens.
  */
 export function noteWeatherChange(): void {
-  const now = Date.now();
+  const now = serverNow();
   const weather = currentWeather();
   const boundary = now + nextBoundaryMs(now);
   if (weather !== seenWeather) {
@@ -155,7 +156,7 @@ function remaining(now: number): { low: number; high: number } {
  * when it started before we arrived the answer is a pair of possible ends rather than one.
  */
 export function weatherRemainingText(): string {
-  const { low, high } = remaining(Date.now());
+  const { low, high } = remaining(serverNow());
   // Whole minutes: this is read from a panel that redraws when it changes, and a ticking seconds
   // field would rebuild the tab every second to move a digit.
   const minutes = (ms: number) => `${Math.max(1, Math.ceil(ms / 60_000))}m`;

@@ -2,7 +2,7 @@ import { feature } from '../config.js';
 import { LUNAR_MINIMISED_KEY, LUNAR_POSITION_KEY, UPDATE_URL } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
 import { page } from '../page.js';
-import { createTicker } from '../ticker.js';
+import { serverNow } from '../server-clock.js';
 import { escapeHtml, formatDuration, loadLocal, saveLocal, scriptVersion } from '../utils.js';
 import { forecastStatus, nextWeather } from '../weather-forecast.js';
 import { weatherLabel } from './weather-timer.js';
@@ -12,7 +12,7 @@ import { weatherLabel } from './weather-timer.js';
  * the script's own update check.
  */
 
-function nextLunarAt(now = Date.now()) {
+function nextLunarAt(now = serverNow()) {
   const date = new Date(now);
   const midnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   const slots = [0, 48, 96, 144, 192, 240];
@@ -35,8 +35,30 @@ let lunarMinimised = loadLocal<boolean>(LUNAR_MINIMISED_KEY, false);
 const LUNAR_MODE_KEY = 'gardenCompanion.lunarMode.v1';
 type LunarMode = 'lunar' | 'weather';
 let lunarMode: LunarMode = loadLocal<LunarMode>(LUNAR_MODE_KEY, 'weather') === 'lunar' ? 'lunar' : 'weather';
-/** The countdown only ticks while it is on screen; the minimised icon refreshes its tooltip on hover. */
-const lunarTicker = createTicker(() => updateLunarTimer(), 1000);
+/**
+ * The countdown only ticks while it is on screen; the minimised icon refreshes its tooltip on hover.
+ * Each tick lands just after a whole server second, as the game's own forecast redraws, so the two
+ * roll over together rather than up to a second apart.
+ */
+let lunarTimeout = 0;
+function scheduleLunarTick(): void {
+  lunarTimeout = window.setTimeout(() => {
+    lunarTimeout = 0;
+    try { updateLunarTimer(); } catch (error) { console.warn('[Garden Companion] A repeating job failed.', error); }
+    if (!lunarTimeout) scheduleLunarTick();
+  }, 1000 - (serverNow() % 1000) + 5);
+}
+const lunarTicker = {
+  sync(wanted: boolean) {
+    if (wanted && !lunarTimeout) scheduleLunarTick();
+    else if (!wanted && lunarTimeout) { window.clearTimeout(lunarTimeout); lunarTimeout = 0; }
+  },
+};
+
+/** Whole seconds left, rounded down the way the game's own countdown is, so the two read alike. */
+function countdownText(ms: number): string {
+  return formatDuration(Math.floor(ms / 1000) * 1000);
+}
 
 function setLunarMode(mode: LunarMode): void {
   lunarMode = mode;
@@ -71,9 +93,9 @@ export function updateLunarTimer(): void {
     : 'Lunar event';
   const remaining = unavailable ? 'Unavailable'
     : lunarMode === 'weather'
-      ? forecast ? formatDuration(forecast.startsAtMs - Date.now())
+      ? forecast ? countdownText(forecast.startsAtMs - serverNow())
         : forecastStatus() === 'ready' ? 'Not forecast' : '--'
-      : formatDuration(nextLunarAt() - Date.now());
+      : countdownText(nextLunarAt() - serverNow());
   const countingDown = !unavailable && (lunarMode === 'lunar' || Boolean(forecast));
   root.hidden = !shown || lunarMinimised;
   lunarTicker.sync(!root.hidden);

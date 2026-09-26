@@ -1,3 +1,4 @@
+import { serverClockOffsetMs, serverNow } from './server-clock.js';
 import { state } from './state.js';
 
 // Until bundle 1141 the client computed the weather schedule itself from a
@@ -46,6 +47,7 @@ export function forecastTrace(): Record<string, unknown> {
     status: forecastStatus(),
     count: entries ? entries.length : null,
     next: nextWeather(),
+    serverClockOffsetMs: serverClockOffsetMs(),
   };
 }
 
@@ -57,7 +59,7 @@ export function forecastTrace(): Record<string, unknown> {
 export function nextWeather(): WeatherWindow | null {
   const entries = forecastEntries();
   if (!entries || !entries.length) return null;
-  const now = Date.now();
+  const now = serverNow();
   let best: WeatherWindow | null = null;
   for (const entry of entries) {
     // Lunar events ride the forecast under groupId "Lunar" with a null weatherId - the game names
