@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.84
+// @version      0.8.85
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -3455,9 +3455,9 @@ ${filter}
       positionPetFood();
     }
   }
-  function petPanelCovered(anchor) {
-    const sampleX = Math.round((anchor.left + anchor.right) / 2);
-    const sampleY = Math.round(anchor.centerY);
+  function petPanelCovered(anchor2) {
+    const sampleX = Math.round((anchor2.left + anchor2.right) / 2);
+    const sampleY = Math.round(anchor2.centerY);
     if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return false;
     const top = document.elementFromPoint(sampleX, sampleY);
     if (!top) return false;
@@ -3470,7 +3470,7 @@ ${filter}
     const options = panel3.querySelector(".gc-petfood-options");
     const dock = findPetSlotDock();
     const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || "") ?? null : dock.rows[index] ?? null) : [];
-    const anchors = paired.filter((anchor) => Boolean(anchor));
+    const anchors = paired.filter((anchor2) => Boolean(anchor2));
     if (!dock || dock.blocked || !anchors.length || petPanelCovered(anchors[0])) {
       panel3.hidden = true;
       return;
@@ -3481,16 +3481,16 @@ ${filter}
     const gap = 8;
     panel3.hidden = false;
     buttons.forEach((button, index) => {
-      const anchor = paired[index];
-      if (!anchor) {
+      const anchor2 = paired[index];
+      if (!anchor2) {
         button.style.display = "none";
         return;
       }
       button.style.display = "";
       button.style.width = `${size}px`;
       button.style.height = `${size}px`;
-      button.style.left = `${Math.round(dockRight ? anchor.right + gap : anchor.left - gap - size)}px`;
-      button.style.top = `${Math.round(anchor.centerY - size / 2)}px`;
+      button.style.left = `${Math.round(dockRight ? anchor2.right + gap : anchor2.left - gap - size)}px`;
+      button.style.top = `${Math.round(anchor2.centerY - size / 2)}px`;
       const icon = button.querySelector("img");
       if (icon) {
         icon.style.width = `${iconSize}px`;
@@ -4034,6 +4034,33 @@ ${filter}
     }, DEBOUNCE_MS);
   }
 
+  // src/server-clock.ts
+  var anchor = null;
+  function serverNow() {
+    const client = Date.now();
+    return anchor ? anchor.serverMs + client - anchor.clientMs : client;
+  }
+  function noteServerClock(data) {
+    if (typeof data !== "string") return;
+    const key = '"publishedAtServerMs":';
+    const at = data.indexOf(key);
+    if (at === -1) return;
+    let end = at + key.length;
+    while (end < data.length) {
+      const code = data.charCodeAt(end);
+      if (code < 48 || code > 57) break;
+      end += 1;
+    }
+    const serverMs = Number(data.slice(at + key.length, end));
+    if (!Number.isFinite(serverMs) || serverMs <= 0) return;
+    const clientMs = Date.now();
+    const welcome = data.includes('"selfPlayerId"');
+    if (welcome || !anchor || serverMs > anchor.serverMs + clientMs - anchor.clientMs) anchor = { clientMs, serverMs };
+  }
+  function serverClockOffsetMs() {
+    return anchor ? anchor.serverMs - anchor.clientMs : null;
+  }
+
   // src/features/weather-timer.ts
   var WEATHER_MS = 10 * 60 * 1e3;
   var WEATHER_NAMES = {
@@ -4048,7 +4075,7 @@ ${filter}
   var boundaryEnd = 0;
   var lastBoundaryAt = 0;
   function noteWeatherChange() {
-    const now = Date.now();
+    const now = serverNow();
     const weather = currentWeather();
     const boundary = now + nextBoundaryMs(now);
     if (weather !== seenWeather) {
@@ -4112,7 +4139,7 @@ ${filter}
     return { low: toBoundary, high: toBoundary + SLOT_MS };
   }
   function weatherRemainingText() {
-    const { low, high } = remaining(Date.now());
+    const { low, high } = remaining(serverNow());
     const minutes = (ms) => `${Math.max(1, Math.ceil(ms / 6e4))}m`;
     return low === high ? `${minutes(low)} left` : `${minutes(low)} or ${minutes(high)} left`;
   }
@@ -4134,13 +4161,14 @@ ${filter}
       source: "gameState.weatherForecast",
       status: forecastStatus(),
       count: entries ? entries.length : null,
-      next: nextWeather()
+      next: nextWeather(),
+      serverClockOffsetMs: serverClockOffsetMs()
     };
   }
   function nextWeather() {
     const entries = forecastEntries();
     if (!entries || !entries.length) return null;
-    const now = Date.now();
+    const now = serverNow();
     let best = null;
     for (const entry of entries) {
       const lunar = entry.groupId === "Lunar" || typeof entry.weatherId === "string" && LUNAR_WEATHER2.has(entry.weatherId);
@@ -6552,7 +6580,7 @@ ${eggs.map(eggCard).join("")}`;
   }
 
   // src/features/lunar-timer.ts
-  function nextLunarAt(now = Date.now()) {
+  function nextLunarAt(now = serverNow()) {
     const date = new Date(now);
     const midnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
     const slots = [0, 48, 96, 144, 192, 240];
@@ -6565,7 +6593,30 @@ ${eggs.map(eggCard).join("")}`;
   var lunarMinimised = loadLocal(LUNAR_MINIMISED_KEY, false);
   var LUNAR_MODE_KEY = "gardenCompanion.lunarMode.v1";
   var lunarMode = loadLocal(LUNAR_MODE_KEY, "weather") === "lunar" ? "lunar" : "weather";
-  var lunarTicker = createTicker(() => updateLunarTimer(), 1e3);
+  var lunarTimeout = 0;
+  function scheduleLunarTick() {
+    lunarTimeout = window.setTimeout(() => {
+      lunarTimeout = 0;
+      try {
+        updateLunarTimer();
+      } catch (error) {
+        console.warn("[Garden Companion] A repeating job failed.", error);
+      }
+      if (!lunarTimeout) scheduleLunarTick();
+    }, 1e3 - serverNow() % 1e3 + 5);
+  }
+  var lunarTicker = {
+    sync(wanted) {
+      if (wanted && !lunarTimeout) scheduleLunarTick();
+      else if (!wanted && lunarTimeout) {
+        window.clearTimeout(lunarTimeout);
+        lunarTimeout = 0;
+      }
+    }
+  };
+  function countdownText(ms) {
+    return formatDuration(Math.floor(ms / 1e3) * 1e3);
+  }
   function setLunarMode(mode) {
     lunarMode = mode;
     saveLocal(LUNAR_MODE_KEY, mode);
@@ -6584,7 +6635,7 @@ ${eggs.map(eggCard).join("")}`;
     const forecast = lunarMode === "weather" ? nextWeather() : null;
     const unavailable = lunarMode === "weather" && forecastStatus() === "unavailable";
     const label = lunarMode === "weather" ? forecast ? forecast.lunar ? "Lunar event" : weatherLabel(forecast.weatherId) : "Next weather" : "Lunar event";
-    const remaining2 = unavailable ? "Unavailable" : lunarMode === "weather" ? forecast ? formatDuration(forecast.startsAtMs - Date.now()) : forecastStatus() === "ready" ? "Not forecast" : "--" : formatDuration(nextLunarAt() - Date.now());
+    const remaining2 = unavailable ? "Unavailable" : lunarMode === "weather" ? forecast ? countdownText(forecast.startsAtMs - serverNow()) : forecastStatus() === "ready" ? "Not forecast" : "--" : countdownText(nextLunarAt() - serverNow());
     const countingDown = !unavailable && (lunarMode === "lunar" || Boolean(forecast));
     root.hidden = !shown || lunarMinimised;
     lunarTicker.sync(!root.hidden);
@@ -7111,6 +7162,7 @@ ${eggs.map(eggCard).join("")}`;
     function readWelcome(event) {
       const data = event.data;
       noteServerFrame(data);
+      noteServerClock(data);
       if (typeof data !== "string" || !data.includes('"selfPlayerId"')) return;
       try {
         const frame = JSON.parse(data);
