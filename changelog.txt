@@ -1,3 +1,9 @@
+0.8.87
+- Garden Defence is finished and playable from the Features tab: a Plants vs. Zombies style lane defence on your own farm
+- 10 towers, 7 pests plus the Storm Wolf boss, 20 waves with flag waves at 10 and 20, and an endless mode that keeps escalating
+- Watering cans guard each lane, seed packets recharge, and pests you have not met yet are introduced as they arrive
+- Fishing rebalanced: each rarity is now a fair step harder than the last, fights run longer, and coins and gear prices are tuned so the best rod takes a few hours to earn
+
 0.8.86
 - Fishing overhaul: a redesigned panel with Pond, Tackle and Journal tabs, a vertical catch meter, new pond art
 - Cast where you click on the pond, watch out for nibbles before the real bite and see the fish reeled in towards you as the bar fills

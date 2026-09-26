@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.86
+// @version      0.8.87
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -7553,7 +7553,7 @@ ${eggs.map(eggCard).join("")}`;
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Overlay a buff layout for your current celestial plants on either side of the farm.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Open fishing</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Overlay a buff layout for your current celestial plants on either side of the farm.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderSilence() {
       const selected3 = new Set(config.silencedAbilities || []);
@@ -7600,6 +7600,10 @@ ${eggs.map(eggCard).join("")}`;
       main.querySelector("[data-open-fishing]")?.addEventListener("click", () => {
         closePanel();
         page.__gardenCompanionToggleFishing?.();
+      });
+      main.querySelector("[data-open-garden-defence]")?.addEventListener("click", () => {
+        closePanel();
+        page.__gardenCompanionToggleGardenDefence?.();
       });
       main.querySelectorAll("[data-silence]").forEach((input) => input.onchange = () => {
         const set = new Set(config.silencedAbilities || []);
@@ -10781,6 +10785,206 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     page.__gardenCompanionPlannerOpen = () => planner.open;
   }
 
+  // src/features/fishing-rules.ts
+  var RARITIES = {
+    common: { label: "Common", colour: "#94a3b8", weight: 48, zone: 0.36, speed: 0.65, fill: 0.45, drain: 0.25 },
+    uncommon: { label: "Uncommon", colour: "#34d399", weight: 28, zone: 0.32, speed: 0.72, fill: 0.42, drain: 0.29 },
+    rare: { label: "Rare", colour: "#38bdf8", weight: 15, zone: 0.28, speed: 0.78, fill: 0.38, drain: 0.33 },
+    epic: { label: "Epic", colour: "#a78bfa", weight: 6, zone: 0.24, speed: 0.86, fill: 0.34, drain: 0.38 },
+    legendary: { label: "Legendary", colour: "#fbbf24", weight: 2.5, zone: 0.21, speed: 0.95, fill: 0.3, drain: 0.43 },
+    mythic: { label: "Mythic", colour: "#f472b6", weight: 0.5, zone: 0.18, speed: 1.08, fill: 0.26, drain: 0.48 }
+  };
+  var RARITY_ORDER2 = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
+  var WEATHER_FISH_WEIGHT = 2;
+  var WEATHER_MYTHIC_CHANCE = 0.015;
+  var FIGHT_PACE = 0.35;
+  var START_PROGRESS = 0.2;
+  var LOSE_FLOOR = -0.15;
+  var REEL_LIMIT = 45e3;
+  var ZONE_LIFT = 11.5;
+  var ZONE_GRAVITY = 4.9;
+  var ZONE_FRICTION = 0.89;
+  var FISH_PULL = 4.5;
+  var ZONE_DRAG = -Math.log(ZONE_FRICTION) * 60;
+  var SPEED_BASELINE = 0.55;
+  function zoneAgility(speed) {
+    return 1 + (speed / SPEED_BASELINE - 1) * 0.6;
+  }
+  function fishTravelSpeed(speed) {
+    return 0.5 * FISH_PULL * speed / (-Math.log(0.93) * 60) * 1.6;
+  }
+  var FIGHT_STYLES = {
+    steady: { label: "Steady", pull: 1, pause: 1 },
+    darter: { label: "Darter", pull: 1.15, pause: 0.55 },
+    sinker: { label: "Sinker", pull: 0.9, pause: 1.15 },
+    glider: { label: "Glider", pull: 0.72, pause: 1.9 },
+    leaper: { label: "Leaper", pull: 1, pause: 1 }
+  };
+  var TROPHY_SHARE = 0.9;
+  var PERFECT_BONUS = 1.5;
+  var TROPHY_BONUS = 1.25;
+  var FISH = [
+    { id: "pondMinnow", name: "Pond Minnow", rarity: "common", style: "darter", min: 0.1, max: 0.6, note: "Travels in crowds and panics alone." },
+    { id: "muddyBream", name: "Muddy Bream", rarity: "common", style: "sinker", min: 0.4, max: 1.8, note: "Tastes of the bottom it never leaves." },
+    { id: "reedPerch", name: "Reed Perch", rarity: "common", style: "darter", min: 0.3, max: 1.4, note: "Hides in the shallows, strikes at anything." },
+    { id: "gardenGuppy", name: "Garden Guppy", rarity: "common", style: "steady", min: 0.1, max: 0.4, note: "Somehow always in the watering can." },
+    { id: "rainSilverfin", name: "Rain Silverfin", rarity: "common", style: "leaper", min: 0.2, max: 1.1, weather: "Rain", note: "Rises the moment the first drop lands." },
+    { id: "copperCarp", name: "Copper Carp", rarity: "uncommon", style: "sinker", min: 1.2, max: 4.5, note: "Old enough to have opinions about lures." },
+    { id: "speckledTrout", name: "Speckled Trout", rarity: "uncommon", style: "darter", min: 0.8, max: 3.2, note: "Fast, fussy, worth the trouble." },
+    { id: "glassEel", name: "Glass Eel", rarity: "uncommon", style: "darter", min: 0.5, max: 2.4, note: "You can read the riverbed through it." },
+    { id: "mossBass", name: "Moss Bass", rarity: "uncommon", style: "steady", min: 1.5, max: 5, note: "Wears its pond like a coat." },
+    { id: "puddlePike", name: "Puddle Pike", rarity: "uncommon", style: "leaper", min: 1.8, max: 6, weather: "Rain", note: "Appears in water far too small for it." },
+    { id: "moonscaleKoi", name: "Moonscale Koi", rarity: "rare", style: "glider", min: 3, max: 9, note: "Every scale holds a slightly different moon." },
+    { id: "brambleRay", name: "Bramble Ray", rarity: "rare", style: "glider", min: 4, max: 12, note: "Glides like a thrown blanket." },
+    { id: "ironjawCatfish", name: "Ironjaw Catfish", rarity: "rare", style: "sinker", min: 6, max: 16, note: "Has taken three hooks and kept them." },
+    { id: "lanternCod", name: "Lantern Cod", rarity: "rare", style: "steady", min: 3.5, max: 11, weather: "Dawn", note: "Carries its own small sunrise." },
+    { id: "chillbackChar", name: "Chillback Char", rarity: "rare", style: "steady", min: 2.5, max: 8, weather: "Frost", note: "Warm to the touch, strangely." },
+    { id: "amberfinTench", name: "Amberfin Tench", rarity: "rare", style: "sinker", min: 3, max: 10, weather: "AmberMoon", note: "Slow, heavy, and the colour of old honey." },
+    { id: "staticShiner", name: "Static Shiner", rarity: "rare", style: "darter", min: 2, max: 7, weather: "Thunderstorm", note: "Sets the hairs on your arm up before you see it." },
+    { id: "mirrorfinArowana", name: "Mirrorfin Arowana", rarity: "epic", style: "glider", min: 9, max: 30, note: "Turns without disturbing the water around it." },
+    { id: "cloudburstSalmon", name: "Cloudburst Salmon", rarity: "epic", style: "leaper", min: 10, max: 28, weather: "Rain", note: "Swims up the rain itself, given enough of it." },
+    { id: "stormfinMarlin", name: "Stormfin Marlin", rarity: "epic", style: "leaper", min: 12, max: 34, weather: "Thunderstorm", note: "Runs ahead of the weather front." },
+    { id: "frostbellySturgeon", name: "Frostbelly Sturgeon", rarity: "epic", style: "sinker", min: 15, max: 40, weather: "Frost", note: "Older than the pond it swims in." },
+    { id: "dawnlitAngelfish", name: "Dawnlit Angelfish", rarity: "epic", style: "glider", min: 8, max: 22, weather: "Dawn", note: "Only surfaces while the light is thin." },
+    { id: "amberscaleTuna", name: "Amberscale Tuna", rarity: "epic", style: "leaper", min: 18, max: 46, weather: "AmberMoon", note: "Set solid in colour, still very much alive." },
+    { id: "crownscaleArapaima", name: "Crownscale Arapaima", rarity: "legendary", style: "steady", min: 28, max: 82, note: "The smaller fish follow it as if it knows the way." },
+    { id: "thunderjawGar", name: "Thunderjaw Gar", rarity: "legendary", style: "darter", min: 30, max: 75, weather: "Thunderstorm", note: "The bite arrives before the fish does." },
+    { id: "glacierLeviathan", name: "Glacier Leviathan", rarity: "legendary", style: "sinker", min: 40, max: 95, weather: "Frost", note: "Mistaken for the far bank more than once." },
+    { id: "sunspireSerpent", name: "Sunspire Serpent", rarity: "legendary", style: "glider", min: 25, max: 68, weather: "Dawn", note: "Coils around the light and holds it there." },
+    { id: "harvestmoonWels", name: "Harvestmoon Wels", rarity: "legendary", style: "sinker", min: 35, max: 88, weather: "AmberMoon", note: "Comes up once the whole pond has turned the same colour as it." },
+    { id: "firstLightRay", name: "First Light Ray", rarity: "mythic", style: "glider", min: 55, max: 165, weather: "Dawn", note: "Seen only in the minute the sky decides on a colour." },
+    { id: "oldRootmouth", name: "Old Rootmouth", rarity: "mythic", style: "sinker", min: 60, max: 140, weather: "AmberMoon", note: "The garden grew around it, not the other way round." },
+    { id: "rainbowWhiskerfish", name: "Rainbow Whiskerfish", rarity: "mythic", style: "leaper", min: 70, max: 210, note: "Nobody agrees on what colour it actually is." }
+  ];
+  var FISH_BY_ID = new Map(FISH.map((fish) => [fish.id, fish]));
+  var NO_GEAR = { zone: 0, fill: 1, drain: 1, start: 0 };
+  function createFight(fish, gear = NO_GEAR, random = Math.random) {
+    const rule = RARITIES[fish.rarity];
+    const style = FIGHT_STYLES[fish.style];
+    const start = Math.min(0.5, START_PROGRESS + gear.start);
+    const fight = {
+      fish,
+      zoneHeight: Math.min(0.42, rule.zone + gear.zone),
+      fishAt: 0.5,
+      fishVelocity: 0,
+      fishTarget: 0.5,
+      /** How hard the fish swims on its current leg. */
+      legPull: 1,
+      retargetIn: 0,
+      zoneAt: 0.5,
+      zoneVelocity: 0,
+      progress: start,
+      startProgress: start,
+      inside: true,
+      /** Whether the fish has ever left the zone, which rules out a perfect catch. */
+      slipped: false,
+      elapsed: 0,
+      step
+    };
+    function retarget() {
+      let target = 0.06 + random() * 0.88;
+      let pull = style.pull;
+      let pause = (0.32 + random() * 0.78 / rule.speed) * style.pause;
+      if (fish.style === "sinker") target = 0.06 + Math.sqrt(random()) * 0.88;
+      else if (fish.style === "glider") target = fight.fishAt < 0.5 ? 0.6 + random() * 0.34 : 0.06 + random() * 0.34;
+      else if (fish.style === "leaper" && random() < 0.22) {
+        target = 0.04 + random() * 0.1;
+        pull *= 1.6;
+        pause *= 0.6;
+      } else if (fish.style === "darter" && random() < 0.3) fight.fishVelocity += (target - fight.fishAt) * 1.2;
+      fight.fishTarget = target;
+      fight.legPull = pull;
+      fight.retargetIn = pause;
+    }
+    function step(delta, holding) {
+      fight.elapsed += delta;
+      fight.retargetIn -= delta;
+      if (fight.retargetIn <= 0) retarget();
+      fight.fishVelocity += (fight.fishTarget - fight.fishAt) * FISH_PULL * rule.speed * fight.legPull * delta;
+      fight.fishVelocity *= Math.pow(0.93, delta * 60);
+      fight.fishAt = Math.max(0.03, Math.min(0.97, fight.fishAt + fight.fishVelocity * delta * 1.6));
+      const agility = zoneAgility(rule.speed);
+      fight.zoneVelocity += (holding ? -ZONE_LIFT : ZONE_GRAVITY) * agility * delta;
+      fight.zoneVelocity *= Math.pow(ZONE_FRICTION, delta * 60);
+      fight.zoneAt += fight.zoneVelocity * delta;
+      const half = fight.zoneHeight / 2;
+      if (fight.zoneAt < half) {
+        fight.zoneAt = half;
+        fight.zoneVelocity = 0;
+      }
+      if (fight.zoneAt > 1 - half) {
+        fight.zoneAt = 1 - half;
+        fight.zoneVelocity = 0;
+      }
+      fight.inside = Math.abs(fight.fishAt - fight.zoneAt) < half;
+      if (!fight.inside) fight.slipped = true;
+      fight.progress += (fight.inside ? rule.fill * gear.fill : -rule.drain * gear.drain) * FIGHT_PACE * delta;
+      if (fight.progress >= 1) return "landed";
+      if (fight.progress <= LOSE_FLOOR) return "escaped";
+      if (fight.elapsed * 1e3 >= REEL_LIMIT) return "timeout";
+      return null;
+    }
+    return fight;
+  }
+  function weightedPick(items, weight, random) {
+    const total = items.reduce((sum, item) => sum + weight(item), 0);
+    let roll = random() * total;
+    for (const item of items) {
+      roll -= weight(item);
+      if (roll <= 0) return item;
+    }
+    return items[items.length - 1];
+  }
+  function pickFish(weather, bait, random = Math.random) {
+    const eventMythics = FISH.filter((fish) => fish.rarity === "mythic" && fish.weather === weather);
+    const mythicChance = WEATHER_MYTHIC_CHANCE * (bait?.weatherBoost ? 2 : 1);
+    if (eventMythics.length && random() < mythicChance) {
+      return eventMythics[Math.floor(random() * eventMythics.length)];
+    }
+    const pool = FISH.filter((fish) => (!fish.weather || fish.weather === weather) && !eventMythics.includes(fish));
+    const rarities = RARITY_ORDER2.filter((rarity2) => pool.some((fish) => fish.rarity === rarity2));
+    const rarity = weightedPick(rarities, (value) => RARITIES[value].weight * (bait?.rarity?.[value] ?? 1), random);
+    const tier = pool.filter((fish) => fish.rarity === rarity);
+    return weightedPick(tier, (fish) => fish.weather ? WEATHER_FISH_WEIGHT * (bait?.weatherBoost ?? 1) : 1, random);
+  }
+  var RARITY_REWARDS = {
+    common: { coins: 2, xp: 8 },
+    uncommon: { coins: 5, xp: 14 },
+    rare: { coins: 11, xp: 26 },
+    epic: { coins: 25, xp: 48 },
+    legendary: { coins: 55, xp: 90 },
+    mythic: { coins: 120, xp: 165 }
+  };
+  function catchRewards(fish, weight) {
+    const base = RARITY_REWARDS[fish.rarity];
+    const weightFactor = 0.7 + Math.max(0, Math.min(1, (weight - fish.min) / Math.max(0.01, fish.max - fish.min))) * 0.8;
+    return { coins: Math.max(1, Math.round(base.coins * weightFactor)), xp: Math.max(1, Math.round(base.xp * weightFactor)) };
+  }
+  var EQUIPMENT = [
+    { id: "reedRod", name: "Reed Rod", slot: "rod", detail: "A dependable first rod." },
+    { id: "oakRod", name: "Oak Rod", slot: "rod", detail: "+2% catch zone and +5% progress.", price: 300, zone: 0.02, fill: 1.05 },
+    { id: "silverRod", name: "Silver Rod", slot: "rod", detail: "+3% catch zone and +10% progress.", price: 1200, zone: 0.03, fill: 1.1 },
+    { id: "moonRod", name: "Moon Rod", slot: "rod", detail: "+4% catch zone and +16% progress.", price: 4e3, zone: 0.04, fill: 1.16 },
+    { id: "braidedLine", name: "Braided Line", slot: "line", detail: "Progress slips 12% slower while the fish is loose.", foundFrom: "speckledTrout", dropChance: 0.1, drain: 0.88 },
+    { id: "silkLine", name: "Mirror Silk Line", slot: "line", detail: "Progress slips 22% slower while the fish is loose.", foundFrom: "mirrorfinArowana", dropChance: 0.08, drain: 0.78 },
+    { id: "reedFloat", name: "Reed Float", slot: "tackle", detail: "+300ms to set the hook.", foundFrom: "reedPerch", dropChance: 0.14, bite: 300 },
+    { id: "barbedHook", name: "Ironjaw Hook", slot: "tackle", detail: "Begin each fight with 7% more progress.", foundFrom: "ironjawCatfish", dropChance: 0.1, start: 0.07 },
+    { id: "crownLure", name: "Crownscale Lure", slot: "tackle", detail: "+3% catch zone.", foundFrom: "crownscaleArapaima", dropChance: 0.08, zone: 0.03 },
+    { id: "prismLure", name: "Prismatic Lure", slot: "tackle", detail: "+12% progress while the fish is controlled.", foundFrom: "rainbowWhiskerfish", dropChance: 0.12, fill: 1.12 }
+  ];
+  var EQUIPMENT_BY_ID = new Map(EQUIPMENT.map((item) => [item.id, item]));
+  function fishingLevel(xp) {
+    let level = 1;
+    let remaining2 = Number.isFinite(xp) ? Math.max(0, xp) : 0;
+    let needed = 60;
+    while (remaining2 >= needed) {
+      remaining2 -= needed;
+      level++;
+      needed = Math.round(60 * Math.pow(level, 1.35));
+    }
+    return { level, current: remaining2, needed };
+  }
+
   // src/features/fishing-audio.ts
   var MUTE_KEY = "gardenCompanion.fishingMuted.v1";
   var CLICK_INTERVAL = 62;
@@ -10952,81 +11156,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var PANEL_ID2 = "gc-fishing-panel";
   var RECORD_KEY = "gardenCompanion.fishing.v1";
   var POSITION_KEY2 = "gardenCompanion.fishingPosition.v1";
-  var RARITIES = {
-    common: { label: "Common", colour: "#94a3b8", weight: 48, zone: 0.34, speed: 0.8, fill: 0.48, drain: 0.28 },
-    uncommon: { label: "Uncommon", colour: "#34d399", weight: 28, zone: 0.3, speed: 0.95, fill: 0.43, drain: 0.32 },
-    rare: { label: "Rare", colour: "#38bdf8", weight: 15, zone: 0.26, speed: 1.1, fill: 0.38, drain: 0.37 },
-    epic: { label: "Epic", colour: "#a78bfa", weight: 6, zone: 0.22, speed: 1.25, fill: 0.32, drain: 0.43 },
-    legendary: { label: "Legendary", colour: "#fbbf24", weight: 2.5, zone: 0.19, speed: 1.42, fill: 0.27, drain: 0.48 },
-    mythic: { label: "Mythic", colour: "#f472b6", weight: 0.5, zone: 0.15, speed: 1.7, fill: 0.21, drain: 0.58 }
-  };
-  var RARITY_ORDER2 = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
-  var WEATHER_FISH_WEIGHT = 2;
-  var WEATHER_MYTHIC_CHANCE = 0.015;
   var BITE_WINDOW = 1500;
   var RESULT_LOCK = 1600;
-  var FIGHT_PACE = 0.5;
-  var START_PROGRESS = 0.2;
-  var LOSE_FLOOR = -0.15;
-  var REEL_LIMIT = 45e3;
   var CAST_WINDUP = 150;
   var CAST_FLIGHT = 210;
-  var ZONE_LIFT = 11.5;
-  var ZONE_GRAVITY = 4.9;
-  var ZONE_FRICTION = 0.89;
-  var FISH_PULL = 4.5;
-  var ZONE_DRAG = -Math.log(ZONE_FRICTION) * 60;
-  var SPEED_BASELINE = 0.55;
-  function zoneAgility(speed) {
-    return 1 + (speed / SPEED_BASELINE - 1) * 0.6;
-  }
-  function fishTravelSpeed(speed) {
-    return 0.5 * FISH_PULL * speed / (-Math.log(0.93) * 60) * 1.6;
-  }
-  var FIGHT_STYLES = {
-    steady: { label: "Steady", pull: 1, pause: 1 },
-    darter: { label: "Darter", pull: 1.15, pause: 0.55 },
-    sinker: { label: "Sinker", pull: 0.9, pause: 1.15 },
-    glider: { label: "Glider", pull: 0.72, pause: 1.9 },
-    leaper: { label: "Leaper", pull: 1, pause: 1 }
-  };
-  var TROPHY_SHARE = 0.9;
-  var PERFECT_BONUS = 1.5;
-  var TROPHY_BONUS = 1.25;
-  var FISH = [
-    { id: "pondMinnow", name: "Pond Minnow", rarity: "common", style: "darter", min: 0.1, max: 0.6, note: "Travels in crowds and panics alone." },
-    { id: "muddyBream", name: "Muddy Bream", rarity: "common", style: "sinker", min: 0.4, max: 1.8, note: "Tastes of the bottom it never leaves." },
-    { id: "reedPerch", name: "Reed Perch", rarity: "common", style: "darter", min: 0.3, max: 1.4, note: "Hides in the shallows, strikes at anything." },
-    { id: "gardenGuppy", name: "Garden Guppy", rarity: "common", style: "steady", min: 0.1, max: 0.4, note: "Somehow always in the watering can." },
-    { id: "rainSilverfin", name: "Rain Silverfin", rarity: "common", style: "leaper", min: 0.2, max: 1.1, weather: "Rain", note: "Rises the moment the first drop lands." },
-    { id: "copperCarp", name: "Copper Carp", rarity: "uncommon", style: "sinker", min: 1.2, max: 4.5, note: "Old enough to have opinions about lures." },
-    { id: "speckledTrout", name: "Speckled Trout", rarity: "uncommon", style: "darter", min: 0.8, max: 3.2, note: "Fast, fussy, worth the trouble." },
-    { id: "glassEel", name: "Glass Eel", rarity: "uncommon", style: "darter", min: 0.5, max: 2.4, note: "You can read the riverbed through it." },
-    { id: "mossBass", name: "Moss Bass", rarity: "uncommon", style: "steady", min: 1.5, max: 5, note: "Wears its pond like a coat." },
-    { id: "puddlePike", name: "Puddle Pike", rarity: "uncommon", style: "leaper", min: 1.8, max: 6, weather: "Rain", note: "Appears in water far too small for it." },
-    { id: "moonscaleKoi", name: "Moonscale Koi", rarity: "rare", style: "glider", min: 3, max: 9, note: "Every scale holds a slightly different moon." },
-    { id: "brambleRay", name: "Bramble Ray", rarity: "rare", style: "glider", min: 4, max: 12, note: "Glides like a thrown blanket." },
-    { id: "ironjawCatfish", name: "Ironjaw Catfish", rarity: "rare", style: "sinker", min: 6, max: 16, note: "Has taken three hooks and kept them." },
-    { id: "lanternCod", name: "Lantern Cod", rarity: "rare", style: "steady", min: 3.5, max: 11, weather: "Dawn", note: "Carries its own small sunrise." },
-    { id: "chillbackChar", name: "Chillback Char", rarity: "rare", style: "steady", min: 2.5, max: 8, weather: "Frost", note: "Warm to the touch, strangely." },
-    { id: "amberfinTench", name: "Amberfin Tench", rarity: "rare", style: "sinker", min: 3, max: 10, weather: "AmberMoon", note: "Slow, heavy, and the colour of old honey." },
-    { id: "staticShiner", name: "Static Shiner", rarity: "rare", style: "darter", min: 2, max: 7, weather: "Thunderstorm", note: "Sets the hairs on your arm up before you see it." },
-    { id: "mirrorfinArowana", name: "Mirrorfin Arowana", rarity: "epic", style: "glider", min: 9, max: 30, note: "Turns without disturbing the water around it." },
-    { id: "cloudburstSalmon", name: "Cloudburst Salmon", rarity: "epic", style: "leaper", min: 10, max: 28, weather: "Rain", note: "Swims up the rain itself, given enough of it." },
-    { id: "stormfinMarlin", name: "Stormfin Marlin", rarity: "epic", style: "leaper", min: 12, max: 34, weather: "Thunderstorm", note: "Runs ahead of the weather front." },
-    { id: "frostbellySturgeon", name: "Frostbelly Sturgeon", rarity: "epic", style: "sinker", min: 15, max: 40, weather: "Frost", note: "Older than the pond it swims in." },
-    { id: "dawnlitAngelfish", name: "Dawnlit Angelfish", rarity: "epic", style: "glider", min: 8, max: 22, weather: "Dawn", note: "Only surfaces while the light is thin." },
-    { id: "amberscaleTuna", name: "Amberscale Tuna", rarity: "epic", style: "leaper", min: 18, max: 46, weather: "AmberMoon", note: "Set solid in colour, still very much alive." },
-    { id: "crownscaleArapaima", name: "Crownscale Arapaima", rarity: "legendary", style: "steady", min: 28, max: 82, note: "The smaller fish follow it as if it knows the way." },
-    { id: "thunderjawGar", name: "Thunderjaw Gar", rarity: "legendary", style: "darter", min: 30, max: 75, weather: "Thunderstorm", note: "The bite arrives before the fish does." },
-    { id: "glacierLeviathan", name: "Glacier Leviathan", rarity: "legendary", style: "sinker", min: 40, max: 95, weather: "Frost", note: "Mistaken for the far bank more than once." },
-    { id: "sunspireSerpent", name: "Sunspire Serpent", rarity: "legendary", style: "glider", min: 25, max: 68, weather: "Dawn", note: "Coils around the light and holds it there." },
-    { id: "harvestmoonWels", name: "Harvestmoon Wels", rarity: "legendary", style: "sinker", min: 35, max: 88, weather: "AmberMoon", note: "Comes up once the whole pond has turned the same colour as it." },
-    { id: "firstLightRay", name: "First Light Ray", rarity: "mythic", style: "glider", min: 55, max: 165, weather: "Dawn", note: "Seen only in the minute the sky decides on a colour." },
-    { id: "oldRootmouth", name: "Old Rootmouth", rarity: "mythic", style: "sinker", min: 60, max: 140, weather: "AmberMoon", note: "The garden grew around it, not the other way round." },
-    { id: "rainbowWhiskerfish", name: "Rainbow Whiskerfish", rarity: "mythic", style: "leaper", min: 70, max: 210, note: "Nobody agrees on what colour it actually is." }
-  ];
-  var FISH_BY_ID = new Map(FISH.map((fish) => [fish.id, fish]));
   var BAIT_PACK = 5;
   var BAITS = [
     {
@@ -11076,27 +11209,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
   ];
   var BAIT_BY_ID = new Map(BAITS.map((bait) => [bait.id, bait]));
-  var EQUIPMENT = [
-    { id: "reedRod", name: "Reed Rod", slot: "rod", detail: "A dependable first rod." },
-    { id: "oakRod", name: "Oak Rod", slot: "rod", detail: "+2% catch zone and +5% progress.", price: 150, zone: 0.02, fill: 1.05 },
-    { id: "silverRod", name: "Silver Rod", slot: "rod", detail: "+3% catch zone and +10% progress.", price: 600, zone: 0.03, fill: 1.1 },
-    { id: "moonRod", name: "Moon Rod", slot: "rod", detail: "+4% catch zone and +16% progress.", price: 1800, zone: 0.04, fill: 1.16 },
-    { id: "braidedLine", name: "Braided Line", slot: "line", detail: "Progress slips 12% slower while the fish is loose.", foundFrom: "speckledTrout", dropChance: 0.1, drain: 0.88 },
-    { id: "silkLine", name: "Mirror Silk Line", slot: "line", detail: "Progress slips 22% slower while the fish is loose.", foundFrom: "mirrorfinArowana", dropChance: 0.08, drain: 0.78 },
-    { id: "reedFloat", name: "Reed Float", slot: "tackle", detail: "+300ms to set the hook.", foundFrom: "reedPerch", dropChance: 0.14, bite: 300 },
-    { id: "barbedHook", name: "Ironjaw Hook", slot: "tackle", detail: "Begin each fight with 7% more progress.", foundFrom: "ironjawCatfish", dropChance: 0.1, start: 0.07 },
-    { id: "crownLure", name: "Crownscale Lure", slot: "tackle", detail: "+3% catch zone.", foundFrom: "crownscaleArapaima", dropChance: 0.08, zone: 0.03 },
-    { id: "prismLure", name: "Prismatic Lure", slot: "tackle", detail: "+12% progress while the fish is controlled.", foundFrom: "rainbowWhiskerfish", dropChance: 0.12, fill: 1.12 }
-  ];
-  var EQUIPMENT_BY_ID = new Map(EQUIPMENT.map((item) => [item.id, item]));
-  var RARITY_REWARDS = {
-    common: { coins: 5, xp: 8 },
-    uncommon: { coins: 11, xp: 14 },
-    rare: { coins: 24, xp: 26 },
-    epic: { coins: 52, xp: 48 },
-    legendary: { coins: 110, xp: 90 },
-    mythic: { coins: 240, xp: 165 }
-  };
   var EMPTY_RECORD = {
     casts: 0,
     caught: 0,
@@ -11153,38 +11265,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function fishSvg(colour, share2) {
     const scale = 0.62 + Math.max(0, Math.min(1, share2)) * 0.38;
     return `<svg viewBox="0 0 64 40" width="${Math.round(52 * scale)}" height="${Math.round(33 * scale)}" aria-hidden="true"><path d="M3 7 L19 20 L3 33 Z" fill="${colour}" opacity=".8"/><path d="M28 9 Q37 1 46 10" fill="${colour}" opacity=".7"/><ellipse cx="37" cy="20" rx="23" ry="12.5" fill="${colour}"/><ellipse cx="37" cy="24" rx="17" ry="5" fill="#fff" opacity=".2"/><path d="M44 12 Q41 20 44 28" stroke="#0f172a" stroke-width="1.4" fill="none" opacity=".35"/><circle cx="52" cy="17" r="3.2" fill="#fff"/><circle cx="53" cy="17" r="1.6" fill="#0f172a"/></svg>`;
-  }
-  function fishingLevel(xp) {
-    let level = 1;
-    let remaining2 = Number.isFinite(xp) ? Math.max(0, xp) : 0;
-    let needed = 60;
-    while (remaining2 >= needed) {
-      remaining2 -= needed;
-      level++;
-      needed = Math.round(60 * Math.pow(level, 1.35));
-    }
-    return { level, current: remaining2, needed };
-  }
-  function weightedPick(items, weight) {
-    const total = items.reduce((sum, item) => sum + weight(item), 0);
-    let roll = Math.random() * total;
-    for (const item of items) {
-      roll -= weight(item);
-      if (roll <= 0) return item;
-    }
-    return items[items.length - 1];
-  }
-  function pickFish(weather, bait) {
-    const eventMythics = FISH.filter((fish) => fish.rarity === "mythic" && fish.weather === weather);
-    const mythicChance = WEATHER_MYTHIC_CHANCE * (bait?.weatherBoost ? 2 : 1);
-    if (eventMythics.length && Math.random() < mythicChance) {
-      return eventMythics[Math.floor(Math.random() * eventMythics.length)];
-    }
-    const pool = FISH.filter((fish) => (!fish.weather || fish.weather === weather) && !eventMythics.includes(fish));
-    const rarities = RARITY_ORDER2.filter((rarity2) => pool.some((fish) => fish.rarity === rarity2));
-    const rarity = weightedPick(rarities, (value) => RARITIES[value].weight * (bait?.rarity?.[value] ?? 1));
-    const tier = pool.filter((fish) => fish.rarity === rarity);
-    return weightedPick(tier, (fish) => fish.weather ? WEATHER_FISH_WEIGHT * (bait?.weatherBoost ?? 1) : 1);
   }
   var WEATHER_TINT = {
     Rain: { color: 1981023, alpha: 0.22 },
@@ -11352,9 +11432,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let castDistance = 0.42;
     let hookDepth = 0.28;
     let waitUntil = 0;
-    let reelEndsAt = 0;
-    let fishAt = 0.5, fishVelocity = 0, fishTarget = 0.5, retargetAt = 0;
-    let zoneAt = 0.5, zoneVelocity = 0, zoneHeight = 0.3;
+    let fight = null;
+    let fishAt = 0.5, fishVelocity = 0;
+    let zoneAt = 0.5, zoneHeight = 0.3;
     let progress = 0;
     let resultColour = "rgba(255,255,255,.72)";
     let resultLockUntil = 0;
@@ -11372,7 +11452,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let nibbles = [];
     let nibbleAt = -Infinity;
     let landedSplash = false;
-    let fishLegPull = 1;
     let fishInside = true;
     let fightSlipped = false;
     let fightStartProgress = START_PROGRESS;
@@ -11385,7 +11464,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let nextFlashAt = 0;
     const scene = createWorldScene({
       owner: "fishing",
-      layers: { pond: -999e3, fish: -998999, dock: -998998, fire: -998996, rod: 999e3 },
+      // Fish swim under the lily pads; the float, ripples and lightning sit on the surface above them.
+      layers: { pond: -999e3, fish: -998999, lilies: -998998, surface: -998997, dock: -998996, fire: -998995, rod: 999e3 },
       abovePlayer: ["rod"],
       showcase: (geometry) => campDecor(geometry),
       onBuild(geometry, built) {
@@ -11393,6 +11473,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         pondBounds = { left: geometry.left, top: geometry.top, width: geometry.width * 0.62, height: geometry.height };
         const pond = built.layer("pond");
         const dock = built.layer("dock");
+        const lilies = built.layer("lilies");
+        if (lilies) drawLilies(lilies, farmBounds);
         if (pond) drawPond(pond, farmBounds);
         if (dock) drawDock(dock, pondBounds);
         firePits = placeFirePits(farmBounds);
@@ -11428,11 +11510,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const levelBonus = 1 + Math.min(0.12, (fishingLevel(record.xp).level - 1) * 5e-3);
       return equippedEffects().reduce((total, item) => total * (item.fill ?? 1), levelBonus);
     }
-    function catchRewards(fish, weight) {
-      const base = RARITY_REWARDS[fish.rarity];
-      const weightFactor = 0.7 + Math.max(0, Math.min(1, (weight - fish.min) / Math.max(0.01, fish.max - fish.min))) * 0.8;
-      return { coins: Math.max(1, Math.round(base.coins * weightFactor)), xp: Math.max(1, Math.round(base.xp * weightFactor)) };
-    }
     function itemDrop(fish) {
       const item = EQUIPMENT.find((candidate) => candidate.foundFrom === fish.id && !record.equipment[candidate.id]);
       return item && Math.random() < (item.dropChance ?? 0) ? item : void 0;
@@ -11456,6 +11533,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         graphic.circle(x, y, 30 + index % 3 * 4).fill({ color: index % 2 ? 3107638 : 3766847, alpha: 1 });
         graphic.circle(x - 7, y - 8, 12).fill({ color: 6001996, alpha: 0.72 });
       }
+    }
+    function drawLilies(graphic, bounds) {
+      const { left, top, width, height } = bounds;
+      const waterWidth = width * 0.62;
+      graphic.clear();
       const dockTile = Math.min(256, waterWidth * 0.22, height * 0.24);
       const dockLeft = left + waterWidth - dockTile * 2 - 60;
       const dockTop = top + (height - dockTile * 2) / 2 - 60;
@@ -11552,10 +11634,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const cols = [...new Set(geometry.globals.map((index) => index % mapCols))].filter((col) => col * TILE_SIZE + TILE_SIZE / 2 > deckLeft + 40).sort((a, b) => a - b);
       const rows = [...new Set(geometry.globals.map((index) => Math.floor(index / mapCols)))].sort((a, b) => a - b);
       if (cols.length < 2 || rows.length < 3) return placed;
-      const put = (col, row, decorId) => {
+      const put = (col, row, decorId, rotation = 0) => {
         if (col === void 0 || row === void 0) return;
         const index = row * mapCols + col;
-        if (owned.has(index) && !placed.has(index)) placed.set(index, { objectType: "decor", decorId, rotation: 0 });
+        if (owned.has(index) && !placed.has(index)) placed.set(index, { objectType: "decor", decorId, rotation });
       };
       const first = cols[0];
       const last = cols[cols.length - 1];
@@ -11569,7 +11651,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       for (const col of cols.slice(1, -1)) {
         if (col === centre) continue;
         put(col, top, "WoodBench");
-        put(col, bottom, "WoodBench");
+        put(col, bottom, "WoodBench", 180);
       }
       const ornaments = ["WoodBirdhouse", "WoodWindmill", "WoodFrog", "PaperLantern", "WoodOwl"];
       const edgeRows = rows.slice(2, -2).filter((_, index) => index % 2 === 0);
@@ -11877,14 +11959,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (panel3()?.hidden) return;
       const geometry = scene.sync();
       const fishGraphic = scene.layer("fish");
+      const surface = scene.layer("surface");
       const rodGraphic = scene.layer("rod");
       const fireGraphic = scene.layer("fire");
       if (fireGraphic) drawFirePits(fireGraphic, now);
-      if (!geometry || !pondBounds || !farmBounds || !fishGraphic || !rodGraphic) return;
+      if (!geometry || !pondBounds || !farmBounds || !fishGraphic || !surface || !rodGraphic) return;
       positionPondInput();
       const { left, top, width, height } = pondBounds;
       const player = playerPoint(geometry);
       fishGraphic.clear();
+      surface.clear();
       drawWater(fishGraphic, now);
       for (const swimmer of swimmers) {
         const direction = Math.sign(swimmer.speed) || 1;
@@ -11930,28 +12014,28 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         if (age < 0 || age >= 1) continue;
         const point = pondPoint(ripple.x, ripple.y);
         const radius = ripple.size * (0.25 + age);
-        fishGraphic.ellipse(point.x, point.y, radius, radius * 0.72).stroke({ color: 14742270, width: 2.5, alpha: ripple.alpha * (1 - age) });
+        surface.ellipse(point.x, point.y, radius, radius * 0.72).stroke({ color: 14742270, width: 2.5, alpha: ripple.alpha * (1 - age) });
       }
       ripples = ripples.filter((ripple) => now - ripple.at < ripple.life);
       if (phase === "waiting" && !casting || phase === "bite") {
         const bob = Math.sin(now / 420) * 2.5;
         const nibble = Math.max(0, 1 - (now - nibbleAt) / 300);
         if (phase === "bite") {
-          fishGraphic.circle(float.x, float.y + 4, 9).fill({ color: 8330525, alpha: 0.45 });
-          fishGraphic.circle(float.x, float.y, 28 + Math.sin(now / 90) * 7).stroke({ color: 16498468, width: 5, alpha: 0.75 });
+          surface.circle(float.x, float.y + 4, 9).fill({ color: 8330525, alpha: 0.45 });
+          surface.circle(float.x, float.y, 28 + Math.sin(now / 90) * 7).stroke({ color: 16498468, width: 5, alpha: 0.75 });
         } else {
           const y = float.y + bob + nibble * 6;
           const scale = 1 - nibble * 0.3;
-          fishGraphic.ellipse(float.x, float.y + 8, 13, 5).fill({ color: 730416, alpha: 0.25 });
-          fishGraphic.circle(float.x, y, 11 * scale).fill({ color: 15680580, alpha: 0.95 });
-          fishGraphic.circle(float.x, y - 4 * scale, 7 * scale).fill({ color: 16317180, alpha: 0.95 });
-          fishGraphic.circle(float.x, y - 9 * scale, 2.5 * scale).fill({ color: 2042167, alpha: 1 });
+          surface.ellipse(float.x, float.y + 8, 13, 5).fill({ color: 730416, alpha: 0.25 });
+          surface.circle(float.x, y, 11 * scale).fill({ color: 15680580, alpha: 0.95 });
+          surface.circle(float.x, y - 4 * scale, 7 * scale).fill({ color: 16317180, alpha: 0.95 });
+          surface.circle(float.x, y - 9 * scale, 2.5 * scale).fill({ color: 2042167, alpha: 1 });
         }
       }
       if (flashAt > -Infinity) {
         const flash = Math.max(0, 1 - (now - flashAt) / 380);
         const flicker = now - flashAt > 90 && now - flashAt < 150 ? 0.3 : 1;
-        if (flash > 0) fishGraphic.roundRect(left, top, width, height, 44).fill({ color: 16317180, alpha: 0.32 * flash * flicker });
+        if (flash > 0) surface.roundRect(left, top, width, height, 44).fill({ color: 16317180, alpha: 0.32 * flash * flicker });
       }
       rodGraphic.clear();
       if (!player) return;
@@ -11980,7 +12064,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const progress2 = Math.max(0, Math.min(1, (castElapsed - CAST_WINDUP) / CAST_FLIGHT));
         lineEndX = rodTipX + (lineEnd.x - rodTipX) * progress2;
         lineEndY = rodTipY + (lineEnd.y - rodTipY) * progress2 - Math.sin(Math.PI * progress2) * 70;
-        fishGraphic.circle(lineEndX, lineEndY, 10).fill({ color: 16317180, alpha: 0.92 });
+        surface.circle(lineEndX, lineEndY, 10).fill({ color: 16317180, alpha: 0.92 });
       }
       const tension = phase === "reel" ? holding ? 1 : 0.55 : phase === "bite" ? 0.45 : 0;
       const towardX = lineEndX - rodTipX;
@@ -12111,37 +12195,21 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function armFish(fish, now) {
       hooked = fish;
       hookedWeight = fish.min + Math.random() * (fish.max - fish.min);
-      zoneHeight = Math.min(0.42, RARITIES[fish.rarity].zone + equipmentTotal("zone"));
-      zoneAt = 0.5;
-      zoneVelocity = 0;
-      fishAt = 0.5;
-      fishVelocity = 0;
-      fishTarget = 0.5;
-      fishLegPull = 1;
-      fishInside = true;
-      fightSlipped = false;
-      retargetAt = now;
-      progress = Math.min(0.5, START_PROGRESS + equipmentTotal("start"));
-      fightStartProgress = progress;
+      fight = createFight(fish, { zone: equipmentTotal("zone"), fill: equipmentFill(), drain: equipmentDrain(), start: equipmentTotal("start") });
+      syncFight();
       lastCatch = null;
       fightEndedAt = 0;
     }
-    function retarget(fish, now) {
-      const rule = RARITIES[fish.rarity];
-      const style = FIGHT_STYLES[fish.style];
-      let target = 0.06 + Math.random() * 0.88;
-      let pull = style.pull;
-      let pause = (320 + Math.random() * 780 / rule.speed) * style.pause;
-      if (fish.style === "sinker") target = 0.06 + Math.sqrt(Math.random()) * 0.88;
-      else if (fish.style === "glider") target = fishAt < 0.5 ? 0.6 + Math.random() * 0.34 : 0.06 + Math.random() * 0.34;
-      else if (fish.style === "leaper" && Math.random() < 0.22) {
-        target = 0.04 + Math.random() * 0.1;
-        pull *= 1.6;
-        pause *= 0.6;
-      } else if (fish.style === "darter" && Math.random() < 0.3) fishVelocity += (target - fishAt) * 1.2;
-      fishTarget = target;
-      fishLegPull = pull;
-      retargetAt = now + pause;
+    function syncFight() {
+      if (!fight) return;
+      fishAt = fight.fishAt;
+      fishVelocity = fight.fishVelocity;
+      zoneAt = fight.zoneAt;
+      zoneHeight = fight.zoneHeight;
+      progress = fight.progress;
+      fightStartProgress = fight.startProgress;
+      fishInside = fight.inside;
+      fightSlipped = fight.slipped;
     }
     function beginBite(now) {
       const bait = activeBait();
@@ -12169,13 +12237,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       holding = false;
       view = "game";
       reelStartedAt = now;
-      reelEndsAt = now + REEL_LIMIT;
       setPhase("reel", `Test fight: ${fish.name}`);
       startLoop();
     }
     function beginReel(now) {
       reelStartedAt = now;
-      reelEndsAt = now + REEL_LIMIT;
       holding = true;
       setPhase("reel", "Hold to lift the zone, release to let it sink.");
     }
@@ -12259,8 +12325,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       } else if (phase === "bite") biteAt += duration;
       else if (phase === "reel") {
         reelStartedAt += duration;
-        reelEndsAt += duration;
-        retargetAt += duration;
       }
     }
     function step(now) {
@@ -12288,32 +12352,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           addRipple(castDistance, hookDepth, 56, 700, 0.6);
         }
         if (now - biteAt > BITE_WINDOW + equipmentTotal("bite")) lose("The bite went slack. It let go.");
-      } else if (phase === "reel" && hooked) {
-        const rule = RARITIES[hooked.rarity];
-        if (now >= retargetAt) retarget(hooked, now);
-        fishVelocity += (fishTarget - fishAt) * FISH_PULL * rule.speed * fishLegPull * delta;
-        fishVelocity *= Math.pow(0.93, delta * 60);
-        fishAt = Math.max(0.03, Math.min(0.97, fishAt + fishVelocity * delta * 1.6));
-        const agility = zoneAgility(rule.speed);
-        zoneVelocity += (holding ? -ZONE_LIFT : ZONE_GRAVITY) * agility * delta;
-        zoneVelocity *= Math.pow(ZONE_FRICTION, delta * 60);
-        zoneAt += zoneVelocity * delta;
-        const half = zoneHeight / 2;
-        if (zoneAt < half) {
-          zoneAt = half;
-          zoneVelocity = 0;
-        }
-        if (zoneAt > 1 - half) {
-          zoneAt = 1 - half;
-          zoneVelocity = 0;
-        }
-        fishInside = Math.abs(fishAt - zoneAt) < half;
-        if (!fishInside) fightSlipped = true;
-        progress += (fishInside ? rule.fill * equipmentFill() : -rule.drain * equipmentDrain()) * FIGHT_PACE * delta;
+      } else if (phase === "reel" && hooked && fight) {
+        const result = fight.step(delta, holding);
+        syncFight();
         if (holding) playReelClick(fishInside);
-        if (progress >= 1) land();
-        else if (progress <= LOSE_FLOOR) lose("It threw the hook and was gone.");
-        else if (now >= reelEndsAt) lose("The line gave out. It kept the hook.");
+        if (result === "landed") land();
+        else if (result === "escaped") lose("It threw the hook and was gone.");
+        else if (result === "timeout") lose("The line gave out. It kept the hook.");
       }
       for (const swimmer of swimmers) {
         swimmer.x += swimmer.speed * delta;
@@ -12646,50 +12691,497 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     else mount();
   }
 
+  // src/features/garden-defence-rules.ts
+  var TOTAL_WAVES = 20;
+  var HUGE_EVERY = 10;
+  var STARTING_SUN = 200;
+  var SUN_VALUE = 25;
+  var SUN_LIFETIME = 12;
+  var SKY_SUN_INTERVAL = 10;
+  var FIRST_WAVE_DELAY = 45;
+  var WAVE_INTERVAL_MIN = 25;
+  var WAVE_INTERVAL_MAX = 30;
+  var EARLY_SHARE_MIN = 0.5;
+  var EARLY_SHARE_MAX = 0.65;
+  var EARLY_DELAY = 2;
+  var MIN_WAVE_GAP = 6;
+  var HUGE_WAVE_BREAK = 8;
+  var ENDLESS_TOUGHNESS_PER_WAVE = 0.05;
+  var ENDLESS_GAP_SHRINK_PER_WAVE = 0.02;
+  var ENDLESS_GAP_FLOOR = 0.5;
+  var CAN_SPEED = 5;
+  var FAST = 7.5;
+  var SLOW = 30;
+  var VERY_SLOW = 50;
+  var PLANTS = [
+    { id: "Mushroom", name: "Puffball", kind: "mine", cost: 25, hp: 300, recharge: SLOW, startCharge: 20, arm: 15, blast: 1800, detail: "One use. Arms after 15s, then bursts under the first pest to step on it and is gone." },
+    { id: "Sunflower", name: "Sunflower", kind: "producer", cost: 50, hp: 300, recharge: FAST, interval: 24, firstSun: 7, sun: SUN_VALUE, detail: "Makes 25 sun every 24s." },
+    { id: "Pumpkin", name: "Pumpkin", kind: "wall", cost: 50, hp: 4e3, recharge: SLOW, startCharge: 20, detail: "Soaks a great deal of chewing. Does not attack." },
+    { id: "Saffron", name: "Saffron", kind: "shooter", cost: 100, hp: 300, recharge: FAST, interval: 1.425, damage: 20, shotSpeed: 5.5, detail: "Fires a thread down its lane." },
+    { id: "Habanero", name: "Habanero", kind: "bomb", cost: 125, hp: 300, recharge: VERY_SLOW, startCharge: 35, arm: 1, blast: 1800, detail: "One use. Bursts a moment after planting, scorching every pest in its lane, and is gone." },
+    { id: "Cactus", name: "Cactus", kind: "shooter", cost: 150, hp: 300, recharge: FAST, interval: 1.425, damage: 20, shotSpeed: 6.5, pierce: 3, thorns: 25, detail: "Spines pass through three pests. Hurts anything that bites it." },
+    { id: "Gentian", name: "Frost Gentian", kind: "aura", cost: 150, hp: 600, recharge: SLOW, auraSlow: 0.75, frostbite: 5, detail: "Chills its whole lane: every pest in it moves and bites a quarter slower and takes a little frostbite." },
+    { id: "Starweaver", name: "Starweaver", kind: "shooter", cost: 175, hp: 300, recharge: FAST, interval: 1.425, damage: 20, shotSpeed: 5.5, slow: 0.5, slowDuration: 10, detail: "Snares what it hits to half speed for 10s." },
+    { id: "Milkcap", name: "Milkcap", kind: "shooter", cost: 300, hp: 300, recharge: FAST, interval: 2.9, damage: 80, shotSpeed: 3.4, splash: 1.2, detail: "Lobs a heavy cap that bursts on impact, hurting everything close by." },
+    { id: "Grape", name: "Grape", kind: "shooter", cost: 325, hp: 300, recharge: FAST, interval: 1.425, damage: 20, shotSpeed: 5.5, spread: true, detail: "Fires down its own lane and both lanes beside it." }
+  ];
+  var PLANT_BY_ID = new Map(PLANTS.map((plant) => [plant.id, plant]));
+  var PESTS = [
+    { id: "worm", name: "Worm", species: "Worm", tint: 15771808, hp: 200, speed: 0.2, bite: 100, size: 0.34, weight: 4e3, points: 1, from: 1, detail: "Plods up the lane and chews whatever is in the way." },
+    { id: "snail", name: "Snail", species: "Snail", hp: 200, shell: 370, speed: 0.2, bite: 100, size: 0.38, weight: 4e3, points: 2, from: 4, detail: "Its shell soaks the first hits." },
+    { id: "bee", name: "Bee", species: "Bee", hp: 70, speed: 0.4, bite: 60, size: 0.3, weight: 2e3, points: 2, from: 6, swarm: 3, detail: "Fast and fragile, and always comes in threes." },
+    { id: "bunny", name: "Bunny", species: "Bunny", hp: 340, speed: 0.4, bite: 100, size: 0.38, weight: 2e3, points: 2, from: 8, hops: true, hopSpeed: 0.5, detail: "Races in, hops clean over the first plant it reaches, then slows down." },
+    { id: "bloat", name: "Bloat Worm", species: "Worm", rainbow: true, hp: 500, speed: 0.15, bite: 100, size: 0.5, weight: 1500, points: 3, from: 10, splitInto: { id: "worm", count: 2 }, detail: "Bursts into two worms when it pops." },
+    { id: "turtle", name: "Turtle", species: "Turtle", hp: 200, shell: 1100, speed: 0.2, bite: 100, size: 0.5, weight: 3e3, points: 4, from: 12, detail: "Its shell takes a long time to crack." },
+    { id: "goat", name: "Goat", species: "Goat", hp: 900, speed: 0.3, bite: 300, size: 0.5, weight: 1e3, points: 6, from: 15, detail: "Charges in and eats plants three times faster than anything else." }
+  ];
+  var BOSS = {
+    id: "stormwolf",
+    name: "Storm Wolf",
+    species: "ThunderWolf",
+    hp: 3e3,
+    speed: 0.18,
+    bite: 600,
+    size: 0.78,
+    weight: 0,
+    points: 10,
+    from: Infinity,
+    stun: { every: 7, reach: 2.5, duration: 3 },
+    detail: "Howls every few seconds, stunning the plants just ahead of it, and flattens whatever it reaches."
+  };
+  var ALL_PESTS = [...PESTS, BOSS];
+  var PEST_BY_ID = new Map(ALL_PESTS.map((pest) => [pest.id, pest]));
+  function createBoard(options) {
+    const random = options.random ?? Math.random;
+    const events = options.events ?? {};
+    const { lanes, columns } = options;
+    const board = {
+      lanes,
+      columns,
+      dev: Boolean(options.dev),
+      time: 0,
+      sun: STARTING_SUN,
+      wave: 0,
+      waveTimer: FIRST_WAVE_DELAY,
+      /** Seconds since the current wave began, and the health it started with. */
+      waveAge: 0,
+      waveHealth: 0,
+      /** Share of the wave's health that has to go before the next wave is brought forward. */
+      earlyShare: 0,
+      skyTimer: SKY_SUN_INTERVAL * 0.6,
+      queued: [],
+      spawnTimer: 0,
+      waveSize: 0,
+      over: false,
+      won: false,
+      endless: false,
+      wavesHeld: false,
+      plants: [],
+      pests: [],
+      shots: [],
+      suns: [],
+      cans: Array.from({ length: lanes }, () => ({ state: "ready", x: options.canHome ?? -0.5 })),
+      cooldowns: new Map(PLANTS.filter((plant) => plant.startCharge).map((plant) => [plant.id, plant.startCharge])),
+      step,
+      place: place2,
+      dig,
+      collect,
+      plantAt,
+      canPlant,
+      seedCharge,
+      spawn,
+      startWave,
+      keepGoing,
+      isFinalWave
+    };
+    if (board.dev) board.cooldowns.clear();
+    function isFinalWave(wave) {
+      return !board.endless && wave === TOTAL_WAVES;
+    }
+    function plantAt(lane, column) {
+      return board.plants.find((plant) => plant.lane === lane && plant.column === column);
+    }
+    function seedCharge(def) {
+      if (board.dev) return 0;
+      return Math.max(0, board.cooldowns.get(def.id) ?? 0) / Math.max(def.recharge, def.startCharge ?? 0, 1);
+    }
+    function canPlant(def, lane, column) {
+      if (board.over || board.won) return "The run is over.";
+      if (lane < 0 || lane >= lanes || column < 0 || column >= columns) return "That is off the lawn.";
+      if (plantAt(lane, column)) return "That tile is already planted.";
+      if (!board.dev && board.sun < def.cost) return `Not enough sun for a ${def.name}.`;
+      if (!board.dev && (board.cooldowns.get(def.id) ?? 0) > 0) return `The ${def.name} packet is still recharging.`;
+      return null;
+    }
+    function place2(id, lane, column) {
+      const def = PLANT_BY_ID.get(id);
+      if (!def) return "Unknown seed.";
+      const problem = canPlant(def, lane, column);
+      if (problem) return problem;
+      if (!board.dev) {
+        board.sun -= def.cost;
+        board.cooldowns.set(def.id, def.recharge);
+      }
+      const plant = {
+        def,
+        lane,
+        column,
+        hp: def.hp,
+        timer: def.kind === "producer" ? def.firstSun ?? def.interval ?? 1 : def.interval ?? 0,
+        armAt: board.time + (def.arm ?? 0),
+        stunUntil: 0,
+        kick: 0
+      };
+      board.plants.push(plant);
+      return plant;
+    }
+    function dig(lane, column) {
+      const plant = plantAt(lane, column);
+      if (plant) removePlant(plant);
+      return plant ?? null;
+    }
+    function removePlant(plant) {
+      const index = board.plants.indexOf(plant);
+      if (index >= 0) board.plants.splice(index, 1);
+      for (const pest of board.pests) if (pest.eating === plant) pest.eating = null;
+    }
+    function collect(x, y, reach = 0.45) {
+      let best = null;
+      let bestDistance = reach;
+      for (const token of board.suns) {
+        const distance = Math.hypot(token.x - x, token.y - y);
+        if (distance <= bestDistance) {
+          best = token;
+          bestDistance = distance;
+        }
+      }
+      if (!best) return null;
+      board.sun += best.value;
+      board.suns.splice(board.suns.indexOf(best), 1);
+      return best;
+    }
+    function weightedPest(points) {
+      const pool = PESTS.filter((pest) => board.wave >= pest.from && pest.weight > 0 && pest.points <= points);
+      const total = pool.reduce((sum, pest) => sum + pest.weight, 0);
+      let roll = random() * total;
+      for (const pest of pool) {
+        roll -= pest.weight;
+        if (roll <= 0) return pest;
+      }
+      return pool[0] ?? PESTS[0];
+    }
+    function wavePoints(wave) {
+      const points = Math.floor(wave * 0.8 / 2) + 1;
+      return wave % HUGE_EVERY === 0 ? Math.round(points * 2.5) : points;
+    }
+    function overtime(wave = board.wave) {
+      return Math.max(0, wave - TOTAL_WAVES);
+    }
+    function toughness(wave = board.wave) {
+      return 1 + overtime(wave) * ENDLESS_TOUGHNESS_PER_WAVE;
+    }
+    function nextWaveTimer() {
+      const pace = Math.max(ENDLESS_GAP_FLOOR, 1 - overtime() * ENDLESS_GAP_SHRINK_PER_WAVE);
+      const base = (WAVE_INTERVAL_MIN + random() * (WAVE_INTERVAL_MAX - WAVE_INTERVAL_MIN)) * pace;
+      return (board.wave + 1) % HUGE_EVERY === 0 ? base + HUGE_WAVE_BREAK : base;
+    }
+    function startWave() {
+      board.wave++;
+      const huge = board.wave % HUGE_EVERY === 0;
+      const final = isFinalWave(board.wave);
+      let points = wavePoints(board.wave);
+      const queue2 = [];
+      const wolves = final ? 1 : board.endless && huge ? 1 + Math.floor(overtime() / 20) : 0;
+      for (let wolf = 0; wolf < wolves; wolf++) {
+        queue2.push({ def: BOSS, lane: wolves === 1 ? Math.floor(lanes / 2) : Math.floor(random() * lanes) });
+        points = Math.max(1, points - BOSS.points);
+      }
+      while (points > 0 && queue2.length < 60) {
+        const def = weightedPest(points);
+        points -= def.points;
+        const lane = Math.floor(random() * lanes);
+        for (let index = 0; index < (def.swarm ?? 1); index++) queue2.push({ def, lane });
+      }
+      const leaders = queue2.slice(0, wolves);
+      const rest = queue2.slice(wolves).sort(() => random() - 0.5);
+      queue2.splice(0, queue2.length, ...leaders, ...rest);
+      board.queued = queue2;
+      board.waveSize = queue2.length;
+      board.waveHealth = queue2.reduce((sum, entry) => sum + (entry.def.hp + (entry.def.shell ?? 0)) * toughness(), 0);
+      board.waveAge = 0;
+      board.earlyShare = EARLY_SHARE_MIN + random() * (EARLY_SHARE_MAX - EARLY_SHARE_MIN);
+      board.spawnTimer = 0;
+      board.waveTimer = nextWaveTimer();
+      events.wave?.(board.wave, huge, final, wolves);
+    }
+    function waveHealthLeft() {
+      const alive = board.pests.filter((pest) => pest.wave === board.wave).reduce((sum, pest) => sum + Math.max(0, pest.hp) + pest.shell, 0);
+      const waiting = board.queued.reduce((sum, entry) => sum + (entry.def.hp + (entry.def.shell ?? 0)) * toughness(), 0);
+      return alive + waiting;
+    }
+    function makePest(def, lane, x, wave = board.wave) {
+      return {
+        def,
+        lane,
+        x,
+        hp: Math.round(def.hp * toughness(wave)),
+        maxHp: Math.round(def.hp * toughness(wave)),
+        shell: Math.round((def.shell ?? 0) * toughness(wave)),
+        slowUntil: 0,
+        eating: null,
+        hopped: false,
+        flash: 0,
+        stunTimer: def.stun?.every ?? 0,
+        wave,
+        chilled: false
+      };
+    }
+    function spawn(def, lane = Math.floor(random() * lanes), x = columns + 1) {
+      const pest = makePest(def, lane, x);
+      board.pests.push(pest);
+      return pest;
+    }
+    function keepGoing() {
+      board.won = false;
+      board.endless = true;
+      board.waveTimer = nextWaveTimer();
+    }
+    function damage(pest, amount, slow, slowDuration, quiet = false) {
+      if (pest.hp <= 0) return;
+      if (!quiet) pest.flash = 0.1;
+      if (pest.shell > 0) {
+        const soaked = Math.min(pest.shell, amount);
+        pest.shell -= soaked;
+        amount -= soaked;
+        if (pest.shell <= 0) events.poof?.(pest.x, pest.lane, 14075809, 0.5);
+      }
+      pest.hp -= amount;
+      if (slow && slowDuration) pest.slowUntil = Math.max(pest.slowUntil, board.time + slowDuration);
+    }
+    function chillOf(pest) {
+      if (pest.x > columns) return void 0;
+      return board.plants.find((plant) => plant.def.kind === "aura" && plant.lane === pest.lane)?.def;
+    }
+    function blast(lane, from, to, amount) {
+      for (const pest of board.pests) if (pest.lane === lane && pest.x >= from && pest.x <= to) damage(pest, amount);
+    }
+    function step(delta) {
+      if (board.over || board.won) return;
+      board.time += delta;
+      for (const [id, left] of board.cooldowns) board.cooldowns.set(id, Math.max(0, left - delta));
+      board.skyTimer -= delta;
+      if (board.skyTimer <= 0) {
+        board.skyTimer = SKY_SUN_INTERVAL;
+        board.suns.push({ x: 0.4 + random() * (columns - 0.8), y: -0.5, targetY: 0.3 + random() * (lanes - 0.6), value: SUN_VALUE, age: 0 });
+      }
+      const finished = !board.endless && board.wave >= TOTAL_WAVES;
+      if (!board.wavesHeld && !finished) {
+        board.waveAge += delta;
+        board.waveTimer -= delta;
+        const hugeNext = (board.wave + 1) % HUGE_EVERY === 0;
+        if (board.wave > 0 && !hugeNext && board.waveTimer > EARLY_DELAY && board.waveAge >= MIN_WAVE_GAP - EARLY_DELAY && waveHealthLeft() <= board.waveHealth * (1 - board.earlyShare)) {
+          board.waveTimer = EARLY_DELAY;
+        }
+        if (board.waveTimer <= 0) startWave();
+      }
+      if (board.queued.length) {
+        board.spawnTimer -= delta;
+        if (board.spawnTimer <= 0) {
+          const next = board.queued.shift();
+          spawn(next.def, next.lane);
+          const swarmNext = board.queued[0]?.def === next.def && next.def.swarm;
+          board.spawnTimer = swarmNext ? 0.6 : 0.8 + random() * 1.2;
+        }
+      }
+      for (const token of board.suns) {
+        if (token.y < token.targetY) token.y = Math.min(token.targetY, token.y + 1.2 * delta);
+        else token.age += delta;
+      }
+      board.suns = board.suns.filter((token) => token.age < SUN_LIFETIME);
+      for (const plant of [...board.plants]) {
+        plant.kick = Math.max(0, plant.kick - delta * 6);
+        const def = plant.def;
+        if (def.kind === "bomb") {
+          if (board.time >= plant.armAt) {
+            blast(plant.lane, -1, columns + 1, def.blast ?? 0);
+            events.poof?.(plant.column + 0.5, plant.lane, 16347926, columns * 0.5);
+            removePlant(plant);
+          }
+          continue;
+        }
+        if (def.kind === "mine") {
+          if (board.time < plant.armAt) continue;
+          const trigger = board.pests.find((pest) => pest.lane === plant.lane && Math.abs(pest.x - (plant.column + 0.5)) < 0.5);
+          if (trigger) {
+            blast(plant.lane, plant.column - 0.3, plant.column + 1.3, def.blast ?? 0);
+            events.poof?.(plant.column + 0.5, plant.lane, 12891645, 1.2);
+            removePlant(plant);
+          }
+          continue;
+        }
+        if (def.kind === "wall" || def.kind === "aura" || board.time < plant.stunUntil) continue;
+        plant.timer -= delta;
+        if (plant.timer > 0) continue;
+        plant.timer = def.interval ?? 1;
+        if (def.kind === "producer") {
+          plant.kick = 1;
+          board.suns.push({ x: plant.column + 0.5 + (random() - 0.5) * 0.3, y: plant.lane + 0.1, targetY: plant.lane + 0.55, value: def.sun ?? SUN_VALUE, age: 0 });
+          continue;
+        }
+        const targetLanes = def.spread ? [plant.lane - 1, plant.lane, plant.lane + 1].filter((lane) => lane >= 0 && lane < lanes) : [plant.lane];
+        const live = targetLanes.filter((lane) => board.pests.some((pest) => pest.lane === lane && pest.x > plant.column && pest.x < columns + 0.2));
+        if (!live.length) {
+          plant.timer = 0.2;
+          continue;
+        }
+        plant.kick = 1;
+        for (const lane of def.spread ? targetLanes : live) {
+          board.shots.push({
+            source: def.id,
+            from: plant.column + 0.45,
+            fromLane: plant.lane,
+            lane,
+            x: plant.column + 0.45,
+            speed: def.shotSpeed ?? 5,
+            damage: def.damage ?? 10,
+            slow: def.slow,
+            slowDuration: def.slowDuration,
+            pierce: def.pierce ?? 1,
+            splash: def.splash ?? 0,
+            hit: /* @__PURE__ */ new Set()
+          });
+        }
+      }
+      for (const shot of board.shots) {
+        shot.x += shot.speed * delta;
+        for (const pest of board.pests) {
+          if (pest.lane !== shot.lane || shot.hit.has(pest) || pest.hp <= 0 || Math.abs(pest.x - shot.x) > 0.34) continue;
+          shot.hit.add(pest);
+          damage(pest, shot.damage, shot.slow, shot.slowDuration);
+          if (shot.splash > 0) {
+            events.poof?.(pest.x, pest.lane, 16622767, shot.splash * 0.6);
+            for (const other of board.pests) {
+              if (other === pest || other.lane !== shot.lane || Math.abs(other.x - pest.x) > shot.splash) continue;
+              damage(other, shot.damage * 0.5, shot.slow, shot.slowDuration);
+            }
+          }
+          if (shot.hit.size >= shot.pierce) break;
+        }
+      }
+      board.shots = board.shots.filter((shot) => shot.x <= columns + 0.6 && shot.hit.size < shot.pierce);
+      for (const pest of board.pests) {
+        pest.flash = Math.max(0, pest.flash - delta);
+        const frost = chillOf(pest);
+        pest.chilled = Boolean(frost);
+        const cold = frost?.auraSlow ?? 1;
+        if (frost?.frostbite) damage(pest, frost.frostbite * delta, void 0, void 0, true);
+        if (pest.def.stun) {
+          pest.stunTimer -= delta;
+          if (pest.stunTimer <= 0) {
+            pest.stunTimer = pest.def.stun.every;
+            for (const plant of board.plants) {
+              if (plant.lane === pest.lane && plant.column + 0.5 <= pest.x && plant.column + 0.5 >= pest.x - pest.def.stun.reach) {
+                plant.stunUntil = board.time + pest.def.stun.duration;
+              }
+            }
+            events.poof?.(pest.x, pest.lane, 16638023, pest.def.stun.reach);
+          }
+        }
+        const blocker = board.plants.find((plant) => plant.lane === pest.lane && plant.def.kind !== "bomb" && !(plant.def.kind === "mine" && board.time >= plant.armAt) && Math.abs(plant.column + 0.5 - pest.x) < 0.45);
+        if (blocker && pest.def.hops && !pest.hopped) {
+          pest.hopped = true;
+          pest.x = blocker.column - 0.05;
+          events.poof?.(blocker.column + 0.5, pest.lane, 16777215, 0.5);
+          pest.eating = null;
+          continue;
+        }
+        pest.eating = blocker ?? null;
+        if (blocker) {
+          blocker.hp -= pest.def.bite * delta * cold;
+          if (blocker.def.thorns) damage(pest, blocker.def.thorns * delta);
+          continue;
+        }
+        const cracked = pest.def.shell && pest.shell <= 0 ? pest.def.shellBreakSpeed ?? 1 : 1;
+        const landed = pest.def.hops && pest.hopped ? pest.def.hopSpeed ?? 1 : 1;
+        const speed = pest.def.speed * cracked * landed * (board.time < pest.slowUntil ? 0.5 : 1) * cold;
+        pest.x -= speed * delta;
+      }
+      for (const [lane, can] of board.cans.entries()) {
+        if (can.state === "ready" && board.pests.some((pest) => pest.lane === lane && pest.x <= 0)) {
+          can.state = "running";
+          events.say?.("A watering can washed a lane clear!");
+        }
+        if (can.state !== "running") continue;
+        can.x += CAN_SPEED * delta;
+        for (const pest of board.pests) {
+          if (pest.lane !== lane || pest.hp <= 0 || pest.x > can.x + 0.5) continue;
+          pest.hp = 0;
+          pest.def = pest.def.splitInto ? { ...pest.def, splitInto: void 0 } : pest.def;
+          events.poof?.(pest.x, lane, 8246268, 0.45);
+        }
+        if (can.x > columns + 1) can.state = "used";
+      }
+      for (const plant of [...board.plants]) {
+        if (plant.hp > 0) continue;
+        events.poof?.(plant.column + 0.5, plant.lane, 8843180, 0.4);
+        removePlant(plant);
+      }
+      const survivors = [];
+      for (const pest of board.pests) {
+        if (pest.hp > 0) {
+          survivors.push(pest);
+          continue;
+        }
+        events.poof?.(pest.x, pest.lane, pest.def.tint ?? 15067115, pest.def.size * 1.2);
+        const split = pest.def.splitInto;
+        const child = split && PEST_BY_ID.get(split.id);
+        if (child) {
+          for (let index = 0; index < split.count; index++) survivors.push(makePest(child, pest.lane, pest.x + (index - (split.count - 1) / 2) * 0.35, pest.wave));
+        }
+      }
+      board.pests = survivors;
+      if (board.pests.some((pest) => pest.x <= -0.6 && board.cans[pest.lane]?.state !== "running")) {
+        board.over = true;
+        events.end?.(false);
+        return;
+      }
+      if (!board.endless && board.wave >= TOTAL_WAVES && !board.queued.length && !board.pests.length) {
+        board.won = true;
+        events.end?.(true);
+      }
+    }
+    return board;
+  }
+
   // src/features/garden-defence.ts
   var PANEL_ID3 = "gc-garden-defence";
   var RECORD_KEY2 = "gardenDefence.record";
   var POSITION_KEY3 = "gardenDefence.position";
   var MAX_LANES = 5;
   var MAX_COLUMNS = 9;
-  var STARTING_SUN = 50;
-  var SKY_SUN_INTERVAL = 11;
-  var SUN_VALUE = 25;
-  var SUN_LIFETIME = 14;
-  var FIRST_WAVE_DELAY = 18;
-  var WAVE_INTERVAL = 26;
-  var PLANTS = [
-    { id: "Sunflower", name: "Sunflower", kind: "producer", cost: 50, hp: 120, interval: 14, sun: SUN_VALUE, detail: "Makes 25 sun every 14s." },
-    { id: "Saffron", name: "Saffron", kind: "shooter", cost: 100, hp: 140, interval: 1.4, damage: 22, shotSpeed: 5.5, detail: "Fires a thread down its lane." },
-    { id: "Pumpkin", name: "Pumpkin", kind: "wall", cost: 50, hp: 900, detail: "Soaks damage. Does not attack." },
-    { id: "Cactus", name: "Cactus", kind: "shooter", cost: 125, hp: 140, interval: 1.6, damage: 20, shotSpeed: 6.5, pierce: 3, detail: "Spines pass through three pests." },
-    { id: "Starweaver", name: "Starweaver", kind: "shooter", cost: 175, hp: 140, interval: 1.5, damage: 18, shotSpeed: 5.5, slow: 0.45, slowDuration: 4, art: "plant", fruit: { scale: 0.5 }, detail: "Snares what it hits to half speed." },
-    { id: "Cardoon", name: "Cardoon", kind: "shooter", cost: 200, hp: 140, interval: 1.5, damage: 20, shotSpeed: 5.5, volley: 3, detail: "Throws three barbs a volley." },
-    { id: "Milkcap", name: "Milkcap", kind: "shooter", cost: 300, hp: 160, interval: 2.6, damage: 42, shotSpeed: 3.4, splash: 1.1, detail: "Lobs a cap that bursts on impact." }
-  ];
-  var PLANT_BY_ID = new Map(PLANTS.map((plant) => [plant.id, plant]));
-  var PEST_SPECIES = "Worm";
-  var PESTS = [
-    { id: "worm", name: "Worm", hp: 100, speed: 0.17, bite: 46, colour: 15771808, size: 0.34, weight: 60, from: 1 },
-    { id: "wriggler", name: "Wriggler", hp: 70, speed: 0.34, bite: 38, colour: 12444527, size: 0.28, weight: 22, from: 2 },
-    { id: "huskworm", name: "Husk Worm", hp: 240, speed: 0.13, bite: 58, colour: 16764749, size: 0.4, weight: 26, from: 3 },
-    { id: "bloatworm", name: "Bloat Worm", hp: 460, speed: 0.085, bite: 70, colour: 13081560, rainbow: true, size: 0.48, weight: 16, from: 5 }
-  ];
+  var SEED_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+  var INFO_BANNER_SECONDS = 14;
+  var WARN_BANNER_SECONDS = 8;
+  var SHOVEL_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 3.5l5 5"/><path d="M18 6l-7.5 7.5"/><path d="M10.5 13.5l-2.3-2.3-4.4 4.4c-1.2 1.2-1.3 3.3-.1 4.6 1.3 1.2 3.4 1.1 4.6-.1l4.4-4.4z" fill="currentColor" fill-opacity=".35"/></svg>';
   function loadRecord2() {
     const stored = loadLocal(RECORD_KEY2, {});
     const positive = (value) => {
       const number = Number(value);
       return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
     };
-    return { best: positive(stored.best), runs: positive(stored.runs), sun: positive(stored.sun) };
+    return { best: positive(stored.best), runs: positive(stored.runs), sun: positive(stored.sun), wins: positive(stored.wins) };
   }
   function cropSpriteSource(def) {
     return page.__gardenCompanionProduceSprites?.[def.id] || page.__gardenCompanionShopSprites?.[def.id] || "";
   }
-  function towerSpriteSource(def) {
-    const plant = page.__gardenCompanionPlantSprites?.[def.id];
-    if (def.art === "plant" && plant) return plant;
-    return page.__gardenCompanionProduceSprites?.[def.id] || plant || page.__gardenCompanionShopSprites?.[def.id] || "";
+  function plantSpriteSource(def) {
+    return page.__gardenCompanionPlantSprites?.[def.id] || cropSpriteSource(def);
+  }
+  function fruitOffsets(def) {
+    const entry = PLANT_CATALOG[def.id];
+    if (!entry?.regrows || !entry.slotOffset || !page.__gardenCompanionPlantSprites?.[def.id]) return [];
+    const { x, y } = entry.slotOffset;
+    return (entry.slots ?? 1) > 1 ? [{ x, y }, { x: -x, y: y + 0.06 }, { x: x * 0.1, y: y - 0.14 }] : [{ x, y }];
   }
   function hueTint(hue, saturation = 0.85, lightness = 0.66) {
     const channel = (offset) => {
@@ -12699,86 +13191,102 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     };
     return channel(0) << 16 | channel(8) << 8 | channel(4);
   }
-  function weightedPest(wave) {
-    const pool = PESTS.filter((pest) => wave >= pest.from);
-    const total = pool.reduce((sum, pest) => sum + pest.weight, 0);
-    let roll = Math.random() * total;
-    for (const pest of pool) {
-      roll -= pest.weight;
-      if (roll <= 0) return pest;
-    }
-    return pool[0] ?? PESTS[0];
-  }
   function injectStyles2() {
     if (document.getElementById(`${PANEL_ID3}-styles`)) return;
     const style = document.createElement("style");
     style.id = `${PANEL_ID3}-styles`;
     style.textContent = `
-    #${PANEL_ID3}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gc-text,#e4e4e7);font:12px/1.45 system-ui,sans-serif}
+    #${PANEL_ID3}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gd-text);font:12px/1.45 system-ui,sans-serif;
+      --gd-bg:#0d1a10;--gd-bg-2:#15291a;--gd-panel:rgba(255,255,255,.035);--gd-line:rgba(134,239,172,.11);--gd-line-2:rgba(134,239,172,.22);
+      --gd-text:#e5f2e7;--gd-strong:#f8fafc;--gd-muted:#90b096;--gd-accent-rgb:74,222,128;--gd-sun:#fbbf24}
     #${PANEL_ID3}[hidden]{display:none}
-    #${PANEL_ID3} .gd-card{position:fixed;right:14px;bottom:56px;width:min(430px,calc(100vw - 24px));display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:12px;background:var(--gc-bg,#0c0c11);box-shadow:0 18px 50px rgba(0,0,0,.7),inset 0 1px rgba(255,255,255,.035)}
-    #${PANEL_ID3} header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;color:#fafafa;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);border-bottom:1px solid var(--gc-line,rgba(255,255,255,.075));cursor:move}
-    #${PANEL_ID3} h2{margin:0;font:700 13px/1.2 system-ui,sans-serif;letter-spacing:.02em}
-    #${PANEL_ID3} button{padding:5px 9px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:7px;color:var(--gc-text,#e4e4e7);background:var(--gc-soft,rgba(255,255,255,.035));font:600 11px system-ui,sans-serif;cursor:pointer}
-    #${PANEL_ID3} button:disabled{opacity:.4;cursor:default}
-    #${PANEL_ID3} header button{width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:12px}
-    #${PANEL_ID3} header button[data-close]{border-radius:50%;background:transparent}
+    #${PANEL_ID3} .gd-card{position:fixed;right:14px;bottom:56px;width:min(480px,calc(100vw - 24px));display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gd-line-2);border-radius:16px;background:linear-gradient(180deg,var(--gd-bg-2),var(--gd-bg) 150px);box-shadow:0 22px 60px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.05)}
+    #${PANEL_ID3} button{padding:5px 10px;border:1px solid var(--gd-line-2);border-radius:8px;background:var(--gd-panel);color:var(--gd-text);font:700 10px system-ui,sans-serif;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .08s}
+    #${PANEL_ID3} button:hover:not(:disabled){border-color:rgba(var(--gd-accent-rgb),.45);background:rgba(var(--gd-accent-rgb),.1);color:#dcfce7}
+    #${PANEL_ID3} button:active:not(:disabled){transform:translateY(1px)}
+    #${PANEL_ID3} button:disabled{opacity:.45;cursor:default}
+    #${PANEL_ID3} button[data-active=true]{border-color:rgba(var(--gd-accent-rgb),.55);background:rgba(var(--gd-accent-rgb),.16);color:#dcfce7}
+    #${PANEL_ID3} header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 10px 14px;cursor:move}
+    #${PANEL_ID3} .gd-title{display:flex;align-items:center;gap:10px;min-width:0}
+    #${PANEL_ID3} .gd-logo{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#2f6b35,#173d1d);box-shadow:inset 0 1px rgba(255,255,255,.14),0 4px 12px rgba(0,0,0,.35);font-size:18px}
+    #${PANEL_ID3} h2{margin:0;color:var(--gd-strong);font:800 14px/1.1 system-ui,sans-serif;letter-spacing:.01em}
+    #${PANEL_ID3} .gd-sub{margin-top:3px;color:var(--gd-muted);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    #${PANEL_ID3} .gd-head-actions{display:flex;align-items:center;gap:4px}
+    #${PANEL_ID3} .gd-sun{display:flex;align-items:center;gap:6px;height:28px;margin-right:2px;padding:0 11px 0 5px;border:1px solid rgba(251,191,36,.35);border-radius:14px;background:rgba(251,191,36,.1);color:#fde68a;font:800 13px system-ui,sans-serif;font-variant-numeric:tabular-nums}
+    #${PANEL_ID3} .gd-sun i{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fffbeb,#fbbf24 50%,#d97706);box-shadow:0 0 8px rgba(251,191,36,.6)}
+    #${PANEL_ID3} button.gd-icon{width:26px;height:26px;padding:0;border-color:transparent;border-radius:8px;background:transparent;color:var(--gd-muted);font-size:12px}
     #${PANEL_ID3} .gd-lawn-input{position:fixed;pointer-events:auto;touch-action:none;cursor:crosshair}
-    #${PANEL_ID3} .gd-body{padding:10px 12px 12px}
-    #${PANEL_ID3} .gd-top{display:flex;align-items:center;gap:8px;margin-bottom:9px}
-    #${PANEL_ID3} .gd-sun{display:flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid rgba(251,191,36,.4);border-radius:8px;background:rgba(251,191,36,.12);color:#fde68a;font:800 13px system-ui,sans-serif}
-    #${PANEL_ID3} .gd-wave{color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px}
-    #${PANEL_ID3} .gd-top div:last-child{margin-left:auto;display:flex;gap:5px}
-    #${PANEL_ID3} .gd-seeds{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:5px}
-    #${PANEL_ID3} .gd-seed{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 3px;border:1px solid var(--gc-line,rgba(255,255,255,.075));border-radius:8px;background:var(--gc-soft,rgba(255,255,255,.035));cursor:pointer}
-    #${PANEL_ID3} .gd-seed[data-selected=true]{border-color:rgba(167,139,250,.65);background:rgba(167,139,250,.16)}
-    #${PANEL_ID3} .gd-seed[data-afford=false]{opacity:.42;cursor:default}
-    #${PANEL_ID3} .gd-seed img{width:26px;height:26px;object-fit:contain;image-rendering:auto}
-    #${PANEL_ID3} .gd-seed b{color:#f8fafc;font:700 9px system-ui,sans-serif;text-align:center;line-height:1.15}
-    #${PANEL_ID3} .gd-seed small{color:#fde68a;font:700 9px system-ui,sans-serif}
-    #${PANEL_ID3} .gd-seed i{display:block;width:100%;height:2px;border-radius:1px;background:rgba(255,255,255,.1)}
+    #${PANEL_ID3} .gd-body{padding:4px 12px 12px}
+    #${PANEL_ID3} .gd-waves{margin-bottom:10px}
+    #${PANEL_ID3} .gd-waves-label{display:flex;justify-content:space-between;margin-bottom:5px;color:var(--gd-muted);font-size:10px;font-weight:700}
+    #${PANEL_ID3} .gd-waves-label b{color:var(--gd-strong)}
+    #${PANEL_ID3} .gd-track{position:relative;height:8px;border-radius:4px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+    #${PANEL_ID3} .gd-track i{position:absolute;inset:0 auto 0 0;width:0;border-radius:4px;background:linear-gradient(90deg,#4ade80,#a3e635);transition:width .3s}
+    #${PANEL_ID3} .gd-track span{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#1a2e1d;box-shadow:inset 0 0 0 2px #f87171;font-size:8px;line-height:14px;text-align:center}
+    #${PANEL_ID3} .gd-track span[data-done=true]{background:#f87171}
+    #${PANEL_ID3} .gd-banner{margin-bottom:10px;padding:8px 10px;border:1px solid rgba(248,113,113,.45);border-radius:10px;background:rgba(248,113,113,.12);color:#fecaca;font-size:11px;font-weight:800;text-align:center;letter-spacing:.04em;animation:gd-throb .6s ease-in-out infinite alternate}
+    #${PANEL_ID3} .gd-banner[data-kind=info]{border-color:rgba(125,211,252,.45);background:rgba(125,211,252,.1);color:#e0f2fe;animation:none}
+    @keyframes gd-throb{to{background:rgba(248,113,113,.2)}}
+    #${PANEL_ID3} .gd-seeds{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+    #${PANEL_ID3} .gd-seed{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 3px 5px;overflow:hidden;border:1px solid var(--gd-line);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))}
+    #${PANEL_ID3} .gd-seed[data-selected=true]{border-color:rgba(var(--gd-accent-rgb),.7);background:rgba(var(--gd-accent-rgb),.16);box-shadow:0 0 0 2px rgba(var(--gd-accent-rgb),.2)}
+    #${PANEL_ID3} .gd-seed::after{content:"";position:absolute;inset:0 0 auto 0;height:calc(var(--cd,0) * 100%);background:rgba(0,0,0,.55);pointer-events:none}
+    #${PANEL_ID3} .gd-seed img{width:28px;height:28px;object-fit:contain}
+    #${PANEL_ID3} .gd-seed em{display:grid;place-items:center;width:28px;height:28px;color:var(--gd-muted);font-style:normal;font-size:14px}
+    #${PANEL_ID3} .gd-seed b{color:var(--gd-strong);font:700 9px system-ui,sans-serif;text-align:center;line-height:1.15}
+    #${PANEL_ID3} .gd-seed small{color:#fde68a;font:800 9px system-ui,sans-serif}
+    #${PANEL_ID3} .gd-seed .gd-once{position:absolute;top:3px;right:4px;color:#fca5a5;font:800 8px system-ui,sans-serif;font-style:normal}
+    #${PANEL_ID3} .gd-seed kbd{position:absolute;top:3px;left:4px;color:var(--gd-muted);font:700 8px system-ui,sans-serif}
+    #${PANEL_ID3} .gd-tools{display:flex;gap:5px;margin-top:8px}
+    #${PANEL_ID3} .gd-tools button{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:1;padding:7px 8px;font-size:11px}
     #${PANEL_ID3} .gd-dev{margin-top:9px;padding:8px 9px;border:1px dashed rgba(167,139,250,.5);border-radius:9px;background:rgba(167,139,250,.08)}
     #${PANEL_ID3} .gd-dev > b{display:block;margin-bottom:6px;color:#ddd6fe;font:800 10px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em}
     #${PANEL_ID3} .gd-dev-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
     #${PANEL_ID3} .gd-dev-row button{font-size:10px;padding:4px 7px}
-    #${PANEL_ID3} .gd-dev-row button[data-active=true]{color:#ddd6fe;border-color:rgba(167,139,250,.55);background:rgba(167,139,250,.18)}
-    #${PANEL_ID3} .gd-dev > small{display:block;margin-top:5px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:9px}
-    #${PANEL_ID3} .gd-status{margin-top:9px;color:var(--gc-muted,rgba(255,255,255,.72));font-size:10px;min-height:14px}
-    #${PANEL_ID3} .gd-detail{margin-top:3px;color:#c7d2fe;font-size:10px;min-height:13px}
-    #${PANEL_ID3} .gd-over{margin-bottom:9px;padding:9px 10px;border:1px solid rgba(248,113,113,.4);border-radius:9px;background:rgba(248,113,113,.1)}
-    #${PANEL_ID3} .gd-over b{display:block;color:#fecaca;font:800 13px system-ui,sans-serif}
-    #${PANEL_ID3} .gd-over small{display:block;margin-top:3px;color:#e4e4e7;font-size:10px}
+    #${PANEL_ID3} .gd-dev > small{display:block;margin-top:5px;color:var(--gd-muted);font-size:9px}
+    #${PANEL_ID3} .gd-status{margin-top:9px;color:var(--gd-text);font-size:11px;min-height:15px}
+    #${PANEL_ID3} .gd-foot{display:flex;justify-content:space-between;gap:8px;padding:9px 14px;border-top:1px solid var(--gd-line);color:var(--gd-muted);font-size:10px}
+    #${PANEL_ID3} .gd-end{margin-bottom:10px;padding:11px 12px;border-radius:12px;animation:gd-rise .35s ease-out}
+    @keyframes gd-rise{from{opacity:0;transform:translateY(6px)}}
+    #${PANEL_ID3} .gd-end[data-kind=lost]{border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.1)}
+    #${PANEL_ID3} .gd-end[data-kind=won]{border:1px solid rgba(251,191,36,.5);background:radial-gradient(circle at 0 0,rgba(251,191,36,.22),transparent 70%),rgba(255,255,255,.03)}
+    #${PANEL_ID3} .gd-end b{display:block;color:var(--gd-strong);font:800 15px system-ui,sans-serif}
+    #${PANEL_ID3} .gd-end small{display:block;margin-top:3px;color:var(--gd-text);font-size:11px}
+    #${PANEL_ID3} .gd-end div{display:flex;gap:6px;margin-top:9px}
+    #${PANEL_ID3} .gd-end div button{flex:1;padding:7px}
   `;
     document.head.appendChild(style);
   }
   function initGardenDefence() {
     let record = loadRecord2();
-    let running = false;
-    let over = false;
-    let sun = STARTING_SUN;
-    let wave = 0;
-    let waveTimer = FIRST_WAVE_DELAY;
-    let skyTimer = SKY_SUN_INTERVAL;
-    let queued2 = [];
-    let spawnTimer = 0;
+    let board = null;
+    let pendingRun = true;
+    let paused = false;
     let selected3 = null;
     let shovel = false;
+    let banner = "";
+    let bannerKind = "warn";
+    let bannerUntil = 0;
+    let bannerQueue = [];
+    let introduced = /* @__PURE__ */ new Set();
     let dev = false;
-    let wavesHeld = false;
     let status = "Pick a seed, then click a tile to plant it.";
     let lanes = MAX_LANES;
     let columns = MAX_COLUMNS;
     let lawn = null;
+    let houseStrip = 0;
     let cellWidth = 0;
     let cellHeight = 0;
+    let hovered = null;
     let draggableReady = false;
     let frame = null;
     let lastTime = 0;
     let chromeAt = 0;
-    const plants = [];
-    let pests = [];
-    let shots = [];
-    let suns = [];
+    let wallClock = 0;
+    let poofs = [];
+    const plantArt = /* @__PURE__ */ new Map();
+    const pestSprites = /* @__PURE__ */ new Map();
+    let canSprites = [];
     const scene = createWorldScene({
       owner: "gardenDefence",
       layers: { lawn: -999e3, plantShadow: -998990, entities: -998900 },
@@ -12786,31 +13294,91 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         layOutLawn(geometry);
         const grass = built.layer("lawn");
         if (grass && lawn) drawLawn(grass, geometry, lawn);
-        for (const plant of plants) plant.sprite = plant.fruitSprite = null;
-        for (const pest of pests) pest.sprite = null;
+        forgetSprites();
       },
+      // Pets wait on the porch, not up on the roof.
       petArea: (geometry) => ({
-        left: geometry.left + 8,
+        left: geometry.left + houseWidth(geometry) * 0.58,
         top: geometry.top + 20,
-        width: Math.max(0, houseWidth(geometry) - 40),
+        width: Math.max(0, houseWidth(geometry) * 0.4 - 20),
         height: Math.max(0, geometry.height - 40)
       })
     });
+    function forgetSprites() {
+      plantArt.clear();
+      pestSprites.clear();
+      canSprites = [];
+    }
     function houseWidth(geometry) {
-      return Math.min(190, Math.max(90, geometry.width * 0.12));
+      return Math.max(90, geometry.width * 0.1);
     }
     function layOutLawn(geometry) {
-      lanes = Math.max(3, Math.min(MAX_LANES, geometry.rows));
-      columns = Math.max(5, Math.min(MAX_COLUMNS, geometry.cols));
-      const house = houseWidth(geometry);
+      const nextLanes = Math.max(3, Math.min(MAX_LANES, geometry.rows));
+      const nextColumns = Math.max(5, Math.min(MAX_COLUMNS, geometry.cols));
+      houseStrip = houseWidth(geometry);
       lawn = {
-        left: geometry.left + house,
+        left: geometry.left + houseStrip,
         top: geometry.top,
-        width: Math.max(1, geometry.width - house),
+        width: Math.max(1, geometry.width - houseStrip),
         height: geometry.height
       };
-      cellWidth = lawn.width / columns;
-      cellHeight = lawn.height / lanes;
+      cellWidth = lawn.width / nextColumns;
+      cellHeight = lawn.height / nextLanes;
+      if (pendingRun || !board || nextLanes !== lanes || nextColumns !== columns) {
+        lanes = nextLanes;
+        columns = nextColumns;
+        newBoard();
+      }
+    }
+    function canHome() {
+      return -Math.min(houseStrip * 0.22, cellWidth * 0.5) / Math.max(1, cellWidth);
+    }
+    function newBoard() {
+      scene.clearSprites();
+      forgetSprites();
+      poofs = [];
+      introduced = /* @__PURE__ */ new Set();
+      bannerQueue = [];
+      pendingRun = false;
+      board = createBoard({
+        lanes,
+        columns,
+        dev,
+        canHome: canHome(),
+        events: {
+          poof: (x, lane, colour, size) => poofs.push({ x: boardX(x), y: laneCentreY(lane), at: wallClock, colour, size: size * cellWidth }),
+          say: (text) => {
+            status = text;
+          },
+          wave: (wave, huge, final, wolves) => {
+            if (huge) {
+              showBanner(final ? "The final wave - and the Storm Wolf leads it!" : wolves > 1 ? `A huge wave, led by ${wolves} Storm Wolves!` : wolves ? "A huge wave, led by a Storm Wolf!" : "A huge wave of pests is approaching!", "warn");
+            }
+            status = huge ? banner : `Wave ${wave} incoming.`;
+            renderChrome();
+          },
+          end: (won) => finishRun(won)
+        }
+      });
+      if (!dev) {
+        record.runs++;
+        save2();
+      }
+    }
+    function showBanner(text, kind) {
+      if (kind === "info" && banner && wallClock < bannerUntil) {
+        bannerQueue.push(text);
+        return;
+      }
+      banner = text;
+      bannerKind = kind;
+      bannerUntil = wallClock + (kind === "info" ? INFO_BANNER_SECONDS : WARN_BANNER_SECONDS);
+    }
+    function advanceBanner() {
+      if (wallClock < bannerUntil || !bannerQueue.length) return;
+      banner = bannerQueue.shift();
+      bannerKind = "info";
+      bannerUntil = wallClock + INFO_BANNER_SECONDS;
     }
     function cellCentreX(column) {
       return (lawn?.left ?? 0) + (column + 0.5) * cellWidth;
@@ -12818,23 +13386,139 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function laneCentreY(lane) {
       return (lawn?.top ?? 0) + (lane + 0.5) * cellHeight;
     }
-    function pestX(pest) {
-      return (lawn?.left ?? 0) + pest.x * cellWidth;
+    function boardX(columnsIn) {
+      return (lawn?.left ?? 0) + columnsIn * cellWidth;
     }
     function drawLawn(graphic, geometry, area) {
       graphic.clear();
-      graphic.roundRect(geometry.left - 30, geometry.top - 30, geometry.width + 60, geometry.height + 60, 46).fill({ color: 3104052, alpha: 1 });
+      const u = Math.min(cellWidth, cellHeight);
       const house = houseWidth(geometry);
-      graphic.roundRect(geometry.left - 10, geometry.top - 10, house + 4, geometry.height + 20, 22).fill({ color: 7031343, alpha: 1 });
-      graphic.roundRect(geometry.left + 6, geometry.top + 6, Math.max(10, house - 28), geometry.height - 12, 16).fill({ color: 9069376, alpha: 1 });
+      const right = area.left + area.width;
+      const wild = cellWidth * 0.7;
+      const border = u * 0.34;
+      const hash = (value) => {
+        const sine = Math.sin(value * 127.1 + 311.7) * 43758.5453;
+        return sine - Math.floor(sine);
+      };
+      const outerLeft = geometry.left - u * 0.08;
+      const outerRight = right + wild;
+      graphic.roundRect(outerLeft, area.top - border, outerRight - outerLeft, area.height + border * 2, u * 0.12).fill({ color: 8175683, alpha: 1 });
+      const inset = u * 0.05;
       for (let lane = 0; lane < lanes; lane++) {
         for (let column = 0; column < columns; column++) {
-          const dark = (lane + column) % 2 === 0;
-          graphic.rect(area.left + column * cellWidth, area.top + lane * cellHeight, cellWidth, cellHeight).fill({ color: dark ? 5147462 : 5872207, alpha: 1 });
+          const x = area.left + column * cellWidth + inset;
+          const y = area.top + lane * cellHeight + inset;
+          const w = cellWidth - inset * 2;
+          const h = cellHeight - inset * 2;
+          const seed = lane * 31 + column * 17;
+          graphic.roundRect(x, y + u * 0.025, w, h, u * 0.14).fill({ color: 5147180, alpha: 0.6 });
+          graphic.roundRect(x, y, w, h, u * 0.14).fill({ color: 8014374, alpha: 1 });
+          graphic.roundRect(x + u * 0.03, y + u * 0.03, w - u * 0.06, h - u * 0.07, u * 0.11).fill({ color: (lane + column) % 2 ? 10117686 : 10840635, alpha: 1 });
+          graphic.roundRect(x + u * 0.06, y + u * 0.045, w - u * 0.12, u * 0.035, u * 0.02).fill({ color: 12618325, alpha: 0.55 });
+          for (let furrow = 1; furrow <= 3; furrow++) {
+            const fy = y + h * furrow / 4;
+            graphic.roundRect(x + u * 0.1, fy, w - u * 0.2, u * 0.022, u * 0.011).fill({ color: 8014374, alpha: 0.35 });
+          }
+          for (let stone = 0; stone < 4; stone++) {
+            const sx = x + u * 0.1 + hash(seed + stone) * (w - u * 0.2);
+            const sy = y + u * 0.1 + hash(seed + stone + 0.5) * (h - u * 0.2);
+            graphic.ellipse(sx, sy, u * 0.018, u * 0.013).fill({ color: hash(seed + stone + 0.7) > 0.5 ? 13214330 : 7028511, alpha: 0.9 });
+          }
         }
       }
-      graphic.rect(area.left, area.top, area.width, area.height).stroke({ color: 3104052, width: 6, alpha: 0.6 });
-      graphic.rect(area.left + area.width, area.top, 26, area.height).fill({ color: 8016432, alpha: 0.85 });
+      for (let tuft = 0; tuft < columns * lanes * 2; tuft++) {
+        const tx = area.left + hash(tuft + 900) * area.width;
+        const lane = Math.floor(hash(tuft + 950) * (lanes + 1));
+        const ty = area.top + lane * cellHeight + (hash(tuft + 990) - 0.5) * inset;
+        const s = u * 0.04;
+        graphic.moveTo(tx - s, ty + s * 0.4).lineTo(tx - s * 1.4, ty - s).stroke({ color: 6203450, width: u * 0.012, alpha: 1 });
+        graphic.moveTo(tx, ty + s * 0.4).lineTo(tx, ty - s * 1.3).stroke({ color: 6203450, width: u * 0.012, alpha: 1 });
+        graphic.moveTo(tx + s, ty + s * 0.4).lineTo(tx + s * 1.4, ty - s).stroke({ color: 6203450, width: u * 0.012, alpha: 1 });
+      }
+      const blooms = [16281969, 16498468, 16361684, 12616956, 16777215, 16486972];
+      for (const [edge, facing] of [[area.top, -1], [area.top + area.height, 1]]) {
+        const hedgeY = edge + facing * border * 0.62;
+        for (let x = outerLeft + u * 0.1; x < outerRight; x += u * 0.16) {
+          graphic.circle(x, hedgeY, u * 0.1 + hash(x) * u * 0.02).fill({ color: hash(x + 1) > 0.5 ? 4165434 : 3637811, alpha: 1 });
+          graphic.circle(x - u * 0.03, hedgeY - u * 0.03, u * 0.035).fill({ color: 6271052, alpha: 0.8 });
+        }
+        for (let x = area.left + u * 0.08; x < right - u * 0.04; x += u * 0.17) {
+          const by = edge + facing * border * 0.2;
+          const colour = blooms[Math.floor(hash(x + 7) * blooms.length)];
+          const petal = u * 0.026;
+          for (let leaf = 0; leaf < 5; leaf++) {
+            const angle = leaf * Math.PI * 2 / 5 + hash(x) * 3;
+            graphic.circle(x + Math.cos(angle) * petal, by + Math.sin(angle) * petal, petal * 0.8).fill({ color: colour, alpha: 1 });
+          }
+          graphic.circle(x, by, petal * 0.55).fill({ color: 16436245, alpha: 1 });
+        }
+      }
+      const roofLeft = outerLeft;
+      const roofRight = geometry.left + house * 0.56;
+      const roofTop = area.top - border * 0.3;
+      const roofBottom = area.top + area.height + border * 0.3;
+      graphic.roundRect(roofLeft + u * 0.03, roofTop + u * 0.04, roofRight - roofLeft, roofBottom - roofTop, u * 0.06).fill({ color: 1324314, alpha: 0.3 });
+      graphic.roundRect(roofLeft, roofTop, roofRight - roofLeft, roofBottom - roofTop, u * 0.06).fill({ color: 11813679, alpha: 1 });
+      const row = u * 0.13;
+      for (let y = roofTop + row, index = 0; y < roofBottom - row * 0.3; y += row, index++) {
+        graphic.rect(roofLeft + u * 0.02, y - u * 0.03, roofRight - roofLeft - u * 0.04, u * 0.03).fill({ color: 9056032, alpha: 0.9 });
+        for (let x = roofLeft + u * 0.07 + index % 2 * u * 0.075; x < roofRight - u * 0.04; x += u * 0.15) {
+          graphic.rect(x, y - row + u * 0.01, u * 0.014, row - u * 0.04).fill({ color: 9056032, alpha: 0.6 });
+        }
+      }
+      const ridge = (roofLeft + roofRight) / 2;
+      graphic.rect(ridge - u * 0.03, roofTop, u * 0.06, roofBottom - roofTop).fill({ color: 13915451, alpha: 1 });
+      const chimneyY = area.top + cellHeight * 0.35;
+      graphic.roundRect(ridge + u * 0.06, chimneyY, u * 0.2, u * 0.2, u * 0.02).fill({ color: 9143160, alpha: 1 });
+      graphic.roundRect(ridge + u * 0.09, chimneyY + u * 0.03, u * 0.14, u * 0.08, u * 0.02).fill({ color: 4143670, alpha: 1 });
+      const porchLeft = roofRight;
+      const porchRight = area.left;
+      graphic.rect(porchLeft, roofTop + u * 0.04, porchRight - porchLeft, roofBottom - roofTop - u * 0.08).fill({ color: 12945998, alpha: 1 });
+      for (let x = porchLeft + u * 0.08; x < porchRight - u * 0.02; x += u * 0.08) {
+        graphic.rect(x, roofTop + u * 0.04, u * 0.012, roofBottom - roofTop - u * 0.08).fill({ color: 10117686, alpha: 0.8 });
+      }
+      for (let lane = 0; lane < lanes; lane++) {
+        const y = laneCentreY(lane);
+        graphic.ellipse((porchLeft + porchRight) / 2, y + u * 0.1, (porchRight - porchLeft) * 0.38, u * 0.1).fill({ color: 10117686, alpha: 0.45 });
+      }
+      graphic.rect(porchRight - u * 0.03, roofTop + u * 0.04, u * 0.03, roofBottom - roofTop - u * 0.08).fill({ color: 8014374, alpha: 1 });
+      graphic.rect(right, area.top - border * 0.2, wild, area.height + border * 0.4).fill({ color: 6134327, alpha: 1 });
+      for (let blade = 0; blade < lanes * 22; blade++) {
+        const bx = right + u * 0.05 + hash(blade + 200) * (wild - u * 0.1);
+        const by = area.top + hash(blade + 300) * area.height;
+        const lean = (hash(blade + 400) - 0.5) * u * 0.08;
+        graphic.moveTo(bx, by).lineTo(bx + lean, by - u * 0.12).stroke({ color: hash(blade) > 0.5 ? 4885036 : 7319106, width: u * 0.016, alpha: 1 });
+      }
+      for (let item = 0; item < lanes * 2; item++) {
+        const ix = right + u * 0.12 + hash(item + 500) * (wild - u * 0.24);
+        const iy = area.top + hash(item + 600) * area.height;
+        if (item % 3 === 0) {
+          graphic.rect(ix - u * 0.012, iy, u * 0.024, u * 0.05).fill({ color: 16119284, alpha: 1 });
+          graphic.ellipse(ix, iy, u * 0.05, u * 0.032).fill({ color: 14427686, alpha: 1 });
+          graphic.circle(ix - u * 0.016, iy - u * 0.01, u * 0.01).fill({ color: 16777215, alpha: 1 });
+          graphic.circle(ix + u * 0.02, iy - u * 4e-3, u * 8e-3).fill({ color: 16777215, alpha: 1 });
+        } else if (item % 3 === 1) {
+          graphic.ellipse(ix, iy, u * 0.06, u * 0.04).fill({ color: 10265519, alpha: 1 });
+          graphic.ellipse(ix - u * 0.015, iy - u * 0.015, u * 0.03, u * 0.015).fill({ color: 13751771, alpha: 0.9 });
+        } else {
+          for (let petal = 0; petal < 5; petal++) {
+            const angle = petal * Math.PI * 2 / 5;
+            graphic.circle(ix + Math.cos(angle) * u * 0.02, iy + Math.sin(angle) * u * 0.02, u * 0.017).fill({ color: 16777215, alpha: 1 });
+          }
+          graphic.circle(ix, iy, u * 0.012).fill({ color: 16436245, alpha: 1 });
+        }
+      }
+      const fence = right + u * 0.03;
+      for (let edge = 0; edge <= lanes; edge++) {
+        const y = area.top + edge * cellHeight;
+        graphic.roundRect(fence - u * 0.035, y - u * 0.06, u * 0.07, u * 0.12, u * 0.015).fill({ color: 8014374, alpha: 1 });
+        graphic.roundRect(fence - u * 0.025, y - u * 0.05, u * 0.05, u * 0.04, u * 0.01).fill({ color: 11565637, alpha: 1 });
+        if (edge === lanes) continue;
+        const next = y + cellHeight;
+        graphic.rect(fence - u * 0.015, y + u * 0.06, u * 0.03, cellHeight * 0.2).fill({ color: 10513210, alpha: 1 });
+        graphic.rect(fence - u * 0.015, next - u * 0.06 - cellHeight * 0.22, u * 0.03, cellHeight * 0.22).fill({ color: 10513210, alpha: 1 });
+        graphic.moveTo(fence + u * 0.1, y + cellHeight * 0.42).lineTo(fence + u * 0.24, y + cellHeight * 0.55).stroke({ color: 9132587, width: u * 0.03, alpha: 1 });
+      }
     }
     function panel3() {
       return document.getElementById(PANEL_ID3);
@@ -12842,47 +13526,40 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function save2() {
       saveLocal(RECORD_KEY2, record);
     }
-    function reset() {
-      plants.length = 0;
-      pests = [];
-      shots = [];
-      suns = [];
-      scene.clearSprites();
-      sun = STARTING_SUN;
-      wave = 0;
-      waveTimer = FIRST_WAVE_DELAY;
-      skyTimer = SKY_SUN_INTERVAL;
-      queued2 = [];
-      spawnTimer = 0;
-      over = false;
-      running = true;
+    function restart() {
+      paused = false;
       selected3 = null;
       shovel = false;
+      banner = "";
       status = dev ? "Tuning mode: towers are free." : "Pick a seed, then click a tile to plant it.";
-      if (!dev) {
-        record.runs++;
-        save2();
-      }
+      if (lawn) newBoard();
+      else pendingRun = true;
+      renderChrome();
     }
-    function endRun() {
-      running = false;
-      over = true;
-      if (!dev && wave > record.best) {
-        record.best = wave;
+    function finishRun(won) {
+      selected3 = null;
+      shovel = false;
+      if (!dev && board) {
+        record.best = Math.max(record.best, board.wave);
+        if (won) record.wins++;
         save2();
       }
       renderChrome();
     }
-    function plantAt(lane, column) {
-      return plants.find((plant) => plant.lane === lane && plant.column === column);
+    function keepGoing() {
+      board?.keepGoing();
+      status = "Endless: the waves keep coming until the garden falls.";
+      renderChrome();
+    }
+    function playing() {
+      return Boolean(board && !board.over && !board.won);
     }
     function place2(lane, column) {
-      if (!running || over) return;
-      const existing = plantAt(lane, column);
+      if (!board || !playing() || paused) return;
       if (shovel) {
-        if (!existing) return;
-        removePlant(existing);
-        status = `Dug up the ${existing.def.name}.`;
+        const dug = board.dig(lane, column);
+        if (!dug) return;
+        status = `Dug up the ${dug.def.name}.`;
         shovel = false;
         renderChrome();
         return;
@@ -12892,276 +13569,379 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         renderChrome();
         return;
       }
-      const def = PLANT_BY_ID.get(selected3);
-      if (!def) return;
-      if (existing) {
-        status = "That tile is already planted.";
+      const result = board.place(selected3, lane, column);
+      if (typeof result === "string") {
+        status = result;
         renderChrome();
         return;
       }
-      if (!dev && sun < def.cost) {
-        status = `Not enough sun for a ${def.name}.`;
-        renderChrome();
-        return;
-      }
-      if (!dev) sun -= def.cost;
-      plants.push({ def, lane, column, hp: def.hp, timer: def.interval ?? 0, sprite: null, fruitSprite: null });
+      poofs.push({ x: cellCentreX(column), y: laneCentreY(lane) + cellHeight * 0.3, at: wallClock, colour: 9132587, size: cellWidth * 0.35 });
+      status = `Planted a ${result.def.name}.`;
       if (!dev) selected3 = null;
-      status = `Planted a ${def.name}.`;
       renderChrome();
     }
-    function removePlant(plant) {
-      const index = plants.indexOf(plant);
-      if (index >= 0) plants.splice(index, 1);
-      scene.removeSprite(plant.sprite);
-      scene.removeSprite(plant.fruitSprite);
-      plant.sprite = null;
-      plant.fruitSprite = null;
-      for (const pest of pests) if (pest.eating === plant) pest.eating = null;
-    }
-    function collectSunAt(x, y) {
-      const radius = Math.max(26, cellWidth * 0.34);
-      const index = suns.findIndex((token) => Math.hypot(token.x - x, token.y - y) <= radius);
-      if (index < 0) return false;
-      sun += suns[index].value;
-      if (!dev) {
-        record.sun += suns[index].value;
-        save2();
-      }
-      suns.splice(index, 1);
-      renderChrome();
-      return true;
-    }
-    function handleLawnClick(clientX, clientY) {
+    function cellAt(clientX, clientY) {
       const point = scene.toWorld(clientX, clientY);
-      if (!point || !lawn) return;
-      if (collectSunAt(point.x, point.y)) return;
+      if (!point || !lawn) return null;
       const column = Math.floor((point.x - lawn.left) / cellWidth);
       const lane = Math.floor((point.y - lawn.top) / cellHeight);
-      if (column < 0 || column >= columns || lane < 0 || lane >= lanes) return;
-      place2(lane, column);
+      return { lane, column, x: point.x, y: point.y };
     }
-    function startWave() {
-      wave++;
-      const count = Math.min(24, 2 + Math.floor(wave * 1.35));
-      queued2 = Array.from({ length: count }, () => weightedPest(wave));
-      spawnTimer = 0;
-      status = `Wave ${wave} incoming.`;
-      renderChrome();
-    }
-    function waveHp(def) {
-      return Math.round(def.hp * (1 + (Math.max(1, wave) - 1) * 0.16));
-    }
-    function spawnPest(def, lane = Math.floor(Math.random() * lanes)) {
-      const hp = waveHp(def);
-      pests.push({ def, lane, x: columns + 0.35, hp, maxHp: hp, slowUntil: 0, eating: null, sprite: null });
-    }
-    function removePest(pest) {
-      scene.removeSprite(pest.sprite);
-      pest.sprite = null;
-    }
-    function dropSkySun() {
-      if (!lawn) return;
-      const x = lawn.left + Math.random() * lawn.width;
-      suns.push({ x, y: lawn.top - 40, targetY: lawn.top + Math.random() * lawn.height, value: SUN_VALUE, expires: 0 });
-    }
-    function damagePest(pest, amount, now, slow, slowDuration) {
-      pest.hp -= amount;
-      if (slow && slowDuration) pest.slowUntil = Math.max(pest.slowUntil, now + slowDuration);
-    }
-    function advance(delta, now) {
-      if (!running || over || !lawn) return;
-      skyTimer -= delta;
-      if (skyTimer <= 0) {
-        dropSkySun();
-        skyTimer = SKY_SUN_INTERVAL;
+    function handleLawnClick(clientX, clientY) {
+      const cell = cellAt(clientX, clientY);
+      if (!cell || !board || !lawn) return;
+      const token = board.collect((cell.x - lawn.left) / cellWidth, (cell.y - lawn.top) / cellHeight, Math.max(0.35, 30 / cellWidth));
+      if (token) {
+        if (!dev) {
+          record.sun += token.value;
+          save2();
+        }
+        poofs.push({ x: boardX(token.x), y: lawn.top + token.y * cellHeight, at: wallClock, colour: 16639626, size: cellWidth * 0.3 });
+        renderStatus();
+        return;
       }
-      if (!wavesHeld) {
-        waveTimer -= delta;
-        if (waveTimer <= 0 && !queued2.length) {
-          startWave();
-          waveTimer = WAVE_INTERVAL;
-        }
-      }
-      if (queued2.length) {
-        spawnTimer -= delta;
-        if (spawnTimer <= 0) {
-          spawnPest(queued2.shift());
-          spawnTimer = Math.max(0.5, 2.4 - wave * 0.08);
-        }
-      }
-      for (const token of suns) {
-        if (token.y < token.targetY) token.y = Math.min(token.targetY, token.y + 70 * delta);
-        else token.expires += delta;
-      }
-      suns = suns.filter((token) => token.expires < SUN_LIFETIME);
-      for (const plant of plants) {
-        if (plant.def.kind === "wall") continue;
-        plant.timer -= delta;
-        if (plant.timer > 0) continue;
-        plant.timer = plant.def.interval ?? 1;
-        if (plant.def.kind === "producer") {
-          suns.push({
-            x: cellCentreX(plant.column),
-            y: laneCentreY(plant.lane) - 30,
-            targetY: laneCentreY(plant.lane) + 12,
-            value: plant.def.sun ?? SUN_VALUE,
-            expires: 0
-          });
-          continue;
-        }
-        const target = pests.some((pest) => pest.lane === plant.lane && pest.x > plant.column);
-        if (!target) {
-          plant.timer = 0.2;
-          continue;
-        }
-        for (let index = 0; index < (plant.def.volley ?? 1); index++) {
-          shots.push({
-            lane: plant.lane,
-            x: plant.column + 0.4 + index * 0.28,
-            speed: plant.def.shotSpeed ?? 5,
-            damage: plant.def.damage ?? 10,
-            slow: plant.def.slow,
-            slowDuration: plant.def.slowDuration,
-            pierce: plant.def.pierce ?? 1,
-            splash: plant.def.splash ?? 0,
-            hit: /* @__PURE__ */ new Set()
-          });
-        }
-      }
-      for (const shot of shots) {
-        shot.x += shot.speed * delta;
-        for (const pest of pests) {
-          if (pest.lane !== shot.lane || shot.hit.has(pest) || Math.abs(pest.x - shot.x) > 0.34) continue;
-          shot.hit.add(pest);
-          damagePest(pest, shot.damage, now, shot.slow, shot.slowDuration);
-          if (shot.splash > 0) {
-            for (const other of pests) {
-              if (other === pest || other.lane !== shot.lane || Math.abs(other.x - pest.x) > shot.splash) continue;
-              damagePest(other, shot.damage * 0.5, now, shot.slow, shot.slowDuration);
-            }
-          }
-          if (shot.hit.size >= shot.pierce) break;
-        }
-      }
-      shots = shots.filter((shot) => shot.x <= columns + 0.6 && shot.hit.size < shot.pierce);
-      for (const pest of pests) {
-        const blocker = plants.find((plant) => plant.lane === pest.lane && Math.abs(plant.column + 0.5 - pest.x) < 0.45);
-        pest.eating = blocker ?? null;
-        if (blocker) {
-          blocker.hp -= pest.def.bite * delta;
-          continue;
-        }
-        const speed = pest.def.speed * (now < pest.slowUntil ? 0.5 : 1);
-        pest.x -= speed * delta;
-      }
-      for (const plant of [...plants]) if (plant.hp <= 0) removePlant(plant);
-      for (const pest of pests) if (pest.hp <= 0) removePest(pest);
-      pests = pests.filter((pest) => pest.hp > 0);
-      if (pests.some((pest) => pest.x <= -0.3)) endRun();
-    }
-    function ensurePlantSprites() {
-      for (const plant of plants) {
-        const width = Math.min(cellWidth, cellHeight) * 0.78;
-        const x = cellCentreX(plant.column);
-        const base = laneCentreY(plant.lane) + cellHeight * 0.34;
-        const zIndex = -998950 + plant.lane * 4;
-        if (!plant.sprite) {
-          const image = readyImage(towerSpriteSource(plant.def));
-          if (image) plant.sprite = scene.addSprite(image, { x, y: base, width, zIndex });
-        }
-        if (plant.def.fruit && plant.sprite && !plant.fruitSprite) {
-          const fruit = readyImage(cropSpriteSource(plant.def));
-          const offset = PLANT_CATALOG[plant.def.id]?.slotOffset;
-          const height = Number(plant.sprite.height) || width;
-          if (fruit) plant.fruitSprite = scene.addSprite(fruit, {
-            x: x + (offset?.x ?? 0) * height,
-            y: base - height / 2 + (offset?.y ?? 0) * height,
-            width: width * plant.def.fruit.scale,
-            anchorY: 0.5,
-            zIndex: zIndex + 1
-          });
-        }
-      }
+      if (cell.column < 0 || cell.column >= columns || cell.lane < 0 || cell.lane >= lanes) return;
+      place2(cell.lane, cell.column);
     }
     function pestSize(pest) {
       return Math.min(cellWidth, cellHeight) * pest.def.size * 2.1;
     }
-    function updatePestSprites(now) {
-      const image = readyImage(page.__gardenCompanionPetSprites?.[PEST_SPECIES]);
-      for (const pest of pests) {
-        const size = pestSize(pest);
-        if (!pest.sprite && image) {
-          pest.sprite = scene.addSprite(image, {
-            x: pestX(pest),
-            y: laneCentreY(pest.lane),
-            width: size,
-            anchorY: 0.5,
-            zIndex: -998920 + pest.lane
-          });
-          if (pest.sprite?.scale) pest.sprite.scale.x = Math.abs(Number(pest.sprite.scale.x) || 1);
+    function tileUnit() {
+      return Math.min(cellWidth, cellHeight) * 0.9;
+    }
+    function plantFoot(plant) {
+      return { x: cellCentreX(plant.column), y: laneCentreY(plant.lane) + cellHeight * 0.32 };
+    }
+    function updatePlantSprites() {
+      if (!board) return;
+      const alive = new Set(board.plants);
+      for (const [plant, art] of plantArt) {
+        if (alive.has(plant)) continue;
+        scene.removeSprite(art.sprite);
+        for (const fruit of art.fruits ?? []) scene.removeSprite(fruit);
+        plantArt.delete(plant);
+      }
+      const unit = tileUnit();
+      for (const plant of board.plants) {
+        let art = plantArt.get(plant);
+        if (!art) {
+          art = { sprite: null, fruits: null, baseScale: null };
+          plantArt.set(plant, art);
         }
-        const sprite = pest.sprite;
-        if (!sprite || sprite.destroyed) continue;
-        const wobble = Math.sin(now * (pest.eating ? 11 : 6) + pest.lane) * size * (pest.eating ? 0.07 : 0.045);
-        sprite.position.set(pestX(pest), laneCentreY(pest.lane) + wobble);
-        sprite.tint = now < pest.slowUntil ? 9356776 : pest.def.rainbow ? hueTint((now * 0.34 + pest.lane * 0.13) % 1) : pest.def.colour;
+        const width = unit * (plant.def.kind === "mine" ? 0.55 : 0.86);
+        const foot = plantFoot(plant);
+        const zIndex = -998950 + plant.lane * 4;
+        if (!art.sprite) {
+          const image = readyImage(plantSpriteSource(plant.def));
+          if (image) art.sprite = scene.addSprite(image, { x: foot.x, y: foot.y, width, zIndex });
+          if (art.sprite?.scale) art.baseScale = { x: Number(art.sprite.scale.x) || 1, y: Number(art.sprite.scale.y) || 1 };
+        }
+        if (art.sprite && !art.fruits) {
+          const offsets = fruitOffsets(plant.def);
+          const fruit = offsets.length ? readyImage(cropSpriteSource(plant.def)) : null;
+          if (!offsets.length) art.fruits = [];
+          else if (fruit) {
+            const centreY = foot.y - unit / 2;
+            const size = unit * (PLANT_CATALOG[plant.def.id]?.crop.baseTileScale ?? 0.5) * 0.9;
+            art.fruits = offsets.map((offset) => scene.addSprite(fruit, {
+              x: foot.x + offset.x * unit,
+              y: centreY + offset.y * unit,
+              width: size,
+              anchorY: 0.5,
+              zIndex: zIndex + 1
+            })).filter((sprite2) => Boolean(sprite2));
+          }
+        }
+        const sprite = art.sprite;
+        if (!sprite || sprite.destroyed || !art.baseScale) continue;
+        const fuse = plant.def.arm ?? 1;
+        const swell = plant.def.kind === "bomb" ? 1 + Math.min(1, Math.max(0, 1 - (plant.armAt - board.time) / fuse)) * 0.35 : 1;
+        sprite.scale.x = art.baseScale.x * (1 + plant.kick * 0.08) * swell;
+        sprite.scale.y = art.baseScale.y * (1 - plant.kick * 0.12) * swell;
+        sprite.alpha = plant.def.kind === "mine" && board.time < plant.armAt ? 0.55 : 1;
+        sprite.tint = board.time < plant.stunUntil ? 10265519 : plant.def.kind === "bomb" && Math.sin(wallClock * 30) > 0 ? 16751258 : 16777215;
+      }
+    }
+    function updatePestSprites() {
+      if (!board) return;
+      const alive = new Set(board.pests);
+      for (const [pest, sprite] of pestSprites) {
+        if (alive.has(pest)) continue;
+        scene.removeSprite(sprite);
+        pestSprites.delete(pest);
+      }
+      for (const pest of board.pests) {
+        if (!introduced.has(pest.def.id)) {
+          introduced.add(pest.def.id);
+          if (pest.def.id !== "worm") {
+            showBanner(`New pest: ${pest.def.name} - ${pest.def.detail}`, "info");
+            renderStatus();
+          }
+        }
+        const size = pestSize(pest);
+        let sprite = pestSprites.get(pest);
+        if (!sprite) {
+          const image = readyImage(page.__gardenCompanionPetSprites?.[pest.def.species]);
+          const created = image && scene.addSprite(image, { x: boardX(pest.x), y: laneCentreY(pest.lane), width: size, anchorY: 0.5, zIndex: -998920 + pest.lane });
+          if (!created) continue;
+          sprite = created;
+          if (sprite.scale) sprite.scale.x = Math.abs(Number(sprite.scale.x) || 1);
+          pestSprites.set(pest, sprite);
+        }
+        if (sprite.destroyed) continue;
+        const wobble = Math.sin(board.time * (pest.eating ? 11 : 6) + pest.lane) * size * (pest.eating ? 0.07 : 0.045);
+        sprite.position.set(boardX(pest.x), laneCentreY(pest.lane) + wobble);
+        sprite.tint = pest.flash > 0 ? 16777215 : board.time < pest.slowUntil ? 9356776 : pest.chilled ? 12904703 : pest.def.rainbow ? hueTint((board.time * 0.34 + pest.lane * 0.13) % 1) : pest.def.tint ?? 16777215;
+        sprite.alpha = pest.flash > 0 ? 0.75 : 1;
         sprite.zIndex = -998920 + pest.lane;
       }
     }
-    function drawPestOverlay(graphic, pest, now) {
-      const x = pestX(pest);
+    function updateCans(graphic) {
+      if (!board) return;
+      const image = readyImage(page.__gardenCompanionShopSprites?.WateringCan);
+      const size = Math.min(cellWidth, cellHeight) * 0.5;
+      for (const [lane, can] of board.cans.entries()) {
+        if (can.state === "used") {
+          if (canSprites[lane]) {
+            scene.removeSprite(canSprites[lane]);
+            canSprites[lane] = null;
+          }
+          continue;
+        }
+        const x = boardX(can.x);
+        const y = laneCentreY(lane);
+        graphic.ellipse(x, y + size * 0.45, size * 0.5, size * 0.14).fill({ color: 1324314, alpha: 0.3 });
+        if (can.state === "running") {
+          for (let drop = 0; drop < 7; drop++) {
+            const reach = size * (0.5 + (wallClock * 9 + drop * 0.37) % 1 * 0.9);
+            graphic.circle(x + reach, y + (drop - 3) * size * 0.12, Math.max(2, size * 0.06)).fill({ color: 8246268, alpha: 0.8 });
+          }
+        }
+        if (image && !canSprites[lane]) canSprites[lane] = scene.addSprite(image, { x, y, width: size, anchorY: 0.5, zIndex: -998921 + lane });
+        const sprite = canSprites[lane];
+        if (sprite && !sprite.destroyed) sprite.position.set(x, y + (can.state === "running" ? Math.sin(wallClock * 30) * 3 : 0));
+        else {
+          graphic.roundRect(x - size * 0.35, y - size * 0.3, size * 0.7, size * 0.6, 8).fill({ color: 6333946, alpha: 1 });
+          graphic.moveTo(x + size * 0.3, y - size * 0.1).lineTo(x + size * 0.6, y - size * 0.35).stroke({ color: 3900150, width: 6, alpha: 1 });
+        }
+      }
+    }
+    function drawPestOverlay(graphic, pest) {
+      const x = boardX(pest.x);
       const y = laneCentreY(pest.lane);
       const size = pestSize(pest) * 0.5;
       graphic.ellipse(x, y + size * 0.78, size * 0.8, size * 0.2).fill({ color: 1324314, alpha: 0.32 });
+      if (pest.def === BOSS) {
+        const top2 = y - size * 0.95;
+        graphic.poly([x - size * 0.35, top2, x - size * 0.35, top2 - size * 0.3, x - size * 0.17, top2 - size * 0.12, x, top2 - size * 0.36, x + size * 0.17, top2 - size * 0.12, x + size * 0.35, top2 - size * 0.3, x + size * 0.35, top2], true).fill({ color: 16498468, alpha: 1 });
+      }
+      if (pest.chilled) {
+        for (let flake = 0; flake < 3; flake++) {
+          const angle = wallClock * 2 + flake * 2.1;
+          graphic.circle(x + Math.cos(angle) * size * 0.7, y - size * 0.4 + Math.sin(angle) * size * 0.25, Math.max(2, size * 0.07)).fill({ color: 16777215, alpha: 0.9 });
+        }
+      }
       if (pest.eating) {
-        const pulse = 0.55 + 0.45 * Math.abs(Math.sin(now * 9 + pest.lane));
+        const pulse = 0.55 + 0.45 * Math.abs(Math.sin(wallClock * 9 + pest.lane));
         graphic.circle(x - size * 0.78, y, Math.max(3, size * 0.17 * pulse)).fill({ color: 16557477, alpha: 0.85 });
       }
+      const barWidth = size * 1.5;
+      const barHeight = Math.max(4, size * 0.13);
+      let top = y - size * (pest.def === BOSS ? 1.45 : 1.05);
+      if (pest.shell > 0) {
+        const full = (pest.def.shell ?? 0) * (pest.maxHp / Math.max(1, pest.def.hp));
+        graphic.rect(x - barWidth / 2, top, barWidth, barHeight).fill({ color: 988970, alpha: 0.68 });
+        graphic.rect(x - barWidth / 2, top, barWidth * Math.min(1, pest.shell / Math.max(1, full)), barHeight).fill({ color: 14075809, alpha: 0.95 });
+        top -= barHeight + 3;
+      }
       if (pest.hp < pest.maxHp) {
-        const barWidth = size * 1.5;
-        const barHeight = Math.max(4, size * 0.13);
-        const top = y - size * 1.05;
         graphic.rect(x - barWidth / 2, top, barWidth, barHeight).fill({ color: 988970, alpha: 0.68 });
         graphic.rect(x - barWidth / 2, top, barWidth * Math.max(0, pest.hp / pest.maxHp), barHeight).fill({ color: 16281969, alpha: 0.95 });
       }
     }
-    function render3(now) {
+    function drawMounds(graphic) {
+      graphic.clear();
+      if (!board) return;
+      const unit = tileUnit();
+      for (const plant of board.plants) {
+        const foot = plantFoot(plant);
+        graphic.ellipse(foot.x + 3, foot.y + 3, unit * 0.38, unit * 0.13).fill({ color: 2824974, alpha: 0.35 });
+        graphic.ellipse(foot.x, foot.y - 2, unit * 0.36, unit * 0.13).fill({ color: 14268522, alpha: 1 });
+        graphic.ellipse(foot.x, foot.y - 2, unit * 0.2, unit * 0.07).fill({ color: 5978654, alpha: 1 });
+        for (let strand = 0; strand < 9; strand++) {
+          const angle = strand * Math.PI * 2 / 9 + plant.column;
+          const inner = { x: foot.x + Math.cos(angle) * unit * 0.22, y: foot.y - 2 + Math.sin(angle) * unit * 0.08 };
+          const outer = { x: foot.x + Math.cos(angle + 0.3) * unit * 0.34, y: foot.y - 2 + Math.sin(angle + 0.3) * unit * 0.12 };
+          graphic.moveTo(inner.x, inner.y).lineTo(outer.x, outer.y).stroke({ color: 11043900, width: 2, alpha: 0.8 });
+        }
+      }
+    }
+    const lobReach = /* @__PURE__ */ new WeakMap();
+    function drawShot(graphic, shot) {
+      const r = Math.max(6, Math.min(cellWidth, cellHeight) * 0.11);
+      const x = boardX(shot.x);
+      const turn = Math.min(1, Math.max(0, (shot.x - shot.from) / 0.9));
+      const eased = turn * turn * (3 - 2 * turn);
+      let y = laneCentreY(shot.fromLane) + (laneCentreY(shot.lane) - laneCentreY(shot.fromLane)) * eased - cellHeight * 0.12;
+      switch (shot.source) {
+        case "Saffron":
+          graphic.moveTo(x - r * 2.6, y).lineTo(x + r * 0.4, y).stroke({ color: 16347926, width: r * 0.55, alpha: 0.9 });
+          graphic.moveTo(x - r * 1.6, y - r * 0.15).lineTo(x + r * 0.2, y - r * 0.15).stroke({ color: 16701354, width: r * 0.18, alpha: 0.9 });
+          graphic.circle(x + r * 0.5, y, r * 0.45).fill({ color: 14427686, alpha: 1 });
+          return;
+        case "Cactus":
+          graphic.moveTo(x - r * 2.2, y).lineTo(x + r * 1.1, y).stroke({ color: 14285213, width: Math.max(2, r * 0.3), alpha: 1 });
+          graphic.poly([x + r * 1.1, y - r * 0.22, x + r * 1.8, y, x + r * 1.1, y + r * 0.22], true).fill({ color: 4153874, alpha: 1 });
+          return;
+        case "Starweaver": {
+          const spin = wallClock * 7 + shot.lane;
+          const points = [];
+          for (let index = 0; index < 10; index++) {
+            const angle = spin + index * Math.PI / 5;
+            const reach = index % 2 ? r * 0.5 : r * 1.25;
+            points.push(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach);
+          }
+          graphic.circle(x - r * 1.6, y + r * 0.3, r * 0.28).fill({ color: 14742270, alpha: 0.6 });
+          graphic.circle(x - r * 2.5, y - r * 0.2, r * 0.2).fill({ color: 14742270, alpha: 0.35 });
+          graphic.poly(points, true).fill({ color: 15792639, alpha: 1 });
+          graphic.poly(points, true).stroke({ color: 8246268, width: 2, alpha: 0.9 });
+          return;
+        }
+        case "Grape":
+          graphic.circle(x, y, r).fill({ color: 7153881, alpha: 1 });
+          graphic.circle(x - r * 0.3, y - r * 0.35, r * 0.35).fill({ color: 12891645, alpha: 0.85 });
+          graphic.moveTo(x + r * 0.2, y - r).lineTo(x + r * 0.5, y - r * 1.5).stroke({ color: 5078031, width: 2, alpha: 1 });
+          return;
+        case "Milkcap": {
+          if (!lobReach.has(shot)) {
+            const target = board?.pests.filter((pest) => pest.lane === shot.lane && pest.x > shot.from).sort((a, b) => a.x - b.x)[0];
+            lobReach.set(shot, Math.max(1, (target?.x ?? shot.from + 3) - shot.from));
+          }
+          const travel = Math.min(1, (shot.x - shot.from) / lobReach.get(shot));
+          y -= Math.sin(Math.PI * travel) * cellHeight * 0.55;
+          graphic.ellipse(x, laneCentreY(shot.lane) + cellHeight * 0.1, r * 1.1 * (0.6 + travel * 0.4), r * 0.35).fill({ color: 1324314, alpha: 0.25 });
+          graphic.ellipse(x, y + r * 0.35, r * 1.15, r * 0.4).fill({ color: 14075809, alpha: 1 });
+          graphic.ellipse(x, y, r * 1.35, r * 0.85).fill({ color: 16708551, alpha: 1 });
+          graphic.circle(x - r * 0.5, y - r * 0.2, r * 0.2).fill({ color: 15192995, alpha: 1 });
+          graphic.circle(x + r * 0.35, y - r * 0.4, r * 0.16).fill({ color: 15192995, alpha: 1 });
+          return;
+        }
+        default:
+          graphic.circle(x, y, r).fill({ color: shot.slow ? 12248829 : 12318672, alpha: 0.95 });
+          graphic.circle(x, y, r).stroke({ color: 1332013, width: 2, alpha: 0.5 });
+      }
+    }
+    function drawFrost(graphic, plant) {
+      if (!lawn) return;
+      const y = laneCentreY(plant.lane);
+      const flower = cellCentreX(plant.column);
+      const top = y - cellHeight / 2 + 6;
+      const height = cellHeight - 12;
+      for (let column = 0; column < columns; column++) {
+        const distance = Math.abs(column - plant.column);
+        graphic.rect(lawn.left + column * cellWidth, top, cellWidth + 1, height).fill({ color: 14742270, alpha: 0.08 + 0.2 * Math.max(0, 1 - distance / 4) });
+      }
+      graphic.rect(lawn.left, top, lawn.width, height).stroke({ color: 12248829, width: 3, alpha: 0.55 });
+      for (let flake = 0; flake < 16; flake++) {
+        const drift = (wallClock * 0.1 + flake * 0.137) % 1;
+        const x = lawn.left + lawn.width * ((flake * 0.618 + drift * 0.2) % 1);
+        const fy = top + height * ((flake * 0.37 + drift) % 1);
+        const size = 3 + flake % 3;
+        graphic.moveTo(x - size, fy).lineTo(x + size, fy).stroke({ color: 16777215, width: 1.5, alpha: 0.85 });
+        graphic.moveTo(x, fy - size).lineTo(x, fy + size).stroke({ color: 16777215, width: 1.5, alpha: 0.85 });
+      }
+      const pulse = (wallClock * 0.6 + plant.column * 0.13) % 1;
+      graphic.circle(flower, y, cellWidth * (0.2 + pulse * 0.5)).stroke({ color: 14742270, width: 3, alpha: 0.6 * (1 - pulse) });
+    }
+    function drawPlantEffects(graphic) {
+      if (!board || !lawn) return;
+      for (const plant of board.plants) {
+        const x = cellCentreX(plant.column);
+        const y = laneCentreY(plant.lane);
+        if (plant.def.kind === "aura") drawFrost(graphic, plant);
+        if (plant.def.kind === "mine" && board.time >= plant.armAt) {
+          graphic.circle(x, y + cellHeight * 0.15, cellWidth * (0.28 + Math.sin(wallClock * 5) * 0.04)).stroke({ color: 12891645, width: 4, alpha: 0.7 });
+        }
+        if (board.time < plant.stunUntil) {
+          for (let spark = 0; spark < 3; spark++) {
+            const angle = wallClock * 6 + spark * 2.1;
+            graphic.circle(x + Math.cos(angle) * cellWidth * 0.25, y - cellHeight * 0.3 + Math.sin(angle) * cellHeight * 0.08, 4).fill({ color: 16638023, alpha: 0.95 });
+          }
+        }
+        if (plant.hp < plant.def.hp) {
+          const width = Math.min(cellWidth, cellHeight) * 0.62;
+          const top = y - cellHeight * 0.34;
+          graphic.rect(x - width / 2, top, width, 6).fill({ color: 988970, alpha: 0.6 });
+          graphic.rect(x - width / 2, top, width * Math.max(0, plant.hp / plant.def.hp), 6).fill({ color: 4906624, alpha: 0.95 });
+        }
+      }
+    }
+    function drawHover(graphic) {
+      if (!hovered || !lawn || !board || !playing() || paused) return;
+      const { lane, column } = hovered;
+      if (lane < 0 || lane >= lanes || column < 0 || column >= columns) return;
+      const x = lawn.left + column * cellWidth;
+      const y = lawn.top + lane * cellHeight;
+      if (shovel) {
+        if (board.plantAt(lane, column)) graphic.rect(x + 4, y + 4, cellWidth - 8, cellHeight - 8).stroke({ color: 16281969, width: 5, alpha: 0.9 });
+        return;
+      }
+      const def = selected3 ? PLANT_BY_ID.get(selected3) : void 0;
+      if (!def) return;
+      graphic.rect(lawn.left, y, lawn.width, cellHeight).fill({ color: 16777215, alpha: 0.05 });
+      const ok = !board.canPlant(def, lane, column);
+      graphic.rect(x + 4, y + 4, cellWidth - 8, cellHeight - 8).fill({ color: ok ? 8843180 : 16281969, alpha: 0.2 });
+      graphic.rect(x + 4, y + 4, cellWidth - 8, cellHeight - 8).stroke({ color: ok ? 14482663 : 16698058, width: 4, alpha: 0.85 });
+    }
+    function drawPoofs(graphic) {
+      for (const poof of poofs) {
+        const age = (wallClock - poof.at) / 0.5;
+        if (age >= 1) continue;
+        graphic.circle(poof.x, poof.y, poof.size * (0.3 + age * 0.7)).stroke({ color: poof.colour, width: 4, alpha: 0.7 * (1 - age) });
+        for (let bit = 0; bit < 6; bit++) {
+          const angle = bit * Math.PI / 3 + poof.at;
+          const reach = poof.size * (0.25 + age * 0.9);
+          graphic.circle(poof.x + Math.cos(angle) * reach, poof.y + Math.sin(angle) * reach * 0.7, Math.max(2, poof.size * 0.1 * (1 - age))).fill({ color: poof.colour, alpha: 1 - age });
+        }
+      }
+      poofs = poofs.filter((poof) => wallClock - poof.at < 0.5);
+    }
+    function render3() {
       const geometry = scene.sync();
       const entities = scene.layer("entities");
-      if (!geometry || !lawn || !entities) return;
-      ensurePlantSprites();
-      updatePestSprites(now / 1e3);
+      const mounds = scene.layer("plantShadow");
+      if (!geometry || !lawn || !entities || !board) return;
+      if (mounds) drawMounds(mounds);
+      updatePlantSprites();
+      updatePestSprites();
       positionLawnInput();
       entities.clear();
-      for (const plant of plants) {
-        if (plant.hp >= plant.def.hp) continue;
-        const width = Math.min(cellWidth, cellHeight) * 0.62;
-        const x = cellCentreX(plant.column);
-        const y = laneCentreY(plant.lane) - cellHeight * 0.34;
-        entities.rect(x - width / 2, y, width, 6).fill({ color: 988970, alpha: 0.6 });
-        entities.rect(x - width / 2, y, width * Math.max(0, plant.hp / plant.def.hp), 6).fill({ color: 4906624, alpha: 0.95 });
-      }
-      for (const shot of shots) {
-        const x = (lawn?.left ?? 0) + shot.x * cellWidth;
-        const y = laneCentreY(shot.lane) - cellHeight * 0.06;
-        const radius = Math.max(5, Math.min(cellWidth, cellHeight) * (shot.splash > 0 ? 0.16 : 0.1));
-        entities.circle(x, y, radius).fill({ color: shot.slow ? 12248829 : shot.splash > 0 ? 16622767 : 12318672, alpha: 0.95 });
-        entities.circle(x, y, radius).stroke({ color: 1332013, width: 2, alpha: 0.5 });
-      }
-      for (const pest of pests) drawPestOverlay(entities, pest, now / 1e3);
-      for (const token of suns) {
-        const fade = token.expires > SUN_LIFETIME - 3 ? 0.35 + 0.65 * Math.max(0, (SUN_LIFETIME - token.expires) / 3) : 1;
+      drawHover(entities);
+      drawPlantEffects(entities);
+      updateCans(entities);
+      for (const shot of board.shots) drawShot(entities, shot);
+      for (const pest of board.pests) drawPestOverlay(entities, pest);
+      drawPoofs(entities);
+      for (const token of board.suns) {
+        const fade = token.age > SUN_LIFETIME - 3 ? 0.35 + 0.65 * Math.max(0, (SUN_LIFETIME - token.age) / 3) : 1;
         const radius = Math.max(16, cellWidth * 0.22);
-        entities.circle(token.x, token.y, radius * 1.25).fill({ color: 16639626, alpha: 0.22 * fade });
-        entities.circle(token.x, token.y, radius).fill({ color: 16498468, alpha: 0.95 * fade });
-        entities.circle(token.x - radius * 0.25, token.y - radius * 0.3, radius * 0.3).fill({ color: 16776171, alpha: 0.8 * fade });
+        const x = boardX(token.x);
+        const y = lawn.top + token.y * cellHeight;
+        const spin = wallClock * 1.2;
+        for (let ray = 0; ray < 8; ray++) {
+          const angle = spin + ray * Math.PI / 4;
+          entities.moveTo(x + Math.cos(angle) * radius * 1.1, y + Math.sin(angle) * radius * 1.1).lineTo(x + Math.cos(angle) * radius * 1.55, y + Math.sin(angle) * radius * 1.55).stroke({ color: 16639626, width: 4, alpha: 0.8 * fade });
+        }
+        entities.circle(x, y, radius * 1.25).fill({ color: 16639626, alpha: 0.22 * fade });
+        entities.circle(x, y, radius).fill({ color: 16498468, alpha: 0.95 * fade });
+        entities.circle(x - radius * 0.25, y - radius * 0.3, radius * 0.3).fill({ color: 16776171, alpha: 0.8 * fade });
       }
     }
     function positionLawnInput() {
       const input = panel3()?.querySelector(".gd-lawn-input");
       if (!input) return;
-      const rect = lawn ? scene.project(lawn) : null;
+      const area = lawn ? { left: lawn.left - houseStrip, top: lawn.top - 40, width: lawn.width + houseStrip, height: lawn.height + 40 } : null;
+      const rect = area ? scene.project(area) : null;
       if (!rect) {
         input.hidden = true;
         return;
@@ -13176,9 +13956,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const gap = lastTime ? now - lastTime : 16;
       lastTime = now;
       const delta = Math.min(0.05, gap / 1e3 || 0);
+      wallClock += delta;
       try {
-        advance(delta, now / 1e3);
-        render3(now);
+        if (board && !paused) board.step(delta);
+        render3();
         if (now - chromeAt > 250) {
           chromeAt = now;
           renderStatus();
@@ -13196,121 +13977,158 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
     }
-    function affordable(plant) {
-      return running && !over && (dev || sun >= plant.cost);
-    }
     function seedsHtml() {
-      return PLANTS.map((plant) => {
-        const sprite = towerSpriteSource(plant);
-        const afford = affordable(plant);
-        const icon = sprite ? `<img src="${sprite}" alt="">` : `<i style="height:26px;background:none"></i>`;
-        return `<button class="gd-seed" data-seed="${plant.id}" data-selected="${selected3 === plant.id}" data-afford="${afford}" ${afford ? "" : "disabled"} title="${escapeHtml(plant.detail)}">${icon}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
+      return PLANTS.map((plant, index) => {
+        const sprite = cropSpriteSource(plant) || plantSpriteSource(plant);
+        const icon = sprite ? `<img src="${sprite}" alt="">` : `<em>${escapeHtml(plant.name.slice(0, 1))}</em>`;
+        return `<button class="gd-seed" data-seed="${plant.id}" title="${escapeHtml(`${plant.name} (${plant.cost} sun): ${plant.detail} Recharge ${plant.recharge}s.`)}"><kbd>${SEED_KEYS[index] ?? ""}</kbd>${plant.kind === "mine" || plant.kind === "bomb" ? '<i class="gd-once" title="One use">1&times;</i>' : ""}${icon}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
       }).join("");
+    }
+    function wavesHtml() {
+      const wave = board?.wave ?? 0;
+      if (board?.endless) return `<div class="gd-waves"><div class="gd-waves-label"><span data-wave></span><b>Endless &middot; wave <span data-wave-number>${wave}</span></b></div></div>`;
+      const flags = Array.from({ length: Math.floor(TOTAL_WAVES / HUGE_EVERY) }, (_, index) => {
+        const at = (index + 1) * HUGE_EVERY;
+        return `<span style="left:${at / TOTAL_WAVES * 100}%" data-flag="${at}" data-done="${wave >= at}">&#9873;</span>`;
+      }).join("");
+      return `<div class="gd-waves"><div class="gd-waves-label"><span data-wave></span><b>Wave <span data-wave-number>${wave}</span> of ${TOTAL_WAVES}</b></div><div class="gd-track"><i data-wave-fill></i>${flags}</div></div>`;
     }
     function renderStatus() {
       const host = panel3();
       if (!host || host.hidden) return;
+      const wave = board?.wave ?? 0;
       const sunNode = host.querySelector("[data-sun]");
       const waveNode = host.querySelector("[data-wave]");
+      const numberNode = host.querySelector("[data-wave-number]");
+      const fillNode = host.querySelector("[data-wave-fill]");
       const statusNode = host.querySelector("[data-status]");
-      if (sunNode) sunNode.textContent = String(sun);
-      if (waveNode) {
-        waveNode.textContent = over ? `Overrun on wave ${wave}` : wave === 0 ? `First wave in ${Math.max(0, Math.ceil(waveTimer))}s` : queued2.length ? `Wave ${wave} - ${queued2.length} left to arrive` : `Wave ${wave} - next in ${Math.max(0, Math.ceil(waveTimer))}s`;
+      const bannerNode = host.querySelector("[data-banner]");
+      if (sunNode) sunNode.textContent = dev ? "∞" : String(board?.sun ?? 0);
+      if (numberNode) numberNode.textContent = String(wave);
+      if (waveNode && board) {
+        waveNode.textContent = paused ? "Paused" : wave === 0 ? `First wave in ${Math.max(0, Math.ceil(board.waveTimer))}s` : board.queued.length ? `${board.queued.length} still to arrive` : !board.endless && wave >= TOTAL_WAVES ? `${board.pests.length} left to clear` : `Next wave in ${Math.max(0, Math.ceil(board.waveTimer))}s`;
+      }
+      if (fillNode && board) {
+        const partial = wave ? 1 - board.queued.length / Math.max(1, board.waveSize) : 0;
+        fillNode.style.width = `${Math.min(1, (Math.max(0, wave - 1) + partial) / TOTAL_WAVES) * 100}%`;
+      }
+      for (const flag of host.querySelectorAll("[data-flag]")) flag.dataset.done = String(wave >= Number(flag.dataset.flag));
+      advanceBanner();
+      if (bannerNode) {
+        const showing = Boolean(banner && wallClock < bannerUntil);
+        bannerNode.hidden = !showing;
+        if (showing && bannerNode.textContent !== banner) bannerNode.textContent = banner;
+        bannerNode.dataset.kind = bannerKind;
       }
       if (statusNode) statusNode.textContent = status;
       for (const button of host.querySelectorAll("[data-seed]")) {
         const plant = PLANT_BY_ID.get(button.dataset.seed);
-        const afford = Boolean(plant && affordable(plant));
-        button.dataset.afford = String(afford);
-        button.dataset.selected = String(selected3 === button.dataset.seed);
-        button.disabled = !afford;
+        if (!plant || !board) continue;
+        const charge = board.seedCharge(plant);
+        button.dataset.selected = String(selected3 === plant.id);
+        button.disabled = !playing() || paused || charge > 0 || !dev && board.sun < plant.cost;
+        button.style.setProperty("--cd", String(charge));
       }
     }
     function devHtml() {
       if (!dev) return "";
-      const spawns = PESTS.map((pest) => `<button data-spawn="${pest.id}">${escapeHtml(pest.name)}</button>`).join("");
-      return `<div class="gd-dev"><b>Tuning mode</b><div class="gd-dev-row">${spawns}<button data-spawn-lane>Fill a lane</button><button data-clear-pests>Clear pests</button></div><div class="gd-dev-row"><button data-hold data-active="${wavesHeld}">${wavesHeld ? "Waves held" : "Hold waves"}</button><button data-next-wave>Next wave</button><button data-add-sun>+500 sun</button><button data-clear-plants>Clear plants</button></div><small>Towers are free and this run is not recorded. Call __gardenCompanionGardenDefenceDev(false) to leave.</small></div>`;
+      const spawns = ALL_PESTS.map((pest) => `<button data-spawn="${pest.id}">${escapeHtml(pest.name)}</button>`).join("");
+      return `<div class="gd-dev"><b>Tuning mode</b><div class="gd-dev-row">${spawns}<button data-spawn-lane>Fill a lane</button><button data-clear-pests>Clear pests</button></div><div class="gd-dev-row"><button data-hold data-active="${board?.wavesHeld ?? false}">${board?.wavesHeld ? "Waves held" : "Hold waves"}</button><button data-next-wave>Next wave</button><button data-add-sun>+500 sun</button><button data-clear-plants>Clear plants</button></div><small>Towers are free and this run is not recorded. Call __gardenCompanionGardenDefenceDev(false) to leave.</small></div>`;
+    }
+    function endHtml() {
+      if (!board) return "";
+      if (board.over) {
+        return `<div class="gd-end" data-kind="lost"><b>The garden was overrun</b><small>You held ${board.wave} wave${board.wave === 1 ? "" : "s"}.${dev ? " Tuning runs are not recorded." : ` Best is ${record.best}.`}</small><div><button data-restart>Try again</button></div></div>`;
+      }
+      if (board.won) {
+        return `<div class="gd-end" data-kind="won"><b>&#127803; The garden is safe!</b><small>All ${TOTAL_WAVES} waves beaten and the Storm Wolf seen off${dev ? "." : ` - ${record.wins} win${record.wins === 1 ? "" : "s"} so far.`} Keep going for an endless run, or start fresh.</small><div><button data-keep-going>Keep going</button><button data-restart>New run</button></div></div>`;
+      }
+      return "";
     }
     function renderChrome() {
       const host = panel3();
       if (!host || host.hidden) return;
       const card = host.querySelector(".gd-card");
       if (!card) return;
-      const overCard = over ? `<div class="gd-over"><b>The garden was overrun</b><small>You held ${wave} wave${wave === 1 ? "" : "s"}.${dev ? " Tuning runs are not recorded." : ` Best is ${record.best}.`}</small></div>` : "";
-      card.innerHTML = `<header><h2>&#127807; Garden Defence</h2><div><button data-close aria-label="Close">&#10005;</button></div></header><div class="gd-body">${overCard}<div class="gd-top"><span class="gd-sun">&#9728; <span data-sun>${dev ? "&#8734;" : sun}</span></span><span class="gd-wave" data-wave></span><div><button data-shovel data-active="${shovel}">${shovel ? "Digging" : "Shovel"}</button><button data-restart>${over || !running ? "Start" : "Restart"}</button></div></div><div class="gd-seeds">${seedsHtml()}</div>` + devHtml() + `<div class="gd-status" data-status></div><div class="gd-detail">Best wave ${record.best} - runs ${record.runs} - sun collected ${record.sun.toLocaleString(NUMBER_LOCALE)}</div></div>`;
+      card.innerHTML = `<header><div class="gd-title"><span class="gd-logo">&#127803;</span><div><h2>Garden Defence</h2><div class="gd-sub">Best wave ${record.best} &middot; ${record.wins} win${record.wins === 1 ? "" : "s"}</div></div></div><div class="gd-head-actions"><span class="gd-sun" title="Sun"><i></i><span data-sun>${dev ? "&#8734;" : board?.sun ?? 0}</span></span><button class="gd-icon" data-pause title="Pause (P)">${paused ? "&#9654;" : "&#10074;&#10074;"}</button><button class="gd-icon" data-close aria-label="Close">&#10005;</button></div></header><div class="gd-body">${endHtml()}${wavesHtml()}<div class="gd-banner" data-banner hidden></div><div class="gd-seeds">${seedsHtml()}</div><div class="gd-tools"><button data-shovel data-active="${shovel}">${SHOVEL_ICON} ${shovel ? "Digging" : "Shovel"}</button><button data-restart-run>Restart</button></div>` + devHtml() + `<div class="gd-status" data-status></div></div><div class="gd-foot"><span>Click sun to collect it &middot; right-click to put down</span><span>${record.sun.toLocaleString(NUMBER_LOCALE)} sun &middot; ${record.runs} runs</span></div>`;
       bindDevButtons(card);
       card.querySelector("[data-close]").onclick = close;
-      card.querySelector("[data-restart]").onclick = () => {
-        reset();
-        renderChrome();
-      };
-      card.querySelector("[data-shovel]").onclick = () => {
-        shovel = !shovel;
-        if (shovel) selected3 = null;
-        status = shovel ? "Click a plant to dig it up." : "Shovel put away.";
-        renderChrome();
-      };
+      card.querySelector("[data-pause]").onclick = togglePause;
+      for (const button of card.querySelectorAll("[data-restart], [data-restart-run]")) button.onclick = restart;
+      card.querySelector("[data-keep-going]")?.addEventListener("click", keepGoing);
+      card.querySelector("[data-shovel]").onclick = toggleShovel;
       for (const button of card.querySelectorAll("[data-seed]")) {
-        button.onclick = () => {
-          const id = button.dataset.seed;
-          selected3 = selected3 === id ? null : id;
-          shovel = false;
-          const def = PLANT_BY_ID.get(id);
-          status = selected3 && def ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
-          renderChrome();
-        };
+        button.onclick = () => selectSeed(button.dataset.seed);
       }
       renderStatus();
     }
+    function selectSeed(id) {
+      const def = PLANT_BY_ID.get(id);
+      if (!def || !playing() || paused) return;
+      selected3 = selected3 === id ? null : id;
+      shovel = false;
+      status = selected3 ? `${def.name}: ${def.detail}` : "Pick a seed, then click a tile to plant it.";
+      renderChrome();
+    }
+    function toggleShovel() {
+      if (!playing()) return;
+      shovel = !shovel;
+      if (shovel) selected3 = null;
+      status = shovel ? "Click a plant to dig it up." : "Shovel put away.";
+      renderChrome();
+    }
+    function togglePause() {
+      if (!playing()) return;
+      paused = !paused;
+      status = paused ? "Paused. Press P or the play button to carry on." : "Back to it!";
+      renderChrome();
+    }
     function bindDevButtons(card) {
-      if (!dev) return;
+      if (!dev || !board) return;
+      const current = board;
       for (const button of card.querySelectorAll("[data-spawn]")) {
         button.onclick = () => {
-          const def = PESTS.find((pest) => pest.id === button.dataset.spawn);
+          const def = ALL_PESTS.find((pest) => pest.id === button.dataset.spawn);
           if (!def) return;
-          spawnPest(def);
+          current.spawn(def);
           status = `Spawned a ${def.name}.`;
           renderStatus();
         };
       }
       card.querySelector("[data-spawn-lane]").onclick = () => {
-        const def = PESTS[0];
-        for (let lane = 0; lane < lanes; lane++) spawnPest(def, lane);
-        status = `Spawned a ${def.name} in all ${lanes} lanes.`;
+        for (let lane = 0; lane < lanes; lane++) current.spawn(ALL_PESTS[0], lane);
+        status = `Spawned a worm in all ${lanes} lanes.`;
         renderStatus();
       };
       card.querySelector("[data-clear-pests]").onclick = () => {
-        for (const pest of pests) removePest(pest);
-        pests = [];
-        queued2 = [];
+        current.pests = [];
+        current.queued = [];
         status = "Cleared every pest.";
         renderStatus();
       };
       card.querySelector("[data-clear-plants]").onclick = () => {
-        for (const plant of [...plants]) removePlant(plant);
+        for (const plant of [...current.plants]) current.dig(plant.lane, plant.column);
         status = "Cleared the board.";
         renderStatus();
       };
       card.querySelector("[data-hold]").onclick = () => {
-        wavesHeld = !wavesHeld;
-        status = wavesHeld ? "Waves held. Spawn pests by hand." : "Waves running again.";
+        current.wavesHeld = !current.wavesHeld;
+        status = current.wavesHeld ? "Waves held. Spawn pests by hand." : "Waves running again.";
         renderChrome();
       };
-      card.querySelector("[data-next-wave]").onclick = () => {
-        startWave();
-        waveTimer = WAVE_INTERVAL;
-      };
+      card.querySelector("[data-next-wave]").onclick = () => current.startWave();
       card.querySelector("[data-add-sun]").onclick = () => {
-        sun += 500;
+        current.sun += 500;
         renderStatus();
       };
     }
     function open() {
       const host = panel3();
       if (!host) return;
+      page.__gardenCompanionLoadSpriteGroup?.("deferred");
+      if (page.__gardenCompanionFishingOpen?.()) page.__gardenCompanionToggleFishing?.();
       host.hidden = false;
       scene.enter();
-      if (!running && !over) reset();
       renderChrome();
       if (!draggableReady) {
         const card = host.querySelector(".gd-card");
@@ -13326,6 +14144,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (host) host.hidden = true;
       stopLoop();
       scene.exit();
+      forgetSprites();
+      hovered = null;
       const input = host?.querySelector(".gd-lawn-input");
       if (input) input.hidden = true;
     }
@@ -13349,10 +14169,24 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         card.addEventListener(type, (event) => event.stopPropagation());
         if (type !== "wheel") lawnInput.addEventListener(type, (event) => event.stopPropagation());
       }
+      lawnInput.addEventListener("contextmenu", (event) => event.preventDefault());
       lawnInput.onpointerdown = (event) => {
         event.preventDefault();
+        if (event.button === 2) {
+          selected3 = null;
+          shovel = false;
+          renderChrome();
+          return;
+        }
         if (event.button !== 0) return;
         handleLawnClick(event.clientX, event.clientY);
+      };
+      lawnInput.onpointermove = (event) => {
+        const cell = cellAt(event.clientX, event.clientY);
+        hovered = cell ? { lane: cell.lane, column: cell.column } : null;
+      };
+      lawnInput.onpointerleave = () => {
+        hovered = null;
       };
       lawnInput.addEventListener("wheel", (event) => {
         const gameCanvas = document.querySelector(".QuinoaCanvas canvas");
@@ -13374,13 +14208,25 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           metaKey: event.metaKey
         }));
       }, { passive: false });
+      window.addEventListener("keydown", (event) => {
+        if (panel3()?.hidden !== false || isTyping() || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
+        const key = event.key.toLowerCase();
+        const seedIndex = SEED_KEYS.indexOf(key);
+        if (seedIndex >= 0 && PLANTS[seedIndex]) selectSeed(PLANTS[seedIndex].id);
+        else if (key === "p") togglePause();
+        else if (key === "escape") {
+          selected3 = null;
+          shovel = false;
+          renderChrome();
+        } else return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }, true);
       page.__gardenCompanionToggleGardenDefence = () => panel3()?.hidden ? open() : close();
       page.__gardenCompanionGardenDefenceDev = (enabled = !dev) => {
         dev = enabled;
-        if (!dev) wavesHeld = false;
-        reset();
         if (panel3()?.hidden !== false) open();
-        else renderChrome();
+        restart();
         return dev;
       };
     }

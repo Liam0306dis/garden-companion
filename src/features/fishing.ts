@@ -4,6 +4,12 @@ import { makeDraggable } from '../draggable.js';
 import { createWorldScene, TILE_SIZE, type WorldBounds, type WorldGeometry } from '../world-scene.js';
 import { escapeHtml, loadLocal, NUMBER_LOCALE, saveLocal } from '../utils.js';
 import { isTyping } from '../keybinds.js';
+import {
+  createFight, FIGHT_PACE, FIGHT_STYLES, FISH, FISH_BY_ID, fishTravelSpeed, LOSE_FLOOR, PERFECT_BONUS, RARITIES, RARITY_ORDER,
+  REEL_LIMIT, START_PROGRESS, TROPHY_BONUS, TROPHY_SHARE, ZONE_DRAG, ZONE_GRAVITY,
+  ZONE_LIFT, zoneAgility, catchRewards, EQUIPMENT, EQUIPMENT_BY_ID, fishingLevel, pickFish,
+  type EquipmentDef, type EquipmentSlot, type Fight, type FishDef, type Rarity,
+} from './fishing-rules.js';
 import { fishingMuted, playBite, playCast, playCatch, playEscape, playNibble, playReelClick, primeFishingAudio, setFishingMuted } from './fishing-audio.js';
 
 /**
@@ -17,35 +23,6 @@ const PANEL_ID = 'gc-fishing-panel';
 const RECORD_KEY = 'gardenCompanion.fishing.v1';
 const POSITION_KEY = 'gardenCompanion.fishingPosition.v1';
 
-type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
-
-interface RarityRule {
-  label: string;
-  colour: string;
-  /** Relative chance of the tier being drawn before weather is taken into account. */
-  weight: number;
-  /** Height of the hook zone as a fraction of the track. */
-  zone: number;
-  /** How hard the fish pulls around the track. */
-  speed: number;
-  /** Progress gained and lost per second while the fish is inside or outside the zone. */
-  fill: number;
-  drain: number;
-}
-
-const RARITIES: Record<Rarity, RarityRule> = {
-  common: { label: 'Common', colour: '#94a3b8', weight: 48, zone: .34, speed: .8, fill: .48, drain: .28 },
-  uncommon: { label: 'Uncommon', colour: '#34d399', weight: 28, zone: .30, speed: .95, fill: .43, drain: .32 },
-  rare: { label: 'Rare', colour: '#38bdf8', weight: 15, zone: .26, speed: 1.1, fill: .38, drain: .37 },
-  epic: { label: 'Epic', colour: '#a78bfa', weight: 6, zone: .22, speed: 1.25, fill: .32, drain: .43 },
-  legendary: { label: 'Legendary', colour: '#fbbf24', weight: 2.5, zone: .19, speed: 1.42, fill: .27, drain: .48 },
-  mythic: { label: 'Mythic', colour: '#f472b6', weight: .5, zone: .15, speed: 1.7, fill: .21, drain: .58 },
-};
-
-const RARITY_ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
-const WEATHER_FISH_WEIGHT = 2;
-const WEATHER_MYTHIC_CHANCE = .015;
-
 /** How long the float stays dipped. Long enough to react to without making the hook automatic. */
 const BITE_WINDOW = 1500;
 /**
@@ -53,149 +30,11 @@ const BITE_WINDOW = 1500;
  * ignore them for this long, otherwise the next cast starts before the catch has been read.
  */
 const RESULT_LOCK = 1600;
-/**
- * Fill and drain are both scaled by this, so a fight takes longer without becoming easier or
- * harder: the share of time a tier needs the fish inside the zone is the ratio between the two,
- * which a shared multiplier leaves untouched.
- */
-const FIGHT_PACE = .5;
-/** Where the bar starts, how far below empty it may go before the fish wins, and the hard cap. */
-const START_PROGRESS = .2;
-const LOSE_FLOOR = -.15;
-const REEL_LIMIT = 45000;
 /** Rod back-swing then forward whip. The flight lands as the cast splash in the audio plays. */
 const CAST_WINDUP = 150;
 const CAST_FLIGHT = 210;
-/**
- * Hook zone control. Friction is what makes this steerable: without it, holding accelerates without
- * bound and the zone can only ever overshoot, so the smaller a zone gets the more it oscillates
- * past the fish. With it, holding settles at a terminal speed and releasing settles at another, so
- * tapping gives every speed in between and the zone can be parked on a fish rather than flung at it.
- */
-const ZONE_LIFT = 11.5;
-const ZONE_GRAVITY = 4.9;
-/** Applied per second, expressed at 60fps. About a 0.14s time constant. */
-const ZONE_FRICTION = .89;
-/**
- * How hard a fish swims toward the spot it has picked. This is the real difficulty dial: a fish
- * that crosses the track faster than the zone can follow cannot be caught by playing well, only by
- * waiting for it to swim into a zone that happens to be parked.
- */
-const FISH_PULL = 4.5;
-/** Rate that friction sheds velocity, used to state the resulting terminal speeds on the bench. */
-const ZONE_DRAG = -Math.log(ZONE_FRICTION) * 60;
-
-/**
- * The fish speed the zone's own numbers were tuned against. Fixed rather than read from a tier, so
- * that retuning a tier's speed cannot quietly slow down every zone in the game.
- */
-const SPEED_BASELINE = .55;
-
-/**
- * How much faster the zone gets on a faster tier. Deliberately softened rather than matched: the
- * control needs to keep pace with the fish, but making it as twitchy as the fish costs more in
- * precision against a small zone than it gains in reach.
- */
-function zoneAgility(speed: number): number {
-  return 1 + (speed / SPEED_BASELINE - 1) * .6;
-}
-
-/**
- * How fast a tier's fish actually travels, in track fractions per second, once its own drag has
- * balanced the pull. Quoted for a fish half a track from where it is heading. This is the number
- * that has to stay under the zone's lift speed for a tier to be beatable by playing well.
- */
-function fishTravelSpeed(speed: number): number {
-  return .5 * FISH_PULL * speed / (-Math.log(.93) * 60) * 1.6;
-}
-
-type FightStyle = 'steady' | 'darter' | 'sinker' | 'glider' | 'leaper';
-
-/**
- * How a species moves on the track, layered over its tier's speed. Pull scales how hard it swims
- * at its chosen spot and pause scales how long it keeps that spot, so a tier's difficulty stays in
- * the same neighbourhood while each fish reads differently.
- */
-const FIGHT_STYLES: Record<FightStyle, { label: string; pull: number; pause: number }> = {
-  steady: { label: 'Steady', pull: 1, pause: 1 },
-  darter: { label: 'Darter', pull: 1.15, pause: .55 },
-  sinker: { label: 'Sinker', pull: .9, pause: 1.15 },
-  glider: { label: 'Glider', pull: .72, pause: 1.9 },
-  leaper: { label: 'Leaper', pull: 1, pause: 1 },
-};
-
-/** Share of a species' weight range at or above which a catch counts as a trophy. */
-const TROPHY_SHARE = .9;
-const PERFECT_BONUS = 1.5;
-const TROPHY_BONUS = 1.25;
-
-interface FishDef {
-  id: string;
-  name: string;
-  rarity: Rarity;
-  style: FightStyle;
-  /** Weight range in kilograms. */
-  min: number;
-  max: number;
-  /** The only weather this fish bites in. Unset means it bites in any weather. */
-  weather?: string;
-  note: string;
-}
-
-/** Entirely invented - none of these exist in the game. */
-const FISH: FishDef[] = [
-  { id: 'pondMinnow', name: 'Pond Minnow', rarity: 'common', style: 'darter', min: .1, max: .6, note: 'Travels in crowds and panics alone.' },
-  { id: 'muddyBream', name: 'Muddy Bream', rarity: 'common', style: 'sinker', min: .4, max: 1.8, note: 'Tastes of the bottom it never leaves.' },
-  { id: 'reedPerch', name: 'Reed Perch', rarity: 'common', style: 'darter', min: .3, max: 1.4, note: 'Hides in the shallows, strikes at anything.' },
-  { id: 'gardenGuppy', name: 'Garden Guppy', rarity: 'common', style: 'steady', min: .1, max: .4, note: 'Somehow always in the watering can.' },
-  { id: 'rainSilverfin', name: 'Rain Silverfin', rarity: 'common', style: 'leaper', min: .2, max: 1.1, weather: 'Rain', note: 'Rises the moment the first drop lands.' },
-  { id: 'copperCarp', name: 'Copper Carp', rarity: 'uncommon', style: 'sinker', min: 1.2, max: 4.5, note: 'Old enough to have opinions about lures.' },
-  { id: 'speckledTrout', name: 'Speckled Trout', rarity: 'uncommon', style: 'darter', min: .8, max: 3.2, note: 'Fast, fussy, worth the trouble.' },
-  { id: 'glassEel', name: 'Glass Eel', rarity: 'uncommon', style: 'darter', min: .5, max: 2.4, note: 'You can read the riverbed through it.' },
-  { id: 'mossBass', name: 'Moss Bass', rarity: 'uncommon', style: 'steady', min: 1.5, max: 5, note: 'Wears its pond like a coat.' },
-  { id: 'puddlePike', name: 'Puddle Pike', rarity: 'uncommon', style: 'leaper', min: 1.8, max: 6, weather: 'Rain', note: 'Appears in water far too small for it.' },
-  { id: 'moonscaleKoi', name: 'Moonscale Koi', rarity: 'rare', style: 'glider', min: 3, max: 9, note: 'Every scale holds a slightly different moon.' },
-  { id: 'brambleRay', name: 'Bramble Ray', rarity: 'rare', style: 'glider', min: 4, max: 12, note: 'Glides like a thrown blanket.' },
-  { id: 'ironjawCatfish', name: 'Ironjaw Catfish', rarity: 'rare', style: 'sinker', min: 6, max: 16, note: 'Has taken three hooks and kept them.' },
-  { id: 'lanternCod', name: 'Lantern Cod', rarity: 'rare', style: 'steady', min: 3.5, max: 11, weather: 'Dawn', note: 'Carries its own small sunrise.' },
-  { id: 'chillbackChar', name: 'Chillback Char', rarity: 'rare', style: 'steady', min: 2.5, max: 8, weather: 'Frost', note: 'Warm to the touch, strangely.' },
-  { id: 'amberfinTench', name: 'Amberfin Tench', rarity: 'rare', style: 'sinker', min: 3, max: 10, weather: 'AmberMoon', note: 'Slow, heavy, and the colour of old honey.' },
-  { id: 'staticShiner', name: 'Static Shiner', rarity: 'rare', style: 'darter', min: 2, max: 7, weather: 'Thunderstorm', note: 'Sets the hairs on your arm up before you see it.' },
-  { id: 'mirrorfinArowana', name: 'Mirrorfin Arowana', rarity: 'epic', style: 'glider', min: 9, max: 30, note: 'Turns without disturbing the water around it.' },
-  { id: 'cloudburstSalmon', name: 'Cloudburst Salmon', rarity: 'epic', style: 'leaper', min: 10, max: 28, weather: 'Rain', note: 'Swims up the rain itself, given enough of it.' },
-  { id: 'stormfinMarlin', name: 'Stormfin Marlin', rarity: 'epic', style: 'leaper', min: 12, max: 34, weather: 'Thunderstorm', note: 'Runs ahead of the weather front.' },
-  { id: 'frostbellySturgeon', name: 'Frostbelly Sturgeon', rarity: 'epic', style: 'sinker', min: 15, max: 40, weather: 'Frost', note: 'Older than the pond it swims in.' },
-  { id: 'dawnlitAngelfish', name: 'Dawnlit Angelfish', rarity: 'epic', style: 'glider', min: 8, max: 22, weather: 'Dawn', note: 'Only surfaces while the light is thin.' },
-  { id: 'amberscaleTuna', name: 'Amberscale Tuna', rarity: 'epic', style: 'leaper', min: 18, max: 46, weather: 'AmberMoon', note: 'Set solid in colour, still very much alive.' },
-  { id: 'crownscaleArapaima', name: 'Crownscale Arapaima', rarity: 'legendary', style: 'steady', min: 28, max: 82, note: 'The smaller fish follow it as if it knows the way.' },
-  { id: 'thunderjawGar', name: 'Thunderjaw Gar', rarity: 'legendary', style: 'darter', min: 30, max: 75, weather: 'Thunderstorm', note: 'The bite arrives before the fish does.' },
-  { id: 'glacierLeviathan', name: 'Glacier Leviathan', rarity: 'legendary', style: 'sinker', min: 40, max: 95, weather: 'Frost', note: 'Mistaken for the far bank more than once.' },
-  { id: 'sunspireSerpent', name: 'Sunspire Serpent', rarity: 'legendary', style: 'glider', min: 25, max: 68, weather: 'Dawn', note: 'Coils around the light and holds it there.' },
-  { id: 'harvestmoonWels', name: 'Harvestmoon Wels', rarity: 'legendary', style: 'sinker', min: 35, max: 88, weather: 'AmberMoon', note: 'Comes up once the whole pond has turned the same colour as it.' },
-  { id: 'firstLightRay', name: 'First Light Ray', rarity: 'mythic', style: 'glider', min: 55, max: 165, weather: 'Dawn', note: 'Seen only in the minute the sky decides on a colour.' },
-  { id: 'oldRootmouth', name: 'Old Rootmouth', rarity: 'mythic', style: 'sinker', min: 60, max: 140, weather: 'AmberMoon', note: 'The garden grew around it, not the other way round.' },
-  { id: 'rainbowWhiskerfish', name: 'Rainbow Whiskerfish', rarity: 'mythic', style: 'leaper', min: 70, max: 210, note: 'Nobody agrees on what colour it actually is.' },
-];
-
-const FISH_BY_ID = new Map(FISH.map(fish => [fish.id, fish]));
 
 interface CatchRecord { count: number; best: number; first: number }
-type EquipmentSlot = 'rod' | 'line' | 'tackle';
-interface EquipmentDef {
-  id: string;
-  name: string;
-  slot: EquipmentSlot;
-  detail: string;
-  price?: number;
-  foundFrom?: string;
-  dropChance?: number;
-  zone?: number;
-  fill?: number;
-  start?: number;
-  /** Multiplies progress lost while the fish is outside the zone. */
-  drain?: number;
-  bite?: number;
-}
 interface FishingRecord {
   casts: number;
   caught: number;
@@ -254,23 +93,6 @@ const BAITS: BaitDef[] = [
 ];
 const BAIT_BY_ID = new Map(BAITS.map(bait => [bait.id, bait]));
 
-const EQUIPMENT: EquipmentDef[] = [
-  { id: 'reedRod', name: 'Reed Rod', slot: 'rod', detail: 'A dependable first rod.' },
-  { id: 'oakRod', name: 'Oak Rod', slot: 'rod', detail: '+2% catch zone and +5% progress.', price: 150, zone: .02, fill: 1.05 },
-  { id: 'silverRod', name: 'Silver Rod', slot: 'rod', detail: '+3% catch zone and +10% progress.', price: 600, zone: .03, fill: 1.1 },
-  { id: 'moonRod', name: 'Moon Rod', slot: 'rod', detail: '+4% catch zone and +16% progress.', price: 1800, zone: .04, fill: 1.16 },
-  { id: 'braidedLine', name: 'Braided Line', slot: 'line', detail: 'Progress slips 12% slower while the fish is loose.', foundFrom: 'speckledTrout', dropChance: .1, drain: .88 },
-  { id: 'silkLine', name: 'Mirror Silk Line', slot: 'line', detail: 'Progress slips 22% slower while the fish is loose.', foundFrom: 'mirrorfinArowana', dropChance: .08, drain: .78 },
-  { id: 'reedFloat', name: 'Reed Float', slot: 'tackle', detail: '+300ms to set the hook.', foundFrom: 'reedPerch', dropChance: .14, bite: 300 },
-  { id: 'barbedHook', name: 'Ironjaw Hook', slot: 'tackle', detail: 'Begin each fight with 7% more progress.', foundFrom: 'ironjawCatfish', dropChance: .1, start: .07 },
-  { id: 'crownLure', name: 'Crownscale Lure', slot: 'tackle', detail: '+3% catch zone.', foundFrom: 'crownscaleArapaima', dropChance: .08, zone: .03 },
-  { id: 'prismLure', name: 'Prismatic Lure', slot: 'tackle', detail: '+12% progress while the fish is controlled.', foundFrom: 'rainbowWhiskerfish', dropChance: .12, fill: 1.12 },
-];
-const EQUIPMENT_BY_ID = new Map(EQUIPMENT.map(item => [item.id, item]));
-const RARITY_REWARDS: Record<Rarity, { coins: number; xp: number }> = {
-  common: { coins: 5, xp: 8 }, uncommon: { coins: 11, xp: 14 }, rare: { coins: 24, xp: 26 },
-  epic: { coins: 52, xp: 48 }, legendary: { coins: 110, xp: 90 }, mythic: { coins: 240, xp: 165 },
-};
 
 const EMPTY_RECORD: FishingRecord = {
   casts: 0, caught: 0, escaped: 0, perfects: 0, fish: {}, coins: 0, xp: 0,
@@ -326,46 +148,8 @@ function fishSvg(colour: string, share: number): string {
   return `<svg viewBox="0 0 64 40" width="${Math.round(52 * scale)}" height="${Math.round(33 * scale)}" aria-hidden="true"><path d="M3 7 L19 20 L3 33 Z" fill="${colour}" opacity=".8"/><path d="M28 9 Q37 1 46 10" fill="${colour}" opacity=".7"/><ellipse cx="37" cy="20" rx="23" ry="12.5" fill="${colour}"/><ellipse cx="37" cy="24" rx="17" ry="5" fill="#fff" opacity=".2"/><path d="M44 12 Q41 20 44 28" stroke="#0f172a" stroke-width="1.4" fill="none" opacity=".35"/><circle cx="52" cy="17" r="3.2" fill="#fff"/><circle cx="53" cy="17" r="1.6" fill="#0f172a"/></svg>`;
 }
 
-function fishingLevel(xp: number): { level: number; current: number; needed: number } {
-  let level = 1;
-  let remaining = Number.isFinite(xp) ? Math.max(0, xp) : 0;
-  let needed = 60;
-  while (remaining >= needed) {
-    remaining -= needed;
-    level++;
-    needed = Math.round(60 * Math.pow(level, 1.35));
-  }
-  return { level, current: remaining, needed };
-}
 
-function weightedPick<T>(items: T[], weight: (item: T) => number): T {
-  const total = items.reduce((sum, item) => sum + weight(item), 0);
-  let roll = Math.random() * total;
-  for (const item of items) {
-    roll -= weight(item);
-    if (roll <= 0) return item;
-  }
-  return items[items.length - 1];
-}
 
-/**
- * Rarity is rolled before species, so adding another fish never makes its entire tier more common.
- * Matching-weather fish receive a modest boost inside their tier. Event mythics are handled first
- * at a fixed rate because their ten-minute weather occurs only once every eight hours on average.
- */
-function pickFish(weather: string | null, bait?: BaitDef): FishDef {
-  const eventMythics = FISH.filter(fish => fish.rarity === 'mythic' && fish.weather === weather);
-  const mythicChance = WEATHER_MYTHIC_CHANCE * (bait?.weatherBoost ? 2 : 1);
-  if (eventMythics.length && Math.random() < mythicChance) {
-    return eventMythics[Math.floor(Math.random() * eventMythics.length)];
-  }
-
-  const pool = FISH.filter(fish => (!fish.weather || fish.weather === weather) && !eventMythics.includes(fish));
-  const rarities = RARITY_ORDER.filter(rarity => pool.some(fish => fish.rarity === rarity));
-  const rarity = weightedPick(rarities, value => RARITIES[value].weight * (bait?.rarity?.[value] ?? 1));
-  const tier = pool.filter(fish => fish.rarity === rarity);
-  return weightedPick(tier, fish => fish.weather ? WEATHER_FISH_WEIGHT * (bait?.weatherBoost ?? 1) : 1);
-}
 
 /** Tints laid over the water so the pond itself says what the weather is doing. */
 const WEATHER_TINT: Record<string, { color: number; alpha: number }> = {
@@ -542,9 +326,10 @@ export function initFishing(): void {
   let castDistance = .42;
   let hookDepth = .28;
   let waitUntil = 0;
-  let reelEndsAt = 0;
-  let fishAt = .5, fishVelocity = 0, fishTarget = .5, retargetAt = 0;
-  let zoneAt = .5, zoneVelocity = 0, zoneHeight = .3;
+  /** The fight in progress; the fields below are copied out of it each frame for drawing. */
+  let fight: Fight | null = null;
+  let fishAt = .5, fishVelocity = 0;
+  let zoneAt = .5, zoneHeight = .3;
   let progress = 0;
   let resultColour = 'rgba(255,255,255,.72)';
   let resultLockUntil = 0;
@@ -568,8 +353,7 @@ export function initFishing(): void {
   let nibbles: number[] = [];
   let nibbleAt = -Infinity;
   let landedSplash = false;
-  // Fight flavour: the current leg's pull, whether the fish is in the zone, and whether it ever left.
-  let fishLegPull = 1;
+  // Whether the fish is in the zone, and whether it has ever left it.
   let fishInside = true;
   let fightSlipped = false;
   /** Progress the fight began at, which is where the fish sits at the cast spot. */
@@ -593,7 +377,8 @@ export function initFishing(): void {
    */
   const scene = createWorldScene({
     owner: 'fishing',
-    layers: { pond: -999_000, fish: -998_999, dock: -998_998, fire: -998_996, rod: 999_000 },
+    // Fish swim under the lily pads; the float, ripples and lightning sit on the surface above them.
+    layers: { pond: -999_000, fish: -998_999, lilies: -998_998, surface: -998_997, dock: -998_996, fire: -998_995, rod: 999_000 },
     abovePlayer: ['rod'],
     showcase: geometry => campDecor(geometry),
     onBuild(geometry, built) {
@@ -601,6 +386,8 @@ export function initFishing(): void {
       pondBounds = { left: geometry.left, top: geometry.top, width: geometry.width * .62, height: geometry.height };
       const pond = built.layer('pond');
       const dock = built.layer('dock');
+      const lilies = built.layer('lilies');
+      if (lilies) drawLilies(lilies, farmBounds);
       if (pond) drawPond(pond, farmBounds);
       if (dock) drawDock(dock, pondBounds);
       // Stand-in pits until the camp decor claims its tiles, which happens straight after this.
@@ -643,11 +430,6 @@ export function initFishing(): void {
     return equippedEffects().reduce((total, item) => total * (item.fill ?? 1), levelBonus);
   }
 
-  function catchRewards(fish: FishDef, weight: number): { coins: number; xp: number } {
-    const base = RARITY_REWARDS[fish.rarity];
-    const weightFactor = .7 + Math.max(0, Math.min(1, (weight - fish.min) / Math.max(.01, fish.max - fish.min))) * .8;
-    return { coins: Math.max(1, Math.round(base.coins * weightFactor)), xp: Math.max(1, Math.round(base.xp * weightFactor)) };
-  }
 
   function itemDrop(fish: FishDef): EquipmentDef | undefined {
     const item = EQUIPMENT.find(candidate => candidate.foundFrom === fish.id && !record.equipment[candidate.id]);
@@ -673,6 +455,13 @@ export function initFishing(): void {
       graphic.circle(x, y, 30 + index % 3 * 4).fill({ color: index % 2 ? 0x2f6b36 : 0x397a3f, alpha: 1 });
       graphic.circle(x - 7, y - 8, 12).fill({ color: 0x5b954c, alpha: .72 });
     }
+  }
+
+  /** Lily pads on their own layer, above the fish, so the fish swim underneath them. */
+  function drawLilies(graphic: Record<string, any>, bounds: WorldBounds): void {
+    const { left, top, width, height } = bounds;
+    const waterWidth = width * .62;
+    graphic.clear();
     // Lily pads scattered over the water on a low-discrepancy (R2) sequence, so they spread evenly without a grid.
     // The dock and a margin round the float's usual landing band are left open.
     const dockTile = Math.min(256, waterWidth * .22, height * .24);
@@ -789,10 +578,11 @@ export function initFishing(): void {
       .filter(col => col * TILE_SIZE + TILE_SIZE / 2 > deckLeft + 40).sort((a, b) => a - b);
     const rows = [...new Set(geometry.globals.map(index => Math.floor(index / mapCols)))].sort((a, b) => a - b);
     if (cols.length < 2 || rows.length < 3) return placed;
-    const put = (col: number | undefined, row: number | undefined, decorId: string) => {
+    /** `rotation` is the game's own: 90-degree turns for decor that has them. */
+    const put = (col: number | undefined, row: number | undefined, decorId: string, rotation = 0) => {
       if (col === undefined || row === undefined) return;
       const index = row * mapCols + col;
-      if (owned.has(index) && !placed.has(index)) placed.set(index, { objectType: 'decor', decorId, rotation: 0 });
+      if (owned.has(index) && !placed.has(index)) placed.set(index, { objectType: 'decor', decorId, rotation });
     };
     // Everything is laid out round the deck's centre column, which stays clear as an aisle down to
     // the fires. A torch stands in each of the four corners,
@@ -809,7 +599,8 @@ export function initFishing(): void {
     for (const col of cols.slice(1, -1)) {
       if (col === centre) continue;
       put(col, top, 'WoodBench');
-      put(col, bottom, 'WoodBench');
+      // Turned round so the bottom row faces into the camp, like the top row does.
+      put(col, bottom, 'WoodBench', 180);
     }
     // Ornaments down the far edge, a tile apart so the tall windmill has room to stand.
     const ornaments = ['WoodBirdhouse', 'WoodWindmill', 'WoodFrog', 'PaperLantern', 'WoodOwl'];
@@ -1170,14 +961,16 @@ export function initFishing(): void {
     if (panel()?.hidden) return;
     const geometry = scene.sync();
     const fishGraphic = scene.layer('fish');
+    const surface = scene.layer('surface');
     const rodGraphic = scene.layer('rod');
     const fireGraphic = scene.layer('fire');
     if (fireGraphic) drawFirePits(fireGraphic, now);
-    if (!geometry || !pondBounds || !farmBounds || !fishGraphic || !rodGraphic) return;
+    if (!geometry || !pondBounds || !farmBounds || !fishGraphic || !surface || !rodGraphic) return;
     positionPondInput();
     const { left, top, width, height } = pondBounds;
     const player = playerPoint(geometry);
     fishGraphic.clear();
+    surface.clear();
     drawWater(fishGraphic, now);
 
     for (const swimmer of swimmers) {
@@ -1230,7 +1023,7 @@ export function initFishing(): void {
       if (age < 0 || age >= 1) continue;
       const point = pondPoint(ripple.x, ripple.y);
       const radius = ripple.size * (.25 + age);
-      fishGraphic.ellipse(point.x, point.y, radius, radius * .72).stroke({ color: 0xe0f2fe, width: 2.5, alpha: ripple.alpha * (1 - age) });
+      surface.ellipse(point.x, point.y, radius, radius * .72).stroke({ color: 0xe0f2fe, width: 2.5, alpha: ripple.alpha * (1 - age) });
     }
     ripples = ripples.filter(ripple => now - ripple.at < ripple.life);
 
@@ -1239,22 +1032,22 @@ export function initFishing(): void {
       const nibble = Math.max(0, 1 - (now - nibbleAt) / 300);
       if (phase === 'bite') {
         // Pulled under: only a dark smudge and a pulsing gold ring show where it went.
-        fishGraphic.circle(float.x, float.y + 4, 9).fill({ color: 0x7f1d1d, alpha: .45 });
-        fishGraphic.circle(float.x, float.y, 28 + Math.sin(now / 90) * 7).stroke({ color: 0xfbbf24, width: 5, alpha: .75 });
+        surface.circle(float.x, float.y + 4, 9).fill({ color: 0x7f1d1d, alpha: .45 });
+        surface.circle(float.x, float.y, 28 + Math.sin(now / 90) * 7).stroke({ color: 0xfbbf24, width: 5, alpha: .75 });
       } else {
         const y = float.y + bob + nibble * 6;
         const scale = 1 - nibble * .3;
-        fishGraphic.ellipse(float.x, float.y + 8, 13, 5).fill({ color: 0x0b2530, alpha: .25 });
-        fishGraphic.circle(float.x, y, 11 * scale).fill({ color: 0xef4444, alpha: .95 });
-        fishGraphic.circle(float.x, y - 4 * scale, 7 * scale).fill({ color: 0xf8fafc, alpha: .95 });
-        fishGraphic.circle(float.x, y - 9 * scale, 2.5 * scale).fill({ color: 0x1f2937, alpha: 1 });
+        surface.ellipse(float.x, float.y + 8, 13, 5).fill({ color: 0x0b2530, alpha: .25 });
+        surface.circle(float.x, y, 11 * scale).fill({ color: 0xef4444, alpha: .95 });
+        surface.circle(float.x, y - 4 * scale, 7 * scale).fill({ color: 0xf8fafc, alpha: .95 });
+        surface.circle(float.x, y - 9 * scale, 2.5 * scale).fill({ color: 0x1f2937, alpha: 1 });
       }
     }
 
     if (flashAt > -Infinity) {
       const flash = Math.max(0, 1 - (now - flashAt) / 380);
       const flicker = now - flashAt > 90 && now - flashAt < 150 ? .3 : 1;
-      if (flash > 0) fishGraphic.roundRect(left, top, width, height, 44).fill({ color: 0xf8fafc, alpha: .32 * flash * flicker });
+      if (flash > 0) surface.roundRect(left, top, width, height, 44).fill({ color: 0xf8fafc, alpha: .32 * flash * flicker });
     }
 
     rodGraphic.clear();
@@ -1285,7 +1078,7 @@ export function initFishing(): void {
       const progress = Math.max(0, Math.min(1, (castElapsed - CAST_WINDUP) / CAST_FLIGHT));
       lineEndX = rodTipX + (lineEnd.x - rodTipX) * progress;
       lineEndY = rodTipY + (lineEnd.y - rodTipY) * progress - Math.sin(Math.PI * progress) * 70;
-      fishGraphic.circle(lineEndX, lineEndY, 10).fill({ color: 0xf8fafc, alpha: .92 });
+      surface.circle(lineEndX, lineEndY, 10).fill({ color: 0xf8fafc, alpha: .92 });
     }
     // The rod bows toward the fish under load: harder while reeling, a flick on the strike.
     const tension = phase === 'reel' ? (holding ? 1 : .55) : phase === 'bite' ? .45 : 0;
@@ -1430,39 +1223,23 @@ export function initFishing(): void {
   function armFish(fish: FishDef, now: number): void {
     hooked = fish;
     hookedWeight = fish.min + Math.random() * (fish.max - fish.min);
-    zoneHeight = Math.min(.42, RARITIES[fish.rarity].zone + equipmentTotal('zone'));
-    zoneAt = .5;
-    zoneVelocity = 0;
-    fishAt = .5;
-    fishVelocity = 0;
-    fishTarget = .5;
-    fishLegPull = 1;
-    fishInside = true;
-    fightSlipped = false;
-    retargetAt = now;
-    progress = Math.min(.5, START_PROGRESS + equipmentTotal('start'));
-    fightStartProgress = progress;
+    fight = createFight(fish, { zone: equipmentTotal('zone'), fill: equipmentFill(), drain: equipmentDrain(), start: equipmentTotal('start') });
+    syncFight();
     lastCatch = null;
     fightEndedAt = 0;
   }
 
-  /** Picks where the fish heads next, and for how long, according to how its species fights. */
-  function retarget(fish: FishDef, now: number): void {
-    const rule = RARITIES[fish.rarity];
-    const style = FIGHT_STYLES[fish.style];
-    let target = .06 + Math.random() * .88;
-    let pull = style.pull;
-    let pause = (320 + Math.random() * 780 / rule.speed) * style.pause;
-    if (fish.style === 'sinker') target = .06 + Math.sqrt(Math.random()) * .88;
-    else if (fish.style === 'glider') target = fishAt < .5 ? .6 + Math.random() * .34 : .06 + Math.random() * .34;
-    else if (fish.style === 'leaper' && Math.random() < .22) {
-      target = .04 + Math.random() * .1;
-      pull *= 1.6;
-      pause *= .6;
-    } else if (fish.style === 'darter' && Math.random() < .3) fishVelocity += (target - fishAt) * 1.2;
-    fishTarget = target;
-    fishLegPull = pull;
-    retargetAt = now + pause;
+  /** Copies the fight's state into what the scene and meter draw from. */
+  function syncFight(): void {
+    if (!fight) return;
+    fishAt = fight.fishAt;
+    fishVelocity = fight.fishVelocity;
+    zoneAt = fight.zoneAt;
+    zoneHeight = fight.zoneHeight;
+    progress = fight.progress;
+    fightStartProgress = fight.startProgress;
+    fishInside = fight.inside;
+    fightSlipped = fight.slipped;
   }
 
   function beginBite(now: number): void {
@@ -1493,14 +1270,12 @@ export function initFishing(): void {
     holding = false;
     view = 'game';
     reelStartedAt = now;
-    reelEndsAt = now + REEL_LIMIT;
     setPhase('reel', `Test fight: ${fish.name}`);
     startLoop();
   }
 
   function beginReel(now: number): void {
     reelStartedAt = now;
-    reelEndsAt = now + REEL_LIMIT;
     // The click that set the hook is already a press, so it counts as the first pull.
     holding = true;
     setPhase('reel', 'Hold to lift the zone, release to let it sink.');
@@ -1588,8 +1363,6 @@ export function initFishing(): void {
     } else if (phase === 'bite') biteAt += duration;
     else if (phase === 'reel') {
       reelStartedAt += duration;
-      reelEndsAt += duration;
-      retargetAt += duration;
     }
   }
 
@@ -1618,34 +1391,15 @@ export function initFishing(): void {
     } else if (phase === 'bite') {
       if (now - lastBiteRingAt > 220) { lastBiteRingAt = now; addRipple(castDistance, hookDepth, 56, 700, .6); }
       if (now - biteAt > BITE_WINDOW + equipmentTotal('bite')) lose('The bite went slack. It let go.');
-    } else if (phase === 'reel' && hooked) {
-      const rule = RARITIES[hooked.rarity];
-      if (now >= retargetAt) retarget(hooked, now);
-      fishVelocity += (fishTarget - fishAt) * FISH_PULL * rule.speed * fishLegPull * delta;
-      // Damping has to be per second rather than per frame, or the fish behaves differently on a
-      // 144Hz screen than on a 60Hz one and no amount of tuning holds.
-      fishVelocity *= Math.pow(.93, delta * 60);
-      fishAt = Math.max(.03, Math.min(.97, fishAt + fishVelocity * delta * 1.6));
-
-      // Friction caps the zone at a terminal speed instead of a hard clamp, so the control settles
-      // where you hold it rather than pinning itself to the limit and overshooting.
-      const agility = zoneAgility(rule.speed);
-      zoneVelocity += (holding ? -ZONE_LIFT : ZONE_GRAVITY) * agility * delta;
-      zoneVelocity *= Math.pow(ZONE_FRICTION, delta * 60);
-      zoneAt += zoneVelocity * delta;
-      const half = zoneHeight / 2;
-      if (zoneAt < half) { zoneAt = half; zoneVelocity = 0; }
-      if (zoneAt > 1 - half) { zoneAt = 1 - half; zoneVelocity = 0; }
-
-      fishInside = Math.abs(fishAt - zoneAt) < half;
-      if (!fishInside) fightSlipped = true;
-      progress += (fishInside ? rule.fill * equipmentFill() : -rule.drain * equipmentDrain()) * FIGHT_PACE * delta;
+    } else if (phase === 'reel' && hooked && fight) {
+      const result = fight.step(delta, holding);
+      syncFight();
       if (holding) playReelClick(fishInside);
       // Landing or losing only ends the cast, never the loop: the frame below must always be
       // queued, or the panel stops animating and no later cast can ever start.
-      if (progress >= 1) land();
-      else if (progress <= LOSE_FLOOR) lose('It threw the hook and was gone.');
-      else if (now >= reelEndsAt) lose('The line gave out. It kept the hook.');
+      if (result === 'landed') land();
+      else if (result === 'escaped') lose('It threw the hook and was gone.');
+      else if (result === 'timeout') lose('The line gave out. It kept the hook.');
     }
     for (const swimmer of swimmers) {
       swimmer.x += swimmer.speed * delta;
