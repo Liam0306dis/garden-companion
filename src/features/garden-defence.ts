@@ -1248,6 +1248,7 @@ export function initGardenDefence(): void {
       event.stopImmediatePropagation();
     }, true);
     page.__gardenCompanionToggleGardenDefence = () => (panel()?.hidden ? open() : close());
+    page.__gardenCompanionGardenDefenceOpen = () => panel()?.hidden === false;
     // Published rather than shown, so tuning controls stay out of a normal player's panel.
     page.__gardenCompanionGardenDefenceDev = (enabled = !dev) => {
       dev = enabled;

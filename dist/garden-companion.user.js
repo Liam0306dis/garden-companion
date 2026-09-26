@@ -12590,6 +12590,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const host = panel3();
       if (!host) return;
       view = targetView;
+      if (page.__gardenCompanionGardenDefenceOpen?.()) page.__gardenCompanionToggleGardenDefence?.();
       host.hidden = false;
       scene.enter();
       primeFishingAudio();
@@ -14223,6 +14224,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         event.stopImmediatePropagation();
       }, true);
       page.__gardenCompanionToggleGardenDefence = () => panel3()?.hidden ? open() : close();
+      page.__gardenCompanionGardenDefenceOpen = () => panel3()?.hidden === false;
       page.__gardenCompanionGardenDefenceDev = (enabled = !dev) => {
         dev = enabled;
         if (panel3()?.hidden !== false) open();

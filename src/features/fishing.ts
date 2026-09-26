@@ -1650,6 +1650,8 @@ export function initFishing(): void {
     const host = panel();
     if (!host) return;
     view = targetView;
+    // Only one minigame holds the farm at a time.
+    if (page.__gardenCompanionGardenDefenceOpen?.()) page.__gardenCompanionToggleGardenDefence?.();
     host.hidden = false;
     scene.enter();
     primeFishingAudio();
