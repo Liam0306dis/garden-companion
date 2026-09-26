@@ -129,6 +129,15 @@ export function playCast(): void {
   droplet(context, now + .36, 900);
 }
 
+/** A fish mouthing the bait without taking it: a couple of faint droplets, no alert. */
+export function playNibble(): void {
+  const context = audio();
+  if (!context) return;
+  const now = context.currentTime;
+  droplet(context, now, 1100 + Math.random() * 300, .06);
+  droplet(context, now + .07, 820, .04);
+}
+
 /** The strike: a knock on the water and two quick alert pips. */
 export function playBite(): void {
   const context = audio();

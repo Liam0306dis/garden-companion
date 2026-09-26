@@ -43,6 +43,12 @@ export interface WorldSceneConfig {
   onBuild?(geometry: WorldGeometry, scene: WorldScene): void;
   /** Where the active pets are penned while the scene is up. Omit to leave them where they are. */
   petArea?(geometry: WorldGeometry): WorldBounds | null;
+  /**
+   * Farm tiles to fill with the game's own objects while the scene is up, keyed by global tile
+   * index. The game draws these itself - Rive animations, true scale and all - where every other
+   * tile is hidden, and the real tile comes back when the scene closes. Nothing is sent to the server.
+   */
+  showcase?(geometry: WorldGeometry): Map<number, Record<string, unknown>>;
 }
 
 export interface WorldScene {
@@ -97,6 +103,8 @@ export function worldSceneActive(): boolean {
 
 export function createWorldScene(config: WorldSceneConfig): WorldScene {
   const hiddenTiles = new Map<Record<string, any>, NodeState>();
+  let showcaseTiles = new Map<number, Record<string, unknown>>();
+  const showcaseViews = new WeakSet<object>();
   const hiddenEffects = new Map<Record<string, any>, NodeState>();
   const wrappedTileViews = new Map<Record<string, any>, (...args: any[]) => unknown>();
   const graphics = new Map<string, Record<string, any>>();
@@ -207,6 +215,7 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
   function hideGarden(geometry: WorldGeometry): void {
     suppressTileDraw = true;
     for (const index of geometry.globals) {
+      if (showcaseTiles.has(index)) continue;
       const node = geometry.system.tileViews?.get?.(index)?.displayObject;
       if (node && !node.destroyed) hideNode(node, hiddenTiles);
     }
@@ -232,7 +241,7 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
       const originalDraw = tileView.draw;
       wrappedTileViews.set(tileView, originalDraw);
       tileView.draw = function(...args: any[]) {
-        if (suppressTileDraw) return;
+        if (suppressTileDraw && !showcaseViews.has(this)) return;
         return originalDraw.apply(this, args);
       };
     }
@@ -251,7 +260,58 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
     catch { try { node.parent?.removeChild?.(node); } catch {} }
   }
 
+  /**
+   * Own-garden redraws still arrive while the scene is up (predicted dirt, state syncs), so the
+   * tile system's update is wrapped once to keep a showcase tile showing what the scene put there.
+   * The wrapper stays for the page's life and passes everything through when no scene holds a tile.
+   */
+  function guardTileUpdates(system: Record<string, any>): void {
+    const flag = `__gardenCompanionShowcase_${config.owner}`;
+    if (system[flag] || typeof system.updateTileData !== 'function') return;
+    const original = system.updateTileData;
+    system.updateTileData = function(index: number, data: unknown) {
+      const planned = active ? showcaseTiles.get(index) : undefined;
+      return original.call(this, index, planned ?? data);
+    };
+    system[flag] = true;
+  }
+
+  function applyShowcase(geometry: WorldGeometry): void {
+    showcaseTiles = config.showcase?.(geometry) ?? new Map();
+    if (!showcaseTiles.size) return;
+    const system = geometry.system;
+    guardTileUpdates(system);
+    for (const [index, data] of showcaseTiles) {
+      try {
+        system.updateTileData(index, data);
+        const view = system.tileViews?.get?.(index);
+        if (view) showcaseViews.add(view);
+      } catch {}
+    }
+  }
+
+  /** Puts the real garden back on every tile the scene borrowed. */
+  function restoreShowcase(): void {
+    const borrowed = [...showcaseTiles.keys()];
+    showcaseTiles = new Map();
+    const system = page.__gardenCompanionFarmSystems?.tileSystem;
+    const slotIndex = page.__gardenCompanionFarmSystems?.ownUserSlotIdx;
+    if (!borrowed.length || !system || typeof system.updateTileData !== 'function' || slotIndex == null) return;
+    const garden = state.slot?.data?.garden ?? {};
+    const real = new Map<number, unknown>();
+    for (const [local, global] of Object.entries(system.map?.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slotIndex] ?? {})) {
+      real.set(Number(global), (garden as any).tileObjects?.[local]);
+    }
+    for (const [local, global] of Object.entries(system.map?.userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx?.[slotIndex] ?? {})) {
+      real.set(Number(global), (garden as any).boardwalkTileObjects?.[local]);
+    }
+    for (const index of borrowed) {
+      try { system.updateTileData(index, real.get(index)); } catch {}
+    }
+  }
+
   function teardown(): void {
+    restoreShowcase();
     suppressTileDraw = false;
     restoreTileDraws();
     restoreNodes(hiddenTiles);
@@ -296,6 +356,7 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
     currentGeometry = geometry;
     penArea = config.petArea?.(geometry) ?? null;
     config.onBuild?.(geometry, scene);
+    applyShowcase(geometry);
     return true;
   }
 

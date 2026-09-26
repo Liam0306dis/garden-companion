@@ -1,3 +1,9 @@
+0.8.86
+- Fishing overhaul: a redesigned panel with Pond, Tackle and Journal tabs, a vertical catch meter, new pond art
+- Cast where you click on the pond, watch out for nibbles before the real bite and see the fish reeled in towards you as the bar fills
+- Each species now fights differently
+- New bait to spend fishing coins on, perfect catch and trophy bonuses, size records, and Space to cast and reel
+
 0.8.85
 - The weather and lunar timer now counts against the game server's clock, so it no longer runs a few seconds off the game's own forecast
 
