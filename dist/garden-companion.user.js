@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.87
+// @version      0.8.88
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -898,6 +898,14 @@
     return !!activeSocket && activeSocket.readyState === WebSocket.OPEN;
   }
   var commandListeners = /* @__PURE__ */ new Set();
+  var ownRequestIds = /* @__PURE__ */ new Set();
+  function markOwnCommand(requestId) {
+    ownRequestIds.add(requestId);
+    setTimeout(() => ownRequestIds.delete(requestId), 1e4);
+  }
+  function isOwnCommand(frame) {
+    return typeof frame.requestId === "string" && ownRequestIds.has(frame.requestId);
+  }
   function onOutgoingCommand(listener) {
     commandListeners.add(listener);
   }
@@ -5118,13 +5126,13 @@ ${eggs.map(eggCard).join("")}`;
         cinematicAtom = cinematic;
         watchCinematicValue(cinematic);
       }
-      if (roomState.selection?.itemId) mirrorFieldAtom(roomState.selection.itemId, "selectedItemId");
     });
   }
   function installAtomHooks() {
     hookAtom("myCurrentGardenObjectAtom", "currentGardenObject");
     hookAtom("myOwnCurrentDirtTileIndexAtom", "dirtTileIndex");
     hookAtom("selectedCropSlotIdAtom", "selectedSlotId");
+    hookAtom("mySelectedItemIdAtom", "selectedItemId");
     installGameRoomStateHooks();
     hookAtom("myUserSlotIdxAtom", "userSlotIndex");
     hookAtom("playerIdAtom", "atomPlayerId");
@@ -14751,6 +14759,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function sendPotPlant(slot, plantItemId) {
       const requestId = pageWindow.crypto.randomUUID();
+      markOwnCommand(requestId);
       sendMessage({
         scopePath: ["Room", "Quinoa"],
         type: "QuinoaCommand",
@@ -15036,95 +15045,35 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/planter-pot-selection.ts
-  var wrappedAtoms = /* @__PURE__ */ new WeakSet();
-  var GESTURE_GAP_MS = 30;
-  var GESTURE_RECENT_MS = 250;
-  var pendingSelection = null;
-  var lastUserGestureAt = 0;
-  var gestureWatch = false;
-  function playerReselect(pending) {
-    const now = performance.now();
-    return lastUserGestureAt > pending.armedAt + GESTURE_GAP_MS && now - lastUserGestureAt < GESTURE_RECENT_MS;
-  }
-  function watchUserGestures() {
-    if (gestureWatch) return;
-    gestureWatch = true;
-    const mark = (event) => {
-      if (event.isTrusted) lastUserGestureAt = performance.now();
-    };
-    window.addEventListener("keydown", mark, true);
-    window.addEventListener("pointerdown", mark, true);
-  }
-  var lastSelectedItemId = null;
   function trace(step, detail) {
     try {
       if (localStorage.getItem("gcPotDebug") !== "1") return;
     } catch {
       return;
     }
-    console.log("[PotKeeper] " + step, { ...detail, lastSelectedItemId, armed: Boolean(pendingSelection) });
+    console.log("[PotKeeper] " + step, { ...detail, selectedItemId: state.selectedItemId });
   }
   function isEnabled() {
     return page.__gardenCompanionFeature?.("keepPlanterPotSelected") === true;
   }
-  function installHooks(state2) {
-    const selectedItemAtom = state2.selection?.itemId ?? null;
-    const explicitItemAtom = state2.selection?.lastExplicitItemId ?? null;
-    if (!selectedItemAtom?.write || !explicitItemAtom?.write) return false;
-    if (wrappedAtoms.has(selectedItemAtom)) return true;
-    const originalSelectedItemWrite = selectedItemAtom.write;
-    const originalExplicitItemWrite = explicitItemAtom.write;
-    explicitItemAtom.write = function(get, set, ...args) {
-      const pending = pendingSelection;
-      const targetsPlant = Boolean(pending) && performance.now() <= (pending?.expiresAt ?? 0) && typeof args[0] === "string" && Boolean(pending?.addedPlantIds.has(args[0]));
-      if (targetsPlant && pending && playerReselect(pending)) pendingSelection = null;
-      const redirecting = targetsPlant && Boolean(pendingSelection);
-      trace("explicit write", { requested: args[0], redirecting });
-      const value = redirecting ? pending.restoreItemId : args[0];
-      return originalExplicitItemWrite.call(this, get, set, value);
-    };
-    selectedItemAtom.write = function(get, set, ...args) {
-      const pending = pendingSelection;
-      if (!isEnabled() || pending && performance.now() > pending.expiresAt) pendingSelection = null;
-      const nextItemId = args[0];
-      const targetsPlant = Boolean(pendingSelection) && typeof nextItemId === "string" && Boolean(pendingSelection?.addedPlantIds.has(nextItemId));
-      if (targetsPlant && pendingSelection && playerReselect(pendingSelection)) pendingSelection = null;
-      const redirecting = targetsPlant && Boolean(pendingSelection);
-      trace("select write", { requested: nextItemId, redirecting });
-      if (redirecting && pendingSelection) {
-        lastSelectedItemId = pendingSelection.restoreItemId;
-        set(explicitItemAtom, pendingSelection.restoreItemId);
-        return originalSelectedItemWrite.call(this, get, set, pendingSelection.restoreItemId);
-      }
-      lastSelectedItemId = nextItemId;
-      return originalSelectedItemWrite.call(this, get, set, ...args);
-    };
-    wrappedAtoms.add(selectedItemAtom);
-    wrappedAtoms.add(explicitItemAtom);
-    return true;
-  }
   function watchPotCommands() {
-    onOutgoingCommand((command) => {
-      if (command.type === "SetSelectedItem" || command.type === "PotPlant") {
-        trace("command " + command.type, { itemIndex: command.itemIndex, plantItemId: command.plantItemId });
-      }
-      if (!isEnabled() || command.type !== "PotPlant" || lastSelectedItemId !== "PlanterPot") return;
-      const plantItemId = command.plantItemId;
-      if (typeof plantItemId !== "string") return;
-      pendingSelection = {
-        addedPlantIds: /* @__PURE__ */ new Set([plantItemId]),
-        restoreItemId: "PlanterPot",
-        expiresAt: performance.now() + 2e3,
-        armedAt: performance.now()
-      };
+    onOutgoingCommand((command, frame) => {
+      if (command.type !== "PotPlant") return;
+      const own = isOwnCommand(frame);
+      trace("command PotPlant", { plantItemId: command.plantItemId, own, enabled: isEnabled() });
+      if (!isEnabled() || own) return;
+      queueMicrotask(() => {
+        try {
+          const requestId = sendQuinoaCommand({ type: "SetSelectedItem", itemId: "PlanterPot", decorRotation: 0 });
+          trace("sent SetSelectedItem", { requestId });
+        } catch (error) {
+          trace("SetSelectedItem failed", { error: String(error) });
+        }
+      });
     });
   }
   function initPlanterPotSelection() {
-    watchUserGestures();
     watchPotCommands();
-    onCurrentRoomState((state2) => {
-      installHooks(state2);
-    });
   }
 
   // src/celestial-layout.ts

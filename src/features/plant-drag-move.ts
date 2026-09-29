@@ -6,6 +6,7 @@ import { setQuinoaEngine } from '../quinoa-engine.js';
 import { atomMap } from '../atom-cache.js';
 import { page } from '../page.js';
 import { retryUntil } from '../retry.js';
+import { markOwnCommand } from '../game-connection.js';
 
 /**
  * The engine's systems and views are untyped minified objects reached by name, so they are held as
@@ -681,6 +682,8 @@ export function initPlantDragMove(): void {
      */
     function sendPotPlant(slot: number, plantItemId: string) {
         const requestId = pageWindow.crypto.randomUUID();
+        // Marked so the planter pot keeper leaves it alone: the player never picked up a pot here.
+        markOwnCommand(requestId);
         // No sequence here: it is stamped on the way out of the socket, from the same counter the
         // game's own commands are renumbered by.
         sendMessage({

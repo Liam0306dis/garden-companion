@@ -1,3 +1,8 @@
+0.8.88
+- Fixed Keep Planter Pot selected after the latest game update
+- Fixed auto-store and Preserve all not seeing the held item after the latest game update
+- Opening fishing now closes Garden Defence
+
 0.8.87
 - Garden Defence is finished and playable from the Features tab: a Plants vs. Zombies style lane defence on your own farm
 - 10 towers, 7 pests plus the Storm Wolf boss, 20 waves with flag waves at 10 and 20, and an endless mode that keeps escalating

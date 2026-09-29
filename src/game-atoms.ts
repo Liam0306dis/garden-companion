@@ -209,7 +209,7 @@ function hookAtom(match: string, key: string): void {
 /**
  * Mirror an atom's value into our state under `key`, wrapping both read and write. A derived atom is
  * read whenever anything depends on it, but a primitive one (mySelectedSlotIdAtom is `atom(0)`,
- * selection.itemId is `atom(null)`) holds its value and the store need never call read, so the write
+ * isCinematicMode is `atom(false)`) holds its value and the store need never call read, so the write
  * side reads it back to keep the mirror live either way.
  */
 function mirrorFieldAtom(atom: JotaiAtom, key: string): void {
@@ -235,9 +235,8 @@ function mirrorFieldAtom(atom: JotaiAtom, key: string): void {
 }
 
 /**
- * Bundle 1206 folded selectedItemId and cinematic mode into currentRoomAtom's state instance. The
- * instance is re-handed on a room reset, so cinematic is re-captured and the selection mirror
- * re-installed against whichever field atoms are live.
+ * Bundle 1206 folded cinematic mode into currentRoomAtom's state instance. The instance is re-handed
+ * on a room reset, so cinematic is re-captured against whichever field atom is live.
  */
 function installGameRoomStateHooks(): void {
   onCurrentRoomState((roomState: RoomStateInstance) => {
@@ -246,7 +245,6 @@ function installGameRoomStateHooks(): void {
       cinematicAtom = cinematic;
       watchCinematicValue(cinematic);
     }
-    if (roomState.selection?.itemId) mirrorFieldAtom(roomState.selection.itemId, 'selectedItemId');
   });
 }
 
@@ -256,8 +254,10 @@ export function installAtomHooks() {
   hookAtom('myCurrentGardenObjectAtom', 'currentGardenObject');
   hookAtom('myOwnCurrentDirtTileIndexAtom', 'dirtTileIndex');
   hookAtom('selectedCropSlotIdAtom', 'selectedSlotId');
-  // selectedItemId (the held item's id) and cinematic mode moved onto currentRoomAtom's state
-  // instance in bundle 1206; both are wired up from there.
+  // Bundle 1320 made the held item server state (`heldItem` on the predicted player state) and
+  // brought mySelectedItemIdAtom back as a labelled read of it.
+  hookAtom('mySelectedItemIdAtom', 'selectedItemId');
+  // Cinematic mode lives on currentRoomAtom's state instance since bundle 1206.
   installGameRoomStateHooks();
   // Which slot in userSlots is ours. Nothing in the room state says so any more, and the socket url
   // no longer carries a playerId, so the game's own answer is the only reliable one.

@@ -25,15 +25,13 @@ import { retryUntil } from './retry.js';
  * listeners the new field atoms rather than leaving them wrapping dead ones.
  */
 
-/** The shape of the fields we reach for. Everything is optional: a future build may move them again. */
-export interface RoomSelectionAtoms {
-  itemId?: JotaiAtom;
-  lastExplicitItemId?: JotaiAtom;
-}
+/**
+ * The shape of the fields we reach for. Everything is optional: a future build may move them again.
+ * Bundle 1320 dropped `selection`; the held item is server state now (see planter-pot-selection.ts).
+ */
 export interface RoomStateInstance {
   isCinematicMode?: JotaiAtom;
   toasts?: JotaiAtom;
-  selection?: RoomSelectionAtoms;
   [key: string]: unknown;
 }
 
@@ -45,8 +43,7 @@ let instance: RoomStateInstance | null = null;
 let installing = false;
 
 function isRoomState(value: unknown): value is RoomStateInstance {
-  // The marker is the field atoms themselves: a bare object with a `selection` holding atom-like
-  // members. Kept loose so a field rename elsewhere does not disqualify the whole instance.
+  // Kept loose so a field rename elsewhere does not disqualify the whole instance.
   return Boolean(value) && typeof value === 'object';
 }
 

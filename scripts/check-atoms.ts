@@ -29,9 +29,7 @@ const KNOWN_ABSENT: Record<string, string> = {};
  * name it has this build.
  */
 const FIELD_ATOMS: Array<{ name: string; where: string; pattern: RegExp }> = [
-  { name: 'currentRoomAtom.isCinematicMode', where: 'game-atoms.ts', pattern: /isCinematicMode=[A-Za-z_$]+\([^)]*\);selection=\{/ },
-  { name: 'currentRoomAtom.selection.itemId', where: 'features/planter-pot-selection.ts, game-atoms.ts', pattern: /selection=\{itemId:/ },
-  { name: 'currentRoomAtom.selection.lastExplicitItemId', where: 'features/planter-pot-selection.ts', pattern: /selection=\{[^}]*lastExplicitItemId:/ },
+  { name: 'currentRoomAtom.isCinematicMode', where: 'game-atoms.ts', pattern: /[;{]isCinematicMode=[A-Za-z_$]+\(!1\)/ },
   { name: 'currentRoomAtom.toasts', where: 'features/levelup-silencer.ts', pattern: /[;{]toasts=[A-Za-z_$]+\(\[\]\)/ },
 ];
 

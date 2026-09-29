@@ -245,6 +245,19 @@ const commandListeners = new Set<CommandListener>();
  * later turn up in, which matters when the game acts on its own prediction before the server has
  * answered.
  */
+/** Request ids of commands one of our features sent, so watchers can tell them from the player's. */
+const ownRequestIds = new Set<string>();
+
+export function markOwnCommand(requestId: string): void {
+  ownRequestIds.add(requestId);
+  // Only needed until the frame has gone past the watchers, which is the same tick.
+  setTimeout(() => ownRequestIds.delete(requestId), 10_000);
+}
+
+export function isOwnCommand(frame: Record<string, unknown>): boolean {
+  return typeof frame.requestId === 'string' && ownRequestIds.has(frame.requestId);
+}
+
 export function onOutgoingCommand(listener: CommandListener): void {
   commandListeners.add(listener);
 }
