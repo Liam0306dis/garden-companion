@@ -1,3 +1,6 @@
+0.8.89
+- Fixed plant and mutation icons showing blank or wrong after the latest game update
+
 0.8.88
 - Fixed Keep Planter Pot selected after the latest game update
 - Fixed auto-store and Preserve all not seeing the held item after the latest game update
