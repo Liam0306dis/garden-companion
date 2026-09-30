@@ -25,16 +25,21 @@ export interface BundleCatalogs {
 
 /**
  * Reads the catalogs out of the newest snapshot whose shape still matches, falling back through
- * older ones. The game moves its catalogs between chunks between releases, so every script is
- * searched with the main bundle first rather than assuming a filename.
+ * older ones. The game moves its catalogs between chunks (and, since build 1324, splits them across
+ * several) between releases, so each snapshot is searched as one joined string rather than assuming
+ * a filename.
  */
 export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatalogs> {
   for (const dir of dirs) {
     const snapshot = await readSnapshot(dir);
     const directory = basename(dir);
-    const files = [...snapshot.files.keys()].sort((left, right) => Number(right.startsWith('main-')) - Number(left.startsWith('main-')));
-    for (const file of files) {
-      const bundle = snapshot.files.get(file)!;
+    // Build 1324 split the catalogs across chunks - abilities, pets and eggs stayed in the chunk
+    // with innateAbilityWeights, while plants, mutations, decor and tools moved to another. So the
+    // whole snapshot is searched as one string rather than a single file: every regex here is
+    // anchored on its own `id:{...}` entry, so joining the chunks cannot make an entry match across
+    // a boundary, and object keys collapse any entry that happens to appear in two chunks.
+    {
+      const bundle = [...snapshot.files.values()].join('\n');
       if (!bundle.includes('innateAbilityWeights')) continue;
       const matches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{name:`([^`]+)`,trigger:`([^`]+)`(?:,baseProbability:([0-9.e+-]+))?(?:,baseParameters:\{([^}]*)\})?/g)];
       if (matches.length > 0) {
