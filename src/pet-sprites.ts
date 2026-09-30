@@ -11,7 +11,7 @@ interface AtlasFrame {
 
 interface AtlasJson {
   frames: Record<string, AtlasFrame>;
-  meta: { image: string; related_multi_packs?: string[] };
+  meta: { image: string; fullSizeImage?: string; related_multi_packs?: string[] };
 }
 
 interface BasisTranscoder {
@@ -597,7 +597,12 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
       const response = await fetch(jsonUrl);
       if (!response.ok) { complete = false; continue; }
       const atlas = await response.json() as AtlasJson;
-      const imageUrl = atlas.meta?.image ? new URL(atlas.meta.image, jsonUrl).href : jsonUrl.replace(/\.json$/, '.ktx2');
+      // The frame coordinates are in full-size atlas space (meta.size). By build 1333 `image` is a
+      // half-resolution sheet and the matching full-size one is `fullSizeImage`, so cropping
+      // full-size coordinates out of `image` read past the sheet and left every frame in the lower
+      // half - all the plants - blank. Prefer the full-size sheet the coordinates belong to.
+      const sheetSource = atlas.meta?.fullSizeImage ?? atlas.meta?.image;
+      const imageUrl = sheetSource ? new URL(sheetSource, jsonUrl).href : jsonUrl.replace(/\.json$/, '.ktx2');
       const sheet = await decodeSheet(imageUrl, basis, rgbaFormat);
       if (sheet) {
         await cropFrames(atlas, sheet, wanted, output);
@@ -782,8 +787,10 @@ export async function initPetSprites(): Promise<void> {
         const { key: rawFingerprint, identified } = await loadFingerprint();
         // Bumped when a caching bug means old entries may be wrong: `s2` retires every bundle written
         // before partial decodes stopped being cached, which had left some users with a permanently
-        // missing pet sprite. The tag rides on the fingerprint so eviction still matches by prefix.
-        const fingerprintKey = `s2-${rawFingerprint}`;
+        // missing pet sprite. `s3` retires bundles cropped from the half-size sheet, which decoded
+        // cleanly and so were cached with every lower-half frame (the plants) blank.
+        // The tag rides on the fingerprint so eviction still matches by prefix.
+        const fingerprintKey = `s3-${rawFingerprint}`;
         const request = requests[stage]();
         const key = `${fingerprintKey}:${stage}:${requestSignature(request.wanted, request.trimmedWanted)}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.
