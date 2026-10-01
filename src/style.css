@@ -727,6 +727,13 @@ body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
 .gc-journal-group-head { display:flex;align-items:center;gap:7px;margin:0 0 2px;color:var(--gc-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
 .gc-journal-group-head .gc-shop-sprite { width:22px;height:22px; }
 .gc-journal-group-head .gc-shop-sprite img { max-width:16px;max-height:16px; }
+.gc-journal-search { margin-bottom:10px; }
+.gc-journal-search .gc-search { margin:0; }
+#gc-panel .gc-journal-search button { height:34px; }
+.gc-journal-filter { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px; }
+.gc-journal-filter small { color:var(--gc-muted);font-size:11px; }
+#gc-panel .gc-journal-filter button.gc-journal-chip { min-height:0;padding:0;border-radius:6px;background:var(--gc-input); }
+#gc-panel .gc-journal-filter button.gc-journal-chip[data-active=true] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);box-shadow:0 0 0 2px rgba(var(--gc-accent-rgb),.25); }
 .gc-journal-list[data-incomplete-only=true] .gc-journal-group:not(:has(.gc-journal-row[data-complete=false])) { display:none; }
 
 /* ── Preserve all ────────────────────────────────────────────────────────────────────────────── */

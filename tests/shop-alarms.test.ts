@@ -144,13 +144,13 @@ test('an alarm already up comes down once the item reaches its cap', () => {
   toggleShopAlert('tool:WateringCan', false);
 });
 
-test('tools in the Tool Shack count toward the cap', () => {
+test('a full Tool Shack does not stop the alarm while the inventory has room', () => {
   stopAlarm();
   toolWorld(40);
-  (state.slot!.data!.inventory as unknown as { storages: unknown[] }).storages = [{ decorId: 'ToolShack', items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: 59 }] }];
+  (state.slot!.data!.inventory as unknown as { storages: unknown[] }).storages = [{ decorId: 'ToolShack', items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: 99 }] }];
   toggleShopAlert('tool:WateringCan', true);
   try {
-    assert.equal(alarmTitle(), null, '40 held plus 59 in the shack is 99');
+    assert.equal(alarmTitle(), 'Watering Can is available', 'the shack keeps its own stack of 99');
   } finally {
     stopAlarm();
     toggleShopAlert('tool:WateringCan', false);

@@ -38,9 +38,18 @@ type Kind = 'plants' | 'pets';
 let journalTab: Kind = 'plants';
 let incompleteOnly = false;
 let journalSearch = '';
+/** A variant picked in the filter strip: only species that have not logged it are listed. */
+let variantFilter = '';
 
 export function setJournalTab(tab: string): void {
-  if (tab === 'plants' || tab === 'pets') journalTab = tab;
+  if (tab !== 'plants' && tab !== 'pets') return;
+  // The two tabs have different variant sets, so a filter picked on one means nothing on the other.
+  if (tab !== journalTab) variantFilter = '';
+  journalTab = tab;
+}
+
+export function toggleVariantFilter(variant: string): void {
+  variantFilter = variantFilter === variant ? '' : variant;
 }
 
 export function toggleIncompleteOnly(): void {
@@ -61,15 +70,29 @@ function variantLabel(variant: string, kind: Kind): string {
   return MUTATION_CATALOG[variant]?.name || variant;
 }
 
+function chipInner(variant: string, kind: Kind): string {
+  const sprite = page.__gardenCompanionMutationSprites?.[variant];
+  return sprite
+    ? `<img src="${escapeHtml(sprite)}" alt="">`
+    : `<b>${escapeHtml(variant === 'Max Weight' ? 'MAX' : variantLabel(variant, kind).slice(0, 1))}</b>`;
+}
+
 function variantChip(variant: string, kind: Kind, logged: boolean, at?: number): string {
   const label = variantLabel(variant, kind);
-  const sprite = page.__gardenCompanionMutationSprites?.[variant];
   const seen = logged && at ? `\nFound at ${new Date(at).toLocaleDateString()}` : '';
   const title = `${label}${logged ? '' : ' - not logged'}${seen}`;
-  const inner = sprite
-    ? `<img src="${escapeHtml(sprite)}" alt="">`
-    : `<b>${escapeHtml(variant === 'Max Weight' ? 'MAX' : label.slice(0, 1))}</b>`;
-  return `<span class="gc-journal-chip" data-logged="${logged}" title="${escapeHtml(title)}">${inner}</span>`;
+  return `<span class="gc-journal-chip" data-logged="${logged}" title="${escapeHtml(title)}">${chipInner(variant, kind)}</span>`;
+}
+
+/** One button per variant; picking one narrows the list to species still missing it. */
+function variantFilterStrip(variants: string[], kind: Kind): string {
+  const buttons = variants.map(variant => {
+    const label = variantLabel(variant, kind);
+    const active = variant === variantFilter;
+    return `<button class="gc-journal-chip" data-journal-variant="${escapeHtml(variant)}" data-active="${active}" title="${escapeHtml(active ? 'Show every species again' : `Show species missing ${label}`)}">${chipInner(variant, kind)}</button>`;
+  }).join('');
+  const label = variantFilter ? `Missing ${escapeHtml(variantLabel(variantFilter, kind))}` : 'Filter by missing variant';
+  return `<div class="gc-journal-filter"><small>${label}</small><span class="gc-journal-chips">${buttons}</span></div>`;
 }
 
 interface LoggedVariant { variant?: string; createdAt?: number }
@@ -98,6 +121,8 @@ function speciesRow(options: {
   extra?: string;
 }): string {
   const { id, name, sprite, variants, logged, rarity, kind, extra = '' } = options;
+  // Filtered rows are dropped from the markup, not hidden, so a group left empty disappears with them.
+  if (variantFilter && logged.has(variantFilter)) return '';
   const have = variants.filter(variant => logged.has(variant)).length;
   const complete = have === variants.length;
   const chips = variants.map(variant => variantChip(variant, kind, logged.has(variant), logged.get(variant))).join('');
@@ -255,14 +280,16 @@ function petRows(): { rows: string; have: number; total: number } {
 
 export function renderJournal(): string {
   const { rows, have, total } = journalTab === 'pets' ? petRows() : plantRows();
+  const variants = journalTab === 'pets' ? PET_VARIANTS : produceVariants();
   const percent = total ? Math.round(have / total * 100) : 0;
   const tabs = [['plants', 'Plants'], ['pets', 'Pets']]
     .map(([id, label]) => `<button data-journal-tab="${id}" class="${id === journalTab ? 'active' : ''}">${label}</button>`).join('');
   return `<p class="gc-note">Every variant the game has logged for you, laid out at once. Hover a chip for its name and the date it was found.</p>
 <div class="gc-shop-tabs">${tabs}</div>
 <section class="gc-card gc-journal-summary"><span><b>${have.toLocaleString(NUMBER_LOCALE)}</b> of ${total.toLocaleString(NUMBER_LOCALE)} logged</span><span class="gc-pill">${percent}%</span></section>
-<div class="gc-row"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === 'pets' ? 'pets' : 'plants'}" value="${escapeHtml(journalSearch)}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? 'Show every species again' : 'Hide species you have already completed'}">${incompleteOnly ? 'All' : 'Missing'}</button></div>
-<div class="gc-journal-list gc-filter-list" data-incomplete-only="${incompleteOnly}">${rows || '<p class="gc-empty">No journal data yet.</p>'}</div>`;
+<div class="gc-row gc-journal-search"><input class="gc-search" data-journal-search placeholder="Search ${journalTab === 'pets' ? 'pets' : 'plants'}" value="${escapeHtml(journalSearch)}"><button data-journal-incomplete data-active="${incompleteOnly}" title="${incompleteOnly ? 'Show every species again' : 'Hide species you have already completed'}">${incompleteOnly ? 'All' : 'Missing'}</button></div>
+${variantFilterStrip(variants, journalTab)}
+<div class="gc-journal-list gc-filter-list" data-incomplete-only="${incompleteOnly}">${rows || `<p class="gc-empty">${variantFilter ? 'Every species has this one logged.' : 'No journal data yet.'}</p>`}</div>`;
 }
 
 export function bindJournalEvents(main: HTMLElement): void {
@@ -272,6 +299,10 @@ export function bindJournalEvents(main: HTMLElement): void {
   });
   main.querySelector('[data-journal-incomplete]')?.addEventListener('click', () => {
     toggleIncompleteOnly();
+    panelActions.renderPanelPreservingScroll();
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-journal-variant]').forEach(button => button.onclick = () => {
+    toggleVariantFilter(button.dataset.journalVariant || '');
     panelActions.renderPanelPreservingScroll();
   });
   const search = main.querySelector<HTMLInputElement>('[data-journal-search]');

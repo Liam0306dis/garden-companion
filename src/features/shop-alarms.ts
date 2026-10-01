@@ -94,10 +94,9 @@ export function availableShopItems(): AvailableShopItem[] {
  * ones), in which case an alarm would only be noise. Only tools carry a cap, as in the game's own
  * check.
  *
- * Held means the inventory and the Tool Shack together. The game's own limit is per stack - it
- * would still sell into an inventory of 40 beside a shack of 60 - but 99 between the two is already
- * as many as either could ever hold, which is the point past which a restock is not news. It also
- * keeps auto-store from hiding a full stack: tools filed into the shack still count.
+ * The cap is per stack: the inventory and the Tool Shack each hold up to 99 on their own, and a
+ * purchase lands in the inventory, so only the inventory's stack decides whether another can be
+ * bought. A full shack beside a short inventory still has room to fill.
  *
  * Any shop, not just the Tool shop: the Snow shop sells Chilled and Frozen Potions among its seeds
  * and decor. The cap list only holds tool ids, so an item is judged by its id, unless the shop's own
@@ -117,18 +116,14 @@ function toolStack(items: unknown, id: string): number {
 }
 
 /**
- * How many more of this item to buy before inventory and Tool Shack together reach the cap -
- * Infinity for anything uncapped. Never more than the inventory itself can take, since that is where
- * a purchase lands; with the shack counted in, that bound always holds anyway.
+ * How many more of this item the inventory can take before its stack reaches the cap - Infinity
+ * for anything uncapped. The Tool Shack keeps its own stack and is not counted.
  */
 function capRoom(id: string, item?: ShopItem): number {
   const limit = TOOL_LIMITS[id];
   if (!limit) return Infinity;
   if (item && !item.toolId && item.itemType && item.itemType !== 'Tool') return Infinity;
-  const inventory = state.slot?.data?.inventory;
-  const shack = (inventory?.storages ?? []).find(entry => entry?.decorId === 'ToolShack');
-  const held = toolStack(inventory?.items, id) + toolStack(shack?.items, id);
-  return Math.max(0, limit - held);
+  return Math.max(0, limit - toolStack(state.slot?.data?.inventory?.items, id));
 }
 
 /**
