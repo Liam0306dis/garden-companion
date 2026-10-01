@@ -1,3 +1,7 @@
+0.8.90
+- Fixed the shop, weather station and storage keybinds not opening anything after the latest game update
+- Redesigned the Rooms tab a little
+
 0.8.89
 - Fixed plant and mutation icons showing blank or wrong after the latest game update
 
