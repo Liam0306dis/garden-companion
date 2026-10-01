@@ -25,15 +25,33 @@ function safeImageUrl(value: unknown): string {
   } catch { return ''; }
 }
 
-function roomAvatars(slots: RoomSlot[]): string {
-  const faces = slots.map(slot => {
-    const url = safeImageUrl(slot?.avatar_url);
-    const name = String(slot?.name || '').trim();
-    const initial = name.slice(0, 1).toUpperCase() || '?';
-    const inner = url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initial);
-    return `<span class="gc-room-face" title="${escapeHtml(name || 'Unknown player')}">${inner}</span>`;
-  }).join('');
-  return faces ? `<div class="gc-room-faces">${faces}</div>` : '';
+const ROOM_CAPACITY = 6;
+
+/** A player chip: avatar (or initial) beside the name, so faces and names read as one unit. */
+function roomPlayer(slot: RoomSlot): string {
+  const url = safeImageUrl(slot?.avatar_url);
+  const name = String(slot?.name || '').trim();
+  const initial = name.slice(0, 1).toUpperCase() || '?';
+  const face = url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initial);
+  return `<span class="gc-room-player"><i class="gc-room-face">${face}</i><span>${escapeHtml(name || 'Unknown')}</span></span>`;
+}
+
+/**
+ * Rooms opened from a Discord server carry ids like `I-<instance>-GC-<guild>-<channel>`: long,
+ * unreadable, and alike at a glance. Those get a friendly title with the raw id kept underneath;
+ * rooms with a hand-picked name show that name alone.
+ */
+function roomTitle(id: string): string {
+  if (/^I-\d+-GC-\d+-\d+$/.test(id)) return `<h3>Discord room</h3><code title="${escapeHtml(id)}">${escapeHtml(id)}</code>`;
+  return `<h3 class="gc-room-named">${escapeHtml(id)}</h3>`;
+}
+
+/** Six seat dots, filled for taken seats, plus a green "N open" label. */
+function roomSeats(count: number): string {
+  const taken = Math.max(0, Math.min(ROOM_CAPACITY, count));
+  const open = ROOM_CAPACITY - taken;
+  const dots = Array.from({ length: ROOM_CAPACITY }, (_, index) => `<i${index < taken ? ' class="on"' : ''}></i>`).join('');
+  return `<div class="gc-room-seats" title="${taken}/${ROOM_CAPACITY} players"><span class="gc-room-dots">${dots}</span><b>${open} open</b></div>`;
 }
 
 export function renderRooms(): string {
@@ -42,11 +60,13 @@ export function renderRooms(): string {
   }
   if (!roomRows && !roomLoading && !roomError) void reloadRooms();
   const body = roomLoading ? '<p class="gc-empty">Loading rooms...</p>' : roomError ? `<p class="gc-empty">${escapeHtml(roomError)}</p>` : (roomRows || []).map(room => {
+    const id = String(room.id || '');
     const slots = Array.isArray(room.user_slots) ? room.user_slots : [];
-    const names = slots.map(slot => escapeHtml(slot.name)).filter(Boolean).join(', ') || 'No visible players';
-    return `<article class="gc-card gc-room"><div><h3>${escapeHtml(room.id)}</h3>${roomAvatars(slots)}<p>${names}</p></div><span class="gc-pill">${Number(room.players_count || 0)}/6</span><button data-join-room="${escapeHtml(room.id)}">Join</button></article>`;
+    const players = slots.map(roomPlayer).join('') || '<span class="gc-room-none">No visible players</span>';
+    return `<article class="gc-card gc-room"><header><div class="gc-room-title">${roomTitle(id)}</div>${roomSeats(Number(room.players_count || 0))}<button class="gc-primary" data-join-room="${escapeHtml(id)}">Join</button></header><div class="gc-room-players">${players}</div></article>`;
   }).join('') || '<p class="gc-empty">No joinable rooms found.</p>';
-  return `<div class="gc-row"><p class="gc-note">Public rooms with one or two open slots.</p><button data-refresh-rooms>Refresh</button></div><section class="gc-stack">${body}</section>`;
+  const count = roomRows && !roomLoading && !roomError ? `<b>${roomRows.length}</b> ${roomRows.length === 1 ? 'room' : 'rooms'} · ` : '';
+  return `<div class="gc-row"><p class="gc-note">${count}Public rooms with one or two open slots.</p><button data-refresh-rooms>Refresh</button></div><section class="gc-stack">${body}</section>`;
 }
 
 function requestJson(url: string): Promise<unknown> {

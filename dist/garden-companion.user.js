@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.89
+// @version      0.8.90
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -4809,15 +4809,23 @@ ${eggs.map(eggCard).join("")}`;
       return "";
     }
   }
-  function roomAvatars(slots) {
-    const faces = slots.map((slot) => {
-      const url = safeImageUrl(slot?.avatar_url);
-      const name = String(slot?.name || "").trim();
-      const initial = name.slice(0, 1).toUpperCase() || "?";
-      const inner = url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initial);
-      return `<span class="gc-room-face" title="${escapeHtml(name || "Unknown player")}">${inner}</span>`;
-    }).join("");
-    return faces ? `<div class="gc-room-faces">${faces}</div>` : "";
+  var ROOM_CAPACITY = 6;
+  function roomPlayer(slot) {
+    const url = safeImageUrl(slot?.avatar_url);
+    const name = String(slot?.name || "").trim();
+    const initial = name.slice(0, 1).toUpperCase() || "?";
+    const face = url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initial);
+    return `<span class="gc-room-player"><i class="gc-room-face">${face}</i><span>${escapeHtml(name || "Unknown")}</span></span>`;
+  }
+  function roomTitle(id) {
+    if (/^I-\d+-GC-\d+-\d+$/.test(id)) return `<h3>Discord room</h3><code title="${escapeHtml(id)}">${escapeHtml(id)}</code>`;
+    return `<h3 class="gc-room-named">${escapeHtml(id)}</h3>`;
+  }
+  function roomSeats(count) {
+    const taken = Math.max(0, Math.min(ROOM_CAPACITY, count));
+    const open = ROOM_CAPACITY - taken;
+    const dots = Array.from({ length: ROOM_CAPACITY }, (_, index) => `<i${index < taken ? ' class="on"' : ""}></i>`).join("");
+    return `<div class="gc-room-seats" title="${taken}/${ROOM_CAPACITY} players"><span class="gc-room-dots">${dots}</span><b>${open} open</b></div>`;
   }
   function renderRooms() {
     if (inDiscordActivity()) {
@@ -4825,11 +4833,13 @@ ${eggs.map(eggCard).join("")}`;
     }
     if (!roomRows && !roomLoading && !roomError) void reloadRooms();
     const body = roomLoading ? '<p class="gc-empty">Loading rooms...</p>' : roomError ? `<p class="gc-empty">${escapeHtml(roomError)}</p>` : (roomRows || []).map((room) => {
+      const id = String(room.id || "");
       const slots = Array.isArray(room.user_slots) ? room.user_slots : [];
-      const names = slots.map((slot) => escapeHtml(slot.name)).filter(Boolean).join(", ") || "No visible players";
-      return `<article class="gc-card gc-room"><div><h3>${escapeHtml(room.id)}</h3>${roomAvatars(slots)}<p>${names}</p></div><span class="gc-pill">${Number(room.players_count || 0)}/6</span><button data-join-room="${escapeHtml(room.id)}">Join</button></article>`;
+      const players = slots.map(roomPlayer).join("") || '<span class="gc-room-none">No visible players</span>';
+      return `<article class="gc-card gc-room"><header><div class="gc-room-title">${roomTitle(id)}</div>${roomSeats(Number(room.players_count || 0))}<button class="gc-primary" data-join-room="${escapeHtml(id)}">Join</button></header><div class="gc-room-players">${players}</div></article>`;
     }).join("") || '<p class="gc-empty">No joinable rooms found.</p>';
-    return `<div class="gc-row"><p class="gc-note">Public rooms with one or two open slots.</p><button data-refresh-rooms>Refresh</button></div><section class="gc-stack">${body}</section>`;
+    const count = roomRows && !roomLoading && !roomError ? `<b>${roomRows.length}</b> ${roomRows.length === 1 ? "room" : "rooms"} · ` : "";
+    return `<div class="gc-row"><p class="gc-note">${count}Public rooms with one or two open slots.</p><button data-refresh-rooms>Refresh</button></div><section class="gc-stack">${body}</section>`;
   }
   function requestJson(url) {
     return new Promise((resolve, reject) => GM_xmlhttpRequest({ method: "GET", url, onload: (response) => {
@@ -5027,7 +5037,11 @@ ${eggs.map(eggCard).join("")}`;
       toast("The game interface is still loading.", "error");
       return;
     }
-    gameAtomSet(activeModalStateAtom, target);
+    gameAtomSet(activeModalStateAtom, (previous) => {
+      if (typeof previous === "string" || previous === null) return target;
+      const openId = Number(previous?.openId) || 0;
+      return { modal: target, openId: openId + 1 };
+    });
   }
   var cinematicOwners = /* @__PURE__ */ new Set();
   var cinematicValue = false;
@@ -7945,12 +7959,26 @@ ${eggs.map(eggCard).join("")}`;
 .gc-ability-log-payload { min-width:0;color:#f4f4f5;font:600 12px/1.4 var(--gc-mono);overflow-wrap:anywhere; }
 .gc-ability-log-payload[data-detail] { cursor:help;text-decoration:underline dotted rgba(255,255,255,.4);text-underline-offset:3px; }
 .gc-log > p { padding:10px 2px;color:var(--gc-muted);font-size:12px; }
-.gc-room { display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px; }
-.gc-room h3 { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-family:var(--gc-mono);font-weight:600; }
-.gc-room-faces { display:flex;align-items:center;margin:6px 0 4px; }
-.gc-room-face { width:24px;height:24px;flex:0 0 auto;display:grid;place-items:center;margin-left:-6px;overflow:hidden;border:2px solid var(--gc-surface);border-radius:50%;background:var(--gc-surface-3);color:var(--gc-text);font:600 10px var(--gc-font); }
-.gc-room-face:first-child { margin-left:0; }
+.gc-room { display:flex;flex-direction:column;gap:12px;padding:14px 16px;transition:border-color .12s,background .12s; }
+.gc-room:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
+.gc-room > header { display:flex;align-items:center;gap:14px;min-width:0; }
+.gc-room-title { flex:1 1 auto;min-width:0; }
+.gc-room h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-room h3.gc-room-named { font-family:var(--gc-mono);letter-spacing:.02em; }
+.gc-room code { display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gc-faint);font:11px var(--gc-mono); }
+.gc-room-seats { flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px; }
+.gc-room-dots { display:flex;gap:3px; }
+.gc-room-dots i { width:8px;height:8px;border-radius:50%;background:rgba(62,207,142,.18);box-shadow:inset 0 0 0 1px rgba(62,207,142,.55); }
+.gc-room-dots i.on { background:var(--gc-surface-3);box-shadow:inset 0 0 0 1px var(--gc-line-strong); }
+.gc-room-seats b { color:var(--gc-green);font-size:11px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums; }
+#gc-panel .gc-room .gc-primary { width:auto;flex:0 0 auto;padding:7px 18px; }
+.gc-room-players { display:flex;flex-wrap:wrap;gap:6px;padding-top:12px;border-top:1px solid var(--gc-line); }
+.gc-room-player { display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:3px 10px 3px 3px;border:1px solid var(--gc-line);border-radius:999px;background:var(--gc-surface-2);color:var(--gc-text);font-size:12px;line-height:1; }
+.gc-room-player > span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-room-face { width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:var(--gc-surface-3);color:var(--gc-text);font:600 10px var(--gc-font);font-style:normal; }
 .gc-room-face img { width:100%;height:100%;object-fit:cover; }
+.gc-room-none { color:var(--gc-faint);font-size:12px; }
+.gc-row > .gc-note b { color:var(--gc-text);font-weight:600; }
 .gc-sprite-text { color:var(--gc-muted);font:700 10px/1 var(--gc-font);letter-spacing:.04em; }
 .gc-pet-sprite { position:relative;width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-surface-2); }
 .gc-pet-sprite img { width:40px;height:40px;object-fit:contain;image-rendering:auto; }
