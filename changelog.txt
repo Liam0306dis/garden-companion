@@ -1,3 +1,8 @@
+0.8.91
+- Journal: filter plants and pets by a mutation they are still missing
+- Fixed the Journal search bar not lining up with the Missing button
+- Shop alarms now only check your inventory for the 99 cap, so a full Tool Shack no longer stops alerts
+
 0.8.90
 - Fixed the shop, weather station and storage keybinds not opening anything after the latest game update
 - Redesigned the Rooms tab a little
