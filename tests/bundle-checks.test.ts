@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { escapeRegExp } from '../scripts/bundle-catalogs.js';
 import { extractChunkReferences, readSnapshot, snapshotDirs } from '../scripts/bundle-snapshot.js';
 import { bareByGame, checkSnapshot, companionCommands, dispatchedByGame, envelopeFields } from '../scripts/check-bundle.js';
-import { checkAtoms, companionAtomLabels } from '../scripts/check-atoms.js';
+import { atomShape, checkAtoms, companionAtomLabels, readShapeBaseline } from '../scripts/check-atoms.js';
 
 const snapshot = await readSnapshot((await snapshotDirs())[0]);
 
@@ -16,6 +16,18 @@ test('the captured bundle still has everything the companion sends and reads', a
 test('every atom the companion hooks is still defined', async () => {
   const result = checkAtoms(snapshot, await companionAtomLabels());
   assert.deepEqual(result.missing, []);
+});
+
+test('every atom the companion hooks still starts with the value it was written against', async () => {
+  const result = checkAtoms(snapshot, await companionAtomLabels(), await readShapeBaseline());
+  assert.deepEqual(result.changed, []);
+});
+
+test('atom shapes ignore minified names but keep keys, properties and literals', () => {
+  assert.equal(atomShape('M({modal:null,openId:0})'), atomShape('A({modal:null,openId:0})'));
+  assert.notEqual(atomShape('M(null)'), atomShape('M({modal:null,openId:0})'));
+  assert.equal(atomShape('A(e=>e(Am).modal)'), '_(_=>_(_).modal)');
+  assert.equal(atomShape('A(e=>e?t:!1)'), '_(_=>_?_:!1)');
 });
 
 test('the companion\'s own command list is read from its source', async () => {

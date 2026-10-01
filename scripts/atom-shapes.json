@@ -1,0 +1,18 @@
+{
+  "actionAtom": "_(_=>_(_)[0]?.action??`none`)",
+  "actionHoldVisualStateAtom": "_({kind:`idle`})",
+  "activeModalStateAtom": "_({modal:null,openId:0})",
+  "currentRoomAtom": "_(_ _)",
+  "hudSuppressedByOverlayAtom": "_(_=>_(_)||_(_)||_(_))",
+  "isInMyGardenAtom": "_(_=>{_ _=_(_),_=_(_);return _?_.playerId===_:!1})",
+  "myCurrentGardenObjectAtom": "_(_=>{_ _=_(_);return _?_(_,_):null})",
+  "myCurrentGardenTileAtom": "_(_=>{_ _=_(_);_(!_)return null;_ _=_(_),_=_(_),_=_.globalTileIdxToDirtTile[_],_=_.globalTileIdxToBoardwalk[_];_(!_&&!_)return null;_(_&&_)return _(Error(`Player tile maps _ both dirt _ boardwalk`),`player_tile_mapping_invalid`,{extra:{globalTileIndex:_}}),null;_ _=null;_(_)_={userSlotIdx:_.userSlotIdx,localTileIndex:_.dirtTileIdx,tileType:`Dirt`};else _(_)_={userSlotIdx:_.userSlotIdx,localTileIndex:_.boardwalkTileIdx,tileType:`Boardwalk`};else return null;_{userSlotIdx:_,localTileIndex:_,tileType:_}=_;return{tileType:_,userSlotIdx:_,localTileIndex:_,playerId:_[_]?.userId}})",
+  "myCurrentGlobalTileIndexAtom": "_(_=>{_ _=_(_),_=_(_);return _?_(_,_.x,_.y):null})",
+  "myOwnCurrentDirtTileIndexAtom": "_(_=>{_ _=_(_),_=_(_);_(!_)return null;_{localTileIndex:_,tileType:_,playerId:_}=_;return _!==`Dirt`||_!==_?null:_})",
+  "myPetSlotInfosAtom": "_(_=>{_ _=_(_);return _?_.petSlotInfos:null})",
+  "myPredictedInventoryItemsAtom": "_(_=>_(_).inventory.items)",
+  "mySelectedItemIdAtom": "_(_=>_(_).itemId)",
+  "myUserSlotIdxAtom": "_(_=>{_ _=_(_),_=_(_).findIndex(_=>_?.userId===_);return _>=0?_:null})",
+  "playerIdAtom": "_(_.id)",
+  "selectedCropSlotIdAtom": "_(_=>_(_)?.slotId??null)"
+}

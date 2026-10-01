@@ -94,7 +94,7 @@ export function openGameInterface(target: GameInterface): void {
     toast('The game interface is still loading.', 'error');
     return;
   }
-  // Bundle 1342 made the state `{ modal, openId }`, and the game's own open bumps openId each time
+  // Bundle 1333 made the state `{ modal, openId }`, and the game's own open bumps openId each time
   // (its cards use it to tell a fresh open from a re-render). Writing the bare id left `.modal`
   // undefined, so nothing opened. The updater mirrors the game's open, and still accepts the old
   // bare-string shape should a bundle ever go back to it.
