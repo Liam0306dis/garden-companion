@@ -1,3 +1,8 @@
+0.8.92
+- Alarm banners can be moved: Alert Settings > Move banner, then drag it out of the way of the game's popups
+- Sound Settings is now Alert Settings
+- Pet teams: added the new Thunderstruck, Dawnbound, Amberbound, Rain, Snow, Thunderstorm, Dawn and Amber Moon icons
+
 0.8.91
 - Journal: filter plants and pets by a mutation they are still missing
 - Fixed the Journal search bar not lining up with the Missing button

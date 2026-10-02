@@ -36,7 +36,9 @@ export interface PetTeamMember {
 export type PetTeamEmblem =
   | { type: 'number'; number: number }
   | { type: 'pet'; petId: string }
-  | { type: 'icon'; icon: string };
+  | { type: 'icon'; icon: string }
+  // Owned avatar cosmetics, added around build 1361. Shown by name; the picker does not offer them.
+  | { type: 'cosmetic'; cosmetic: string };
 
 export interface PetTeam {
   id: string;

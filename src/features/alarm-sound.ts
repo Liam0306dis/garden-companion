@@ -1,5 +1,6 @@
 import { ALARM_PRESETS, alarmSoundSettings, clearCustomAlarmSound, CUSTOM_SOUND_MAX_SECONDS, previewAlarmSound, savedCustomSound, setCustomAlarmSound } from '../alarms.js';
 import { config, saveConfig } from '../config.js';
+import { editAlarmPosition, finishEditingAlarmPosition, isEditingAlarmPosition, resetAlarmPosition } from '../alert-position.js';
 import { toast } from '../toast.js';
 import type { AlarmSoundSettings } from '../types.js';
 import { escapeHtml } from '../utils.js';
@@ -27,6 +28,7 @@ export function renderAlarmSound(): string {
 <label class="gc-value-size"><span>Volume<b data-alarm-volume-value>${settings.volume}%</b></span><input type="range" min="0" max="100" step="5" value="${settings.volume}" data-alarm-volume></label>
 <label class="gc-value-size"><span>Pitch<b data-alarm-pitch-value>${pitchText(settings.pitch)}</b><i>semitones</i></span><input type="range" min="-12" max="12" step="1" value="${settings.pitch}" data-alarm-pitch></label>
 <button class="gc-primary" data-alarm-preview>Play preview</button></section>
+<section class="gc-card gc-launch-row"><div><h3>Alert position</h3><p>Drag the alarm banner away from the game's own popups. Enter or Escape finishes.</p></div><div class="gc-alarm-file-actions"><button data-alarm-reset>Reset</button><button class="gc-primary" data-alarm-move>${isEditingAlarmPosition() ? 'Done' : 'Move banner'}</button></div></section>
 <section class="gc-card gc-launch-row"><div><h3>Custom sound</h3><p>${custom ? `Using <b>${escapeHtml(custom.name)}</b>.` : `MP3, WAV, OGG or M4A. Anything over ${CUSTOM_SOUND_MAX_SECONDS} seconds is trimmed to its start.`} It repeats until the alarm is stopped.</p></div>
 <div class="gc-alarm-file-actions">${custom ? '<button class="gc-danger" data-alarm-remove>Remove</button>' : ''}<button data-alarm-upload>${custom ? 'Replace' : 'Choose file'}</button></div>
 <input type="file" accept="audio/*" hidden data-alarm-file></section>`;
@@ -52,6 +54,16 @@ export function bindAlarmSoundEvents(main: HTMLElement, rerender: () => void): v
   pitch.oninput = () => { pitchValue.textContent = pitchText(Number(pitch.value)); };
   pitch.onchange = () => { saveSettings({ pitch: Number(pitch.value) }); previewSoon(); };
   main.querySelector<HTMLButtonElement>('[data-alarm-preview]')!.onclick = () => { void previewAlarmSound(); };
+  const move = main.querySelector<HTMLButtonElement>('[data-alarm-move]')!;
+  move.onclick = () => {
+    if (isEditingAlarmPosition()) { finishEditingAlarmPosition(); return; }
+    move.textContent = 'Done';
+    editAlarmPosition(() => { if (move.isConnected) move.textContent = 'Move banner'; });
+  };
+  main.querySelector<HTMLButtonElement>('[data-alarm-reset]')!.onclick = () => {
+    resetAlarmPosition();
+    if (!isEditingAlarmPosition()) toast('Alarm banner moved back to the top');
+  };
   const file = main.querySelector<HTMLInputElement>('[data-alarm-file]')!;
   main.querySelector<HTMLButtonElement>('[data-alarm-upload]')!.onclick = () => file.click();
   file.onchange = async () => {

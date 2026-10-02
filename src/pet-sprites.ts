@@ -131,6 +131,9 @@ const EMBLEM_ICON_SPRITES: Record<string, string> = {
   rainbow: 'MutationRainbow', gold: 'MutationGold', thunder: 'MutationThundercharged',
   dawn: 'MutationDawnlit', amber: 'MutationAmberlit', wet: 'MutationWet',
   chilled: 'MutationChilled', frozen: 'MutationFrozen', coin: 'Coin', egg: 'EggsRestocked',
+  thunderstruck: 'MutationThunderstruck', dawnbound: 'MutationDawncharged', amberbound: 'MutationAmbercharged',
+  weatherRain: 'RainIcon', weatherSnow: 'FrostIcon', weatherThunderstorm: 'ThunderstormIcon',
+  weatherDawn: 'DawnIcon', weatherAmberMoon: 'AmberMoonIcon',
 };
 
 function produceSpriteCandidates(species: string): string[] {

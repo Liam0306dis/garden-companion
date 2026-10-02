@@ -19,7 +19,11 @@ import { escapeHtml, humanize } from '../utils.js';
  */
 export function teams() { return state.slot?.data?.petTeams || []; }
 
-const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'dawn', 'amber', 'wet', 'chilled', 'frozen', 'coin', 'egg'];
+const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'thunderstruck', 'dawn', 'dawnbound', 'amber', 'amberbound', 'wet', 'chilled', 'frozen', 'coin', 'egg', 'weatherRain', 'weatherSnow', 'weatherThunderstorm', 'weatherDawn', 'weatherAmberMoon'];
+const EMBLEM_ICON_LABELS: Record<string, string> = {
+  weatherRain: 'Rain', weatherSnow: 'Snow', weatherThunderstorm: 'Thunderstorm', weatherDawn: 'Dawn', weatherAmberMoon: 'Amber Moon',
+};
+const iconLabel = (icon: string): string => EMBLEM_ICON_LABELS[icon] ?? humanize(icon).replace(/\b\w/g, letter => letter.toUpperCase());
 const EMBLEM_LETTERS = Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index));
 
 let teamPickerSelection: Set<string> | null = null;
@@ -34,6 +38,7 @@ function emblemKey(emblem: PetTeamEmblem | null | undefined): string {
   if (!emblem) return '';
   if (emblem.type === 'number') return `number:${emblem.number}`;
   if (emblem.type === 'pet') return `pet:${emblem.petId}`;
+  if (emblem.type === 'cosmetic') return `cosmetic:${emblem.cosmetic}`;
   return `icon:${emblem.icon}`;
 }
 
@@ -42,6 +47,7 @@ function emblemFromKey(key: string): PetTeamEmblem | null {
   if (kind === 'number') return { type: 'number', number: Number(value) };
   if (kind === 'pet') return { type: 'pet', petId: value };
   if (kind === 'icon') return { type: 'icon', icon: value };
+  if (kind === 'cosmetic') return { type: 'cosmetic', cosmetic: value };
   return null;
 }
 
@@ -58,7 +64,8 @@ function emblemLabel(emblem: PetTeamEmblem | null | undefined): string {
   if (!emblem) return '';
   if (emblem.type === 'number') return EMBLEM_LETTERS[emblem.number - 1] || String(emblem.number);
   if (emblem.type === 'pet') { const pet = emblemPet(emblem.petId); return pet ? petLabel(pet) : 'Pet'; }
-  return humanize(emblem.icon);
+  if (emblem.type === 'cosmetic') return humanize(emblem.cosmetic.replace(/\.png$/i, ''));
+  return iconLabel(emblem.icon);
 }
 
 function setPetTeamEmblem(teamId: string, emblem: PetTeamEmblem): void {
@@ -105,14 +112,14 @@ function updateTeamPickerCount(picker: HTMLElement): void {
 function emblemIconMarkup(icon: string): string {
   const sprite = page.__gardenCompanionEmblemSprites?.[icon];
   return sprite
-    ? `<img src="${escapeHtml(sprite)}" alt=""><small>${escapeHtml(humanize(icon))}</small>`
-    : `<i data-emblem-icon="${escapeHtml(icon)}"></i><small>${escapeHtml(humanize(icon))}</small>`;
+    ? `<img src="${escapeHtml(sprite)}" alt=""><small>${escapeHtml(iconLabel(icon))}</small>`
+    : `<i data-emblem-icon="${escapeHtml(icon)}"></i><small>${escapeHtml(iconLabel(icon))}</small>`;
 }
 
 function emblemChip(emblem: PetTeamEmblem): string {
   if (emblem.type === 'icon') {
     const sprite = page.__gardenCompanionEmblemSprites?.[emblem.icon];
-    if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(humanize(emblem.icon))}" title="${escapeHtml(humanize(emblem.icon))}"></span>`;
+    if (sprite) return `<span class="gc-team-emblem"><img src="${escapeHtml(sprite)}" alt="${escapeHtml(iconLabel(emblem.icon))}" title="${escapeHtml(iconLabel(emblem.icon))}"></span>`;
   }
   if (emblem.type === 'pet') {
     const pet = emblemPet(emblem.petId);
@@ -152,7 +159,7 @@ function renderEmblemOptions(): string {
     taken.has(index + 1) ? `${letter} is used by another team` : `Letter ${letter}`,
     taken.has(index + 1),
   )).join('');
-  const icons = EMBLEM_ICONS.map(icon => option(`icon:${icon}`, emblemIconMarkup(icon), humanize(icon))).join('');
+  const icons = EMBLEM_ICONS.map(icon => option(`icon:${icon}`, emblemIconMarkup(icon), iconLabel(icon))).join('');
   const teamPets = selectedTeamPets();
   const pets = teamPets.length ? teamPets.map(pet => {
     const { key, inner, label } = petEmblemOption(pet);
@@ -204,7 +211,7 @@ export function openTeamPicker(teamId: string | null | undefined): void {
   const ownedPetIds = new Set(allPets().map(pet => pet.id));
   teamPickerSelection = new Set((team?.members ?? []).map(member => member.petId).filter(petId => ownedPetIds.has(petId)));
   teamPickerEmblem = team?.emblem ?? null;
-  teamPickerEmblemKind = teamPickerEmblem?.type ?? 'number';
+  teamPickerEmblemKind = teamPickerEmblem?.type === 'cosmetic' ? 'number' : teamPickerEmblem?.type ?? 'number';
   document.getElementById('gc-team-picker')?.remove();
   const picker = document.createElement('div');
   picker.id = 'gc-team-picker';

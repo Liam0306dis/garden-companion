@@ -435,7 +435,7 @@ export function initCompanion(): void {
   const TAB_GROUPS: Array<[string, Array<[string, string, string?]>]> = [
     ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food'], ['eggLuck', 'Egg Luck', 'Eggs']]],
     ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
-    ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['alarmSound', 'Sound Settings'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
+    ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['alarmSound', 'Alert Settings'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
     ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
     ['Support', [['supporter', 'Supporter']]],

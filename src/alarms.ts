@@ -1,6 +1,7 @@
 import type { AlarmSoundSettings, CompanionAlarmOptions } from './types.js';
 import { config, feature } from './config.js';
 import { page } from './page.js';
+import { finishEditingAlarmPosition, placeAlarmBanner } from './alert-position.js';
 import { toast } from './toast.js';
 import { escapeHtml } from './utils.js';
 
@@ -342,6 +343,8 @@ export async function previewAlarmSound(): Promise<void> {
 function clearActiveAlarm(): void {
   if (alarm?.timer) clearInterval(alarm.timer);
   stopCustomSound();
+  // Placing a banner that is about to go would leave the drag handlers on a detached element.
+  finishEditingAlarmPosition();
   document.getElementById('gc-alarm')?.remove();
   alarm = null;
 }
@@ -388,12 +391,15 @@ export function stopAlarm(owner?: string): void {
 }
 
 function renderAlarmBanner(options: CompanionAlarmOptions): void {
+  // A sample banner from Alert Settings gives way to the real thing.
+  finishEditingAlarmPosition();
   const banner = document.createElement('div');
   banner.id = 'gc-alarm';
   const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : '';
   const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : '';
   banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
   document.body.appendChild(banner);
+  placeAlarmBanner(banner);
   banner.querySelector<HTMLButtonElement>('[data-stop]')!.onclick = dismissCurrentAlarm;
   const actionButton = banner.querySelector<HTMLButtonElement>('[data-buy]');
   if (actionButton && options.onAction) {

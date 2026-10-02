@@ -399,6 +399,11 @@
 #gc-alarm span { color:var(--gc-muted);font-size:12px; }
 #gc-alarm button { min-height:32px;padding:7px 12px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:600 12px var(--gc-font); }
 #gc-alarm button:hover { background:var(--gc-surface-3); }
+#gc-alarm[data-sample] { animation:none;border-color:var(--gc-accent-line);box-shadow:var(--gc-shadow); }
+#gc-alarm[data-editing] { grid-template-columns:auto minmax(0,1fr);grid-auto-flow:column;grid-auto-columns:auto;cursor:grab;user-select:none;touch-action:none;outline:2px dashed var(--gc-accent-line);outline-offset:4px; }
+#gc-alarm[data-editing][data-dragging] { cursor:grabbing; }
+#gc-alarm-guide { position:fixed;left:50%;top:0;bottom:0;z-index:999998;width:0;border-left:1px dashed var(--gc-accent-line);opacity:0;pointer-events:none;transition:opacity .12s; }
+#gc-alarm-guide.is-visible { opacity:1; }
 #gc-alarm button[data-buy] { color:#1c1208;background:#fb923c;border-color:#fb923c; }
 #gc-alarm button[data-buy]:hover { background:#fdba74; }
 #gc-alarm [data-alarm-queue] { margin-top:2px;color:var(--gc-gold);font-size:11px;font-style:normal;font-weight:600; }
@@ -455,6 +460,11 @@
 .gc-emblem-strip button i[data-emblem-icon=frozen] { background:linear-gradient(135deg,#e0f2fe,#7dd3fc); }
 .gc-emblem-strip button i[data-emblem-icon=coin] { background:linear-gradient(135deg,#fde68a,#d97706); }
 .gc-emblem-strip button i[data-emblem-icon=egg] { background:linear-gradient(135deg,#fff7ed,#fed7aa); }
+.gc-emblem-strip button i[data-emblem-icon=thunderstruck],.gc-emblem-strip button i[data-emblem-icon=weatherThunderstorm] { background:linear-gradient(135deg,#facc15,#7c3aed); }
+.gc-emblem-strip button i[data-emblem-icon=dawnbound],.gc-emblem-strip button i[data-emblem-icon=weatherDawn] { background:linear-gradient(135deg,#fb7185,#f59e0b); }
+.gc-emblem-strip button i[data-emblem-icon=amberbound],.gc-emblem-strip button i[data-emblem-icon=weatherAmberMoon] { background:linear-gradient(135deg,#d97706,#78350f); }
+.gc-emblem-strip button i[data-emblem-icon=weatherRain] { background:linear-gradient(135deg,#7dd3fc,#2563eb); }
+.gc-emblem-strip button i[data-emblem-icon=weatherSnow] { background:linear-gradient(135deg,#f0f9ff,#bae6fd); }
 
 /* ── Calculators ─────────────────────────────────────────────────────────────────────────────── */
 .gc-calc-total { color:var(--gc-gold);font-size:15px;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums; }
