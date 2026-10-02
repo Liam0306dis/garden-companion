@@ -439,7 +439,7 @@ export function showAlarmBanner(options: CompanionAlarmOptions): void {
 export function installAlarms(): void {
   // Any feature that can raise a banner has to arm the audio, or its alarm shows up silent.
   // Read straight off the config rather than through the weather module, which imports this one.
-  const wantsAlarms = () => feature('shopAlarms') || feature('petHungerAlarm')
+  const wantsAlarms = () => feature('shopAlarms') || feature('petHungerAlarm') || feature('petAbilityAlarm')
     || Object.values(config.weatherAlerts || {}).some(Boolean);
   page.addEventListener('pointerdown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);
   page.addEventListener('keydown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);

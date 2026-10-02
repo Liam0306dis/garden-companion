@@ -10,6 +10,8 @@ export interface Pet {
   itemType?: string;
   /** The egg this pet hatched from. The game marks it optional, so it can be absent. */
   sourceEggId?: string;
+  /** Charge left on each player-activated ability, keyed by ability id. Zero or absent is ready. */
+  abilityCooldowns?: Record<string, number>;
   /** Added by the companion when listing owned pets: Active, Inventory, or the storage name. */
   location?: string;
 }
@@ -257,6 +259,7 @@ export interface CompanionConfig {
   cropValues: boolean;
   petFood: boolean;
   petHungerAlarm: boolean;
+  petAbilityAlarm: boolean;
   instantHarvest: boolean;
   petSwapToss: boolean;
   autoStoreSeeds: boolean;

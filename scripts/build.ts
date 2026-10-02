@@ -47,6 +47,13 @@ const [catalogs, css] = await Promise.all([
   readFile(resolve(root, 'src', 'style.css'), 'utf8'),
 ]);
 
+// A guarantee is a few dozen pulls, a hundred or so at most. Anything outside that is a misread -
+// 0.8.92 shipped every egg at 4,294,967,295 after a minified name resolved to the wrong constant -
+// so the build refuses rather than putting it in front of players.
+const badThresholds = Object.entries(catalogs.eggs).flatMap(([egg, { pityThresholds }]) =>
+  Object.entries(pityThresholds).filter(([, pulls]) => !Number.isInteger(pulls) || pulls < 1 || pulls > 1000).map(([species, pulls]) => `${egg}.${species}=${pulls}`));
+if (badThresholds.length) throw new Error(`Egg pity thresholds look misread: ${badThresholds.join(', ')}`);
+
 /**
  * > garden-companion@0.8.77 build
 > tsx scripts/build.ts --no-sprites

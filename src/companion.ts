@@ -2,7 +2,7 @@ import type { FullState, GameState, PlayerSlot, RoomState } from './types.js';
 import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
 import { ABILITY_DETAILS, KOFI_URL, TRACKED_ABILITY_CATALOG } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
-import { installAlarms } from './alarms.js';
+import { armAlarmAudio, installAlarms } from './alarms.js';
 import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, renumberOutgoingCommand, seedCommandSequence } from './game-connection.js';
 import { installCropEstimates, syncCropEstimates } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -30,7 +30,7 @@ import { page } from './page.js';
 import { setPanelActions } from './panel-actions.js';
 import { retryUntil } from './retry.js';
 import { installPixiCapture } from './pixi.js';
-import { processPetHunger, renderAbilities } from './features/active-pets.js';
+import { processPetAbilityCooldowns, processPetHunger, renderAbilities, stopPetAbilityAlarms } from './features/active-pets.js';
 import { installInstantHarvest } from './features/instant-harvest.js';
 import { noteServerClock } from './server-clock.js';
 import { mountLunarTimer, updateLunarTimer, watchSocketHealth } from './features/lunar-timer.js';
@@ -279,6 +279,7 @@ export function initCompanion(): void {
       processActivityLog();
       processShops();
       processPetHunger();
+      processPetAbilityCooldowns();
       processAutoStore();
       noteWeatherChange();
       processWeatherAlarms();
@@ -629,6 +630,8 @@ export function initCompanion(): void {
       // Checked while the team is already starving, the alarm should sound now rather than waiting
       // for the next state frame to notice.
       if (input.dataset.feature === 'petHungerAlarm') processPetHunger();
+      if (input.dataset.feature === 'petAbilityAlarm' && !input.checked) stopPetAbilityAlarms();
+      if (input.checked && (input.dataset.feature === 'petHungerAlarm' || input.dataset.feature === 'petAbilityAlarm')) armAlarmAudio();
       updateLunarTimer();
       renderPetFood();
       syncCropEstimates();

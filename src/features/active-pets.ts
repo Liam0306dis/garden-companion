@@ -9,7 +9,7 @@ import { state } from '../state.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 import { weatherLabel } from './weather-timer.js';
 
-/** The Active Pets tab and the whole-team hunger alarm. */
+/** The Active Pets tab, the whole-team hunger alarm and the ability-ready alarm. */
 
 const HUNGER_ALARM_OWNER = 'pets:hunger';
 let hungerAlarmRaised = false;
@@ -38,6 +38,76 @@ export function processPetHunger(): void {
     // No detail or action button: the title says it, feeding happens on the docked pet food
     // buttons rather than in a panel, and Stop holds until something is actually fed.
   });
+}
+
+/**
+ * Alarms for player-activated abilities (Ostrich's Dawn Capture, Thunder Wolf's Thundercharger and
+ * the like) coming off cooldown. One switch covers every pet, so it holds across team swaps.
+ *
+ * The game keeps the charge left on each one in the pet's `abilityCooldowns`, zero or absent once
+ * it is ready. An alarm is raised on the change from charging to ready, never on first sight, so a
+ * pet that was already ready when the page loaded does not ring on every reload. Using the ability
+ * puts it back on cooldown, which is what clears its banner.
+ */
+
+const COOLDOWN_ALARM_OWNER = 'pets:cooldown:';
+
+function activatedAbilities(pet: Pet): string[] {
+  return (pet.abilities ?? []).filter(ability => ABILITY_DETAILS[ability]?.trigger === 'playerActivated');
+}
+
+function cooldownLeft(pet: Pet, ability: string): number {
+  return Number(pet.abilityCooldowns?.[ability]) || 0;
+}
+
+function petName(pet: Pet): string {
+  return pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
+}
+
+/** Last charge seen per pet and ability, so ready is only alarmed on the way in. */
+const lastCooldowns = new Map<string, number>();
+
+function raiseCooldownAlarm(pet: Pet, ability: string): void {
+  showAlarmBanner({
+    owner: `${COOLDOWN_ALARM_OWNER}${pet.id}:${ability}`,
+    label: 'PET ALARM | ABILITY READY',
+    title: `${petName(pet)}'s ${ABILITY_DETAILS[ability]?.name ?? humanize(ability)} is ready`,
+  });
+}
+
+export function processPetAbilityCooldowns(): void {
+  // No slot is a reconnect rather than an empty team, and forgetting every pet over it would drop
+  // banners that are still true.
+  if (!state.slot) return;
+  const enabled = feature('petAbilityAlarm');
+  const seen = new Set<string>();
+  for (const pet of activePets()) {
+    if (!pet?.id) continue;
+    for (const ability of activatedAbilities(pet)) {
+      const key = `${pet.id}:${ability}`;
+      seen.add(key);
+      const left = cooldownLeft(pet, ability);
+      const before = lastCooldowns.get(key);
+      lastCooldowns.set(key, left);
+      if (left > 0) {
+        // Used again, so whatever it announced is over.
+        if (!before) stopAlarm(COOLDOWN_ALARM_OWNER + key);
+        continue;
+      }
+      if (before && enabled) raiseCooldownAlarm(pet, ability);
+    }
+  }
+  // A pet taken off the team cannot use its ability from storage, so its banner has nothing to say.
+  for (const key of [...lastCooldowns.keys()]) {
+    if (seen.has(key)) continue;
+    lastCooldowns.delete(key);
+    stopAlarm(COOLDOWN_ALARM_OWNER + key);
+  }
+}
+
+/** Turned off while a banner is up, the banner goes with it. */
+export function stopPetAbilityAlarms(): void {
+  for (const key of lastCooldowns.keys()) stopAlarm(COOLDOWN_ALARM_OWNER + key);
 }
 
 function combinedAbilityRows(pets: Pet[]): string {
@@ -129,9 +199,5 @@ export function renderAbilities(): string {
     return `<article class="gc-card gc-pet-card"><div class="gc-pet-head">${petSprite(pet)}<div><h3>${escapeHtml(pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies))}</h3><p>${escapeHtml(humanize(pet.petSpecies))}</p>${abilityChips(pet.abilities || [])}</div>${hungerDisplay(pet, active)}</div><div class="gc-pet-strength"><span>${metrics ? `STR <b>${metrics.strength}</b> / ${metrics.maxStrength}` : 'STR unavailable'}</span><strong>${escapeHtml(maxText)}</strong></div>${potionRow}</article>`;
   }).join('');
   const abilityRows = combinedAbilityRows(active);
-  const starving = allActivePetsStarving();
-  const hungerToggle = `<label class="gc-toggle"><span><b>Alarm when every pet has zero hunger</b><small>${
-    starving ? 'All active pets are at zero right now.' : 'Sounds once the whole team hits zero hunger, not for a single hungry pet.'
-  }</small></span><input type="checkbox" data-feature="petHungerAlarm" ${feature('petHungerAlarm') ? 'checked' : ''}><i></i></label>`;
-  return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><div class="gc-list">${hungerToggle}</div><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
+  return `<section class="gc-card gc-team-summary"><b>${active.length} active pet${active.length === 1 ? '' : 's'}</b><span>${Math.round(xpRate).toLocaleString(NUMBER_LOCALE)} XP/hour per pet</span></section><section class="gc-active-pets">${activeCards || '<p class="gc-empty">Waiting for active pet data.</p>'}</section><div class="gc-section-label">Combined abilities</div><section class="gc-stack">${abilityRows || '<p class="gc-empty">No active pet abilities found.</p>'}</section>`;
 }

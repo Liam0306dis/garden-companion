@@ -1,5 +1,5 @@
 import { ALARM_PRESETS, alarmSoundSettings, clearCustomAlarmSound, CUSTOM_SOUND_MAX_SECONDS, previewAlarmSound, savedCustomSound, setCustomAlarmSound } from '../alarms.js';
-import { config, saveConfig } from '../config.js';
+import { config, feature, saveConfig } from '../config.js';
 import { editAlarmPosition, finishEditingAlarmPosition, isEditingAlarmPosition, resetAlarmPosition } from '../alert-position.js';
 import { toast } from '../toast.js';
 import type { AlarmSoundSettings } from '../types.js';
@@ -22,7 +22,12 @@ export function renderAlarmSound(): string {
   const custom = savedCustomSound();
   const options = Object.entries(ALARM_PRESETS).map(([id, preset]) => [id, preset.label]);
   if (custom) options.push(['custom', 'Custom file']);
-  return `<p class="gc-note">Every alarm uses this sound. The speaker button on each alert still mutes that one alert.</p>
+  const toggle = (key: string, title: string, text: string) =>
+    `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`;
+  return `<div class="gc-section-label">Pet alarms</div>
+<div class="gc-list">${toggle('petHungerAlarm', 'Alarm when every pet has zero hunger', 'Sounds once the whole team hits zero hunger, not for a single hungry pet.')}${
+  toggle('petAbilityAlarm', 'Alarm when a pet ability is ready', "Sounds when an active pet's activated ability, like Ostrich or Thunder Wolf, comes off cooldown.")}</div>
+<p class="gc-note">Every alarm uses this sound. The speaker button on each alert still mutes that one alert.</p>
 <section class="gc-card gc-alarm-sound"><h3>Sound</h3>
 <select data-alarm-preset>${options.map(([id, label]) => `<option value="${id}" ${id === settings.preset ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>
 <label class="gc-value-size"><span>Volume<b data-alarm-volume-value>${settings.volume}%</b></span><input type="range" min="0" max="100" step="5" value="${settings.volume}" data-alarm-volume></label>

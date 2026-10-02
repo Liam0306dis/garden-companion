@@ -1,3 +1,7 @@
+0.8.94
+- New pet alarm: sounds when an activated ability (like Ostrich or Thunder Wolf) is ready to use again - turn it on in Alert Settings
+- The zero hunger pet alarm has moved to Alert Settings
+
 0.8.93
 - Fixed Egg Luck showing 4,294,967,295 pulls instead of 40 for every egg's rarest pet
 

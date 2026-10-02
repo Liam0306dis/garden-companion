@@ -68,6 +68,9 @@ test('the catalogs the build bakes in are complete', () => {
   assert.ok(catalogs.pets.Worm.diet.length > 0);
   assert.ok(Object.values(catalogs.pets).some(pet => pet.abilities.length), 'each species carries its roll table');
   assert.ok(Object.values(catalogs.eggs).some(egg => Object.keys(egg.pityThresholds).length), 'pity thresholds are read');
+  for (const [egg, { pityThresholds }] of Object.entries(catalogs.eggs)) {
+    for (const [species, pulls] of Object.entries(pityThresholds)) assert.ok(Number.isInteger(pulls) && pulls >= 1 && pulls <= 1000, `${egg}.${species} guarantee is ${pulls} pulls`);
+  }
   assert.ok(catalogs.plants.FourLeafClover?.slots === catalogs.plants.Clover?.slots, 'a rare patch variant inherits its parent capacity');
   assert.match(catalogs.abilityColours.RainbowGranter, /^linear-gradient\(/);
 });
