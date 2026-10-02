@@ -143,18 +143,20 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
         // egg, but the Amber Egg has two at different thresholds - so this is read rather than
         // inferred from the spawn weights, which would name the rarer one and the wrong number.
         // Thresholds are written as a shared minified constant (`var L=40`) as often as a literal,
-        // so an identifier is resolved against the bundle rather than dropped.
-        const pityValue = (raw: string): number => {
+        // so an identifier is resolved against the bundle rather than dropped. Minified names are
+        // reused across the concatenated files (another chunk declares `E=4294967295`), so the
+        // declaration nearest before the egg table is the one in scope, not the first in the bundle.
+        const pityValue = (raw: string, at: number): number => {
           const literal = Number(raw);
           if (Number.isFinite(literal)) return literal;
-          const declared = bundle.match(new RegExp(`(?:^|[^A-Za-z0-9_$.])${escapeRegExp(raw)}=([0-9]+)(?![0-9.])`));
-          return declared ? Number(declared[1]) : 0;
+          const declarations = [...bundle.slice(0, at).matchAll(new RegExp(`(?:^|[^A-Za-z0-9_$.])${escapeRegExp(raw)}=([0-9]+)(?![0-9.])`, 'g'))];
+          return declarations.length ? Number(declarations[declarations.length - 1][1]) : 0;
         };
         const eggs = Object.fromEntries(eggMatches.map(match => [match[1], {
           name: match[2],
           spawnWeights: Object.fromEntries([...match[3].matchAll(/([A-Za-z][A-Za-z0-9_]*):([0-9.e+-]+)/g)].map(entry => [entry[1], Number(entry[2])])),
           pityThresholds: Object.fromEntries([...(match[4] || '').matchAll(/([A-Za-z][A-Za-z0-9_]*):([A-Za-z0-9_$.]+)/g)]
-            .map(entry => [entry[1], pityValue(entry[2])])
+            .map(entry => [entry[1], pityValue(entry[2], match.index ?? bundle.length)])
             .filter(([, threshold]) => Number(threshold) > 0)),
         }]));
         // Mutations carry a display name that differs from their id (Dawncharged shows as Dawnbound)
