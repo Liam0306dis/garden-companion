@@ -1,3 +1,6 @@
+0.8.95
+- New XP calculator (Calculators > XP): how many Amber Moon or Dawn events, or hours of play with XP Boost pets, it takes to level a pet to max strength
+
 0.8.94
 - New pet alarm: sounds when an activated ability (like Ostrich or Thunder Wolf) is ready to use again - turn it on in Alert Settings
 - The zero hunger pet alarm has moved to Alert Settings

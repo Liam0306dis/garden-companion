@@ -7,11 +7,12 @@ import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { activePets, allPets, crystalStrengthBonus, mutationSprite, petDiet, petMetrics, petSprite, produceSprite, STRENGTH_CRYSTAL_BONUS } from '../pets.js';
+import { abilityXpPerHour, activePets, allPets, crystalStrengthBonus, mutationSprite, petDiet, petMetrics, petSprite, produceSprite, STRENGTH_CRYSTAL_BONUS } from '../pets.js';
 import { state } from '../state.js';
 import { escapeHtml, formatDuration, humanize, NUMBER_LOCALE } from '../utils.js';
+import { weatherLabel } from './weather-timer.js';
 
-/** The Dust, Food and Granter calculators. */
+/** The Dust, Crop Value, Food, Granter and XP calculators. */
 
 const DUST_RARITY: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
 const DUST_HATCH_MUTATION = (1 - .01 - .001) + .01 * 25 + .001 * 50;
@@ -184,7 +185,7 @@ const granterEnabled = [true, true, true];
 let granterCrystal = false;
 const foodSlots: Array<{ species: string; food: string } | null> = [null, null, null];
 
-const CALCULATOR_TABS = [['dust', 'Dust'], ['value', 'Crop Value'], ['food', 'Food'], ['granter', 'Granters']];
+const CALCULATOR_TABS = [['dust', 'Dust'], ['value', 'Crop Value'], ['food', 'Food'], ['granter', 'Granters'], ['xp', 'XP']];
 
 /**
  * Crop value, following the game exactly: a crop's colour mutation multiplies, and every other
@@ -369,7 +370,8 @@ export function calculatorsSignature(): string {
 export function renderCalculators(): string {
   const tabs = CALCULATOR_TABS.map(([id, label]) =>
     `<button data-calc-tab="${id}" class="${id === calculatorTab ? 'active' : ''}">${label}</button>`).join('');
-  const body = calculatorTab === 'granter' ? renderGranterCalculator()
+  const body = calculatorTab === 'xp' ? renderXpCalculator()
+    : calculatorTab === 'granter' ? renderGranterCalculator()
     : calculatorTab === 'food' ? renderFoodCalculator()
       : calculatorTab === 'value' ? renderValueCalculator()
         : renderDustCalculator();
@@ -603,6 +605,208 @@ export function bindGranterRows(main: HTMLElement): void {
   });
 }
 
+/**
+ * How long it takes to level a pet to its maximum Strength with one or two XP boosters on the team.
+ *
+ * A weather booster - Amber XP Boost (Red Fox) in Amber Moon, Dawn XP Boost (Ostrich) in Dawn - only
+ * rolls while its weather runs, so for those the answer is a count of ten-minute events. The plain
+ * XP Boosts roll whatever the weather, so for those it is a stretch of active play instead. The
+ * pet's own 1 XP a second is counted alongside either way. These are averages: the boosts are
+ * rolls, so a real run lands either side of them.
+ */
+const XP_BOOSTER_OPTIONS: Array<{ ability: string; weather?: string }> = ([
+  { ability: 'AmberXpBoost', weather: 'AmberMoon' },
+  { ability: 'DawnXpBoost', weather: 'Dawn' },
+  { ability: 'PetXpBoost' },
+  { ability: 'PetXpBoostII' },
+  { ability: 'PetXpBoostIII' },
+] as Array<{ ability: string; weather?: string }>).filter(option => ABILITY_DETAILS[option.ability] && !UNREACHABLE_ABILITIES.has(option.ability));
+/** Both weathers run ten minutes. */
+const XP_EVENT_SECONDS = 600;
+const XP_BOOSTERS = 2;
+const XP_CUSTOM = 'custom';
+
+let xpBoosterAbility = 'AmberXpBoost';
+let xpTarget = '';
+let xpCustomSpecies = '';
+let xpCustomStrength = 70;
+let xpCustomMax = 100;
+const xpBoosterStrengths: Array<number | null> = [null, null];
+const xpBoosterEnabled = [true, false];
+
+function xpOption(): { ability: string; weather?: string } {
+  return XP_BOOSTER_OPTIONS.find(option => option.ability === xpBoosterAbility) ?? XP_BOOSTER_OPTIONS[0];
+}
+
+function xpAbility(): string {
+  return xpOption().ability;
+}
+
+/** What one result is counted in: a weather event, or an hour of play for a booster that ignores weather. */
+function xpWindowSeconds(): number {
+  return xpOption().weather ? XP_EVENT_SECONDS : 3600;
+}
+
+function petLabel(pet: Pet): string {
+  return pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
+}
+
+/** Owned pets still short of their maximum, the only ones there is anything to work out for. */
+function xpTargetPets(): Pet[] {
+  return allPets()
+    .filter(pet => (petMetrics(pet)?.xpToMax ?? 0) > 0)
+    .sort((left, right) => petLabel(left).localeCompare(petLabel(right)));
+}
+
+function xpSpeciesOptions(): string[] {
+  return Object.keys(PET_CATALOG).filter(species => Number(PET_CATALOG[species]?.hoursToMature) > 0)
+    .sort((left, right) => (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));
+}
+
+function currentXpTarget(): string {
+  if (xpTarget === XP_CUSTOM) return XP_CUSTOM;
+  const pets = xpTargetPets();
+  return pets.some(pet => pet.id === xpTarget) ? xpTarget : pets[0]?.id ?? XP_CUSTOM;
+}
+
+/** Its own strength rather than one a crystal is lending it, which is what levelling runs from. */
+function ownStrength(metrics: { maxStrength: number; xpToMax: number; xpPerLevel: number }): number {
+  return metrics.maxStrength - Math.ceil(metrics.xpToMax / metrics.xpPerLevel);
+}
+
+/** XP still needed and the Strength it runs between, for an owned pet or one set by hand. */
+function xpNeeded(): { xp: number; strength: number; maxStrength: number } | null {
+  const target = currentXpTarget();
+  if (target !== XP_CUSTOM) {
+    const metrics = petMetrics(allPets().find(pet => pet.id === target));
+    if (!metrics) return null;
+    return { xp: metrics.xpToMax, strength: ownStrength(metrics), maxStrength: metrics.maxStrength };
+  }
+  const hours = Number(PET_CATALOG[xpCustomSpecies || xpSpeciesOptions()[0] || '']?.hoursToMature || 0);
+  if (!hours) return null;
+  const xpPerLevel = Math.floor(3600 * hours / 30);
+  return { xp: Math.max(0, xpCustomMax - xpCustomStrength) * xpPerLevel, strength: xpCustomStrength, maxStrength: xpCustomMax };
+}
+
+function xpBoosterPets(): Pet[] {
+  return allPets()
+    .filter(pet => (pet.abilities || []).includes(xpAbility()))
+    .sort((left, right) => (petMetrics(right)?.strength ?? 0) - (petMetrics(left)?.strength ?? 0))
+    .slice(0, XP_BOOSTERS);
+}
+
+function xpBoosterStrength(index: number, pets: Pet[]): number {
+  return xpBoosterStrengths[index] ?? petMetrics(pets[index])?.strength ?? 100;
+}
+
+/** Average XP one booster adds to each active pet over one event, or one hour for a non-weather booster. */
+function xpBoosterPerWindow(strength: number): number {
+  const details = ABILITY_DETAILS[xpAbility()];
+  const chance = Number(details?.baseProbability || 0);
+  const bonus = Number(details?.baseParameters?.bonusXp || 0);
+  return abilityXpPerHour(strength, chance, bonus) * xpWindowSeconds() / 3600;
+}
+
+function xpBoosterEffect(strength: number): string {
+  return `~${Math.round(xpBoosterPerWindow(strength)).toLocaleString(NUMBER_LOCALE)} XP/${xpOption().weather ? 'event' : 'hour'}`;
+}
+
+/** The answer column: the event count or play time large, with what it is made of underneath. */
+function xpResults(): string {
+  const needed = xpNeeded();
+  if (!needed) return '<p class="gc-empty">Pick a pet to level.</p>';
+  if (needed.xp <= 0) return '<p class="gc-empty">Already at its maximum Strength.</p>';
+  const pets = xpBoosterPets();
+  const boost = Array.from({ length: XP_BOOSTERS }, (_, index) => index)
+    .filter(index => xpBoosterEnabled[index])
+    .reduce((sum, index) => sum + xpBoosterPerWindow(xpBoosterStrength(index, pets)), 0);
+  const window = xpWindowSeconds();
+  const perWindow = window + boost;
+  const format = (value: number) => Math.round(value).toLocaleString(NUMBER_LOCALE);
+  const row = (label: string, value: string) => `<div><span>${label}</span><b>${value}</b></div>`;
+  const weather = xpOption().weather;
+  const head = `<div class="gc-xp-stats">${row('Strength', `${needed.strength} &rarr; ${needed.maxStrength}`)}${row('XP to max', format(needed.xp))}`;
+  if (!weather) {
+    return `<div class="gc-xp-answer" data-time><b>${formatDuration(needed.xp / perWindow * 3600 * 1000)}</b><span>of active play</span></div>`
+      + `${head}${row('XP per hour', format(perWindow))}</div>`
+      + '<small class="gc-xp-foot">Averages. The pet must be active and fed throughout.</small>';
+  }
+  const events = Math.ceil(needed.xp / perWindow);
+  return `<div class="gc-xp-answer"><b>${events.toLocaleString(NUMBER_LOCALE)}</b><span>${escapeHtml(weatherLabel(weather))} event${events === 1 ? '' : 's'}</span></div>`
+    + `${head}${row('XP per event', format(perWindow))}${row('Weather time', formatDuration(events * window * 1000))}</div>`
+    + '<small class="gc-xp-foot">Averages. The pet must be active and fed throughout.</small>';
+}
+
+function xpBoosterRows(): string {
+  const pets = xpBoosterPets();
+  return Array.from({ length: XP_BOOSTERS }, (_, index) => {
+    const pet = pets[index] as Pet | undefined;
+    const strength = xpBoosterStrength(index, pets);
+    const name = pet ? petLabel(pet) : `Booster ${index + 1}`;
+    const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
+    return `<div class="gc-granter-row" data-active="${xpBoosterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-xp-on="${index}" ${xpBoosterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${pet ? '' : 'Not owned &middot; '}<span data-xp-effect="${index}">${xpBoosterEffect(strength)}</span></small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-xp-str="${index}"><b data-xp-value="${index}">${strength}</b></div></div>`;
+  }).join('');
+}
+
+function renderXpCalculator(): string {
+  const target = currentXpTarget();
+  const boosters = XP_BOOSTER_OPTIONS.map(({ ability, weather }) =>
+    `<option value="${ability}" ${ability === xpAbility() ? 'selected' : ''}>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))} - ${weather ? `${escapeHtml(weatherLabel(weather))} only` : 'any weather'}</option>`).join('');
+  const targets = xpTargetPets().map(pet =>
+    `<option value="${escapeHtml(pet.id)}" ${pet.id === target ? 'selected' : ''}>${escapeHtml(petLabel(pet))} (${escapeHtml(humanize(pet.petSpecies))}, STR ${ownStrength(petMetrics(pet)!)}/${petMetrics(pet)!.maxStrength})</option>`).join('')
+    + `<option value="${XP_CUSTOM}" ${target === XP_CUSTOM ? 'selected' : ''}>Set by hand</option>`;
+  const species = xpCustomSpecies || xpSpeciesOptions()[0] || '';
+  const custom = target === XP_CUSTOM
+    ? `<div class="gc-xp-custom"><select data-xp-species>${xpSpeciesOptions().map(id => `<option value="${escapeHtml(id)}" ${id === species ? 'selected' : ''}>${escapeHtml(PET_CATALOG[id]?.name || humanize(id))}</option>`).join('')}</select>`
+      + `<label><span>STR</span><input type="number" min="50" max="100" step="1" value="${xpCustomStrength}" data-xp-current></label>`
+      + `<label><span>Max</span><input type="number" min="80" max="100" step="1" value="${xpCustomMax}" data-xp-max></label></div>`
+    : '';
+  return `<section class="gc-card gc-xp"><div class="gc-xp-inputs">
+<label class="gc-xp-field"><span>Booster ability</span><select class="gc-calc-select" data-xp-booster>${boosters}</select></label>
+<label class="gc-xp-field"><span>Pet to level</span><select class="gc-calc-select" data-xp-target>${targets}</select></label>${custom}
+<div class="gc-xp-field"><span>Boosters</span><div class="gc-granter-list">${xpBoosterRows()}</div></div>
+<small class="gc-xp-foot">Amber XP Boost (Red Fox) and Dawn XP Boost (Ostrich) only roll in their weather, so they are counted in events. XP Boost rolls any time, so it is counted in hours.</small>
+</div><div class="gc-xp-result" data-xp-results>${xpResults()}</div></section>`;
+}
+
+function bindXpCalculator(main: HTMLElement): void {
+  const booster = main.querySelector<HTMLSelectElement>('[data-xp-booster]');
+  if (!booster) return;
+  const rerender = () => panelActions.renderPanelPreservingScroll();
+  booster.onchange = () => {
+    xpBoosterAbility = booster.value;
+    // The strengths described the other ability's pets.
+    xpBoosterStrengths.fill(null);
+    rerender();
+  };
+  const target = main.querySelector<HTMLSelectElement>('[data-xp-target]')!;
+  target.onchange = () => { xpTarget = target.value; rerender(); };
+  const species = main.querySelector<HTMLSelectElement>('[data-xp-species]');
+  if (species) species.onchange = () => { xpCustomSpecies = species.value; rerender(); };
+  const results = () => { main.querySelector<HTMLElement>('[data-xp-results]')!.innerHTML = xpResults(); };
+  // A half-typed number keeps the last good value rather than flashing a nonsense result.
+  const clamp = (value: string, min: number, max: number, fallback: number) => {
+    const number = Math.round(Number(value));
+    return value.trim() !== '' && Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
+  };
+  const current = main.querySelector<HTMLInputElement>('[data-xp-current]');
+  if (current) current.oninput = () => { xpCustomStrength = clamp(current.value, 50, 100, xpCustomStrength); results(); };
+  const max = main.querySelector<HTMLInputElement>('[data-xp-max]');
+  if (max) max.oninput = () => { xpCustomMax = clamp(max.value, 80, 100, xpCustomMax); results(); };
+  main.querySelectorAll<HTMLInputElement>('[data-xp-on]').forEach(input => input.onchange = () => {
+    xpBoosterEnabled[Number(input.dataset.xpOn)] = input.checked;
+    input.closest('.gc-granter-row')?.setAttribute('data-active', String(input.checked));
+    results();
+  });
+  main.querySelectorAll<HTMLInputElement>('[data-xp-str]').forEach(input => input.oninput = () => {
+    const index = Number(input.dataset.xpStr);
+    xpBoosterStrengths[index] = Number(input.value);
+    main.querySelector(`[data-xp-value="${index}"]`)!.textContent = input.value;
+    main.querySelector(`[data-xp-effect="${index}"]`)!.textContent = xpBoosterEffect(Number(input.value));
+    results();
+  });
+}
+
 export function foodSlotValue(index: number): { species: string; food: string } {
   const saved = foodSlots[index];
   if (saved) return saved;
@@ -694,7 +898,8 @@ export function bindCalculatorEvents(main: HTMLElement): void {
     selectGranterAbility((event.target as HTMLSelectElement).value);
     updateGranterSection(main);
   });
-  if (main.querySelector('.gc-granter-list')) bindGranterRows(main);
+  if (main.querySelector('[data-granter-ability]')) bindGranterRows(main);
+  bindXpCalculator(main);
   main.querySelectorAll<HTMLSelectElement>('[data-food-pet]').forEach(select => select.onchange = () => {
     const species = select.value;
     const diet = petDiet(species);

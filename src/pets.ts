@@ -415,7 +415,7 @@ function xpAbilityRate(ability: string): { baseChance: number; baseXp: number } 
   return { baseChance, baseXp };
 }
 
-function abilityXpPerHour(strength: number, baseChance: number, baseXp: number): number {
+export function abilityXpPerHour(strength: number, baseChance: number, baseXp: number): number {
   const multiplier = Math.max(.25, strength / 100);
   const chancePerSecond = Math.min(.95 / 60, baseChance / 60 / 100 * multiplier);
   return 3600 * chancePerSecond * baseXp * multiplier;

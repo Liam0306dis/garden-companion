@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.94
+// @version      0.8.95
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1210,8 +1210,8 @@
       const strength = petMetrics(pet)?.strength ?? 100;
       for (const ability of pet.abilities ?? []) {
         if (!abilityActiveInWeather(ability)) continue;
-        const xpAbility = xpAbilityRate(ability);
-        if (xpAbility) total += abilityXpPerHour(strength, xpAbility.baseChance, xpAbility.baseXp);
+        const xpAbility2 = xpAbilityRate(ability);
+        if (xpAbility2) total += abilityXpPerHour(strength, xpAbility2.baseChance, xpAbility2.baseXp);
       }
     }
     return total * crystalXpRateMultiplier();
@@ -1346,6 +1346,116 @@
     } finally {
       release();
     }
+  }
+
+  // src/server-clock.ts
+  var anchor = null;
+  function serverNow() {
+    const client = Date.now();
+    return anchor ? anchor.serverMs + client - anchor.clientMs : client;
+  }
+  function noteServerClock(data) {
+    if (typeof data !== "string") return;
+    const key = '"publishedAtServerMs":';
+    const at = data.indexOf(key);
+    if (at === -1) return;
+    let end = at + key.length;
+    while (end < data.length) {
+      const code = data.charCodeAt(end);
+      if (code < 48 || code > 57) break;
+      end += 1;
+    }
+    const serverMs = Number(data.slice(at + key.length, end));
+    if (!Number.isFinite(serverMs) || serverMs <= 0) return;
+    const clientMs = Date.now();
+    const welcome = data.includes('"selfPlayerId"');
+    if (welcome || !anchor || serverMs > anchor.serverMs + clientMs - anchor.clientMs) anchor = { clientMs, serverMs };
+  }
+  function serverClockOffsetMs() {
+    return anchor ? anchor.serverMs - anchor.clientMs : null;
+  }
+
+  // src/features/weather-timer.ts
+  var WEATHER_MS = 10 * 60 * 1e3;
+  var WEATHER_NAMES = {
+    Rain: "Rain",
+    Frost: "Snow",
+    Thunderstorm: "Thunderstorm",
+    Dawn: "Dawn",
+    AmberMoon: "Amber Moon"
+  };
+  var seenWeather;
+  var seenAt = 0;
+  var boundaryEnd = 0;
+  var lastBoundaryAt = 0;
+  function noteWeatherChange() {
+    const now = serverNow();
+    const weather = currentWeather();
+    const boundary = now + nextBoundaryMs(now);
+    if (weather !== seenWeather) {
+      const first = seenWeather === void 0;
+      seenWeather = weather;
+      seenAt = first ? 0 : now;
+      boundaryEnd = 0;
+      lastBoundaryAt = boundary;
+      return;
+    }
+    if (lastBoundaryAt && boundary > lastBoundaryAt + 1e3) boundaryEnd = boundary;
+    lastBoundaryAt = boundary;
+  }
+  function currentWeather() {
+    return state.game?.weather || "";
+  }
+  function weatherLabel(weather = currentWeather()) {
+    return WEATHER_NAMES[weather] ?? humanize(weather);
+  }
+  var WEATHER_TYPES = Object.keys(WEATHER_NAMES);
+  var SLOT_MS = 5 * 60 * 1e3;
+  var DAY_MS = 24 * 60 * 60 * 1e3;
+  var LUNAR_SLOTS = [0, 48, 96, 144, 192, 240];
+  var LUNAR_WEATHER = /* @__PURE__ */ new Set(["Dawn", "AmberMoon"]);
+  var WEATHER_SHOPS = { Frost: "snow", Thunderstorm: "thunder", Dawn: "dawn" };
+  function shopSecondsLeft(weather) {
+    const shop = WEATHER_SHOPS[weather];
+    const seconds = shop ? Number(state.game?.shops?.[shop]?.secondsUntilRestock) : 0;
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  }
+  function lunarStart(now) {
+    const midnight = now - now % DAY_MS;
+    for (const slot of [...LUNAR_SLOTS].reverse()) {
+      const start = midnight + slot * SLOT_MS;
+      if (start <= now && now - start < WEATHER_MS) return start;
+    }
+    return null;
+  }
+  function nextBoundaryMs(now) {
+    const seconds = Number(state.game?.shops?.seed?.secondsUntilRestock);
+    if (Number.isFinite(seconds) && seconds > 0 && seconds <= SLOT_MS / 1e3) return seconds * 1e3;
+    return SLOT_MS - now % SLOT_MS;
+  }
+  function remaining(now) {
+    const weather = currentWeather();
+    const shopLeft = shopSecondsLeft(weather) * 1e3;
+    if (shopLeft) return { low: shopLeft, high: shopLeft };
+    if (seenAt && now - seenAt < WEATHER_MS) {
+      const left = WEATHER_MS - (now - seenAt);
+      return { low: left, high: left };
+    }
+    if (boundaryEnd > now) return { low: boundaryEnd - now, high: boundaryEnd - now };
+    if (LUNAR_WEATHER.has(weather)) {
+      const start = lunarStart(now);
+      if (start !== null) {
+        const left = WEATHER_MS - (now - start);
+        return { low: left, high: left };
+      }
+    }
+    const toBoundary = nextBoundaryMs(now);
+    return { low: toBoundary, high: toBoundary + SLOT_MS };
+  }
+  function weatherRemainingText() {
+    const { low, high } = remaining(serverNow());
+    const minutes = (ms) => `${Math.max(1, Math.ceil(ms / 6e4))}m`;
+    return low === high ? `${minutes(low)} left` : `${minutes(low)} or ${minutes(high)} left`;
   }
 
   // src/features/calculators.ts
@@ -1512,7 +1622,7 @@
   var granterEnabled = [true, true, true];
   var granterCrystal = false;
   var foodSlots = [null, null, null];
-  var CALCULATOR_TABS = [["dust", "Dust"], ["value", "Crop Value"], ["food", "Food"], ["granter", "Granters"]];
+  var CALCULATOR_TABS = [["dust", "Dust"], ["value", "Crop Value"], ["food", "Food"], ["granter", "Granters"], ["xp", "XP"]];
   var VALUE_GROUPS = ["Growth", "Hydro", "Lunar"];
   var VALUE_GROUP_LABELS = { Growth: "Colour", Hydro: "Weather", Lunar: "Lunar" };
   var FRIEND_STEP = 0.1;
@@ -1656,7 +1766,7 @@
   }
   function renderCalculators() {
     const tabs = CALCULATOR_TABS.map(([id, label]) => `<button data-calc-tab="${id}" class="${id === calculatorTab ? "active" : ""}">${label}</button>`).join("");
-    const body = calculatorTab === "granter" ? renderGranterCalculator() : calculatorTab === "food" ? renderFoodCalculator() : calculatorTab === "value" ? renderValueCalculator() : renderDustCalculator();
+    const body = calculatorTab === "xp" ? renderXpCalculator() : calculatorTab === "granter" ? renderGranterCalculator() : calculatorTab === "food" ? renderFoodCalculator() : calculatorTab === "value" ? renderValueCalculator() : renderDustCalculator();
     return `<div class="gc-calc-tabs">${tabs}</div>${body}`;
   }
   function renderValueCalculator() {
@@ -1834,6 +1944,166 @@ ${groups}
       updateGranterResults(main);
     });
   }
+  var XP_BOOSTER_OPTIONS = [
+    { ability: "AmberXpBoost", weather: "AmberMoon" },
+    { ability: "DawnXpBoost", weather: "Dawn" },
+    { ability: "PetXpBoost" },
+    { ability: "PetXpBoostII" },
+    { ability: "PetXpBoostIII" }
+  ].filter((option) => ABILITY_DETAILS[option.ability] && !UNREACHABLE_ABILITIES.has(option.ability));
+  var XP_EVENT_SECONDS = 600;
+  var XP_BOOSTERS = 2;
+  var XP_CUSTOM = "custom";
+  var xpBoosterAbility = "AmberXpBoost";
+  var xpTarget = "";
+  var xpCustomSpecies = "";
+  var xpCustomStrength = 70;
+  var xpCustomMax = 100;
+  var xpBoosterStrengths = [null, null];
+  var xpBoosterEnabled = [true, false];
+  function xpOption() {
+    return XP_BOOSTER_OPTIONS.find((option) => option.ability === xpBoosterAbility) ?? XP_BOOSTER_OPTIONS[0];
+  }
+  function xpAbility() {
+    return xpOption().ability;
+  }
+  function xpWindowSeconds() {
+    return xpOption().weather ? XP_EVENT_SECONDS : 3600;
+  }
+  function petLabel(pet) {
+    return pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
+  }
+  function xpTargetPets() {
+    return allPets().filter((pet) => (petMetrics(pet)?.xpToMax ?? 0) > 0).sort((left, right) => petLabel(left).localeCompare(petLabel(right)));
+  }
+  function xpSpeciesOptions() {
+    return Object.keys(PET_CATALOG).filter((species) => Number(PET_CATALOG[species]?.hoursToMature) > 0).sort((left, right) => (PET_CATALOG[left]?.name || left).localeCompare(PET_CATALOG[right]?.name || right));
+  }
+  function currentXpTarget() {
+    if (xpTarget === XP_CUSTOM) return XP_CUSTOM;
+    const pets = xpTargetPets();
+    return pets.some((pet) => pet.id === xpTarget) ? xpTarget : pets[0]?.id ?? XP_CUSTOM;
+  }
+  function ownStrength(metrics) {
+    return metrics.maxStrength - Math.ceil(metrics.xpToMax / metrics.xpPerLevel);
+  }
+  function xpNeeded() {
+    const target = currentXpTarget();
+    if (target !== XP_CUSTOM) {
+      const metrics = petMetrics(allPets().find((pet) => pet.id === target));
+      if (!metrics) return null;
+      return { xp: metrics.xpToMax, strength: ownStrength(metrics), maxStrength: metrics.maxStrength };
+    }
+    const hours = Number(PET_CATALOG[xpCustomSpecies || xpSpeciesOptions()[0] || ""]?.hoursToMature || 0);
+    if (!hours) return null;
+    const xpPerLevel = Math.floor(3600 * hours / 30);
+    return { xp: Math.max(0, xpCustomMax - xpCustomStrength) * xpPerLevel, strength: xpCustomStrength, maxStrength: xpCustomMax };
+  }
+  function xpBoosterPets() {
+    return allPets().filter((pet) => (pet.abilities || []).includes(xpAbility())).sort((left, right) => (petMetrics(right)?.strength ?? 0) - (petMetrics(left)?.strength ?? 0)).slice(0, XP_BOOSTERS);
+  }
+  function xpBoosterStrength(index, pets) {
+    return xpBoosterStrengths[index] ?? petMetrics(pets[index])?.strength ?? 100;
+  }
+  function xpBoosterPerWindow(strength) {
+    const details = ABILITY_DETAILS[xpAbility()];
+    const chance = Number(details?.baseProbability || 0);
+    const bonus = Number(details?.baseParameters?.bonusXp || 0);
+    return abilityXpPerHour(strength, chance, bonus) * xpWindowSeconds() / 3600;
+  }
+  function xpBoosterEffect(strength) {
+    return `~${Math.round(xpBoosterPerWindow(strength)).toLocaleString(NUMBER_LOCALE)} XP/${xpOption().weather ? "event" : "hour"}`;
+  }
+  function xpResults() {
+    const needed = xpNeeded();
+    if (!needed) return '<p class="gc-empty">Pick a pet to level.</p>';
+    if (needed.xp <= 0) return '<p class="gc-empty">Already at its maximum Strength.</p>';
+    const pets = xpBoosterPets();
+    const boost = Array.from({ length: XP_BOOSTERS }, (_, index) => index).filter((index) => xpBoosterEnabled[index]).reduce((sum, index) => sum + xpBoosterPerWindow(xpBoosterStrength(index, pets)), 0);
+    const window2 = xpWindowSeconds();
+    const perWindow = window2 + boost;
+    const format = (value) => Math.round(value).toLocaleString(NUMBER_LOCALE);
+    const row = (label, value) => `<div><span>${label}</span><b>${value}</b></div>`;
+    const weather = xpOption().weather;
+    const head = `<div class="gc-xp-stats">${row("Strength", `${needed.strength} &rarr; ${needed.maxStrength}`)}${row("XP to max", format(needed.xp))}`;
+    if (!weather) {
+      return `<div class="gc-xp-answer" data-time><b>${formatDuration(needed.xp / perWindow * 3600 * 1e3)}</b><span>of active play</span></div>${head}${row("XP per hour", format(perWindow))}</div><small class="gc-xp-foot">Averages. The pet must be active and fed throughout.</small>`;
+    }
+    const events = Math.ceil(needed.xp / perWindow);
+    return `<div class="gc-xp-answer"><b>${events.toLocaleString(NUMBER_LOCALE)}</b><span>${escapeHtml(weatherLabel(weather))} event${events === 1 ? "" : "s"}</span></div>${head}${row("XP per event", format(perWindow))}${row("Weather time", formatDuration(events * window2 * 1e3))}</div><small class="gc-xp-foot">Averages. The pet must be active and fed throughout.</small>`;
+  }
+  function xpBoosterRows() {
+    const pets = xpBoosterPets();
+    return Array.from({ length: XP_BOOSTERS }, (_, index) => {
+      const pet = pets[index];
+      const strength = xpBoosterStrength(index, pets);
+      const name = pet ? petLabel(pet) : `Booster ${index + 1}`;
+      const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
+      return `<div class="gc-granter-row" data-active="${xpBoosterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-xp-on="${index}" ${xpBoosterEnabled[index] ? "checked" : ""}>${sprite}<span><b>${escapeHtml(name)}</b><small>${pet ? "" : "Not owned &middot; "}<span data-xp-effect="${index}">${xpBoosterEffect(strength)}</span></small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-xp-str="${index}"><b data-xp-value="${index}">${strength}</b></div></div>`;
+    }).join("");
+  }
+  function renderXpCalculator() {
+    const target = currentXpTarget();
+    const boosters = XP_BOOSTER_OPTIONS.map(({ ability, weather }) => `<option value="${ability}" ${ability === xpAbility() ? "selected" : ""}>${escapeHtml(ABILITY_DETAILS[ability]?.name || humanize(ability))} - ${weather ? `${escapeHtml(weatherLabel(weather))} only` : "any weather"}</option>`).join("");
+    const targets = xpTargetPets().map((pet) => `<option value="${escapeHtml(pet.id)}" ${pet.id === target ? "selected" : ""}>${escapeHtml(petLabel(pet))} (${escapeHtml(humanize(pet.petSpecies))}, STR ${ownStrength(petMetrics(pet))}/${petMetrics(pet).maxStrength})</option>`).join("") + `<option value="${XP_CUSTOM}" ${target === XP_CUSTOM ? "selected" : ""}>Set by hand</option>`;
+    const species = xpCustomSpecies || xpSpeciesOptions()[0] || "";
+    const custom = target === XP_CUSTOM ? `<div class="gc-xp-custom"><select data-xp-species>${xpSpeciesOptions().map((id) => `<option value="${escapeHtml(id)}" ${id === species ? "selected" : ""}>${escapeHtml(PET_CATALOG[id]?.name || humanize(id))}</option>`).join("")}</select><label><span>STR</span><input type="number" min="50" max="100" step="1" value="${xpCustomStrength}" data-xp-current></label><label><span>Max</span><input type="number" min="80" max="100" step="1" value="${xpCustomMax}" data-xp-max></label></div>` : "";
+    return `<section class="gc-card gc-xp"><div class="gc-xp-inputs">
+<label class="gc-xp-field"><span>Booster ability</span><select class="gc-calc-select" data-xp-booster>${boosters}</select></label>
+<label class="gc-xp-field"><span>Pet to level</span><select class="gc-calc-select" data-xp-target>${targets}</select></label>${custom}
+<div class="gc-xp-field"><span>Boosters</span><div class="gc-granter-list">${xpBoosterRows()}</div></div>
+<small class="gc-xp-foot">Amber XP Boost (Red Fox) and Dawn XP Boost (Ostrich) only roll in their weather, so they are counted in events. XP Boost rolls any time, so it is counted in hours.</small>
+</div><div class="gc-xp-result" data-xp-results>${xpResults()}</div></section>`;
+  }
+  function bindXpCalculator(main) {
+    const booster = main.querySelector("[data-xp-booster]");
+    if (!booster) return;
+    const rerender = () => panelActions.renderPanelPreservingScroll();
+    booster.onchange = () => {
+      xpBoosterAbility = booster.value;
+      xpBoosterStrengths.fill(null);
+      rerender();
+    };
+    const target = main.querySelector("[data-xp-target]");
+    target.onchange = () => {
+      xpTarget = target.value;
+      rerender();
+    };
+    const species = main.querySelector("[data-xp-species]");
+    if (species) species.onchange = () => {
+      xpCustomSpecies = species.value;
+      rerender();
+    };
+    const results = () => {
+      main.querySelector("[data-xp-results]").innerHTML = xpResults();
+    };
+    const clamp = (value, min, max2, fallback) => {
+      const number = Math.round(Number(value));
+      return value.trim() !== "" && Number.isFinite(number) ? Math.max(min, Math.min(max2, number)) : fallback;
+    };
+    const current = main.querySelector("[data-xp-current]");
+    if (current) current.oninput = () => {
+      xpCustomStrength = clamp(current.value, 50, 100, xpCustomStrength);
+      results();
+    };
+    const max = main.querySelector("[data-xp-max]");
+    if (max) max.oninput = () => {
+      xpCustomMax = clamp(max.value, 80, 100, xpCustomMax);
+      results();
+    };
+    main.querySelectorAll("[data-xp-on]").forEach((input) => input.onchange = () => {
+      xpBoosterEnabled[Number(input.dataset.xpOn)] = input.checked;
+      input.closest(".gc-granter-row")?.setAttribute("data-active", String(input.checked));
+      results();
+    });
+    main.querySelectorAll("[data-xp-str]").forEach((input) => input.oninput = () => {
+      const index = Number(input.dataset.xpStr);
+      xpBoosterStrengths[index] = Number(input.value);
+      main.querySelector(`[data-xp-value="${index}"]`).textContent = input.value;
+      main.querySelector(`[data-xp-effect="${index}"]`).textContent = xpBoosterEffect(Number(input.value));
+      results();
+    });
+  }
   function foodSlotValue(index) {
     const saved = foodSlots[index];
     if (saved) return saved;
@@ -1945,7 +2215,8 @@ ${groups}
       selectGranterAbility(event.target.value);
       updateGranterSection(main);
     });
-    if (main.querySelector(".gc-granter-list")) bindGranterRows(main);
+    if (main.querySelector("[data-granter-ability]")) bindGranterRows(main);
+    bindXpCalculator(main);
     main.querySelectorAll("[data-food-pet]").forEach((select) => select.onchange = () => {
       const species = select.value;
       const diet = petDiet(species);
@@ -4168,116 +4439,6 @@ ${filter}
     }, DEBOUNCE_MS);
   }
 
-  // src/server-clock.ts
-  var anchor = null;
-  function serverNow() {
-    const client = Date.now();
-    return anchor ? anchor.serverMs + client - anchor.clientMs : client;
-  }
-  function noteServerClock(data) {
-    if (typeof data !== "string") return;
-    const key = '"publishedAtServerMs":';
-    const at = data.indexOf(key);
-    if (at === -1) return;
-    let end = at + key.length;
-    while (end < data.length) {
-      const code = data.charCodeAt(end);
-      if (code < 48 || code > 57) break;
-      end += 1;
-    }
-    const serverMs = Number(data.slice(at + key.length, end));
-    if (!Number.isFinite(serverMs) || serverMs <= 0) return;
-    const clientMs = Date.now();
-    const welcome = data.includes('"selfPlayerId"');
-    if (welcome || !anchor || serverMs > anchor.serverMs + clientMs - anchor.clientMs) anchor = { clientMs, serverMs };
-  }
-  function serverClockOffsetMs() {
-    return anchor ? anchor.serverMs - anchor.clientMs : null;
-  }
-
-  // src/features/weather-timer.ts
-  var WEATHER_MS = 10 * 60 * 1e3;
-  var WEATHER_NAMES = {
-    Rain: "Rain",
-    Frost: "Snow",
-    Thunderstorm: "Thunderstorm",
-    Dawn: "Dawn",
-    AmberMoon: "Amber Moon"
-  };
-  var seenWeather;
-  var seenAt = 0;
-  var boundaryEnd = 0;
-  var lastBoundaryAt = 0;
-  function noteWeatherChange() {
-    const now = serverNow();
-    const weather = currentWeather();
-    const boundary = now + nextBoundaryMs(now);
-    if (weather !== seenWeather) {
-      const first = seenWeather === void 0;
-      seenWeather = weather;
-      seenAt = first ? 0 : now;
-      boundaryEnd = 0;
-      lastBoundaryAt = boundary;
-      return;
-    }
-    if (lastBoundaryAt && boundary > lastBoundaryAt + 1e3) boundaryEnd = boundary;
-    lastBoundaryAt = boundary;
-  }
-  function currentWeather() {
-    return state.game?.weather || "";
-  }
-  function weatherLabel(weather = currentWeather()) {
-    return WEATHER_NAMES[weather] ?? humanize(weather);
-  }
-  var WEATHER_TYPES = Object.keys(WEATHER_NAMES);
-  var SLOT_MS = 5 * 60 * 1e3;
-  var DAY_MS = 24 * 60 * 60 * 1e3;
-  var LUNAR_SLOTS = [0, 48, 96, 144, 192, 240];
-  var LUNAR_WEATHER = /* @__PURE__ */ new Set(["Dawn", "AmberMoon"]);
-  var WEATHER_SHOPS = { Frost: "snow", Thunderstorm: "thunder", Dawn: "dawn" };
-  function shopSecondsLeft(weather) {
-    const shop = WEATHER_SHOPS[weather];
-    const seconds = shop ? Number(state.game?.shops?.[shop]?.secondsUntilRestock) : 0;
-    return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
-  }
-  function lunarStart(now) {
-    const midnight = now - now % DAY_MS;
-    for (const slot of [...LUNAR_SLOTS].reverse()) {
-      const start = midnight + slot * SLOT_MS;
-      if (start <= now && now - start < WEATHER_MS) return start;
-    }
-    return null;
-  }
-  function nextBoundaryMs(now) {
-    const seconds = Number(state.game?.shops?.seed?.secondsUntilRestock);
-    if (Number.isFinite(seconds) && seconds > 0 && seconds <= SLOT_MS / 1e3) return seconds * 1e3;
-    return SLOT_MS - now % SLOT_MS;
-  }
-  function remaining(now) {
-    const weather = currentWeather();
-    const shopLeft = shopSecondsLeft(weather) * 1e3;
-    if (shopLeft) return { low: shopLeft, high: shopLeft };
-    if (seenAt && now - seenAt < WEATHER_MS) {
-      const left = WEATHER_MS - (now - seenAt);
-      return { low: left, high: left };
-    }
-    if (boundaryEnd > now) return { low: boundaryEnd - now, high: boundaryEnd - now };
-    if (LUNAR_WEATHER.has(weather)) {
-      const start = lunarStart(now);
-      if (start !== null) {
-        const left = WEATHER_MS - (now - start);
-        return { low: left, high: left };
-      }
-    }
-    const toBoundary = nextBoundaryMs(now);
-    return { low: toBoundary, high: toBoundary + SLOT_MS };
-  }
-  function weatherRemainingText() {
-    const { low, high } = remaining(serverNow());
-    const minutes = (ms) => `${Math.max(1, Math.ceil(ms / 6e4))}m`;
-    return low === high ? `${minutes(low)} left` : `${minutes(low)} or ${minutes(high)} left`;
-  }
-
   // src/weather-forecast.ts
   var LUNAR_WEATHER2 = /* @__PURE__ */ new Set(["Dawn", "AmberMoon"]);
   function forecastEntries() {
@@ -5665,7 +5826,7 @@ ${eggs.map(eggCard).join("")}`;
   function emblemPet(petId) {
     return allPets().find((pet) => pet.id === petId);
   }
-  function petLabel(pet) {
+  function petLabel2(pet) {
     return pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
   }
   function emblemLabel(emblem) {
@@ -5673,7 +5834,7 @@ ${eggs.map(eggCard).join("")}`;
     if (emblem.type === "number") return EMBLEM_LETTERS[emblem.number - 1] || String(emblem.number);
     if (emblem.type === "pet") {
       const pet = emblemPet(emblem.petId);
-      return pet ? petLabel(pet) : "Pet";
+      return pet ? petLabel2(pet) : "Pet";
     }
     if (emblem.type === "cosmetic") return humanize(emblem.cosmetic.replace(/\.png$/i, ""));
     return iconLabel(emblem.icon);
@@ -5730,7 +5891,7 @@ ${eggs.map(eggCard).join("")}`;
   }
   function petEmblemOption(pet) {
     const sprite = petSpriteSource(pet);
-    const label = petLabel(pet);
+    const label = petLabel2(pet);
     const inner = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(label.slice(0, 1))}</b>`;
     return { key: `pet:${pet.id}`, inner, label };
   }
@@ -8023,6 +8184,40 @@ ${eggs.map(eggCard).join("")}`;
 .gc-granter-crystal { margin-top:10px; }\r
 /* What one proc is worth, under the strength slider it follows. */\r
 .gc-granter-effect { margin:8px 0 0;font-size:12px;color:var(--gc-muted); }\r
+/* The XP calculator fills the pane rather than sitting in a strip at the top of it. */\r
+.gc-content main:has(> .gc-xp) { display:flex;flex-direction:column; }\r
+.gc-xp { flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(220px,1fr);gap:20px;padding:20px; }\r
+.gc-xp-inputs { min-width:0;display:flex;flex-direction:column;gap:18px; }\r
+.gc-xp-field { display:flex;flex-direction:column;gap:6px; }\r
+.gc-xp-field .gc-calc-select { height:40px;font-size:14px; }\r
+.gc-xp .gc-granter-list { gap:10px; }\r
+.gc-xp .gc-granter-row { padding:12px 14px 12px 10px; }\r
+.gc-xp .gc-granter-head .gc-pet-sprite { width:40px;height:40px; }\r
+.gc-xp .gc-granter-head .gc-pet-sprite img { width:34px;height:34px; }\r
+.gc-xp .gc-granter-head b { font-size:14px; }\r
+.gc-xp .gc-granter-head small { font-size:12px; }\r
+.gc-xp-field > span { color:var(--gc-muted);font-size:11px;font-weight:550;text-transform:uppercase;letter-spacing:.04em; }\r
+.gc-xp-field .gc-granter-list { margin-top:0; }\r
+.gc-xp-custom { display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;gap:6px; }\r
+.gc-xp-custom select,.gc-xp-custom input { width:100%;height:32px;padding:0 8px;box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:13px var(--gc-font); }\r
+.gc-xp-custom input:focus { border-color:var(--gc-accent-line); }\r
+.gc-xp .gc-granter-row { grid-template-columns:minmax(0,1fr) minmax(100px,140px); }\r
+.gc-xp .gc-granter-head small { white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }\r
+.gc-xp-custom label { display:flex;flex-direction:column;gap:2px; }\r
+.gc-xp-custom label span { color:var(--gc-muted);font-size:10px; }\r
+.gc-xp-custom select { align-self:end; }\r
+.gc-xp-result { display:flex;flex-direction:column;gap:20px;padding:22px 24px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }\r
+.gc-xp-answer { display:flex;flex-direction:column;align-items:center;text-align:center; }\r
+.gc-xp-answer b { color:var(--gc-strong);font-size:64px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums; }\r
+.gc-xp-answer span { color:var(--gc-muted);font-size:14px; }\r
+/* A duration is several times wider than an event count, so it is set smaller and kept on one line. */\r
+.gc-xp-answer[data-time] b { font-size:36px;white-space:nowrap; }\r
+.gc-xp-stats { display:flex;flex-direction:column;gap:12px;padding-top:18px;border-top:1px solid var(--gc-line); }\r
+.gc-xp-stats div { display:flex;justify-content:space-between;gap:8px;font-size:14px; }\r
+.gc-xp-stats span { color:var(--gc-muted); }\r
+.gc-xp-stats b { color:var(--gc-strong);font-weight:600;font-variant-numeric:tabular-nums; }\r
+.gc-xp-foot { margin-top:auto;color:var(--gc-muted);font-size:12px;line-height:1.45; }\r
+@media(max-width:650px) { .gc-xp { grid-template-columns:1fr; } }\r
 .gc-toggle:hover,.gc-check:hover { border-color:var(--gc-line-strong); }\r
 .gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }\r
 .gc-toggle b,.gc-check b { color:var(--gc-text);font-size:13px;font-weight:550; }\r

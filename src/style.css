@@ -138,6 +138,40 @@
 .gc-granter-crystal { margin-top:10px; }
 /* What one proc is worth, under the strength slider it follows. */
 .gc-granter-effect { margin:8px 0 0;font-size:12px;color:var(--gc-muted); }
+/* The XP calculator fills the pane rather than sitting in a strip at the top of it. */
+.gc-content main:has(> .gc-xp) { display:flex;flex-direction:column; }
+.gc-xp { flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(220px,1fr);gap:20px;padding:20px; }
+.gc-xp-inputs { min-width:0;display:flex;flex-direction:column;gap:18px; }
+.gc-xp-field { display:flex;flex-direction:column;gap:6px; }
+.gc-xp-field .gc-calc-select { height:40px;font-size:14px; }
+.gc-xp .gc-granter-list { gap:10px; }
+.gc-xp .gc-granter-row { padding:12px 14px 12px 10px; }
+.gc-xp .gc-granter-head .gc-pet-sprite { width:40px;height:40px; }
+.gc-xp .gc-granter-head .gc-pet-sprite img { width:34px;height:34px; }
+.gc-xp .gc-granter-head b { font-size:14px; }
+.gc-xp .gc-granter-head small { font-size:12px; }
+.gc-xp-field > span { color:var(--gc-muted);font-size:11px;font-weight:550;text-transform:uppercase;letter-spacing:.04em; }
+.gc-xp-field .gc-granter-list { margin-top:0; }
+.gc-xp-custom { display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;gap:6px; }
+.gc-xp-custom select,.gc-xp-custom input { width:100%;height:32px;padding:0 8px;box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:13px var(--gc-font); }
+.gc-xp-custom input:focus { border-color:var(--gc-accent-line); }
+.gc-xp .gc-granter-row { grid-template-columns:minmax(0,1fr) minmax(100px,140px); }
+.gc-xp .gc-granter-head small { white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.gc-xp-custom label { display:flex;flex-direction:column;gap:2px; }
+.gc-xp-custom label span { color:var(--gc-muted);font-size:10px; }
+.gc-xp-custom select { align-self:end; }
+.gc-xp-result { display:flex;flex-direction:column;gap:20px;padding:22px 24px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }
+.gc-xp-answer { display:flex;flex-direction:column;align-items:center;text-align:center; }
+.gc-xp-answer b { color:var(--gc-strong);font-size:64px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums; }
+.gc-xp-answer span { color:var(--gc-muted);font-size:14px; }
+/* A duration is several times wider than an event count, so it is set smaller and kept on one line. */
+.gc-xp-answer[data-time] b { font-size:36px;white-space:nowrap; }
+.gc-xp-stats { display:flex;flex-direction:column;gap:12px;padding-top:18px;border-top:1px solid var(--gc-line); }
+.gc-xp-stats div { display:flex;justify-content:space-between;gap:8px;font-size:14px; }
+.gc-xp-stats span { color:var(--gc-muted); }
+.gc-xp-stats b { color:var(--gc-strong);font-weight:600;font-variant-numeric:tabular-nums; }
+.gc-xp-foot { margin-top:auto;color:var(--gc-muted);font-size:12px;line-height:1.45; }
+@media(max-width:650px) { .gc-xp { grid-template-columns:1fr; } }
 .gc-toggle:hover,.gc-check:hover { border-color:var(--gc-line-strong); }
 .gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }
 .gc-toggle b,.gc-check b { color:var(--gc-text);font-size:13px;font-weight:550; }
