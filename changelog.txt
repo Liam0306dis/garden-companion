@@ -1,5 +1,5 @@
 0.8.93
-- Fixed the Egg Luck guarantee for Capybara showing 4,294,967,295 pulls instead of 40
+- Fixed Egg Luck showing 4,294,967,295 pulls instead of 40 for every egg's rarest pet
 
 0.8.92
 - Alarm banners can be moved: Alert Settings > Move banner, then drag it out of the way of the game's popups
