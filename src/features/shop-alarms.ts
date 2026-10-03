@@ -137,23 +137,22 @@ function stopCappedAlarms(available: AvailableShopItem[]): void {
   }
 }
 
-const restockClocks = new Map<string, number>();
+const restockIds = new Map<string, string | null>();
 let initialShopTimer = 0;
 let pendingInitialSignature = '';
 
 /**
- * Each shop carries the timestamp its current stock ends at, so that deadline moving forward is the
- * cycle turning over. Stock alone cannot tell us: an item that never sells out looks identical either
- * side of a restock, and one the player bought from looks like a restock every purchase.
+ * Each shop carries the id of its current restock cycle (null while closed), so that id changing is
+ * the cycle turning over. Stock alone cannot tell us: an item that never sells out looks identical
+ * either side of a restock, and one the player bought from looks like a restock every purchase.
  */
 function restockedShops(): Set<string> {
   const restocked = new Set<string>();
   for (const [shop, data] of Object.entries(state.game?.shops || {})) {
-    const deadline = Number(data?.deadlineMs);
-    if (!Number.isFinite(deadline)) continue;
-    const previous = restockClocks.get(shop);
-    if (previous !== undefined && deadline > previous) restocked.add(shop);
-    restockClocks.set(shop, deadline);
+    if (!data || !('restockId' in data)) continue;
+    const id = data.restockId ?? null;
+    if (restockIds.has(shop) && restockIds.get(shop) !== id) restocked.add(shop);
+    restockIds.set(shop, id);
   }
   return restocked;
 }
@@ -219,7 +218,7 @@ function beginResettle(): void {
   resettleSignature = '';
   resettling = true;
   // The clocks ran on without us, so a jump across the gap is not a restock we can attribute.
-  restockClocks.clear();
+  restockIds.clear();
 }
 
 function settleAfterReconnect(signature: string): void {

@@ -16,11 +16,11 @@ noteRoomSocketOpened();
 
 const alarmTitle = () => document.querySelector('#gc-alarm strong')?.textContent ?? null;
 
-function world(stock: Record<string, number>, purchases: Record<string, number> = {}, deadlineMs = 300_000): void {
+function world(stock: Record<string, number>, purchases: Record<string, number> = {}, restockId = 'r1'): void {
   state.playerId = 'me';
-  state.slot = { data: { inventory: { items: [] }, shopPurchases: { seed: { purchases } } } } as unknown as PlayerSlot;
+  state.slot = { data: { inventory: { items: [] }, shopPurchases: { seed: { restockId, purchases } } } } as unknown as PlayerSlot;
   state.game = {
-    shops: { seed: { deadlineMs, inventory: Object.entries(stock).map(([species, initialStock]) => ({ species, initialStock })) } },
+    shops: { seed: { restockId, inventory: Object.entries(stock).map(([species, initialStock]) => ({ species, initialStock })) } },
   } as unknown as GameState;
 }
 
@@ -45,16 +45,16 @@ test('the first settled snapshot alarms for watched stock', () => {
 });
 
 test('stock that stays in place does not alarm again, a restock does', () => {
-  world({ Carrot: 5, Beet: 3 }, {}, 200_000);
+  world({ Carrot: 5, Beet: 3 }, {}, 'r1');
   processShops();
   assert.equal(alarmTitle(), null);
-  world({ Carrot: 5, Beet: 3 }, {}, 500_000);
+  world({ Carrot: 5, Beet: 3 }, {}, 'r2');
   processShops();
-  assert.equal(alarmTitle(), 'Carrot is available', 'the stock deadline moving forward is a restock');
+  assert.equal(alarmTitle(), 'Carrot is available', 'a new restockId is a restock');
 });
 
 test('selling out stops the alarm', () => {
-  world({ Carrot: 5, Beet: 3 }, { Carrot: 5 }, 500_000);
+  world({ Carrot: 5, Beet: 3 }, { Carrot: 5 }, 'r2');
   processShops();
   assert.equal(alarmTitle(), null);
 });
@@ -62,17 +62,17 @@ test('selling out stops the alarm', () => {
 test('a reconnect re-adopts the shelf silently', () => {
   noteRoomSocketClosed();
   noteRoomSocketOpened();
-  world({ Carrot: 5, Beet: 3 }, {}, 9000);
+  world({ Carrot: 5, Beet: 3 }, {}, 'r3');
   processShops();
   mock.timers.tick(2500);
   assert.equal(alarmTitle(), null, 'stock already there before the drop is not news');
-  world({ Carrot: 5, Beet: 3 }, {}, 8990);
+  world({ Carrot: 5, Beet: 3 }, {}, 'r3');
   processShops();
   assert.equal(alarmTitle(), null);
 });
 
 test('turning an alert on while in stock fires straight away, and Buy all buys every remaining one in one purchase', async () => {
-  world({ Beet: 3 }, { Beet: 1 }, 8980);
+  world({ Beet: 3 }, { Beet: 1 }, 'r3');
   toggleShopAlert('seed:Beet', true);
   assert.equal(alarmTitle(), 'Beet is available');
   socket.sent.length = 0;
@@ -94,7 +94,7 @@ test('a tool already held at its cap does not alarm', () => {
   stopAlarm();
   state.playerId = 'me';
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: 99 }] }, shopPurchases: {} } } as unknown as PlayerSlot;
-  state.game = { shops: { tool: { deadlineMs: 100_000, inventory: [{ toolId: 'WateringCan', initialStock: 5 }] } } } as unknown as GameState;
+  state.game = { shops: { tool: { restockId: 'r1', inventory: [{ toolId: 'WateringCan', initialStock: 5 }] } } } as unknown as GameState;
   toggleShopAlert('tool:WateringCan', true);
   assert.equal(alarmTitle(), null, 'at 99 the shop will not sell another');
   (state.slot!.data!.inventory!.items as unknown as Array<{ quantity: number }>)[0].quantity = 98;
@@ -108,7 +108,7 @@ test('a capped potion in the Snow shop does not alarm either', () => {
   stopAlarm();
   state.playerId = 'me';
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'FrozenPotion', quantity: 99 }] }, shopPurchases: {} } } as unknown as PlayerSlot;
-  state.game = { shops: { snow: { deadlineMs: 100_000, inventory: [{ itemType: 'Tool', toolId: 'FrozenPotion', initialStock: 2 }] } } } as unknown as GameState;
+  state.game = { shops: { snow: { restockId: 'r1', inventory: [{ itemType: 'Tool', toolId: 'FrozenPotion', initialStock: 2 }] } } } as unknown as GameState;
   toggleShopAlert('snow:FrozenPotion', true);
   assert.equal(alarmTitle(), null);
   toggleShopAlert('snow:FrozenPotion', false);
@@ -117,7 +117,7 @@ test('a capped potion in the Snow shop does not alarm either', () => {
 function toolWorld(held: number, stock = 5): void {
   state.playerId = 'me';
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: held }] }, shopPurchases: {} } } as unknown as PlayerSlot;
-  state.game = { shops: { tool: { deadlineMs: 100_000, inventory: [{ toolId: 'WateringCan', initialStock: stock }] } } } as unknown as GameState;
+  state.game = { shops: { tool: { restockId: 'r1', inventory: [{ toolId: 'WateringCan', initialStock: stock }] } } } as unknown as GameState;
 }
 
 test('Buy all only buys up to the cap', async () => {

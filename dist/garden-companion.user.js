@@ -7284,17 +7284,16 @@ ${eggs.map(eggCard).join("")}`;
       if (config.shopAlerts[`${row.shop}:${row.id}`] && atInventoryCap(row.id, row.item)) stopAlarm(`shop:${row.shop}:${row.id}`);
     }
   }
-  var restockClocks = /* @__PURE__ */ new Map();
+  var restockIds = /* @__PURE__ */ new Map();
   var initialShopTimer = 0;
   var pendingInitialSignature = "";
   function restockedShops() {
     const restocked = /* @__PURE__ */ new Set();
     for (const [shop, data] of Object.entries(state.game?.shops || {})) {
-      const deadline = Number(data?.deadlineMs);
-      if (!Number.isFinite(deadline)) continue;
-      const previous = restockClocks.get(shop);
-      if (previous !== void 0 && deadline > previous) restocked.add(shop);
-      restockClocks.set(shop, deadline);
+      if (!data || !("restockId" in data)) continue;
+      const id = data.restockId ?? null;
+      if (restockIds.has(shop) && restockIds.get(shop) !== id) restocked.add(shop);
+      restockIds.set(shop, id);
     }
     return restocked;
   }
@@ -7351,7 +7350,7 @@ ${eggs.map(eggCard).join("")}`;
     pendingInitialSignature = "";
     resettleSignature = "";
     resettling = true;
-    restockClocks.clear();
+    restockIds.clear();
   }
   function settleAfterReconnect(signature2) {
     if (signature2 === resettleSignature && resettleTimer) return;
