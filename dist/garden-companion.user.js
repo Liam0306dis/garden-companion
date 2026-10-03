@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.98
+// @version      0.8.99
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1374,6 +1374,11 @@
   function serverClockOffsetMs() {
     return anchor ? anchor.serverMs - anchor.clientMs : null;
   }
+  function shopSecondsLeft(shop) {
+    const deadline = Number(shop?.deadlineMs);
+    if (!Number.isFinite(deadline) || deadline <= 0) return 0;
+    return Math.max(0, (deadline - serverNow()) / 1e3);
+  }
 
   // src/features/weather-timer.ts
   var WEATHER_MS = 10 * 60 * 1e3;
@@ -1415,10 +1420,9 @@
   var LUNAR_SLOTS = [0, 48, 96, 144, 192, 240];
   var LUNAR_WEATHER = /* @__PURE__ */ new Set(["Dawn", "AmberMoon"]);
   var WEATHER_SHOPS = { Frost: "snow", Thunderstorm: "thunder", Dawn: "dawn" };
-  function shopSecondsLeft(weather) {
+  function weatherShopSecondsLeft(weather) {
     const shop = WEATHER_SHOPS[weather];
-    const seconds = shop ? Number(state.game?.shops?.[shop]?.secondsUntilRestock) : 0;
-    return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+    return shop ? shopSecondsLeft(state.game?.shops?.[shop]) : 0;
   }
   function lunarStart(now) {
     const midnight = now - now % DAY_MS;
@@ -1429,13 +1433,13 @@
     return null;
   }
   function nextBoundaryMs(now) {
-    const seconds = Number(state.game?.shops?.seed?.secondsUntilRestock);
-    if (Number.isFinite(seconds) && seconds > 0 && seconds <= SLOT_MS / 1e3) return seconds * 1e3;
+    const seconds = shopSecondsLeft(state.game?.shops?.seed);
+    if (seconds > 0 && seconds <= SLOT_MS / 1e3) return seconds * 1e3;
     return SLOT_MS - now % SLOT_MS;
   }
   function remaining(now) {
     const weather = currentWeather();
-    const shopLeft = shopSecondsLeft(weather) * 1e3;
+    const shopLeft = weatherShopSecondsLeft(weather) * 1e3;
     if (shopLeft) return { low: shopLeft, high: shopLeft };
     if (seenAt && now - seenAt < WEATHER_MS) {
       const left = WEATHER_MS - (now - seenAt);
@@ -4631,8 +4635,8 @@ ${filter}
     if (currentWeather() === weather) setAlarmSilenced(OWNER, isMuted);
   }
   function rainRemainingText() {
-    const seconds = Number(state.game?.shops?.rain?.secondsUntilRestock);
-    if (!Number.isFinite(seconds) || seconds <= 0) return weatherRemainingText();
+    const seconds = shopSecondsLeft(state.game?.shops?.rain);
+    if (seconds <= 0) return weatherRemainingText();
     return `${Math.max(1, Math.ceil(seconds / 60))}m left`;
   }
   function renderWeatherAlarms() {
@@ -7286,11 +7290,11 @@ ${eggs.map(eggCard).join("")}`;
   function restockedShops() {
     const restocked = /* @__PURE__ */ new Set();
     for (const [shop, data] of Object.entries(state.game?.shops || {})) {
-      const seconds = Number(data?.secondsUntilRestock);
-      if (!Number.isFinite(seconds)) continue;
+      const deadline = Number(data?.deadlineMs);
+      if (!Number.isFinite(deadline)) continue;
       const previous = restockClocks.get(shop);
-      if (previous !== void 0 && seconds > previous) restocked.add(shop);
-      restockClocks.set(shop, seconds);
+      if (previous !== void 0 && deadline > previous) restocked.add(shop);
+      restockClocks.set(shop, deadline);
     }
     return restocked;
   }

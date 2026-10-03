@@ -142,18 +142,18 @@ let initialShopTimer = 0;
 let pendingInitialSignature = '';
 
 /**
- * Each shop counts down to its next restock, so the countdown jumping back up is the cycle turning
- * over. Stock alone cannot tell us: an item that never sells out looks identical either side of a
- * restock, and one the player bought from looks like a restock every purchase.
+ * Each shop carries the timestamp its current stock ends at, so that deadline moving forward is the
+ * cycle turning over. Stock alone cannot tell us: an item that never sells out looks identical either
+ * side of a restock, and one the player bought from looks like a restock every purchase.
  */
 function restockedShops(): Set<string> {
   const restocked = new Set<string>();
   for (const [shop, data] of Object.entries(state.game?.shops || {})) {
-    const seconds = Number((data as { secondsUntilRestock?: number })?.secondsUntilRestock);
-    if (!Number.isFinite(seconds)) continue;
+    const deadline = Number(data?.deadlineMs);
+    if (!Number.isFinite(deadline)) continue;
     const previous = restockClocks.get(shop);
-    if (previous !== undefined && seconds > previous) restocked.add(shop);
-    restockClocks.set(shop, seconds);
+    if (previous !== undefined && deadline > previous) restocked.add(shop);
+    restockClocks.set(shop, deadline);
   }
   return restocked;
 }

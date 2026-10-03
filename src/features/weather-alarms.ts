@@ -1,6 +1,7 @@
 import { alertMuteButton, armAlarmAudio, setAlarmSilenced, showAlarmBanner, stopAlarm } from '../alarms.js';
 import { config, saveConfig } from '../config.js';
 import { page } from '../page.js';
+import { shopSecondsLeft } from '../server-clock.js';
 import { state } from '../state.js';
 import { escapeHtml } from '../utils.js';
 import { currentWeather, weatherLabel, weatherRemainingText, WEATHER_TYPES } from './weather-timer.js';
@@ -84,8 +85,8 @@ export function toggleWeatherAlertMuted(weather: string, isMuted: boolean): void
 
 /** Exact time left on the running Rain, read from its shop's restock counter (in whole minutes). */
 function rainRemainingText(): string {
-  const seconds = Number(state.game?.shops?.rain?.secondsUntilRestock);
-  if (!Number.isFinite(seconds) || seconds <= 0) return weatherRemainingText();
+  const seconds = shopSecondsLeft(state.game?.shops?.rain);
+  if (seconds <= 0) return weatherRemainingText();
   return `${Math.max(1, Math.ceil(seconds / 60))}m left`;
 }
 

@@ -94,7 +94,8 @@ export interface ShopItem {
 
 export interface ShopData {
   inventory?: ShopItem[];
-  secondsUntilRestock?: number;
+  /** Server timestamp the current stock ends at; 0 while the shop is closed. */
+  deadlineMs?: number;
   /** The current restock cycle; null while the shop has none. */
   restockId?: string | null;
   startedAtMs?: number;

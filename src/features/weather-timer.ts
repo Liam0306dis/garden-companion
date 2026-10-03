@@ -1,4 +1,4 @@
-import { serverNow } from '../server-clock.js';
+import { serverNow, shopSecondsLeft } from '../server-clock.js';
 import { state } from '../state.js';
 import { humanize } from '../utils.js';
 
@@ -93,10 +93,9 @@ const LUNAR_WEATHER = new Set(['Dawn', 'AmberMoon']);
  */
 const WEATHER_SHOPS: Record<string, string> = { Frost: 'snow', Thunderstorm: 'thunder', Dawn: 'dawn' };
 
-function shopSecondsLeft(weather: string): number {
+function weatherShopSecondsLeft(weather: string): number {
   const shop = WEATHER_SHOPS[weather];
-  const seconds = shop ? Number(state.game?.shops?.[shop]?.secondsUntilRestock) : 0;
-  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  return shop ? shopSecondsLeft(state.game?.shops?.[shop]) : 0;
 }
 
 /** Start of the most recent fixed lunar slot, or null when none has begun within a weather's run. */
@@ -114,8 +113,8 @@ function lunarStart(now: number): number | null {
  * own countdown answers it; the clock is only the fallback for before any shop data has arrived.
  */
 function nextBoundaryMs(now: number): number {
-  const seconds = Number(state.game?.shops?.seed?.secondsUntilRestock);
-  if (Number.isFinite(seconds) && seconds > 0 && seconds <= SLOT_MS / 1000) return seconds * 1000;
+  const seconds = shopSecondsLeft(state.game?.shops?.seed);
+  if (seconds > 0 && seconds <= SLOT_MS / 1000) return seconds * 1000;
   return SLOT_MS - (now % SLOT_MS);
 }
 
@@ -130,7 +129,7 @@ function nextBoundaryMs(now: number): number {
  */
 function remaining(now: number): { low: number; high: number } {
   const weather = currentWeather();
-  const shopLeft = shopSecondsLeft(weather) * 1000;
+  const shopLeft = weatherShopSecondsLeft(weather) * 1000;
   if (shopLeft) return { low: shopLeft, high: shopLeft };
   if (seenAt && now - seenAt < WEATHER_MS) {
     const left = WEATHER_MS - (now - seenAt);

@@ -1,3 +1,6 @@
+0.8.99
+- Fixed shop restock alarms, the Rain time left and the weather and seed shop countdowns after the game changed how shops report their restock time
+
 0.8.98
 - The companion window is now a smaller window you can drag anywhere by its title bar, and it remembers where you left it
 - Each tab now has a short description under its title

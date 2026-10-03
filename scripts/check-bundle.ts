@@ -37,7 +37,7 @@ const SCHEMA_MARKERS = [
   'userSlotIdxAndDirtTileIdxToGlobalTileIdx',
   'userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx',
   'activityLogs',
-  'secondsUntilRestock',
+  'deadlineMs',
   'shopPurchases',
 ];
 

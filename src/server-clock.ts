@@ -39,3 +39,14 @@ export function noteServerClock(data: unknown): void {
 export function serverClockOffsetMs(): number | null {
   return anchor ? anchor.serverMs - anchor.clientMs : null;
 }
+
+/**
+ * Seconds until a shop's current stock ends. Shops carry `deadlineMs`, the server timestamp the
+ * stock ends at (0 while the shop is closed) - they used to carry a ready-made secondsUntilRestock.
+ * Returns 0 for a closed or missing shop.
+ */
+export function shopSecondsLeft(shop: { deadlineMs?: number } | null | undefined): number {
+  const deadline = Number(shop?.deadlineMs);
+  if (!Number.isFinite(deadline) || deadline <= 0) return 0;
+  return Math.max(0, (deadline - serverNow()) / 1000);
+}

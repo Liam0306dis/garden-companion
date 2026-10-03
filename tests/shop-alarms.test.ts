@@ -16,11 +16,11 @@ noteRoomSocketOpened();
 
 const alarmTitle = () => document.querySelector('#gc-alarm strong')?.textContent ?? null;
 
-function world(stock: Record<string, number>, purchases: Record<string, number> = {}, secondsUntilRestock = 300): void {
+function world(stock: Record<string, number>, purchases: Record<string, number> = {}, deadlineMs = 300_000): void {
   state.playerId = 'me';
   state.slot = { data: { inventory: { items: [] }, shopPurchases: { seed: { purchases } } } } as unknown as PlayerSlot;
   state.game = {
-    shops: { seed: { secondsUntilRestock, inventory: Object.entries(stock).map(([species, initialStock]) => ({ species, initialStock })) } },
+    shops: { seed: { deadlineMs, inventory: Object.entries(stock).map(([species, initialStock]) => ({ species, initialStock })) } },
   } as unknown as GameState;
 }
 
@@ -45,16 +45,16 @@ test('the first settled snapshot alarms for watched stock', () => {
 });
 
 test('stock that stays in place does not alarm again, a restock does', () => {
-  world({ Carrot: 5, Beet: 3 }, {}, 200);
+  world({ Carrot: 5, Beet: 3 }, {}, 200_000);
   processShops();
   assert.equal(alarmTitle(), null);
-  world({ Carrot: 5, Beet: 3 }, {}, 290);
+  world({ Carrot: 5, Beet: 3 }, {}, 500_000);
   processShops();
-  assert.equal(alarmTitle(), 'Carrot is available', 'the restock clock jumping back up is a restock');
+  assert.equal(alarmTitle(), 'Carrot is available', 'the stock deadline moving forward is a restock');
 });
 
 test('selling out stops the alarm', () => {
-  world({ Carrot: 5, Beet: 3 }, { Carrot: 5 }, 280);
+  world({ Carrot: 5, Beet: 3 }, { Carrot: 5 }, 500_000);
   processShops();
   assert.equal(alarmTitle(), null);
 });
@@ -94,7 +94,7 @@ test('a tool already held at its cap does not alarm', () => {
   stopAlarm();
   state.playerId = 'me';
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: 99 }] }, shopPurchases: {} } } as unknown as PlayerSlot;
-  state.game = { shops: { tool: { secondsUntilRestock: 100, inventory: [{ toolId: 'WateringCan', initialStock: 5 }] } } } as unknown as GameState;
+  state.game = { shops: { tool: { deadlineMs: 100_000, inventory: [{ toolId: 'WateringCan', initialStock: 5 }] } } } as unknown as GameState;
   toggleShopAlert('tool:WateringCan', true);
   assert.equal(alarmTitle(), null, 'at 99 the shop will not sell another');
   (state.slot!.data!.inventory!.items as unknown as Array<{ quantity: number }>)[0].quantity = 98;
@@ -108,7 +108,7 @@ test('a capped potion in the Snow shop does not alarm either', () => {
   stopAlarm();
   state.playerId = 'me';
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'FrozenPotion', quantity: 99 }] }, shopPurchases: {} } } as unknown as PlayerSlot;
-  state.game = { shops: { snow: { secondsUntilRestock: 100, inventory: [{ itemType: 'Tool', toolId: 'FrozenPotion', initialStock: 2 }] } } } as unknown as GameState;
+  state.game = { shops: { snow: { deadlineMs: 100_000, inventory: [{ itemType: 'Tool', toolId: 'FrozenPotion', initialStock: 2 }] } } } as unknown as GameState;
   toggleShopAlert('snow:FrozenPotion', true);
   assert.equal(alarmTitle(), null);
   toggleShopAlert('snow:FrozenPotion', false);
@@ -117,7 +117,7 @@ test('a capped potion in the Snow shop does not alarm either', () => {
 function toolWorld(held: number, stock = 5): void {
   state.playerId = 'me';
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'WateringCan', quantity: held }] }, shopPurchases: {} } } as unknown as PlayerSlot;
-  state.game = { shops: { tool: { secondsUntilRestock: 100, inventory: [{ toolId: 'WateringCan', initialStock: stock }] } } } as unknown as GameState;
+  state.game = { shops: { tool: { deadlineMs: 100_000, inventory: [{ toolId: 'WateringCan', initialStock: stock }] } } } as unknown as GameState;
 }
 
 test('Buy all only buys up to the cap', async () => {
