@@ -49,6 +49,7 @@ import { bindShopEvents, processShops, renderShops } from './features/shop-alarm
 import { toast } from './toast.js';
 import { notifyStateChange, state } from './state.js';
 import { escapeHtml, humanize, scriptVersion } from './utils.js';
+import { makeDraggable } from './draggable.js';
 
 export function initCompanion(): void {
   pruneStaleConfig();
@@ -349,6 +350,7 @@ export function initCompanion(): void {
     page.__gardenCompanionLoadSpriteGroup?.('deferred');
     activeTab = tab;
     let panel = document.getElementById('gc-panel');
+    const created = !panel;
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'gc-panel';
@@ -357,6 +359,22 @@ export function initCompanion(): void {
     }
     panel.hidden = false;
     renderPanel();
+    if (created) mountPanelWindow(panel);
+  }
+
+  const PANEL_POS_KEY = 'gardenCompanion.panelPos.v1';
+
+  /**
+   * The panel is a window rather than a full-screen overlay, dragged by its title bar and page
+   * heading. Done once, on the element itself, since every render replaces what is inside it but
+   * never the element.
+   */
+  function mountPanelWindow(panel: HTMLElement): void {
+    // Centred until it has been dragged somewhere; makeDraggable then restores that spot instead.
+    const rect = panel.getBoundingClientRect();
+    panel.style.left = `${Math.max(0, Math.round((innerWidth - rect.width) / 2))}px`;
+    panel.style.top = `${Math.max(0, Math.round((innerHeight - rect.height) / 2))}px`;
+    makeDraggable(panel, PANEL_POS_KEY, { handle: '[data-drag-handle]' });
   }
 
   function closePanel() {
@@ -442,6 +460,26 @@ export function initCompanion(): void {
     ['Support', [['supporter', 'Supporter']]],
   ];
   const TABS = TAB_GROUPS.flatMap(([, tabs]) => tabs);
+  // One line under each tab's title, so a tab says what it is for before you read its controls.
+  const TAB_DESCRIPTIONS: Record<string, string> = {
+    abilities: 'Hunger, strength and ability stats for current pets.',
+    abilityLog: 'Every ability your pets have triggered, newest first.',
+    teams: 'Save, order and swap between pet teams.',
+    petFood: 'Choose what each species eats from the feed panel.',
+    eggLuck: 'How your hatches compare with the odds, and where pity stands.',
+    protection: 'Stop harvests of crops you want to keep growing.',
+    journal: 'Which species and variants your journal is still missing.',
+    shops: 'Get told when the items you want come back in stock.',
+    weatherAlarms: 'Get told when the weather you care about arrives.',
+    alarmSound: 'Sounds, volume and pet alarms used by every alert.',
+    silence: 'Hide the game popups for abilities you no longer need to see.',
+    calculators: 'XP, dust and value maths for pets and crops.',
+    rooms: 'Public rooms with space for you, ready to join.',
+    keybinds: 'Shortcuts for teams, tools and companion windows.',
+    features: 'Turn optional tools on or off, and open the extra windows.',
+    supporter: 'Leave a tip if the companion has been useful.',
+  };
+  const tabGroupOf = (id: string): string => TAB_GROUPS.find(([, tabs]) => tabs.some(([tab]) => tab === id))?.[0] || '';
   // Stroke icons on a 24px grid, drawn by the nav's own stroke rule so they follow the tab colour.
   const TAB_ICONS: Record<string, string> = {
     abilities: '<circle cx="6.5" cy="10" r="1.8"/><circle cx="10" cy="6" r="1.8"/><circle cx="14.5" cy="6" r="1.8"/><circle cx="18" cy="10" r="1.8"/><path d="M12 11.5c-2.6 0-5 3.2-5 5.6 0 1.6 1.3 2.4 2.7 2.4 1 0 1.5-.5 2.3-.5s1.3.5 2.3.5c1.4 0 2.7-.8 2.7-2.4 0-2.4-2.4-5.6-5-5.6Z"/>',
@@ -507,13 +545,25 @@ export function initCompanion(): void {
     if (!panel) return;
     const navTop = panel.querySelector('nav')?.scrollTop ?? 0;
     const renderedTabHtml = renderTab();
-    const activeGroup = TAB_GROUPS.find(([, tabs]) => tabs.some(([id]) => id === activeTab))?.[0] || '';
-    panel.innerHTML = `<div class="gc-shell"><aside class="gc-side"><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><div><b>Garden Companion</b></div></div><nav>${navHtml()}</nav></aside>`
-      + `<section class="gc-content"><header><div><small>${escapeHtml(activeGroup)}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderedTabHtml}</main></section>${footerHtml()}</div>`;
+    const description = TAB_DESCRIPTIONS[activeTab] ?? '';
+    panel.innerHTML = '<div class="gc-shell">'
+      + `<header class="gc-titlebar" data-drag-handle><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><b>Garden Companion</b></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header>`
+      + `<aside class="gc-side"><nav>${navHtml()}</nav></aside>`
+      + `<section class="gc-content"><div class="gc-page-head" data-drag-handle><small>${escapeHtml(tabGroupOf(activeTab))}</small><h2>${escapeHtml(TABS.find(tab => tab[0] === activeTab)?.[1] || '')}</h2>${description ? `<p>${escapeHtml(description)}</p>` : ''}</div>`
+      + `<main class="${activeTab === 'abilityLog' ? 'gc-ability-log-tab' : ''}">${renderedTabHtml}</main></section>${footerHtml()}</div>`;
     const main = panel.querySelector<HTMLElement>('main')!;
     main.addEventListener('pointerleave', () => { if (refreshPending) setTimeout(refreshOpenPanel, 0); });
     panel.querySelector<HTMLButtonElement>('[data-close]')!.onclick = closePanel;
-    panel.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
+    bindNavButtons(panel);
+    const nav = panel.querySelector<HTMLElement>('nav');
+    if (nav) nav.scrollTop = navTop;
+    bindTabEvents(main);
+    lastTabSignature = tabRefreshSignature();
+    lastTabHtml = renderedTabHtml;
+  }
+
+  function bindNavButtons(root: HTMLElement): void {
+    root.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
       button.onpointerdown = event => {
         if (event.button !== 0) return;
         event.preventDefault();
@@ -521,17 +571,12 @@ export function initCompanion(): void {
       };
       button.onclick = () => selectPanelTab(button.dataset.tab);
     });
-    const nav = panel.querySelector<HTMLElement>('nav');
-    if (nav) nav.scrollTop = navTop;
-    panel.querySelectorAll<HTMLButtonElement>('[data-nav-group]').forEach(button => button.onclick = () => {
+    root.querySelectorAll<HTMLButtonElement>('[data-nav-group]').forEach(button => button.onclick = () => {
       const group = button.dataset.navGroup ?? '';
       collapsedNavGroups.has(group) ? collapsedNavGroups.delete(group) : collapsedNavGroups.add(group);
       saveCollapsedNavGroups();
       renderPanelPreservingScroll();
     });
-    bindTabEvents(main);
-    lastTabSignature = tabRefreshSignature();
-    lastTabHtml = renderedTabHtml;
   }
 
   /**

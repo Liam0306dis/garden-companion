@@ -5,9 +5,10 @@ interface Point { left: number; top: number }
 /**
  * Makes a fixed-position panel draggable and remembers where it was left. Buttons and fields inside
  * it keep working, and the panel is kept on screen so a saved position from a larger window cannot
- * strand it out of view.
+ * strand it out of view. With a `handle` selector, only chrome inside a matching element starts a
+ * drag - for windows whose bare edges are also a resize grip.
  */
-export function makeDraggable(element: HTMLElement, storageKey: string): void {
+export function makeDraggable(element: HTMLElement, storageKey: string, options: { handle?: string } = {}): void {
   function place(point: Point): void {
     const rect = element.getBoundingClientRect();
     const left = Math.min(Math.max(0, point.left), Math.max(0, window.innerWidth - rect.width));
@@ -26,7 +27,9 @@ export function makeDraggable(element: HTMLElement, storageKey: string): void {
 
   element.addEventListener('pointerdown', event => {
     // Anything interactive keeps its own behaviour, so only bare chrome starts a drag.
-    if ((event.target as HTMLElement).closest('button, input, select, textarea, a, [data-no-drag]')) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('button, input, select, textarea, a, [data-no-drag]')) return;
+    if (options.handle && !target.closest(options.handle)) return;
     const rect = element.getBoundingClientRect();
     dragging = true;
     startX = event.clientX;
