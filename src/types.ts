@@ -176,7 +176,7 @@ export interface RoomConnection {
 
 export interface CompanionPage extends Window {
   MagicCircle_RoomConnection?: RoomConnection;
-  jotaiAtomCache?: { cache?: Map<unknown, JotaiAtom>; get?: (key: unknown, initial: JotaiAtom) => JotaiAtom; __gardenCompanionWrapped?: boolean } | Map<unknown, JotaiAtom>;
+  jotaiAtomCache?: { cache?: Map<unknown, JotaiAtom>; get?: (key: unknown, initial: JotaiAtom) => JotaiAtom } | Map<unknown, JotaiAtom>;
   __gardenCompanionFeature?: (name: string) => boolean;
   __gardenCompanionConfig?: () => CompanionConfig;
   __gardenCompanionForecastTrace?: () => Record<string, unknown>;

@@ -3,7 +3,7 @@ import { page } from './page.js';
 import { notifyStateChange, state } from './state.js';
 import { toast } from './toast.js';
 import { onCurrentRoomState, type RoomStateInstance } from './game-room-state.js';
-import { findAtom } from './atom-cache.js';
+import { atomMap, findAtom } from './atom-cache.js';
 import { retryUntil } from './retry.js';
 
 /**
@@ -66,27 +66,18 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
   return atom;
 }
 
+/**
+ * Bundle 1361 added an atomMutationDiagnostics module that assigns a fresh jotaiAtomCache
+ * unconditionally at boot. A cache we installed at document-start, or a wrapped getter on it, was
+ * thrown away along with every atom it would have seen, so the modal atom and the store setter were
+ * never captured and every interface keybind reported the game as still loading. The live registry
+ * is polled instead until both have been found, whichever cache the game ends up holding.
+ */
 export function installGameModalAccess(): void {
-  const existing = page.jotaiAtomCache;
-  if (!existing) {
-    const cache = new Map<unknown, JotaiAtom>();
-    page.jotaiAtomCache = {
-      cache,
-      get(key, initial) {
-        const atom = cache.get(key) ?? initial;
-        if (!cache.has(key)) cache.set(key, atom);
-        return inspectGameAtom(key, atom);
-      },
-    };
-    return;
-  }
-  const cache = existing instanceof Map ? existing : existing.cache;
-  cache?.forEach((atom, key) => inspectGameAtom(key, atom));
-  if (!(existing instanceof Map) && typeof existing.get === 'function' && !existing.__gardenCompanionWrapped) {
-    const originalGet = existing.get;
-    existing.get = function(key, initial) { return inspectGameAtom(key, originalGet.call(this, key, initial)); };
-    existing.__gardenCompanionWrapped = true;
-  }
+  retryUntil(() => {
+    atomMap()?.forEach((atom, key) => inspectGameAtom(key, atom));
+    return Boolean(activeModalStateAtom && gameAtomSet);
+  }, 'the interface shortcuts');
 }
 
 export function openGameInterface(target: GameInterface): void {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.8.96
+// @version      0.8.97
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -5339,28 +5339,10 @@ ${eggs.map(eggCard).join("")}`;
     return atom;
   }
   function installGameModalAccess() {
-    const existing = page.jotaiAtomCache;
-    if (!existing) {
-      const cache2 = /* @__PURE__ */ new Map();
-      page.jotaiAtomCache = {
-        cache: cache2,
-        get(key, initial) {
-          const atom = cache2.get(key) ?? initial;
-          if (!cache2.has(key)) cache2.set(key, atom);
-          return inspectGameAtom(key, atom);
-        }
-      };
-      return;
-    }
-    const cache = existing instanceof Map ? existing : existing.cache;
-    cache?.forEach((atom, key) => inspectGameAtom(key, atom));
-    if (!(existing instanceof Map) && typeof existing.get === "function" && !existing.__gardenCompanionWrapped) {
-      const originalGet = existing.get;
-      existing.get = function(key, initial) {
-        return inspectGameAtom(key, originalGet.call(this, key, initial));
-      };
-      existing.__gardenCompanionWrapped = true;
-    }
+    retryUntil(() => {
+      atomMap()?.forEach((atom, key) => inspectGameAtom(key, atom));
+      return Boolean(activeModalStateAtom && gameAtomSet);
+    }, "the interface shortcuts");
   }
   function openGameInterface(target) {
     if (!activeModalStateAtom || !gameAtomSet) {

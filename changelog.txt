@@ -1,3 +1,6 @@
+0.8.97
+- Fixed the weather station, shop, tool shack, silo and other interface keybinds
+
 0.8.96
 - Pet teams: added the new Magic Dust and Size icons
 - Fixed the Dust calculator pricing Phoenix (and any pet rarer than 5% of its egg) far too low
