@@ -130,10 +130,12 @@ const WEATHER_ICON_CANDIDATES: Record<string, string> = {
 const EMBLEM_ICON_SPRITES: Record<string, string> = {
   rainbow: 'MutationRainbow', gold: 'MutationGold', thunder: 'MutationThundercharged',
   dawn: 'MutationDawnlit', amber: 'MutationAmberlit', wet: 'MutationWet',
-  chilled: 'MutationChilled', frozen: 'MutationFrozen', coin: 'Coin', egg: 'EggsRestocked',
+  chilled: 'MutationChilled', frozen: 'MutationFrozen', coin: 'Coin', egg: 'EggsRestocked', size: 'Size',
   thunderstruck: 'MutationThunderstruck', dawnbound: 'MutationDawncharged', amberbound: 'MutationAmbercharged',
   weatherRain: 'RainIcon', weatherSnow: 'FrostIcon', weatherThunderstorm: 'ThunderstormIcon',
   weatherDawn: 'DawnIcon', weatherAmberMoon: 'AmberMoonIcon',
+  // The one emblem the game draws from its item atlas rather than its interface one.
+  magicDust: 'sprite/item/MagicDust',
 };
 
 function produceSpriteCandidates(species: string): string[] {
@@ -638,7 +640,7 @@ export async function initPetSprites(): Promise<void> {
   ));
   const produceCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, produceSpriteCandidates(name)]));
   const plantCandidates = Object.fromEntries(Object.keys(__PLANT_CATALOG__).map(name => [name, plantSpriteCandidates(name)]));
-  const emblemCandidates = Object.fromEntries(Object.entries(EMBLEM_ICON_SPRITES).map(([icon, name]) => [icon, `sprite/ui/${name}`]));
+  const emblemCandidates = Object.fromEntries(Object.entries(EMBLEM_ICON_SPRITES).map(([icon, name]) => [icon, name.includes('/') ? name : `sprite/ui/${name}`]));
   // Tools are shop items, but the pet food panel puts them on screen without any panel being opened,
   // so their frames are wanted by the first pass as well as the deferred one.
   const toolIds = new Set(SHOP_SPRITE_GROUPS.tool);

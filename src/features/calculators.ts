@@ -14,15 +14,22 @@ import { weatherLabel } from './weather-timer.js';
 
 /** The Dust, Crop Value, Food, Granter and XP calculators. */
 
-const DUST_RARITY: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50 };
+// Mythic is the enum's key, which the build reads; Mythical its value, which a catalog picked up at
+// runtime carries. Divine and Celestial were missing, which priced a Phoenix like a Common.
+const DUST_RARITY: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 5, Legendary: 10, Mythic: 50, Mythical: 50, Divine: 50, Celestial: 100 };
 const DUST_HATCH_MUTATION = (1 - .01 - .001) + .01 * 25 + .001 * 50;
-/** Rebuilt on demand so an egg the game adds while we are running is counted. */
-function hatchWeights(): Map<string, number> {
-  const weights = new Map<string, number>();
-  for (const egg of Object.values(EGG_CATALOG)) {
-    for (const [species, weight] of Object.entries(egg.spawnWeights)) if (!weights.has(species)) weights.set(species, weight);
-  }
-  return weights;
+/**
+ * A species' share of the egg it hatched from, as a percentage - the game reads the pet's own source
+ * egg, so a species two eggs share is priced by the one it actually came out of. A pet with no
+ * recorded egg falls back to the first egg that hatches it.
+ */
+function hatchPercent(species: string, eggId?: string): number {
+  const eggs = Object.entries(EGG_CATALOG);
+  const weights = (eggId && EGG_CATALOG[eggId]?.spawnWeights)
+    || eggs.map(([, egg]) => egg.spawnWeights).find(spawn => species in spawn);
+  if (!weights) return 100;
+  const total = Object.values(weights).reduce((sum, weight) => sum + (weight ?? 0), 0);
+  return total > 0 ? (weights[species] ?? 0) / total * 100 : 100;
 }
 
 // Crop regrow or grow minutes. Not present in the game bundle, so these come from the standalone
@@ -42,16 +49,21 @@ const CROP_GROW: Record<string, number> = {
   Cardoon: 2, Milkcap: 1320, Echeveria: 20, Saffron: 2, Cattail: 3, Daisy: 1.5,
 };
 
-export function dustMultiplier(species: string, mutations: string[] = []): number {
+/** The game's own sell-dust multipliers, before size: rarity, how rare the hatch was, and colour. */
+export function dustMultiplier(species: string, mutations: string[] = [], eggId?: string): number {
   const rarity = DUST_RARITY[PET_CATALOG[species]?.rarity || ''] || 1;
-  const hatch = hatchWeights().get(species) ?? 100;
-  const hatchMultiplier = hatch >= 50 ? 1 : hatch > 10 ? 2 : 5;
+  const hatch = hatchPercent(species, eggId);
+  const hatchMultiplier = hatch >= 51 ? 1 : hatch >= 11 ? 2 : hatch >= 5 ? 5 : 10;
   const colour = mutations.includes('Rainbow') ? 50 : mutations.includes('Gold') ? 25 : 1;
   return 100 * rarity * hatchMultiplier * colour;
 }
 
+/**
+ * What the pet sells for once at maximum Strength. The game scales by Strength over maximum Strength
+ * as well as size, so a pet still levelling sells for less than this until it gets there.
+ */
 export function petMaxDust(pet: Pet): number {
-  return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || []) * Number(pet.targetScale || 1));
+  return Math.floor(dustMultiplier(pet.petSpecies, pet.mutations || [], pet.sourceEggId) * Number(pet.targetScale || 1));
 }
 
 /**
@@ -142,7 +154,7 @@ function eggDustRange(eggId: string): { low: number; average: number; high: numb
   let low = 0, average = 0, high = 0;
   for (const [species, weight] of Object.entries(weights)) {
     const share = weight / total;
-    const multiplier = dustMultiplier(species);
+    const multiplier = dustMultiplier(species, [], eggId);
     const maxScale = PET_CATALOG[species]?.maxScale || 1;
     low += share * Math.floor(multiplier);
     average += share * Math.floor(multiplier * (1 + maxScale) / 2);

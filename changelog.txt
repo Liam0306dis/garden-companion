@@ -1,3 +1,7 @@
+0.8.96
+- Pet teams: added the new Magic Dust and Size icons
+- Fixed the Dust calculator pricing Phoenix (and any pet rarer than 5% of its egg) far too low
+
 0.8.95
 - New XP calculator (Calculators > XP): how many Amber Moon or Dawn events, or hours of play with XP Boost pets, it takes to level a pet to max strength
 

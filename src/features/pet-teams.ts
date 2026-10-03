@@ -19,7 +19,7 @@ import { escapeHtml, humanize } from '../utils.js';
  */
 export function teams() { return state.slot?.data?.petTeams || []; }
 
-const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'thunderstruck', 'dawn', 'dawnbound', 'amber', 'amberbound', 'wet', 'chilled', 'frozen', 'coin', 'egg', 'weatherRain', 'weatherSnow', 'weatherThunderstorm', 'weatherDawn', 'weatherAmberMoon'];
+const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'thunderstruck', 'dawn', 'dawnbound', 'amber', 'amberbound', 'wet', 'chilled', 'frozen', 'coin', 'magicDust', 'egg', 'size', 'weatherRain', 'weatherSnow', 'weatherThunderstorm', 'weatherDawn', 'weatherAmberMoon'];
 const EMBLEM_ICON_LABELS: Record<string, string> = {
   weatherRain: 'Rain', weatherSnow: 'Snow', weatherThunderstorm: 'Thunderstorm', weatherDawn: 'Dawn', weatherAmberMoon: 'Amber Moon',
 };
