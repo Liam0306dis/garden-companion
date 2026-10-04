@@ -40,10 +40,40 @@ const header = `// ==UserScript==
 // @run-at       document-start
 // ==/UserScript==`;
 
-const [catalogs, css] = await Promise.all([
+const [catalogs, css, changelogText] = await Promise.all([
   bundleDirs().then(catalogsFromSnapshots),
   readFile(resolve(root, 'src', 'style.css'), 'utf8'),
+  readFile(resolve(root, 'changelog.txt'), 'utf8'),
 ]);
+
+/** How many releases the in-game "What's new" carries. The full history stays in changelog.txt. */
+const CHANGELOG_ENTRIES = 10;
+
+/**
+ * changelog.txt is a version line followed by "- " notes, newest first. A line that is neither
+ * continues the note above it, so a note can be wrapped without splitting in two.
+ */
+function parseChangelog(text: string): Array<{ version: string; notes: string[] }> {
+  const entries: Array<{ version: string; notes: string[] }> = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (/^\d+\.\d+\.\d+$/.test(line)) entries.push({ version: line, notes: [] });
+    else if (!entries.length) continue;
+    else if (line.startsWith('- ')) entries[entries.length - 1].notes.push(line.slice(2));
+    else {
+      const notes = entries[entries.length - 1].notes;
+      if (notes.length) notes[notes.length - 1] += ` ${line}`;
+      else notes.push(line);
+    }
+  }
+  return entries.slice(0, CHANGELOG_ENTRIES);
+}
+
+const changelog = parseChangelog(changelogText);
+if (changelog[0]?.version !== packageJson.version) {
+  console.warn(`WARNING: changelog.txt starts at ${changelog[0]?.version ?? 'nothing'}, not ${packageJson.version} - "What's new" will not show this version.`);
+}
 
 // A guarantee is a few dozen pulls, a hundred or so at most. Anything outside that is a misread -
 // 0.8.92 shipped every egg at 4,294,967,295 after a minified name resolved to the wrong constant -
@@ -95,6 +125,7 @@ await build({
     __ABILITY_COLOURS__: JSON.stringify(catalogs.abilityColours),
     __PET_SPRITE_LOADER__: JSON.stringify(petSpriteLoader),
     __GARDEN_COMPANION_CSS__: JSON.stringify(css),
+    __CHANGELOG__: JSON.stringify(changelog),
   },
 });
 

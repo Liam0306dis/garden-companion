@@ -126,7 +126,19 @@
 #gc-panel .gc-footer button.active { color:var(--gc-strong);background:var(--gc-surface-2); }
 .gc-footer button svg { width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85; }
 #gc-panel .gc-footer button.active svg { color:var(--gc-accent-text);opacity:1; }
-.gc-footer .gc-version { flex:0 0 auto;color:var(--gc-faint);font-size:12px;font-style:normal;font-variant-numeric:tabular-nums; }
+#gc-panel .gc-footer .gc-version { position:relative;flex:0 0 auto;height:26px;padding:0 8px;color:var(--gc-faint);font:500 12px var(--gc-font);font-variant-numeric:tabular-nums; }
+#gc-panel .gc-footer .gc-version[data-unseen="true"] { color:var(--gc-accent-text); }
+#gc-panel .gc-footer .gc-version[data-unseen="true"]::after { content:'';position:absolute;top:3px;right:1px;width:7px;height:7px;border-radius:50%;background:var(--gc-accent);box-shadow:0 0 0 2px var(--gc-side); }
+#gc-whats-new { position:fixed;z-index:2147483646;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));max-height:min(520px,calc(100vh - 32px));display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.5 var(--gc-font); }
+#gc-whats-new > header { flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;border-bottom:1px solid var(--gc-line);color:var(--gc-strong);font-size:14px; }
+#gc-whats-new > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }
+#gc-whats-new > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+#gc-whats-new > main { overflow:auto;padding:6px 16px 14px;scrollbar-width:thin; }
+#gc-whats-new section + section { border-top:1px solid var(--gc-line); }
+#gc-whats-new h4 { display:flex;align-items:center;gap:8px;margin:12px 0 6px;color:var(--gc-strong);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums; }
+#gc-whats-new h4 span { padding:1px 7px;border-radius:999px;background:var(--gc-accent-soft);color:var(--gc-accent-text);font-size:10px;font-weight:600; }
+#gc-whats-new ul { margin:0 0 10px;padding-left:18px;color:var(--gc-text); }
+#gc-whats-new li + li { margin-top:4px; }
 .gc-content main { min-height:0;flex:1;overflow:auto;scrollbar-gutter:stable;padding:12px 16px 16px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent; }
 
 /* ── Shared building blocks ──────────────────────────────────────────────────────────────────── */

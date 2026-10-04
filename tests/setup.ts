@@ -28,6 +28,7 @@ Object.assign(globals, {
   __BASIS_WASM_SHA256__: '',
   __PET_SPRITE_LOADER__: '',
   __GARDEN_COMPANION_CSS__: '',
+  __CHANGELOG__: [],
 });
 
 /** What the userscript saved through GM_setValue, readable by tests. */

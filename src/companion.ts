@@ -50,6 +50,7 @@ import { toast } from './toast.js';
 import { notifyStateChange, state } from './state.js';
 import { escapeHtml, humanize, scriptVersion } from './utils.js';
 import { makeDraggable } from './draggable.js';
+import { toggleWhatsNew, whatsNewUnseen } from './whats-new.js';
 
 export function initCompanion(): void {
   pruneStaleConfig();
@@ -515,7 +516,7 @@ export function initCompanion(): void {
   function footerHtml(): string {
     const tabs = TAB_GROUPS.filter(([group]) => FOOTER_GROUPS.has(group)).flatMap(([, tabs]) => tabs);
     return `<footer class="gc-footer"><div>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${tabIcon(id)}<span>${FOOTER_LABELS[id] ?? navLabel ?? title}</span></button>`).join('')}</div>`
-      + `<em class="gc-version">v${escapeHtml(scriptVersion())}</em></footer>`;
+      + `<button class="gc-version" data-whats-new${whatsNewUnseen() ? ' data-unseen="true"' : ''} title="What's new">v${escapeHtml(scriptVersion())}</button></footer>`;
   }
 
   function navHtml(): string {
@@ -571,6 +572,11 @@ export function initCompanion(): void {
       };
       button.onclick = () => selectPanelTab(button.dataset.tab);
     });
+    const whatsNew = root.querySelector<HTMLButtonElement>('[data-whats-new]');
+    if (whatsNew) whatsNew.onclick = () => {
+      toggleWhatsNew();
+      delete whatsNew.dataset.unseen;
+    };
     root.querySelectorAll<HTMLButtonElement>('[data-nav-group]').forEach(button => button.onclick = () => {
       const group = button.dataset.navGroup ?? '';
       collapsedNavGroups.has(group) ? collapsedNavGroups.delete(group) : collapsedNavGroups.add(group);
