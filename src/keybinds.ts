@@ -14,6 +14,7 @@ import { escapeHtml } from './utils.js';
  */
 export const PLANNER_KEY = { id: 'layoutPlanner', label: 'Layout planner' };
 export const CROP_CLEANSER_KEY = { id: 'cropCleanserHelper', label: 'Crop Cleanser Helper' };
+export const FARM_MANAGER_KEY = { id: 'farmManager', label: 'Farm Manager' };
 export const WEATHER_SHOP_KEY = { id: 'weatherShop', label: 'Weather shop' };
 
 /**
@@ -103,6 +104,11 @@ function installShortcutListener(): void {
       page.__gardenCompanionToggleCropCleanser?.();
       return;
     }
+    if (config.interfaceKeybinds[FARM_MANAGER_KEY.id] === combo) {
+      event.preventDefault(); event.stopPropagation();
+      page.__gardenCompanionToggleFarmManager?.();
+      return;
+    }
     const gameInterface = feature('interfaceShortcuts')
       ? GAME_INTERFACES.find(item => config.interfaceKeybinds[item.id] === combo)
       : undefined;
@@ -181,9 +187,10 @@ export function renderKeybinds() {
   const teamCycling = TEAM_CYCLE_KEYS.map(item => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || '')).join('');
   const planner = shortcutRow(PLANNER_KEY.label, `data-interface-key="${PLANNER_KEY.id}"`, config.interfaceKeybinds[PLANNER_KEY.id] || '');
   const cropCleanser = shortcutRow(CROP_CLEANSER_KEY.label, `data-interface-key="${CROP_CLEANSER_KEY.id}"`, config.interfaceKeybinds[CROP_CLEANSER_KEY.id] || '');
+  const farmManager = shortcutRow(FARM_MANAGER_KEY.label, `data-interface-key="${FARM_MANAGER_KEY.id}"`, config.interfaceKeybinds[FARM_MANAGER_KEY.id] || '');
   const teamRows = teams().map(team => shortcutRow(team.name, `data-team-key="${escapeHtml(team.id)}"`, config.teamKeybinds[team.id] || '')).join('');
   return `<p class="gc-note">Click a field, then press the keys you want. Press Escape while recording to clear it. A combination can only belong to one action, so reusing one releases it from the other.</p>
-<section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}${planner}${cropCleanser}</div></section>
+<section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}${planner}${cropCleanser}${farmManager}</div></section>
 <section class="gc-card gc-shortcuts"><h3>Pet team cycling</h3><p>Step through your saved teams in order, wrapping at both ends.</p><div class="gc-shortcut-grid">${teamCycling}</div></section>
 <section class="gc-card gc-shortcuts"><h3>Pet teams</h3><p>Activate a saved team directly.</p>${teamRows ? `<div class="gc-shortcut-grid">${teamRows}</div>` : '<p class="gc-empty">No saved teams yet.</p>'}</section>`;
 }

@@ -24,10 +24,11 @@ actions. It does not perform unattended gameplay.
 - Optional auto-store moving seeds into the Seed Silo and decor into the Decor Shed, only where the storage already holds a matching stack
 - Layout planner for arranging plants and decor on your own tiles, with mutations, crop sizes, and saved layouts
 - Celestial layout guide for arranging Moonbinder, Dawnbinder, Dawnbreaker, and Starweaver plants on either farm side, with game-rendered plant overlays, Amberbound, Dawnbound, or combined coverage, and live red or green placement feedback
+- Farm Manager window with a top-down map of your garden for moving plants by drag and drop, potting them into your inventory, and planting potted plants or seeds from your inventory or Seed Silo
 - Plant drag movement by holding, dragging, and releasing a plant, consumes planter pot on each successful move
 - Optional selection keeper prevents a manually used Planter Pot from switching to the picked-up plant
 - Instant harvest - Spacebar triggers instant harvest for mature Gold or Rainbow crops (Default OFF)
-- Configurable global keybinds for Garden Companion, Garden Overview, the layout planner, weather station, seed, egg, and tool shops
+- Configurable global keybinds for Garden Companion, Garden Overview, the layout planner, Farm Manager, weather station, seed, egg, and tool shops
 - Draggable UTC lunar-event countdown that remembers its position, with a settings button and WebSocket health indicator
 - Configurable background operation and automatic game-update refresh
 - Species, pets, eggs, and mutations added by the game are picked up from the running client, so new content appears without waiting for a script update

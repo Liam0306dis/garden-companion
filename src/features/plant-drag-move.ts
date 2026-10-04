@@ -35,6 +35,28 @@ interface LiveSystems extends FarmSystems {
     fallbackHighlight: GameObject | null;
 }
 
+/**
+ * Plant moves for the Farm Manager, which addresses tiles by their dirt index in your own garden
+ * rather than by a point on the canvas. Each call runs alone: one already in progress, from here or
+ * from a drag on the canvas, refuses the next rather than queueing it behind the first.
+ */
+export interface FarmPlantActions {
+    /** Move the plant on one tile to another; a plant on the destination is swapped. */
+    move(fromLocal: number, toLocal: number): Promise<boolean>;
+    /** Plant a potted plant from the inventory onto an empty tile. */
+    replant(local: number, plantItemId: string): Promise<boolean>;
+    /** Pot the plant on a tile into the inventory. */
+    pot(local: number): Promise<void>;
+    busy(): boolean;
+}
+
+let farmPlantActions: FarmPlantActions | null = null;
+
+/** Null until the drag-move feature has started. */
+export function plantActions(): FarmPlantActions | null {
+    return farmPlantActions;
+}
+
 export function initPlantDragMove(): void {
     const pageWindow = page as CompanionPage & typeof globalThis;
     const HOLD_MS = 1000;
@@ -766,7 +788,19 @@ export function initPlantDragMove(): void {
     async function commitHeldMove(activePress: Press) {
         const destination = getValidDestination(activePress);
         activePress.destination = destination;
-        // A plant already on the destination is swapped with the one being moved, not treated as a block.
+        try {
+            await relocatePlant(activePress.source, destination, activePress);
+        } finally {
+            moveBusy = false;
+        }
+    }
+
+    /**
+     * Pot the plant on `source` and replant it on `destination`. A plant already on the destination
+     * is swapped with the one being moved, not treated as a block. Shared by the hold-and-drag on the
+     * canvas and the Farm Manager, which builds the two tiles from indexes rather than a pointer.
+     */
+    async function relocatePlant(source: FarmTile, destination: FarmTile, activePress: Press) {
         const swap = Boolean(destination.object);
         activePress.phase = 'potting';
         // A swap lifts two plants at once, so it wants two pots and two free slots; a plain move one
@@ -779,45 +813,42 @@ export function initPlantDragMove(): void {
         let sourcePlant: GameObject;
         let destPlant: GameObject | null = null;
         try {
-            try {
-                if (!hasPlanterPot(potsNeeded) && !await ensureToolReady('PlanterPot', potsNeeded, 1)) {
-                    throw new Error(swap
-                        ? 'A swap needs two Planter Pots - add another to your inventory or Tool Shack.'
-                        : 'No Planter Pot could be taken from the Tool Shack. Make room in your inventory.');
-                }
-                if (freeInventorySlots() < slotsNeeded) {
-                    throw new Error(swap
-                        ? 'A swap needs two free inventory slots for the plants it lifts.'
-                        : 'Your inventory is full, so the plant has nowhere to go');
-                }
-
-                // Lift both plants into the inventory before planting either. Should a later placement
-                // fail, both are recoverable from the inventory rather than one stranded on a tile.
-                sourcePlant = await potPlant(activePress.source);
-                restoreSourcePlant(activePress);
-                if (swap) destPlant = await potPlant(destination);
-                activePress.plantItem = sourcePlant;
-                activePress.phase = 'ready';
-            } finally {
-                releasePot();
+            if (!hasPlanterPot(potsNeeded) && !await ensureToolReady('PlanterPot', potsNeeded, 1)) {
+                throw new Error(swap
+                    ? 'A swap needs two Planter Pots - add another to your inventory or Tool Shack.'
+                    : 'No Planter Pot could be taken from the Tool Shack. Make room in your inventory.');
+            }
+            if (freeInventorySlots() < slotsNeeded) {
+                throw new Error(swap
+                    ? 'A swap needs two free inventory slots for the plants it lifts.'
+                    : 'Your inventory is full, so the plant has nowhere to go');
             }
 
-            // The moved plant takes the destination; on a swap the destination's plant takes the
-            // now-empty source tile. Both tiles are empty by now, so neither placement blocks the other.
-            await placePlant(activePress.source.object, destination, sourcePlant.id, activePress);
-            if (swap && destPlant) {
-                await placePlant(destination.object, activePress.source, destPlant.id, activePress);
-            }
+            // Lift both plants into the inventory before planting either. Should a later placement
+            // fail, both are recoverable from the inventory rather than one stranded on a tile.
+            sourcePlant = await potPlant(source);
+            restoreSourcePlant(activePress);
+            if (swap) destPlant = await potPlant(destination);
+            activePress.plantItem = sourcePlant;
+            activePress.phase = 'ready';
         } finally {
-            moveBusy = false;
+            releasePot();
         }
+
+        // The moved plant takes the destination; on a swap the destination's plant takes the
+        // now-empty source tile. Both tiles are empty by now, so neither placement blocks the other.
+        const moved = await placePlant(source.object, destination, sourcePlant.id, activePress);
+        if (swap && destPlant) {
+            return await placePlant(destination.object, source, destPlant.id, activePress) && moved;
+        }
+        return moved;
     }
 
     /**
      * Plant an inventory item onto a tile and confirm the server placed it. `plantObject` is the tile
      * data the plant was lifted from, used only to recognise it once it lands. Returns whether it settled.
      */
-    async function placePlant(plantObject: GameObject | null, destination: FarmTile, plantId: string, activePress: Press) {
+    async function placePlant(plantObject: GameObject | null, destination: FarmTile, plantId: string, activePress: Press, doneMessage = 'Plant moved.') {
         if (activePress.cancelled) return false;
         const currentObject = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
         if (currentObject) {
@@ -838,13 +869,84 @@ export function initPlantDragMove(): void {
         }, PLACE_TIMEOUT_MS, 150);
 
         if (placed) {
-            showToast('Plant moved.', 'success');
+            showToast(doneMessage, 'success');
             log(`Placed ${plantObject?.species ?? 'plant'} on slot ${destination.localTileIndex}.`);
         } else {
             showToast('Placement was not confirmed. Check your inventory before retrying.', 'error', 5000);
         }
         return placed;
     }
+
+    /**
+     * Our own slot, by the tile we last stood on when there is one and by the game's own record of
+     * it otherwise, so the Farm Manager works from anywhere in the room.
+     */
+    function ownSlot(): number | null {
+        return live.ownUserSlotIdx ?? state.userSlotIndex ?? state.slotIndex ?? null;
+    }
+
+    function ownDirtTile(localIndex: number): FarmTile | null {
+        const tileSystem = live.tileSystem;
+        const map = tileSystem?.map;
+        const slot = ownSlot();
+        if (!map || slot == null) return null;
+        const globalIndex = map.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slot]?.[localIndex];
+        if (typeof globalIndex !== 'number') return null;
+        const x = globalIndex % map.cols;
+        const y = Math.floor(globalIndex / map.cols);
+        return { x, y, globalIndex, userSlotIdx: slot, localTileIndex: localIndex, object: tileSystem!.getTileDataAt({ x, y }) ?? null };
+    }
+
+    async function exclusive<T>(run: () => Promise<T>): Promise<T> {
+        if (moveBusy) throw new Error('Finish the current plant move first');
+        moveBusy = true;
+        try {
+            return await run();
+        } finally {
+            moveBusy = false;
+        }
+    }
+
+    function requireTile(localIndex: number): FarmTile {
+        const tile = ownDirtTile(localIndex);
+        if (!tile) throw new Error('The farm has not finished loading');
+        return tile;
+    }
+
+    farmPlantActions = {
+        busy: () => moveBusy,
+        move: (fromLocal, toLocal) => exclusive(async () => {
+            const source = requireTile(fromLocal);
+            const destination = requireTile(toLocal);
+            if (source.object?.objectType !== 'plant') throw new Error('That tile has no plant on it');
+            if (destination.object && destination.object.objectType !== 'plant') {
+                throw new Error('The destination tile holds something that is not a plant, so there is nothing to swap');
+            }
+            return Boolean(await relocatePlant(source, destination, { cancelled: false }));
+        }),
+        pot: localIndex => exclusive(async () => {
+            const tile = requireTile(localIndex);
+            if (tile.object?.objectType !== 'plant') throw new Error('That tile has no plant on it');
+            const releasePot = holdTool('PlanterPot');
+            try {
+                if (!hasPlanterPot() && !await ensureToolReady('PlanterPot', 1, 1)) {
+                    throw new Error('No Planter Pot is available in your inventory or Tool Shack');
+                }
+                if (freeInventorySlots() < 1) throw new Error('Your inventory is full, so the plant has nowhere to go');
+                await potPlant(tile);
+                showToast('Plant potted.', 'success');
+            } finally {
+                releasePot();
+            }
+        }),
+        replant: (localIndex, plantItemId) => exclusive(async () => {
+            const tile = requireTile(localIndex);
+            const item = findPottedPlant(plantItemId);
+            if (!item) throw new Error('That potted plant is no longer in your inventory');
+            if (tile.object) throw new Error('That tile is not empty');
+            return Boolean(await placePlant(item, tile, plantItemId, { cancelled: false }, 'Plant placed.'));
+        }),
+    };
 
     function activatePress(activePress: Press) {
         if (press !== activePress || activePress.cancelled || activePress.released) return;

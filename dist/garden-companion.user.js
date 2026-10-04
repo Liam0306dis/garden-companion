@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.1
+// @version      0.9.2
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -1706,8 +1706,8 @@
   function selectedValueMutations() {
     return VALUE_GROUPS.map((group) => valueMutations[group]).filter(Boolean);
   }
-  function setCalculatorTab(tab) {
-    calculatorTab = tab;
+  function setCalculatorTab(tab2) {
+    calculatorTab = tab2;
   }
   function toggleDustPet(petId, selected3) {
     if (selected3) dustSelection.add(petId);
@@ -2288,11 +2288,11 @@ ${groups}
     const guide = document.createElement("div");
     guide.id = "gc-alarm-guide";
     document.documentElement.appendChild(guide);
-    let drag = null;
+    let drag2 = null;
     const onDown = (event) => {
       if (event.button !== 0 || event.target.closest("button")) return;
       const rect = element.getBoundingClientRect();
-      drag = { offsetX: event.clientX - (rect.left + rect.width / 2), offsetY: event.clientY - rect.top, pointerId: event.pointerId };
+      drag2 = { offsetX: event.clientX - (rect.left + rect.width / 2), offsetY: event.clientY - rect.top, pointerId: event.pointerId };
       element.dataset.dragging = "true";
       try {
         element.setPointerCapture(event.pointerId);
@@ -2301,20 +2301,20 @@ ${groups}
       event.preventDefault();
     };
     const onMove = (event) => {
-      if (!drag) return;
-      let centre = event.clientX - drag.offsetX;
+      if (!drag2) return;
+      let centre = event.clientX - drag2.offsetX;
       const snapped = Math.abs(centre - window.innerWidth / 2) <= SNAP_PX;
       if (snapped) centre = window.innerWidth / 2;
       guide.classList.toggle("is-visible", snapped);
-      applyPosition(element, { x: centre / window.innerWidth, y: (event.clientY - drag.offsetY) / window.innerHeight });
+      applyPosition(element, { x: centre / window.innerWidth, y: (event.clientY - drag2.offsetY) / window.innerHeight });
     };
     const onUp = () => {
-      if (!drag) return;
+      if (!drag2) return;
       try {
-        element.releasePointerCapture(drag.pointerId);
+        element.releasePointerCapture(drag2.pointerId);
       } catch {
       }
-      drag = null;
+      drag2 = null;
       delete element.dataset.dragging;
       guide.classList.remove("is-visible");
       const rect = element.getBoundingClientRect();
@@ -2507,8 +2507,8 @@ ${groups}
     source.buffer = buffer;
     source.connect(offline.destination);
     source.start();
-    const rendered = await offline.startRendering();
-    const samples = rendered.getChannelData(0);
+    const rendered2 = await offline.startRendering();
+    const samples = rendered2.getChannelData(0);
     const bytes = new ArrayBuffer(44 + samples.length * 2);
     const view = new DataView(bytes);
     const text = (offset, value) => {
@@ -2528,7 +2528,7 @@ ${groups}
     text(36, "data");
     view.setUint32(40, samples.length * 2, true);
     for (let index = 0; index < samples.length; index++) view.setInt16(44 + index * 2, Math.max(-1, Math.min(1, samples[index])) * 32767, true);
-    return { bytes, buffer: rendered };
+    return { bytes, buffer: rendered2 };
   }
   async function setCustomAlarmSound(file) {
     if (file.size > 50 * 1024 * 1024) throw new Error("That file is over 50 MB. Pick a smaller one.");
@@ -2863,8 +2863,8 @@ ${filter}
 ` + groups.map((group) => `${group.species}:` + group.rows.map((row) => `${row.key},${row.locked ? 1 : 0},${row.growing ? 1 : 0},${row.sizePercent},${row.mutations.join("|")}`).join(";")).join("\n");
   }
   function redrawList() {
-    const root = modal();
-    const list = root?.querySelector("[data-lock-list]");
+    const root2 = modal();
+    const list = root2?.querySelector("[data-lock-list]");
     if (!list) return;
     const groups = visibleGroups(lockGroups());
     const scroll = list.scrollTop;
@@ -2895,23 +2895,23 @@ ${filter}
     return { toLock: rows.filter((row) => !row.locked), toUnlock: rows.filter((row) => row.locked), total: rows.length };
   }
   function updateFooter() {
-    const root = modal();
-    if (!root) return;
+    const root2 = modal();
+    if (!root2) return;
     const groups = lockGroups();
     const every = allRows(groups);
     const lockedCount = every.filter((row) => row.locked).length;
     const { toLock, toUnlock, total } = selectedSplit();
     const ready = gameConnectionReady();
     const capped = toLock.length > BATCH_CAP || toUnlock.length > BATCH_CAP;
-    const summary = root.querySelector("[data-lock-summary]");
+    const summary = root2.querySelector("[data-lock-summary]");
     if (summary) summary.textContent = `${lockedCount} of ${every.length} locked`;
-    const totalEl = root.querySelector("[data-lock-total]");
+    const totalEl = root2.querySelector("[data-lock-total]");
     if (totalEl) totalEl.textContent = sending ? `Updating ${Math.min(sendDone + 1, sendTotal)}/${sendTotal}...` : total ? `${total} crop${total === 1 ? "" : "s"} selected` : "Tick the crops to change.";
-    const hint = root.querySelector("[data-lock-hint]");
+    const hint = root2.querySelector("[data-lock-hint]");
     if (hint) hint.textContent = sending ? "" : !ready && total ? "Waiting for the game connection - your ticks are kept" : holdAt ? "Keep holding..." : total ? capped ? `${BATCH_CAP} per press - press & hold` : "Press & hold to apply" : "";
-    root.dataset.offline = !ready && total > 0 ? "true" : "false";
+    root2.dataset.offline = !ready && total > 0 ? "true" : "false";
     for (const [kind, rows, verb, busy] of [["lock", toLock, "Lock", "Locking"], ["unlock", toUnlock, "Unlock", "Unlocking"]]) {
-      const button = root.querySelector(`[data-lock-run="${kind}"]`);
+      const button = root2.querySelector(`[data-lock-run="${kind}"]`);
       if (!button) continue;
       const batch = Math.min(rows.length, BATCH_CAP);
       const label = button.querySelector("[data-lock-label]");
@@ -2920,7 +2920,7 @@ ${filter}
       if (sending && action === kind) paintFill(button, sendTotal ? sendDone / sendTotal : 0);
       else if (!(holdAt && action === kind)) paintFill(button, 0);
     }
-    root.dataset.holding = holdAt || sending ? "true" : "false";
+    root2.dataset.holding = holdAt || sending ? "true" : "false";
   }
   function paintFill(button, progress) {
     const fill = button.querySelector("[data-lock-fill]");
@@ -4181,17 +4181,17 @@ ${filter}
     const mutation = overlay ? ` data-pet-mutation-key="${escapeHtml(key)}"` : "";
     return `<span class="gc-pet-sprite"><img data-log-sprite="${escapeHtml(key)}" alt="${escapeHtml(pet.petSpecies)}"${mutation}></span>`;
   }
-  function hydrateAbilityLogSprites(root) {
-    root.querySelectorAll("img[data-log-sprite]").forEach((image) => {
+  function hydrateAbilityLogSprites(root2) {
+    root2.querySelectorAll("img[data-log-sprite]").forEach((image) => {
       const source = logSpriteSources.get(image.dataset.logSprite || "");
       if (source && image.src !== source) image.src = source;
     });
   }
   function renderAbilityLogRows(enabled) {
-    const search2 = abilityLogSearch.trim().toLowerCase();
-    const matched = state.abilityLog.filter((log) => enabled.has(log.ability) && (!search2 || searchText(log).includes(search2)));
+    const search3 = abilityLogSearch.trim().toLowerCase();
+    const matched = state.abilityLog.filter((log) => enabled.has(log.ability) && (!search3 || searchText(log).includes(search3)));
     const recent = matched.slice(0, LOG_VISIBLE_ROWS);
-    if (!recent.length) return search2 ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
+    if (!recent.length) return search3 ? "<p>Nothing matches that search.</p>" : "<p>No ability procs recorded yet.</p>";
     const more = matched.length > recent.length ? `<p>Showing the newest ${recent.length} of ${matched.length} matches.</p>` : "";
     const owners = indexOwnedPets();
     logSpriteSources.clear();
@@ -4240,11 +4240,11 @@ ${filter}
   function abilityModalMarkup(enabled) {
     return `<div class="gc-ability-modal" role="dialog" aria-label="Ability history filter"><header class="gc-modal-head"><h3>Show which abilities</h3><button class="gc-modal-close" data-ability-close aria-label="Close">&times;</button></header><div class="gc-modal-tools"><span class="gc-modal-summary" data-ability-summary>${escapeHtml(abilityFilterSummary(enabled))}</span><div><button data-ability-all>All</button><button data-ability-none>None</button></div></div><div class="gc-modal-body" data-ability-body>${renderAbilityFilterBody(enabled)}</div></div>`;
   }
-  function redrawAbilityModal(root) {
+  function redrawAbilityModal(root2) {
     const enabled = enabledAbilities();
-    const body = root.querySelector("[data-ability-body]");
+    const body = root2.querySelector("[data-ability-body]");
     if (body) body.innerHTML = renderAbilityFilterBody(enabled);
-    const summary = root.querySelector("[data-ability-summary]");
+    const summary = root2.querySelector("[data-ability-summary]");
     if (summary) summary.textContent = abilityFilterSummary(enabled);
   }
   function onAbilityModalKey(event) {
@@ -4361,6 +4361,15 @@ ${filter}
     return toolIsHeld(key) || state.selectedItemId === key;
   }
   var pauses = /* @__PURE__ */ new Map();
+  function pauseAutoStore(...itemTypes) {
+    for (const type of itemTypes) pauses.set(type, (pauses.get(type) ?? 0) + 1);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      for (const type of itemTypes) pauses.set(type, Math.max(0, (pauses.get(type) ?? 0) - 1));
+    };
+  }
   function isTimedTool(item) {
     return Number(item.remainingActiveSeconds) > 0;
   }
@@ -4497,9 +4506,9 @@ ${filter}
     const custom = savedCustomSound();
     const options = Object.entries(ALARM_PRESETS).map(([id, preset]) => [id, preset.label]);
     if (custom) options.push(["custom", "Custom file"]);
-    const toggle2 = (key, title, text) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`;
+    const toggle3 = (key, title, text) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`;
     return `<div class="gc-section-label">Pet alarms</div>
-<div class="gc-list">${toggle2("petHungerAlarm", "Alarm when every pet has zero hunger", "Sounds once the whole team hits zero hunger, not for a single hungry pet.")}${toggle2("petAbilityAlarm", "Alarm when a pet ability is ready", "Sounds when an active pet's activated ability, like Ostrich or Thunder Wolf, comes off cooldown.")}</div>
+<div class="gc-list">${toggle3("petHungerAlarm", "Alarm when every pet has zero hunger", "Sounds once the whole team hits zero hunger, not for a single hungry pet.")}${toggle3("petAbilityAlarm", "Alarm when a pet ability is ready", "Sounds when an active pet's activated ability, like Ostrich or Thunder Wolf, comes off cooldown.")}</div>
 <p class="gc-note">Every alarm uses this sound. The speaker button on each alert still mutes that one alert.</p>
 <section class="gc-card gc-alarm-sound"><h3>Sound</h3>
 <select data-alarm-preset>${options.map(([id, label]) => `<option value="${id}" ${id === settings.preset ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
@@ -4708,10 +4717,10 @@ ${filter}
   var incompleteOnly = false;
   var journalSearch = "";
   var variantFilter = "";
-  function setJournalTab(tab) {
-    if (tab !== "plants" && tab !== "pets") return;
-    if (tab !== journalTab) variantFilter = "";
-    journalTab = tab;
+  function setJournalTab(tab2) {
+    if (tab2 !== "plants" && tab2 !== "pets") return;
+    if (tab2 !== journalTab) variantFilter = "";
+    journalTab = tab2;
   }
   function toggleVariantFilter(variant) {
     variantFilter = variantFilter === variant ? "" : variant;
@@ -4879,10 +4888,10 @@ ${variantFilterStrip(variants, journalTab)}
       toggleVariantFilter(button.dataset.journalVariant || "");
       panelActions.renderPanelPreservingScroll();
     });
-    const search2 = main.querySelector("[data-journal-search]");
-    bindListSearch(search2);
-    search2?.addEventListener("input", () => {
-      journalSearch = search2.value;
+    const search3 = main.querySelector("[data-journal-search]");
+    bindListSearch(search3);
+    search3?.addEventListener("input", () => {
+      journalSearch = search3.value;
     });
   }
 
@@ -5625,13 +5634,13 @@ ${eggs.map(eggCard).join("")}`;
   }
   function layer() {
     ensureStyle();
-    let root = document.getElementById(LAYER_ID);
-    if (!root) {
-      root = document.createElement("div");
-      root.id = LAYER_ID;
-      document.body.appendChild(root);
+    let root2 = document.getElementById(LAYER_ID);
+    if (!root2) {
+      root2 = document.createElement("div");
+      root2.id = LAYER_ID;
+      document.body.appendChild(root2);
     }
-    return root;
+    return root2;
   }
   function place(element, x, y, extra) {
     element.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) ${extra}`;
@@ -5675,13 +5684,13 @@ ${eggs.map(eggCard).join("")}`;
     };
     const guard = window.setTimeout(finish, TOSS_TIMEOUT_MS);
     try {
-      const root = layer();
+      const root2 = layer();
       const started = performance.now();
       const surface = pixiSurface();
       const fallbackOrigin = { x: window.innerWidth / 2, y: window.innerHeight + 40 };
       for (const [index, target] of targets.entries()) {
         const ball = createProjectile();
-        root.appendChild(ball);
+        root2.appendChild(ball);
         const start = surface ? petScreen(surface, target.id) ?? fallbackOrigin : fallbackOrigin;
         const rest = Math.random() * 40 - 20;
         const turns = 1 + Math.floor(Math.random() * 2);
@@ -5720,7 +5729,7 @@ ${eggs.map(eggCard).join("")}`;
             flight.landedAt = now;
             flight.flash = document.createElement("i");
             flight.flash.className = "gc-toss-flash";
-            root.appendChild(flight.flash);
+            root2.appendChild(flight.flash);
           }
           const settled = now - flight.landedAt;
           if (!flight.caught && settled >= CATCH_DELAY_MS) {
@@ -6182,6 +6191,7 @@ ${eggs.map(eggCard).join("")}`;
   // src/keybinds.ts
   var PLANNER_KEY = { id: "layoutPlanner", label: "Layout planner" };
   var CROP_CLEANSER_KEY = { id: "cropCleanserHelper", label: "Crop Cleanser Helper" };
+  var FARM_MANAGER_KEY = { id: "farmManager", label: "Farm Manager" };
   var WEATHER_SHOP_KEY = { id: "weatherShop", label: "Weather shop" };
   var WEATHER_SHOP_MODALS = {
     Frost: "snowShop",
@@ -6260,6 +6270,12 @@ ${eggs.map(eggCard).join("")}`;
         page.__gardenCompanionToggleCropCleanser?.();
         return;
       }
+      if (config.interfaceKeybinds[FARM_MANAGER_KEY.id] === combo) {
+        event.preventDefault();
+        event.stopPropagation();
+        page.__gardenCompanionToggleFarmManager?.();
+        return;
+      }
       const gameInterface = feature("interfaceShortcuts") ? GAME_INTERFACES.find((item) => config.interfaceKeybinds[item.id] === combo) : void 0;
       if (gameInterface) {
         event.preventDefault();
@@ -6325,9 +6341,10 @@ ${eggs.map(eggCard).join("")}`;
     const teamCycling = TEAM_CYCLE_KEYS.map((item) => shortcutRow(item.label, `data-interface-key="${item.id}"`, config.interfaceKeybinds[item.id] || "")).join("");
     const planner = shortcutRow(PLANNER_KEY.label, `data-interface-key="${PLANNER_KEY.id}"`, config.interfaceKeybinds[PLANNER_KEY.id] || "");
     const cropCleanser = shortcutRow(CROP_CLEANSER_KEY.label, `data-interface-key="${CROP_CLEANSER_KEY.id}"`, config.interfaceKeybinds[CROP_CLEANSER_KEY.id] || "");
+    const farmManager = shortcutRow(FARM_MANAGER_KEY.label, `data-interface-key="${FARM_MANAGER_KEY.id}"`, config.interfaceKeybinds[FARM_MANAGER_KEY.id] || "");
     const teamRows = teams().map((team) => shortcutRow(team.name, `data-team-key="${escapeHtml(team.id)}"`, config.teamKeybinds[team.id] || "")).join("");
     return `<p class="gc-note">Click a field, then press the keys you want. Press Escape while recording to clear it. A combination can only belong to one action, so reusing one releases it from the other.</p>
-<section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}${planner}${cropCleanser}</div></section>
+<section class="gc-card gc-shortcuts"><h3>Interfaces</h3><p>Open these from anywhere in a loaded room.</p><div class="gc-shortcut-grid">${interfaces}${planner}${cropCleanser}${farmManager}</div></section>
 <section class="gc-card gc-shortcuts"><h3>Pet team cycling</h3><p>Step through your saved teams in order, wrapping at both ends.</p><div class="gc-shortcut-grid">${teamCycling}</div></section>
 <section class="gc-card gc-shortcuts"><h3>Pet teams</h3><p>Activate a saved team directly.</p>${teamRows ? `<div class="gc-shortcut-grid">${teamRows}</div>` : '<p class="gc-empty">No saved teams yet.</p>'}</section>`;
   }
@@ -7073,28 +7090,28 @@ ${eggs.map(eggCard).join("")}`;
     updateLunarTimer();
   }
   function updateLunarTimer() {
-    const root = document.getElementById("gc-lunar");
+    const root2 = document.getElementById("gc-lunar");
     const mini = document.getElementById("gc-lunar-mini");
-    if (!root) return;
+    if (!root2) return;
     const shown = feature("lunarTimer") && !page.__gardenCompanionCinematicFromGame?.();
     const forecast = lunarMode === "weather" ? nextWeather() : null;
     const unavailable = lunarMode === "weather" && forecastStatus() === "unavailable";
     const label = lunarMode === "weather" ? forecast ? forecast.lunar ? "Lunar event" : weatherLabel(forecast.weatherId) : "Next weather" : "Lunar event";
     const remaining2 = unavailable ? "Unavailable" : lunarMode === "weather" ? forecast ? countdownText(forecast.startsAtMs - serverNow()) : forecastStatus() === "ready" ? "Not forecast" : "--" : countdownText(nextLunarAt() - serverNow());
     const countingDown = !unavailable && (lunarMode === "lunar" || Boolean(forecast));
-    root.hidden = !shown || lunarMinimised;
-    lunarTicker.sync(!root.hidden);
-    const countdown = root.querySelector(".gc-lunar-countdown");
+    root2.hidden = !shown || lunarMinimised;
+    lunarTicker.sync(!root2.hidden);
+    const countdown = root2.querySelector(".gc-lunar-countdown");
     if (countdown) countdown.dataset.message = unavailable ? "true" : "";
-    root.querySelector("strong").textContent = remaining2;
-    root.querySelector(".gc-lunar-title span").textContent = label;
-    const swap = root.querySelector("[data-swap]");
+    root2.querySelector("strong").textContent = remaining2;
+    root2.querySelector(".gc-lunar-title span").textContent = label;
+    const swap = root2.querySelector("[data-swap]");
     if (swap) {
       swap.dataset.mode = lunarMode;
       swap.title = lunarMode === "weather" ? "Showing the next weather event - switch to the lunar timer" : "Showing the lunar timer - switch to the next weather event";
     }
     const sprite = forecast && !forecast.lunar ? page.__gardenCompanionWeatherSprites?.[forecast.weatherId] || "" : "";
-    const mark = root.querySelector(".gc-lunar-mark");
+    const mark = root2.querySelector(".gc-lunar-mark");
     if (mark) {
       mark.innerHTML = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
       if (sprite) mark.dataset.weather = forecast.weatherId;
@@ -7439,8 +7456,8 @@ ${eggs.map(eggCard).join("")}`;
     if (row && !atInventoryCap(row.id, row.item)) showShopAlarm(row);
   }
   var shopAlarmTab = "seed";
-  function setShopAlarmTab(tab) {
-    if (tab) shopAlarmTab = tab;
+  function setShopAlarmTab(tab2) {
+    if (tab2) shopAlarmTab = tab2;
   }
   function toggleShopAlert(key, enabled) {
     if (enabled) config.shopAlerts[key] = true;
@@ -7705,20 +7722,20 @@ ${eggs.map(eggCard).join("")}`;
       clearTimeout(panelRefreshTimer);
       panelRefreshTimer = null;
     }
-    function selectPanelTab(tab) {
-      if (!tab || tab === activeTab) return;
+    function selectPanelTab(tab2) {
+      if (!tab2 || tab2 === activeTab) return;
       cancelPanelRefresh();
-      activeTab = tab;
+      activeTab = tab2;
       if (activeTab !== "abilityLog") {
         setAbilityFilterMenuOpen(false);
         setAbilityFilterInteracting(false);
       }
       renderPanel();
     }
-    function openPanel(tab = activeTab) {
+    function openPanel(tab2 = activeTab) {
       page.__gardenCompanionLoadSprites?.();
       page.__gardenCompanionLoadSpriteGroup?.("deferred");
-      activeTab = tab;
+      activeTab = tab2;
       let panel3 = document.getElementById("gc-panel");
       const created = !panel3;
       if (!panel3) {
@@ -7830,7 +7847,7 @@ ${eggs.map(eggCard).join("")}`;
       features: "Turn optional tools on or off, and open the extra windows.",
       supporter: "Leave a tip if the companion has been useful."
     };
-    const tabGroupOf = (id) => TAB_GROUPS.find(([, tabs]) => tabs.some(([tab]) => tab === id))?.[0] || "";
+    const tabGroupOf = (id) => TAB_GROUPS.find(([, tabs]) => tabs.some(([tab2]) => tab2 === id))?.[0] || "";
     const TAB_ICONS = {
       abilities: '<circle cx="6.5" cy="10" r="1.8"/><circle cx="10" cy="6" r="1.8"/><circle cx="14.5" cy="6" r="1.8"/><circle cx="18" cy="10" r="1.8"/><path d="M12 11.5c-2.6 0-5 3.2-5 5.6 0 1.6 1.3 2.4 2.7 2.4 1 0 1.5-.5 2.3-.5s1.3.5 2.3.5c1.4 0 2.7-.8 2.7-2.4 0-2.4-2.4-5.6-5-5.6Z"/>',
       abilityLog: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>',
@@ -7884,7 +7901,7 @@ ${eggs.map(eggCard).join("")}`;
       const navTop = panel3.querySelector("nav")?.scrollTop ?? 0;
       const renderedTabHtml = renderTab();
       const description = TAB_DESCRIPTIONS[activeTab] ?? "";
-      panel3.innerHTML = `<div class="gc-shell"><header class="gc-titlebar" data-drag-handle><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><b>Garden Companion</b></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><aside class="gc-side"><nav>${navHtml()}</nav></aside><section class="gc-content"><div class="gc-page-head" data-drag-handle><small>${escapeHtml(tabGroupOf(activeTab))}</small><h2>${escapeHtml(TABS.find((tab) => tab[0] === activeTab)?.[1] || "")}</h2>${description ? `<p>${escapeHtml(description)}</p>` : ""}</div><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderedTabHtml}</main></section>${footerHtml()}</div>`;
+      panel3.innerHTML = `<div class="gc-shell"><header class="gc-titlebar" data-drag-handle><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><b>Garden Companion</b></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><aside class="gc-side"><nav>${navHtml()}</nav></aside><section class="gc-content"><div class="gc-page-head" data-drag-handle><small>${escapeHtml(tabGroupOf(activeTab))}</small><h2>${escapeHtml(TABS.find((tab2) => tab2[0] === activeTab)?.[1] || "")}</h2>${description ? `<p>${escapeHtml(description)}</p>` : ""}</div><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderedTabHtml}</main></section>${footerHtml()}</div>`;
       const main = panel3.querySelector("main");
       main.addEventListener("pointerleave", () => {
         if (refreshPending) setTimeout(refreshOpenPanel, 0);
@@ -7897,8 +7914,8 @@ ${eggs.map(eggCard).join("")}`;
       lastTabSignature = tabRefreshSignature();
       lastTabHtml = renderedTabHtml;
     }
-    function bindNavButtons(root) {
-      root.querySelectorAll("[data-tab]").forEach((button) => {
+    function bindNavButtons(root2) {
+      root2.querySelectorAll("[data-tab]").forEach((button) => {
         button.onpointerdown = (event) => {
           if (event.button !== 0) return;
           event.preventDefault();
@@ -7906,7 +7923,7 @@ ${eggs.map(eggCard).join("")}`;
         };
         button.onclick = () => selectPanelTab(button.dataset.tab);
       });
-      root.querySelectorAll("[data-nav-group]").forEach((button) => button.onclick = () => {
+      root2.querySelectorAll("[data-nav-group]").forEach((button) => button.onclick = () => {
         const group = button.dataset.navGroup ?? "";
         collapsedNavGroups.has(group) ? collapsedNavGroups.delete(group) : collapsedNavGroups.add(group);
         saveCollapsedNavGroups();
@@ -7976,7 +7993,7 @@ ${eggs.map(eggCard).join("")}`;
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Overlay a buff layout for your current celestial plants on either side of the farm.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Farm Manager</h3><p>A map of your garden. Drag plants to move or swap them, and plant potted plants or seeds onto empty tiles.</p></div><button class="gc-primary" data-open-farm-manager>Open manager</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Overlay a buff layout for your current celestial plants on either side of the farm.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderSilence() {
       const selected3 = new Set(config.silencedAbilities || []);
@@ -8001,6 +8018,10 @@ ${eggs.map(eggCard).join("")}`;
       main.querySelector("[data-open-celestial-layout]")?.addEventListener("click", () => {
         closePanel();
         page.__gardenCompanionToggleCelestialLayout?.();
+      });
+      main.querySelector("[data-open-farm-manager]")?.addEventListener("click", () => {
+        closePanel();
+        page.__gardenCompanionToggleFarmManager?.();
       });
       main.querySelector("[data-open-crop-cleanser]")?.addEventListener("click", () => {
         closePanel();
@@ -8357,6 +8378,70 @@ ${eggs.map(eggCard).join("")}`;
 .gc-cleanser-mutation img { width:14px;height:14px;object-fit:contain;image-rendering:auto; }
 .gc-cleanser-empty { padding:28px 12px;color:var(--gc-faint);text-align:center; }
 @media (max-width:560px) { .gc-cleanser-choices { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-cleanser-table-wrap th:nth-child(2),.gc-cleanser-table-wrap td:nth-child(2) { display:none; } }
+
+/* ── Farm Manager ────────────────────────────────────────────────────────────────────────────── */
+#gc-farm-manager { position:fixed;z-index:2147483644;left:24px;top:70px;width:min(1080px,calc(100vw - 24px));max-height:calc(100vh - 24px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
+#gc-farm-manager[hidden] { display:none; }
+#gc-farm-manager > header { flex:none;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }
+#gc-farm-manager > header > div { display:flex;align-items:center;gap:9px;color:var(--gc-strong);font-size:14px;font-weight:600; }
+#gc-farm-manager > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-green); }
+#gc-farm-manager > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }
+#gc-farm-manager > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+#gc-farm-manager > main { flex:1;min-height:360px;display:flex; }
+#gc-farm-manager > footer { flex:none;padding:9px 16px;border-top:1px solid var(--gc-line);color:var(--gc-muted); }
+.gc-fm-grid { flex:1;min-width:0;overflow-x:hidden;overflow-y:auto;padding:12px; }
+.gc-fm-board { display:grid;gap:2px;width:max-content;margin:auto; }
+.gc-fm-cell { position:relative;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#4a3423;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);user-select:none; }
+.gc-fm-cell[data-kind="board"] { background:#2b2620;opacity:.6; }
+.gc-fm-cell[data-type="empty"][data-kind="dirt"] { background:#3a2a1d; }
+.gc-fm-cell[draggable="true"] { cursor:grab; }
+.gc-fm-cell[draggable="true"]:hover { box-shadow:inset 0 0 0 2px rgba(255,255,255,.35); }
+.gc-fm-cell img { width:82%;height:82%;object-fit:contain;pointer-events:none;image-rendering:auto; }
+.gc-fm-cell[data-type="decor"] img,.gc-fm-cell[data-type="egg"] img { opacity:.55; }
+.gc-fm-cell > i,.gc-fm-item > i { color:var(--gc-faint);font:600 10px var(--gc-font);font-style:normal; }
+.gc-fm-cell small { position:absolute;right:2px;bottom:1px;padding:0 3px;border-radius:3px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;line-height:12px;pointer-events:none; }
+.gc-fm-muts { display:inline-flex;gap:1px;pointer-events:none; }
+.gc-fm-cell .gc-fm-muts { position:absolute;left:2px;top:2px; }
+.gc-fm-muts img { width:11px!important;height:11px!important; }
+.gc-fm-muts b { font-size:8px;color:var(--gc-gold); }
+.gc-fm-cell[data-pending="true"] { animation:gc-fm-pulse 1s ease-in-out infinite; }
+@keyframes gc-fm-pulse { 50% { opacity:.4; } }
+.gc-fm-dragging .gc-fm-cell[data-kind="dirt"]:not([data-drop]) { opacity:.45; }
+.gc-fm-cell[data-drop] { box-shadow:inset 0 0 0 2px rgba(62,207,142,.6); }
+.gc-fm-cell[data-armed] { cursor:pointer; }
+.gc-fm-cell[data-armed]:hover { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }
+.gc-fm-placing { display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:3px 10px;border:1px solid rgba(62,207,142,.45);border-radius:999px;background:rgba(62,207,142,.12);color:var(--gc-green);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase; }
+.gc-fm-placing[hidden] { display:none; }
+.gc-fm-placing img { width:16px;height:16px;object-fit:contain; }
+.gc-fm-item { cursor:pointer; }
+.gc-fm-item[data-active="true"] { border-color:rgba(62,207,142,.6);background:rgba(62,207,142,.12); }
+.gc-fm-cell[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }
+#gc-farm-manager aside { position:relative;contain:size;flex:none;width:230px;display:flex;flex-direction:column;gap:8px;padding:12px;border-left:1px solid var(--gc-line);background:var(--gc-side); }
+#gc-farm-manager[data-potting="full"] aside { box-shadow:inset 0 0 0 2px rgba(240,113,113,.4); }
+#gc-farm-manager[data-potting="true"] aside { box-shadow:inset 0 0 0 2px rgba(62,207,142,.35); }
+#gc-farm-manager[data-potting="true"] aside[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:rgba(62,207,142,.08); }
+#gc-farm-manager[data-potting] aside::after { content:'Drop here to pot';position:absolute;left:12px;right:12px;bottom:12px;padding:10px;border-radius:var(--gc-radius-sm);background:rgba(20,40,28,.95);color:var(--gc-green);font-weight:600;text-align:center;pointer-events:none; }
+#gc-farm-manager[data-potting="full"] aside::after { content:'Inventory full - cannot pot';color:var(--gc-danger);background:rgba(48,20,20,.95); }
+.gc-fm-capacity { display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-muted); }
+.gc-fm-capacity[hidden] { display:none; }
+.gc-fm-capacity b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }
+.gc-fm-capacity[data-full="true"] { border-color:rgba(240,113,113,.45);background:rgba(240,113,113,.08); }
+.gc-fm-capacity[data-full="true"] b { color:var(--gc-danger); }
+.gc-fm-tabs { display:grid;grid-template-columns:1fr 1fr;gap:4px; }
+.gc-fm-tabs button { height:30px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font); }
+.gc-fm-tabs button[data-active="true"] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);color:var(--gc-strong); }
+#gc-farm-manager aside input { height:30px;padding:0 9px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-input);color:var(--gc-text);font:12px var(--gc-font);outline:none; }
+#gc-farm-manager aside input:focus { border-color:var(--gc-accent-line); }
+.gc-fm-list { flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:4px; }
+.gc-fm-item { display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);user-select:none; }
+.gc-fm-item[draggable="true"] { cursor:grab; }
+.gc-fm-item[draggable="true"]:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
+.gc-fm-item img { width:28px;height:28px;object-fit:contain;pointer-events:none;image-rendering:auto; }
+.gc-fm-item span { min-width:0;display:flex;flex-direction:column; }
+.gc-fm-item b { overflow:hidden;color:var(--gc-strong);font-weight:550;text-overflow:ellipsis;white-space:nowrap; }
+.gc-fm-item small { color:var(--gc-muted);font-size:11px; }
+.gc-fm-empty { padding:24px 10px;color:var(--gc-faint);text-align:center; }
+@media (max-width:640px) { #gc-farm-manager aside { width:150px; } }
 
 /* ── Keybinds ────────────────────────────────────────────────────────────────────────────────── */
 .gc-shortcuts > p { margin-bottom:10px; }
@@ -9768,11 +9853,11 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
           countMutation(result.mutations, mutation);
           countMutation(species.mutations, mutation);
         }
-        const slotMutations = slot.mutations ?? [];
-        if (slotMutations.some((name) => name === "Rainbow" || name === "Gold")) result.targetProgress.RainbowGold = (result.targetProgress.RainbowGold ?? 0) + 1;
-        if (slotMutations.some((name) => name === "Frozen" || name === "Thunderstruck")) result.targetProgress.FrozenThunderstruck = (result.targetProgress.FrozenThunderstruck ?? 0) + 1;
-        if (slotMutations.some((name) => name === "Ambershine" || name === "Dawnlit")) result.targetProgress.AmberDawn = (result.targetProgress.AmberDawn ?? 0) + 1;
-        if (slotMutations.some((name) => ["Dawncharged", "Dawnbound", "Ambercharged", "Amberbound"].includes(name))) result.targetProgress.DawnAmbercharged = (result.targetProgress.DawnAmbercharged ?? 0) + 1;
+        const slotMutations2 = slot.mutations ?? [];
+        if (slotMutations2.some((name) => name === "Rainbow" || name === "Gold")) result.targetProgress.RainbowGold = (result.targetProgress.RainbowGold ?? 0) + 1;
+        if (slotMutations2.some((name) => name === "Frozen" || name === "Thunderstruck")) result.targetProgress.FrozenThunderstruck = (result.targetProgress.FrozenThunderstruck ?? 0) + 1;
+        if (slotMutations2.some((name) => name === "Ambershine" || name === "Dawnlit")) result.targetProgress.AmberDawn = (result.targetProgress.AmberDawn ?? 0) + 1;
+        if (slotMutations2.some((name) => ["Dawncharged", "Dawnbound", "Ambercharged", "Amberbound"].includes(name))) result.targetProgress.DawnAmbercharged = (result.targetProgress.DawnAmbercharged ?? 0) + 1;
         if (!(slot.mutations || []).length) result.unmutated++;
         const crop = catalog?.[slotSpecies]?.crop;
         if (maxSizeMultiplier(crop) > 1 && !slotIsMaxSize(crop, slot)) result.notMaxSize++;
@@ -10220,7 +10305,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         });
       };
     }
-    function render3(force = false) {
+    function render4(force = false) {
       const panel3 = document.getElementById(PANEL_ID);
       if (!panel3 || panel3.hidden && !view.alarm) return;
       const stats = calculateStats(runtime(), getCatalog(), filter2, trackedMutations, view.ignorePreserved, mutationConfig);
@@ -10245,7 +10330,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       const species = knownSpecies();
       const placement = position ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position.top))}px;` : "";
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
-      const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"], ["panel", "Panel"]].map(([tab, label]) => `<button data-config-tab="${tab}" data-active="${configMode === tab}">${label}</button>`).join("")}</div>`;
+      const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"], ["panel", "Panel"]].map(([tab2, label]) => `<button data-config-tab="${tab2}" data-active="${configMode === tab2}">${label}</button>`).join("")}</div>`;
       const configTitle = configMode === "alarms" ? "Alarm Config" : "Overview Settings";
       const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml(configTitle)}</h2><button data-config-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : "";
       panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
@@ -10254,27 +10339,27 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       panel3.querySelector("[data-close]").onclick = close;
       panel3.querySelector("[data-config-close]")?.addEventListener("click", () => {
         configMode = null;
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-open-config]").onclick = () => {
         configMode = configMode && configMode !== "alarms" ? null : lastConfigTab;
-        render3(true);
+        render4(true);
       };
       panel3.querySelectorAll("[data-config-tab]").forEach((button) => button.onclick = () => {
         configMode = button.dataset.configTab;
         if (configMode && configMode !== "alarms") lastConfigTab = configMode;
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-focus-toggle]").onclick = () => {
         focus.enabled = !focus.enabled;
         saveFocus(focus);
         applyPlantFocus();
-        render3(true);
+        render4(true);
       };
       const alarmConfigButton = panel3.querySelector("[data-alarm-config]");
       if (alarmConfigButton) alarmConfigButton.onclick = () => {
         configMode = configMode === "alarms" ? null : "alarms";
-        render3(true);
+        render4(true);
       };
       const alarmButton = panel3.querySelector("[data-alarm]");
       if (alarmButton) alarmButton.onclick = () => {
@@ -10284,7 +10369,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
           ensureRefreshTimer();
         } else stopCompletionAlarm();
         saveView(view);
-        render3(true);
+        render4(true);
       };
       panel3.querySelectorAll("[data-zoom-level]").forEach((button) => button.onclick = () => {
         view.zoom = Number(button.dataset.zoomLevel);
@@ -10294,25 +10379,25 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       panel3.querySelector("[data-all]")?.addEventListener("click", () => {
         filter2 = null;
         localStorage.removeItem(FILTER_KEY);
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-none]")?.addEventListener("click", () => {
         filter2 = /* @__PURE__ */ new Set();
         saveFilter(filter2);
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-owned]")?.addEventListener("click", () => {
         filter2 = new Set(filter2 ?? []);
         for (const name of ownedSpeciesCounts().keys()) filter2.add(name);
         saveFilter(filter2);
-        render3(true);
+        render4(true);
       });
       panel3.querySelectorAll("[data-species-toggle]").forEach((button) => button.onclick = () => {
         const name = button.dataset.speciesToggle ?? "";
         filter2 = new Set(filter2 ?? species);
         filter2.has(name) ? filter2.delete(name) : filter2.add(name);
         saveFilter(filter2);
-        render3(true);
+        render4(true);
       });
       const releaseUnlessTyping = (element) => {
         if (keyboardDriven) return;
@@ -10321,7 +10406,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         }, 0);
       };
       const renderAndRefocus = (selector) => {
-        render3(true);
+        render4(true);
         if (keyboardDriven) panel3.querySelector(selector)?.focus();
       };
       const applyMutationKey = (key, value) => {
@@ -10473,7 +10558,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         selectedPreset = name;
         presetDraft = name;
         toast(`Saved "${name}".`, "success");
-        render3(true);
+        render4(true);
       });
       panel3.querySelector("[data-preset-delete]")?.addEventListener("click", () => {
         const removed = selectedPreset;
@@ -10483,7 +10568,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         selectedPreset = "";
         if (presetDraft === removed) presetDraft = "";
         toast(`Deleted "${removed}".`, "success");
-        render3(true);
+        render4(true);
       });
       panel3.querySelectorAll("[data-focus-rule-pill]").forEach((button) => button.onclick = () => {
         const rule = button.dataset.focusRulePill;
@@ -10531,14 +10616,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         if (openFamilies.has(key)) openFamilies.delete(key);
         else openFamilies.add(key);
         saveOpenFamilies();
-        render3(true);
+        render4(true);
       });
-      panel3.querySelectorAll("[data-collapse]").forEach((toggle3) => toggle3.onclick = () => {
-        const key = toggle3.dataset.collapse;
+      panel3.querySelectorAll("[data-collapse]").forEach((toggle4) => toggle4.onclick = () => {
+        const key = toggle4.dataset.collapse;
         if (key === "mutations") view.mutationsOpen = !view.mutationsOpen;
         if (key === "plants") view.plantsOpen = !view.plantsOpen;
         saveView(view);
-        render3(true);
+        render4(true);
       });
       bindSearch(panel3.querySelector("[data-species-search]"));
       installDrag(panel3.querySelector(".go-card"), panel3.querySelector(".go-card > header"), (left, top) => {
@@ -10557,7 +10642,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       panel3.hidden = false;
       lastSignature2 = "";
       page.__gardenCompanionLoadSpriteGroup?.("deferred");
-      render3(true);
+      render4(true);
       ensureRefreshTimer();
     }
     function close() {
@@ -10569,21 +10654,21 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       }
     }
     function ensureRefreshTimer() {
-      if (!refreshTimer) refreshTimer = setInterval(() => render3(false), 1e3);
+      if (!refreshTimer) refreshTimer = setInterval(() => render4(false), 1e3);
     }
-    function toggle2() {
+    function toggle3() {
       const panel3 = document.getElementById(PANEL_ID);
       if (panel3?.hidden) open();
       else close();
     }
     function mount() {
       injectOverviewStyles();
-      page.__gardenCompanionToggleOverview = toggle2;
+      page.__gardenCompanionToggleOverview = toggle3;
       const button = document.createElement("button");
       button.id = BUTTON_ID;
       button.innerHTML = "&#x1F33F;";
       button.title = "Garden Overview";
-      button.onclick = toggle2;
+      button.onclick = toggle3;
       const panel3 = document.createElement("div");
       panel3.id = PANEL_ID;
       panel3.hidden = true;
@@ -10599,14 +10684,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       });
       if (view.alarm) ensureRefreshTimer();
       onSpritesReady(() => {
-        if (configMode === "focus") render3(true);
+        if (configMode === "focus") render4(true);
       });
       window.addEventListener("keydown", (event) => {
         if (!shortcut || event.repeat || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) return;
         if (comboFromEvent(event) !== shortcut) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        toggle2();
+        toggle3();
       }, true);
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true });
@@ -12382,17 +12467,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       });
       graphic.poly(outline(size * 0.22, size * 0.32), true).fill({ color: 202268, alpha: 0.24 * alpha });
       for (const side of [1, -1]) {
-        const root = spine[2];
+        const root2 = spine[2];
         const n = normal(2);
         const w = halfWidth(0.25) * 0.8;
         const flap = 0.28 + Math.sin(swim * 1.3 + (side > 0 ? 0 : Math.PI)) * 0.1;
         graphic.poly([
-          root.x + n.x * w * side,
-          root.y + n.y * w * side,
-          root.x + n.x * (w + size * flap) * side + back.x * size * 0.3,
-          root.y + n.y * (w + size * flap) * side + back.y * size * 0.3,
-          root.x + n.x * w * side + back.x * size * 0.28,
-          root.y + n.y * w * side + back.y * size * 0.28
+          root2.x + n.x * w * side,
+          root2.y + n.y * w * side,
+          root2.x + n.x * (w + size * flap) * side + back.x * size * 0.3,
+          root2.y + n.y * (w + size * flap) * side + back.y * size * 0.3,
+          root2.x + n.x * w * side + back.x * size * 0.28,
+          root2.y + n.y * w * side + back.y * size * 0.28
         ], true).fill({ color: shade(colour, 0.8), alpha: alpha * 0.8 });
       }
       const tailTop = tailPoint(0.64, 0.48);
@@ -14413,7 +14498,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       poofs = poofs.filter((poof) => wallClock - poof.at < 0.5);
     }
-    function render3() {
+    function render4() {
       const geometry = scene.sync();
       const entities = scene.layer("entities");
       const mounds = scene.layer("plantShadow");
@@ -14466,7 +14551,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       wallClock += delta;
       try {
         if (board && !paused) board.step(delta);
-        render3();
+        render4();
         if (now - chromeAt > 250) {
           chromeAt = now;
           renderStatus();
@@ -14743,12 +14828,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/plant-drag-move.ts
+  var farmPlantActions = null;
+  function plantActions() {
+    return farmPlantActions;
+  }
   function initPlantDragMove() {
     const pageWindow = page;
     const HOLD_MS3 = 1e3;
     const HOLD_MOVE_TOLERANCE_PX = 12;
     const POT_TIMEOUT_MS = 1e4;
-    const PLACE_TIMEOUT_MS = 12e3;
+    const PLACE_TIMEOUT_MS2 = 12e3;
     const TILE_SIZE3 = 256;
     const NATIVE_INPUT_GRACE_MS = 1500;
     const HOOK_RELEASE_TIMEOUT_MS = 6e4;
@@ -15106,7 +15195,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function isGameCanvas(target) {
       return target?.tagName === "CANVAS" && !target.closest?.("[data-gc-ui]");
     }
-    function waitFor(condition, timeoutMs, intervalMs = 100) {
+    function waitFor2(condition, timeoutMs, intervalMs = 100) {
       const started = performance.now();
       return new Promise((resolve) => {
         const poll = setInterval(() => {
@@ -15315,13 +15404,20 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const plantItemId = pageWindow.crypto.randomUUID();
       showToast(`Picking up ${tile.object?.species ?? "plant"}...`, "normal", 0);
       sendPotPlant(tile.localTileIndex, plantItemId);
-      const plantItem = await waitFor(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
+      const plantItem = await waitFor2(() => findPottedPlant(plantItemId), POT_TIMEOUT_MS);
       if (!plantItem) throw new Error("The server did not return the potted plant");
       return plantItem;
     }
     async function commitHeldMove(activePress) {
       const destination = getValidDestination(activePress);
       activePress.destination = destination;
+      try {
+        await relocatePlant(activePress.source, destination, activePress);
+      } finally {
+        moveBusy = false;
+      }
+    }
+    async function relocatePlant(source, destination, activePress) {
       const swap = Boolean(destination.object);
       activePress.phase = "potting";
       const potsNeeded = swap ? 2 : 1;
@@ -15330,30 +15426,27 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       let sourcePlant;
       let destPlant = null;
       try {
-        try {
-          if (!hasPlanterPot(potsNeeded) && !await ensureToolReady("PlanterPot", potsNeeded, 1)) {
-            throw new Error(swap ? "A swap needs two Planter Pots - add another to your inventory or Tool Shack." : "No Planter Pot could be taken from the Tool Shack. Make room in your inventory.");
-          }
-          if (freeInventorySlots() < slotsNeeded) {
-            throw new Error(swap ? "A swap needs two free inventory slots for the plants it lifts." : "Your inventory is full, so the plant has nowhere to go");
-          }
-          sourcePlant = await potPlant(activePress.source);
-          restoreSourcePlant(activePress);
-          if (swap) destPlant = await potPlant(destination);
-          activePress.plantItem = sourcePlant;
-          activePress.phase = "ready";
-        } finally {
-          releasePot();
+        if (!hasPlanterPot(potsNeeded) && !await ensureToolReady("PlanterPot", potsNeeded, 1)) {
+          throw new Error(swap ? "A swap needs two Planter Pots - add another to your inventory or Tool Shack." : "No Planter Pot could be taken from the Tool Shack. Make room in your inventory.");
         }
-        await placePlant(activePress.source.object, destination, sourcePlant.id, activePress);
-        if (swap && destPlant) {
-          await placePlant(destination.object, activePress.source, destPlant.id, activePress);
+        if (freeInventorySlots() < slotsNeeded) {
+          throw new Error(swap ? "A swap needs two free inventory slots for the plants it lifts." : "Your inventory is full, so the plant has nowhere to go");
         }
+        sourcePlant = await potPlant(source);
+        restoreSourcePlant(activePress);
+        if (swap) destPlant = await potPlant(destination);
+        activePress.plantItem = sourcePlant;
+        activePress.phase = "ready";
       } finally {
-        moveBusy = false;
+        releasePot();
       }
+      const moved = await placePlant(source.object, destination, sourcePlant.id, activePress);
+      if (swap && destPlant) {
+        return await placePlant(destination.object, source, destPlant.id, activePress) && moved;
+      }
+      return moved;
     }
-    async function placePlant(plantObject, destination, plantId, activePress) {
+    async function placePlant(plantObject, destination, plantId, activePress, doneMessage = "Plant moved.") {
       if (activePress.cancelled) return false;
       const currentObject = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
       if (currentObject) {
@@ -15364,19 +15457,81 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       activePress.phase = "placing";
       showToast("Placing plant...", "normal", 0);
       sendPlantGardenPlant(destination.localTileIndex, plantId);
-      const placed = await waitFor(() => {
+      const placed = await waitFor2(() => {
         const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
         const itemStillHeld = inventoryItems2().some((item) => item?.id === plantId);
         return !itemStillHeld && object?.objectType === "plant" && isSamePlant(object, plantObject ?? void 0);
-      }, PLACE_TIMEOUT_MS, 150);
+      }, PLACE_TIMEOUT_MS2, 150);
       if (placed) {
-        showToast("Plant moved.", "success");
+        showToast(doneMessage, "success");
         log(`Placed ${plantObject?.species ?? "plant"} on slot ${destination.localTileIndex}.`);
       } else {
         showToast("Placement was not confirmed. Check your inventory before retrying.", "error", 5e3);
       }
       return placed;
     }
+    function ownSlot2() {
+      return live.ownUserSlotIdx ?? state.userSlotIndex ?? state.slotIndex ?? null;
+    }
+    function ownDirtTile(localIndex) {
+      const tileSystem = live.tileSystem;
+      const map = tileSystem?.map;
+      const slot = ownSlot2();
+      if (!map || slot == null) return null;
+      const globalIndex = map.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slot]?.[localIndex];
+      if (typeof globalIndex !== "number") return null;
+      const x = globalIndex % map.cols;
+      const y = Math.floor(globalIndex / map.cols);
+      return { x, y, globalIndex, userSlotIdx: slot, localTileIndex: localIndex, object: tileSystem.getTileDataAt({ x, y }) ?? null };
+    }
+    async function exclusive(run3) {
+      if (moveBusy) throw new Error("Finish the current plant move first");
+      moveBusy = true;
+      try {
+        return await run3();
+      } finally {
+        moveBusy = false;
+      }
+    }
+    function requireTile(localIndex) {
+      const tile = ownDirtTile(localIndex);
+      if (!tile) throw new Error("The farm has not finished loading");
+      return tile;
+    }
+    farmPlantActions = {
+      busy: () => moveBusy,
+      move: (fromLocal, toLocal) => exclusive(async () => {
+        const source = requireTile(fromLocal);
+        const destination = requireTile(toLocal);
+        if (source.object?.objectType !== "plant") throw new Error("That tile has no plant on it");
+        if (destination.object && destination.object.objectType !== "plant") {
+          throw new Error("The destination tile holds something that is not a plant, so there is nothing to swap");
+        }
+        return Boolean(await relocatePlant(source, destination, { cancelled: false }));
+      }),
+      pot: (localIndex) => exclusive(async () => {
+        const tile = requireTile(localIndex);
+        if (tile.object?.objectType !== "plant") throw new Error("That tile has no plant on it");
+        const releasePot = holdTool("PlanterPot");
+        try {
+          if (!hasPlanterPot() && !await ensureToolReady("PlanterPot", 1, 1)) {
+            throw new Error("No Planter Pot is available in your inventory or Tool Shack");
+          }
+          if (freeInventorySlots() < 1) throw new Error("Your inventory is full, so the plant has nowhere to go");
+          await potPlant(tile);
+          showToast("Plant potted.", "success");
+        } finally {
+          releasePot();
+        }
+      }),
+      replant: (localIndex, plantItemId) => exclusive(async () => {
+        const tile = requireTile(localIndex);
+        const item = findPottedPlant(plantItemId);
+        if (!item) throw new Error("That potted plant is no longer in your inventory");
+        if (tile.object) throw new Error("That tile is not empty");
+        return Boolean(await placePlant(item, tile, plantItemId, { cancelled: false }, "Plant placed."));
+      })
+    };
     function activatePress(activePress) {
       if (press !== activePress || activePress.cancelled || activePress.released) return;
       if (!isEnabled2()) {
@@ -16041,13 +16196,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return true;
     }
     function overlayRoot() {
-      let root = document.getElementById("gc-celestial-overlay");
-      if (!root) {
-        root = document.createElement("div");
-        root.id = "gc-celestial-overlay";
-        document.body.appendChild(root);
+      let root2 = document.getElementById("gc-celestial-overlay");
+      if (!root2) {
+        root2 = document.createElement("div");
+        root2.id = "gc-celestial-overlay";
+        document.body.appendChild(root2);
       }
-      return root;
+      return root2;
     }
     function worldBounds(system, surface, x, y, width, height) {
       if (!system.worldContainer?.toGlobal) return null;
@@ -16124,13 +16279,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       styled.add(display);
       seen3.add(display);
     }
-    function tileElement(root, localIndex) {
-      let element = root.querySelector(`[data-celestial-tile="${CSS.escape(localIndex)}"]`);
+    function tileElement(root2, localIndex) {
+      let element = root2.querySelector(`[data-celestial-tile="${CSS.escape(localIndex)}"]`);
       if (!element) {
         element = document.createElement("div");
         element.className = "gc-celestial-tile";
         element.dataset.celestialTile = localIndex;
-        root.appendChild(element);
+        root2.appendChild(element);
       }
       return element;
     }
@@ -16140,13 +16295,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         destroyGhosts();
         return;
       }
-      const root = overlayRoot();
+      const root2 = overlayRoot();
       const current = liveTiles();
       const wanted = new Set(guide.plan.keys());
       for (const [localIndex, tile] of Object.entries(current)) {
         if (tile?.objectType === "plant" && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species)) wanted.add(localIndex);
       }
-      root.querySelectorAll("[data-celestial-tile]").forEach((element) => {
+      root2.querySelectorAll("[data-celestial-tile]").forEach((element) => {
         if (!wanted.has(element.dataset.celestialTile)) element.remove();
       });
       const seenStyles = /* @__PURE__ */ new Set();
@@ -16163,7 +16318,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const correct = compatible && covered;
         if (correct) correctCount++;
         const wrong = Boolean(actual || planned && actualTile?.objectType);
-        const element = tileElement(root, localIndex);
+        const element = tileElement(root2, localIndex);
         element.dataset.state = correct ? "correct" : wrong || !covered ? "wrong" : "empty";
         element.title = planned ? `${correct && actual ? SPECIES_LABELS[actual] : SPECIES_LABELS[planned]}${correct ? " - correct" : actual ? ` - replace ${SPECIES_LABELS[actual]}` : " - move here"}` : actual ? `${SPECIES_LABELS[actual]} - move this plant` : "";
         element.replaceChildren();
@@ -16339,21 +16494,21 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
   }
   function reconcileCleanserCount() {
-    const root = panel();
-    if (!root || root.hidden) return;
+    const root2 = panel();
+    if (!root2 || root2.hidden) return;
     const live = heldToolCount("CropCleanser");
     if (live === lastLiveCleanserCount && live === displayedCleanserCount) return;
     if (live === lastLiveCleanserCount && Date.now() < optimisticCountUntil) return;
     lastLiveCleanserCount = live;
     displayedCleanserCount = live;
     optimisticCountUntil = 0;
-    const body = root.querySelector("[data-cleanser-body]");
+    const body = root2.querySelector("[data-cleanser-body]");
     if (body) updateCleanserControls(body);
   }
   function render() {
-    const root = panel();
-    if (!root) return;
-    const body = root.querySelector("[data-cleanser-body]");
+    const root2 = panel();
+    if (!root2) return;
+    const body = root2.querySelector("[data-cleanser-body]");
     if (!body) return;
     const cleaners = displayedCleanserCount;
     const rows = rowSnapshot;
@@ -16413,21 +16568,21 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function ensurePanel() {
     const existing = panel();
     if (existing) return existing;
-    const root = document.createElement("section");
-    root.id = "gc-crop-cleanser";
-    root.hidden = true;
-    root.innerHTML = '<header><div><i></i><span>Crop Cleanser Helper</span></div><button data-cleanser-close aria-label="Close">×</button></header><main data-cleanser-body></main>';
-    root.querySelector("[data-cleanser-close]").onclick = () => {
-      root.hidden = true;
+    const root2 = document.createElement("section");
+    root2.id = "gc-crop-cleanser";
+    root2.hidden = true;
+    root2.innerHTML = '<header><div><i></i><span>Crop Cleanser Helper</span></div><button data-cleanser-close aria-label="Close">×</button></header><main data-cleanser-body></main>';
+    root2.querySelector("[data-cleanser-close]").onclick = () => {
+      root2.hidden = true;
     };
-    document.body.appendChild(root);
-    makeDraggable(root, POSITION_KEY6);
-    return root;
+    document.body.appendChild(root2);
+    makeDraggable(root2, POSITION_KEY6);
+    return root2;
   }
   function toggle() {
-    const root = ensurePanel();
-    root.hidden = !root.hidden;
-    if (!root.hidden) {
+    const root2 = ensurePanel();
+    root2.hidden = !root2.hidden;
+    if (!root2.hidden) {
       refreshSnapshot();
       render();
     }
@@ -16438,6 +16593,458 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     onSpritesReady(() => {
       if (panel() && !panel().hidden) render();
     });
+  }
+
+  // src/features/farm-manager.ts
+  var POSITION_KEY7 = "gardenCompanion.farmManagerPosition.v1";
+  var MIN_CELL = 14;
+  var CELL_GAP = 2;
+  var MAX_CELL = 56;
+  var SEED_SILO = "SeedSilo";
+  var PLACE_TIMEOUT_MS = 12e3;
+  var INVENTORY_SLOTS2 = 100;
+  var drag = null;
+  var busyTiles = /* @__PURE__ */ new Set();
+  var renderQueued = false;
+  var search2 = "";
+  var tab = "plants";
+  var armedSeed = null;
+  var seeding = false;
+  function root() {
+    return document.getElementById("gc-farm-manager");
+  }
+  function isOpen() {
+    const element = root();
+    return Boolean(element && !element.hidden);
+  }
+  function ownSlot() {
+    const captured = page.__gardenCompanionFarmSystems?.ownUserSlotIdx;
+    if (typeof captured === "number") return captured;
+    return state.userSlotIndex ?? state.slotIndex ?? null;
+  }
+  function farmCells() {
+    const map = page.__gardenCompanionFarmSystems?.tileSystem?.map;
+    const slot = ownSlot();
+    if (!map?.cols || slot === null) return null;
+    const garden = state.slot?.data?.garden;
+    const cells = [];
+    const add = (kind, indexes, objects) => {
+      for (const [local, global] of Object.entries(indexes ?? {})) {
+        if (typeof global !== "number") continue;
+        cells.push({ kind, local: Number(local), x: global % map.cols, y: Math.floor(global / map.cols), tile: objects?.[local] ?? null });
+      }
+    };
+    add("dirt", map.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slot], garden?.tileObjects);
+    add("board", map.userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx?.[slot], garden?.boardwalkTileObjects);
+    return cells.length ? cells : null;
+  }
+  function pottedPlants() {
+    const items = state.slot?.data?.inventory?.items ?? [];
+    return items.filter((item) => item?.itemType === "Plant" && typeof item.id === "string" && item.species).map((item) => ({ id: item.id, species: item.species }));
+  }
+  function seedStacks() {
+    const stacks = /* @__PURE__ */ new Map();
+    const count = (rows, field) => {
+      for (const row of rows ?? []) {
+        if (row?.itemType !== "Seed" || !row.species) continue;
+        const stack = stacks.get(row.species) ?? { species: row.species, loose: 0, stored: 0 };
+        stack[field] += Math.max(0, Number(row.quantity ?? 1));
+        stacks.set(row.species, stack);
+      }
+    };
+    const inventory = state.slot?.data?.inventory;
+    count(inventory?.items, "loose");
+    count(inventory?.storages?.find((storage) => storage.decorId === SEED_SILO)?.items, "stored");
+    return [...stacks.values()].filter((stack) => stack.loose + stack.stored > 0).sort((left, right) => speciesName2(left.species).localeCompare(speciesName2(right.species)));
+  }
+  function looseSeeds(species) {
+    return seedStacks().find((stack) => stack.species === species)?.loose ?? 0;
+  }
+  function waitFor(condition, timeoutMs) {
+    const started = Date.now();
+    return new Promise((resolve) => {
+      const poll = window.setInterval(() => {
+        let done = false;
+        try {
+          done = condition();
+        } catch {
+        }
+        if (done || Date.now() - started >= timeoutMs) {
+          window.clearInterval(poll);
+          resolve(done);
+        }
+      }, 100);
+    });
+  }
+  async function plantSeed(species, local) {
+    const resume = pauseAutoStore("Seed");
+    try {
+      if (looseSeeds(species) <= 0) {
+        const stored = seedStacks().find((stack) => stack.species === species)?.stored ?? 0;
+        if (stored <= 0) throw new Error(`No ${speciesName2(species)} seeds are left`);
+        sendQuinoaCommand({ type: "RetrieveItemFromStorage", itemId: species, storageId: SEED_SILO, quantity: 1 });
+        if (!await waitFor(() => looseSeeds(species) > 0, 4e3)) {
+          throw new Error("The seed could not be taken out of the Seed Silo. Make room in your inventory");
+        }
+      }
+      if (state.slot?.data?.garden?.tileObjects?.[String(local)]) throw new Error("That tile is not empty");
+      sendQuinoaCommand({ type: "PlantSeed", slot: local, species });
+      const planted = await waitFor(() => {
+        const tile = state.slot?.data?.garden?.tileObjects?.[String(local)];
+        return tile?.objectType === "plant" && tile.species === species;
+      }, PLACE_TIMEOUT_MS);
+      if (!planted) throw new Error("Planting was not confirmed. Check the tile before retrying");
+      toast(`${speciesName2(species)} planted.`, "success");
+    } finally {
+      resume();
+    }
+  }
+  function speciesName2(species) {
+    return patchName(species).replace(/ Plant$/, "");
+  }
+  function slotMutations(slots) {
+    const seen3 = /* @__PURE__ */ new Set();
+    for (const slot of slots ?? []) for (const mutation of slot.mutations ?? []) seen3.add(mutation);
+    return [...seen3];
+  }
+  function mutationLabel3(id) {
+    return MUTATION_CATALOG[id]?.name || id;
+  }
+  function mutationIcons(mutations) {
+    if (!mutations.length) return "";
+    return `<span class="gc-fm-muts">${mutations.slice(0, 3).map((id) => {
+      const sprite = mutationSprite(id);
+      return sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(mutationLabel3(id).slice(0, 1))}</b>`;
+    }).join("")}</span>`;
+  }
+  function spriteImage(src, fallback) {
+    return src ? `<img src="${escapeHtml(src)}" alt="" draggable="false">` : `<i>${escapeHtml(fallback.slice(0, 2))}</i>`;
+  }
+  function tileTitle(cell) {
+    const tile = cell.tile;
+    if (!tile) return cell.kind === "board" ? "Boardwalk" : `Empty dirt tile ${cell.local}`;
+    if (tile.objectType === "plant") {
+      const slots = tile.slots ?? [];
+      const ready = slots.filter((slot) => Number(slot.endTime) <= Date.now()).length;
+      const mutations = slotMutations(slots).map(mutationLabel3);
+      return [
+        speciesName2(tile.species || ""),
+        slots.length ? `${ready}/${slots.length} ready` : "",
+        mutations.length ? mutations.join(", ") : "",
+        "Drag onto an empty tile to move"
+      ].filter(Boolean).join("\n");
+    }
+    if (tile.objectType === "decor") return DECOR_CATALOG[tile.decorId || ""]?.name || tile.decorId || "Decor";
+    if (tile.objectType === "egg") return "Egg";
+    return tile.objectType || "Occupied";
+  }
+  function cellContent(cell) {
+    const tile = cell.tile;
+    if (!tile) return "";
+    if (tile.objectType === "plant") {
+      const slots = tile.slots ?? [];
+      const ready = slots.filter((slot) => Number(slot.endTime) <= Date.now()).length;
+      const badge = slots.length > 1 ? `<small>${ready}/${slots.length}</small>` : "";
+      return `${spriteImage(produceSprite(tile.species || ""), tile.species || "?")}${mutationIcons(slotMutations(slots))}${badge}`;
+    }
+    if (tile.objectType === "decor") return spriteImage(page.__gardenCompanionShopSprites?.[tile.decorId || ""] || "", tile.decorId || "?");
+    const eggId = tile.eggId;
+    return spriteImage(eggId ? page.__gardenCompanionShopSprites?.[eggId] || "" : "", eggId || "?");
+  }
+  function dropAction(cell) {
+    if (!drag || cell.kind !== "dirt" || cell.tile || busyTiles.has(cell.local)) return null;
+    return drag.from === "tile" ? "move" : "place";
+  }
+  function scheduleRender() {
+    if (renderQueued || !isOpen()) return;
+    renderQueued = true;
+    requestAnimationFrame(() => {
+      renderQueued = false;
+      if (drag) return;
+      render2();
+    });
+  }
+  var rendered = /* @__PURE__ */ new WeakMap();
+  function setHtml(node, html) {
+    if (rendered.get(node) === html) return;
+    rendered.set(node, html);
+    node.innerHTML = html;
+  }
+  function render2() {
+    const element = root();
+    if (!element || element.hidden) return;
+    const grid = element.querySelector("[data-fm-grid]");
+    const list = element.querySelector("[data-fm-inventory]");
+    const status = element.querySelector("[data-fm-status]");
+    const busy = seeding || (plantActions()?.busy() ?? false);
+    const stacks = seedStacks();
+    if (armedSeed && (tab !== "seeds" || !stacks.some((stack) => stack.species === armedSeed))) armedSeed = null;
+    const placing = element.querySelector("[data-fm-placing]");
+    placing.hidden = !armedSeed;
+    if (armedSeed) {
+      const sprite = page.__gardenCompanionShopSprites?.[armedSeed] || produceSprite(armedSeed);
+      setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}Placing ${escapeHtml(speciesName2(armedSeed))}`);
+    }
+    const cells = farmCells();
+    if (!cells) {
+      setHtml(grid, '<div class="gc-fm-empty">Waiting for your farm to load. Walk into your garden once if this does not clear.</div>');
+    } else {
+      const minX = Math.min(...cells.map((cell) => cell.x));
+      const minY = Math.min(...cells.map((cell) => cell.y));
+      const columns = Math.max(...cells.map((cell) => cell.x)) - minX + 1;
+      const rows = Math.max(...cells.map((cell) => cell.y)) - minY + 1;
+      const width = Math.max(120, grid.clientWidth - 24 - (columns - 1) * CELL_GAP);
+      const size = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(width / columns)));
+      setHtml(grid, `<div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map((cell) => {
+        const movable = cell.kind === "dirt" && cell.tile?.objectType === "plant" && !busyTiles.has(cell.local) && !busy;
+        const plantable = armedSeed && cell.kind === "dirt" && !cell.tile && !busyTiles.has(cell.local);
+        return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || "empty")}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ""}${plantable ? ' data-drop="place" data-armed="true"' : ""} style="grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}" title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ""}>${cellContent(cell)}</div>`;
+      }).join("")}</div>`);
+    }
+    element.querySelectorAll("[data-fm-tab]").forEach((button) => {
+      button.dataset.active = String(button.dataset.fmTab === tab);
+    });
+    const capacity = element.querySelector("[data-fm-capacity]");
+    capacity.hidden = tab !== "plants";
+    const used = INVENTORY_SLOTS2 - freeInventorySlots();
+    capacity.dataset.full = String(used >= INVENTORY_SLOTS2);
+    setHtml(capacity, `<span>Inventory</span><b>${used}/${INVENTORY_SLOTS2}</b>`);
+    const query = search2.trim().toLowerCase();
+    const matches = (species) => !query || speciesName2(species).toLowerCase().includes(query);
+    if (tab === "seeds") {
+      const seeds = stacks.filter((stack) => matches(stack.species));
+      setHtml(list, seeds.length ? seeds.map((stack) => `<div class="gc-fm-item" data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one${stack.stored ? `
+${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species)}<span><b>${escapeHtml(speciesName2(stack.species))}</b><small>x${stack.loose + stack.stored}${stack.stored ? " · Silo" : ""}</small></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No seeds match." : "No seeds in your inventory or Seed Silo."}</div>`);
+    } else {
+      const potted = pottedPlants().filter((item) => matches(item.species));
+      setHtml(list, potted.length ? potted.map((item) => `<div class="gc-fm-item" data-item="${escapeHtml(item.id)}"${busy ? "" : ' draggable="true"'} title="Drag onto an empty dirt tile to plant">${spriteImage(produceSprite(item.species), item.species)}<span><b>${escapeHtml(speciesName2(item.species))}</b></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No potted plants match." : "No potted plants in your inventory."}</div>`);
+    }
+    const count = cells?.filter((cell) => cell.kind === "dirt" && cell.tile?.objectType === "plant").length ?? 0;
+    const free = cells?.filter((cell) => cell.kind === "dirt" && !cell.tile).length ?? 0;
+    if (!busy) {
+      const text = armedSeed ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName2(armedSeed)}; click the seed again to stop.` : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it; each move uses a Planter Pot.`;
+      if (status.textContent !== text) status.textContent = text;
+    }
+  }
+  function cellFor(local) {
+    return farmCells()?.find((cell) => cell.kind === "dirt" && cell.local === local);
+  }
+  function markTargets() {
+    root()?.querySelectorAll(".gc-fm-cell").forEach((node) => {
+      const cell = node.dataset.kind === "dirt" ? cellFor(Number(node.dataset.local)) : void 0;
+      const action2 = cell ? dropAction(cell) : null;
+      if (action2) node.dataset.drop = action2;
+      else delete node.dataset.drop;
+    });
+  }
+  function clearDrag() {
+    drag = null;
+    rendered = /* @__PURE__ */ new WeakMap();
+    root()?.classList.remove("gc-fm-dragging");
+    if (root()) delete root().dataset.potting;
+    root()?.querySelectorAll("[data-drop],[data-over]").forEach((node) => {
+      delete node.dataset.drop;
+      delete node.dataset.over;
+    });
+    scheduleRender();
+  }
+  function planterPots() {
+    return heldToolCount("PlanterPot");
+  }
+  function refusePotless() {
+    if (planterPots() > 0) return false;
+    toast("You need a Planter Pot to move plants.", "error");
+    return true;
+  }
+  async function potFromTile(local) {
+    const actions = plantActions();
+    if (!actions || seeding) {
+      toast(actions ? "Finish the current move first." : "Plant moving is not ready yet.", "error");
+      return;
+    }
+    if (refusePotless()) return;
+    const status = root()?.querySelector("[data-fm-status]");
+    busyTiles = /* @__PURE__ */ new Set([local]);
+    if (status) status.textContent = "Potting plant...";
+    render2();
+    try {
+      await actions.pot(local);
+    } catch (error) {
+      toast(`Potting stopped: ${error.message}.`, "error");
+    } finally {
+      busyTiles = /* @__PURE__ */ new Set();
+      render2();
+    }
+  }
+  async function perform(work, target) {
+    const actions = plantActions();
+    if (work.from === "seed") {
+      if (seeding || actions?.busy()) {
+        toast("Finish the current move first.", "error");
+        return;
+      }
+      seeding = true;
+    } else if (!actions || seeding) {
+      toast(actions ? "Finish the current move first." : "Plant moving is not ready yet.", "error");
+      return;
+    }
+    if (work.from === "tile") {
+      if (refusePotless()) return;
+      if (freeInventorySlots() < 1) {
+        toast("Your inventory is full, so the plant cannot be lifted. Free a slot first.", "error");
+        return;
+      }
+    }
+    const status = root()?.querySelector("[data-fm-status]");
+    const involved = work.from === "tile" ? [work.local, target.local] : [target.local];
+    busyTiles = new Set(involved);
+    if (status) status.textContent = work.from !== "tile" ? "Planting..." : "Moving plant...";
+    render2();
+    try {
+      if (work.from === "seed") await plantSeed(work.species, target.local);
+      else if (work.from === "tile") await actions.move(work.local, target.local);
+      else await actions.replant(target.local, work.itemId);
+    } catch (error) {
+      toast(`Move stopped: ${error.message}.`, "error");
+    } finally {
+      if (work.from === "seed") seeding = false;
+      busyTiles = /* @__PURE__ */ new Set();
+      render2();
+    }
+  }
+  function bindEvents(element) {
+    element.addEventListener("dragstart", (event) => {
+      const target = event.target;
+      const cellNode = target.closest('.gc-fm-cell[draggable="true"]');
+      const itemNode = target.closest('.gc-fm-item[draggable="true"]');
+      if (cellNode && refusePotless()) {
+        event.preventDefault();
+        return;
+      }
+      if (cellNode) drag = { from: "tile", local: Number(cellNode.dataset.local) };
+      else if (itemNode?.dataset.seed) drag = { from: "seed", species: itemNode.dataset.seed };
+      else if (itemNode?.dataset.item) drag = { from: "inventory", itemId: itemNode.dataset.item };
+      else return;
+      event.dataTransfer?.setData("text/plain", "gc-farm-manager");
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+      element.classList.add("gc-fm-dragging");
+      if (drag.from === "tile") element.dataset.potting = freeInventorySlots() > 0 ? "true" : "full";
+      markTargets();
+    });
+    element.addEventListener("dragover", (event) => {
+      const aside = event.target.closest("aside");
+      if (aside && drag?.from === "tile" && freeInventorySlots() > 0) {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+        aside.dataset.over = "true";
+        return;
+      }
+      const node = event.target.closest(".gc-fm-cell");
+      if (!drag || !node?.dataset.drop) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+      if (!node.dataset.over) {
+        element.querySelectorAll("[data-over]").forEach((other) => delete other.dataset.over);
+        node.dataset.over = "true";
+      }
+    });
+    element.addEventListener("dragleave", (event) => {
+      const aside = event.target.closest("aside");
+      if (aside && !aside.contains(event.relatedTarget)) delete aside.dataset.over;
+      const node = event.target.closest(".gc-fm-cell");
+      if (node && !node.contains(event.relatedTarget)) delete node.dataset.over;
+    });
+    element.addEventListener("drop", (event) => {
+      if (event.target.closest("aside") && drag?.from === "tile" && freeInventorySlots() > 0) {
+        event.preventDefault();
+        const local = drag.local;
+        clearDrag();
+        void potFromTile(local);
+        return;
+      }
+      const node = event.target.closest(".gc-fm-cell");
+      const work = drag;
+      if (!work || !node?.dataset.drop) return;
+      event.preventDefault();
+      const target = cellFor(Number(node.dataset.local));
+      clearDrag();
+      if (!target || !dropActionFor(work, target)) {
+        toast("That tile changed during the drag.", "error");
+        return;
+      }
+      void perform(work, target);
+    });
+    element.addEventListener("dragend", clearDrag);
+    element.addEventListener("click", (event) => {
+      const target = event.target;
+      const seedNode = target.closest(".gc-fm-item[data-seed]");
+      if (seedNode) {
+        const species = seedNode.dataset.seed;
+        armedSeed = armedSeed === species ? null : species;
+        render2();
+        return;
+      }
+      const cellNode = target.closest(".gc-fm-cell[data-armed]");
+      if (!cellNode || !armedSeed) return;
+      const cell = cellFor(Number(cellNode.dataset.local));
+      const work = { from: "seed", species: armedSeed };
+      if (!cell || !dropActionFor(work, cell)) {
+        toast("That tile is no longer empty.", "error");
+        render2();
+        return;
+      }
+      void perform(work, cell);
+    });
+  }
+  function dropActionFor(work, cell) {
+    const previous = drag;
+    drag = work;
+    try {
+      return dropAction(cell);
+    } finally {
+      drag = previous;
+    }
+  }
+  function ensurePanel2() {
+    const existing = root();
+    if (existing) return existing;
+    const element = document.createElement("section");
+    element.id = "gc-farm-manager";
+    element.hidden = true;
+    element.dataset.gcUi = "";
+    element.innerHTML = `<header><div><i></i><span>Farm Manager</span><b class="gc-fm-placing" data-fm-placing hidden></b></div><button data-fm-close aria-label="Close">×</button></header>
+<main><div class="gc-fm-grid" data-fm-grid data-no-drag></div><aside data-no-drag><div class="gc-fm-tabs"><button data-fm-tab="plants">Plants</button><button data-fm-tab="seeds">Seeds</button></div><div class="gc-fm-capacity" data-fm-capacity hidden></div><input data-fm-search placeholder="Search" spellcheck="false"><div class="gc-fm-list" data-fm-inventory></div></aside></main>
+<footer data-fm-status></footer>`;
+    element.querySelector("[data-fm-close]").onclick = () => {
+      element.hidden = true;
+    };
+    const input = element.querySelector("[data-fm-search]");
+    for (const type of ["keydown", "keyup", "keypress"]) input.addEventListener(type, (event) => event.stopPropagation());
+    input.addEventListener("input", () => {
+      search2 = input.value;
+      render2();
+    });
+    element.querySelectorAll("[data-fm-tab]").forEach((button) => button.onclick = () => {
+      tab = button.dataset.fmTab;
+      render2();
+    });
+    bindEvents(element);
+    document.body.appendChild(element);
+    makeDraggable(element, POSITION_KEY7, { handle: "header" });
+    return element;
+  }
+  function toggle2() {
+    const element = ensurePanel2();
+    element.hidden = !element.hidden;
+    if (element.hidden) return;
+    page.__gardenCompanionLoadSpriteGroup?.("deferred");
+    render2();
+  }
+  function initFarmManager() {
+    page.__gardenCompanionToggleFarmManager = toggle2;
+    onStateChange(scheduleRender);
+    onSpritesReady(scheduleRender);
+    window.addEventListener("resize", scheduleRender);
   }
 
   // src/features/preserve-all.ts
@@ -16604,9 +17211,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   var managerListSignature = "";
   function redrawManagerList(plants) {
-    const root = managerModal();
-    if (!root || managerHoldAt || sending2) return;
-    const list = root.querySelector("[data-mgr-list]");
+    const root2 = managerModal();
+    if (!root2 || managerHoldAt || sending2) return;
+    const list = root2.querySelector("[data-mgr-list]");
     if (!list) return;
     const scroll = list.scrollTop;
     list.innerHTML = managerListMarkup(visibleManagerPlants(plants));
@@ -16614,9 +17221,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     managerListSignature = managerDataSignature(plants);
   }
   function syncManagerSelectionDom() {
-    const root = managerModal();
-    if (!root) return;
-    root.querySelectorAll(".gc-pm-plant").forEach((section) => {
+    const root2 = managerModal();
+    if (!root2) return;
+    root2.querySelectorAll(".gc-pm-plant").forEach((section) => {
       const slots = [...section.querySelectorAll(".gc-pm-slot[data-mgr-slot]")];
       let on = 0;
       for (const el of slots) {
@@ -16642,37 +17249,37 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     updateManagerFooter();
   }
   function updateManagerFooter() {
-    const root = managerModal();
-    if (!root) return;
+    const root2 = managerModal();
+    if (!root2) return;
     const selectedRows = selectedManagerRows();
     const batch = nextBatchRows();
     const batchCost = batch.reduce((sum, row) => sum + row.cost, 0);
     const affordable = batchCost <= coins();
     const plants = new Set(selectedRows.map((row) => row.itemId)).size;
     const capped = selectedRows.length > MANAGER_BATCH_CAP;
-    const summary = root.querySelector("[data-mgr-summary]");
+    const summary = root2.querySelector("[data-mgr-summary]");
     if (summary) summary.textContent = selectedRows.length ? `${selectedRows.length} slot${selectedRows.length === 1 ? "" : "s"} ticked across ${plants} plant${plants === 1 ? "" : "s"}` + (capped ? ` · ${MANAGER_BATCH_CAP} per press` : "") : "Tick the slots you want to preserve.";
-    const totalEl = root.querySelector("[data-mgr-total]");
+    const totalEl = root2.querySelector("[data-mgr-total]");
     if (totalEl) {
       totalEl.textContent = selectedRows.length ? affordable ? `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)}` : `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)} - more than you have` : "";
       totalEl.dataset.short = affordable ? "false" : "true";
     }
     const awaiting = managerAwaitingContinue && selectedRows.length > 0 && !sending2;
     const ready = gameConnectionReady();
-    const label = root.querySelector("[data-mgr-label]");
+    const label = root2.querySelector("[data-mgr-label]");
     if (label) label.textContent = sending2 ? `Preserving ${Math.min(batchDone + 1, batchTotal)}/${batchTotal}...` : managerHoldAt ? "Keep holding..." : !batch.length ? "Preserve" : awaiting ? `Continue (${batch.length})` : `Preserve ${batch.length}`;
-    const hint = root.querySelector("[data-mgr-hint]");
+    const hint = root2.querySelector("[data-mgr-hint]");
     if (hint) hint.textContent = sending2 ? "" : !selectedRows.length ? "" : !ready ? "Waiting for the game connection - your ticks are kept" : awaiting ? `${selectedRows.length} slot${selectedRows.length === 1 ? "" : "s"} left - press & hold to continue` : capped ? `${MANAGER_BATCH_CAP} per press - press & hold` : "Press & hold to preserve";
     if (sending2) managerPaintHold(batchTotal ? batchDone / batchTotal : 0);
     else if (!managerHoldAt) managerPaintHold(0);
-    const button = root.querySelector("[data-mgr-run]");
+    const button = root2.querySelector("[data-mgr-run]");
     if (button) {
       button.disabled = sending2 || batch.length === 0 || !affordable || !ready;
       button.title = !ready ? "The game connection is not ready." : affordable ? "" : "Not enough coins to preserve this batch.";
     }
-    root.dataset.holding = managerHoldAt || sending2 ? "true" : "false";
-    root.dataset.awaiting = awaiting && ready ? "true" : "false";
-    root.dataset.offline = !ready && selectedRows.length > 0 ? "true" : "false";
+    root2.dataset.holding = managerHoldAt || sending2 ? "true" : "false";
+    root2.dataset.awaiting = awaiting && ready ? "true" : "false";
+    root2.dataset.offline = !ready && selectedRows.length > 0 ? "true" : "false";
   }
   function refreshManagerModal() {
     if (!managerOpen()) return;
@@ -16749,7 +17356,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         managerAwaitingContinue = selectedManagerRows().length > 0;
         toast(sent ? `Preserved ${sent} before the connection dropped. The rest are kept - press to continue when it is back.` : "The connection dropped. Your ticks are kept - press to continue when it is back.", "error");
         refreshManagerModal();
-        render2();
+        render3();
         return;
       }
       if (index >= rows.length) {
@@ -16762,7 +17369,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         const done = sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} across ${plants} plant${plants === 1 ? "" : "s"}.` : "Nothing was left to preserve.";
         toast(remaining2 ? `${done} ${remaining2} still ticked - press to continue.` : done, sent ? "success" : "error");
         refreshManagerModal();
-        render2();
+        render3();
         return;
       }
       const row = rows[index++];
@@ -16780,12 +17387,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           batchDone = 0;
           toast(error.message, "error");
           refreshManagerModal();
-          render2();
+          render3();
           return;
         }
       }
       refreshManagerModal();
-      render2();
+      render3();
       window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
@@ -16889,15 +17496,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function panel2() {
     return document.getElementById("gc-preserve-all");
   }
-  function ensurePanel2() {
+  function ensurePanel3() {
     const existing = panel2();
     if (existing) return existing;
-    const root = document.createElement("section");
-    root.id = "gc-preserve-all";
-    root.hidden = true;
-    root.innerHTML = "<small data-preserve-caption></small><small data-preserve-hint></small><button data-preserve-run><i data-preserve-fill></i><span data-preserve-label></span></button><button data-preserve-manage>Open Preservation Manager</button>";
-    document.body.appendChild(root);
-    const button = root.querySelector("[data-preserve-run]");
+    const root2 = document.createElement("section");
+    root2.id = "gc-preserve-all";
+    root2.hidden = true;
+    root2.innerHTML = "<small data-preserve-caption></small><small data-preserve-hint></small><button data-preserve-run><i data-preserve-fill></i><span data-preserve-label></span></button><button data-preserve-manage>Open Preservation Manager</button>";
+    document.body.appendChild(root2);
+    const button = root2.querySelector("[data-preserve-run]");
     button.addEventListener("pointerdown", (event) => {
       if (button.disabled || event.button !== 0) return;
       event.preventDefault();
@@ -16908,11 +17515,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       startHold2();
     });
     for (const type of ["pointerup", "pointercancel", "pointerleave"]) button.addEventListener(type, cancelHold2);
-    root.querySelector("[data-preserve-manage]").addEventListener("click", (event) => {
+    root2.querySelector("[data-preserve-manage]").addEventListener("click", (event) => {
       event.preventDefault();
       openManager();
     });
-    return root;
+    return root2;
   }
   function startHold2() {
     if (sending2 || holdStartedAt) return;
@@ -16933,14 +17540,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       run2();
     };
     holdFrame2 = requestAnimationFrame(tick);
-    render2(true);
+    render3(true);
   }
   function cancelHold2() {
     if (!holdStartedAt) return;
     holdStartedAt = 0;
     cancelAnimationFrame(holdFrame2);
     paintHold(0);
-    render2(true);
+    render3(true);
   }
   function paintHold(progress) {
     const fill = panel2()?.querySelector("[data-preserve-fill]");
@@ -16971,13 +17578,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (index < rows.length && !gameConnectionReady()) {
         sending2 = false;
         toast(sent ? `Preserved ${sent} before the connection dropped. Try the rest once it is back.` : "The connection dropped before anything was preserved.", "error");
-        render2();
+        render3();
         return;
       }
       if (index >= rows.length) {
         sending2 = false;
         toast(sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : "Nothing was left to preserve.", sent ? "success" : "error");
-        render2();
+        render3();
         return;
       }
       const row = rows[index++];
@@ -16992,7 +17599,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
           return;
         }
       }
-      render2();
+      render3();
       window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
@@ -17014,11 +17621,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     element.style.bottom = "";
     element.style.transform = "";
   }
-  function render2(force = false) {
-    const root = panel2();
+  function render3(force = false) {
+    const root2 = panel2();
     if (!state.preservationMode || page.__gardenCompanionCinematicFromGame?.()) {
       lastSignature = "";
-      if (root) root.hidden = true;
+      if (root2) root2.hidden = true;
       return;
     }
     const rows = eligibleSlots();
@@ -17028,7 +17635,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const active = canPreserveAll || canManage;
     if (!active) {
       lastSignature = "";
-      if (root) root.hidden = true;
+      if (root2) root2.hidden = true;
       return;
     }
     const total = rows.reduce((sum, row) => sum + row.cost, 0);
@@ -17036,7 +17643,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const ready = gameConnectionReady();
     const holding = holdStartedAt > 0;
     const signature2 = `${rows.length}|${total}|${affordable}|${ready}|${sending2}|${holding}|${canPreserveAll}|${canManage}|${manageCount}|${cropLabel(rows)}`;
-    const element = ensurePanel2();
+    const element = ensurePanel3();
     element.hidden = false;
     if (!force && signature2 === lastSignature) {
       positionPanel(element);
@@ -17062,10 +17669,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     element.dataset.holding = holding ? "true" : "false";
     positionPanel(element);
   }
-  var positionTicker2 = createTicker(() => render2(), 300);
+  var positionTicker2 = createTicker(() => render3(), 300);
   function syncPreserveAll() {
     positionTicker2.sync(state.preservationMode);
-    if (!state.preservationMode) render2();
+    if (!state.preservationMode) render3();
     refreshManagerModal();
   }
   function initPreserveAll() {
@@ -17178,6 +17785,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   initPlanterPotSelection();
   initCelestialLayoutGuide();
   initCropCleanserHelper();
+  initFarmManager();
   initGardenPlanner();
   initFishing();
   initGardenDefence();
