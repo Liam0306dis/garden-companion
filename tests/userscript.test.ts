@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
@@ -16,10 +17,19 @@ test('the header matches the package and asks only for what it uses', () => {
   assert.match(header, /@run-at\s+document-start/);
 });
 
-test('nothing third-party is imported from a CDN except the pinned Rive runtime', () => {
-  const cdn = [...new Set([...built.matchAll(/https:\/\/unpkg\.com\/[^'"`\s\\]+/g)].map(match => match[0]))];
-  assert.deepEqual(cdn, ['https://unpkg.com/@rive-app/canvas-single@2.38.5/rive.js']);
-  assert.ok(built.includes('BasisUniversal'), 'the transcoder is bundled');
+test('nothing third-party is fetched from a CDN except the pinned sprite libraries', () => {
+  const cdn = [...new Set([...built.matchAll(/https:\/\/unpkg\.com\/[^'"`\s\\]+/g)].map(match => match[0]))].sort();
+  assert.deepEqual(cdn, [
+    'https://unpkg.com/@h00w/basis-universal-transcoder@2.0.5/dist/basis_capi_transcoder.wasm',
+    'https://unpkg.com/@rive-app/canvas-advanced-single@2.38.5/canvas_advanced_single.mjs',
+    'https://unpkg.com/@rive-app/canvas-single@2.38.5/rive.js',
+  ]);
+  assert.ok(built.includes('BasisUniversal'), 'the transcoder glue is bundled');
+});
+
+test('the downloaded transcoder wasm is checked against the installed npm copy', async () => {
+  const wasm = await readFile(resolve(root, 'node_modules', '@h00w', 'basis-universal-transcoder', 'dist', 'basis_capi_transcoder.wasm'));
+  assert.ok(built.includes(createHash('sha256').update(wasm).digest('base64')), 'the wasm hash is built in');
 });
 
 test('no em dashes reach users', () => {

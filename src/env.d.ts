@@ -7,7 +7,7 @@ declare const __MUTATION_CATALOG__: Record<string, { name: string; group: string
 declare const __DECOR_CATALOG__: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean }>;
 declare const __TOOL_LIMITS__: Record<string, number>;
 declare const __EGG_CATALOG__: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds?: Record<string, number> }>;
-declare const __PET_WASM_B64__: string;
+declare const __BASIS_WASM_SHA256__: string;
 declare const __PET_SPRITE_LOADER__: string;
 declare const __SPRITE_WORKER__: string;
 declare const __GARDEN_COMPANION_CSS__: string;

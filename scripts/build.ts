@@ -1,13 +1,15 @@
 import { build } from 'esbuild';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { catalogsFromSnapshots } from './bundle-catalogs.js';
 import { argValue, ensureLatestSnapshot, ROOT as root, snapshotDirs } from './bundle-snapshot.js';
 
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
-const wasmSource = await readFile(resolve(root, 'vendor', 'wasm_b64.js'), 'utf8');
-const wasmBase64 = wasmSource.match(/window\._WASM_B64\s*=\s*'([A-Za-z0-9+/=]+)'/)?.[1];
-if (!wasmBase64) throw new Error('Pet sprite decoder data was not found in vendor/wasm_b64.js.');
+// The transcoder's wasm is fetched at run time from the npm version installed here, so the build
+// records its hash and the loader refuses any download that does not match it.
+const basisWasm = await readFile(resolve(root, 'node_modules', '@h00w', 'basis-universal-transcoder', 'dist', 'basis_capi_transcoder.wasm'));
+const basisWasmSha256 = createHash('sha256').update(basisWasm).digest('base64');
 
 /**
  * The catalogs come from a captured game bundle. `--bundles <dir>` reads snapshots from somewhere
@@ -102,7 +104,7 @@ async function buildSpriteLoader(): Promise<string> {
       __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
       __DECOR_CATALOG__: JSON.stringify(catalogs.decor),
       __MUTATION_CATALOG__: JSON.stringify(catalogs.mutations),
-      __PET_WASM_B64__: JSON.stringify(wasmBase64),
+      __BASIS_WASM_SHA256__: JSON.stringify(basisWasmSha256),
       __SPRITE_WORKER__: JSON.stringify(worker.outputFiles[0].text),
     },
   });

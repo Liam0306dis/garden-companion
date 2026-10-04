@@ -84,9 +84,10 @@ to a new action clears its previous assignment.
 
 The build extracts the game catalogs from the newest captured game bundle and
 bundles the project into one userscript with esbuild. The sprite pipeline's
-Basis texture transcoder is bundled from npm, pinned to the version whose wasm
-is vendored in `vendor/wasm_b64.js`, so nothing third-party is imported from a
-CDN at runtime except the pinned Rive runtime.
+Basis texture transcoder JS is bundled from npm; its wasm and the Rive runtimes
+are fetched from unpkg only when sprites need building, pinned to exact
+versions (the wasm also to the hash of the installed npm copy), and kept in
+IndexedDB afterwards.
 
 The shared game-state and command models are declared in `src/types.ts`, and
 the complete source tree is checked by TypeScript before release builds.

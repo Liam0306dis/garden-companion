@@ -1,3 +1,7 @@
+0.9.1
+- Pet pictures are now drawn in the background too, so building sprites no longer stutters the game
+- Changed sprite decoder and pet renderer to be load on demand
+
 0.9.0
 - Sprites decode in the background instead of on the game's main thread, so first loads and game artwork updates should stutter less
 - Open windows and panel tabs now fill in their icons as soon as sprites finish loading

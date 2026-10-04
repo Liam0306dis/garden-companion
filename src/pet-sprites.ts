@@ -1,6 +1,7 @@
 import { page } from './page.js';
 import { BasisUniversal, TranscoderTextureFormat } from '@h00w/basis-universal-transcoder';
-import { RIVE_RUNTIME_URL } from './vendor-urls.js';
+import { BASIS_WASM_URL, RIVE_LOW_LEVEL_URL, RIVE_RUNTIME_URL } from './vendor-urls.js';
+import { vendorBytes, vendorText } from './vendor-assets.js';
 import { blobToDataUrl, drawFrame, frameLayout, SHEET_TTL_MS, type AtlasFrame, type CropJob, type CropResult } from './sprite-crop.js';
 
 interface AtlasJson {
@@ -201,37 +202,6 @@ async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[];
   }
 }
 
-/**
- * The page's own network policy can forbid the host these libraries live on. A Discord activity
- * allows connections to its own origin and nothing else, so unpkg is unreachable from the page and
- * the sprite pipeline stops before it starts. GM_xmlhttpRequest runs outside that policy, so the
- * source is fetched through it and handed back as a blob url, which those same policies do allow.
- *
- * Only used when the direct load fails, so nothing changes anywhere it already works.
- */
-async function blobUrlFor(url: string): Promise<string> {
-  const source = await new Promise<string>((resolve, reject) => {
-    const bridge = page.__gardenCompanionVendorSource;
-    if (typeof bridge === 'function') {
-      bridge(url, text => (text ? resolve(text) : reject(new Error(`${url} could not be fetched.`))));
-      return;
-    }
-    if (typeof GM_xmlhttpRequest !== 'function') {
-      reject(new Error('No way to fetch outside the page policy.'));
-      return;
-    }
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url,
-      onload: response => (response.status >= 200 && response.status < 300
-        ? resolve(response.responseText)
-        : reject(new Error(`${url} returned ${response.status}`))),
-      onerror: () => reject(new Error(`${url} could not be fetched.`)),
-    });
-  });
-  return URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
-}
-
 let riveRuntimePromise: Promise<RiveRuntime> | null = null;
 
 function riveFrom(source: string): Promise<RiveRuntime> {
@@ -247,12 +217,22 @@ function riveFrom(source: string): Promise<RiveRuntime> {
   });
 }
 
+/**
+ * The main-thread Rive runtime, for pages that refuse the worker. It comes from the stored copy
+ * through a blob url - the route a strict content policy allows where loading from unpkg is not -
+ * and falls back to unpkg directly if blob scripts are the thing refused.
+ */
 function riveRuntime(): Promise<RiveRuntime> {
   const existing = (window as unknown as { rive?: RiveRuntime }).rive;
   if (existing?.Rive) return Promise.resolve(existing);
-  if (riveRuntimePromise) return riveRuntimePromise;
-  riveRuntimePromise = riveFrom(RIVE_RUNTIME_URL).catch(async () => riveFrom(await blobUrlFor(RIVE_RUNTIME_URL)));
-  return riveRuntimePromise;
+  return riveRuntimePromise ??= (async () => {
+    try {
+      const url = URL.createObjectURL(new Blob([await vendorText(RIVE_RUNTIME_URL)], { type: 'text/javascript' }));
+      try { return await riveFrom(url); } finally { URL.revokeObjectURL(url); }
+    } catch {
+      return riveFrom(RIVE_RUNTIME_URL);
+    }
+  })().catch(error => { riveRuntimePromise = null; throw error; });
 }
 
 /**
@@ -355,6 +335,25 @@ async function renderRivePet(runtime: RiveRuntime, source: RiveSource, canvas: H
     }
   });
   return trimmed ? canvasToDataUrl(trimmed) : null;
+}
+
+/**
+ * Current pets, drawn in the sprite worker where it will run - none of Rive's work then touches the
+ * game's thread - and on the main thread otherwise.
+ */
+async function petFrames(url: string, species: string[]): Promise<Map<string, string>> {
+  const worker = await spriteWorker();
+  if (worker) {
+    try {
+      const [source, response] = await Promise.all([vendorText(RIVE_LOW_LEVEL_URL), fetch(url)]);
+      if (!response.ok) throw new Error('Pet animation file could not be loaded.');
+      const pets = await worker.rive(source, await response.arrayBuffer(), species.map(name => [name, PET_ARTBOARD_NAMES[name] ?? name]));
+      if (pets) return new Map(pets.map(([name, image]) => [normaliseKey(`sprite/pet/${name}`), image]));
+    } catch (error) {
+      console.warn('[Garden Companion] Pets could not be drawn in the worker; drawing them here instead.', error);
+    }
+  }
+  return loadRivePetFrames(url, species);
 }
 
 /**
@@ -532,20 +531,16 @@ function hashText(value: string): string {
   return (hash >>> 0).toString(36);
 }
 
-let wasm: Uint8Array | null = null;
-
-/** The transcoder's wasm, unpacked from base64 once and shared by the worker and the fallback. */
-function wasmBytes(): Uint8Array {
-  if (wasm) return wasm;
-  const binary = atob(__PET_WASM_B64__.replace(/\s/g, ''));
-  wasm = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index++) wasm[index] = binary.charCodeAt(index);
-  return wasm;
+/** The transcoder's wasm, downloaded the first time a sheet needs decoding and stored after that. */
+function wasmBytes(): Promise<ArrayBuffer> {
+  return vendorBytes(BASIS_WASM_URL, __BASIS_WASM_SHA256__);
 }
 
 interface SpriteWorker {
   /** The sheet's sprites, or null when the sheet itself could not be fetched or decoded. */
   decode(sheetUrl: string, jobs: CropJob[]): Promise<CropResult[] | null>;
+  /** Each pet drawn from the Rive file, or null when the runtime or the file failed outright. */
+  rive(source: string, file: ArrayBuffer, pets: Array<[species: string, artboard: string]>): Promise<Array<[string, string]> | null>;
 }
 
 let workerStart: Promise<SpriteWorker | null> | null = null;
@@ -560,38 +555,51 @@ async function startSpriteWorker(): Promise<SpriteWorker | null> {
   let worker: Worker;
   const url = URL.createObjectURL(new Blob([__SPRITE_WORKER__], { type: 'text/javascript' }));
   try { worker = new Worker(url); } catch { URL.revokeObjectURL(url); return null; }
-  const pending = new Map<number, (results: CropResult[] | null) => void>();
+  const pending = new Map<number, (message: { results?: CropResult[] | null; pets?: Array<[string, string]> | null }) => void>();
   let nextId = 0;
   // A strict content policy can refuse the worker without throwing, which surfaces only as an error
   // event - or as nothing at all - so readiness is a reply from the worker, with a deadline.
   const ready = await new Promise<boolean>(resolve => {
     const timer = window.setTimeout(() => resolve(false), 10_000);
     worker.onmessage = event => {
-      const message = event.data as { type?: string; id?: number; results?: CropResult[] | null };
+      const message = event.data as { type?: string; id?: number; results?: CropResult[] | null; pets?: Array<[string, string]> | null };
       if (message.type === 'ready' || message.type === 'unsupported') { window.clearTimeout(timer); resolve(message.type === 'ready'); return; }
       if (typeof message.id !== 'number') return;
-      pending.get(message.id)?.(message.results ?? null);
+      pending.get(message.id)?.(message);
       pending.delete(message.id);
     };
     worker.onerror = () => { window.clearTimeout(timer); resolve(false); };
-    const bytes = wasmBytes().slice();
-    worker.postMessage({ type: 'init', wasm: bytes.buffer }, [bytes.buffer]);
+    worker.postMessage({ type: 'init' });
   });
   URL.revokeObjectURL(url);
   if (!ready) { worker.terminate(); return null; }
   // A worker that dies mid-load settles what it owed as failures, and later sheets use the fallback.
   worker.onerror = () => {
     workerStart = Promise.resolve(null);
-    for (const settle of pending.values()) settle(null);
+    for (const settle of pending.values()) settle({});
     pending.clear();
     worker.terminate();
   };
-  return {
-    decode: (sheetUrl, jobs) => new Promise(resolve => {
+  const request = (message: Record<string, unknown>, transfer: Transferable[] = []) =>
+    new Promise<{ results?: CropResult[] | null; pets?: Array<[string, string]> | null }>(resolve => {
       const id = ++nextId;
       pending.set(id, resolve);
-      worker.postMessage({ type: 'decode', id, sheetUrl, jobs });
-    }),
+      worker.postMessage({ ...message, id }, transfer);
+    });
+  // The transcoder is handed over with the first sheet rather than at start-up, so a load that
+  // only needs pets never downloads it.
+  let basisSent: Promise<boolean> | null = null;
+  const sendBasis = () => basisSent ??= wasmBytes().then(wasm => {
+    const copy = wasm.slice(0);
+    worker.postMessage({ type: 'basis', wasm: copy }, [copy]);
+    return true;
+  }, () => { basisSent = null; return false; });
+  return {
+    decode: async (sheetUrl, jobs) => {
+      if (!await sendBasis()) return null;
+      return (await request({ type: 'decode', sheetUrl, jobs })).results ?? null;
+    },
+    rive: async (source, file, pets) => (await request({ type: 'rive', source, file, pets }, [file])).pets ?? null,
   };
 }
 
@@ -604,10 +612,9 @@ function basisDecoder(): Promise<{ transcoder: BasisTranscoder; rgbaFormat: numb
 }
 
 async function createBasisDecoder(): Promise<{ transcoder: BasisTranscoder; rgbaFormat: number }> {
-  // Bundled at build time rather than imported from a CDN, and pinned to the version this wasm
-  // belongs to: the two are only compatible as a pair.
-  const bytes = wasmBytes();
-  const basis = await BasisUniversal.getInstance(imports => WebAssembly.instantiate(bytes.slice().buffer, imports as WebAssembly.Imports)) as unknown as BasisInstance;
+  // Pinned to the version whose JS glue is bundled here: the two are only compatible as a pair.
+  const bytes = await wasmBytes();
+  const basis = await BasisUniversal.getInstance(imports => WebAssembly.instantiate(bytes.slice(0), imports as WebAssembly.Imports)) as unknown as BasisInstance;
   // One transcoder reused for every sheet, as the library recommends, rather than one per sheet.
   return { transcoder: basis.createKTX2Transcoder(), rgbaFormat: TranscoderTextureFormat.cTFRGBA32 };
 }
@@ -859,7 +866,7 @@ export async function initPetSprites(): Promise<void> {
     let riveComplete = true;
     if (petRiveUrl) {
       try {
-        for (const [key, image] of await loadRivePetFrames(petRiveUrl, species)) frames.set(key, image);
+        for (const [key, image] of await petFrames(petRiveUrl, species)) frames.set(key, image);
       } catch (error) {
         // The whole animation file failed, not one pet timing out, so anything atlas-less is now
         // missing - not a bundle worth persisting.

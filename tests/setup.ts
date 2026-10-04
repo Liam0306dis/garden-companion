@@ -25,7 +25,7 @@ Object.assign(globals, {
   __DECOR_CATALOG__: catalogs.decor,
   __TOOL_LIMITS__: catalogs.toolLimits,
   __ABILITY_COLOURS__: catalogs.abilityColours,
-  __PET_WASM_B64__: '',
+  __BASIS_WASM_SHA256__: '',
   __PET_SPRITE_LOADER__: '',
   __GARDEN_COMPANION_CSS__: '',
 });

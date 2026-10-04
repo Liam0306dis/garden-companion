@@ -2,10 +2,11 @@ import { page } from './page.js';
 import { VENDOR_URLS } from './vendor-urls.js';
 
 /**
- * The sprite loader is over half of this script: a 485KB WebAssembly texture transcoder carried as
- * base64, plus the code that fetches every atlas, transcodes it and renders 26 pets through Rive.
- * Injecting it at document-start makes the browser compile all of that synchronously, then start
- * decoding, while the game is still booting - which is exactly when the page feels slowest.
+ * The sprite loader is a sizeable part of this script: the code that fetches every atlas, the
+ * sprite worker it starts, and the pet rendering. Injecting it at document-start makes the browser
+ * compile all of that synchronously, then start work, while the game is still booting - which is
+ * exactly when the page feels slowest. (The transcoder and Rive themselves are not in the script at
+ * all; they are downloaded the first time sprites need building.)
  *
  * Nothing needs a sprite until the game is up and a panel is opened, so injection waits for the
  * page to finish loading and the main thread to fall quiet. If the player reaches for the UI before
@@ -64,16 +65,25 @@ function whenIdle(run: () => void): void {
  * The loader runs in the page, where GM_xmlhttpRequest does not exist, and a page bound by a strict
  * content policy cannot reach the host its libraries live on. This hands the fetch back to the
  * userscript, which is not bound by that policy, and returns the source through a callback rather
- * than a promise so nothing has to cross the realm boundary but a string.
+ * than a promise so nothing has to cross the realm boundary but a string - binary files included,
+ * which are base64 encoded for the trip.
  */
 function installVendorBridge(): void {
-  page.__gardenCompanionVendorSource = (url: string, done: (source: string | null) => void) => {
+  page.__gardenCompanionVendorSource = (url: string, done: (source: string | null) => void, binary = false) => {
     try {
       if (typeof GM_xmlhttpRequest !== 'function' || !VENDOR_URLS.has(url)) { done(null); return; }
       GM_xmlhttpRequest({
         method: 'GET',
         url,
-        onload: response => done(response.status >= 200 && response.status < 300 ? response.responseText : null),
+        ...(binary ? { responseType: 'arraybuffer' as const } : {}),
+        onload: response => {
+          if (response.status < 200 || response.status >= 300) { done(null); return; }
+          if (!binary) { done(response.responseText); return; }
+          const bytes = new Uint8Array(response.response as ArrayBuffer);
+          let raw = '';
+          for (let index = 0; index < bytes.length; index += 0x8000) raw += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+          done(btoa(raw));
+        },
         onerror: () => done(null),
       });
     } catch { done(null); }
