@@ -16976,9 +16976,11 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     });
     element.addEventListener("dragend", clearDrag);
     element.addEventListener("contextmenu", (event) => {
-      const cellNode = event.target.closest('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
-      if (!cellNode) return;
+      const target = event.target;
+      if (!target.closest("[data-fm-grid]")) return;
       event.preventDefault();
+      const cellNode = target.closest('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
+      if (!cellNode) return;
       if (cellNode.dataset.pending) return;
       if (freeInventorySlots() < 1) {
         toast("Your inventory is full, so the plant cannot be potted.", "error");

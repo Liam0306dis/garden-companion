@@ -508,9 +508,13 @@ function bindEvents(element: HTMLElement): void {
   element.addEventListener('dragend', clearDrag);
   // Right click pots a plant straight into the inventory, the same as dragging it to the side bar.
   element.addEventListener('contextmenu', event => {
-    const cellNode = (event.target as HTMLElement).closest<HTMLElement>('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
-    if (!cellNode) return;
+    const target = event.target as HTMLElement;
+    // The whole map is a right click target, gaps between tiles included, so a near miss on a plant
+    // does nothing rather than opening the browser's menu over the farm.
+    if (!target.closest('[data-fm-grid]')) return;
     event.preventDefault();
+    const cellNode = target.closest<HTMLElement>('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
+    if (!cellNode) return;
     if (cellNode.dataset.pending) return;
     if (freeInventorySlots() < 1) {
       toast('Your inventory is full, so the plant cannot be potted.', 'error');
