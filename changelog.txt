@@ -1,3 +1,8 @@
+0.9.3
+- Farm Manager: right click a plant to pot it
+- Farm Manager: click a potted plant to keep planting with each click on a highlighted tile, moving on to the next plant in the list after each one (same order as your inventory)
+- Farm Manager: removed the mutation icons from the plant tiles (still shown when you mouse over)
+
 0.9.2
 - New Farm Manager: a top-down map of your garden. Drag a plant to an empty tile to move it, drag it to the side bar to pot it, or drag potted plants plant them onto empty tiles
 - On the Seeds tab, click a seed to keep planting it with each click on a highlighted tile

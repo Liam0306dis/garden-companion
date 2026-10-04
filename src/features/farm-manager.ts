@@ -1,7 +1,7 @@
 import { DECOR_CATALOG, MUTATION_CATALOG, patchName } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
 import { page } from '../page.js';
-import { freeInventorySlots, heldToolCount, mutationSprite, onSpritesReady, produceSprite } from '../pets.js';
+import { freeInventorySlots, heldToolCount, onSpritesReady, produceSprite } from '../pets.js';
 import { onStateChange, state } from '../state.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { pauseAutoStore } from './auto-store.js';
@@ -196,14 +196,6 @@ function mutationLabel(id: string): string {
   return MUTATION_CATALOG[id]?.name || id;
 }
 
-function mutationIcons(mutations: string[]): string {
-  if (!mutations.length) return '';
-  return `<span class="gc-fm-muts">${mutations.slice(0, 3).map(id => {
-    const sprite = mutationSprite(id);
-    return sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(mutationLabel(id).slice(0, 1))}</b>`;
-  }).join('')}</span>`;
-}
-
 function spriteImage(src: string, fallback: string): string {
   return src ? `<img src="${escapeHtml(src)}" alt="" draggable="false">` : `<i>${escapeHtml(fallback.slice(0, 2))}</i>`;
 }
@@ -234,7 +226,7 @@ function cellContent(cell: Cell): string {
     const slots = tile.slots ?? [];
     const ready = slots.filter(slot => Number(slot.endTime) <= Date.now()).length;
     const badge = slots.length > 1 ? `<small>${ready}/${slots.length}</small>` : '';
-    return `${spriteImage(produceSprite(tile.species || ''), tile.species || '?')}${mutationIcons(slotMutations(slots))}${badge}`;
+    return `${spriteImage(produceSprite(tile.species || ''), tile.species || '?')}${badge}`;
   }
   if (tile.objectType === 'decor') return spriteImage(page.__gardenCompanionShopSprites?.[tile.decorId || ''] || '', tile.decorId || '?');
   const eggId = (tile as Record<string, any>).eggId as string | undefined;

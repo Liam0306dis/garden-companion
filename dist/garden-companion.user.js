@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.2
+// @version      0.9.3
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -8400,10 +8400,6 @@ ${eggs.map(eggCard).join("")}`;
 .gc-fm-cell[data-type="decor"] img,.gc-fm-cell[data-type="egg"] img { opacity:.55; }
 .gc-fm-cell > i,.gc-fm-item > i { color:var(--gc-faint);font:600 10px var(--gc-font);font-style:normal; }
 .gc-fm-cell small { position:absolute;right:2px;bottom:1px;padding:0 3px;border-radius:3px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;line-height:12px;pointer-events:none; }
-.gc-fm-muts { display:inline-flex;gap:1px;pointer-events:none; }
-.gc-fm-cell .gc-fm-muts { position:absolute;left:2px;top:2px; }
-.gc-fm-muts img { width:11px!important;height:11px!important; }
-.gc-fm-muts b { font-size:8px;color:var(--gc-gold); }
 .gc-fm-cell[data-pending="true"] { animation:gc-fm-pulse 1s ease-in-out infinite; }
 @keyframes gc-fm-pulse { 50% { opacity:.4; } }
 .gc-fm-dragging .gc-fm-cell[data-kind="dirt"]:not([data-drop]) { opacity:.45; }
@@ -8436,6 +8432,7 @@ ${eggs.map(eggCard).join("")}`;
 .gc-fm-item { display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);user-select:none; }
 .gc-fm-item[draggable="true"] { cursor:grab; }
 .gc-fm-item[draggable="true"]:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
+.gc-fm-item[data-active="true"]:hover { border-color:rgba(62,207,142,.85);background:rgba(62,207,142,.18); }
 .gc-fm-item img { width:28px;height:28px;object-fit:contain;pointer-events:none;image-rendering:auto; }
 .gc-fm-item span { min-width:0;display:flex;flex-direction:column; }
 .gc-fm-item b { overflow:hidden;color:var(--gc-strong);font-weight:550;text-overflow:ellipsis;white-space:nowrap; }
@@ -16711,13 +16708,6 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function mutationLabel3(id) {
     return MUTATION_CATALOG[id]?.name || id;
   }
-  function mutationIcons(mutations) {
-    if (!mutations.length) return "";
-    return `<span class="gc-fm-muts">${mutations.slice(0, 3).map((id) => {
-      const sprite = mutationSprite(id);
-      return sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<b>${escapeHtml(mutationLabel3(id).slice(0, 1))}</b>`;
-    }).join("")}</span>`;
-  }
   function spriteImage(src, fallback) {
     return src ? `<img src="${escapeHtml(src)}" alt="" draggable="false">` : `<i>${escapeHtml(fallback.slice(0, 2))}</i>`;
   }
@@ -16746,7 +16736,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const slots = tile.slots ?? [];
       const ready = slots.filter((slot) => Number(slot.endTime) <= Date.now()).length;
       const badge = slots.length > 1 ? `<small>${ready}/${slots.length}</small>` : "";
-      return `${spriteImage(produceSprite(tile.species || ""), tile.species || "?")}${mutationIcons(slotMutations(slots))}${badge}`;
+      return `${spriteImage(produceSprite(tile.species || ""), tile.species || "?")}${badge}`;
     }
     if (tile.objectType === "decor") return spriteImage(page.__gardenCompanionShopSprites?.[tile.decorId || ""] || "", tile.decorId || "?");
     const eggId = tile.eggId;
