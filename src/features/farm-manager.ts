@@ -58,6 +58,12 @@ let tab: 'plants' | 'seeds' = 'plants';
  * is clicked again, another is picked, the Plants tab is opened, or the seeds run out.
  */
 let armedSeed: string | null = null;
+/**
+ * The potted plant picked on the Plants tab, clicked or dragged. Planting it takes it out of the
+ * list, so its place in the list is kept as well: whichever plant moves up into that place is picked
+ * next, and a row of tiles can be filled by clicking them one after another.
+ */
+let armedPlant: { id: string; index: number } | null = null;
 /** Set while a seed is being planted, which plant-drag-move knows nothing about. */
 let seeding = false;
 
@@ -213,7 +219,7 @@ function tileTitle(cell: Cell): string {
       speciesName(tile.species || ''),
       slots.length ? `${ready}/${slots.length} ready` : '',
       mutations.length ? mutations.join(', ') : '',
-      'Drag onto an empty tile to move',
+      'Drag onto an empty tile to move, right click to pot',
     ].filter(Boolean).join('\n');
   }
   if (tile.objectType === 'decor') return DECOR_CATALOG[tile.decorId || '']?.name || tile.decorId || 'Decor';
@@ -274,11 +280,22 @@ function render(): void {
   const busy = seeding || (plantActions()?.busy() ?? false);
   const stacks = seedStacks();
   if (armedSeed && (tab !== 'seeds' || !stacks.some(stack => stack.species === armedSeed))) armedSeed = null;
+  const query = search.trim().toLowerCase();
+  const matches = (species: string) => !query || speciesName(species).toLowerCase().includes(query);
+  const allPotted = pottedPlants();
+  const potted = allPotted.filter(item => matches(item.species));
+  if (armedPlant && tab !== 'plants') armedPlant = null;
+  // Gone from the inventory means it was planted (or sold, or fed): the plant now in its place is next.
+  if (armedPlant && !allPotted.some(item => item.id === armedPlant!.id)) {
+    const next = potted[Math.min(armedPlant.index, potted.length - 1)];
+    armedPlant = next ? { id: next.id, index: armedPlant.index } : null;
+  }
+  const armedSpecies = armedSeed ?? allPotted.find(item => item.id === armedPlant?.id)?.species ?? null;
   const placing = element.querySelector<HTMLElement>('[data-fm-placing]')!;
-  placing.hidden = !armedSeed;
-  if (armedSeed) {
-    const sprite = page.__gardenCompanionShopSprites?.[armedSeed] || produceSprite(armedSeed);
-    setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}Placing ${escapeHtml(speciesName(armedSeed))}`);
+  placing.hidden = !armedSpecies;
+  if (armedSpecies) {
+    const sprite = (armedSeed ? page.__gardenCompanionShopSprites?.[armedSpecies] : '') || produceSprite(armedSpecies);
+    setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}Placing ${escapeHtml(speciesName(armedSpecies))}`);
   }
 
   const cells = farmCells();
@@ -294,7 +311,7 @@ function render(): void {
     const size = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(width / columns)));
     setHtml(grid, `<div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map(cell => {
       const movable = cell.kind === 'dirt' && cell.tile?.objectType === 'plant' && !busyTiles.has(cell.local) && !busy;
-      const plantable = armedSeed && cell.kind === 'dirt' && !cell.tile && !busyTiles.has(cell.local);
+      const plantable = armedSpecies && cell.kind === 'dirt' && !cell.tile && !busyTiles.has(cell.local);
       return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || 'empty')}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ''}${plantable ? ' data-drop="place" data-armed="true"' : ''} style="grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}" title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ''}>${cellContent(cell)}</div>`;
     }).join('')}</div>`);
   }
@@ -307,26 +324,23 @@ function render(): void {
   const used = INVENTORY_SLOTS - freeInventorySlots();
   capacity.dataset.full = String(used >= INVENTORY_SLOTS);
   setHtml(capacity, `<span>Inventory</span><b>${used}/${INVENTORY_SLOTS}</b>`);
-  const query = search.trim().toLowerCase();
-  const matches = (species: string) => !query || speciesName(species).toLowerCase().includes(query);
   if (tab === 'seeds') {
     const seeds = stacks.filter(stack => matches(stack.species));
     setHtml(list, seeds.length
       ? seeds.map(stack => `<div class="gc-fm-item" data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ''}${busy ? '' : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one${stack.stored ? `\n${stack.stored} in the Seed Silo` : ''}">${spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species)}<span><b>${escapeHtml(speciesName(stack.species))}</b><small>x${stack.loose + stack.stored}${stack.stored ? ' · Silo' : ''}</small></span></div>`).join('')
       : `<div class="gc-fm-empty">${query ? 'No seeds match.' : 'No seeds in your inventory or Seed Silo.'}</div>`);
   } else {
-    const potted = pottedPlants().filter(item => matches(item.species));
     setHtml(list, potted.length
-      ? potted.map(item => `<div class="gc-fm-item" data-item="${escapeHtml(item.id)}"${busy ? '' : ' draggable="true"'} title="Drag onto an empty dirt tile to plant">${spriteImage(produceSprite(item.species), item.species)}<span><b>${escapeHtml(speciesName(item.species))}</b></span></div>`).join('')
+      ? potted.map((item, index) => `<div class="gc-fm-item" data-item="${escapeHtml(item.id)}" data-index="${index}"${item.id === armedPlant?.id ? ' data-active="true"' : ''}${busy ? '' : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one">${spriteImage(produceSprite(item.species), item.species)}<span><b>${escapeHtml(speciesName(item.species))}</b></span></div>`).join('')
       : `<div class="gc-fm-empty">${query ? 'No potted plants match.' : 'No potted plants in your inventory.'}</div>`);
   }
 
   const count = cells?.filter(cell => cell.kind === 'dirt' && cell.tile?.objectType === 'plant').length ?? 0;
   const free = cells?.filter(cell => cell.kind === 'dirt' && !cell.tile).length ?? 0;
   if (!busy) {
-    const text = armedSeed
-      ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName(armedSeed)}; click the seed again to stop.`
-      : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it; each move uses a Planter Pot.`;
+    const text = armedSpecies
+      ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName(armedSpecies)}; click it in the list again to stop.`
+      : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it, or right click it to pot it; each uses a Planter Pot.`;
     if (status.textContent !== text) status.textContent = text;
   }
 }
@@ -374,7 +388,8 @@ function refusePotless(): boolean {
 /** A plant dragged off the farm onto the side bar goes into the inventory in a Planter Pot. */
 async function potFromTile(local: number): Promise<void> {
   const actions = plantActions();
-  if (!actions || seeding) {
+  // Refused before the pending tiles are touched: they belong to the move still running.
+  if (!actions || seeding || actions.busy()) {
     toast(actions ? 'Finish the current move first.' : 'Plant moving is not ready yet.', 'error');
     return;
   }
@@ -401,7 +416,7 @@ async function perform(work: Drag, target: Cell): Promise<void> {
       return;
     }
     seeding = true;
-  } else if (!actions || seeding) {
+  } else if (!actions || seeding || actions.busy()) {
     toast(actions ? 'Finish the current move first.' : 'Plant moving is not ready yet.', 'error');
     return;
   }
@@ -442,7 +457,10 @@ function bindEvents(element: HTMLElement): void {
     }
     if (cellNode) drag = { from: 'tile', local: Number(cellNode.dataset.local) };
     else if (itemNode?.dataset.seed) drag = { from: 'seed', species: itemNode.dataset.seed };
-    else if (itemNode?.dataset.item) drag = { from: 'inventory', itemId: itemNode.dataset.item };
+    else if (itemNode?.dataset.item) {
+      drag = { from: 'inventory', itemId: itemNode.dataset.item };
+      armedPlant = { id: itemNode.dataset.item, index: Number(itemNode.dataset.index) || 0 };
+    }
     else return;
     event.dataTransfer?.setData('text/plain', 'gc-farm-manager');
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
@@ -496,8 +514,27 @@ function bindEvents(element: HTMLElement): void {
     void perform(work, target);
   });
   element.addEventListener('dragend', clearDrag);
+  // Right click pots a plant straight into the inventory, the same as dragging it to the side bar.
+  element.addEventListener('contextmenu', event => {
+    const cellNode = (event.target as HTMLElement).closest<HTMLElement>('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
+    if (!cellNode) return;
+    event.preventDefault();
+    if (cellNode.dataset.pending) return;
+    if (freeInventorySlots() < 1) {
+      toast('Your inventory is full, so the plant cannot be potted.', 'error');
+      return;
+    }
+    void potFromTile(Number(cellNode.dataset.local));
+  });
   element.addEventListener('click', event => {
     const target = event.target as HTMLElement;
+    const plantNode = target.closest<HTMLElement>('.gc-fm-item[data-item]');
+    if (plantNode) {
+      const id = plantNode.dataset.item!;
+      armedPlant = armedPlant?.id === id ? null : { id, index: Number(plantNode.dataset.index) || 0 };
+      render();
+      return;
+    }
     const seedNode = target.closest<HTMLElement>('.gc-fm-item[data-seed]');
     if (seedNode) {
       const species = seedNode.dataset.seed!;
@@ -506,9 +543,9 @@ function bindEvents(element: HTMLElement): void {
       return;
     }
     const cellNode = target.closest<HTMLElement>('.gc-fm-cell[data-armed]');
-    if (!cellNode || !armedSeed) return;
+    if (!cellNode || (!armedSeed && !armedPlant)) return;
     const cell = cellFor(Number(cellNode.dataset.local));
-    const work: Drag = { from: 'seed', species: armedSeed };
+    const work: Drag = armedSeed ? { from: 'seed', species: armedSeed } : { from: 'inventory', itemId: armedPlant!.id };
     if (!cell || !dropActionFor(work, cell)) {
       toast('That tile is no longer empty.', 'error');
       render();

@@ -16609,6 +16609,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var search2 = "";
   var tab = "plants";
   var armedSeed = null;
+  var armedPlant = null;
   var seeding = false;
   function root() {
     return document.getElementById("gc-farm-manager");
@@ -16731,7 +16732,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         speciesName2(tile.species || ""),
         slots.length ? `${ready}/${slots.length} ready` : "",
         mutations.length ? mutations.join(", ") : "",
-        "Drag onto an empty tile to move"
+        "Drag onto an empty tile to move, right click to pot"
       ].filter(Boolean).join("\n");
     }
     if (tile.objectType === "decor") return DECOR_CATALOG[tile.decorId || ""]?.name || tile.decorId || "Decor";
@@ -16779,11 +16780,21 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const busy = seeding || (plantActions()?.busy() ?? false);
     const stacks = seedStacks();
     if (armedSeed && (tab !== "seeds" || !stacks.some((stack) => stack.species === armedSeed))) armedSeed = null;
+    const query = search2.trim().toLowerCase();
+    const matches = (species) => !query || speciesName2(species).toLowerCase().includes(query);
+    const allPotted = pottedPlants();
+    const potted = allPotted.filter((item) => matches(item.species));
+    if (armedPlant && tab !== "plants") armedPlant = null;
+    if (armedPlant && !allPotted.some((item) => item.id === armedPlant.id)) {
+      const next = potted[Math.min(armedPlant.index, potted.length - 1)];
+      armedPlant = next ? { id: next.id, index: armedPlant.index } : null;
+    }
+    const armedSpecies = armedSeed ?? allPotted.find((item) => item.id === armedPlant?.id)?.species ?? null;
     const placing = element.querySelector("[data-fm-placing]");
-    placing.hidden = !armedSeed;
-    if (armedSeed) {
-      const sprite = page.__gardenCompanionShopSprites?.[armedSeed] || produceSprite(armedSeed);
-      setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}Placing ${escapeHtml(speciesName2(armedSeed))}`);
+    placing.hidden = !armedSpecies;
+    if (armedSpecies) {
+      const sprite = (armedSeed ? page.__gardenCompanionShopSprites?.[armedSpecies] : "") || produceSprite(armedSpecies);
+      setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}Placing ${escapeHtml(speciesName2(armedSpecies))}`);
     }
     const cells = farmCells();
     if (!cells) {
@@ -16797,7 +16808,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const size = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(width / columns)));
       setHtml(grid, `<div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map((cell) => {
         const movable = cell.kind === "dirt" && cell.tile?.objectType === "plant" && !busyTiles.has(cell.local) && !busy;
-        const plantable = armedSeed && cell.kind === "dirt" && !cell.tile && !busyTiles.has(cell.local);
+        const plantable = armedSpecies && cell.kind === "dirt" && !cell.tile && !busyTiles.has(cell.local);
         return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || "empty")}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ""}${plantable ? ' data-drop="place" data-armed="true"' : ""} style="grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}" title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ""}>${cellContent(cell)}</div>`;
       }).join("")}</div>`);
     }
@@ -16809,20 +16820,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const used = INVENTORY_SLOTS2 - freeInventorySlots();
     capacity.dataset.full = String(used >= INVENTORY_SLOTS2);
     setHtml(capacity, `<span>Inventory</span><b>${used}/${INVENTORY_SLOTS2}</b>`);
-    const query = search2.trim().toLowerCase();
-    const matches = (species) => !query || speciesName2(species).toLowerCase().includes(query);
     if (tab === "seeds") {
       const seeds = stacks.filter((stack) => matches(stack.species));
       setHtml(list, seeds.length ? seeds.map((stack) => `<div class="gc-fm-item" data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one${stack.stored ? `
 ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species)}<span><b>${escapeHtml(speciesName2(stack.species))}</b><small>x${stack.loose + stack.stored}${stack.stored ? " · Silo" : ""}</small></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No seeds match." : "No seeds in your inventory or Seed Silo."}</div>`);
     } else {
-      const potted = pottedPlants().filter((item) => matches(item.species));
-      setHtml(list, potted.length ? potted.map((item) => `<div class="gc-fm-item" data-item="${escapeHtml(item.id)}"${busy ? "" : ' draggable="true"'} title="Drag onto an empty dirt tile to plant">${spriteImage(produceSprite(item.species), item.species)}<span><b>${escapeHtml(speciesName2(item.species))}</b></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No potted plants match." : "No potted plants in your inventory."}</div>`);
+      setHtml(list, potted.length ? potted.map((item, index) => `<div class="gc-fm-item" data-item="${escapeHtml(item.id)}" data-index="${index}"${item.id === armedPlant?.id ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one">${spriteImage(produceSprite(item.species), item.species)}<span><b>${escapeHtml(speciesName2(item.species))}</b></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No potted plants match." : "No potted plants in your inventory."}</div>`);
     }
     const count = cells?.filter((cell) => cell.kind === "dirt" && cell.tile?.objectType === "plant").length ?? 0;
     const free = cells?.filter((cell) => cell.kind === "dirt" && !cell.tile).length ?? 0;
     if (!busy) {
-      const text = armedSeed ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName2(armedSeed)}; click the seed again to stop.` : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it; each move uses a Planter Pot.`;
+      const text = armedSpecies ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName2(armedSpecies)}; click it in the list again to stop.` : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it, or right click it to pot it; each uses a Planter Pot.`;
       if (status.textContent !== text) status.textContent = text;
     }
   }
@@ -16858,7 +16866,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
   }
   async function potFromTile(local) {
     const actions = plantActions();
-    if (!actions || seeding) {
+    if (!actions || seeding || actions.busy()) {
       toast(actions ? "Finish the current move first." : "Plant moving is not ready yet.", "error");
       return;
     }
@@ -16884,7 +16892,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         return;
       }
       seeding = true;
-    } else if (!actions || seeding) {
+    } else if (!actions || seeding || actions.busy()) {
       toast(actions ? "Finish the current move first." : "Plant moving is not ready yet.", "error");
       return;
     }
@@ -16923,8 +16931,10 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       }
       if (cellNode) drag = { from: "tile", local: Number(cellNode.dataset.local) };
       else if (itemNode?.dataset.seed) drag = { from: "seed", species: itemNode.dataset.seed };
-      else if (itemNode?.dataset.item) drag = { from: "inventory", itemId: itemNode.dataset.item };
-      else return;
+      else if (itemNode?.dataset.item) {
+        drag = { from: "inventory", itemId: itemNode.dataset.item };
+        armedPlant = { id: itemNode.dataset.item, index: Number(itemNode.dataset.index) || 0 };
+      } else return;
       event.dataTransfer?.setData("text/plain", "gc-farm-manager");
       if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
       element.classList.add("gc-fm-dragging");
@@ -16975,8 +16985,26 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       void perform(work, target);
     });
     element.addEventListener("dragend", clearDrag);
+    element.addEventListener("contextmenu", (event) => {
+      const cellNode = event.target.closest('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
+      if (!cellNode) return;
+      event.preventDefault();
+      if (cellNode.dataset.pending) return;
+      if (freeInventorySlots() < 1) {
+        toast("Your inventory is full, so the plant cannot be potted.", "error");
+        return;
+      }
+      void potFromTile(Number(cellNode.dataset.local));
+    });
     element.addEventListener("click", (event) => {
       const target = event.target;
+      const plantNode = target.closest(".gc-fm-item[data-item]");
+      if (plantNode) {
+        const id = plantNode.dataset.item;
+        armedPlant = armedPlant?.id === id ? null : { id, index: Number(plantNode.dataset.index) || 0 };
+        render2();
+        return;
+      }
       const seedNode = target.closest(".gc-fm-item[data-seed]");
       if (seedNode) {
         const species = seedNode.dataset.seed;
@@ -16985,9 +17013,9 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         return;
       }
       const cellNode = target.closest(".gc-fm-cell[data-armed]");
-      if (!cellNode || !armedSeed) return;
+      if (!cellNode || !armedSeed && !armedPlant) return;
       const cell = cellFor(Number(cellNode.dataset.local));
-      const work = { from: "seed", species: armedSeed };
+      const work = armedSeed ? { from: "seed", species: armedSeed } : { from: "inventory", itemId: armedPlant.id };
       if (!cell || !dropActionFor(work, cell)) {
         toast("That tile is no longer empty.", "error");
         render2();
