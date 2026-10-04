@@ -2,7 +2,7 @@ import { MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { makeDraggable } from '../draggable.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
-import { ensureToolReady, heldToolCount, holdTool, mutationSprite } from '../pets.js';
+import { ensureToolReady, heldToolCount, holdTool, mutationSprite, onSpritesReady } from '../pets.js';
 import { onStateChange, state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
@@ -220,4 +220,6 @@ export function initCropCleanserHelper(): void {
   // The count follows the inventory, so it is reconciled when the state moves rather than polled;
   // reconcileCleanserCount does nothing while the helper is closed.
   onStateChange(reconcileCleanserCount);
+  // Mutation icons are decoded on demand, so the helper can open before they exist.
+  onSpritesReady(() => { if (panel() && !panel()!.hidden) render(); });
 }

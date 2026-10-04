@@ -5,6 +5,7 @@ import { maxSizeMultiplier, sizeFromScale, slotScale } from '../crop-size.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import { createTicker } from '../ticker.js';
 import { NUMBER_LOCALE } from '../utils.js';
+import { onSpritesReady } from '../pets.js';
 
 /**
  * Layout planner. Nothing is sent to the game server: planned plants are fed to the
@@ -541,6 +542,9 @@ export function initGardenPlanner(): void {
     applyAllTiles();
     hideNativeCardUi();
   }, 1000);
+
+  // Opening asks for those sprites, so the palette is redrawn once they arrive rather than left blank.
+  onSpritesReady(() => { if (planner.open) renderPanel(); });
 
   function open(): void {
     // Decor and growing-plant artwork is only decoded on demand, and the planner draws decor and full plants.

@@ -1,5 +1,10 @@
+0.9.0
+- Sprites decode in the background instead of on the game's main thread, so first loads and game artwork updates should stutter less
+- Open windows and panel tabs now fill in their icons as soon as sprites finish loading
+- The console shows when sprites have finished loading and how long it took
+
 0.8.99
-- Fixed shop restock alarms, the Rain time left and the weather and seed shop countdowns after the game changed how shops report their restock time
+- Fixed shop restock alarms and the weather time left (make sure you're on latest game version)
 
 0.8.98
 - The companion window is now a smaller window you can drag anywhere by its title bar, and it remembers where you left it

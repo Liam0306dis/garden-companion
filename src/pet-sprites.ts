@@ -1,13 +1,7 @@
 import { page } from './page.js';
 import { BasisUniversal, TranscoderTextureFormat } from '@h00w/basis-universal-transcoder';
 import { RIVE_RUNTIME_URL } from './vendor-urls.js';
-
-interface AtlasFrame {
-  frame: { x: number; y: number; w: number; h: number };
-  spriteSourceSize?: { x: number; y: number; w: number; h: number };
-  sourceSize?: { w: number; h: number };
-  rotated?: boolean | number;
-}
+import { blobToDataUrl, drawFrame, frameLayout, SHEET_TTL_MS, type AtlasFrame, type CropJob, type CropResult } from './sprite-crop.js';
 
 interface AtlasJson {
   frames: Record<string, AtlasFrame>;
@@ -27,8 +21,11 @@ interface BasisInstance {
 interface RiveRuntime {
   Rive: new (options: Record<string, unknown>) => {
     resizeDrawingSurfaceToCanvas(): void;
+    play(): void;
     cleanup(): void;
   };
+  /** Absent on older runtimes; the loader then falls back to handing each pet the raw bytes. */
+  RiveFile?: new (options: { buffer: ArrayBuffer }) => { init(): Promise<void>; getInstance(): unknown; cleanup(): void };
   Layout: new (options: Record<string, unknown>) => unknown;
   Fit: { Contain: unknown };
   Alignment: { Center: unknown };
@@ -258,23 +255,18 @@ function riveRuntime(): Promise<RiveRuntime> {
   return riveRuntimePromise;
 }
 
-function imageFromDataUrl(source: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error('Rendered pet image could not be read.'));
-    image.src = source;
-  });
-}
-
-async function trimTransparentImage(source: string): Promise<string> {
-  const image = await imageFromDataUrl(source);
+/**
+ * Crops a rendered pet to its opaque pixels, padded and centred on a square. Read straight from the
+ * render canvas, so the frame is never encoded to a PNG and decoded again just to be measured.
+ * Null when nothing has been drawn yet.
+ */
+function trimToContent(source: HTMLCanvasElement): HTMLCanvasElement | null {
   const scan = document.createElement('canvas');
-  scan.width = image.naturalWidth;
-  scan.height = image.naturalHeight;
-  const context = scan.getContext('2d');
-  if (!context) return source;
-  context.drawImage(image, 0, 0);
+  scan.width = source.width;
+  scan.height = source.height;
+  const context = scan.getContext('2d', { willReadFrequently: true });
+  if (!context) return null;
+  context.drawImage(source, 0, 0);
   const pixels = context.getImageData(0, 0, scan.width, scan.height).data;
   let minX = scan.width;
   let minY = scan.height;
@@ -283,13 +275,13 @@ async function trimTransparentImage(source: string): Promise<string> {
   for (let y = 0; y < scan.height; y++) {
     for (let x = 0; x < scan.width; x++) {
       if (pixels[(y * scan.width + x) * 4 + 3] < 8) continue;
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x);
-      maxY = Math.max(maxY, y);
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
     }
   }
-  if (maxX < minX || maxY < minY) return source;
+  if (maxX < minX || maxY < minY) return null;
   const width = maxX - minX + 1;
   const height = maxY - minY + 1;
   const padding = Math.max(4, Math.ceil(Math.max(width, height) * 0.06));
@@ -298,7 +290,20 @@ async function trimTransparentImage(source: string): Promise<string> {
   output.width = size;
   output.height = size;
   output.getContext('2d')?.drawImage(scan, minX, minY, width, height, (size - width) / 2, (size - height) / 2, width, height);
-  return output.toDataURL('image/png');
+  return output;
+}
+
+/**
+ * A PNG data url without blocking on the encode. `toBlob` hands the compression to the browser's own
+ * encoder thread, where `toDataURL` runs it on the main thread before returning.
+ */
+function canvasToDataUrl(canvas: HTMLCanvasElement): Promise<string> {
+  return new Promise(resolve => {
+    const fallback = () => resolve(canvas.toDataURL('image/png'));
+    try {
+      canvas.toBlob(blob => { if (blob) blobToDataUrl(blob).then(resolve, fallback); else fallback(); }, 'image/png');
+    } catch { fallback(); }
+  });
 }
 
 /**
@@ -307,54 +312,91 @@ async function trimTransparentImage(source: string): Promise<string> {
  */
 const PET_ARTBOARD_NAMES: Record<string, string> = { RedFox: 'Red Fox' };
 
-async function renderRivePet(runtime: RiveRuntime, buffer: ArrayBuffer, species: string): Promise<string | null> {
+/** Where a pet is drawn from: the file parsed once, or the raw bytes on runtimes without RiveFile. */
+type RiveSource = { riveFile: unknown } | { buffer: ArrayBuffer };
+
+async function renderRivePet(runtime: RiveRuntime, source: RiveSource, canvas: HTMLCanvasElement, species: string): Promise<string | null> {
+  const trimmed = await new Promise<HTMLCanvasElement | null>(resolve => {
+    let settled = false;
+    let instance: InstanceType<RiveRuntime['Rive']> | null = null;
+    // The frame is cropped off the canvas before the instance lets go of it, which is the last
+    // moment the drawing is guaranteed to still be there.
+    const capture = (): HTMLCanvasElement | null => { try { return trimToContent(canvas); } catch { return null; } };
+    const finish = (result: HTMLCanvasElement | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      try { instance?.cleanup(); } catch {}
+      resolve(result);
+    };
+    const timeout = window.setTimeout(() => finish(null), 4_000);
+    try {
+      instance = new runtime.Rive({
+        ...('buffer' in source ? { buffer: source.buffer.slice(0) } : source),
+        canvas,
+        artboard: PET_ARTBOARD_NAMES[species] ?? species,
+        stateMachines: 'Pet State Machine',
+        // Not played: an icon needs one still frame, and a playing pet re-renders every frame while
+        // we wait for it. Paused, resizing the surface draws that frame on the spot.
+        autoplay: false,
+        layout: new runtime.Layout({ fit: runtime.Fit.Contain, alignment: runtime.Alignment.Center }),
+        onLoad: () => {
+          instance?.resizeDrawingSurfaceToCanvas();
+          const still = capture();
+          if (still) { finish(still); return; }
+          // Nothing drawn yet: play it briefly and capture as before.
+          try { instance?.play(); } catch {}
+          window.setTimeout(() => finish(capture()), 100);
+        },
+        onLoadError: () => finish(null),
+      });
+    } catch {
+      finish(null);
+    }
+  });
+  return trimmed ? canvasToDataUrl(trimmed) : null;
+}
+
+/**
+ * Every current pet is drawn through Rive, which runs on the main thread - so this is the part of
+ * sprite loading the worker cannot take. What it can do is not repeat itself: the animation file
+ * holds every pet with its images embedded, and handing each pet the raw bytes made Rive parse the
+ * whole file, images and all, once per pet. Parsed once and shared, that cost is paid a single time.
+ * One hidden canvas serves every pet, and the thread is handed back between pets so the game gets a
+ * frame in between each one.
+ */
+async function loadRivePetFrames(url: string, species: string[]): Promise<Map<string, string>> {
+  const [runtime, response] = await Promise.all([riveRuntime(), fetch(url)]);
+  if (!response.ok) throw new Error('Pet animation file could not be loaded.');
+  const buffer = await response.arrayBuffer();
+  let riveFile: { init(): Promise<void>; getInstance(): unknown; cleanup(): void } | null = null;
+  if (runtime.RiveFile) {
+    try {
+      riveFile = new runtime.RiveFile({ buffer });
+      await riveFile.init();
+      // The file is reference counted, and each pet's cleanup gives its reference back. Without one
+      // of our own the count hit zero after the first pet and the file was freed under the rest.
+      if (!riveFile.getInstance()) throw new Error('Pet animation file did not parse.');
+    } catch {
+      riveFile = null;
+    }
+  }
+  const source: RiveSource = riveFile ? { riveFile } : { buffer };
   const canvas = document.createElement('canvas');
   canvas.width = 360;
   canvas.height = 510;
   canvas.style.cssText = 'position:fixed;left:-10000px;top:0;width:180px;height:255px;opacity:0;pointer-events:none';
   (document.body || document.documentElement).appendChild(canvas);
-  return new Promise(resolve => {
-    let settled = false;
-    let instance: InstanceType<RiveRuntime['Rive']> | null = null;
-    const finish = async (source: string | null) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      try { instance?.cleanup(); } catch {}
-      canvas.remove();
-      if (!source) return resolve(null);
-      try { resolve(await trimTransparentImage(source)); }
-      catch { resolve(source); }
-    };
-    const timeout = window.setTimeout(() => void finish(null), 4_000);
-    try {
-      instance = new runtime.Rive({
-        buffer: buffer.slice(0),
-        canvas,
-        artboard: PET_ARTBOARD_NAMES[species] ?? species,
-        stateMachines: 'Pet State Machine',
-        autoplay: true,
-        layout: new runtime.Layout({ fit: runtime.Fit.Contain, alignment: runtime.Alignment.Center }),
-        onLoad: () => {
-          instance?.resizeDrawingSurfaceToCanvas();
-          window.setTimeout(() => void finish(canvas.toDataURL('image/png')), 100);
-        },
-        onLoadError: () => void finish(null),
-      });
-    } catch {
-      void finish(null);
-    }
-  });
-}
-
-async function loadRivePetFrames(url: string, species: string[]): Promise<Map<string, string>> {
-  const [runtime, response] = await Promise.all([riveRuntime(), fetch(url)]);
-  if (!response.ok) throw new Error('Pet animation file could not be loaded.');
-  const buffer = await response.arrayBuffer();
   const frames = new Map<string, string>();
-  for (const name of species) {
-    const image = await renderRivePet(runtime, buffer, name);
-    if (image) frames.set(normaliseKey(`sprite/pet/${name}`), image);
+  try {
+    for (const name of species) {
+      const image = await renderRivePet(runtime, source, canvas, name);
+      if (image) frames.set(normaliseKey(`sprite/pet/${name}`), image);
+      await yieldToBrowser();
+    }
+  } finally {
+    canvas.remove();
+    try { riveFile?.cleanup(); } catch {}
   }
   return frames;
 }
@@ -373,8 +415,8 @@ const CACHE_STORE = 'maps';
 
 type SpriteMap = Record<string, string>;
 type SpriteBundle = Record<string, SpriteMap>;
-/** A decoded stage plus whether every atlas it needed loaded, which is what gates caching it. */
-interface StageResult { bundle: SpriteBundle; complete: boolean }
+/** A decoded stage, whether every atlas it needed loaded (which gates caching it), and whether the worker cut it. */
+interface StageResult { bundle: SpriteBundle; complete: boolean; usedWorker: boolean }
 
 let cacheConnection: Promise<IDBDatabase | null> | null = null;
 
@@ -490,29 +532,91 @@ function hashText(value: string): string {
   return (hash >>> 0).toString(36);
 }
 
-let decoder: Promise<{ basis: BasisInstance; rgbaFormat: number }> | null = null;
+let wasm: Uint8Array | null = null;
 
-/** Instantiated once and shared by both stages: the wasm is half a megabyte to compile. */
-function basisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
+/** The transcoder's wasm, unpacked from base64 once and shared by the worker and the fallback. */
+function wasmBytes(): Uint8Array {
+  if (wasm) return wasm;
+  const binary = atob(__PET_WASM_B64__.replace(/\s/g, ''));
+  wasm = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) wasm[index] = binary.charCodeAt(index);
+  return wasm;
+}
+
+interface SpriteWorker {
+  /** The sheet's sprites, or null when the sheet itself could not be fetched or decoded. */
+  decode(sheetUrl: string, jobs: CropJob[]): Promise<CropResult[] | null>;
+}
+
+let workerStart: Promise<SpriteWorker | null> | null = null;
+
+/** The sprite worker, started on first use; null where the page will not run one. */
+function spriteWorker(): Promise<SpriteWorker | null> {
+  return workerStart ??= startSpriteWorker();
+}
+
+async function startSpriteWorker(): Promise<SpriteWorker | null> {
+  if (typeof Worker !== 'function' || typeof OffscreenCanvas !== 'function') return null;
+  let worker: Worker;
+  const url = URL.createObjectURL(new Blob([__SPRITE_WORKER__], { type: 'text/javascript' }));
+  try { worker = new Worker(url); } catch { URL.revokeObjectURL(url); return null; }
+  const pending = new Map<number, (results: CropResult[] | null) => void>();
+  let nextId = 0;
+  // A strict content policy can refuse the worker without throwing, which surfaces only as an error
+  // event - or as nothing at all - so readiness is a reply from the worker, with a deadline.
+  const ready = await new Promise<boolean>(resolve => {
+    const timer = window.setTimeout(() => resolve(false), 10_000);
+    worker.onmessage = event => {
+      const message = event.data as { type?: string; id?: number; results?: CropResult[] | null };
+      if (message.type === 'ready' || message.type === 'unsupported') { window.clearTimeout(timer); resolve(message.type === 'ready'); return; }
+      if (typeof message.id !== 'number') return;
+      pending.get(message.id)?.(message.results ?? null);
+      pending.delete(message.id);
+    };
+    worker.onerror = () => { window.clearTimeout(timer); resolve(false); };
+    const bytes = wasmBytes().slice();
+    worker.postMessage({ type: 'init', wasm: bytes.buffer }, [bytes.buffer]);
+  });
+  URL.revokeObjectURL(url);
+  if (!ready) { worker.terminate(); return null; }
+  // A worker that dies mid-load settles what it owed as failures, and later sheets use the fallback.
+  worker.onerror = () => {
+    workerStart = Promise.resolve(null);
+    for (const settle of pending.values()) settle(null);
+    pending.clear();
+    worker.terminate();
+  };
+  return {
+    decode: (sheetUrl, jobs) => new Promise(resolve => {
+      const id = ++nextId;
+      pending.set(id, resolve);
+      worker.postMessage({ type: 'decode', id, sheetUrl, jobs });
+    }),
+  };
+}
+
+let decoder: Promise<{ transcoder: BasisTranscoder; rgbaFormat: number }> | null = null;
+
+/** The main-thread fallback's transcoder, built once: the wasm is half a megabyte to compile. */
+function basisDecoder(): Promise<{ transcoder: BasisTranscoder; rgbaFormat: number }> {
   // A failure is not cached, so a stage that is retried gets a fresh attempt.
   return decoder ??= createBasisDecoder().catch(error => { decoder = null; throw error; });
 }
 
-async function createBasisDecoder(): Promise<{ basis: BasisInstance; rgbaFormat: number }> {
-  const binary = atob(__PET_WASM_B64__.replace(/\s/g, ''));
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+async function createBasisDecoder(): Promise<{ transcoder: BasisTranscoder; rgbaFormat: number }> {
   // Bundled at build time rather than imported from a CDN, and pinned to the version this wasm
   // belongs to: the two are only compatible as a pair.
-  const basis = await BasisUniversal.getInstance(imports => WebAssembly.instantiate(bytes.buffer, imports as WebAssembly.Imports)) as unknown as BasisInstance;
-  return { basis, rgbaFormat: TranscoderTextureFormat.cTFRGBA32 };
+  const bytes = wasmBytes();
+  const basis = await BasisUniversal.getInstance(imports => WebAssembly.instantiate(bytes.slice().buffer, imports as WebAssembly.Imports)) as unknown as BasisInstance;
+  // One transcoder reused for every sheet, as the library recommends, rather than one per sheet.
+  return { transcoder: basis.createKTX2Transcoder(), rgbaFormat: TranscoderTextureFormat.cTFRGBA32 };
 }
 
-async function decodeSheet(url: string, basis: BasisInstance, rgbaFormat: number): Promise<HTMLCanvasElement | null> {
+async function decodeSheet(url: string): Promise<HTMLCanvasElement | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
-    const transcoder = basis.createKTX2Transcoder();
+    const { transcoder, rgbaFormat } = await basisDecoder();
     if (!transcoder.init(new Uint8Array(await response.arrayBuffer())) || !transcoder.startTranscoding()) return null;
     const decoded = transcoder.transcodeImageLevel({ format: rgbaFormat, level: 0, layer: 0, face: 0 });
     if (!decoded) return null;
@@ -524,6 +628,21 @@ async function decodeSheet(url: string, basis: BasisInstance, rgbaFormat: number
   } catch {
     return null;
   }
+}
+
+const fallbackSheets = new Map<string, { sheet: Promise<HTMLCanvasElement | null>; timer: number }>();
+
+/** The fallback's own short-lived sheet cache, the same one the worker keeps on its side. */
+function fallbackSheet(url: string): Promise<HTMLCanvasElement | null> {
+  let entry = fallbackSheets.get(url);
+  if (!entry) {
+    entry = { sheet: decodeSheet(url), timer: 0 };
+    fallbackSheets.set(url, entry);
+  }
+  window.clearTimeout(entry.timer);
+  entry.timer = window.setTimeout(() => fallbackSheets.delete(url), SHEET_TTL_MS);
+  void entry.sheet.then(sheet => { if (!sheet) fallbackSheets.delete(url); });
+  return entry.sheet;
 }
 
 /**
@@ -545,44 +664,44 @@ function yieldToBrowser(): Promise<void> {
 }
 
 /**
- * Every sprite is cut from the atlas and encoded to a PNG, and there are a few hundred of them.
- * Encoding is synchronous, so doing the lot in one loop blocks the main thread for well over a
- * second - which lands squarely on the game's own startup. The work is the same either way; slicing
- * it just stops any single burst of it holding a frame.
+ * The fallback for pages that refuse the worker: every sprite is cut from the atlas on the main
+ * thread, in slices so no single burst holds a frame. The PNG encode itself goes through toBlob,
+ * which keeps the compression off the main thread even here.
  */
-async function cropFrames(atlas: AtlasJson, sheet: HTMLCanvasElement, wanted: Set<string>, output: Map<string, string>, trimmed = false): Promise<void> {
+async function cropFrames(sheet: HTMLCanvasElement, jobs: CropJob[]): Promise<CropResult[]> {
+  const results: CropResult[] = [];
   let sliceStarted = performance.now();
-  for (const [name, descriptor] of Object.entries(atlas.frames ?? {})) {
-    const key = normaliseKey(name);
-    if (!wanted.has(key) || output.has(key)) continue;
-    const frame = descriptor.frame;
-    const trim = trimmed ? { x: 0, y: 0, w: frame.w, h: frame.h } : null;
-    const placement = trim ?? descriptor.spriteSourceSize ?? { x: 0, y: 0, w: frame.w, h: frame.h };
-    const source = trim ?? descriptor.sourceSize ?? { w: placement.x + frame.w, h: placement.y + frame.h };
+  for (const job of jobs) {
+    const { width, height, placement } = frameLayout(job.frame, job.trimmed);
     const canvas = document.createElement('canvas');
-    canvas.width = source.w;
-    canvas.height = source.h;
+    canvas.width = width;
+    canvas.height = height;
     const context = canvas.getContext('2d');
     if (!context) continue;
-    context.imageSmoothingEnabled = false;
-    if (descriptor.rotated) {
-      context.save();
-      context.translate(placement.x + frame.w / 2, placement.y + frame.h / 2);
-      context.rotate(-Math.PI / 2);
-      context.drawImage(sheet, frame.x, frame.y, frame.h, frame.w, -frame.h / 2, -frame.w / 2, frame.h, frame.w);
-      context.restore();
-    } else {
-      context.drawImage(sheet, frame.x, frame.y, frame.w, frame.h, placement.x, placement.y, frame.w, frame.h);
-    }
-    output.set(key, canvas.toDataURL('image/png'));
+    drawFrame(context, sheet, job.frame, placement);
+    results.push([job.key, job.trimmed, await canvasToDataUrl(canvas)]);
     if (performance.now() - sliceStarted >= SLICE_BUDGET_MS) {
       await yieldToBrowser();
       sliceStarted = performance.now();
     }
   }
+  return results;
 }
 
-async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted: Set<string>, trimmedWanted: Set<string>): Promise<{ frames: Map<string, string>; trimmed: Map<string, string>; complete: boolean }> {
+/** The frames in this atlas that are wanted and not already cut from an earlier one. */
+function atlasJobs(atlas: AtlasJson, wanted: Set<string>, done: Map<string, string>, trimmed: boolean): CropJob[] {
+  const jobs: CropJob[] = [];
+  const queued = new Set<string>();
+  for (const [name, frame] of Object.entries(atlas.frames ?? {})) {
+    const key = normaliseKey(name);
+    if (!wanted.has(key) || done.has(key) || queued.has(key)) continue;
+    queued.add(key);
+    jobs.push({ key, frame, trimmed });
+  }
+  return jobs;
+}
+
+async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted: Set<string>, trimmedWanted: Set<string>): Promise<{ frames: Map<string, string>; trimmed: Map<string, string>; complete: boolean; usedWorker: boolean }> {
   const output = new Map<string, string>();
   const trimmedOutput = new Map<string, string>();
   const pending = new Set(initialPaths);
@@ -591,7 +710,7 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
   // show this session, but must never be cached: the cache key does not change when a later load
   // would succeed, so a cached hole is served for good. `complete` gates the write.
   let complete = true;
-  const { basis, rgbaFormat } = await basisDecoder();
+  let usedWorker = false;
   while (pending.size && (output.size < wanted.size || trimmedOutput.size < trimmedWanted.size)) {
     const jsonPath = pending.values().next().value as string;
     pending.delete(jsonPath);
@@ -602,24 +721,36 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
       const response = await fetch(jsonUrl);
       if (!response.ok) { complete = false; continue; }
       const atlas = await response.json() as AtlasJson;
+      // Its related packs are followed whether or not this sheet is needed: what we want may be
+      // in one of them.
+      for (const related of atlas.meta?.related_multi_packs ?? []) {
+        const relatedPath = jsonPath.replace(/[^/]+$/, '') + related.replace(/\.json$/, '') + '.json';
+        if (!seen.has(relatedPath)) pending.add(relatedPath);
+      }
+      // The frame list is in the JSON, so a sheet holding nothing we want is skipped before its
+      // image is fetched or transcoded at all.
+      const jobs = [...atlasJobs(atlas, wanted, output, false), ...atlasJobs(atlas, trimmedWanted, trimmedOutput, true)];
+      if (!jobs.length) continue;
       // The frame coordinates are in full-size atlas space (meta.size). By build 1333 `image` is a
       // half-resolution sheet and the matching full-size one is `fullSizeImage`, so cropping
       // full-size coordinates out of `image` read past the sheet and left every frame in the lower
       // half - all the plants - blank. Prefer the full-size sheet the coordinates belong to.
       const sheetSource = atlas.meta?.fullSizeImage ?? atlas.meta?.image;
       const imageUrl = sheetSource ? new URL(sheetSource, jsonUrl).href : jsonUrl.replace(/\.json$/, '.ktx2');
-      const sheet = await decodeSheet(imageUrl, basis, rgbaFormat);
-      if (sheet) {
-        await cropFrames(atlas, sheet, wanted, output);
-        await cropFrames(atlas, sheet, trimmedWanted, trimmedOutput, true);
-      } else complete = false;
-      for (const related of atlas.meta?.related_multi_packs ?? []) {
-        const relatedPath = jsonPath.replace(/[^/]+$/, '') + related.replace(/\.json$/, '') + '.json';
-        if (!seen.has(relatedPath)) pending.add(relatedPath);
+      const worker = await spriteWorker();
+      let results: CropResult[] | null;
+      if (worker) {
+        usedWorker = true;
+        results = await worker.decode(imageUrl, jobs);
+      } else {
+        const sheet = await fallbackSheet(imageUrl);
+        results = sheet ? await cropFrames(sheet, jobs) : null;
       }
+      if (!results) { complete = false; continue; }
+      for (const [key, trimmed, dataUrl] of results) (trimmed ? trimmedOutput : output).set(key, dataUrl);
     } catch { complete = false; }
   }
-  return { frames: output, trimmed: trimmedOutput, complete };
+  return { frames: output, trimmed: trimmedOutput, complete, usedWorker };
 }
 
 export async function initPetSprites(): Promise<void> {
@@ -718,9 +849,13 @@ export async function initPetSprites(): Promise<void> {
   async function decodeEssential(): Promise<StageResult> {
     const { atlasPaths, petRiveUrl } = await loadSources();
     const { wanted, trimmedWanted } = essentialRequest();
-    const { frames, trimmed, complete: atlasComplete } = atlasPaths.length
+    const { frames, trimmed, complete: atlasComplete, usedWorker } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
-      : { frames: new Map<string, string>(), trimmed: new Map<string, string>(), complete: false };
+      : { frames: new Map<string, string>(), trimmed: new Map<string, string>(), complete: false, usedWorker: false };
+    // The sheets this pass just decoded are still held, so the panel's sprites are cut from them now
+    // rather than transcoding every sheet again when a panel first opens. Only worth it when the
+    // worker is doing the cutting; on the main thread it would put that work back on startup.
+    if (usedWorker) void runStage('deferred');
     let riveComplete = true;
     if (petRiveUrl) {
       try {
@@ -734,6 +869,7 @@ export async function initPetSprites(): Promise<void> {
     }
     return {
       complete: atlasComplete && riveComplete,
+      usedWorker,
       bundle: {
         pet: Object.fromEntries(species.flatMap(name => {
           const image = frames.get(normaliseKey(`sprite/pet/${name}`));
@@ -763,11 +899,12 @@ export async function initPetSprites(): Promise<void> {
   async function decodeDeferred(): Promise<StageResult> {
     const { atlasPaths } = await loadSources();
     const { wanted, trimmedWanted } = deferredRequest();
-    const { frames, trimmed, complete } = atlasPaths.length
+    const { frames, trimmed, complete, usedWorker } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
       : { frames: new Map<string, string>(), trimmed: new Map<string, string>(), complete: false };
     return {
       complete,
+      usedWorker: usedWorker === true,
       bundle: {
         shop: Object.fromEntries(Object.entries(shopCandidates).flatMap(([itemId, candidates]) => {
           const image = pick(candidates, decorIds.has(itemId) ? trimmed : frames);
@@ -788,6 +925,8 @@ export async function initPetSprites(): Promise<void> {
     const existing = running.get(stage);
     if (existing) return existing;
     const task = (async () => {
+      const started = performance.now();
+      const done = (source: string) => console.log(`[Garden Companion] ${stage} sprites loaded from ${source} in ${Math.round(performance.now() - started)}ms.`);
       try {
         const { key: rawFingerprint, identified } = await loadFingerprint();
         // Bumped when a caching bug means old entries may be wrong: `s2` retires every bundle written
@@ -800,9 +939,11 @@ export async function initPetSprites(): Promise<void> {
         const key = `${fingerprintKey}:${stage}:${requestSignature(request.wanted, request.trimmedWanted)}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.
         const cached = await readCache(key);
-        if (cached) { publish(cached); return; }
-        const { bundle, complete } = await stages[stage]();
+        if (cached) { publish(cached); done('the cache'); return; }
+        const result = await stages[stage]();
+        const { bundle, complete } = result;
         publish(bundle);
+        done(result.usedWorker ? 'the worker' : 'the main thread');
         // Only a clean decode is persisted. A partial one still shows this session, but leaving it
         // out of the cache means the next load retries rather than serving the hole for good.
         if (complete) void writeCache(key, bundle, fingerprintKey, identified);

@@ -73,6 +73,20 @@ const withoutSprites = process.argv.includes('--no-sprites');
  */
 async function buildSpriteLoader(): Promise<string> {
   if (withoutSprites) return 'console.warn("[Garden Companion] Built with --no-sprites: artwork is disabled.");';
+  // The worker the loader starts to transcode and cut sprites off the main thread. Built first and
+  // carried inside the loader as source; the wasm is not bundled into it twice, since the loader
+  // posts the bytes it already has.
+  const worker = await build({
+    entryPoints: [resolve(root, 'src', 'sprite-worker.ts')],
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: ['es2022'],
+    charset: 'utf8',
+    legalComments: 'none',
+    write: false,
+    external: ['fs'],
+  });
   const result = await build({
     entryPoints: [resolve(root, 'src', 'pet-sprites-page.ts')],
     bundle: true,
@@ -89,6 +103,7 @@ async function buildSpriteLoader(): Promise<string> {
       __DECOR_CATALOG__: JSON.stringify(catalogs.decor),
       __MUTATION_CATALOG__: JSON.stringify(catalogs.mutations),
       __PET_WASM_B64__: JSON.stringify(wasmBase64),
+      __SPRITE_WORKER__: JSON.stringify(worker.outputFiles[0].text),
     },
   });
   return result.outputFiles[0].text;

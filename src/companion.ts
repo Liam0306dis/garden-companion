@@ -732,8 +732,15 @@ export function initCompanion(): void {
     document.head.appendChild(style);
     mountLunarTimer(togglePanel);
     onSpritesReady(() => {
+      // Whatever tab is open is redrawn: nearly every one shows some artwork, and this fires only
+      // once or twice per load. A field being typed in holds it off until focus leaves the panel.
       const panel = document.getElementById('gc-panel');
-      if (panel && !panel.hidden && ['teams', 'abilities', 'shops', 'petFood', 'calculators'].includes(activeTab)) renderPanel();
+      if (panel && !panel.hidden) {
+        const focused = document.activeElement;
+        if (isTyping() && focused && panel.contains(focused)) {
+          panel.addEventListener('focusout', () => setTimeout(() => { if (!panel.hidden) renderPanelPreservingScroll(); }, 0), { once: true });
+        } else renderPanelPreservingScroll();
+      }
       resetPetFoodSignature();
       renderPetFood();
       // The forecast sprite is asked for from the timer itself, so this is where it arrives.
