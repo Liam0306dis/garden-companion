@@ -1,15 +1,11 @@
 import { build } from 'esbuild';
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { catalogsFromSnapshots } from './bundle-catalogs.js';
 import { argValue, ensureLatestSnapshot, ROOT as root, snapshotDirs } from './bundle-snapshot.js';
+import { buildSpriteLoader } from './sprite-loader-build.js';
 
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')) as { version: string };
-// The transcoder's wasm is fetched at run time from the npm version installed here, so the build
-// records its hash and the loader refuses any download that does not match it.
-const basisWasm = await readFile(resolve(root, 'node_modules', '@h00w', 'basis-universal-transcoder', 'dist', 'basis_capi_transcoder.wasm'));
-const basisWasmSha256 = createHash('sha256').update(basisWasm).digest('base64');
 
 /**
  * The catalogs come from a captured game bundle. `--bundles <dir>` reads snapshots from somewhere
@@ -67,50 +63,6 @@ Built dist/garden-companion.user.js from bundle-1260-20260924 (1,522,638 charact
  */
 const withoutSprites = process.argv.includes('--no-sprites');
 
-/**
- * The sprite loader runs in the page, so it is built on its own and injected as source. The Basis
- * transcoder is bundled into it from npm rather than imported from a CDN at runtime: pinned to the
- * version whose wasm is vendored beside it, and nothing third-party is fetched and run in the page.
- * Its Node branch reaches for fs, which never runs in a browser, so fs is left external.
- */
-async function buildSpriteLoader(): Promise<string> {
-  if (withoutSprites) return 'console.warn("[Garden Companion] Built with --no-sprites: artwork is disabled.");';
-  // The worker the loader starts to transcode and cut sprites off the main thread. Built first and
-  // carried inside the loader as source; the wasm is not bundled into it twice, since the loader
-  // posts the bytes it already has.
-  const worker = await build({
-    entryPoints: [resolve(root, 'src', 'sprite-worker.ts')],
-    bundle: true,
-    format: 'iife',
-    platform: 'browser',
-    target: ['es2022'],
-    charset: 'utf8',
-    legalComments: 'none',
-    write: false,
-    external: ['fs'],
-  });
-  const result = await build({
-    entryPoints: [resolve(root, 'src', 'pet-sprites-page.ts')],
-    bundle: true,
-    format: 'iife',
-    platform: 'browser',
-    target: ['es2022'],
-    charset: 'utf8',
-    legalComments: 'none',
-    write: false,
-    external: ['fs'],
-    define: {
-      __PET_CATALOG__: JSON.stringify(catalogs.pets),
-      __PLANT_CATALOG__: JSON.stringify(catalogs.plants),
-      __DECOR_CATALOG__: JSON.stringify(catalogs.decor),
-      __MUTATION_CATALOG__: JSON.stringify(catalogs.mutations),
-      __BASIS_WASM_SHA256__: JSON.stringify(basisWasmSha256),
-      __SPRITE_WORKER__: JSON.stringify(worker.outputFiles[0].text),
-    },
-  });
-  return result.outputFiles[0].text;
-}
-
 // The caps are matched out of the game's item catalog by shape. A game update that reshapes it
 // would leave this empty, and every capped tool would quietly go back to alarming at 99, so an
 // empty list is called out rather than built in silence.
@@ -118,7 +70,7 @@ if (!Object.keys(catalogs.toolLimits).length) {
   console.warn('WARNING: no tool inventory caps (maxInventoryQuantity) were found in the bundle - shop alarms will not skip capped tools. Check the pattern in scripts/bundle-catalogs.ts.');
 }
 
-const petSpriteLoader = await buildSpriteLoader();
+const petSpriteLoader = await buildSpriteLoader(catalogs, { withoutSprites });
 
 await build({
   entryPoints: [resolve(root, 'src', 'index.ts')],
