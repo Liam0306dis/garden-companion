@@ -15,7 +15,7 @@ noteGameSocket(socket as unknown as WebSocket);
 function inventory(items: Array<Record<string, unknown>>, storages: Array<Record<string, unknown>>): void {
   state.slot = { data: { inventory: { items, storages } } } as unknown as PlayerSlot;
 }
-const stores = () => socket.commands().filter(command => command.type === 'PutItemInStorage');
+const stores = () => socket.commands().filter(command => command.type === 'MoveItem' && command.from === 'inventory');
 function run(): void {
   processAutoStore();
   mock.timers.tick(1000);

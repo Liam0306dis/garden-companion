@@ -1,3 +1,7 @@
+0.9.31
+- Fixed auto-store, taking seeds out of the Seed Silo in the Farm Manager, and taking tools out of the Tool Shack after the latest game update
+- Fixed the Garden Companion window jumping out of place when turning a setting on or off on the Features tab
+
 0.9.3
 - Farm Manager: right click a plant to pot it
 - Farm Manager: click a potted plant to keep planting with each click on a highlighted tile, moving on to the next plant in the list after each one (same order as your inventory)

@@ -93,5 +93,5 @@ test('a tool is fetched from the Tool Shack when none is loose', async () => {
   // The server's answer: the potion arrives loose.
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'XPPotion', quantity: 1 }], storages: [shack] } } } as unknown as PlayerSlot;
   assert.equal(await ready, true);
-  assert.deepEqual(socket.commands()[0], { type: 'RetrieveItemFromStorage', itemId: 'XPPotion', storageId: 'ToolShack', quantity: 1 });
+  assert.deepEqual(socket.commands()[0], { type: 'MoveItem', from: 'ToolShack', to: 'inventory', itemId: 'XPPotion', quantity: 1 });
 });
