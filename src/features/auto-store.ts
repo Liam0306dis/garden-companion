@@ -10,7 +10,7 @@ import { state } from '../state.js';
  * rule is drawn here.
  *
  * The silo keys its contents by species and the shed by decor id - neither carries an item id - so
- * those are what PutItemInStorage is given, matching what the game sends when you drag one across.
+ * those are what MoveItem is given, matching what the game sends when you drag one across.
  */
 
 /** Items in a storage or the inventory. The shared Pet type does not describe seeds or decor. */
@@ -78,7 +78,7 @@ export function pauseAutoStore(...itemTypes: Array<'Seed' | 'Decor' | 'Tool'>): 
 
 /**
  * A crystal or shard still counting down runs on a timer, and the server refuses to file a running
- * one - PutItemInStorage comes back "rejected". A rejection does not change the inventory, so nothing
+ * one - MoveItem comes back "rejected". A rejection does not change the inventory, so nothing
  * marks it as dealt with, and every later patch that shifts the signature re-queues it, one rejected
  * command after another. A spent one (no time left) files away like any other tool, so only a running
  * one is held back. Keyed off the item's own timer rather than its name, since the ids do not all say
@@ -184,7 +184,7 @@ function drain(): void {
     // Marked only once it is away, so the grace covers waiting for the echo rather than the wait
     // in the queue behind everything else.
     try {
-      sendQuinoaCommand({ type: 'PutItemInStorage', itemId: next.key, storageId: next.rule.storageId });
+      sendQuinoaCommand({ type: 'MoveItem', from: 'inventory', to: next.rule.storageId, itemId: next.key });
       sentAt.set(next.pending, Date.now());
     } catch { /* nothing was sent, so nothing to hold back */ }
   }

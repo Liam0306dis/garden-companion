@@ -570,9 +570,10 @@ export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots =
   // The index is left off deliberately: without one the game appends, and a stackable tool merges
   // into the stack it already has. Naming a slot is for dragging onto a particular square.
   sendQuinoaCommand({
-    type: 'RetrieveItemFromStorage',
+    type: 'MoveItem',
+    from: TOOL_SHACK,
+    to: 'inventory',
     itemId: toolId,
-    storageId: TOOL_SHACK,
     quantity: Math.min(shortfall, stored),
   });
   for (let attempt = 0; attempt < 40; attempt++) {

@@ -159,7 +159,7 @@ async function plantSeed(species: string, local: number): Promise<void> {
     if (looseSeeds(species) <= 0) {
       const stored = seedStacks().find(stack => stack.species === species)?.stored ?? 0;
       if (stored <= 0) throw new Error(`No ${speciesName(species)} seeds are left`);
-      sendQuinoaCommand({ type: 'RetrieveItemFromStorage', itemId: species, storageId: SEED_SILO, quantity: 1 });
+      sendQuinoaCommand({ type: 'MoveItem', from: SEED_SILO, to: 'inventory', itemId: species, quantity: 1 });
       if (!await waitFor(() => looseSeeds(species) > 0, 4_000)) {
         throw new Error('The seed could not be taken out of the Seed Silo. Make room in your inventory');
       }
