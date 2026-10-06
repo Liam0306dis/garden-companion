@@ -61,7 +61,7 @@ export function editAlarmPosition(onFinish?: () => void): void {
     banner = document.createElement('div');
     banner.id = 'gc-alarm';
     banner.dataset.sample = 'true';
-    banner.innerHTML = '<i class="gc-alarm-icon">!</i><div><small>Sample alert</small><strong>Drag me</strong><span>Alarm banners will show here</span></div>';
+    banner.innerHTML = '<div class="gc-alarm-card"><i class="gc-alarm-icon">!</i><div><small>Sample alert</small><strong>Drag me</strong><span>Alarm banners will show here</span></div></div>';
     document.body.appendChild(banner);
   }
   const element = banner;
@@ -70,7 +70,8 @@ export function editAlarmPosition(onFinish?: () => void): void {
   done.type = 'button';
   done.textContent = 'Done';
   done.dataset.positionDone = 'true';
-  element.appendChild(done);
+  // On the top card, so the stack's own cards keep their layout below it.
+  (element.querySelector('.gc-alarm-card') || element).appendChild(done);
   placeAlarmBanner(element);
 
   const guide = document.createElement('div');

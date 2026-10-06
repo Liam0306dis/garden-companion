@@ -504,16 +504,18 @@
 .gc-shop-sprite img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }
 
 /* ── Alarm banner, crop hover label ──────────────────────────────────────────────────────────── */
-#gc-alarm { position:fixed;top:22px;left:50%;z-index:999999;transform:translateX(-50%);width:430px;box-sizing:border-box;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:12px 12px 12px 14px;color:var(--gc-text);background:var(--gc-bg);border:1px solid rgba(251,146,60,.7);border-radius:var(--gc-radius);box-shadow:0 0 0 4px rgba(251,146,60,.14),var(--gc-shadow);animation:gc-alarm-pulse .8s ease-in-out infinite alternate;font:13px var(--gc-font); }
+#gc-alarm { position:fixed;top:22px;left:50%;z-index:999999;transform:translateX(-50%);width:430px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;font:13px var(--gc-font); }
+#gc-alarm .gc-alarm-card { box-sizing:border-box;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:12px 12px 12px 14px;color:var(--gc-text);background:var(--gc-bg);border:1px solid rgba(251,146,60,.7);border-radius:var(--gc-radius);box-shadow:0 0 0 4px rgba(251,146,60,.14),var(--gc-shadow);animation:gc-alarm-pulse .8s ease-in-out infinite alternate; }
 #gc-alarm .gc-alarm-icon { width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#f97316;color:#fff;font:800 20px/1 var(--gc-font);font-style:normal; }
-#gc-alarm div { display:flex;flex-direction:column; }
+#gc-alarm .gc-alarm-card > div { display:flex;flex-direction:column; }
 #gc-alarm small { color:#fdba74;font-size:11px;font-weight:600; }
 #gc-alarm strong { margin:1px 0;color:var(--gc-strong);font-size:16px;font-weight:650; }
 #gc-alarm span { color:var(--gc-muted);font-size:12px; }
 #gc-alarm button { min-height:32px;padding:7px 12px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:600 12px var(--gc-font); }
 #gc-alarm button:hover { background:var(--gc-surface-3); }
-#gc-alarm[data-sample] { animation:none;border-color:var(--gc-accent-line);box-shadow:var(--gc-shadow); }
-#gc-alarm[data-editing] { grid-template-columns:auto minmax(0,1fr);grid-auto-flow:column;grid-auto-columns:auto;cursor:grab;user-select:none;touch-action:none;outline:2px dashed var(--gc-accent-line);outline-offset:4px; }
+#gc-alarm[data-sample] .gc-alarm-card { animation:none;border-color:var(--gc-accent-line);box-shadow:var(--gc-shadow); }
+#gc-alarm[data-editing] { cursor:grab;user-select:none;touch-action:none;outline:2px dashed var(--gc-accent-line);outline-offset:4px;border-radius:var(--gc-radius); }
+#gc-alarm[data-editing] .gc-alarm-card:first-child { grid-template-columns:auto minmax(0,1fr);grid-auto-flow:column;grid-auto-columns:auto; }
 #gc-alarm[data-editing][data-dragging] { cursor:grabbing; }
 #gc-alarm-guide { position:fixed;left:50%;top:0;bottom:0;z-index:999998;width:0;border-left:1px dashed var(--gc-accent-line);opacity:0;pointer-events:none;transition:opacity .12s; }
 #gc-alarm-guide.is-visible { opacity:1; }

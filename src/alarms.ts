@@ -7,11 +7,16 @@ import { escapeHtml } from './utils.js';
 
 /**
  * The alarm banner and its tone. Any feature can raise one, so this owns nothing shop-specific:
- * alarms are keyed by an `owner` string and only one shows at a time, the rest queue behind it.
+ * alarms are keyed by an `owner` string and each gets its own card, listed one below the other in
+ * the order they arrived. Past MAX_VISIBLE_ALARMS the rest wait in a queue and move up as cards go.
  */
 
-let alarm: { timer: ReturnType<typeof setInterval> | null; options: CompanionAlarmOptions } | null = null;
+const MAX_VISIBLE_ALARMS = 4;
+interface ActiveAlarm { options: CompanionAlarmOptions; card: HTMLElement }
+/** The cards on screen, top first. */
+const activeAlarms: ActiveAlarm[] = [];
 const alarmQueue: CompanionAlarmOptions[] = [];
+let alarmTimer: ReturnType<typeof setInterval> | null = null;
 let alarmAudioContext: AudioContext | null = null;
 let alarmPhase = 0;
 
@@ -48,7 +53,7 @@ export function armAlarmAudio(): AudioContext | null {
  * top of unmuted ones still rings for them, and a stack that is muted through and through is silent.
  */
 function anyUnmutedAlarm(): boolean {
-  return Boolean(alarm && !alarm.options.silent) || alarmQueue.some(options => !options.silent);
+  return activeAlarms.some(entry => !entry.options.silent) || alarmQueue.some(options => !options.silent);
 }
 
 function maybePlayAlarmTone(): void {
@@ -57,7 +62,7 @@ function maybePlayAlarmTone(): void {
 
 /** Retunes a pending alarm's sound after the player mutes or unmutes that alert while it is up. */
 export function setAlarmSilenced(owner: string, silent: boolean): void {
-  if (alarm?.options.owner === owner) alarm.options.silent = silent;
+  for (const { options } of activeAlarms) if (options.owner === owner) options.silent = silent;
   for (const options of alarmQueue) if (options.owner === owner) options.silent = silent;
   // A preset goes quiet on its next beep, but a custom clip would play on for up to ten seconds, so
   // muting the last alarm that wanted sound cuts it off there and then.
@@ -340,68 +345,103 @@ export async function previewAlarmSound(): Promise<void> {
   steps.forEach((step, index) => { if (step) presetTone(context, context.currentTime + index * .42, step, settings, true); });
 }
 
-function clearActiveAlarm(): void {
-  if (alarm?.timer) clearInterval(alarm.timer);
-  stopCustomSound();
-  // Placing a banner that is about to go would leave the drag handlers on a detached element.
-  finishEditingAlarmPosition();
-  document.getElementById('gc-alarm')?.remove();
-  alarm = null;
+/** The fixed box the cards sit in; it is what Alert Settings drags and places. */
+function alarmStack(): HTMLElement {
+  let stack = document.getElementById('gc-alarm');
+  // A sample banner from Alert Settings gives way to the real thing.
+  if (stack?.dataset.sample) { finishEditingAlarmPosition(); stack = document.getElementById('gc-alarm'); }
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'gc-alarm';
+    document.body.appendChild(stack);
+  }
+  return stack;
 }
 
 /**
- * The queue line keeps its space when empty rather than being removed from the flow, so the banner
- * is the same size and its buttons sit in the same place whether one item alarmed or five did.
+ * The queue line under the last card keeps its space when empty rather than leaving the flow, so
+ * that card is the same size and its buttons sit in the same place whether anything waits or not.
  */
 function updateAlarmQueueCount(): void {
-  const count = document.querySelector<HTMLElement>('#gc-alarm [data-alarm-queue]');
-  if (!count) return;
-  count.style.visibility = alarmQueue.length ? 'visible' : 'hidden';
-  count.textContent = alarmQueue.length === 1 ? '1 more alarm queued' : `${alarmQueue.length} more alarms queued`;
+  activeAlarms.forEach(({ card }, index) => {
+    const count = card.querySelector<HTMLElement>('[data-alarm-queue]');
+    if (!count) return;
+    const last = index === activeAlarms.length - 1;
+    count.style.display = last ? '' : 'none';
+    count.style.visibility = last && alarmQueue.length ? 'visible' : 'hidden';
+    count.textContent = alarmQueue.length === 1 ? '1 more alarm queued' : `${alarmQueue.length} more alarms queued`;
+  });
 }
 
 export function updateAlarmDetail(owner: string, detail: string): void {
   for (const options of alarmQueue) if (options.owner === owner) options.detail = detail;
-  if (alarm?.options.owner !== owner) return;
-  alarm.options.detail = detail;
-  const element = document.querySelector<HTMLElement>('#gc-alarm [data-alarm-detail]');
-  if (element) element.textContent = detail;
+  for (const { options, card } of activeAlarms) {
+    if (options.owner !== owner) continue;
+    options.detail = detail;
+    const element = card.querySelector<HTMLElement>('[data-alarm-detail]');
+    if (element) element.textContent = detail;
+  }
 }
 
-function dismissCurrentAlarm(): void {
-  clearActiveAlarm();
-  const next = alarmQueue.shift();
-  if (next) renderAlarmBanner(next);
+/**
+ * Takes cards off screen and slides the ones below up into the gap (measured before and after, then
+ * eased from the old spot), topping the list back up from the queue.
+ */
+function removeAlarms(remove: Set<ActiveAlarm>): void {
+  if (!remove.size) return;
+  // Placing a banner whose cards are changing would leave the Done button on a detached card.
+  finishEditingAlarmPosition();
+  const before = new Map(activeAlarms.map(entry => [entry, entry.card.getBoundingClientRect().top]));
+  for (let index = activeAlarms.length - 1; index >= 0; index--) {
+    if (remove.has(activeAlarms[index])) activeAlarms.splice(index, 1)[0].card.remove();
+  }
+  fillFromQueue();
+  const stack = document.getElementById('gc-alarm');
+  if (!activeAlarms.length) {
+    if (alarmTimer) clearInterval(alarmTimer);
+    alarmTimer = null;
+    stopCustomSound();
+    stack?.remove();
+    return;
+  }
+  if (stack) placeAlarmBanner(stack);
+  for (const entry of activeAlarms) {
+    const old = before.get(entry);
+    const shift = old === undefined ? 0 : old - entry.card.getBoundingClientRect().top;
+    if (shift) entry.card.animate([{ transform: `translateY(${shift}px)` }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
+  }
+  updateAlarmQueueCount();
+}
+
+function fillFromQueue(): void {
+  while (activeAlarms.length < MAX_VISIBLE_ALARMS && alarmQueue.length) renderAlarmCard(alarmQueue.shift()!);
 }
 
 export function stopAlarm(owner?: string): void {
   if (!owner) {
     alarmQueue.length = 0;
-    clearActiveAlarm();
+    removeAlarms(new Set(activeAlarms));
     return;
   }
   for (let index = alarmQueue.length - 1; index >= 0; index--) {
     if (alarmQueue[index].owner === owner) alarmQueue.splice(index, 1);
   }
-  if (alarm?.options.owner === owner) {
-    clearActiveAlarm();
-    const next = alarmQueue.shift();
-    if (next) renderAlarmBanner(next);
-  } else updateAlarmQueueCount();
+  const matching = activeAlarms.filter(entry => entry.options.owner === owner);
+  if (matching.length) removeAlarms(new Set(matching));
+  else updateAlarmQueueCount();
 }
 
-function renderAlarmBanner(options: CompanionAlarmOptions): void {
-  // A sample banner from Alert Settings gives way to the real thing.
-  finishEditingAlarmPosition();
-  const banner = document.createElement('div');
-  banner.id = 'gc-alarm';
+function renderAlarmCard(options: CompanionAlarmOptions): void {
+  const card = document.createElement('div');
+  card.className = 'gc-alarm-card';
   const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : '';
   const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : '';
-  banner.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
-  document.body.appendChild(banner);
-  placeAlarmBanner(banner);
-  banner.querySelector<HTMLButtonElement>('[data-stop]')!.onclick = dismissCurrentAlarm;
-  const actionButton = banner.querySelector<HTMLButtonElement>('[data-buy]');
+  card.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
+  const entry: ActiveAlarm = { options, card };
+  activeAlarms.push(entry);
+  alarmStack().appendChild(card);
+  card.querySelector<HTMLButtonElement>('[data-stop]')!.onclick = () => removeAlarms(new Set([entry]));
+  const actionButton = card.querySelector<HTMLButtonElement>('[data-buy]');
   if (actionButton && options.onAction) {
     actionButton.onclick = async () => {
       // An action that throws part way (a buy loop losing its connection) must not leave the button
@@ -414,22 +454,25 @@ function renderAlarmBanner(options: CompanionAlarmOptions): void {
       }
     };
   }
-  alarmPhase = 0;
-  // The timer runs while any alarm is up; each tick decides whether to sound, so a muted banner on
-  // top still rings for unmuted alarms queued behind it, and later arrivals start it sounding again.
-  alarm = { timer: null, options };
-  maybePlayAlarmTone();
-  alarm.timer = setInterval(maybePlayAlarmTone, 420);
-  updateAlarmQueueCount();
 }
 
 export function showAlarmBanner(options: CompanionAlarmOptions): void {
-  if (alarm) {
+  if (activeAlarms.length >= MAX_VISIBLE_ALARMS) {
     alarmQueue.push(options);
     updateAlarmQueueCount();
     return;
   }
-  renderAlarmBanner(options);
+  finishEditingAlarmPosition();
+  renderAlarmCard(options);
+  placeAlarmBanner(alarmStack());
+  updateAlarmQueueCount();
+  // One timer runs while any card is up; each tick decides whether to sound, so a muted card still
+  // rings for unmuted ones beside it, and a later unmuted arrival starts it sounding again.
+  if (!alarmTimer) {
+    alarmPhase = 0;
+    alarmTimer = setInterval(maybePlayAlarmTone, 420);
+  }
+  maybePlayAlarmTone();
 }
 
 /**
