@@ -286,11 +286,10 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
     bands.push({ row: parent, width: packChips(remaining, gap) });
   }
 
-  // One line per estimate, the padlock riding along on the first one.
+  // One line per estimate. The padlock is not a line: it is pinned to the card's corner further down.
   const lock = chipsByLine.get(LOCK);
   const estimates = lines.filter(line => line !== LOCK).map(line => chipsByLine.get(line)).filter(Boolean) as PixiNode[];
-  const groups = estimates.length ? estimates.map((chip, index) => index === 0 && lock ? [lock, chip] : [chip]) : lock ? [[lock]] : [];
-  const ourRows = groups.map(group => {
+  const ourRows = estimates.map(chip => [chip]).map(group => {
     const row = new (card.constructor as new () => PixiNode)();
     row.label = 'GardenCompanionEstimateRow';
     const height = Math.max(...group.map(chip => Number(chip.height)));
@@ -341,6 +340,11 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
     y += Number(entry.row.height);
   }
 
+  const frame = card.parent;
+  const nativeLock = frame?.getChildByLabel?.('GardenInfoCropLock');
+  if (nativeLock) nativeLock.x += extraWidth;
+  const lockLeft = lock && frame ? pinLockToCorner(lock, card, frame, newWidth, nativeLock, view) : null;
+
   const extraHeight = newHeight - oldHeight;
   if (!extraWidth && !extraHeight && drawnHeight === oldHeight) return;
   // The background is two nine-slice sprites drawn at a bake scale; resize them the way its draw does.
@@ -354,7 +358,6 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   mount.y = newHeight / 2;
   if (dots) { dots.x += extraWidth / 2; dots.y += extraHeight; }
 
-  const frame = card.parent;
   const badge = frame?.getChildByLabel?.('GardenInfoPreservedBadge');
   if (badge) badge.x += extraWidth;
   const section = (view.sections || []).find((candidate: PixiNode) => candidate.container === frame || candidate.container === frame?.parent);
@@ -365,7 +368,10 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   const heightChange = extraHeight - overhang + newOverhang;
   section.width += extraWidth;
   section.height = Number(section.height) + heightChange;
-  if (section.topOverhang) section.topOverhang.openToXPx += extraWidth;
+  if (section.topOverhang) {
+    section.topOverhang.openToXPx += extraWidth;
+    if (lockLeft !== null) section.topOverhang.openToXPx = Math.min(section.topOverhang.openToXPx, lockLeft - 4);
+  }
   const right = section.container.getChildByLabel?.('GardenInfoBrowseButton:right');
   const left = section.container.getChildByLabel?.('GardenInfoBrowseButton:left');
   if (right) right.x += extraWidth;
@@ -374,6 +380,35 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
     view.cropPopTarget.width += extraWidth;
     view.cropPopTarget.height += heightChange;
   }
+}
+
+/** Where the game centres its own crop lock: this far in from the card's right edge and down from its top. */
+const CORNER_INSET_X = 14;
+const CORNER_INSET_Y = 8;
+/** The game's own lock is drawn 30px tall; ours is brought up to most of that so it reads as a badge. */
+const CORNER_LOCK_HEIGHT = 22;
+
+/**
+ * Hangs the padlock off the card's top right corner, where the game puts its own crop lock, rather
+ * than as a line inside the card. It goes in the frame beside the card so it can overhang the edge.
+ * When the game's lock is also there ours sits just left of it, and the preserved badge (which the
+ * game right-aligns to the card) moves left of ours.
+ */
+function pinLockToCorner(lock: PixiNode, card: PixiNode, frame: PixiNode, cardWidth: number, nativeLock: PixiNode | null, view: PixiNode): number {
+  const height = Number(lock.height) || 1;
+  const scale = CORNER_LOCK_HEIGHT / height;
+  lock.scale?.set?.(Number(lock.scale.x || 1) * scale, Number(lock.scale.y || 1) * scale);
+  const width = Number(lock.width);
+  const centreX = Number(card.x || 0) + cardWidth - CORNER_INSET_X - (nativeLock ? Number(nativeLock.width) + 4 : 0);
+  frame.addChild(lock);
+  lock.position.set(Math.round(centreX - width / 2), Math.round(Number(card.y || 0) + CORNER_INSET_Y - Number(lock.height) / 2));
+  const left = Number(lock.x);
+  const badge = frame.getChildByLabel?.('GardenInfoPreservedBadge');
+  if (badge && Number(badge.x) + Number(badge.width) > left - 2) badge.x = left - 2 - Number(badge.width);
+  // The section above may lean into this one's top edge; keep it clear of the padlock's overhang.
+  const section = (view.sections || []).find((candidate: PixiNode) => candidate.container === frame || candidate.container === frame.parent);
+  if (section?.topOverhang && section.topOverhang.openToXPx > left - 4) section.topOverhang.openToXPx = left - 4;
+  return left;
 }
 
 /**
