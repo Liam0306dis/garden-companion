@@ -2734,7 +2734,6 @@ ${groups}
       const count = card.querySelector("[data-alarm-queue]");
       if (!count) return;
       const last = index === activeAlarms.length - 1;
-      count.style.display = last ? "" : "none";
       count.style.visibility = last && alarmQueue.length ? "visible" : "hidden";
       count.textContent = alarmQueue.length === 1 ? "1 more alarm queued" : `${alarmQueue.length} more alarms queued`;
     });

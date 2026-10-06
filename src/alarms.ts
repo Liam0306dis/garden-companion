@@ -361,15 +361,15 @@ function alarmStack(): HTMLElement {
 }
 
 /**
- * The queue line under the last card keeps its space when empty rather than leaving the flow, so
- * that card is the same size and its buttons sit in the same place whether anything waits or not.
+ * Only the last card shows the queue line, but every card keeps its space rather than dropping it
+ * from the flow, so all cards are the same size and a card above never changes shape (moving its
+ * text and buttons) when another arrives below it or the queue empties.
  */
 function updateAlarmQueueCount(): void {
   activeAlarms.forEach(({ card }, index) => {
     const count = card.querySelector<HTMLElement>('[data-alarm-queue]');
     if (!count) return;
     const last = index === activeAlarms.length - 1;
-    count.style.display = last ? '' : 'none';
     count.style.visibility = last && alarmQueue.length ? 'visible' : 'hidden';
     count.textContent = alarmQueue.length === 1 ? '1 more alarm queued' : `${alarmQueue.length} more alarms queued`;
   });

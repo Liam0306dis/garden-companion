@@ -7,7 +7,7 @@ import { config } from '../src/config.js';
 const banner = () => document.getElementById('gc-alarm');
 
 const titles = () => [...document.querySelectorAll('#gc-alarm .gc-alarm-card strong')].map(element => element.textContent);
-const queueLine = () => [...document.querySelectorAll<HTMLElement>('#gc-alarm [data-alarm-queue]')].find(element => element.style.display !== 'none')!;
+const queueLine = () => [...document.querySelectorAll<HTMLElement>('#gc-alarm [data-alarm-queue]')].find(element => element.style.visibility === 'visible')!;
 
 test('stacked by default: one card shows with the rest queued behind it', () => {
   showAlarmBanner({ owner: 'a', label: 'A', title: 'First' });
