@@ -20,9 +20,7 @@ export interface ProduceItem {
   id: string;
   species: string;
   itemType?: string;
-  /** Old size model. */
-  scale?: number;
-  /** New size model: integer 50-100. */
+  /** Integer 50-100. */
   size?: number;
   mutations?: string[];
 }
@@ -59,9 +57,7 @@ export interface PlantSlot {
   endTime?: number;
   maturedAt?: number;
   mutations?: string[];
-  /** Old size model: a scale multiplier from 1 up to the crop's maxScale. */
-  targetScale?: number;
-  /** New size model: an integer 50-100 the game shows directly as the crop's size. */
+  /** An integer 50-100 the game shows directly as the crop's size. */
   size?: number;
   preserved?: boolean;
   /** Set by the game's own crop lock (SetGrowSlotLock); a locked crop cannot be harvested. */

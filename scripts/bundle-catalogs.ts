@@ -14,7 +14,7 @@ export interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string ; abilities: string[] }>;
-  plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxScale?: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
+  plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds: Record<string, number> }>;
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
@@ -65,12 +65,11 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
           /([A-Za-z][A-Za-z0-9_]+):\{(?:sprite:[A-Za-z_$]+\.Pet\.[A-Za-z][A-Za-z0-9_]+,)?name:`[^`]+`,coinsToFullyReplenishHunger:[0-9.e+-]+,innateAbilityWeights:\{([^}]*)\}/g)]
           .map(match => [match[1], [...match[2].matchAll(/([A-Za-z][A-Za-z0-9_]*):/g)].map(entry => entry[1])]));
         // Build 1291 put a `name` field ahead of `seed`, so it is matched optionally.
-        // The size update replaced a crop's `maxScale` with `maxSizeMultiplier`, optionally preceded
-        // by `baseTileScale`. Some crops (Clover, Milkcap, the seasonals) carry maxSizeMultiplier with
-        // no baseTileScale, so that field is optional or those crops drop out of the catalog entirely.
-        // The tail matches either form: match[8] is the old maxScale, match[9] the optional
-        // baseTileScale, match[10] the new maxSizeMultiplier.
-        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{(?:name:`[^`]*`,)?seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?(?:maxScale:([0-9.e+-]+)|(?:baseTileScale:([0-9.e+-]+),)?maxSizeMultiplier:([0-9.e+-]+))/g)];
+        // A crop's `maxSizeMultiplier` is optionally preceded by `baseTileScale`. Some crops (Clover,
+        // Milkcap, the seasonals) carry maxSizeMultiplier with no baseTileScale, so that field is
+        // optional or those crops drop out of the catalog entirely. match[8] is the optional
+        // baseTileScale, match[9] the maxSizeMultiplier.
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{(?:name:`[^`]*`,)?seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?(?:baseTileScale:([0-9.e+-]+),)?maxSizeMultiplier:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
         // The pity block follows the weights closely, and is captured with a tight bound rather
         // than a lazy run so a missing one cannot reach forward into the next egg's. Optional: an
@@ -102,9 +101,8 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
               // a Dawnbinder Bulb and ThunderCelestialShroomPlant is a Stormcap.
               crop: {
                 name: match[5], baseSellPrice: Number(match[6]), baseWeight: Number(match[7]), sprite: match[4],
-                ...(match[8] ? { maxScale: Number(match[8]) } : {}),
-                ...(match[9] ? { baseTileScale: Number(match[9]) } : {}),
-                ...(match[10] ? { maxSizeMultiplier: Number(match[10]) } : {}),
+                ...(match[8] ? { baseTileScale: Number(match[8]) } : {}),
+                maxSizeMultiplier: Number(match[9]),
               },
               // What the game calls the plant rather than its crop, which is the only name a patch
               // has: a daisy patch grows daisies and purple daisies, and neither crop names the tile.

@@ -1,12 +1,13 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import { catalogsFromSnapshots } from './bundle-catalogs.js';
-import { argValue, pullSnapshot, readSnapshot, ROOT, type Snapshot } from './bundle-snapshot.js';
+import { argValue, DEFAULT_ORIGIN, liveVersion, pullSnapshot, readSnapshot, ROOT, snapshotDirs, snapshotVersion, type Snapshot } from './bundle-snapshot.js';
 
 /**
  * Game-bundle drift check for what garden-companion depends on.
  *
- * Pulls the live bundle into `bundles/` (or reads one with `--dir <snapshot>`) and checks:
+ * Pulls the live bundle into `bundles/` only when the game version has no complete capture there yet
+ * (or reads one with `--dir <snapshot>`), then checks:
  *   - every command the companion sends inside the QuinoaCommand envelope is still wrapped by the
  *     game, and every one it sends bare is still sent bare - read from the companion's own source,
  *     so the list cannot fall behind it;
@@ -16,7 +17,8 @@ import { argValue, pullSnapshot, readSnapshot, ROOT, type Snapshot } from './bun
  *   - that the build can still scrape its catalogs out of this bundle.
  *
  * Exit code: 0 = no drift, 1 = drift, 2 = error. Usage:
- *   npm run check-bundle                                    # pull live, then check
+ *   npm run check-bundle                                    # pull live if the version is new, then check
+ *   npm run check-bundle -- --force                         # pull even if this version is already captured
  *   npm run check-bundle -- --dir bundles/bundle-1260-20260924   # check a capture offline
  */
 
@@ -211,14 +213,37 @@ export async function checkSnapshot(snapshot: Snapshot, sent: SentCommands): Pro
   return result;
 }
 
+/**
+ * A complete capture of this game version already in `bundles/`, newest date first, or null. One
+ * with failed chunks does not count, so a bad pull is retried on the next run.
+ */
+async function existingSnapshot(version: string): Promise<Snapshot | null> {
+  for (const dir of await snapshotDirs()) {
+    if (snapshotVersion(dir) !== Number(version)) continue;
+    const snapshot = await readSnapshot(dir);
+    if (!snapshot.failed.length) return snapshot;
+  }
+  return null;
+}
+
 async function main(): Promise<void> {
   const dir = argValue('--dir');
   let snapshot: Snapshot;
   if (dir) snapshot = await readSnapshot(resolve(dir));
   else {
-    console.log('pulling live game bundle...');
-    snapshot = await pullSnapshot(argValue('--origin') ?? undefined, text => process.stdout.write(text));
-    process.stdout.write('\n');
+    // Only downloaded when the game version moved (or --force): an unchanged version is checked
+    // against the capture already on disk.
+    const origin = argValue('--origin') ?? DEFAULT_ORIGIN;
+    const live = await liveVersion(origin);
+    const have = process.argv.includes('--force') ? null : await existingSnapshot(live);
+    if (have) {
+      console.log(`game version ${live} already captured - using ${relative(ROOT, have.dir)} (--force to pull anyway)`);
+      snapshot = have;
+    } else {
+      console.log(`pulling live game bundle (version ${live})...`);
+      snapshot = await pullSnapshot(origin, text => process.stdout.write(text));
+      process.stdout.write('\n');
+    }
   }
   console.log(`bundle drift check: ${relative(ROOT, snapshot.dir)}${snapshot.version ? ` (game version ${snapshot.version})` : ''}, ${snapshot.files.size} files\n`);
   const result = await checkSnapshot(snapshot, await companionCommands());

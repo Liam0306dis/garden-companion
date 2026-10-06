@@ -1,7 +1,7 @@
 import { catalogs } from './setup.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { maxSizeMultiplier, sizeFromScale, slotIsMaxSize, slotScale, slotSizePercent } from '../src/crop-size.js';
+import { sizeFromScale, slotIsMaxSize, slotScale, slotSizePercent } from '../src/crop-size.js';
 import { catalogMutationMultiplier } from '../src/mutation-value.js';
 import { mutationName, plantName, patchName, PATCH_FAMILY_OF } from '../src/constants.js';
 import { escapeHtml, formatDuration, humanize } from '../src/utils.js';
@@ -12,20 +12,11 @@ test('crop size reads the new integer size model', () => {
   assert.equal(slotScale(crop, { size: 100 }), 3);
   assert.equal(slotScale(crop, { size: 75 }), 2);
   assert.equal(slotScale(crop, { size: 140 }), 3, 'size is capped at 100');
-  assert.equal(slotIsMaxSize(crop, { size: 100 }), true);
-  assert.equal(slotIsMaxSize(crop, { size: 99 }), false);
-  assert.equal(slotSizePercent(crop, { size: 73.4 }), 73);
+  assert.equal(slotIsMaxSize({ size: 100 }), true);
+  assert.equal(slotIsMaxSize({ size: 99 }), false);
+  assert.equal(slotSizePercent({ size: 73.4 }), 73);
   assert.equal(sizeFromScale(3, 2), 75);
   assert.equal(sizeFromScale(1, 5), 50, 'a fixed-size crop is always 50');
-});
-
-test('crop size still reads the old targetScale model', () => {
-  const crop = { maxScale: 2 };
-  assert.equal(maxSizeMultiplier(crop), 2);
-  assert.equal(slotScale(crop, { targetScale: 1.5 }), 1.5);
-  assert.equal(slotIsMaxSize(crop, { targetScale: 2 }), true);
-  assert.equal(slotSizePercent(crop, { targetScale: 1.5 }), 75);
-  assert.equal(slotSizePercent(crop, { targetScale: 1 }), 50);
 });
 
 test('mutation multipliers follow the game formula, including the weather and lunar pairs', () => {

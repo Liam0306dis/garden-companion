@@ -12,12 +12,12 @@ import { currentWeather } from './weather-timer.js';
 const PLANT_GROWTH_ABILITIES = new Set(['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost']);
 const PLANT_GROWTH_WEATHER: Record<string, string> = { SnowyPlantGrowthBoost: 'Frost', DawnPlantGrowthBoost: 'Dawn', AmberPlantGrowthBoost: 'AmberMoon', ThunderPlantGrowthBoost: 'Thunderstorm' };
 import { crystalStrengthBonus, mutationSprite, onSpritesReady, petMetrics, produceSprite } from '../pets.js';
-import { maxSizeMultiplier, slotIsMaxSize, slotScale } from '../crop-size.js';
+import { MAX_SIZE, maxSizeMultiplier, slotIsMaxSize, slotScale } from '../crop-size.js';
 import { toast } from '../toast.js';
 import { NAME_OVERRIDES, NUMBER_LOCALE } from '../utils.js';
 
 interface PlantCatalogEntry {
-  crop?: { baseSellPrice?: number; maxScale?: number; maxSizeMultiplier?: number };
+  crop?: { baseSellPrice?: number; maxSizeMultiplier?: number };
 }
 
 export interface OverviewRuntimeState {
@@ -53,7 +53,6 @@ interface OverviewStats {
   unmutated: number;
   notMaxSize: number;
   allCrops: number;
-  allTargetProgress: Record<string, number>;
   friendBonus: number;
   /** Seconds of growth progressed per real second from active Plant Growth Boost pets. */
   growthRate: number;
@@ -262,7 +261,7 @@ function calculateStats(
   ignorePreserved: boolean,
   mutationConfig: MutationConfig,
 ): OverviewStats {
-  const result: OverviewStats = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, allTargetProgress: {}, friendBonus: 1, growthRate: 0 };
+  const result: OverviewStats = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, friendBonus: 1, growthRate: 0 };
   const bySpecies = new Map<string, SpeciesStats>();
   const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
   const friendCount = Math.min(5, Math.max(0, (runtime.room?.players?.length ?? 1) - 1));
@@ -272,6 +271,9 @@ function calculateStats(
   const allMissing: Record<string, number> = {};
   const trackedMissing: Record<string, number> = {};
   const eligibleSlots: Array<{ slot: PlantSlot; species: string; tracked: boolean }> = [];
+  // The mutation estimates always leave preserved crops out, whatever the overview's own setting:
+  // a preserved crop is never going to be worked on, so it should not hold an estimate open.
+  let trackedEtaCrops = 0;
 
   function recordMissing(target: Record<string, number>, mutations: string[]): void {
     const thunder = mutations.includes('Thunderstruck') || mutations.includes('Thundercharged');
@@ -294,9 +296,8 @@ function calculateStats(
   for (const tile of Object.values(tiles)) {
     if (tile.objectType !== 'plant' || !tile.species || !Array.isArray(tile.slots)) continue;
     for (const slot of tile.slots as PlantSlot[]) {
-      if (ignorePreserved && slot.preserved) continue;
+      if (slot.preserved) continue;
       result.allCrops++;
-      for (const mutation of slot.mutations ?? []) result.allTargetProgress[mutation] = (result.allTargetProgress[mutation] ?? 0) + 1;
       recordMissing(allMissing, slot.mutations ?? []);
       eligibleSlots.push({ slot, species: slot.species ?? tile.species, tracked: !filter || filter.has(slot.species ?? tile.species) });
     }
@@ -322,7 +323,10 @@ function calculateStats(
       const species = speciesRow(slotSpecies);
       result.crops++;
       species.crops++;
-      recordMissing(trackedMissing, slot.mutations ?? []);
+      if (!slot.preserved) {
+        trackedEtaCrops++;
+        recordMissing(trackedMissing, slot.mutations ?? []);
+      }
       const endTime = Number(slot.endTime ?? 0);
       if (endTime <= now) { result.mature++; species.mature++; }
       else {
@@ -340,8 +344,8 @@ function calculateStats(
       if (slotMutations.some(name => ['Dawncharged', 'Dawnbound', 'Ambercharged', 'Amberbound'].includes(name))) result.targetProgress.DawnAmbercharged = (result.targetProgress.DawnAmbercharged ?? 0) + 1;
       if (!(slot.mutations || []).length) result.unmutated++;
       const crop = catalog?.[slotSpecies]?.crop;
-      // Only crops that can actually grow count towards "not max size", matching the old maxScale gate.
-      if (maxSizeMultiplier(crop) > 1 && !slotIsMaxSize(crop, slot)) result.notMaxSize++;
+      // Only crops that can actually grow count towards "not max size".
+      if (maxSizeMultiplier(crop) > 1 && !slotIsMaxSize(slot)) result.notMaxSize++;
       const base = crop?.baseSellPrice ?? 0;
       const value = Math.round(base * slotScale(crop, slot) * catalogMutationMultiplier(slot.mutations ?? []) * friendMultiplier);
       result.value += value;
@@ -428,7 +432,7 @@ function calculateStats(
   }
 
   const missingPool = mutationConfig.granterAllGarden ? allMissing : trackedMissing;
-  const poolTotal = mutationConfig.granterAllGarden ? result.allCrops : result.crops;
+  const poolTotal = mutationConfig.granterAllGarden ? result.allCrops : trackedEtaCrops;
   for (const [ability, rule] of Object.entries(GRANTERS)) {
     addEta(rule.mutation, ability, rule.chance, missingPool[rule.mutation] ?? 0, poolTotal);
   }
@@ -436,31 +440,16 @@ function calculateStats(
   /**
    * The worst crop's number of size-boost procs to reach maximum size.
    *
-   * The size update reworked this: a crop's size is a flat 50-100 stat and each proc adds a whole
-   * `sizeIncrease` to it, capped at 100 for every crop - so strength no longer changes the amount (it
-   * only scales the proc rate, handled in addEta) and the species no longer matters. A slot carrying
-   * `size` is on the new model; the old multiplicative-to-maxScale path is kept for the live build
-   * until it ships.
+   * A crop's size is a flat 50-100 stat and each proc adds a whole `sizeIncrease` to it, capped at
+   * 100 for every crop - so strength does not change the amount (it only scales the proc rate,
+   * handled in addEta) and the species does not matter.
    */
-  function boostsUntilMax(ability: string | string[], baseBoost: number, cap: number, sizeIncrease: number): number {
-    const abilities = Array.isArray(ability) ? ability : [ability];
-    const strengths = availablePets.filter(pet => pet.abilities?.some(name => abilities.includes(name))).map(petStrength).sort((a, b) => b - a).slice(0, 3);
-    const average = strengths.length ? strengths.reduce((sum, value) => sum + value, 0) / strengths.length : 87;
-    const multiplier = 1 + baseBoost * average / 100;
+  function boostsUntilMax(sizeIncrease: number): number {
     let maximum = 0;
     for (const candidate of eligibleSlots) {
       if (!mutationConfig.granterAllGarden && !candidate.tracked) continue;
-      const size = (candidate.slot as { size?: number }).size;
-      if (size != null) {
-        if (Number(size) < 100) maximum = Math.max(maximum, Math.ceil((100 - Number(size)) / Math.max(1, sizeIncrease)));
-        continue;
-      }
-      const maxScale = catalog?.[candidate.species]?.crop?.maxScale;
-      if (!maxScale) continue;
-      let scale = Number(candidate.slot.targetScale ?? 1);
-      let boosts = 0;
-      while (scale < maxScale && boosts <= cap) { scale *= multiplier; boosts++; }
-      maximum = Math.max(maximum, boosts);
+      const size = candidate.slot.size;
+      if (size != null && Number(size) < MAX_SIZE) maximum = Math.max(maximum, Math.ceil((MAX_SIZE - Number(size)) / Math.max(1, sizeIncrease)));
     }
     return maximum;
   }
@@ -471,8 +460,8 @@ function calculateStats(
     const value = Number(ABILITY_DETAILS[ability]?.baseParameters?.sizeIncrease);
     return Number.isFinite(value) && value > 0 ? value : fallback;
   };
-  const maxSizeBoosts = boostsUntilMax(['ProduceScaleBoostII', 'Crop Size Boost II'], .1, 20, sizeIncreaseOf('ProduceScaleBoostII', 7));
-  const beeSizeBoosts = boostsUntilMax('ProduceScaleBoost', .06, 200, sizeIncreaseOf('ProduceScaleBoost', 4));
+  const maxSizeBoosts = boostsUntilMax(sizeIncreaseOf('ProduceScaleBoostII', 7));
+  const beeSizeBoosts = boostsUntilMax(sizeIncreaseOf('ProduceScaleBoost', 4));
   addEta('Max Size', ['ProduceScaleBoostII', 'Crop Size Boost II'], .4, maxSizeBoosts, null, true);
   addEta('Bee Size', 'ProduceScaleBoost', .3, beeSizeBoosts, null, true);
   return result;

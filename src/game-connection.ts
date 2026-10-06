@@ -67,6 +67,27 @@ export function seedCommandSequence(executedCommandSequence: unknown): void {
 }
 
 /**
+ * Seeds the counter without a Welcome, for a socket that was already open when we loaded: its
+ * Welcome is long gone, so without this nothing we send on it would carry a sequence.
+ *
+ * The game's own frame is the best source when it is the one going out: the game numbers it from
+ * its own counter, which was seeded from that Welcome and has seen every command since, including
+ * ones still in flight. The frontier alone would hand those in-flight numbers out a second time,
+ * and the server drops a duplicate silently. Our own frames carry no number, so they fall back to
+ * frontier+1. allocateSequence still jumps forward should the frontier turn out to be ahead.
+ *
+ * A fresh connection sends no command before its Welcome, so this never runs ahead of one.
+ */
+function seedWithoutWelcome(frame: Record<string, unknown>): void {
+  readServerFrontier();
+  const stamped = Number(frame.commandSequence);
+  if (Number.isFinite(stamped) && stamped > 0) sequence = stamped;
+  else if (frontier >= 0) sequence = frontier + 1;
+  else return;
+  console.info('[Garden Companion] Command sequencer seeded without a Welcome.', { stamped: frame.commandSequence, frontier, sequence });
+}
+
+/**
  * Advance our idea of the server's frontier when we see a higher one. The frontier only ever climbs
  * within a session (a reconnect re-seeds it through Welcome), so a plain max is all it takes.
  */
@@ -202,7 +223,9 @@ export function noteServerFrame(data: unknown): void {
  * renumbering alongside us.
  */
 export function renumberOutgoingCommand(frame: Record<string, unknown>): boolean {
-  if (sequence < 0 || frame.type !== 'QuinoaCommand') return false;
+  if (frame.type !== 'QuinoaCommand') return false;
+  if (sequence < 0) seedWithoutWelcome(frame);
+  if (sequence < 0) return false;
   frame.commandSequence = allocateSequence();
   return true;
 }

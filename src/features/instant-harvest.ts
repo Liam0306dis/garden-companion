@@ -2,6 +2,7 @@ import type { PlantSlot } from '../types.js';
 import { feature } from '../config.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { isTyping } from '../keybinds.js';
+import { serverNow } from '../server-clock.js';
 import { state } from '../state.js';
 import { toast } from '../toast.js';
 import { worldSceneActive } from '../world-scene.js';
@@ -47,7 +48,8 @@ export function installInstantHarvest(): void {
     }
     const tile = dirtIndex == null ? undefined : tileObjects[String(dirtIndex)];
     if (!tile?.slots?.length) return;
-    const now = Date.now();
+    // endTime is a server timestamp, so it is read against the server clock rather than this PC's.
+    const now = serverNow();
     // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
     // which is exactly what this key skips, so a preserved slot is never a candidate here.
     // A slot the game has locked is skipped the same way: the lock exists to stop harvests.

@@ -33,10 +33,6 @@ function protectedSpecies(): Record<string, boolean> {
   return config.protectedSpecies && typeof config.protectedSpecies === 'object' ? config.protectedSpecies : {};
 }
 
-function atMaxSize(slot: PlantSlot, species: string): boolean {
-  return slotIsMaxSize(PLANT_CATALOG[species]?.crop, slot);
-}
-
 /**
  * Why this crop is protected, or null to let it through. Mutations and size are checked before the
  * species list so that turning a species off cannot expose a crop the mutation rules still cover.
@@ -46,7 +42,7 @@ export function protectionReason(slot: PlantSlot | undefined, species: string): 
   const mutations = protectedMutations();
   const matched = (slot.mutations ?? []).find(mutation => mutations.has(mutation));
   if (matched) return MUTATION_CATALOG[matched]?.name || humanize(matched);
-  if (config.protectMaxSize === true && atMaxSize(slot, species)) return 'max size';
+  if (config.protectMaxSize === true && slotIsMaxSize(slot)) return 'max size';
   if (protectedSpecies()[species] === true) return plantName(species);
   return null;
 }

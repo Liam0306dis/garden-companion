@@ -1,3 +1,10 @@
+0.9.32
+- Fixed Egg Luck and Pet Abilities sometimes counting the same event twice after a reconnect
+- The instant harvest key now checks crops against the game's clock, so it no longer fires a moment early when your PC clock runs ahead
+- Crop Protection, plant moves and other actions now work when the companion loads after the game has already connected
+- Crop sizes in the layout planner and crop value calculator now match the figure the game shows
+- Garden Overview: mutation estimates always leave preserved crops out
+
 0.9.31
 - Fixed auto-store, taking seeds out of the Seed Silo in the Farm Manager, and taking tools out of the Tool Shack after the latest game update
 - Fixed the Garden Companion window jumping out of place when turning a setting on or off on the Features tab

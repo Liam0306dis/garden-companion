@@ -74,9 +74,6 @@ function absorb(candidate: Row, keys: string[]): string | null {
       return {
         crop: {
           name: String(crop.name || ''), baseSellPrice: Number(crop.baseSellPrice) || 0, baseWeight: Number(crop.baseWeight) || 0,
-          // The size update swapped maxScale for maxSizeMultiplier + baseTileScale; keep whichever the
-          // live game gives so both models resolve a crop's scale.
-          ...(crop.maxScale != null ? { maxScale: Number(crop.maxScale) || 1 } : {}),
           ...(crop.maxSizeMultiplier != null ? { maxSizeMultiplier: Number(crop.maxSizeMultiplier) || 1 } : {}),
           ...(crop.baseTileScale != null ? { baseTileScale: Number(crop.baseTileScale) } : {}),
         },

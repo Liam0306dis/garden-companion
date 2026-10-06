@@ -29,12 +29,9 @@ export function heldProduce(): ProduceItem[] {
 
 export function produceValue(item: ProduceItem): number {
   const base = Number(page.__gardenCompanionPlantPrice?.(item.species) || 0) || 1;
-  // The size update moved produce onto an integer `size` (50-100); its sell value scales with the
-  // crop's maxSizeMultiplier exactly as slotScale computes. Old-model items still carry a flat
-  // `scale`, which is the fallback when there is no size to read.
-  const crop = PLANT_CATALOG[item.species ?? '']?.crop;
-  const scale = item.size != null && crop?.maxSizeMultiplier != null ? slotScale(crop, item) : Number(item.scale || 1);
-  return base * scale * catalogMutationMultiplier(item.mutations || []);
+  // Produce carries an integer `size` (50-100); its sell value scales with the crop's
+  // maxSizeMultiplier exactly as slotScale computes.
+  return base * slotScale(PLANT_CATALOG[item.species ?? '']?.crop, item) * catalogMutationMultiplier(item.mutations || []);
 }
 
 export function petDiet(species: string): string[] {

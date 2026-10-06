@@ -57,7 +57,7 @@ export function initGardenPlanner(): void {
   function plannedDecor(): GardenTile {
     const tile = { objectType: 'decor', decorId: planner.decorId, rotation: decorRotation() } as GardenTile;
     if (DECOR[planner.decorId]?.mountable && planner.mountedSpecies) {
-      // A mounted crop keeps its own `scale` on both models; the new model also carries `size`.
+      // A mounted crop carries both its own `scale` and its `size`.
       const mountedCrop = PLANTS[planner.mountedSpecies]?.crop;
       const scale = scaleFor(planner.mountedSpecies);
       tile.mountedCrop = {
@@ -65,7 +65,7 @@ export function initGardenPlanner(): void {
         species: planner.mountedSpecies,
         itemType: 'Produce',
         scale,
-        ...(mountedCrop?.maxSizeMultiplier != null ? { size: sizeFromScale(maxSizeMultiplier(mountedCrop), scale) } : {}),
+        size: sizeFromScale(maxSizeMultiplier(mountedCrop), scale),
         mutations: [...planner.mutations],
       };
     }
@@ -79,28 +79,9 @@ export function initGardenPlanner(): void {
     return Math.min(max, Math.max(1, planner.scale));
   }
 
-  /**
-   * The size fields a planned crop slot carries, fed to the game's own tile system. The size update
-   * replaced a slot's `targetScale` with an integer `size` (50-100); a crop whose catalog gives
-   * `maxSizeMultiplier` is on the new model and gets `size`, everything else keeps `targetScale`.
-   */
-  function slotSizeFields(species: string): { targetScale?: number; size?: number } {
-    const crop = PLANTS[species]?.crop;
-    const scale = scaleFor(species);
-    if (crop?.maxSizeMultiplier != null) return { size: sizeFromScale(maxSizeMultiplier(crop), scale) };
-    return { targetScale: scale };
-  }
-
-  /**
-   * The game's own size figures rather than the internal scale multiplier, so the slider reads the
-   * way a crop's card does: a percentage where scale 1 is 50% and the maximum is 100%, and the
-   * weight it works out to. Matches the crop value calculator. A crop that cannot grow (maxScale 1)
-   * has no size to speak of, so it stays "fixed".
-   */
-  function sizePercent(scale: number, maxScale: number): number {
-    if (scale <= 1) return 50;
-    if (scale >= maxScale) return 100;
-    return Math.floor(50 + 50 * (scale - 1) / (maxScale - 1));
+  /** The size field a planned crop slot carries, fed to the game's own tile system. */
+  function slotSizeFields(species: string): { size: number } {
+    return { size: sizeFromScale(maxSizeMultiplier(PLANTS[species]?.crop), scaleFor(species)) };
   }
 
   function formatWeight(weight: number): string {
@@ -108,10 +89,15 @@ export function initGardenPlanner(): void {
     return weight.toLocaleString(NUMBER_LOCALE, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
 
+  /**
+   * The game's own size figure rather than the internal scale multiplier, so the slider reads the
+   * way a crop's card does, plus the weight it works out to. Matches the crop value calculator. A
+   * crop that cannot grow has no size to speak of, so it stays "fixed".
+   */
   function sizeSummary(scale: number, species: string): string {
     const max = maxSizeMultiplier(PLANTS[species]?.crop);
     if (max <= 1) return 'fixed';
-    const percent = `${sizePercent(scale, max)}%`;
+    const percent = `${sizeFromScale(max, scale)}%`;
     const baseWeight = Number(PLANTS[species]?.crop?.baseWeight || 0);
     return baseWeight > 0 ? `${percent} · ${formatWeight(scale * baseWeight)}kg` : percent;
   }
@@ -321,7 +307,7 @@ export function initGardenPlanner(): void {
     const isPatch = patchCapacity(species) > 0;
     const contents = isPatch && slotSpecies?.length ? slotSpecies.slice(0, capacity) : null;
     const slots = contents?.length ?? capacity;
-    // Displayed size is targetScale x growth progress, and progress divides by the growth window,
+    // Displayed size is size x growth progress, and progress divides by the growth window,
     // so start and end must differ. Both sit in the past to render the plant fully grown.
     const started = now - 3_600_000;
     const matured = now - 60_000;
@@ -641,8 +627,8 @@ export function initGardenPlanner(): void {
     return {
       p: tile.species,
       m: slot?.mutations ?? [],
-      // Stored as a scale multiplier whichever model the slot uses, so a layout saved on one still
-      // rebuilds on the other. plannedTile turns it back into `size` or `targetScale` as needed.
+      // Stored as a scale multiplier, which keeps older saved layouts readable. plannedTile turns
+      // it back into `size`.
       s: round2(slotScale(PLANTS[host]?.crop, slot)),
       ...(custom ? { v: grown } : {}),
     };

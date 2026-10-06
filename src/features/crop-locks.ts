@@ -1,5 +1,5 @@
 import type { PlantSlot } from '../types.js';
-import { PLANT_CATALOG, mutationName, patchName, plantName } from '../constants.js';
+import { mutationName, patchName, plantName } from '../constants.js';
 import { slotSizePercent } from '../crop-size.js';
 import { gameConnectionReady, sendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
@@ -92,7 +92,7 @@ function lockGroups(): LockGroup[] {
         species,
         locked: slot.locked === true,
         growing: Number(slot.endTime || 0) > now,
-        sizePercent: slotSizePercent(PLANT_CATALOG[species]?.crop, slot),
+        sizePercent: slotSizePercent(slot),
         mutations: Array.isArray(slot.mutations) ? slot.mutations.filter(m => typeof m === 'string') : [],
       });
       bySpecies.set(species, rows);

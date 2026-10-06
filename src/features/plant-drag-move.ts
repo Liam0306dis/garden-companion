@@ -686,7 +686,9 @@ export function initPlantDragMove(): void {
     }
 
     function sendMessage(message: Record<string, unknown>) {
-        const socket = live.activeSocket;
+        // The room connection's own socket covers one that opened before we loaded, which the
+        // constructor hook above never saw.
+        const socket = live.activeSocket ?? pageWindow.MagicCircle_RoomConnection?.currentWebSocket ?? null;
         if (!socket || socket.readyState !== pageWindow.WebSocket.OPEN) {
             throw new Error('Game WebSocket is not connected');
         }

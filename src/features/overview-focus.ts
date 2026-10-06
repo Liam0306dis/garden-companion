@@ -1,5 +1,4 @@
 import type { CompanionPage, PlantSlot } from '../types.js';
-import { PLANT_CATALOG } from '../constants.js';
 import { slotIsMaxSize } from '../crop-size.js';
 import { createTicker } from '../ticker.js';
 import type { OverviewRuntimeState } from './garden-overview.js';
@@ -155,7 +154,7 @@ export function installPlantFocus(
     const scopeMatches = config.scope === 'all' || config.scope === 'tracked' && (!selected || selected.has(slotSpecies)) || config.scope === slotSpecies;
     const mutations = slot.mutations || [];
     const conditions = config.mutations.map(name => mutations.includes(name));
-    if (config.maxSize) conditions.push(slotIsMaxSize(PLANT_CATALOG[slotSpecies ?? '']?.crop, slot));
+    if (config.maxSize) conditions.push(slotIsMaxSize(slot));
     // No conditions picked means the scope is the only filter — not "unmutated crops only".
     const ruleMatches = !conditions.length
       || (config.mutationRule === 'none' ? conditions.every(match => !match)

@@ -48,6 +48,16 @@ const savedSeen = loadLocal<unknown>(SEEN_KEY, []);
 let seen = Array.isArray(savedSeen) ? savedSeen.filter((entry): entry is string => typeof entry === 'string') : [];
 
 /**
+ * The longest log seen this session, which is what the window is sized from.
+ *
+ * Sizing it from the log in hand let a short one shrink it: a reconnect handing over a partial log
+ * trimmed the window down to that, and when the full log came back everything trimmed away read as
+ * new and was counted a second time. The longest log is the most the window ever has to cover.
+ * Seeded from the saved window, so a short first log after a reload cannot trim that either.
+ */
+let longestLog = Math.ceil(seen.length / 4);
+
+/**
  * An entry's identity, from the few fields that name the thing it happened to.
  *
  * Serialising the whole payload was the obvious way to do this and the wrong one. The state arrives
@@ -98,6 +108,7 @@ export function processActivityLog(): void {
   // Emptied of holes first. The walk above steps around a missing entry, but this reads every one
   // the log offers, and taking a signature from nothing throws - out of here, and so out of every
   // reader that runs after this one on the same frame.
-  seen = [...new Set([...seen, ...entries.filter(Boolean).map(signature)])].slice(-seenLimit(entries.length));
+  longestLog = Math.max(longestLog, entries.length);
+  seen = [...new Set([...seen, ...entries.filter(Boolean).map(signature)])].slice(-seenLimit(longestLog));
   saveLocal(SEEN_KEY, seen);
 }

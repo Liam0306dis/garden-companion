@@ -2,7 +2,7 @@ import type { Pet } from '../types.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MAX_TEAM_PETS, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { abilityEffectText } from '../ability-effect.js';
-import { maxSizeMultiplier } from '../crop-size.js';
+import { maxSizeMultiplier, sizeFromScale } from '../crop-size.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
@@ -238,25 +238,13 @@ function friendMultiplier(friends: number): number {
   return Math.min(FRIEND_CAP, 1 + Math.max(0, Math.floor(friends)) * FRIEND_STEP);
 }
 
-/**
- * The game's own size percentage. It is not the scale as a share of the maximum: scale 1 is the
- * smallest a crop can be whatever its maximum, and the game calls that 50%, so the range every crop
- * is shown on runs 50 to 100. Floored, and pinned at both ends, exactly as the game does it.
- */
-function sizePercentFor(scale: number, maxScale: number): number {
-  if (scale <= 1) return 50;
-  if (scale >= maxScale) return 100;
-  return Math.floor(50 + 50 * (scale - 1) / (maxScale - 1));
-}
-
 interface CropValue { base: number; scale: number; maxScale: number; weight: number; sizePercent: number; mutation: number; friend: number; each: number; total: number }
 
 /** Size, weight and value are all the numbers the game itself prints on a crop's card. */
 function cropValueFor(species: string, sizeFraction: number, selected: string[], friends: number): CropValue {
   const crop = cropCatalog(species);
   const base = Number(crop?.baseSellPrice) || 0;
-  // The slider is a 0-1 size fraction, so the scale formula is the same in both models: only the
-  // ceiling differs - the old maxScale, or the new maxSizeMultiplier when the size update is live.
+  // The slider is a 0-1 size fraction, scaled up to the crop's maxSizeMultiplier.
   const maxScale = maxSizeMultiplier(crop);
   const scale = 1 + Math.max(0, Math.min(1, sizeFraction)) * (maxScale - 1);
   const mutation = catalogMutationMultiplier(selected);
@@ -266,7 +254,7 @@ function cropValueFor(species: string, sizeFraction: number, selected: string[],
   return {
     base, scale, maxScale, mutation, friend, each,
     weight: scale * (Number(crop?.baseWeight) || 0),
-    sizePercent: sizePercentFor(scale, maxScale),
+    sizePercent: sizeFromScale(maxScale, scale),
     total: Math.round(each * friend),
   };
 }

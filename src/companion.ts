@@ -95,7 +95,9 @@ export function initCompanion(): void {
    * before giving up, and the giving up is a rejection, which skips the handler that undoes the
    * optimistic harvest; a refusal delivered now settles it immediately and lets the game tidy up.
    */
-  function guardOutgoingHarvests(socket: WebSocket): void {
+  function guardOutgoingHarvests(socket: WebSocket & { __gardenCompanionGuarded?: boolean }): void {
+    if (socket.__gardenCompanionGuarded) return;
+    socket.__gardenCompanionGuarded = true;
     const originalSend = socket.send;
     socket.send = function(data: Parameters<WebSocket['send']>[0]) {
       const frame = parseOutgoingFrame(data);
@@ -217,13 +219,17 @@ export function initCompanion(): void {
 
   /**
    * Sockets are caught as they are constructed, so this only has to cover one case: a socket that
-   * already existed when we loaded, which happens when the script updates mid-session. Its Welcome
-   * is long gone, and only the next reconnect can supply another - and that one is constructed.
+   * already existed when we loaded, which happens when the script is injected late. It gets
+   * everything a constructed room socket gets - the harvest guard and renumbering, and being the one
+   * our commands leave on - or commands fail and Crop Protection is off until the next reconnect.
+   * Its Welcome is long gone, so the sequencer seeds from the room connection's frontier instead.
    */
   function watchExistingSocket(): void {
     const socket = page.MagicCircle_RoomConnection?.currentWebSocket;
     if (!socket) return;
     listenForWelcome(socket);
+    guardOutgoingHarvests(socket);
+    noteGameSocket(socket);
     watchSocketHealth(socket);
   }
 

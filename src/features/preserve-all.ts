@@ -185,14 +185,13 @@ function managerPlants(): ManagerPlant[] {
       if (Number(slot.endTime || 0) > now) continue;
       const species = slot.species || item.species || '';
       if (!species) continue;
-      const crop = PLANT_CATALOG[species]?.crop;
       rows.push({
         key: slotKey(item.id, slot.slotId),
         itemId: item.id,
         slotId: slot.slotId,
         species,
         cost: preserveCost(species, slot, slot.mutations || []),
-        sizePercent: slotSizePercent(crop, slot),
+        sizePercent: slotSizePercent(slot),
         mutations: Array.isArray(slot.mutations) ? slot.mutations.filter(m => typeof m === 'string') : [],
       });
     }
@@ -798,6 +797,7 @@ function run(): void {
       } catch (error) {
         sending = false;
         toast((error as Error).message, 'error');
+        render();
         return;
       }
     }
