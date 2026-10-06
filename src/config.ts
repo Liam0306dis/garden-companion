@@ -18,6 +18,7 @@ export const DEFAULTS: CompanionConfig = {
   petFood: true,
   petHungerAlarm: false,
   petAbilityAlarm: false,
+  alarmList: false,
   instantHarvest: false,
   petSwapToss: false,
   autoStoreSeeds: false,

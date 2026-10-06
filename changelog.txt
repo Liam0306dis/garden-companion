@@ -1,5 +1,5 @@
 0.9.33
-- Alarms now show one below the other instead of stacking, and move up when the one above is bought or stopped
+- Alert Settings: new option to show alarms one below the other instead of stacked, moving up when the one above is bought or stopped
 
 0.9.32
 - Fixed Egg Luck and Pet Abilities sometimes counting the same event twice after a reconnect

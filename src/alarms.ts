@@ -7,11 +7,13 @@ import { escapeHtml } from './utils.js';
 
 /**
  * The alarm banner and its tone. Any feature can raise one, so this owns nothing shop-specific:
- * alarms are keyed by an `owner` string and each gets its own card, listed one below the other in
- * the order they arrived. Past MAX_VISIBLE_ALARMS the rest wait in a queue and move up as cards go.
+ * alarms are keyed by an `owner` string. Stacked (the default) shows one card with the rest queued
+ * behind it; the list layout shows each alarm as its own card, one below the other in the order they
+ * arrived, up to LIST_VISIBLE_ALARMS, with the rest queued and moving up as cards go.
  */
 
-const MAX_VISIBLE_ALARMS = 4;
+const LIST_VISIBLE_ALARMS = 4;
+const maxVisibleAlarms = (): number => (config.alarmList ? LIST_VISIBLE_ALARMS : 1);
 interface ActiveAlarm { options: CompanionAlarmOptions; card: HTMLElement }
 /** The cards on screen, top first. */
 const activeAlarms: ActiveAlarm[] = [];
@@ -414,7 +416,25 @@ function removeAlarms(remove: Set<ActiveAlarm>): void {
 }
 
 function fillFromQueue(): void {
-  while (activeAlarms.length < MAX_VISIBLE_ALARMS && alarmQueue.length) renderAlarmCard(alarmQueue.shift()!);
+  while (activeAlarms.length < maxVisibleAlarms() && alarmQueue.length) renderAlarmCard(alarmQueue.shift()!);
+}
+
+/**
+ * Reflows alarms already up after the layout setting changes: cards past the new limit go back to
+ * the front of the queue in order, and a longer limit pulls queued ones forward.
+ */
+export function applyAlarmLayout(): void {
+  if (!activeAlarms.length) return;
+  finishEditingAlarmPosition();
+  while (activeAlarms.length > maxVisibleAlarms()) {
+    const entry = activeAlarms.pop()!;
+    entry.card.remove();
+    alarmQueue.unshift(entry.options);
+  }
+  fillFromQueue();
+  const stack = document.getElementById('gc-alarm');
+  if (stack) placeAlarmBanner(stack);
+  updateAlarmQueueCount();
 }
 
 export function stopAlarm(owner?: string): void {
@@ -457,7 +477,7 @@ function renderAlarmCard(options: CompanionAlarmOptions): void {
 }
 
 export function showAlarmBanner(options: CompanionAlarmOptions): void {
-  if (activeAlarms.length >= MAX_VISIBLE_ALARMS) {
+  if (activeAlarms.length >= maxVisibleAlarms()) {
     alarmQueue.push(options);
     updateAlarmQueueCount();
     return;

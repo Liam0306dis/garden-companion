@@ -258,6 +258,8 @@ export interface CompanionConfig {
   petFood: boolean;
   petHungerAlarm: boolean;
   petAbilityAlarm: boolean;
+  /** Alarms as a column of cards rather than one banner with the rest queued behind it. */
+  alarmList: boolean;
   instantHarvest: boolean;
   petSwapToss: boolean;
   autoStoreSeeds: boolean;

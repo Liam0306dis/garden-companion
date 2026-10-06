@@ -27,6 +27,8 @@ export function renderAlarmSound(): string {
   return `<div class="gc-section-label">Pet alarms</div>
 <div class="gc-list">${toggle('petHungerAlarm', 'Alarm when every pet has zero hunger', 'Sounds once the whole team hits zero hunger, not for a single hungry pet.')}${
   toggle('petAbilityAlarm', 'Alarm when a pet ability is ready', "Sounds when an active pet's activated ability, like Ostrich or Thunder Wolf, comes off cooldown.")}</div>
+<div class="gc-section-label">Layout</div>
+<div class="gc-list">${toggle('alarmList', 'Show alarms one below the other', 'Each alarm gets its own card, up to four at once, and the rest move up as one is bought or stopped. Off stacks them into one banner with the rest queued behind it.')}</div>
 <p class="gc-note">Every alarm uses this sound. The speaker button on each alert still mutes that one alert.</p>
 <section class="gc-card gc-alarm-sound"><h3>Sound</h3>
 <select data-alarm-preset>${options.map(([id, label]) => `<option value="${id}" ${id === settings.preset ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>

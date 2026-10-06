@@ -2,7 +2,7 @@ import type { FullState, GameState, PlayerSlot, RoomState } from './types.js';
 import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
 import { ABILITY_DETAILS, KOFI_URL, TRACKED_ABILITY_CATALOG } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
-import { armAlarmAudio, installAlarms } from './alarms.js';
+import { applyAlarmLayout, armAlarmAudio, installAlarms } from './alarms.js';
 import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, renumberOutgoingCommand, seedCommandSequence } from './game-connection.js';
 import { installCropEstimates, syncCropEstimates } from './features/crop-estimates.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -688,6 +688,7 @@ export function initCompanion(): void {
       // for the next state frame to notice.
       if (input.dataset.feature === 'petHungerAlarm') processPetHunger();
       if (input.dataset.feature === 'petAbilityAlarm' && !input.checked) stopPetAbilityAlarms();
+      if (input.dataset.feature === 'alarmList') applyAlarmLayout();
       if (input.checked && (input.dataset.feature === 'petHungerAlarm' || input.dataset.feature === 'petAbilityAlarm')) armAlarmAudio();
       updateLunarTimer();
       renderPetFood();
