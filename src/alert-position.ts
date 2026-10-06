@@ -1,6 +1,9 @@
 import { loadLocal, saveLocal } from './utils.js';
 
 const POSITION_KEY = 'gc-alarm-position';
+const SCALE_KEY = 'gc-alarm-scale';
+const MIN_SCALE = .6;
+const MAX_SCALE = 1.6;
 /** How close to the middle a drag has to come before it snaps there. */
 const SNAP_PX = 14;
 
@@ -32,8 +35,20 @@ function applyPosition(element: HTMLElement, position: AlertPosition | null): vo
   element.style.top = `${Math.round(top)}px`;
 }
 
-/** Puts an alarm banner where the player chose to keep it clear of the game's own popups. */
+function savedScale(): number {
+  const saved = Number(loadLocal<number>(SCALE_KEY, 1));
+  return Number.isFinite(saved) ? Math.min(MAX_SCALE, Math.max(MIN_SCALE, saved)) : 1;
+}
+
+/** Scaled from its top centre (see the stylesheet), so the saved position still names the same spot. */
+function applyScale(element: HTMLElement, scale: number): void {
+  if (scale === 1) element.style.removeProperty('--gc-alarm-scale');
+  else element.style.setProperty('--gc-alarm-scale', String(scale));
+}
+
+/** Puts an alarm banner where, and at the size, the player chose to keep it clear of the game's own popups. */
 export function placeAlarmBanner(element: HTMLElement): void {
+  applyScale(element, savedScale());
   applyPosition(element, savedPosition());
 }
 
@@ -51,7 +66,7 @@ export function isEditingAlarmPosition(): boolean {
 /**
  * Lets the alarm banner be dragged until Done (or Enter/Escape). A real alarm on screen is moved
  * directly; otherwise a sample banner stands in for one. It snaps to the horizontal middle, with a
- * guide line, since that is where most people want it back.
+ * guide line, since that is where most people want it back. The corner handle scales it.
  */
 export function editAlarmPosition(onFinish?: () => void): void {
   if (editing) return;
@@ -72,6 +87,12 @@ export function editAlarmPosition(onFinish?: () => void): void {
   done.dataset.positionDone = 'true';
   // On the top card, so the stack's own cards keep their layout below it.
   (element.querySelector('.gc-alarm-card') || element).appendChild(done);
+  const resize = document.createElement('button');
+  resize.type = 'button';
+  resize.dataset.alarmResize = 'true';
+  resize.title = 'Drag to resize';
+  resize.setAttribute('aria-label', 'Resize alarm banner');
+  element.appendChild(resize);
   placeAlarmBanner(element);
 
   const guide = document.createElement('div');
@@ -106,6 +127,34 @@ export function editAlarmPosition(onFinish?: () => void): void {
     const rect = element.getBoundingClientRect();
     saveLocal(POSITION_KEY, { x: (rect.left + rect.width / 2) / window.innerWidth, y: rect.top / window.innerHeight });
   };
+  /**
+   * The banner grows from its top centre, so the scale is how far the pointer sits from that centre
+   * now against where it sat when the drag began.
+   */
+  let sizing: { centre: number; startHalf: number; startScale: number; pointerId: number } | null = null;
+  const onResizeDown = (event: PointerEvent) => {
+    if (event.button !== 0) return;
+    const rect = element.getBoundingClientRect();
+    const centre = rect.left + rect.width / 2;
+    sizing = { centre, startHalf: Math.max(20, Math.abs(event.clientX - centre)), startScale: savedScale(), pointerId: event.pointerId };
+    element.dataset.dragging = 'true';
+    try { resize.setPointerCapture(event.pointerId); } catch {}
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const onResizeMove = (event: PointerEvent) => {
+    if (!sizing) return;
+    const ratio = Math.abs(event.clientX - sizing.centre) / sizing.startHalf;
+    const scale = Math.round(Math.min(MAX_SCALE, Math.max(MIN_SCALE, sizing.startScale * ratio)) * 100) / 100;
+    saveLocal(SCALE_KEY, scale);
+    placeAlarmBanner(element);
+  };
+  const onResizeUp = () => {
+    if (!sizing) return;
+    try { resize.releasePointerCapture(sizing.pointerId); } catch {}
+    sizing = null;
+    delete element.dataset.dragging;
+  };
   const onKey = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' && event.key !== 'Enter') return;
     event.preventDefault();
@@ -121,6 +170,7 @@ export function editAlarmPosition(onFinish?: () => void): void {
     element.removeEventListener('pointerup', onUp);
     element.removeEventListener('pointercancel', onUp);
     window.removeEventListener('keydown', onKey, true);
+    resize.remove();
     delete element.dataset.editing;
     delete element.dataset.dragging;
     done.remove();
@@ -134,6 +184,10 @@ export function editAlarmPosition(onFinish?: () => void): void {
   element.addEventListener('pointerup', onUp);
   element.addEventListener('pointercancel', onUp);
   window.addEventListener('keydown', onKey, true);
+  resize.addEventListener('pointerdown', onResizeDown);
+  resize.addEventListener('pointermove', onResizeMove);
+  resize.addEventListener('pointerup', onResizeUp);
+  resize.addEventListener('pointercancel', onResizeUp);
   done.onclick = finish;
   editing = { finish };
 }
@@ -142,8 +196,9 @@ export function finishEditingAlarmPosition(): void {
   editing?.finish();
 }
 
-/** Puts alarm banners back at the top centre. */
+/** Puts alarm banners back at the top centre, at their normal size. */
 export function resetAlarmPosition(): void {
   saveLocal(POSITION_KEY, null);
+  saveLocal(SCALE_KEY, 1);
   placeCurrentBanner();
 }
