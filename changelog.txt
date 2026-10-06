@@ -1,3 +1,6 @@
+0.9.33
+- Alarms now show one below the other instead of stacking, and move up when the one above is bought or stopped
+
 0.9.32
 - Fixed Egg Luck and Pet Abilities sometimes counting the same event twice after a reconnect
 - The instant harvest key now checks crops against the game's clock, so it no longer fires a moment early when your PC clock runs ahead

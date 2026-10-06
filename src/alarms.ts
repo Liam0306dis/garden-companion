@@ -408,7 +408,7 @@ function removeAlarms(remove: Set<ActiveAlarm>): void {
   for (const entry of activeAlarms) {
     const old = before.get(entry);
     const shift = old === undefined ? 0 : old - entry.card.getBoundingClientRect().top;
-    if (shift) entry.card.animate([{ transform: `translateY(${shift}px)` }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
+    if (shift) entry.card.animate?.([{ transform: `translateY(${shift}px)` }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
   }
   updateAlarmQueueCount();
 }

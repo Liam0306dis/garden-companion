@@ -4,28 +4,28 @@ import { test } from 'node:test';
 import { showAlarmBanner, stopAlarm, updateAlarmDetail } from '../src/alarms.js';
 
 const banner = () => document.getElementById('gc-alarm');
-const title = () => banner()?.querySelector('strong')?.textContent;
 
-test('alarms queue behind the one showing, and stop by owner', () => {
-  showAlarmBanner({ owner: 'a', label: 'A', title: 'First' });
-  showAlarmBanner({ owner: 'b', label: 'B', title: 'Second' });
-  showAlarmBanner({ owner: 'c', label: 'C', title: 'Third' });
-  assert.equal(title(), 'First');
-  assert.match(banner()!.querySelector('[data-alarm-queue]')!.textContent!, /2 more alarms queued/);
-  stopAlarm('b');
-  assert.match(banner()!.querySelector('[data-alarm-queue]')!.textContent!, /1 more alarm queued/);
+const titles = () => [...document.querySelectorAll('#gc-alarm .gc-alarm-card strong')].map(element => element.textContent);
+const queueLine = () => [...document.querySelectorAll<HTMLElement>('#gc-alarm [data-alarm-queue]')].find(element => element.style.display !== 'none')!;
+
+test('alarms list one below the other, queue past the limit, and stop by owner', () => {
+  for (const name of ['a', 'b', 'c', 'd', 'e', 'f']) showAlarmBanner({ owner: name, label: name.toUpperCase(), title: name });
+  assert.deepEqual(titles(), ['a', 'b', 'c', 'd']);
+  assert.match(queueLine().textContent!, /2 more alarms queued/);
+  stopAlarm('e');
+  assert.match(queueLine().textContent!, /1 more alarm queued/);
   stopAlarm('a');
-  assert.equal(title(), 'Third', 'stopping the one showing brings the next forward');
+  assert.deepEqual(titles(), ['b', 'c', 'd', 'f'], 'the rest move up and the queue fills the gap');
   updateAlarmDetail('c', '3 remaining');
   stopAlarm();
   assert.equal(banner(), null);
 });
 
-test('Stop dismisses only the alarm showing', () => {
+test('Stop dismisses only its own card', () => {
   showAlarmBanner({ owner: 'x', label: 'X', title: 'One' });
   showAlarmBanner({ owner: 'y', label: 'Y', title: 'Two' });
   banner()!.querySelector<HTMLButtonElement>('[data-stop]')!.click();
-  assert.equal(title(), 'Two');
+  assert.deepEqual(titles(), ['Two']);
   stopAlarm();
 });
 
