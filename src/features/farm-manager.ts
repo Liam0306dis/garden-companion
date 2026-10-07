@@ -9,6 +9,7 @@ import { toast } from '../toast.js';
 import type { GardenTile, PlantSlot } from '../types.js';
 import { escapeHtml } from '../utils.js';
 import { plantActions } from './plant-drag-move.js';
+import { serverNow } from '../server-clock.js';
 
 /**
  * A top-down map of your own garden. Plants on the farm, potted plants and seeds can each be
@@ -205,7 +206,7 @@ function tileTitle(cell: Cell): string {
   if (!tile) return cell.kind === 'board' ? 'Boardwalk' : `Empty dirt tile ${cell.local}`;
   if (tile.objectType === 'plant') {
     const slots = tile.slots ?? [];
-    const ready = slots.filter(slot => Number(slot.endTime) <= Date.now()).length;
+    const ready = slots.filter(slot => Number(slot.endTime) <= serverNow()).length;
     const mutations = slotMutations(slots).map(mutationLabel);
     return [
       speciesName(tile.species || ''),
@@ -224,7 +225,7 @@ function cellContent(cell: Cell): string {
   if (!tile) return '';
   if (tile.objectType === 'plant') {
     const slots = tile.slots ?? [];
-    const ready = slots.filter(slot => Number(slot.endTime) <= Date.now()).length;
+    const ready = slots.filter(slot => Number(slot.endTime) <= serverNow()).length;
     const badge = slots.length > 1 ? `<small>${ready}/${slots.length}</small>` : '';
     return `${spriteImage(produceSprite(tile.species || ''), tile.species || '?')}${badge}`;
   }

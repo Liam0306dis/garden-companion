@@ -6,6 +6,7 @@ import { ensureToolReady, heldToolCount, holdTool, mutationSprite, onSpritesRead
 import { onStateChange, state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
+import { serverNow } from '../server-clock.js';
 
 const POSITION_KEY = 'gardenCompanion.cropCleanserPosition.v1';
 /**
@@ -57,7 +58,7 @@ function matchingRows(): CleanserRow[] {
   for (const [tileIndex, tile] of Object.entries(state.slot?.data?.garden?.tileObjects || {})) {
     const plant = PLANT_CATALOG[tile.species || ''];
     const maturedAt = Number(tile.maturedAt);
-    if (plant?.regrows !== false && (!Number.isFinite(maturedAt) || maturedAt > Date.now())) continue;
+    if (plant?.regrows !== false && (!Number.isFinite(maturedAt) || maturedAt > serverNow())) continue;
     for (const [slotIndex, slot] of (tile.slots || []).entries()) {
       const mutations = Array.isArray(slot.mutations) ? slot.mutations : [];
       if (!mutations.includes(selectedMutation) || slot.preserved === true) continue;

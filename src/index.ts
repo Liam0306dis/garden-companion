@@ -14,6 +14,7 @@ import { initFarmManager } from './features/farm-manager.js';
 import { initPreserveAll } from './features/preserve-all.js';
 import { installPetSpriteLoader } from './pet-sprites-injector.js';
 import { feature } from './config.js';
+import { exposeAddonApi } from './addon-api.js';
 
 // First, so the game's own catalogs are seen before it finishes starting up.
 initCatalogCapture();
@@ -32,3 +33,6 @@ initGardenPlanner();
 initFishing();
 initGardenDefence();
 initPreserveAll();
+
+// Last, so an add-on userscript only ever sees a companion that has finished starting up.
+exposeAddonApi();

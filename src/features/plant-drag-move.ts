@@ -92,7 +92,6 @@ export function initPlantDragMove(): void {
 
     let press: Press | null = null;
     let toastTimer = 0;
-    let lastLoggedPlanterPotCount: number | null = null;
     let openedRoomSocketCount = 0;
     let moveBusy = false;
 
@@ -359,6 +358,21 @@ export function initPlantDragMove(): void {
 
     captureGameSocket();
 
+    /**
+     * Loaded after the game connected, the constructor hook above never saw the room socket, so the
+     * first reconnect was counted as the first connection: nothing heard about the drop, and the farm
+     * systems were not re-armed until a second one.
+     */
+    function adoptExistingSocket() {
+        const socket = pageWindow.MagicCircle_RoomConnection?.currentWebSocket;
+        if (!socket || openedRoomSocketCount > 0 || socket.readyState !== pageWindow.WebSocket.OPEN) return;
+        openedRoomSocketCount = 1;
+        noteRoomSocketOpened();
+        socket.addEventListener('close', noteRoomSocketClosed);
+    }
+
+    adoptExistingSocket();
+
     function ensureToast() {
         let toast = document.getElementById('mg-plant-drag-toast');
         if (toast) return toast;
@@ -452,14 +466,6 @@ export function initPlantDragMove(): void {
                 if (Array.isArray(value)) {
                     live.inventoryItems = value;
                     live.inventoryReady = true;
-                    const planterPotCount = value.reduce((total, item) =>
-                        item?.itemType === 'Tool' && item?.toolId === 'PlanterPot'
-                            ? total + (item.quantity ?? 1)
-                            : total, 0);
-                    if (planterPotCount !== lastLoggedPlanterPotCount) {
-                        lastLoggedPlanterPotCount = planterPotCount;
-                        log(`Planter Pots in inventory: ${planterPotCount}`);
-                    }
                 }
             }],
             ['myCurrentGlobalTileIndexAtom', (value: any) => {
@@ -831,7 +837,7 @@ export function initPlantDragMove(): void {
         let sourcePlant: GameObject;
         let destPlant: GameObject | null = null;
         try {
-            if (!hasPlanterPot(potsNeeded) && !await ensureToolReady('PlanterPot', potsNeeded, 1)) {
+            if (!hasPlanterPot(potsNeeded) && !await ensureToolReady('PlanterPot', potsNeeded, slotsNeeded)) {
                 throw new Error(swap
                     ? 'A swap needs two Planter Pots - add another to your inventory or Tool Shack.'
                     : 'No Planter Pot could be taken from the Tool Shack. Make room in your inventory.');
@@ -989,6 +995,7 @@ export function initPlantDragMove(): void {
 
         if (!live.tapToMove || !live.tileSystem) {
             activePress.cancelled = true;
+            clearPress(activePress);
             showToast('Move unavailable: waiting for the farm to finish loading.', 'error', 4000);
             return;
         }

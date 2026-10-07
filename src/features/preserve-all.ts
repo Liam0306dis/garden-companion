@@ -10,6 +10,7 @@ import { onStateChange, state } from '../state.js';
 import { createTicker } from '../ticker.js';
 import { toast } from '../toast.js';
 import { escapeHtml, NUMBER_LOCALE } from '../utils.js';
+import { serverNow } from '../server-clock.js';
 
 /**
  * Preserving a whole potted plant in one go. The game preserves the selected slot only, so standing
@@ -125,7 +126,7 @@ function preserveCost(species: string, slot: PlantSlot, mutations: readonly stri
 
 /** The ready slots of one plant, in the order they sit on it. Shared by the held button and manager. */
 function eligibleFrom(slots: PlantSlot[]): EligibleSlot[] {
-  const now = Date.now();
+  const now = serverNow();
   const rows: EligibleSlot[] = [];
   for (const slot of slots) {
     if (!slot || slot.preserved === true || slot.slotId == null) continue;
@@ -179,7 +180,7 @@ function managerPlants(): ManagerPlant[] {
   const plants: ManagerPlant[] = [];
   for (const item of allPlantItems()) {
     const rows: ManagerSlot[] = [];
-    const now = Date.now();
+    const now = serverNow();
     for (const slot of item.slots) {
       if (!slot || slot.preserved === true || slot.slotId == null) continue;
       if (Number(slot.endTime || 0) > now) continue;

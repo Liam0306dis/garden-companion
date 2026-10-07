@@ -7,6 +7,7 @@ import { mutationSprite, onSpritesReady, produceSprite } from '../pets.js';
 import { onStateChange, state } from '../state.js';
 import { toast } from '../toast.js';
 import { escapeHtml } from '../utils.js';
+import { serverNow } from '../server-clock.js';
 
 /**
  * A manager over the game's own crop lock. The game locks one crop at a time from its crop card
@@ -72,7 +73,7 @@ const rowKey = (tile: number | string, slotId: number | string) => `${tile}::${s
  */
 function lockGroups(): LockGroup[] {
   const tiles = state.slot?.data?.garden?.tileObjects ?? {};
-  const now = Date.now();
+  const now = serverNow();
   const bySpecies = new Map<string, LockRow[]>();
   for (const [tileKey, tile] of Object.entries(tiles)) {
     if (tile?.objectType !== 'plant' || !Array.isArray(tile.slots)) continue;
