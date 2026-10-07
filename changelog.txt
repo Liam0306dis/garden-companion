@@ -1,3 +1,6 @@
+0.9.35
+- New guided tour: click Tour in the bottom bar of the companion window for a step-by-step look at every tab and what it does
+
 0.9.34
 - New Inventory produce locks (off by default, turn on in Features): a row of your produce above the open inventory - right click a crop to lock all of that type, right click again to unlock them
 

@@ -177,7 +177,9 @@ function petPanelCovered(anchor: PetDockRow): boolean {
   const sampleX = Math.round((anchor.left + anchor.right) / 2);
   const sampleY = Math.round(anchor.centerY);
   if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return false;
-  const top = document.elementFromPoint(sampleX, sampleY);
+  // The guided tour lays a click catcher over the whole page, which is not an overlay the buttons
+  // should give way to - the tour has a step pointing at them. Whatever sits under it decides.
+  const top = document.elementsFromPoint(sampleX, sampleY).find(element => !element.closest('#gc-tour'));
   if (!top) return false;
   return !top.closest('.QuinoaCanvas') && !top.closest('#gc-petfood');
 }

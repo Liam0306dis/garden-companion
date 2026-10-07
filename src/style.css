@@ -129,6 +129,26 @@
 #gc-panel .gc-footer .gc-version { position:relative;flex:0 0 auto;height:26px;padding:0 8px;color:var(--gc-faint);font:500 12px var(--gc-font);font-variant-numeric:tabular-nums; }
 #gc-panel .gc-footer .gc-version[data-unseen="true"] { color:var(--gc-accent-text); }
 #gc-panel .gc-footer .gc-version[data-unseen="true"]::after { content:'';position:absolute;top:3px;right:1px;width:7px;height:7px;border-radius:50%;background:var(--gc-accent);box-shadow:0 0 0 2px var(--gc-side); }
+#gc-panel .gc-footer .gc-footer-end { display:flex;align-items:center;gap:4px; }
+/* Guided tour: a catcher over the page so clicks cannot wander off mid-step, a dimming path with a
+   hole cut for each spotlight, a ring around each hole, and the caption card beside them. */
+#gc-tour { position:fixed;inset:0;z-index:2147483640;font:13px/1.5 var(--gc-font);color:var(--gc-text); }
+#gc-tour .gc-tour-catch { position:absolute;inset:0; }
+#gc-tour .gc-tour-dim { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
+#gc-tour .gc-tour-dim path { fill:rgba(0,0,0,.6); }
+#gc-tour .gc-tour-rings > div { position:fixed;box-sizing:border-box;pointer-events:none;border:2px solid var(--gc-accent);border-radius:9px; }
+#gc-tour .gc-tour-card { position:fixed;width:min(300px,calc(100vw - 24px));box-sizing:border-box;padding:14px 16px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);transition:left .2s,top .2s; }
+#gc-tour .gc-tour-card small { color:var(--gc-accent-text);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
+#gc-tour .gc-tour-card h3 { margin:2px 0 4px;color:var(--gc-strong);font-size:15px;font-weight:650; }
+#gc-tour .gc-tour-card p { margin:0 0 12px;color:var(--gc-muted);font-size:12.5px; }
+#gc-tour .gc-tour-card footer { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+#gc-tour .gc-tour-card footer span { display:flex;gap:6px; }
+#gc-tour .gc-tour-card button { height:28px;padding:0 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);color:var(--gc-text);cursor:pointer;font:500 12px var(--gc-font); }
+#gc-tour .gc-tour-card button:hover { background:var(--gc-surface-3); }
+#gc-tour .gc-tour-card [data-tour-skip] { border-color:transparent;background:transparent;color:var(--gc-faint); }
+#gc-tour .gc-tour-card [data-tour-skip]:hover { color:var(--gc-text);background:var(--gc-soft); }
+#gc-tour .gc-tour-card .gc-tour-next { border-color:var(--gc-accent);background:var(--gc-accent);color:#fff;font-weight:600; }
+#gc-tour .gc-tour-card .gc-tour-next:hover { background:var(--gc-accent-hover); }
 #gc-whats-new { position:fixed;z-index:2147483646;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));max-height:min(520px,calc(100vh - 32px));display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.5 var(--gc-font); }
 #gc-whats-new > header { flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;border-bottom:1px solid var(--gc-line);color:var(--gc-strong);font-size:14px; }
 #gc-whats-new > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }

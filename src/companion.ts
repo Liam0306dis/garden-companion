@@ -52,6 +52,7 @@ import { notifyStateChange, state } from './state.js';
 import { escapeHtml, humanize, scriptVersion } from './utils.js';
 import { makeDraggable } from './draggable.js';
 import { toggleWhatsNew, whatsNewUnseen } from './whats-new.js';
+import { startTour } from './tour.js';
 
 export function initCompanion(): void {
   pruneStaleConfig();
@@ -509,6 +510,7 @@ export function initCompanion(): void {
   };
   const tabIcon = (id: string): string => `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICONS[id] ?? ''}</svg>`;
   const CHEVRON_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const TOUR_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/></svg>';
   const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   const NAV_COLLAPSED_KEY = 'gardenCompanion.navCollapsed.v1';
   let collapsedNavGroups = new Set<string>();
@@ -523,7 +525,8 @@ export function initCompanion(): void {
   function footerHtml(): string {
     const tabs = TAB_GROUPS.filter(([group]) => FOOTER_GROUPS.has(group)).flatMap(([, tabs]) => tabs);
     return `<footer class="gc-footer"><div>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${tabIcon(id)}<span>${FOOTER_LABELS[id] ?? navLabel ?? title}</span></button>`).join('')}</div>`
-      + `<button class="gc-version" data-whats-new${whatsNewUnseen() ? ' data-unseen="true"' : ''} title="What's new">v${escapeHtml(scriptVersion())}</button></footer>`;
+      + `<span class="gc-footer-end"><button data-tour title="A guided look at every feature">${TOUR_ICON}<span>Tour</span></button>`
+      + `<button class="gc-version" data-whats-new${whatsNewUnseen() ? ' data-unseen="true"' : ''} title="What's new">v${escapeHtml(scriptVersion())}</button></span></footer>`;
   }
 
   function navHtml(): string {
@@ -584,6 +587,8 @@ export function initCompanion(): void {
       toggleWhatsNew();
       delete whatsNew.dataset.unseen;
     };
+    const tour = root.querySelector<HTMLButtonElement>('[data-tour]');
+    if (tour) tour.onclick = startTour;
     root.querySelectorAll<HTMLButtonElement>('[data-nav-group]').forEach(button => button.onclick = () => {
       const group = button.dataset.navGroup ?? '';
       collapsedNavGroups.has(group) ? collapsedNavGroups.delete(group) : collapsedNavGroups.add(group);
@@ -650,9 +655,9 @@ export function initCompanion(): void {
    * its own rather than tucked under a settings list where it would read as a prompt.
    */
   function renderSupporter() {
-    return `<p class="gc-note">If any of my mods or tools have saved you some time or helped improved quality of life and you feel like putting something in the tip jar, the link below is the place to do it, thank you</p>
+    return `<p class="gc-note">If my mods and tools have saved you time or made the game a little more comfortable to play, you can say thanks with a tip below. It is never expected, but always appreciated.</p>
 <section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
-<p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bugs and ideas are just as welcome as anything else.</p>`;
+<p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bug reports and ideas mean just as much as a tip, so send them my way.</p>`;
   }
 
   function renderFeatures() {
@@ -661,7 +666,7 @@ export function initCompanion(): void {
       ['keepPlanterPotSelected', 'Keep Planter Pot selected', 'Do not switch to the picked-up plant after using a Planter Pot'],
       ['cropValues', 'Crop value', 'Show the sell value when standing on a crop'],
       ['turtleTimer', 'Growth time', 'Show the time left, adjusted for your pets, when standing on a crop or egg'],
-      ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
+      ['petFood', 'Pet food panel', 'Feed buttons beside your active pets - foods are chosen in the Pet Food tab'],
       ['produceLocks', 'Inventory produce locks', 'Produce sprites above the open inventory - right-click a crop to lock or unlock every one of that species'],
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
       ['petSwapToss', 'Pokemon Mode', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
