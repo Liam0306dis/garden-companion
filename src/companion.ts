@@ -5,6 +5,7 @@ import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from '.
 import { applyAlarmLayout, armAlarmAudio, installAlarms } from './alarms.js';
 import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, renumberOutgoingCommand, seedCommandSequence } from './game-connection.js';
 import { installCropEstimates, syncCropEstimates } from './features/crop-estimates.js';
+import { syncProduceLocks } from './features/produce-locks.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
 import {
   abilityLogUiState,
@@ -661,6 +662,7 @@ export function initCompanion(): void {
       ['cropValues', 'Crop value', 'Show the sell value when standing on a crop'],
       ['turtleTimer', 'Growth time', 'Show the time left, adjusted for your pets, when standing on a crop or egg'],
       ['petFood', 'Pet food panel', 'Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab'],
+      ['produceLocks', 'Inventory produce locks', 'Produce sprites above the open inventory - right-click a crop to lock or unlock every one of that species'],
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
       ['petSwapToss', 'Pokemon Mode', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
       ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
@@ -692,6 +694,7 @@ export function initCompanion(): void {
       if (input.checked && (input.dataset.feature === 'petHungerAlarm' || input.dataset.feature === 'petAbilityAlarm')) armAlarmAudio();
       updateLunarTimer();
       renderPetFood();
+      syncProduceLocks();
       syncCropEstimates();
     });
     main.querySelector('[data-open-planner]')?.addEventListener('click', () => { closePanel(); page.__gardenCompanionTogglePlanner?.(); });
@@ -757,6 +760,7 @@ export function initCompanion(): void {
       }
       resetPetFoodSignature();
       renderPetFood();
+      syncProduceLocks();
       // The forecast sprite is asked for from the timer itself, so this is where it arrives.
       updateLunarTimer();
     });
@@ -764,6 +768,7 @@ export function initCompanion(): void {
     watchForGameUpdateDialog();
     syncCropEstimates();
     renderPetFood();
+    syncProduceLocks();
     page.addEventListener('pointerup', () => requestAnimationFrame(positionPetFood), true);
   }
 

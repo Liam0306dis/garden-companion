@@ -22,6 +22,7 @@ interface LiveSystems extends FarmSystems {
     petSystem: GameObject | null;
     worldTapRouter: GameObject | null;
     gardenInfoCard: GameObject | null;
+    inventory: GameObject | null;
     inventoryItems: GameObject[];
     inventoryReady: boolean;
     ownUserSlotIdx: number | null;
@@ -75,6 +76,7 @@ export function initPlantDragMove(): void {
         petSystem: null,
         worldTapRouter: null,
         gardenInfoCard: null,
+        inventory: null,
         inventoryItems: [],
         inventoryReady: false,
         ownUserSlotIdx: null,
@@ -119,7 +121,7 @@ export function initPlantDragMove(): void {
      * first new system and left the card estimates on a destroyed view.
      */
     const capturedSinceArm = new Set<string>();
-    const CAPTURED_SYSTEMS = ['tapToMove', 'tileObject', 'pet', 'worldTapRouter', 'gardenInfoCard'];
+    const CAPTURED_SYSTEMS = ['tapToMove', 'tileObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory'];
 
     function resetPrivateSystems(reason: string) {
         live.fallbackHighlight?.destroy?.();
@@ -186,10 +188,24 @@ export function initPlantDragMove(): void {
             // registry hook the farm systems already ride - as a minimal engine the estimates expect.
             if (live.gardenInfoCard === system) return;
             live.gardenInfoCard = system;
-            setQuinoaEngine({ getSystem: (name: string) => (name === 'gardenInfoCard' ? live.gardenInfoCard : undefined) });
+            publishEngine();
             log('Native garden info card connected.');
+        } else if (system?.name === 'inventory' && system.modalView) {
+            // The produce locks panel docks beside the expanded inventory, read off its modal view.
+            if (live.inventory === system) return;
+            live.inventory = system;
+            publishEngine();
+            log('Native inventory connected.');
         } else return;
         releaseGlobalHooksIfIdle();
+    }
+
+    /** A minimal engine answering for the UI systems our features read; the real one is not reachable. */
+    function publishEngine() {
+        setQuinoaEngine({
+            getSystem: (name: string) => name === 'gardenInfoCard' ? live.gardenInfoCard
+                : name === 'inventory' ? live.inventory : undefined,
+        });
     }
 
     function capturePrivateSystem(target: GameObject, key: PropertyKey, value: unknown) {

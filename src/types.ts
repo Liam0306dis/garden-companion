@@ -256,6 +256,8 @@ export interface CompanionConfig {
   turtleTimer: boolean;
   cropValues: boolean;
   petFood: boolean;
+  /** Produce sprites docked beside the open inventory; right-click locks or unlocks a species. */
+  produceLocks: boolean;
   petHungerAlarm: boolean;
   petAbilityAlarm: boolean;
   /** Alarms as a column of cards rather than one banner with the rest queued behind it. */

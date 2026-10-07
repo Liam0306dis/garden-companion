@@ -1,3 +1,6 @@
+0.9.34
+- New Inventory produce locks (off by default, turn on in Features): a row of your produce above the open inventory - right click a crop to lock all of that type, right click again to unlock them
+
 0.9.33
 - Alert Settings: new option to show alarms one below the other instead of stacked, moving up when the one above is bought or stopped
 - Alert Settings: Move banner now also lets you resize the alarm by dragging its corner handle

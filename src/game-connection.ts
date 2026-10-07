@@ -199,6 +199,7 @@ const RESULT_FRAME_MAX = 20_000;
  * JSON.parse run only on the small frames a result can actually be.
  */
 export function noteServerFrame(data: unknown): void {
+  if (pendingResults.size) settlePendingResult(data);
   if (sequence < 0 || typeof data !== 'string') return;
   // Probe the property until a publication exists; after that it is read at allocate/heal time, so
   // the per-frame frontier scan only runs until the probe succeeds, or for good on a build where the
@@ -321,4 +322,38 @@ export function sendQuinoaCommand(command: Record<string, unknown>): string {
   if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error('The game connection is not ready.');
   activeSocket.send(JSON.stringify(frame));
   return requestId;
+}
+
+export interface CommandResult { ok: boolean; code?: string; timedOut?: boolean }
+
+/** Commands sent through sendQuinoaCommandAwaitingResult, keyed by request id, until the server answers. */
+const pendingResults = new Map<string, (result: CommandResult) => void>();
+
+/** Only consulted while something is waiting, and only on frames small enough to be a result. */
+function settlePendingResult(data: unknown): void {
+  if (typeof data !== 'string' || data.length > RESULT_FRAME_MAX || !data.includes('QuinoaCommandResult')) return;
+  try {
+    const frame = JSON.parse(data) as Record<string, unknown>;
+    if (frame?.type !== 'QuinoaCommandResult' || typeof frame.requestId !== 'string') return;
+    const settle = pendingResults.get(frame.requestId);
+    if (!settle) return;
+    pendingResults.delete(frame.requestId);
+    settle({ ok: frame.ok !== false, code: typeof frame.code === 'string' ? frame.code : undefined });
+  } catch { /* not a frame we can read */ }
+}
+
+/**
+ * Sends a command and resolves once the server has answered it, so a run of commands can go one at
+ * a time behind each other's results rather than on a guessed interval. A result that never comes
+ * (a dropped connection) resolves as timed out instead of holding the caller forever.
+ */
+export function sendQuinoaCommandAwaitingResult(command: Record<string, unknown>, timeoutMs = 5000): Promise<CommandResult> {
+  const requestId = sendQuinoaCommand(command);
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {
+      pendingResults.delete(requestId);
+      resolve({ ok: false, timedOut: true });
+    }, timeoutMs);
+    pendingResults.set(requestId, result => { clearTimeout(timer); resolve(result); });
+  });
 }

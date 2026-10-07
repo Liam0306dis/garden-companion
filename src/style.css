@@ -1002,3 +1002,17 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 /* The Ko-fi link is an anchor, not a button, so it borrows the primary button's look. */
 #gc-panel a.gc-kofi { width:132px;flex:0 0 auto;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:var(--gc-radius-sm);text-decoration:none;white-space:nowrap;font-size:12px;font-weight:600; }
 #gc-panel a.gc-kofi:hover { background:var(--gc-accent-hover); }
+#gc-produce-locks { position:fixed;z-index:99991;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:6px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:12px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.5);font:12px/1.3 var(--gc-font);user-select:none; }
+#gc-produce-locks[hidden] { display:none; }
+.gc-produce-locks-head { flex:0 0 auto;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;color:rgba(255,255,255,.7);font:600 11px var(--gc-font);cursor:help; }
+.gc-produce-locks-list { display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none; }
+.gc-produce-locks-list p { margin:0;padding:0 6px;color:rgba(255,255,255,.5);font-size:11px; }
+.gc-produce-lock { position:relative;flex:0 0 auto;display:grid;place-items:center;width:62px;height:62px;border:1px solid var(--gc-line-strong);border-radius:10px;background:rgba(42,42,48,.6);cursor:context-menu;transition:border-color .12s,background .12s; }
+.gc-produce-lock:hover { border-color:var(--gc-accent-line);background:rgba(42,42,48,.96); }
+.gc-produce-lock img { width:46px;height:46px;object-fit:contain;image-rendering:auto!important; }
+.gc-produce-lock i { color:rgba(255,255,255,.7);font:600 17px var(--gc-font);font-style:normal; }
+.gc-produce-lock-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;color:#141417;background:var(--gc-gold);border-radius:999px;text-align:center;font:700 11px/16px var(--gc-font);font-variant-numeric:tabular-nums; }
+.gc-produce-lock-pad { position:absolute;top:3px;right:3px;width:14px;height:14px;display:none;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5c542'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h6V7a3 3 0 0 0-6 0v3Z'/%3E%3C/svg%3E"); }
+.gc-produce-lock[data-locked="all"] { border-color:rgba(245,197,66,.7); }
+.gc-produce-lock[data-locked="all"] .gc-produce-lock-pad { display:block; }
+.gc-produce-lock[data-locked="some"] .gc-produce-lock-pad { display:block;opacity:.45; }

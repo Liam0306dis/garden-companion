@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.33
+// @version      0.9.34
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -28,10 +28,10 @@
   var define_ABILITY_COLOURS_default = { MoonKisser: "#FAA623", DawnKisser: "#A25CF2", Thunderbloom: "#70F6CB", ProduceScaleBoost: "#228B22", ProduceScaleBoostII: "#228B22", SnowyCropSizeBoost: "#228B22", PlantGrowthBoost: "#008080", PlantGrowthBoostII: "#008080", SnowyPlantGrowthBoost: "#008080", DawnPlantGrowthBoost: "#008080", AmberPlantGrowthBoost: "#008080", ThunderPlantGrowthBoost: "#008080", EggGrowthBoost: "#B45AF0", EggGrowthBoostII_NEW: "#B45AF0", EggGrowthBoostII: "#B45AF0", SnowyEggGrowthBoost: "#B45AF0", ThunderEggGrowthBoost: "#B45AF0", AmberEggGrowthBoost: "#B45AF0", PetAgeBoost: "#9370DB", PetAgeBoostII: "#9370DB", PetAgeBoostIII: "#9370DB", PetHatchSizeBoost: "#800080", PetHatchSizeBoostII: "#800080", PetXpBoost: "#1E90FF", PetXpBoostII: "#1E90FF", SnowyPetXpBoost: "#1E90FF", DawnXpBoost: "#1E90FF", ThunderXpBoost: "#1E90FF", AmberXpBoost: "#1E90FF", HungerBoost: "#FF1493", HungerBoostII: "#FF1493", SnowyHungerBoost: "#FF1493", SellBoostI: "#DC143C", SellBoostII: "#DC143C", SellBoostIII: "#DC143C", SellBoostIV: "#DC143C", CoinFinderI: "#B49600", CoinFinderII: "#B49600", CoinFinderIII: "#B49600", CoinFinderIV: "#B49600", SnowyCoinFinder: "#B49600", DawnCoinFinder: "#B49600", ThunderCoinFinder: "#B49600", DustBoost: "#D8A72D", ProduceMutationBoost: "#8C0F46", ProduceMutationBoostII: "#8C0F46", SnowyCropMutationBoost: "#8C0F46", DawnBoost: "#8C0F46", AmberMoonBoost: "#8C0F46", ThunderBoost: "#8C0F46", DoubleHarvest: "#0078B4", DoubleHatch: "#3C5AB4", DoubleHatchII: "#3C5AB4", ProduceEater: "#FF4500", ProduceRefund: "#FF6347", PetMutationBoost: "#A03264", PetMutationBoostII: "#A03264", PetMutationBoostIII: "#A03264", HungerRestore: "#FF69B4", HungerRestoreII: "#FF69B4", HungerRestoreIII: "#FF69B4", SnowyHungerRestore: "#FF69B4", Rebirth: "#FF69B4", PetRefund: "#005078", PetRefundII: "#005078", Copycat: "#FF8C00", GoldGranter: "linear-gradient(135deg, #DCC846 0%, #D2AF05 40%, #D2B937 70%, #C8AF1E 100%)", RainbowGranter: "linear-gradient(135deg, #C80000 0%, #C87800 14.29%, #A0AA1E 28.57%, #3CAA3C 42.86%, #32AAAA 57.14%, #2896B4 71.43%, #145AB4 85.71%, #461E96 100%)", RainDance: "#4CCCCC", SnowGranter: "#90B8CC", FrostGranter: "#94A0CC", DawnlitGranter: "#C47CB4", DawnCapture: "#B25A9E", AmberCapture: "#D9822B", DawnbinderBoost: "#B468A0", AmberlitGranter: "#CC9060", ThunderstruckGranter: "#C2B83C", Thundercharger: "#1FA382", SeedFinderI: "#A86626", SeedFinderII: "#A86626", SeedFinderIII: "#A86626", SeedFinderIV: "#A86626" };
 
   // <define:__ABILITY_DETAILS__>
-  var define_ABILITY_DETAILS_default = { CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" } };
+  var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.33", notes: ["Alert Settings: new option to show alarms one below the other instead of stacked, moving up when the one above is bought or stopped", "Alert Settings: Move banner now also lets you resize the alarm by dragging its corner handle", "Locked crops show the padlock on the top right corner of the crop card instead of inside it"] }, { version: "0.9.32", notes: ["Fixed Egg Luck and Pet Abilities sometimes counting the same event twice after a reconnect", "The instant harvest key now checks crops against the game's clock, so it no longer fires a moment early when your PC clock runs ahead", "Crop Protection, plant moves and other actions now work when the companion loads after the game has already connected", "Crop sizes in the layout planner and crop value calculator now match the figure the game shows", "Garden Overview: mutation estimates always leave preserved crops out"] }, { version: "0.9.31", notes: ["Fixed auto-store, taking seeds out of the Seed Silo in the Farm Manager, and taking tools out of the Tool Shack after the latest game update", "Fixed the Garden Companion window jumping out of place when turning a setting on or off on the Features tab"] }, { version: "0.9.3", notes: ["Farm Manager: right click a plant to pot it", "Farm Manager: click a potted plant to keep planting with each click on a highlighted tile, moving on to the next plant in the list after each one (same order as your inventory)", "Farm Manager: removed the mutation icons from the plant tiles (still shown when you mouse over)", `New "What's new" button: click the version number at the bottom of the Garden Companion window to see recent changes - a dot shows after an update`] }, { version: "0.9.2", notes: ["New Farm Manager: a top-down map of your garden. Drag a plant to an empty tile to move it, drag it to the side bar to pot it, or drag potted plants plant them onto empty tiles", "On the Seeds tab, click a seed to keep planting it with each click on a highlighted tile", "Open it from the features panel or give it a keybind on the Keybinds tab"] }, { version: "0.9.1", notes: ["Pet pictures are now drawn in the background too, so building sprites no longer stutters the game", "Changed sprite decoder and pet renderer to be load on demand"] }, { version: "0.9.0", notes: ["Sprites decode in the background instead of on the game's main thread, so first loads and game artwork updates should stutter less", "Open windows and panel tabs now fill in their icons as soon as sprites finish loading", "The console shows when sprites have finished loading and how long it took"] }, { version: "0.8.99", notes: ["Fixed shop restock alarms and the weather time left (make sure you're on latest game version)"] }, { version: "0.8.98", notes: ["The companion window is now a smaller window you can drag anywhere by its title bar, and it remembers where you left it", "Each tab now has a short description under its title"] }, { version: "0.8.97", notes: ["Fixed the weather station, shop, tool shack, silo and other interface keybinds"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.34", notes: ["New Inventory produce locks (off by default, turn on in Features): a row of your produce above the open inventory - right click a crop to lock all of that type, right click again to unlock them"] }, { version: "0.9.33", notes: ["Alert Settings: new option to show alarms one below the other instead of stacked, moving up when the one above is bought or stopped", "Alert Settings: Move banner now also lets you resize the alarm by dragging its corner handle", "Locked crops show the padlock on the top right corner of the crop card instead of inside it"] }, { version: "0.9.32", notes: ["Fixed Egg Luck and Pet Abilities sometimes counting the same event twice after a reconnect", "The instant harvest key now checks crops against the game's clock, so it no longer fires a moment early when your PC clock runs ahead", "Crop Protection, plant moves and other actions now work when the companion loads after the game has already connected", "Crop sizes in the layout planner and crop value calculator now match the figure the game shows", "Garden Overview: mutation estimates always leave preserved crops out"] }, { version: "0.9.31", notes: ["Fixed auto-store, taking seeds out of the Seed Silo in the Farm Manager, and taking tools out of the Tool Shack after the latest game update", "Fixed the Garden Companion window jumping out of place when turning a setting on or off on the Features tab"] }, { version: "0.9.3", notes: ["Farm Manager: right click a plant to pot it", "Farm Manager: click a potted plant to keep planting with each click on a highlighted tile, moving on to the next plant in the list after each one (same order as your inventory)", "Farm Manager: removed the mutation icons from the plant tiles (still shown when you mouse over)", `New "What's new" button: click the version number at the bottom of the Garden Companion window to see recent changes - a dot shows after an update`] }, { version: "0.9.2", notes: ["New Farm Manager: a top-down map of your garden. Drag a plant to an empty tile to move it, drag it to the side bar to pot it, or drag potted plants plant them onto empty tiles", "On the Seeds tab, click a seed to keep planting it with each click on a highlighted tile", "Open it from the features panel or give it a keybind on the Keybinds tab"] }, { version: "0.9.1", notes: ["Pet pictures are now drawn in the background too, so building sprites no longer stutters the game", "Changed sprite decoder and pet renderer to be load on demand"] }, { version: "0.9.0", notes: ["Sprites decode in the background instead of on the game's main thread, so first loads and game artwork updates should stutter less", "Open windows and panel tabs now fill in their icons as soon as sprites finish loading", "The console shows when sprites have finished loading and how long it took"] }, { version: "0.8.99", notes: ["Fixed shop restock alarms and the weather time left (make sure you're on latest game version)"] }, { version: "0.8.98", notes: ["The companion window is now a smaller window you can drag anywhere by its title bar, and it remembers where you left it", "Each tab now has a short description under its title"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: true, sprite: "StringLights" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: true, sprite: "ColoredStringLights" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: true, sprite: "PaperLantern" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: true, sprite: "FanousLantern" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: true, sprite: "WindchimeMoon" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: true, sprite: "WindchimeStar" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -590,6 +590,7 @@
     turtleTimer: true,
     cropValues: true,
     petFood: true,
+    produceLocks: false,
     petHungerAlarm: false,
     petAbilityAlarm: false,
     alarmList: false,
@@ -867,6 +868,7 @@
   }
   var RESULT_FRAME_MAX = 2e4;
   function noteServerFrame(data) {
+    if (pendingResults.size) settlePendingResult(data);
     if (sequence < 0 || typeof data !== "string") return;
     if (!diagnostics.propertyProbed) readServerFrontier();
     if (!diagnostics.propertyPresent) noteFrontierFromFrame(data);
@@ -933,6 +935,32 @@
     if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error("The game connection is not ready.");
     activeSocket.send(JSON.stringify(frame));
     return requestId;
+  }
+  var pendingResults = /* @__PURE__ */ new Map();
+  function settlePendingResult(data) {
+    if (typeof data !== "string" || data.length > RESULT_FRAME_MAX || !data.includes("QuinoaCommandResult")) return;
+    try {
+      const frame = JSON.parse(data);
+      if (frame?.type !== "QuinoaCommandResult" || typeof frame.requestId !== "string") return;
+      const settle = pendingResults.get(frame.requestId);
+      if (!settle) return;
+      pendingResults.delete(frame.requestId);
+      settle({ ok: frame.ok !== false, code: typeof frame.code === "string" ? frame.code : void 0 });
+    } catch {
+    }
+  }
+  function sendQuinoaCommandAwaitingResult(command, timeoutMs = 5e3) {
+    const requestId = sendQuinoaCommand(command);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        pendingResults.delete(requestId);
+        resolve({ ok: false, timedOut: true });
+      }, timeoutMs);
+      pendingResults.set(requestId, (result) => {
+        clearTimeout(timer);
+        resolve(result);
+      });
+    });
   }
 
   // src/pets.ts
@@ -2242,15 +2270,15 @@ ${groups}
     const saved = loadLocal(POSITION_KEY, null);
     return saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) ? saved : null;
   }
-  function applyPosition(element, position) {
-    if (!position) {
+  function applyPosition(element, position2) {
+    if (!position2) {
       element.style.left = element.style.top = "";
       return;
     }
     const rect = element.getBoundingClientRect();
     const half = rect.width / 2;
-    const centre = Math.min(Math.max(half + 4, position.x * window.innerWidth), window.innerWidth - half - 4);
-    const top = Math.min(Math.max(4, position.y * window.innerHeight), window.innerHeight - rect.height - 4);
+    const centre = Math.min(Math.max(half + 4, position2.x * window.innerWidth), window.innerWidth - half - 4);
+    const top = Math.min(Math.max(4, position2.y * window.innerHeight), window.innerHeight - rect.height - 4);
     element.style.left = `${Math.round(centre)}px`;
     element.style.top = `${Math.round(top)}px`;
   }
@@ -3311,7 +3339,7 @@ ${filter}
       `<label class="gc-check"><input type="checkbox" data-protect-max-size ${config.protectMaxSize === true ? "checked" : ""}><span class="gc-shop-sprite gc-sprite-text">MAX</span><span><b>Max size</b></span></label>`
     ).join("");
     const owned = ownedSpecies();
-    const speciesRows = Object.keys(PLANT_CATALOG).filter((id) => Number(PLANT_CATALOG[id]?.crop?.baseSellPrice) > 0).sort((left, right) => Number(owned.has(right)) - Number(owned.has(left)) || plantName(left).localeCompare(plantName(right))).map((id) => {
+    const speciesRows2 = Object.keys(PLANT_CATALOG).filter((id) => Number(PLANT_CATALOG[id]?.crop?.baseSellPrice) > 0).sort((left, right) => Number(owned.has(right)) - Number(owned.has(left)) || plantName(left).localeCompare(plantName(right))).map((id) => {
       const sprite = produceSprite(id);
       const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
       const where = owned.has(id) ? "In your garden" : "";
@@ -3321,7 +3349,7 @@ ${filter}
 <section class="gc-card gc-launch-row"><div><h3>Crop Locker</h3><p>Lock or unlock any crop in your garden with the games own system.</p></div><button class="gc-primary" data-open-crop-locks>Crop Locker</button></section>
 <div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Blocks harvest commands - doesn't use the games own system</small></span><input type="checkbox" data-protect-enabled ${on ? "checked" : ""}><i></i></label></div>
 <section class="gc-card"><div class="gc-row"><h3>Mutations and size</h3></div><p class="gc-note">A crop matching any of these stays protected even when its species is switched off below.</p><div class="gc-check-grid">${mutationRows}</div></section>
-<section class="gc-card"><div class="gc-row"><h3>Species</h3></div><input class="gc-search" data-protect-search placeholder="Search plants"><div class="gc-check-grid gc-filter-list">${speciesRows}</div></section>`;
+<section class="gc-card"><div class="gc-row"><h3>Species</h3></div><input class="gc-search" data-protect-search placeholder="Search plants"><div class="gc-check-grid gc-filter-list">${speciesRows2}</div></section>`;
   }
   function bindCropProtectionEvents(main) {
     main.querySelectorAll("[data-protect-mutation]").forEach((input) => input.onchange = () => {
@@ -3412,9 +3440,9 @@ ${filter}
       const bounds = node.getBounds();
       const card = typeof node.getChildByLabel === "function" ? node.getChildByLabel("GardenInfoObjectCard", true) : null;
       const cardBounds = typeof card?.getBounds === "function" ? card.getBounds() : null;
-      const position = typeof node.getGlobalPosition === "function" ? node.getGlobalPosition() : null;
+      const position2 = typeof node.getGlobalPosition === "function" ? node.getGlobalPosition() : null;
       if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0 || bounds.height <= 0) return null;
-      const centerX = Number.isFinite(position?.x) ? position.x : bounds.x + bounds.width / 2;
+      const centerX = Number.isFinite(position2?.x) ? position2.x : bounds.x + bounds.width / 2;
       const cardTop = Number.isFinite(cardBounds?.y) ? cardBounds.y : bounds.y;
       return { centerX: surface.toScreenX(centerX), top: surface.toScreenY(cardTop) };
     } catch {
@@ -3448,7 +3476,7 @@ ${filter}
         console.warn("[Garden Companion] A repeating job failed.", error);
       }
     };
-    const ticker = {
+    const ticker2 = {
       start() {
         if (timer) return;
         timer = window.setInterval(run3, intervalMs);
@@ -3461,11 +3489,11 @@ ${filter}
       },
       running: () => timer !== 0,
       sync(wanted) {
-        if (wanted) ticker.start();
-        else ticker.stop();
+        if (wanted) ticker2.start();
+        else ticker2.stop();
       }
     };
-    return ticker;
+    return ticker2;
   }
 
   // src/features/crop-estimates.ts
@@ -3558,10 +3586,10 @@ ${filter}
   function nativeEstimateSignature() {
     return cardLines().join("\n");
   }
-  function decorateGardenCardState(nextState, signature2 = nativeEstimateSignature()) {
+  function decorateGardenCardState(nextState, signature3 = nativeEstimateSignature()) {
     const clean = cleanGardenCardState(nextState);
-    if (!clean.card || !signature2) return clean;
-    const lines = signature2.split("\n");
+    if (!clean.card || !signature3) return clean;
+    const lines = signature3.split("\n");
     const attributes = [...clean.card.attributes || []];
     const estimateAttributes = lines.map((text) => ({
       key: "time",
@@ -3607,11 +3635,11 @@ ${filter}
     }
     return chips.length ? x - gap : 0;
   }
-  function relayoutNativeEstimates(view, signature2) {
-    if (!signature2) return;
+  function relayoutNativeEstimates(view, signature3) {
+    if (!signature3) return;
     const card = view.container?.getChildByLabel?.("GardenInfoObjectCard", true);
     if (!card?.hitArea || !Array.isArray(card.children)) return;
-    const lines = signature2.split("\n");
+    const lines = signature3.split("\n");
     const chipsByLine = findEstimateChips(card, lines);
     if (!chipsByLine.size) return;
     const oldWidth = Number(card.hitArea.width);
@@ -3823,10 +3851,10 @@ ${filter}
       if (hook) nativeGardenCardHook = null;
       return false;
     }
-    const signature2 = nativeEstimateSignature();
-    if (hook.sourceState && signature2 !== hook.signature) {
-      hook.signature = signature2;
-      hook.originalSetState.call(hook.view, decorateGardenCardState(hook.sourceState, signature2));
+    const signature3 = nativeEstimateSignature();
+    if (hook.sourceState && signature3 !== hook.signature) {
+      hook.signature = signature3;
+      hook.originalSetState.call(hook.view, decorateGardenCardState(hook.sourceState, signature3));
     }
     document.getElementById("gc-turtle")?.remove();
     return true;
@@ -3865,6 +3893,143 @@ ${filter}
   function installCropEstimates() {
     onQuinoaEngine(hookGardenInfoCard);
     onStateChange(syncCropEstimates);
+  }
+
+  // src/features/produce-locks.ts
+  var PANEL_ID = "gc-produce-locks";
+  function favouritedIds() {
+    const ids = state.slot?.data?.inventory?.favoritedItemIds;
+    return new Set(Array.isArray(ids) ? ids.map(String) : []);
+  }
+  function speciesRows() {
+    const favourites = favouritedIds();
+    const bySpecies = /* @__PURE__ */ new Map();
+    for (const item of heldProduce()) {
+      let row = bySpecies.get(item.species);
+      if (!row) bySpecies.set(item.species, row = { species: item.species, ids: [], locked: 0 });
+      row.ids.push(item.id);
+      if (favourites.has(item.id)) row.locked++;
+    }
+    return [...bySpecies.values()].sort((left, right) => humanize(left.species).localeCompare(humanize(right.species)));
+  }
+  var queue = [];
+  var queued = /* @__PURE__ */ new Set();
+  var draining = false;
+  async function drain() {
+    if (draining) return;
+    draining = true;
+    try {
+      while (queue.length) {
+        const itemId2 = queue.shift();
+        queued.delete(itemId2);
+        const result = await sendQuinoaCommandAwaitingResult({ type: "ToggleLockItem", itemId: itemId2 });
+        if (result.timedOut) throw new Error("The game stopped answering; the remaining locks were not sent.");
+      }
+    } catch (error) {
+      queue.length = 0;
+      queued.clear();
+      toast(error.message, "error");
+    } finally {
+      draining = false;
+    }
+  }
+  function toggleSpecies(species) {
+    const row = speciesRows().find((entry) => entry.species === species);
+    if (!row) return;
+    const ids = new Set(row.ids);
+    for (let index = queue.length - 1; index >= 0; index--) {
+      if (ids.has(queue[index])) {
+        queued.delete(queue[index]);
+        queue.splice(index, 1);
+      }
+    }
+    const favourites = favouritedIds();
+    const lock = row.locked < row.ids.length;
+    for (const id of row.ids) {
+      if (favourites.has(id) === lock || queued.has(id)) continue;
+      queued.add(id);
+      queue.push(id);
+    }
+    void drain();
+  }
+  function inventoryView() {
+    return quinoaEngine()?.getSystem?.("inventory")?.modalView ?? null;
+  }
+  function inventoryRect() {
+    const view = inventoryView();
+    if (!view || view.isDestroyed || !view.isVisible || !view.showExpandedContent) return null;
+    const surface = pixiSurface();
+    const node = view.modalBg || view.contentContainer || view.modalContainer;
+    if (!surface || !node || typeof node.getBounds !== "function" || !pixiNodeVisible(node)) return null;
+    try {
+      const bounds = node.getBounds();
+      if (![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.width <= 0 || bounds.height <= 0) return null;
+      return {
+        left: surface.toScreenX(bounds.x),
+        top: surface.toScreenY(bounds.y),
+        right: surface.toScreenX(bounds.x + bounds.width),
+        bottom: surface.toScreenY(bounds.y + bounds.height)
+      };
+    } catch {
+      return null;
+    }
+  }
+  function createPanel() {
+    const panel3 = document.createElement("div");
+    panel3.id = PANEL_ID;
+    panel3.hidden = true;
+    panel3.innerHTML = '<div class="gc-produce-locks-head" title="Right-click a crop to lock or unlock every one of that species">Produce</div><div class="gc-produce-locks-list"></div>';
+    panel3.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      const tile = event.target.closest("[data-produce-species]");
+      if (tile) toggleSpecies(tile.dataset.produceSpecies);
+    });
+    for (const type of ["pointerdown", "pointerup", "wheel"]) panel3.addEventListener(type, (event) => event.stopPropagation());
+    const list = panel3.querySelector(".gc-produce-locks-list");
+    list.addEventListener("wheel", (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      event.preventDefault();
+      list.scrollLeft += event.deltaY;
+    }, { passive: false });
+    document.body.appendChild(panel3);
+    return panel3;
+  }
+  var signature = "";
+  function render(panel3) {
+    const rows = speciesRows();
+    const next = JSON.stringify(rows.map((row) => [row.species, row.ids.length, row.locked, Boolean(produceSprite(row.species))]));
+    if (next === signature) return;
+    signature = next;
+    const list = panel3.querySelector(".gc-produce-locks-list");
+    list.innerHTML = rows.length ? rows.map((row) => {
+      const name = humanize(row.species);
+      const sprite = produceSprite(row.species);
+      const lockState = row.locked === 0 ? "none" : row.locked === row.ids.length ? "all" : "some";
+      const title = `${name} - ${row.ids.length} held, ${row.locked} locked. Right-click to ${lockState === "all" ? "unlock" : "lock"} all.`;
+      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<i>${escapeHtml(name.slice(0, 1))}</i>`;
+      return `<div class="gc-produce-lock" data-produce-species="${escapeHtml(row.species)}" data-locked="${lockState}" title="${escapeHtml(title)}">${icon}<span class="gc-produce-lock-count">${row.ids.length}</span><b class="gc-produce-lock-pad" aria-hidden="true"></b></div>`;
+    }).join("") : "<p>No produce</p>";
+  }
+  function position() {
+    const rect = feature("produceLocks") ? inventoryRect() : null;
+    let panel3 = document.getElementById(PANEL_ID);
+    if (!rect) {
+      if (panel3) panel3.hidden = true;
+      return;
+    }
+    panel3 ||= createPanel();
+    render(panel3);
+    const gap = 8;
+    panel3.style.left = `${Math.round(rect.left)}px`;
+    panel3.style.maxWidth = `${Math.round(rect.right - rect.left)}px`;
+    panel3.style.bottom = `${Math.round(innerHeight - rect.top + gap)}px`;
+    panel3.hidden = false;
+  }
+  var ticker = createTicker(position, 150);
+  function syncProduceLocks() {
+    ticker.sync(feature("produceLocks"));
+    if (!feature("produceLocks")) document.getElementById(PANEL_ID)?.remove();
+    signature = "";
   }
 
   // src/features/pet-food.ts
@@ -3969,10 +4134,10 @@ ${filter}
       return;
     }
     positionTicker.start();
-    const signature2 = JSON.stringify(rows.map((row) => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice))]));
+    const signature3 = JSON.stringify(rows.map((row) => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice))]));
     const panel3 = existing || createPetFoodPanel();
-    if (!existing || signature2 !== petFoodSignature) {
-      petFoodSignature = signature2;
+    if (!existing || signature3 !== petFoodSignature) {
+      petFoodSignature = signature3;
       panel3.querySelector(".gc-petfood-list").innerHTML = rows.map((row) => {
         const name = row.pet.name || PET_CATALOG[row.pet.petSpecies]?.name || humanize(row.pet.petSpecies);
         const sprite = produceSprite(row.choice);
@@ -4501,8 +4666,8 @@ ${filter}
   var SEND_INTERVAL_MS = 200;
   var flushTimer = 0;
   var drainTimer = 0;
-  var queue = [];
-  var queued = /* @__PURE__ */ new Set();
+  var queue2 = [];
+  var queued2 = /* @__PURE__ */ new Set();
   var sentAt = /* @__PURE__ */ new Map();
   var lastQueuedSignature = "";
   function inventoryItems() {
@@ -4524,8 +4689,8 @@ ${filter}
   function flush() {
     const now = Date.now();
     for (const [key, at] of sentAt) if (now - at > RESEND_GRACE_MS) sentAt.delete(key);
-    const signature2 = inventorySignature();
-    if (signature2 === lastQueuedSignature) return;
+    const signature3 = inventorySignature();
+    if (signature3 === lastQueuedSignature) return;
     let queuedAny = false;
     for (const rule of RULES) {
       if (!rule.enabled()) continue;
@@ -4536,19 +4701,19 @@ ${filter}
         const key = rule.key(item);
         if (!key || !stored.has(key) || isBusy(rule, key) || isTimedTool(item)) continue;
         const pending = `${rule.storageId}:${key}`;
-        if (sentAt.has(pending) || queued.has(pending)) continue;
-        queued.add(pending);
-        queue.push({ rule, key, pending });
+        if (sentAt.has(pending) || queued2.has(pending)) continue;
+        queued2.add(pending);
+        queue2.push({ rule, key, pending });
         queuedAny = true;
       }
     }
-    if (queuedAny) lastQueuedSignature = signature2;
-    drain();
+    if (queuedAny) lastQueuedSignature = signature3;
+    drain2();
   }
-  function drain() {
-    if (drainTimer || !queue.length) return;
-    const next = queue.shift();
-    queued.delete(next.pending);
+  function drain2() {
+    if (drainTimer || !queue2.length) return;
+    const next = queue2.shift();
+    queued2.delete(next.pending);
     if (next.rule.enabled() && !isBusy(next.rule, next.key) && !toolHasTimer(next.key)) {
       try {
         sendQuinoaCommand({ type: "MoveItem", from: "inventory", to: next.rule.storageId, itemId: next.key });
@@ -4556,10 +4721,10 @@ ${filter}
       } catch {
       }
     }
-    if (!queue.length) return;
+    if (!queue2.length) return;
     drainTimer = window.setTimeout(() => {
       drainTimer = 0;
-      drain();
+      drain2();
     }, SEND_INTERVAL_MS);
   }
   function processAutoStore() {
@@ -5227,7 +5392,7 @@ ${eggs.map(eggCard).join("")}`;
   var savedSeen = loadLocal(SEEN_KEY, []);
   var seen2 = Array.isArray(savedSeen) ? savedSeen.filter((entry) => typeof entry === "string") : [];
   var longestLog = Math.ceil(seen2.length / 4);
-  function signature(entry) {
+  function signature2(entry) {
     const parameters = entry.parameters ?? {};
     const idOf = (value) => {
       const held = value && typeof value === "object" ? value.id : value;
@@ -5242,7 +5407,7 @@ ${eggs.map(eggCard).join("")}`;
     const known = new Set(seen2);
     const fresh = entries.filter((entry) => {
       if (!Number.isFinite(Number(entry?.timestamp))) return false;
-      const id = signature(entry);
+      const id = signature2(entry);
       if (known.has(id)) return false;
       known.add(id);
       return true;
@@ -5251,7 +5416,7 @@ ${eggs.map(eggCard).join("")}`;
     if (feature("abilities")) recordAbilityActivities(fresh);
     recordEggHatches(fresh);
     longestLog = Math.max(longestLog, entries.length);
-    seen2 = [.../* @__PURE__ */ new Set([...seen2, ...entries.filter(Boolean).map(signature)])].slice(-seenLimit(longestLog));
+    seen2 = [.../* @__PURE__ */ new Set([...seen2, ...entries.filter(Boolean).map(signature2)])].slice(-seenLimit(longestLog));
     saveLocal(SEEN_KEY, seen2);
   }
 
@@ -5677,9 +5842,9 @@ ${eggs.map(eggCard).join("")}`;
     const container = state.playerId && views instanceof Map ? views.get(state.playerId)?.container : void 0;
     if (!container || container.destroyed || typeof container.getGlobalPosition !== "function") return fallback;
     try {
-      const position = container.getGlobalPosition();
-      if (!Number.isFinite(position?.x) || !Number.isFinite(position?.y)) return fallback;
-      const origin = { x: surface.toScreenX(position.x), y: surface.toScreenY(position.y) };
+      const position2 = container.getGlobalPosition();
+      if (!Number.isFinite(position2?.x) || !Number.isFinite(position2?.y)) return fallback;
+      const origin = { x: surface.toScreenX(position2.x), y: surface.toScreenY(position2.y) };
       const onScreen = origin.x > -40 && origin.x < window.innerWidth + 40 && origin.y > -40 && origin.y < window.innerHeight + 40;
       return onScreen ? origin : fallback;
     } catch {
@@ -5709,10 +5874,10 @@ ${eggs.map(eggCard).join("")}`;
     const held = new Map(targets.map((target) => [target.id, target.hold]));
     const wrapper = function(...args) {
       const result = original.apply(this, args);
-      for (const [id, position] of held) {
+      for (const [id, position2] of held) {
         const display = this.views?.get?.(id)?.displayObject;
         if (!display?.position || display.destroyed) continue;
-        display.position.set(position.x, position.y);
+        display.position.set(position2.x, position2.y);
         if (caught.has(id)) display.visible = false;
       }
       return result;
@@ -6680,7 +6845,7 @@ ${eggs.map(eggCard).join("")}`;
     let sprites = [];
     let renderLayer = null;
     let currentGeometry = null;
-    let signature2 = "";
+    let signature3 = "";
     let active = false;
     let broken = false;
     let warned = false;
@@ -6867,7 +7032,7 @@ ${eggs.map(eggCard).join("")}`;
       renderLayer = null;
       currentGeometry = null;
       penArea = null;
-      signature2 = "";
+      signature3 = "";
     }
     function clearSprites() {
       for (const sprite of sprites) destroyNode(sprite);
@@ -6959,9 +7124,9 @@ ${eggs.map(eggCard).join("")}`;
         const geometry = readGeometry();
         if (!geometry) return null;
         const next = `${geometry.globals.join(",")}:${geometry.left}:${geometry.top}:${geometry.width}:${geometry.height}`;
-        if (signature2 !== next || !graphics.size) {
+        if (signature3 !== next || !graphics.size) {
           if (!build(geometry)) return null;
-          signature2 = next;
+          signature3 = next;
         } else {
           currentGeometry = geometry;
         }
@@ -7440,8 +7605,8 @@ ${eggs.map(eggCard).join("")}`;
   function shopSignature(available) {
     return available.map((row) => `${row.shop}:${row.id}:${row.remaining}`).sort().join("|");
   }
-  function applyShopSnapshot(available, signature2, restocked) {
-    if (signature2 === state.lastShopSignature && !restocked.size) {
+  function applyShopSnapshot(available, signature3, restocked) {
+    if (signature3 === state.lastShopSignature && !restocked.size) {
       state.initializedShops = true;
       return;
     }
@@ -7451,7 +7616,7 @@ ${eggs.map(eggCard).join("")}`;
       for (const key of old) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
     }
     for (const row of available) updateAlarmDetail(`shop:${row.shop}:${row.id}`, `${row.remaining} remaining`);
-    state.lastShopSignature = signature2;
+    state.lastShopSignature = signature3;
     for (const row of available) {
       const key = `${row.shop}:${row.id}`;
       if (!config.shopAlerts[key] || atInventoryCap(row.id, row.item)) continue;
@@ -7459,10 +7624,10 @@ ${eggs.map(eggCard).join("")}`;
     }
     state.initializedShops = true;
   }
-  function settleInitialShops(signature2) {
-    if (signature2 !== pendingInitialSignature && initialShopTimer) window.clearTimeout(initialShopTimer);
-    if (signature2 === pendingInitialSignature && initialShopTimer) return;
-    pendingInitialSignature = signature2;
+  function settleInitialShops(signature3) {
+    if (signature3 !== pendingInitialSignature && initialShopTimer) window.clearTimeout(initialShopTimer);
+    if (signature3 === pendingInitialSignature && initialShopTimer) return;
+    pendingInitialSignature = signature3;
     initialShopTimer = window.setTimeout(() => {
       initialShopTimer = 0;
       if (!feature("shopAlarms") || state.initializedShops) return;
@@ -7492,10 +7657,10 @@ ${eggs.map(eggCard).join("")}`;
     resettling = true;
     restockIds.clear();
   }
-  function settleAfterReconnect(signature2) {
-    if (signature2 === resettleSignature && resettleTimer) return;
+  function settleAfterReconnect(signature3) {
+    if (signature3 === resettleSignature && resettleTimer) return;
     if (resettleTimer) window.clearTimeout(resettleTimer);
-    resettleSignature = signature2;
+    resettleSignature = signature3;
     resettleTimer = window.setTimeout(() => {
       resettleTimer = 0;
       if (!shopStateReady()) {
@@ -7530,12 +7695,12 @@ ${eggs.map(eggCard).join("")}`;
     }
     const restocked = restockedShops();
     const available = availableShopItems();
-    const signature2 = shopSignature(available);
+    const signature3 = shopSignature(available);
     if (!state.initializedShops) {
-      settleInitialShops(signature2);
+      settleInitialShops(signature3);
       return;
     }
-    applyShopSnapshot(available, signature2, restocked);
+    applyShopSnapshot(available, signature3, restocked);
     stopCappedAlarms(available);
   }
   function showShopAlarm(row) {
@@ -7988,8 +8153,8 @@ ${eggs.map(eggCard).join("")}`;
       }
       refreshPending = false;
       if (panelRefreshTimer) return;
-      const signature2 = tabRefreshSignature();
-      if (signature2 && signature2 === lastTabSignature) return;
+      const signature3 = tabRefreshSignature();
+      if (signature3 && signature3 === lastTabSignature) return;
       panelRefreshTimer = setTimeout(() => {
         panelRefreshTimer = null;
         if (panel3.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
@@ -8172,6 +8337,7 @@ ${eggs.map(eggCard).join("")}`;
         ["cropValues", "Crop value", "Show the sell value when standing on a crop"],
         ["turtleTimer", "Growth time", "Show the time left, adjusted for your pets, when standing on a crop or egg"],
         ["petFood", "Pet food panel", "Draggable feed buttons for your active pets - foods are chosen in the Pet Food tab"],
+        ["produceLocks", "Inventory produce locks", "Produce sprites above the open inventory - right-click a crop to lock or unlock every one of that species"],
         ["instantHarvest", "Instant harvest key", "Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on"],
         ["petSwapToss", "Pokemon Mode", "Throw a ball at each active pet and catch them before a team swap - delays it about a second"],
         ["autoStoreSeeds", "Auto-store seeds", "Move seeds into the Seed Silo when it already holds that species"],
@@ -8197,6 +8363,7 @@ ${eggs.map(eggCard).join("")}`;
         if (input.checked && (input.dataset.feature === "petHungerAlarm" || input.dataset.feature === "petAbilityAlarm")) armAlarmAudio();
         updateLunarTimer();
         renderPetFood();
+        syncProduceLocks();
         syncCropEstimates();
       });
       main.querySelector("[data-open-planner]")?.addEventListener("click", () => {
@@ -9275,6 +9442,20 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
 /* The Ko-fi link is an anchor, not a button, so it borrows the primary button's look. */\r
 #gc-panel a.gc-kofi { width:132px;flex:0 0 auto;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:var(--gc-radius-sm);text-decoration:none;white-space:nowrap;font-size:12px;font-weight:600; }\r
 #gc-panel a.gc-kofi:hover { background:var(--gc-accent-hover); }\r
+#gc-produce-locks { position:fixed;z-index:99991;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:6px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:12px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.5);font:12px/1.3 var(--gc-font);user-select:none; }\r
+#gc-produce-locks[hidden] { display:none; }\r
+.gc-produce-locks-head { flex:0 0 auto;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;color:rgba(255,255,255,.7);font:600 11px var(--gc-font);cursor:help; }\r
+.gc-produce-locks-list { display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none; }\r
+.gc-produce-locks-list p { margin:0;padding:0 6px;color:rgba(255,255,255,.5);font-size:11px; }\r
+.gc-produce-lock { position:relative;flex:0 0 auto;display:grid;place-items:center;width:62px;height:62px;border:1px solid var(--gc-line-strong);border-radius:10px;background:rgba(42,42,48,.6);cursor:context-menu;transition:border-color .12s,background .12s; }\r
+.gc-produce-lock:hover { border-color:var(--gc-accent-line);background:rgba(42,42,48,.96); }\r
+.gc-produce-lock img { width:46px;height:46px;object-fit:contain;image-rendering:auto!important; }\r
+.gc-produce-lock i { color:rgba(255,255,255,.7);font:600 17px var(--gc-font);font-style:normal; }\r
+.gc-produce-lock-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;color:#141417;background:var(--gc-gold);border-radius:999px;text-align:center;font:700 11px/16px var(--gc-font);font-variant-numeric:tabular-nums; }\r
+.gc-produce-lock-pad { position:absolute;top:3px;right:3px;width:14px;height:14px;display:none;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5c542'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h6V7a3 3 0 0 0-6 0v3Z'/%3E%3C/svg%3E"); }\r
+.gc-produce-lock[data-locked="all"] { border-color:rgba(245,197,66,.7); }\r
+.gc-produce-lock[data-locked="all"] .gc-produce-lock-pad { display:block; }\r
+.gc-produce-lock[data-locked="some"] .gc-produce-lock-pad { display:block;opacity:.45; }\r
 `;
       document.head.appendChild(style);
       mountLunarTimer(togglePanel);
@@ -9290,12 +9471,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         }
         resetPetFoodSignature();
         renderPetFood();
+        syncProduceLocks();
         updateLunarTimer();
       });
       watchExistingSocket();
       watchForGameUpdateDialog();
       syncCropEstimates();
       renderPetFood();
+      syncProduceLocks();
       page.addEventListener("pointerup", () => requestAnimationFrame(positionPetFood), true);
     }
     installGameModalAccess();
@@ -9603,196 +9786,196 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
 
   // src/features/overview-styles.ts
   var STYLE_ID2 = "gc-overview-style";
-  var PANEL_ID = "gc-overview-panel";
+  var PANEL_ID2 = "gc-overview-panel";
   var BUTTON_ID = "gc-overview-button";
   function injectOverviewStyles() {
     if (document.getElementById(STYLE_ID2)) return;
     const style = document.createElement("style");
     style.id = STYLE_ID2;
     style.textContent = `
-    #${PANEL_ID},#${BUTTON_ID}{--go-bg:var(--gc-bg,#141417);--go-surface:var(--gc-surface,#1a1a1e);--go-surface-2:var(--gc-surface-2,#222227);--go-surface-3:var(--gc-surface-3,#2a2a30);--go-input:var(--gc-input,#0e0e10);--go-line:var(--gc-line,rgba(255,255,255,.07));--go-line-strong:var(--gc-line-strong,rgba(255,255,255,.12));--go-text:var(--gc-text,#ececef);--go-strong:var(--gc-strong,#fafafa);--go-muted:var(--gc-muted,#a1a1aa);--go-faint:var(--gc-faint,#83838d);--go-accent:var(--gc-accent,#7c6cf2);--go-accent-text:var(--gc-accent-text,#b3a9ff);--go-accent-soft:var(--gc-accent-soft,rgba(124,108,242,.14));--go-accent-line:var(--gc-accent-line,rgba(124,108,242,.45));--go-green:var(--gc-green,#3ecf8e);--go-gold:var(--gc-gold,#f5c04a);--go-font:var(--gc-font,"Segoe UI",system-ui,sans-serif);--go-mono:var(--gc-mono,ui-monospace,Consolas,monospace)}
+    #${PANEL_ID2},#${BUTTON_ID}{--go-bg:var(--gc-bg,#141417);--go-surface:var(--gc-surface,#1a1a1e);--go-surface-2:var(--gc-surface-2,#222227);--go-surface-3:var(--gc-surface-3,#2a2a30);--go-input:var(--gc-input,#0e0e10);--go-line:var(--gc-line,rgba(255,255,255,.07));--go-line-strong:var(--gc-line-strong,rgba(255,255,255,.12));--go-text:var(--gc-text,#ececef);--go-strong:var(--gc-strong,#fafafa);--go-muted:var(--gc-muted,#a1a1aa);--go-faint:var(--gc-faint,#83838d);--go-accent:var(--gc-accent,#7c6cf2);--go-accent-text:var(--gc-accent-text,#b3a9ff);--go-accent-soft:var(--gc-accent-soft,rgba(124,108,242,.14));--go-accent-line:var(--gc-accent-line,rgba(124,108,242,.45));--go-green:var(--gc-green,#3ecf8e);--go-gold:var(--gc-gold,#f5c04a);--go-font:var(--gc-font,"Segoe UI",system-ui,sans-serif);--go-mono:var(--gc-mono,ui-monospace,Consolas,monospace)}
     #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--go-line-strong);border-radius:9px;background:var(--go-bg);color:var(--go-text);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
     /* Solid on hover rather than translucent: this button sits on the game canvas, so a see-through
        fill would show the garden through it instead of lighting it up. */
     #${BUTTON_ID}:hover{background:var(--go-surface-2)}
-    #${PANEL_ID}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--go-text);font:13px/1.45 var(--go-font);-webkit-font-smoothing:antialiased}
-    #${PANEL_ID} *,#${PANEL_ID} *::before,#${PANEL_ID} *::after{box-sizing:border-box}
-    #${PANEL_ID}[hidden]{display:none}
-    #${PANEL_ID} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
-    #${PANEL_ID} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:1}
-    #${PANEL_ID} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:2}
-    #${PANEL_ID} header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 8px 10px 12px;color:var(--go-strong);border-bottom:1px solid var(--go-line);cursor:move;touch-action:none;user-select:none}
-    #${PANEL_ID} .go-config-card header{padding-left:16px}
-    #${PANEL_ID} h2{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap;font:650 14px/1.2 var(--go-font);letter-spacing:-.005em}
-    #${PANEL_ID} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:2px}
-    #${PANEL_ID} button{min-height:28px;padding:5px 10px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-surface-2);color:var(--go-text);cursor:pointer;font:500 12px/1.2 var(--go-font);white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
-    #${PANEL_ID} button:hover{color:var(--go-strong);border-color:rgba(255,255,255,.18);background:var(--go-surface-3)}
-    #${PANEL_ID} button:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:1px}
-    #${PANEL_ID} button:disabled{opacity:.45;cursor:default}
+    #${PANEL_ID2}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--go-text);font:13px/1.45 var(--go-font);-webkit-font-smoothing:antialiased}
+    #${PANEL_ID2} *,#${PANEL_ID2} *::before,#${PANEL_ID2} *::after{box-sizing:border-box}
+    #${PANEL_ID2}[hidden]{display:none}
+    #${PANEL_ID2} .go-stage{display:flex;align-items:flex-start;gap:8px;pointer-events:none}
+    #${PANEL_ID2} .go-card{width:min(344px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:1}
+    #${PANEL_ID2} .go-config-card{width:300px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid var(--go-line-strong);border-radius:14px;background:var(--go-bg);box-shadow:0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);z-index:2}
+    #${PANEL_ID2} header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 8px 10px 12px;color:var(--go-strong);border-bottom:1px solid var(--go-line);cursor:move;touch-action:none;user-select:none}
+    #${PANEL_ID2} .go-config-card header{padding-left:16px}
+    #${PANEL_ID2} h2{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap;font:650 14px/1.2 var(--go-font);letter-spacing:-.005em}
+    #${PANEL_ID2} header .go-actions{display:flex;flex:0 0 auto;align-items:center;gap:2px}
+    #${PANEL_ID2} button{min-height:28px;padding:5px 10px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-surface-2);color:var(--go-text);cursor:pointer;font:500 12px/1.2 var(--go-font);white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
+    #${PANEL_ID2} button:hover{color:var(--go-strong);border-color:rgba(255,255,255,.18);background:var(--go-surface-3)}
+    #${PANEL_ID2} button:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:1px}
+    #${PANEL_ID2} button:disabled{opacity:.45;cursor:default}
     /* Icon buttons: header actions and section tools. Borderless until hovered or switched on. */
-    #${PANEL_ID} header button,#${PANEL_ID} .go-section-actions button{width:30px;min-width:30px;height:30px;min-height:0;display:grid;place-items:center;padding:0;border-color:transparent;background:transparent;color:var(--go-muted)}
-    #${PANEL_ID} header button svg,#${PANEL_ID} .go-section-actions button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    #${PANEL_ID} header button:hover,#${PANEL_ID} .go-section-actions button:hover{color:var(--go-text);border-color:transparent;background:var(--go-surface-2)}
-    #${PANEL_ID} header button[data-active=true],#${PANEL_ID} .go-section-actions button[data-active=true]{color:var(--go-accent-text);border-color:transparent;background:var(--go-accent-soft)}
-    #${PANEL_ID} .go-body{min-height:0;overflow:auto;padding:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
-    #${PANEL_ID} .go-config-body{min-height:0;overflow:auto;padding:0 14px 14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
-    #${PANEL_ID} .go-config-body .go-section{padding:4px 0 0;border-bottom:0}
-    #${PANEL_ID} .go-section{padding:14px 14px;border-bottom:1px solid var(--go-line)}
-    #${PANEL_ID} .go-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-    #${PANEL_ID} .go-section-title>span:first-child{display:flex;align-items:center}
-    #${PANEL_ID} .go-section-title>span:last-child:not(:first-child){order:2;margin-left:8px;white-space:nowrap;color:var(--go-muted);font-size:11px;font-weight:500;letter-spacing:0;text-transform:none}
-    #${PANEL_ID} .go-section-title>span>small{margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-collapsible{cursor:pointer;margin:0}
-    #${PANEL_ID} .go-collapsible:hover{color:var(--go-text)}
+    #${PANEL_ID2} header button,#${PANEL_ID2} .go-section-actions button{width:30px;min-width:30px;height:30px;min-height:0;display:grid;place-items:center;padding:0;border-color:transparent;background:transparent;color:var(--go-muted)}
+    #${PANEL_ID2} header button svg,#${PANEL_ID2} .go-section-actions button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    #${PANEL_ID2} header button:hover,#${PANEL_ID2} .go-section-actions button:hover{color:var(--go-text);border-color:transparent;background:var(--go-surface-2)}
+    #${PANEL_ID2} header button[data-active=true],#${PANEL_ID2} .go-section-actions button[data-active=true]{color:var(--go-accent-text);border-color:transparent;background:var(--go-accent-soft)}
+    #${PANEL_ID2} .go-body{min-height:0;overflow:auto;padding:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+    #${PANEL_ID2} .go-config-body{min-height:0;overflow:auto;padding:0 14px 14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+    #${PANEL_ID2} .go-config-body .go-section{padding:4px 0 0;border-bottom:0}
+    #${PANEL_ID2} .go-section{padding:14px 14px;border-bottom:1px solid var(--go-line)}
+    #${PANEL_ID2} .go-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+    #${PANEL_ID2} .go-section-title>span:first-child{display:flex;align-items:center}
+    #${PANEL_ID2} .go-section-title>span:last-child:not(:first-child){order:2;margin-left:8px;white-space:nowrap;color:var(--go-muted);font-size:11px;font-weight:500;letter-spacing:0;text-transform:none}
+    #${PANEL_ID2} .go-section-title>span>small{margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-collapsible{cursor:pointer;margin:0}
+    #${PANEL_ID2} .go-collapsible:hover{color:var(--go-text)}
     /* A bordered control rather than a loose glyph, so it reads as something you can press. */
-    #${PANEL_ID} .go-chevron{order:2;display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;margin-left:8px;border:1px solid var(--go-line);border-radius:7px;background:transparent;color:var(--go-muted);text-decoration:none;transition:background .12s,color .12s}
-    #${PANEL_ID} .go-chevron svg,#${PANEL_ID} .go-plant-row>span>u svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    #${PANEL_ID} .go-collapsible:hover .go-chevron{color:var(--go-text);background:var(--go-surface-2)}
-    #${PANEL_ID} [data-section]{margin-top:10px}
-    #${PANEL_ID} .go-collapsible:hover>span>small{background:var(--go-surface-3)}
+    #${PANEL_ID2} .go-chevron{order:2;display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;margin-left:8px;border:1px solid var(--go-line);border-radius:7px;background:transparent;color:var(--go-muted);text-decoration:none;transition:background .12s,color .12s}
+    #${PANEL_ID2} .go-chevron svg,#${PANEL_ID2} .go-plant-row>span>u svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    #${PANEL_ID2} .go-collapsible:hover .go-chevron{color:var(--go-text);background:var(--go-surface-2)}
+    #${PANEL_ID2} [data-section]{margin-top:10px}
+    #${PANEL_ID2} .go-collapsible:hover>span>small{background:var(--go-surface-3)}
     /* Growth */
-    #${PANEL_ID} .go-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0}
-    #${PANEL_ID} .go-summary[data-tiles="3"]{grid-template-columns:repeat(3,1fr)}
-    #${PANEL_ID} .go-metric{min-width:0;padding:9px 10px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
-    #${PANEL_ID} .go-metric small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--go-muted);font-size:11px;font-weight:500}
-    #${PANEL_ID} .go-metric b{display:block;margin-top:2px;white-space:nowrap;color:var(--go-strong);font:650 16px/1.25 var(--go-font);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-metric.go-growing b{color:var(--go-gold)}
-    #${PANEL_ID} .go-metric.go-size b{color:#fb923c}
-    #${PANEL_ID} .go-status{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);font-size:13px}
-    #${PANEL_ID} .go-status::before{content:'';width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--go-gold)}
-    #${PANEL_ID} .go-status b{color:var(--go-strong);font-weight:650;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-status[data-tone=done]{color:var(--go-green);border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07);font-weight:600}
-    #${PANEL_ID} .go-status[data-tone=done]::before{background:var(--go-green)}
+    #${PANEL_ID2} .go-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0}
+    #${PANEL_ID2} .go-summary[data-tiles="3"]{grid-template-columns:repeat(3,1fr)}
+    #${PANEL_ID2} .go-metric{min-width:0;padding:9px 10px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
+    #${PANEL_ID2} .go-metric small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--go-muted);font-size:11px;font-weight:500}
+    #${PANEL_ID2} .go-metric b{display:block;margin-top:2px;white-space:nowrap;color:var(--go-strong);font:650 16px/1.25 var(--go-font);font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-metric.go-growing b{color:var(--go-gold)}
+    #${PANEL_ID2} .go-metric.go-size b{color:#fb923c}
+    #${PANEL_ID2} .go-status{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);font-size:13px}
+    #${PANEL_ID2} .go-status::before{content:'';width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--go-gold)}
+    #${PANEL_ID2} .go-status b{color:var(--go-strong);font-weight:650;font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-status[data-tone=done]{color:var(--go-green);border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07);font-weight:600}
+    #${PANEL_ID2} .go-status[data-tone=done]::before{background:var(--go-green)}
     /* Mutation progress */
-    #${PANEL_ID} .go-progress{padding:6px 0}
-    #${PANEL_ID} .go-progress:first-child{padding-top:0}
-    #${PANEL_ID} .go-progress>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-text);font-size:13px}
-    #${PANEL_ID} .go-progress span{display:flex;align-items:center;gap:8px}
-    #${PANEL_ID} .go-progress span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
-    #${PANEL_ID} .go-progress b{font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-of{color:var(--go-faint);font-weight:400}
-    #${PANEL_ID} .go-progress>i{display:block;height:6px;overflow:hidden;border-radius:999px;background:var(--go-surface-3)}
-    #${PANEL_ID} .go-progress>i u{display:block;height:100%;border-radius:999px;text-decoration:none}
+    #${PANEL_ID2} .go-progress{padding:6px 0}
+    #${PANEL_ID2} .go-progress:first-child{padding-top:0}
+    #${PANEL_ID2} .go-progress>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-text);font-size:13px}
+    #${PANEL_ID2} .go-progress span{display:flex;align-items:center;gap:8px}
+    #${PANEL_ID2} .go-progress span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
+    #${PANEL_ID2} .go-progress b{font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-of{color:var(--go-faint);font-weight:400}
+    #${PANEL_ID2} .go-progress>i{display:block;height:6px;overflow:hidden;border-radius:999px;background:var(--go-surface-3)}
+    #${PANEL_ID2} .go-progress>i u{display:block;height:100%;border-radius:999px;text-decoration:none}
     /* Mutation estimates */
-    #${PANEL_ID} .go-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-6px 0 8px}
-    #${PANEL_ID} .go-section-head .go-section-title{flex:1;margin:0}
-    #${PANEL_ID} .go-section-actions{display:flex;align-items:center;gap:2px;margin-right:-6px}
-    #${PANEL_ID} .go-eta-detail,#${PANEL_ID} .go-eta-done{padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);color:var(--go-text)}
-    #${PANEL_ID} .go-eta-detail+.go-eta-detail,#${PANEL_ID} .go-eta-detail+.go-eta-done,#${PANEL_ID} .go-eta-done+.go-eta-detail,#${PANEL_ID} .go-eta-done+.go-eta-done{margin-top:6px}
-    #${PANEL_ID} .go-eta-detail>div,#${PANEL_ID} .go-eta-done{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    #${PANEL_ID} .go-eta-detail span,#${PANEL_ID} .go-eta-done span{display:flex;min-width:0;align-items:center;gap:8px;font-size:13px;font-weight:500}
-    #${PANEL_ID} .go-eta-detail span i,#${PANEL_ID} .go-eta-done span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
-    #${PANEL_ID} .go-eta-detail b{flex:0 0 auto;font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-eta-detail em{margin-left:1px;color:var(--go-faint);font-size:12px;font-weight:400;font-style:normal}
-    #${PANEL_ID} .go-eta-detail>u{display:block;height:5px;margin-top:8px;overflow:hidden;border-radius:999px;background:var(--go-surface-3);text-decoration:none}
-    #${PANEL_ID} .go-eta-detail>u i{display:block;height:100%;border-radius:999px}
-    #${PANEL_ID} .go-eta-detail>small{display:block;margin-top:7px;color:var(--go-muted);font-size:11px;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-eta-done{border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07)}
-    #${PANEL_ID} .go-eta-done span i{background:var(--go-green)}
-    #${PANEL_ID} .go-eta-done b{color:var(--go-green);font:600 12px var(--go-font)}
+    #${PANEL_ID2} .go-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-6px 0 8px}
+    #${PANEL_ID2} .go-section-head .go-section-title{flex:1;margin:0}
+    #${PANEL_ID2} .go-section-actions{display:flex;align-items:center;gap:2px;margin-right:-6px}
+    #${PANEL_ID2} .go-eta-detail,#${PANEL_ID2} .go-eta-done{padding:9px 11px;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface);color:var(--go-text)}
+    #${PANEL_ID2} .go-eta-detail+.go-eta-detail,#${PANEL_ID2} .go-eta-detail+.go-eta-done,#${PANEL_ID2} .go-eta-done+.go-eta-detail,#${PANEL_ID2} .go-eta-done+.go-eta-done{margin-top:6px}
+    #${PANEL_ID2} .go-eta-detail>div,#${PANEL_ID2} .go-eta-done{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    #${PANEL_ID2} .go-eta-detail span,#${PANEL_ID2} .go-eta-done span{display:flex;min-width:0;align-items:center;gap:8px;font-size:13px;font-weight:500}
+    #${PANEL_ID2} .go-eta-detail span i,#${PANEL_ID2} .go-eta-done span i{width:8px;height:8px;flex:0 0 auto;border-radius:50%}
+    #${PANEL_ID2} .go-eta-detail b{flex:0 0 auto;font:650 13px var(--go-font);font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-eta-detail em{margin-left:1px;color:var(--go-faint);font-size:12px;font-weight:400;font-style:normal}
+    #${PANEL_ID2} .go-eta-detail>u{display:block;height:5px;margin-top:8px;overflow:hidden;border-radius:999px;background:var(--go-surface-3);text-decoration:none}
+    #${PANEL_ID2} .go-eta-detail>u i{display:block;height:100%;border-radius:999px}
+    #${PANEL_ID2} .go-eta-detail>small{display:block;margin-top:7px;color:var(--go-muted);font-size:11px;font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-eta-done{border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.07)}
+    #${PANEL_ID2} .go-eta-done span i{background:var(--go-green)}
+    #${PANEL_ID2} .go-eta-done b{color:var(--go-green);font:600 12px var(--go-font)}
     /* Plants table */
-    #${PANEL_ID} .go-plants{overflow:hidden;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
-    #${PANEL_ID} .go-plants>p{margin:0;padding:10px}
-    #${PANEL_ID} .go-plant-row{display:grid;grid-template-columns:minmax(0,1fr) 42px 42px;align-items:center;gap:6px;padding:5px 0;color:var(--go-text);font-size:13px}
-    #${PANEL_ID} .go-plant-row+.go-plant-row{border-top:1px solid var(--go-line)}
-    #${PANEL_ID} .go-plant-row>span{display:flex;min-width:0;align-items:center;gap:7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-    #${PANEL_ID} .go-plant-row>b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-plant-row img,#${PANEL_ID} .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto}
-    #${PANEL_ID} .go-plant-row>span>u{display:grid;place-items:center;width:18px;height:18px;flex:0 0 18px;border-radius:5px;color:var(--go-muted);text-decoration:none}
-    #${PANEL_ID} .go-plant-family>span>u{color:var(--go-accent-text)}
-    #${PANEL_ID} .go-plant-family:hover>span>u{background:var(--go-accent-soft)}
-    #${PANEL_ID} .go-plant-row>span>u svg{width:12px;height:12px}
+    #${PANEL_ID2} .go-plants{overflow:hidden;border:1px solid var(--go-line);border-radius:10px;background:var(--go-surface)}
+    #${PANEL_ID2} .go-plants>p{margin:0;padding:10px}
+    #${PANEL_ID2} .go-plant-row{display:grid;grid-template-columns:minmax(0,1fr) 42px 42px;align-items:center;gap:6px;padding:5px 0;color:var(--go-text);font-size:13px}
+    #${PANEL_ID2} .go-plant-row+.go-plant-row{border-top:1px solid var(--go-line)}
+    #${PANEL_ID2} .go-plant-row>span{display:flex;min-width:0;align-items:center;gap:7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    #${PANEL_ID2} .go-plant-row>b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-plant-row img,#${PANEL_ID2} .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto}
+    #${PANEL_ID2} .go-plant-row>span>u{display:grid;place-items:center;width:18px;height:18px;flex:0 0 18px;border-radius:5px;color:var(--go-muted);text-decoration:none}
+    #${PANEL_ID2} .go-plant-family>span>u{color:var(--go-accent-text)}
+    #${PANEL_ID2} .go-plant-family:hover>span>u{background:var(--go-accent-soft)}
+    #${PANEL_ID2} .go-plant-row>span>u svg{width:12px;height:12px}
     /* Indenting the name cell rather than the row, so the tiles and crops columns stay aligned. */
-    #${PANEL_ID} .go-plant-row[data-child=true]{color:var(--go-muted);background:rgba(0,0,0,.14)}
-    #${PANEL_ID} .go-plant-row[data-child=true]>span{padding-left:18px}
-    #${PANEL_ID} .go-plant-family{cursor:pointer}
-    #${PANEL_ID} .go-plant-family:hover{color:#fff;background:rgba(255,255,255,.03)}
+    #${PANEL_ID2} .go-plant-row[data-child=true]{color:var(--go-muted);background:rgba(0,0,0,.14)}
+    #${PANEL_ID2} .go-plant-row[data-child=true]>span{padding-left:18px}
+    #${PANEL_ID2} .go-plant-family{cursor:pointer}
+    #${PANEL_ID2} .go-plant-family:hover{color:#fff;background:rgba(255,255,255,.03)}
     /* Only on rows that are not children: a child inherits the muted row colour instead. */
-    #${PANEL_ID} .go-plant-row:not([data-child=true])>span{color:var(--go-strong)}
-    #${PANEL_ID} .go-plant-family:hover>span{color:#fff}
-    #${PANEL_ID} .go-plant-row>b:nth-of-type(1){color:var(--go-muted);font-weight:400}
-    #${PANEL_ID} .go-plant-units{padding:7px 10px;background:var(--go-input);color:var(--go-faint);font-size:11px;font-weight:600}
-    #${PANEL_ID} .go-plant-units>b,#${PANEL_ID} .go-plant-units>b:nth-of-type(1){color:var(--go-faint);font-weight:600}
-    #${PANEL_ID} .go-plant-row:not(.go-plant-units){padding-left:10px;padding-right:10px}
+    #${PANEL_ID2} .go-plant-row:not([data-child=true])>span{color:var(--go-strong)}
+    #${PANEL_ID2} .go-plant-family:hover>span{color:#fff}
+    #${PANEL_ID2} .go-plant-row>b:nth-of-type(1){color:var(--go-muted);font-weight:400}
+    #${PANEL_ID2} .go-plant-units{padding:7px 10px;background:var(--go-input);color:var(--go-faint);font-size:11px;font-weight:600}
+    #${PANEL_ID2} .go-plant-units>b,#${PANEL_ID2} .go-plant-units>b:nth-of-type(1){color:var(--go-faint);font-weight:600}
+    #${PANEL_ID2} .go-plant-row:not(.go-plant-units){padding-left:10px;padding-right:10px}
     /* Footer: the headline number */
-    #${PANEL_ID} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:var(--go-muted);font-size:12px;font-weight:500}
-    #${PANEL_ID} .go-footer span{display:flex;align-items:center;gap:8px}
-    #${PANEL_ID} .go-footer span small{padding:2px 8px;border-radius:999px;background:rgba(62,207,142,.12);color:var(--go-green);font-size:11px;font-weight:600}
-    #${PANEL_ID} .go-footer b{color:var(--go-gold);font:700 21px/1 var(--go-font);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;color:var(--go-muted);font-size:12px;font-weight:500}
+    #${PANEL_ID2} .go-footer span{display:flex;align-items:center;gap:8px}
+    #${PANEL_ID2} .go-footer span small{padding:2px 8px;border-radius:999px;background:rgba(62,207,142,.12);color:var(--go-green);font-size:11px;font-weight:600}
+    #${PANEL_ID2} .go-footer b{color:var(--go-gold);font:700 21px/1 var(--go-font);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
     /* Settings card */
-    #${PANEL_ID} .go-config-tabs{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:2px;position:sticky;top:0;z-index:1;margin:0 -14px 4px;padding:12px 14px 10px;background:var(--go-bg)}
-    #${PANEL_ID} .go-config-tabs::before{content:'';position:absolute;inset:12px 14px 10px;z-index:-1;border:1px solid var(--go-line);border-radius:10px;background:var(--go-input)}
-    #${PANEL_ID} .go-config-tabs button{margin:3px 0;padding:6px 4px;border-color:transparent;background:transparent;color:var(--go-muted);font-size:12px;font-weight:500}
-    #${PANEL_ID} .go-config-tabs button:first-child{margin-left:3px}
-    #${PANEL_ID} .go-config-tabs button:last-child{margin-right:3px}
-    #${PANEL_ID} .go-config-tabs button:hover{border-color:transparent;background:rgba(255,255,255,.03);color:var(--go-text)}
-    #${PANEL_ID} .go-config-tabs button[data-active=true]{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3);box-shadow:0 1px 2px rgba(0,0,0,.35)}
-    #${PANEL_ID} .go-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:250px;margin:8px 0 12px;overflow:auto}
-    #${PANEL_ID} .go-filter label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid var(--go-line);border-radius:8px;background:var(--go-surface);color:var(--go-text);cursor:pointer}
-    #${PANEL_ID} .go-filter label:hover{border-color:var(--go-line-strong)}
-    #${PANEL_ID} .go-tools{display:flex;align-items:center;gap:6px;margin:0 0 8px}
-    #${PANEL_ID} .go-tools button{flex:1}
-    #${PANEL_ID} .go-search{width:100%;height:32px;margin-bottom:8px;padding:0 11px;border:1px solid var(--go-line-strong);border-radius:7px;outline:none;background:var(--go-input);color:var(--go-text);font:13px var(--go-font);transition:border-color .12s,box-shadow .12s}
-    #${PANEL_ID} .go-search::placeholder{color:rgba(255,255,255,.5)}
-    #${PANEL_ID} .go-search:focus{border-color:var(--go-accent-line);box-shadow:0 0 0 3px rgba(124,108,242,.16)}
-    #${PANEL_ID} .go-pill-list{max-height:320px;overflow:auto}
-    #${PANEL_ID} .go-pill-section{margin:10px 0}
-    #${PANEL_ID} .go-pill-section>b{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-muted);font-size:12px;font-weight:500}
-    #${PANEL_ID} .go-pill-section>b button{min-height:24px;padding:3px 8px;font-size:11px}
-    #${PANEL_ID} .go-pill-section>b em{color:var(--go-faint);font-size:11px;font-style:normal;font-weight:400}
-    #${PANEL_ID} .go-pill-section>div{display:flex;flex-wrap:wrap;gap:4px}
-    #${PANEL_ID} button.go-pill{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 10px;border:1px solid var(--go-line);border-radius:999px;background:var(--go-surface);color:var(--go-text);font-size:12px;white-space:nowrap}
-    #${PANEL_ID} button.go-pill:hover{border-color:var(--go-line-strong);background:var(--go-surface-2)}
-    #${PANEL_ID} button.go-pill.on{color:var(--go-strong);border-color:var(--go-accent-line);background:var(--go-accent-soft)}
-    #${PANEL_ID} button.go-pill i{width:9px;flex:0 0 9px;color:var(--go-accent-text);font-size:10px;font-style:normal;text-align:center}
-    #${PANEL_ID} button.go-pill small{color:var(--go-muted);font-size:11px}
-    #${PANEL_ID} .go-muted{margin:0 0 10px;color:var(--go-muted);font-size:12px;line-height:1.45}
-    #${PANEL_ID} .go-config-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--go-line);font-size:13px}
-    #${PANEL_ID} .go-config-row:first-child{border-top:none}
-    #${PANEL_ID} .go-config-row>span{min-width:0}
-    #${PANEL_ID} .go-config-row>span>b{color:var(--go-strong);font-variant-numeric:tabular-nums}
-    #${PANEL_ID} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-input);color:var(--go-text);font:12px var(--go-font);cursor:pointer;outline:none}
-    #${PANEL_ID} .go-config-row select:focus{border-color:var(--go-accent-line)}
-    #${PANEL_ID} .go-config-row select:disabled{opacity:.5;cursor:default}
-    #${PANEL_ID} .go-config-row input[type=range]{width:120px;flex:0 0 120px;accent-color:var(--go-accent)}
+    #${PANEL_ID2} .go-config-tabs{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:2px;position:sticky;top:0;z-index:1;margin:0 -14px 4px;padding:12px 14px 10px;background:var(--go-bg)}
+    #${PANEL_ID2} .go-config-tabs::before{content:'';position:absolute;inset:12px 14px 10px;z-index:-1;border:1px solid var(--go-line);border-radius:10px;background:var(--go-input)}
+    #${PANEL_ID2} .go-config-tabs button{margin:3px 0;padding:6px 4px;border-color:transparent;background:transparent;color:var(--go-muted);font-size:12px;font-weight:500}
+    #${PANEL_ID2} .go-config-tabs button:first-child{margin-left:3px}
+    #${PANEL_ID2} .go-config-tabs button:last-child{margin-right:3px}
+    #${PANEL_ID2} .go-config-tabs button:hover{border-color:transparent;background:rgba(255,255,255,.03);color:var(--go-text)}
+    #${PANEL_ID2} .go-config-tabs button[data-active=true]{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+    #${PANEL_ID2} .go-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:250px;margin:8px 0 12px;overflow:auto}
+    #${PANEL_ID2} .go-filter label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid var(--go-line);border-radius:8px;background:var(--go-surface);color:var(--go-text);cursor:pointer}
+    #${PANEL_ID2} .go-filter label:hover{border-color:var(--go-line-strong)}
+    #${PANEL_ID2} .go-tools{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+    #${PANEL_ID2} .go-tools button{flex:1}
+    #${PANEL_ID2} .go-search{width:100%;height:32px;margin-bottom:8px;padding:0 11px;border:1px solid var(--go-line-strong);border-radius:7px;outline:none;background:var(--go-input);color:var(--go-text);font:13px var(--go-font);transition:border-color .12s,box-shadow .12s}
+    #${PANEL_ID2} .go-search::placeholder{color:rgba(255,255,255,.5)}
+    #${PANEL_ID2} .go-search:focus{border-color:var(--go-accent-line);box-shadow:0 0 0 3px rgba(124,108,242,.16)}
+    #${PANEL_ID2} .go-pill-list{max-height:320px;overflow:auto}
+    #${PANEL_ID2} .go-pill-section{margin:10px 0}
+    #${PANEL_ID2} .go-pill-section>b{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--go-muted);font-size:12px;font-weight:500}
+    #${PANEL_ID2} .go-pill-section>b button{min-height:24px;padding:3px 8px;font-size:11px}
+    #${PANEL_ID2} .go-pill-section>b em{color:var(--go-faint);font-size:11px;font-style:normal;font-weight:400}
+    #${PANEL_ID2} .go-pill-section>div{display:flex;flex-wrap:wrap;gap:4px}
+    #${PANEL_ID2} button.go-pill{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 10px;border:1px solid var(--go-line);border-radius:999px;background:var(--go-surface);color:var(--go-text);font-size:12px;white-space:nowrap}
+    #${PANEL_ID2} button.go-pill:hover{border-color:var(--go-line-strong);background:var(--go-surface-2)}
+    #${PANEL_ID2} button.go-pill.on{color:var(--go-strong);border-color:var(--go-accent-line);background:var(--go-accent-soft)}
+    #${PANEL_ID2} button.go-pill i{width:9px;flex:0 0 9px;color:var(--go-accent-text);font-size:10px;font-style:normal;text-align:center}
+    #${PANEL_ID2} button.go-pill small{color:var(--go-muted);font-size:11px}
+    #${PANEL_ID2} .go-muted{margin:0 0 10px;color:var(--go-muted);font-size:12px;line-height:1.45}
+    #${PANEL_ID2} .go-config-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--go-line);font-size:13px}
+    #${PANEL_ID2} .go-config-row:first-child{border-top:none}
+    #${PANEL_ID2} .go-config-row>span{min-width:0}
+    #${PANEL_ID2} .go-config-row>span>b{color:var(--go-strong);font-variant-numeric:tabular-nums}
+    #${PANEL_ID2} .go-config-row select{max-width:150px;height:30px;padding:0 8px;border:1px solid var(--go-line-strong);border-radius:7px;background:var(--go-input);color:var(--go-text);font:12px var(--go-font);cursor:pointer;outline:none}
+    #${PANEL_ID2} .go-config-row select:focus{border-color:var(--go-accent-line)}
+    #${PANEL_ID2} .go-config-row select:disabled{opacity:.5;cursor:default}
+    #${PANEL_ID2} .go-config-row input[type=range]{width:120px;flex:0 0 120px;accent-color:var(--go-accent)}
     /* Pick-one choices as a segmented control rather than loose pills. */
-    #${PANEL_ID} .go-pill-choice{display:flex;gap:2px;padding:2px;border:1px solid var(--go-line);border-radius:9px;background:var(--go-input)}
-    #${PANEL_ID} .go-pill-choice button.go-pill{min-height:24px;padding:3px 9px;border-color:transparent;border-radius:7px;background:transparent;color:var(--go-muted)}
-    #${PANEL_ID} .go-pill-choice button.go-pill:hover{color:var(--go-text);background:rgba(255,255,255,.03)}
-    #${PANEL_ID} .go-pill-choice button.go-pill.on{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3)}
-    #${PANEL_ID} .go-preset-row{display:flex;align-items:center;gap:4px;margin:6px 0 2px}
-    #${PANEL_ID} .go-preset-row .go-search{flex:1;min-width:0;height:30px;margin:0}
-    #${PANEL_ID} .go-preset-row button{flex:0 0 auto;height:30px}
-    #${PANEL_ID} button.go-pill.go-pill-icon{width:36px;height:36px;padding:0;justify-content:center;border-radius:9px}
-    #${PANEL_ID} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.45}
-    #${PANEL_ID} button.go-pill.go-pill-icon span{max-width:32px;overflow:hidden;color:var(--go-muted);font-size:9px;font-weight:700;text-overflow:ellipsis}
-    #${PANEL_ID} button.go-pill.go-pill-icon:hover img{opacity:.8}
-    #${PANEL_ID} button.go-pill.go-pill-icon.on img{opacity:1}
-    #${PANEL_ID} button.go-pill.go-pill-icon.on span{color:var(--go-accent-text)}
-    #${PANEL_ID} .go-pill-group:first-child .go-settings-head{margin-top:4px;padding-top:0;border-top:none}
-    #${PANEL_ID} .go-settings-head{display:flex;align-items:center;gap:8px;margin:16px 0 4px;padding-top:12px;border-top:1px solid var(--go-line);color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-    #${PANEL_ID} .go-settings-head>span{flex:1}
-    #${PANEL_ID} .go-settings-head>em,#${PANEL_ID} .go-settings-head>button{flex:0 0 auto;font-style:normal}
-    #${PANEL_ID} .go-settings-head>em{padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}
-    #${PANEL_ID} .go-settings-head>button{min-height:24px;padding:3px 9px;font-size:11px;letter-spacing:0;text-transform:none}
+    #${PANEL_ID2} .go-pill-choice{display:flex;gap:2px;padding:2px;border:1px solid var(--go-line);border-radius:9px;background:var(--go-input)}
+    #${PANEL_ID2} .go-pill-choice button.go-pill{min-height:24px;padding:3px 9px;border-color:transparent;border-radius:7px;background:transparent;color:var(--go-muted)}
+    #${PANEL_ID2} .go-pill-choice button.go-pill:hover{color:var(--go-text);background:rgba(255,255,255,.03)}
+    #${PANEL_ID2} .go-pill-choice button.go-pill.on{color:var(--go-strong);border-color:var(--go-line-strong);background:var(--go-surface-3)}
+    #${PANEL_ID2} .go-preset-row{display:flex;align-items:center;gap:4px;margin:6px 0 2px}
+    #${PANEL_ID2} .go-preset-row .go-search{flex:1;min-width:0;height:30px;margin:0}
+    #${PANEL_ID2} .go-preset-row button{flex:0 0 auto;height:30px}
+    #${PANEL_ID2} button.go-pill.go-pill-icon{width:36px;height:36px;padding:0;justify-content:center;border-radius:9px}
+    #${PANEL_ID2} button.go-pill.go-pill-icon img{width:24px;height:24px;object-fit:contain;image-rendering:auto;opacity:.45}
+    #${PANEL_ID2} button.go-pill.go-pill-icon span{max-width:32px;overflow:hidden;color:var(--go-muted);font-size:9px;font-weight:700;text-overflow:ellipsis}
+    #${PANEL_ID2} button.go-pill.go-pill-icon:hover img{opacity:.8}
+    #${PANEL_ID2} button.go-pill.go-pill-icon.on img{opacity:1}
+    #${PANEL_ID2} button.go-pill.go-pill-icon.on span{color:var(--go-accent-text)}
+    #${PANEL_ID2} .go-pill-group:first-child .go-settings-head{margin-top:4px;padding-top:0;border-top:none}
+    #${PANEL_ID2} .go-settings-head{display:flex;align-items:center;gap:8px;margin:16px 0 4px;padding-top:12px;border-top:1px solid var(--go-line);color:var(--go-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+    #${PANEL_ID2} .go-settings-head>span{flex:1}
+    #${PANEL_ID2} .go-settings-head>em,#${PANEL_ID2} .go-settings-head>button{flex:0 0 auto;font-style:normal}
+    #${PANEL_ID2} .go-settings-head>em{padding:1px 7px;border-radius:999px;background:var(--go-surface-2);color:var(--go-text);font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}
+    #${PANEL_ID2} .go-settings-head>button{min-height:24px;padding:3px 9px;font-size:11px;letter-spacing:0;text-transform:none}
     /* One switch everywhere a setting is on or off, instead of checkboxes next to check-marked pills. */
-    #${PANEL_ID} .go-switch{appearance:none;-webkit-appearance:none;position:relative;width:34px;height:20px;flex:0 0 34px;margin:0;border:0;border-radius:999px;background:var(--go-surface-3);box-shadow:inset 0 0 0 1px var(--go-line);cursor:pointer;transition:background .18s}
-    #${PANEL_ID} .go-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#d4d4d8;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .18s,background .18s}
-    #${PANEL_ID} .go-switch:checked{background:var(--go-accent);box-shadow:none}
-    #${PANEL_ID} .go-switch:checked::after{transform:translateX(14px);background:var(--go-strong)}
-    #${PANEL_ID} .go-switch:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:2px}
-    #${PANEL_ID} .go-config-row>span>small{display:block;margin-top:2px;color:var(--go-muted);font-size:12px;font-weight:400;letter-spacing:0}
-    #${PANEL_ID} .go-config-row:has(.go-switch){cursor:pointer}
-    #${PANEL_ID} button.go-pill.go-pill-plant{max-width:100%;padding:3px 9px 3px 5px}
-    #${PANEL_ID} button.go-pill.go-pill-plant img,#${PANEL_ID} button.go-pill.go-pill-plant .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto;opacity:.7}
-    #${PANEL_ID} button.go-pill.go-pill-plant.on img{opacity:1}
-    #${PANEL_ID} button.go-pill.go-pill-plant>span{overflow:hidden;text-overflow:ellipsis}
-    #${PANEL_ID} button.go-pill.go-pill-plant>small{padding:0 6px;border-radius:999px;background:var(--go-surface-3);color:var(--go-text);font-weight:600}
-    #${PANEL_ID} .go-focus-summary{margin:12px 0 2px;padding:10px 12px;border:1px solid var(--go-accent-line);border-radius:10px;background:rgba(124,108,242,.08);color:var(--go-text);font-size:12px;line-height:1.5}
-    #${PANEL_ID} .go-focus-summary b{color:var(--go-accent-text);font-weight:600}
-    #${PANEL_ID} .go-focus-summary[data-off]{border-color:var(--go-line);background:var(--go-surface);color:var(--go-muted)}
-    #${PANEL_ID} .go-focus-summary[data-off] b{color:var(--go-text)}
-    @media(max-width:760px){#${PANEL_ID}{padding:6px}#${PANEL_ID} .go-stage{max-height:100%;flex-direction:column;overflow:auto}#${PANEL_ID} .go-card{width:min(344px,94vw)}#${PANEL_ID} .go-config-card{width:min(300px,94vw)}#${PANEL_ID} header .go-actions{gap:0}}
+    #${PANEL_ID2} .go-switch{appearance:none;-webkit-appearance:none;position:relative;width:34px;height:20px;flex:0 0 34px;margin:0;border:0;border-radius:999px;background:var(--go-surface-3);box-shadow:inset 0 0 0 1px var(--go-line);cursor:pointer;transition:background .18s}
+    #${PANEL_ID2} .go-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#d4d4d8;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .18s,background .18s}
+    #${PANEL_ID2} .go-switch:checked{background:var(--go-accent);box-shadow:none}
+    #${PANEL_ID2} .go-switch:checked::after{transform:translateX(14px);background:var(--go-strong)}
+    #${PANEL_ID2} .go-switch:focus-visible{outline:2px solid var(--go-accent-line);outline-offset:2px}
+    #${PANEL_ID2} .go-config-row>span>small{display:block;margin-top:2px;color:var(--go-muted);font-size:12px;font-weight:400;letter-spacing:0}
+    #${PANEL_ID2} .go-config-row:has(.go-switch){cursor:pointer}
+    #${PANEL_ID2} button.go-pill.go-pill-plant{max-width:100%;padding:3px 9px 3px 5px}
+    #${PANEL_ID2} button.go-pill.go-pill-plant img,#${PANEL_ID2} button.go-pill.go-pill-plant .go-plant-blank{width:20px;height:20px;flex:0 0 20px;object-fit:contain;image-rendering:auto;opacity:.7}
+    #${PANEL_ID2} button.go-pill.go-pill-plant.on img{opacity:1}
+    #${PANEL_ID2} button.go-pill.go-pill-plant>span{overflow:hidden;text-overflow:ellipsis}
+    #${PANEL_ID2} button.go-pill.go-pill-plant>small{padding:0 6px;border-radius:999px;background:var(--go-surface-3);color:var(--go-text);font-weight:600}
+    #${PANEL_ID2} .go-focus-summary{margin:12px 0 2px;padding:10px 12px;border:1px solid var(--go-accent-line);border-radius:10px;background:rgba(124,108,242,.08);color:var(--go-text);font-size:12px;line-height:1.5}
+    #${PANEL_ID2} .go-focus-summary b{color:var(--go-accent-text);font-weight:600}
+    #${PANEL_ID2} .go-focus-summary[data-off]{border-color:var(--go-line);background:var(--go-surface);color:var(--go-muted)}
+    #${PANEL_ID2} .go-focus-summary[data-off] b{color:var(--go-text)}
+    @media(max-width:760px){#${PANEL_ID2}{padding:6px}#${PANEL_ID2} .go-stage{max-height:100%;flex-direction:column;overflow:auto}#${PANEL_ID2} .go-card{width:min(344px,94vw)}#${PANEL_ID2} .go-config-card{width:min(300px,94vw)}#${PANEL_ID2} header .go-actions{gap:0}}
   `;
     document.head.appendChild(style);
   }
@@ -10173,10 +10356,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     page.__gardenCompanionOverviewShortcutChanged = (nextShortcut) => {
       shortcut = nextShortcut;
     };
-    let position = null;
+    let position2 = null;
     let configPosition = null;
     try {
-      position = JSON.parse(localStorage.getItem(POSITION_KEY2) || "null");
+      position2 = JSON.parse(localStorage.getItem(POSITION_KEY2) || "null");
     } catch {
     }
     let configMode = null;
@@ -10493,8 +10676,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         });
       };
     }
-    function render4(force = false) {
-      const panel3 = document.getElementById(PANEL_ID);
+    function render5(force = false) {
+      const panel3 = document.getElementById(PANEL_ID2);
       if (!panel3 || panel3.hidden && !view.alarm) return;
       const stats = calculateStats(runtime(), getCatalog(), filter2, trackedMutations, view.ignorePreserved, mutationConfig);
       checkCompletions(stats);
@@ -10507,16 +10690,16 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         updateCountdowns(panel3, stats);
         return;
       }
-      const signature2 = structureSignature(stats);
-      if (!force && signature2 === lastSignature2) {
+      const signature3 = structureSignature(stats);
+      if (!force && signature3 === lastSignature2) {
         updateCountdowns(panel3, stats);
         return;
       }
-      lastSignature2 = signature2;
+      lastSignature2 = signature3;
       const body = panel3.querySelector(".go-body");
       const scrollTop = body?.scrollTop ?? 0;
       const species = knownSpecies();
-      const placement = position ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position.top))}px;` : "";
+      const placement = position2 ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position2.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position2.top))}px;` : "";
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
       const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"], ["panel", "Panel"]].map(([tab2, label]) => `<button data-config-tab="${tab2}" data-active="${configMode === tab2}">${label}</button>`).join("")}</div>`;
       const configTitle = configMode === "alarms" ? "Alarm Config" : "Overview Settings";
@@ -10527,27 +10710,27 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       panel3.querySelector("[data-close]").onclick = close2;
       panel3.querySelector("[data-config-close]")?.addEventListener("click", () => {
         configMode = null;
-        render4(true);
+        render5(true);
       });
       panel3.querySelector("[data-open-config]").onclick = () => {
         configMode = configMode && configMode !== "alarms" ? null : lastConfigTab;
-        render4(true);
+        render5(true);
       };
       panel3.querySelectorAll("[data-config-tab]").forEach((button) => button.onclick = () => {
         configMode = button.dataset.configTab;
         if (configMode && configMode !== "alarms") lastConfigTab = configMode;
-        render4(true);
+        render5(true);
       });
       panel3.querySelector("[data-focus-toggle]").onclick = () => {
         focus.enabled = !focus.enabled;
         saveFocus(focus);
         applyPlantFocus();
-        render4(true);
+        render5(true);
       };
       const alarmConfigButton = panel3.querySelector("[data-alarm-config]");
       if (alarmConfigButton) alarmConfigButton.onclick = () => {
         configMode = configMode === "alarms" ? null : "alarms";
-        render4(true);
+        render5(true);
       };
       const alarmButton = panel3.querySelector("[data-alarm]");
       if (alarmButton) alarmButton.onclick = () => {
@@ -10557,7 +10740,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
           ensureRefreshTimer();
         } else stopCompletionAlarm();
         saveView(view);
-        render4(true);
+        render5(true);
       };
       panel3.querySelectorAll("[data-zoom-level]").forEach((button) => button.onclick = () => {
         view.zoom = Number(button.dataset.zoomLevel);
@@ -10567,25 +10750,25 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       panel3.querySelector("[data-all]")?.addEventListener("click", () => {
         filter2 = null;
         localStorage.removeItem(FILTER_KEY);
-        render4(true);
+        render5(true);
       });
       panel3.querySelector("[data-none]")?.addEventListener("click", () => {
         filter2 = /* @__PURE__ */ new Set();
         saveFilter(filter2);
-        render4(true);
+        render5(true);
       });
       panel3.querySelector("[data-owned]")?.addEventListener("click", () => {
         filter2 = new Set(filter2 ?? []);
         for (const name of ownedSpeciesCounts().keys()) filter2.add(name);
         saveFilter(filter2);
-        render4(true);
+        render5(true);
       });
       panel3.querySelectorAll("[data-species-toggle]").forEach((button) => button.onclick = () => {
         const name = button.dataset.speciesToggle ?? "";
         filter2 = new Set(filter2 ?? species);
         filter2.has(name) ? filter2.delete(name) : filter2.add(name);
         saveFilter(filter2);
-        render4(true);
+        render5(true);
       });
       const releaseUnlessTyping = (element) => {
         if (keyboardDriven) return;
@@ -10594,7 +10777,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         }, 0);
       };
       const renderAndRefocus = (selector) => {
-        render4(true);
+        render5(true);
         if (keyboardDriven) panel3.querySelector(selector)?.focus();
       };
       const applyMutationKey = (key, value) => {
@@ -10746,7 +10929,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         selectedPreset = name;
         presetDraft = name;
         toast(`Saved "${name}".`, "success");
-        render4(true);
+        render5(true);
       });
       panel3.querySelector("[data-preset-delete]")?.addEventListener("click", () => {
         const removed = selectedPreset;
@@ -10756,7 +10939,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         selectedPreset = "";
         if (presetDraft === removed) presetDraft = "";
         toast(`Deleted "${removed}".`, "success");
-        render4(true);
+        render5(true);
       });
       panel3.querySelectorAll("[data-focus-rule-pill]").forEach((button) => button.onclick = () => {
         const rule = button.dataset.focusRulePill;
@@ -10804,19 +10987,19 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         if (openFamilies.has(key)) openFamilies.delete(key);
         else openFamilies.add(key);
         saveOpenFamilies();
-        render4(true);
+        render5(true);
       });
       panel3.querySelectorAll("[data-collapse]").forEach((toggle4) => toggle4.onclick = () => {
         const key = toggle4.dataset.collapse;
         if (key === "mutations") view.mutationsOpen = !view.mutationsOpen;
         if (key === "plants") view.plantsOpen = !view.plantsOpen;
         saveView(view);
-        render4(true);
+        render5(true);
       });
       bindSearch(panel3.querySelector("[data-species-search]"));
       installDrag(panel3.querySelector(".go-card"), panel3.querySelector(".go-card > header"), (left, top) => {
-        position = { left, top };
-        localStorage.setItem(POSITION_KEY2, JSON.stringify(position));
+        position2 = { left, top };
+        localStorage.setItem(POSITION_KEY2, JSON.stringify(position2));
       });
       const configCard = panel3.querySelector(".go-config-card");
       const configHeader = configCard?.querySelector("header");
@@ -10825,16 +11008,16 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       });
     }
     function open() {
-      const panel3 = document.getElementById(PANEL_ID);
+      const panel3 = document.getElementById(PANEL_ID2);
       if (!panel3) return;
       panel3.hidden = false;
       lastSignature2 = "";
       page.__gardenCompanionLoadSpriteGroup?.("deferred");
-      render4(true);
+      render5(true);
       ensureRefreshTimer();
     }
     function close2() {
-      const panel3 = document.getElementById(PANEL_ID);
+      const panel3 = document.getElementById(PANEL_ID2);
       if (panel3) panel3.hidden = true;
       if (!view.alarm && refreshTimer) {
         clearInterval(refreshTimer);
@@ -10842,10 +11025,10 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       }
     }
     function ensureRefreshTimer() {
-      if (!refreshTimer) refreshTimer = setInterval(() => render4(false), 1e3);
+      if (!refreshTimer) refreshTimer = setInterval(() => render5(false), 1e3);
     }
     function toggle3() {
-      const panel3 = document.getElementById(PANEL_ID);
+      const panel3 = document.getElementById(PANEL_ID2);
       if (panel3?.hidden) open();
       else close2();
     }
@@ -10858,7 +11041,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       button.title = "Garden Overview";
       button.onclick = toggle3;
       const panel3 = document.createElement("div");
-      panel3.id = PANEL_ID;
+      panel3.id = PANEL_ID2;
       panel3.hidden = true;
       panel3.addEventListener("keydown", () => {
         keyboardDriven = true;
@@ -10872,7 +11055,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       });
       if (view.alarm) ensureRefreshTimer();
       onSpritesReady(() => {
-        if (configMode === "focus") render4(true);
+        if (configMode === "focus") render5(true);
       });
       window.addEventListener("keydown", (event) => {
         if (!shortcut || event.repeat || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) return;
@@ -11924,7 +12107,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
 
   // src/features/fishing.ts
   var STYLE_ID3 = "gc-fishing-style";
-  var PANEL_ID2 = "gc-fishing-panel";
+  var PANEL_ID3 = "gc-fishing-panel";
   var RECORD_KEY = "gardenCompanion.fishing.v1";
   var POSITION_KEY3 = "gardenCompanion.fishingPosition.v1";
   var BITE_WINDOW = 1500;
@@ -12068,122 +12251,122 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const style = document.createElement("style");
     style.id = STYLE_ID3;
     style.textContent = `
-    #${PANEL_ID2}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gf-text);font:12px/1.45 system-ui,sans-serif;
+    #${PANEL_ID3}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gf-text);font:12px/1.45 system-ui,sans-serif;
       --gf-bg:#0b171b;--gf-bg-2:#11262d;--gf-panel:rgba(255,255,255,.035);--gf-line:rgba(125,211,252,.1);--gf-line-2:rgba(125,211,252,.2);
       --gf-text:#e3eef0;--gf-strong:#f8fafc;--gf-muted:#89a5ac;--gf-accent-rgb:45,212,191;--gf-gold:#f5c04a;--gf-danger:#f87171}
-    #${PANEL_ID2}[hidden]{display:none}
-    #${PANEL_ID2} .gf-card{position:fixed;right:14px;bottom:56px;width:min(560px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gf-line-2);border-radius:16px;background:linear-gradient(180deg,var(--gf-bg-2),var(--gf-bg) 150px);box-shadow:0 22px 60px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.05)}
-    #${PANEL_ID2} .gf-card[data-view=game]{width:min(400px,calc(100vw - 24px))}
-    #${PANEL_ID2} button{padding:5px 10px;border:1px solid var(--gf-line-2);border-radius:8px;background:var(--gf-panel);color:var(--gf-text);font:700 10px system-ui,sans-serif;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .08s,filter .12s}
-    #${PANEL_ID2} button:not(.gf-action):hover:not(:disabled){border-color:rgba(var(--gf-accent-rgb),.45);background:rgba(var(--gf-accent-rgb),.1);color:#ccfbf1}
-    #${PANEL_ID2} button:active:not(:disabled){transform:translateY(1px)}
-    #${PANEL_ID2} button:disabled{opacity:.45;cursor:default}
-    #${PANEL_ID2} button[data-active=true]{border-color:rgba(var(--gf-accent-rgb),.55);background:rgba(var(--gf-accent-rgb),.16);color:#ccfbf1}
-    #${PANEL_ID2} header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 12px 14px;cursor:move;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='6'%3E%3Cpath d='M0 4 Q15 0 30 4 T60 4' fill='none' stroke='rgba(125,211,252,0.16)' stroke-width='1.4'/%3E%3C/svg%3E") left bottom/60px 6px repeat-x}
-    #${PANEL_ID2} .gf-title{display:flex;align-items:center;gap:10px;min-width:0}
-    #${PANEL_ID2} .gf-logo{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#17666b,#0d363c);box-shadow:inset 0 1px rgba(255,255,255,.14),0 4px 12px rgba(0,0,0,.35);font-size:18px}
-    #${PANEL_ID2} h2{margin:0;color:var(--gf-strong);font:800 14px/1.1 system-ui,sans-serif;letter-spacing:.01em}
-    #${PANEL_ID2} .gf-level{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--gf-muted);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-    #${PANEL_ID2} .gf-level i{display:block;width:74px;height:4px;overflow:hidden;border-radius:2px;background:rgba(255,255,255,.08)}
-    #${PANEL_ID2} .gf-level i b{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#2dd4bf,#a78bfa)}
-    #${PANEL_ID2} .gf-head-actions{display:flex;align-items:center;gap:4px}
-    #${PANEL_ID2} .gf-coins{display:flex;align-items:center;gap:5px;height:26px;margin-right:2px;padding:0 10px 0 5px;border:1px solid rgba(245,192,74,.28);border-radius:13px;background:rgba(245,192,74,.08);color:#fde68a;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
-    #${PANEL_ID2} .gf-coins i{width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5cc,#f5c04a 48%,#b7791f);box-shadow:inset 0 0 0 1.5px rgba(146,94,20,.55)}
-    #${PANEL_ID2} button.gf-icon{width:26px;height:26px;padding:0;border-color:transparent;border-radius:8px;background:transparent;color:var(--gf-muted);font-size:12px}
-    #${PANEL_ID2} .gf-tabs{display:flex;gap:3px;margin:0 12px;padding:3px;border:1px solid var(--gf-line);border-radius:11px;background:rgba(0,0,0,.24)}
-    #${PANEL_ID2} .gf-tabs button{flex:1;padding:6px 8px;border-color:transparent;border-radius:8px;background:transparent;color:var(--gf-muted);font-size:11px}
-    #${PANEL_ID2} .gf-tabs button[data-active=true]{border-color:rgba(var(--gf-accent-rgb),.35);background:rgba(var(--gf-accent-rgb),.15);color:#ccfbf1}
-    #${PANEL_ID2} .gf-pond-input{position:fixed;pointer-events:auto;touch-action:none;cursor:crosshair}
-    #${PANEL_ID2} .gf-game{padding:12px}
-    #${PANEL_ID2} .gf-stage{display:flex;gap:12px}
-    #${PANEL_ID2} .gf-stage-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
-    #${PANEL_ID2} .gf-status{padding:10px 12px;border:1px solid var(--gf-line);border-radius:12px;background:var(--gf-panel);transition:border-color .15s,background .15s}
-    #${PANEL_ID2} .gf-status[data-phase=bite]{border-color:rgba(245,192,74,.5);background:rgba(245,192,74,.08)}
-    #${PANEL_ID2} .gf-phase{display:inline-flex;align-items:center;gap:6px;color:var(--gf-muted);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-    #${PANEL_ID2} .gf-phase::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
-    #${PANEL_ID2} .gf-status[data-phase=waiting] .gf-phase{color:#7dd3fc}
-    #${PANEL_ID2} .gf-status[data-phase=bite] .gf-phase{color:var(--gf-gold)}
-    #${PANEL_ID2} .gf-status[data-phase=reel] .gf-phase{color:#2dd4bf}
-    #${PANEL_ID2} .gf-status b{display:block;margin-top:5px;color:var(--gf-strong);font:700 12px/1.35 system-ui,sans-serif}
-    #${PANEL_ID2} .gf-status small{display:block;margin-top:4px;color:var(--gf-muted);font-size:10px}
-    #${PANEL_ID2} button.gf-action{height:44px;border:0;border-radius:12px;background:linear-gradient(180deg,#2dd4bf,#0d9488);color:#042f2e;font:800 12px system-ui,sans-serif;letter-spacing:.03em;box-shadow:0 6px 16px rgba(13,148,136,.3),inset 0 1px rgba(255,255,255,.35)}
-    #${PANEL_ID2} button.gf-action:hover{filter:brightness(1.1)}
-    #${PANEL_ID2} button.gf-action[data-phase=waiting]{background:rgba(255,255,255,.05);color:var(--gf-text);box-shadow:inset 0 0 0 1px var(--gf-line-2)}
-    #${PANEL_ID2} button.gf-action[data-phase=bite]{background:linear-gradient(180deg,#fcd34d,#f59e0b);color:#451a03;animation:gf-pulse .45s ease-in-out infinite alternate}
-    #${PANEL_ID2} button.gf-action[data-phase=reel]{background:linear-gradient(180deg,#38bdf8,#0369a1);color:#f0f9ff;box-shadow:0 6px 16px rgba(3,105,161,.35),inset 0 1px rgba(255,255,255,.3)}
+    #${PANEL_ID3}[hidden]{display:none}
+    #${PANEL_ID3} .gf-card{position:fixed;right:14px;bottom:56px;width:min(560px,94vw);display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gf-line-2);border-radius:16px;background:linear-gradient(180deg,var(--gf-bg-2),var(--gf-bg) 150px);box-shadow:0 22px 60px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.05)}
+    #${PANEL_ID3} .gf-card[data-view=game]{width:min(400px,calc(100vw - 24px))}
+    #${PANEL_ID3} button{padding:5px 10px;border:1px solid var(--gf-line-2);border-radius:8px;background:var(--gf-panel);color:var(--gf-text);font:700 10px system-ui,sans-serif;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .08s,filter .12s}
+    #${PANEL_ID3} button:not(.gf-action):hover:not(:disabled){border-color:rgba(var(--gf-accent-rgb),.45);background:rgba(var(--gf-accent-rgb),.1);color:#ccfbf1}
+    #${PANEL_ID3} button:active:not(:disabled){transform:translateY(1px)}
+    #${PANEL_ID3} button:disabled{opacity:.45;cursor:default}
+    #${PANEL_ID3} button[data-active=true]{border-color:rgba(var(--gf-accent-rgb),.55);background:rgba(var(--gf-accent-rgb),.16);color:#ccfbf1}
+    #${PANEL_ID3} header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 12px 14px;cursor:move;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='6'%3E%3Cpath d='M0 4 Q15 0 30 4 T60 4' fill='none' stroke='rgba(125,211,252,0.16)' stroke-width='1.4'/%3E%3C/svg%3E") left bottom/60px 6px repeat-x}
+    #${PANEL_ID3} .gf-title{display:flex;align-items:center;gap:10px;min-width:0}
+    #${PANEL_ID3} .gf-logo{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#17666b,#0d363c);box-shadow:inset 0 1px rgba(255,255,255,.14),0 4px 12px rgba(0,0,0,.35);font-size:18px}
+    #${PANEL_ID3} h2{margin:0;color:var(--gf-strong);font:800 14px/1.1 system-ui,sans-serif;letter-spacing:.01em}
+    #${PANEL_ID3} .gf-level{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--gf-muted);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    #${PANEL_ID3} .gf-level i{display:block;width:74px;height:4px;overflow:hidden;border-radius:2px;background:rgba(255,255,255,.08)}
+    #${PANEL_ID3} .gf-level i b{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#2dd4bf,#a78bfa)}
+    #${PANEL_ID3} .gf-head-actions{display:flex;align-items:center;gap:4px}
+    #${PANEL_ID3} .gf-coins{display:flex;align-items:center;gap:5px;height:26px;margin-right:2px;padding:0 10px 0 5px;border:1px solid rgba(245,192,74,.28);border-radius:13px;background:rgba(245,192,74,.08);color:#fde68a;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+    #${PANEL_ID3} .gf-coins i{width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5cc,#f5c04a 48%,#b7791f);box-shadow:inset 0 0 0 1.5px rgba(146,94,20,.55)}
+    #${PANEL_ID3} button.gf-icon{width:26px;height:26px;padding:0;border-color:transparent;border-radius:8px;background:transparent;color:var(--gf-muted);font-size:12px}
+    #${PANEL_ID3} .gf-tabs{display:flex;gap:3px;margin:0 12px;padding:3px;border:1px solid var(--gf-line);border-radius:11px;background:rgba(0,0,0,.24)}
+    #${PANEL_ID3} .gf-tabs button{flex:1;padding:6px 8px;border-color:transparent;border-radius:8px;background:transparent;color:var(--gf-muted);font-size:11px}
+    #${PANEL_ID3} .gf-tabs button[data-active=true]{border-color:rgba(var(--gf-accent-rgb),.35);background:rgba(var(--gf-accent-rgb),.15);color:#ccfbf1}
+    #${PANEL_ID3} .gf-pond-input{position:fixed;pointer-events:auto;touch-action:none;cursor:crosshair}
+    #${PANEL_ID3} .gf-game{padding:12px}
+    #${PANEL_ID3} .gf-stage{display:flex;gap:12px}
+    #${PANEL_ID3} .gf-stage-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+    #${PANEL_ID3} .gf-status{padding:10px 12px;border:1px solid var(--gf-line);border-radius:12px;background:var(--gf-panel);transition:border-color .15s,background .15s}
+    #${PANEL_ID3} .gf-status[data-phase=bite]{border-color:rgba(245,192,74,.5);background:rgba(245,192,74,.08)}
+    #${PANEL_ID3} .gf-phase{display:inline-flex;align-items:center;gap:6px;color:var(--gf-muted);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    #${PANEL_ID3} .gf-phase::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+    #${PANEL_ID3} .gf-status[data-phase=waiting] .gf-phase{color:#7dd3fc}
+    #${PANEL_ID3} .gf-status[data-phase=bite] .gf-phase{color:var(--gf-gold)}
+    #${PANEL_ID3} .gf-status[data-phase=reel] .gf-phase{color:#2dd4bf}
+    #${PANEL_ID3} .gf-status b{display:block;margin-top:5px;color:var(--gf-strong);font:700 12px/1.35 system-ui,sans-serif}
+    #${PANEL_ID3} .gf-status small{display:block;margin-top:4px;color:var(--gf-muted);font-size:10px}
+    #${PANEL_ID3} button.gf-action{height:44px;border:0;border-radius:12px;background:linear-gradient(180deg,#2dd4bf,#0d9488);color:#042f2e;font:800 12px system-ui,sans-serif;letter-spacing:.03em;box-shadow:0 6px 16px rgba(13,148,136,.3),inset 0 1px rgba(255,255,255,.35)}
+    #${PANEL_ID3} button.gf-action:hover{filter:brightness(1.1)}
+    #${PANEL_ID3} button.gf-action[data-phase=waiting]{background:rgba(255,255,255,.05);color:var(--gf-text);box-shadow:inset 0 0 0 1px var(--gf-line-2)}
+    #${PANEL_ID3} button.gf-action[data-phase=bite]{background:linear-gradient(180deg,#fcd34d,#f59e0b);color:#451a03;animation:gf-pulse .45s ease-in-out infinite alternate}
+    #${PANEL_ID3} button.gf-action[data-phase=reel]{background:linear-gradient(180deg,#38bdf8,#0369a1);color:#f0f9ff;box-shadow:0 6px 16px rgba(3,105,161,.35),inset 0 1px rgba(255,255,255,.3)}
     @keyframes gf-pulse{to{box-shadow:0 0 0 4px rgba(245,158,11,.25),0 6px 20px rgba(245,158,11,.5)}}
-    #${PANEL_ID2} .gf-label{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--gf-muted);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-    #${PANEL_ID2} .gf-biting{display:flex;flex-wrap:wrap;gap:4px}
-    #${PANEL_ID2} .gf-biting span{padding:2px 8px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);border-radius:10px;background:color-mix(in srgb,currentColor 10%,transparent);font-size:10px;font-weight:700}
-    #${PANEL_ID2} .gf-biting p{margin:0;color:var(--gf-muted);font-size:10px}
-    #${PANEL_ID2} .gf-bait{padding:10px;border:1px solid var(--gf-line);border-radius:12px;background:var(--gf-panel)}
-    #${PANEL_ID2} .gf-bait-head{display:flex;align-items:center;gap:10px}
-    #${PANEL_ID2} .gf-bait-icon{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px var(--gf-line);font-size:18px}
-    #${PANEL_ID2} .gf-bait-text{flex:1;min-width:0}
-    #${PANEL_ID2} .gf-bait-text b{display:block;color:var(--gf-strong);font-size:12px}
-    #${PANEL_ID2} .gf-bait-text small{display:block;margin-top:1px;color:var(--gf-muted);font-size:10px;line-height:1.3}
-    #${PANEL_ID2} .gf-flavour{margin:9px 0 0;padding:1px 0 1px 10px;border-left:2px solid rgba(var(--gf-accent-rgb),.45);color:#b6d0d5;font:italic 11.5px/1.45 Georgia,'Times New Roman',serif}
-    #${PANEL_ID2} .gf-meter{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;transition:opacity .2s}
-    #${PANEL_ID2} .gf-meter[data-live=false]{opacity:.4}
-    #${PANEL_ID2} .gf-meter-bars{display:flex;gap:6px;height:220px}
-    #${PANEL_ID2} .gf-meter small{color:var(--gf-muted);font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-    #${PANEL_ID2} .gf-track{position:relative;width:38px;overflow:hidden;border-radius:19px;background:repeating-linear-gradient(180deg,transparent 0 21px,rgba(255,255,255,.07) 21px 22px),linear-gradient(180deg,#22808d,#0d3a46 65%,#082a33);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),inset 7px 0 10px rgba(255,255,255,.06),0 4px 14px rgba(0,0,0,.35);transition:box-shadow .12s}
-    #${PANEL_ID2} .gf-track[data-slip=true]{box-shadow:inset 0 0 0 1.5px rgba(248,113,113,.8),0 0 12px rgba(248,113,113,.35)}
-    #${PANEL_ID2} .gf-track-zone{position:absolute;left:3px;right:3px;top:35%;height:30%;min-height:14px;box-sizing:border-box;border:2px solid rgba(255,255,255,.92);border-radius:14px;background:rgba(52,211,153,.28);box-shadow:0 0 10px rgba(52,211,153,.5);transition:background .12s}
-    #${PANEL_ID2} .gf-track-zone[data-inside=true]{background:rgba(52,211,153,.58)}
-    #${PANEL_ID2} .gf-track-fish{position:absolute;left:50%;top:50%;width:22px;height:12px;margin:-6px 0 0 -11px;border:1.5px solid #fff;border-radius:50% 40% 40% 50%;background:#f8fafc;box-shadow:0 0 9px currentColor}
-    #${PANEL_ID2} .gf-meter-progress{position:relative;width:11px;overflow:hidden;border-radius:6px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-    #${PANEL_ID2} .gf-meter-progress i{position:absolute;left:0;right:0;bottom:0;height:0;border-radius:6px;background:#34d399;box-shadow:0 0 8px currentColor}
-    #${PANEL_ID2} .gf-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 14px;border-top:1px solid var(--gf-line);color:var(--gf-muted);font-size:10px}
-    #${PANEL_ID2} kbd{padding:0 5px;border:1px solid var(--gf-line-2);border-bottom-width:2px;border-radius:4px;color:var(--gf-text);font:700 9px/1.5 system-ui,sans-serif}
-    #${PANEL_ID2} .gf-catch{position:relative;display:grid;grid-template-columns:64px 1fr;gap:12px;margin-bottom:12px;padding:12px;overflow:hidden;border:1px solid color-mix(in srgb,var(--catch-colour) 50%,transparent);border-radius:14px;background:radial-gradient(circle at 0 0,color-mix(in srgb,var(--catch-colour) 22%,transparent),transparent 70%),rgba(255,255,255,.03);animation:gf-rise .35s ease-out}
+    #${PANEL_ID3} .gf-label{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--gf-muted);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    #${PANEL_ID3} .gf-biting{display:flex;flex-wrap:wrap;gap:4px}
+    #${PANEL_ID3} .gf-biting span{padding:2px 8px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);border-radius:10px;background:color-mix(in srgb,currentColor 10%,transparent);font-size:10px;font-weight:700}
+    #${PANEL_ID3} .gf-biting p{margin:0;color:var(--gf-muted);font-size:10px}
+    #${PANEL_ID3} .gf-bait{padding:10px;border:1px solid var(--gf-line);border-radius:12px;background:var(--gf-panel)}
+    #${PANEL_ID3} .gf-bait-head{display:flex;align-items:center;gap:10px}
+    #${PANEL_ID3} .gf-bait-icon{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px var(--gf-line);font-size:18px}
+    #${PANEL_ID3} .gf-bait-text{flex:1;min-width:0}
+    #${PANEL_ID3} .gf-bait-text b{display:block;color:var(--gf-strong);font-size:12px}
+    #${PANEL_ID3} .gf-bait-text small{display:block;margin-top:1px;color:var(--gf-muted);font-size:10px;line-height:1.3}
+    #${PANEL_ID3} .gf-flavour{margin:9px 0 0;padding:1px 0 1px 10px;border-left:2px solid rgba(var(--gf-accent-rgb),.45);color:#b6d0d5;font:italic 11.5px/1.45 Georgia,'Times New Roman',serif}
+    #${PANEL_ID3} .gf-meter{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;transition:opacity .2s}
+    #${PANEL_ID3} .gf-meter[data-live=false]{opacity:.4}
+    #${PANEL_ID3} .gf-meter-bars{display:flex;gap:6px;height:220px}
+    #${PANEL_ID3} .gf-meter small{color:var(--gf-muted);font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    #${PANEL_ID3} .gf-track{position:relative;width:38px;overflow:hidden;border-radius:19px;background:repeating-linear-gradient(180deg,transparent 0 21px,rgba(255,255,255,.07) 21px 22px),linear-gradient(180deg,#22808d,#0d3a46 65%,#082a33);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),inset 7px 0 10px rgba(255,255,255,.06),0 4px 14px rgba(0,0,0,.35);transition:box-shadow .12s}
+    #${PANEL_ID3} .gf-track[data-slip=true]{box-shadow:inset 0 0 0 1.5px rgba(248,113,113,.8),0 0 12px rgba(248,113,113,.35)}
+    #${PANEL_ID3} .gf-track-zone{position:absolute;left:3px;right:3px;top:35%;height:30%;min-height:14px;box-sizing:border-box;border:2px solid rgba(255,255,255,.92);border-radius:14px;background:rgba(52,211,153,.28);box-shadow:0 0 10px rgba(52,211,153,.5);transition:background .12s}
+    #${PANEL_ID3} .gf-track-zone[data-inside=true]{background:rgba(52,211,153,.58)}
+    #${PANEL_ID3} .gf-track-fish{position:absolute;left:50%;top:50%;width:22px;height:12px;margin:-6px 0 0 -11px;border:1.5px solid #fff;border-radius:50% 40% 40% 50%;background:#f8fafc;box-shadow:0 0 9px currentColor}
+    #${PANEL_ID3} .gf-meter-progress{position:relative;width:11px;overflow:hidden;border-radius:6px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+    #${PANEL_ID3} .gf-meter-progress i{position:absolute;left:0;right:0;bottom:0;height:0;border-radius:6px;background:#34d399;box-shadow:0 0 8px currentColor}
+    #${PANEL_ID3} .gf-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 14px;border-top:1px solid var(--gf-line);color:var(--gf-muted);font-size:10px}
+    #${PANEL_ID3} kbd{padding:0 5px;border:1px solid var(--gf-line-2);border-bottom-width:2px;border-radius:4px;color:var(--gf-text);font:700 9px/1.5 system-ui,sans-serif}
+    #${PANEL_ID3} .gf-catch{position:relative;display:grid;grid-template-columns:64px 1fr;gap:12px;margin-bottom:12px;padding:12px;overflow:hidden;border:1px solid color-mix(in srgb,var(--catch-colour) 50%,transparent);border-radius:14px;background:radial-gradient(circle at 0 0,color-mix(in srgb,var(--catch-colour) 22%,transparent),transparent 70%),rgba(255,255,255,.03);animation:gf-rise .35s ease-out}
     @keyframes gf-rise{from{opacity:0;transform:translateY(6px)}}
-    #${PANEL_ID2} .gf-catch-fish{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--catch-colour) 26%,#06141a),#06141a 72%);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--catch-colour) 40%,transparent);filter:drop-shadow(0 0 10px color-mix(in srgb,var(--catch-colour) 45%,transparent))}
-    #${PANEL_ID2} .gf-catch h3{margin:0;color:#fff;font:800 16px/1.2 system-ui,sans-serif}
-    #${PANEL_ID2} .gf-catch p{margin:3px 0 0;color:var(--catch-colour);font:800 9px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.12em}
-    #${PANEL_ID2} .gf-catch small{display:block;margin-top:5px;color:#d7e6e9;font-size:10px}
-    #${PANEL_ID2} .gf-catch-new{position:absolute;top:10px;right:-26px;padding:2px 30px;background:var(--catch-colour);color:#06141a;font:900 8px system-ui,sans-serif;letter-spacing:.14em;transform:rotate(35deg)}
-    #${PANEL_ID2} .gf-catch-rewards{display:flex;gap:6px;margin-top:7px}
-    #${PANEL_ID2} .gf-catch-rewards span{padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.07);color:var(--gf-strong);font-size:10px;font-weight:800}
-    #${PANEL_ID2} .gf-catch-rewards span:first-child{background:rgba(245,192,74,.14);color:#fde68a}
-    #${PANEL_ID2} .gf-catch-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-    #${PANEL_ID2} .gf-catch-tags span{padding:1px 7px;border:1px solid rgba(245,192,74,.35);border-radius:9px;color:#fde68a;font-size:9px;font-weight:800;letter-spacing:.04em}
-    #${PANEL_ID2} .gf-catch-item{color:var(--gf-gold)!important;font-weight:700}
-    #${PANEL_ID2} .gf-body{max-height:min(460px,calc(100vh - 170px));overflow:auto;padding:12px 12px 14px;scrollbar-width:thin;scrollbar-color:rgba(125,211,252,.18) transparent}
-    #${PANEL_ID2} .gf-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px;margin-bottom:10px}
-    #${PANEL_ID2} .gf-totals div{padding:8px 10px;border:1px solid var(--gf-line);border-radius:10px;background:var(--gf-panel)}
-    #${PANEL_ID2} .gf-totals small{display:block;color:var(--gf-muted);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
-    #${PANEL_ID2} .gf-totals b{color:var(--gf-strong);font:800 16px/1.3 system-ui,sans-serif;font-variant-numeric:tabular-nums}
-    #${PANEL_ID2} .gf-progress-line{height:6px;overflow:hidden;border-radius:3px;background:rgba(255,255,255,.07)}
-    #${PANEL_ID2} .gf-progress-line i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#2dd4bf,#a78bfa)}
-    #${PANEL_ID2} .gf-tier{margin:16px 0 7px;display:flex;align-items:center;justify-content:space-between;color:var(--gf-muted);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
-    #${PANEL_ID2} .gf-tier span:last-child{font-weight:700;letter-spacing:.04em;text-transform:none;opacity:.85}
-    #${PANEL_ID2} .gf-gear-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:6px}
-    #${PANEL_ID2} .gf-gear{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;padding:9px;border:1px solid var(--gf-line);border-radius:11px;background:var(--gf-panel)}
-    #${PANEL_ID2} .gf-gear[data-active=true]{border-color:rgba(var(--gf-accent-rgb),.45);background:rgba(var(--gf-accent-rgb),.07)}
-    #${PANEL_ID2} .gf-gear-icon{display:grid;place-items:center;flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px var(--gf-line);font-size:15px}
-    #${PANEL_ID2} .gf-gear-text{flex:1;min-width:0}
-    #${PANEL_ID2} .gf-gear-text b{display:block;color:var(--gf-strong);font-size:11.5px}
-    #${PANEL_ID2} .gf-gear-text small{display:block;color:var(--gf-muted);font-size:9.5px;line-height:1.3}
-    #${PANEL_ID2} .gf-gear .gf-flavour{flex-basis:100%;margin:0}
-    #${PANEL_ID2} .gf-gear[data-locked=true]{opacity:.5}
-    #${PANEL_ID2} .gf-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--gf-line);border-radius:10px;background:var(--gf-panel)}
-    #${PANEL_ID2} .gf-row+.gf-row{margin-top:4px}
-    #${PANEL_ID2} .gf-row i{width:8px;height:8px;flex:0 0 auto;border-radius:50%;box-shadow:0 0 6px currentColor}
-    #${PANEL_ID2} .gf-row span{flex:1;min-width:0}
-    #${PANEL_ID2} .gf-row b{display:block;color:var(--gf-strong);font:700 12px system-ui,sans-serif}
-    #${PANEL_ID2} .gf-row small{display:block;color:var(--gf-muted);font-size:10px}
-    #${PANEL_ID2} .gf-row em{flex:0 0 auto;font-style:normal;font-size:10px;color:var(--gf-muted);font-variant-numeric:tabular-nums}
-    #${PANEL_ID2} .gf-row[data-found=false]{opacity:.45}
-    #${PANEL_ID2} .gf-row[data-found=false] b{color:var(--gf-muted)}
-    #${PANEL_ID2} .gf-note{margin:0 0 8px;color:var(--gf-muted);font-size:11px}
-    #${PANEL_ID2} .gf-reset{margin-top:16px;padding-top:12px;border-top:1px solid var(--gf-line)}
-    #${PANEL_ID2} .gf-reset button{width:100%;padding:8px}
-    #${PANEL_ID2} .gf-bench-stats{display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:6px;color:var(--gf-muted);font-size:10px}
-    #${PANEL_ID2} .gf-bench-stats b{color:var(--gf-text);font:700 10px system-ui,sans-serif}
-    #${PANEL_ID2} .gf-bench-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:4px}
-    #${PANEL_ID2} button.gf-bench-fish{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 8px;font:600 11px system-ui,sans-serif;text-align:left}
-    #${PANEL_ID2} button.gf-bench-fish small{color:var(--gf-muted);font-size:9px;font-weight:400}
+    #${PANEL_ID3} .gf-catch-fish{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--catch-colour) 26%,#06141a),#06141a 72%);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--catch-colour) 40%,transparent);filter:drop-shadow(0 0 10px color-mix(in srgb,var(--catch-colour) 45%,transparent))}
+    #${PANEL_ID3} .gf-catch h3{margin:0;color:#fff;font:800 16px/1.2 system-ui,sans-serif}
+    #${PANEL_ID3} .gf-catch p{margin:3px 0 0;color:var(--catch-colour);font:800 9px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.12em}
+    #${PANEL_ID3} .gf-catch small{display:block;margin-top:5px;color:#d7e6e9;font-size:10px}
+    #${PANEL_ID3} .gf-catch-new{position:absolute;top:10px;right:-26px;padding:2px 30px;background:var(--catch-colour);color:#06141a;font:900 8px system-ui,sans-serif;letter-spacing:.14em;transform:rotate(35deg)}
+    #${PANEL_ID3} .gf-catch-rewards{display:flex;gap:6px;margin-top:7px}
+    #${PANEL_ID3} .gf-catch-rewards span{padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.07);color:var(--gf-strong);font-size:10px;font-weight:800}
+    #${PANEL_ID3} .gf-catch-rewards span:first-child{background:rgba(245,192,74,.14);color:#fde68a}
+    #${PANEL_ID3} .gf-catch-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+    #${PANEL_ID3} .gf-catch-tags span{padding:1px 7px;border:1px solid rgba(245,192,74,.35);border-radius:9px;color:#fde68a;font-size:9px;font-weight:800;letter-spacing:.04em}
+    #${PANEL_ID3} .gf-catch-item{color:var(--gf-gold)!important;font-weight:700}
+    #${PANEL_ID3} .gf-body{max-height:min(460px,calc(100vh - 170px));overflow:auto;padding:12px 12px 14px;scrollbar-width:thin;scrollbar-color:rgba(125,211,252,.18) transparent}
+    #${PANEL_ID3} .gf-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px;margin-bottom:10px}
+    #${PANEL_ID3} .gf-totals div{padding:8px 10px;border:1px solid var(--gf-line);border-radius:10px;background:var(--gf-panel)}
+    #${PANEL_ID3} .gf-totals small{display:block;color:var(--gf-muted);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    #${PANEL_ID3} .gf-totals b{color:var(--gf-strong);font:800 16px/1.3 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+    #${PANEL_ID3} .gf-progress-line{height:6px;overflow:hidden;border-radius:3px;background:rgba(255,255,255,.07)}
+    #${PANEL_ID3} .gf-progress-line i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#2dd4bf,#a78bfa)}
+    #${PANEL_ID3} .gf-tier{margin:16px 0 7px;display:flex;align-items:center;justify-content:space-between;color:var(--gf-muted);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    #${PANEL_ID3} .gf-tier span:last-child{font-weight:700;letter-spacing:.04em;text-transform:none;opacity:.85}
+    #${PANEL_ID3} .gf-gear-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:6px}
+    #${PANEL_ID3} .gf-gear{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;padding:9px;border:1px solid var(--gf-line);border-radius:11px;background:var(--gf-panel)}
+    #${PANEL_ID3} .gf-gear[data-active=true]{border-color:rgba(var(--gf-accent-rgb),.45);background:rgba(var(--gf-accent-rgb),.07)}
+    #${PANEL_ID3} .gf-gear-icon{display:grid;place-items:center;flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px var(--gf-line);font-size:15px}
+    #${PANEL_ID3} .gf-gear-text{flex:1;min-width:0}
+    #${PANEL_ID3} .gf-gear-text b{display:block;color:var(--gf-strong);font-size:11.5px}
+    #${PANEL_ID3} .gf-gear-text small{display:block;color:var(--gf-muted);font-size:9.5px;line-height:1.3}
+    #${PANEL_ID3} .gf-gear .gf-flavour{flex-basis:100%;margin:0}
+    #${PANEL_ID3} .gf-gear[data-locked=true]{opacity:.5}
+    #${PANEL_ID3} .gf-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--gf-line);border-radius:10px;background:var(--gf-panel)}
+    #${PANEL_ID3} .gf-row+.gf-row{margin-top:4px}
+    #${PANEL_ID3} .gf-row i{width:8px;height:8px;flex:0 0 auto;border-radius:50%;box-shadow:0 0 6px currentColor}
+    #${PANEL_ID3} .gf-row span{flex:1;min-width:0}
+    #${PANEL_ID3} .gf-row b{display:block;color:var(--gf-strong);font:700 12px system-ui,sans-serif}
+    #${PANEL_ID3} .gf-row small{display:block;color:var(--gf-muted);font-size:10px}
+    #${PANEL_ID3} .gf-row em{flex:0 0 auto;font-style:normal;font-size:10px;color:var(--gf-muted);font-variant-numeric:tabular-nums}
+    #${PANEL_ID3} .gf-row[data-found=false]{opacity:.45}
+    #${PANEL_ID3} .gf-row[data-found=false] b{color:var(--gf-muted)}
+    #${PANEL_ID3} .gf-note{margin:0 0 8px;color:var(--gf-muted);font-size:11px}
+    #${PANEL_ID3} .gf-reset{margin-top:16px;padding-top:12px;border-top:1px solid var(--gf-line)}
+    #${PANEL_ID3} .gf-reset button{width:100%;padding:8px}
+    #${PANEL_ID3} .gf-bench-stats{display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:6px;color:var(--gf-muted);font-size:10px}
+    #${PANEL_ID3} .gf-bench-stats b{color:var(--gf-text);font:700 10px system-ui,sans-serif}
+    #${PANEL_ID3} .gf-bench-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:4px}
+    #${PANEL_ID3} button.gf-bench-fish{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 8px;font:600 11px system-ui,sans-serif;text-align:left}
+    #${PANEL_ID3} button.gf-bench-fish small{color:var(--gf-muted);font-size:9px;font-weight:400}
   `;
     document.head.appendChild(style);
   }
@@ -12924,7 +13107,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       };
     }
     function panel3() {
-      return document.getElementById(PANEL_ID2);
+      return document.getElementById(PANEL_ID3);
     }
     function weather() {
       const value = state.game?.weather;
@@ -13220,11 +13403,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const tiers = RARITY_ORDER2.map((rarity) => {
         const rule = RARITIES[rarity];
         const fill = rule.fill * FIGHT_PACE;
-        const drain2 = rule.drain * FIGHT_PACE;
-        const breakEven = Math.round(drain2 / (fill + drain2) * 100);
+        const drain3 = rule.drain * FIGHT_PACE;
+        const breakEven = Math.round(drain3 / (fill + drain3) * 100);
         const perfect = ((1 - START_PROGRESS) / fill).toFixed(1);
         const buttons = FISH.filter((fish) => fish.rarity === rarity).map((fish) => `<button class="gf-bench-fish" data-fight="${escapeHtml(fish.id)}">${escapeHtml(fish.name)}<small>${escapeHtml([fish.weather ? weatherLabel2(fish.weather) : "", FIGHT_STYLES[fish.style].label].filter(Boolean).join(" · "))}</small></button>`).join("");
-        return `<div class="gf-tier" style="color:${rule.colour}"><span>${rule.label}</span><span>hold ${breakEven}% to break even</span></div><div class="gf-bench-stats"><span>Zone <b>${Math.round(rule.zone * 100)}%</b></span><span>Fish <b>${fishTravelSpeed(rule.speed).toFixed(2)}/s</b></span><span>Lift <b>${((ZONE_LIFT - ZONE_GRAVITY) / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Drop <b>${(ZONE_GRAVITY / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Fill <b>${fill.toFixed(3)}/s</b></span><span>Drain <b>${drain2.toFixed(3)}/s</b></span><span>Flawless <b>${perfect}s</b></span></div><div class="gf-bench-grid">${buttons}</div>`;
+        return `<div class="gf-tier" style="color:${rule.colour}"><span>${rule.label}</span><span>hold ${breakEven}% to break even</span></div><div class="gf-bench-stats"><span>Zone <b>${Math.round(rule.zone * 100)}%</b></span><span>Fish <b>${fishTravelSpeed(rule.speed).toFixed(2)}/s</b></span><span>Lift <b>${((ZONE_LIFT - ZONE_GRAVITY) / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Drop <b>${(ZONE_GRAVITY / ZONE_DRAG * zoneAgility(rule.speed)).toFixed(2)}/s</b></span><span>Fill <b>${fill.toFixed(3)}/s</b></span><span>Drain <b>${drain3.toFixed(3)}/s</b></span><span>Flawless <b>${perfect}s</b></span></div><div class="gf-bench-grid">${buttons}</div>`;
       }).join("");
       return `<div class="gf-body"><p class="gf-note">Pick any fish to fight it straight away, skipping the cast and its weather. Bench fights are never added to your record. Pace ${FIGHT_PACE}, start ${START_PROGRESS}, floor ${LOSE_FLOOR}, limit ${REEL_LIMIT / 1e3}s.</p>${tiers}<div class="gf-reset"><button data-view="game">Back to the pond</button></div></div>`;
     }
@@ -13386,7 +13569,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function mount() {
       injectStyles();
       const host = document.createElement("div");
-      host.id = PANEL_ID2;
+      host.id = PANEL_ID3;
       host.hidden = true;
       host.dataset.gcUi = "fishing";
       const card = document.createElement("div");
@@ -13662,24 +13845,24 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const huge = board.wave % HUGE_EVERY === 0;
       const final = isFinalWave(board.wave);
       let points = wavePoints(board.wave);
-      const queue2 = [];
+      const queue3 = [];
       const wolves = final ? 1 : board.endless && huge ? 1 + Math.floor(overtime() / 20) : 0;
       for (let wolf = 0; wolf < wolves; wolf++) {
-        queue2.push({ def: BOSS, lane: wolves === 1 ? Math.floor(lanes / 2) : Math.floor(random() * lanes) });
+        queue3.push({ def: BOSS, lane: wolves === 1 ? Math.floor(lanes / 2) : Math.floor(random() * lanes) });
         points = Math.max(1, points - BOSS.points);
       }
-      while (points > 0 && queue2.length < 60) {
+      while (points > 0 && queue3.length < 60) {
         const def = weightedPest(points);
         points -= def.points;
         const lane = Math.floor(random() * lanes);
-        for (let index = 0; index < (def.swarm ?? 1); index++) queue2.push({ def, lane });
+        for (let index = 0; index < (def.swarm ?? 1); index++) queue3.push({ def, lane });
       }
-      const leaders = queue2.slice(0, wolves);
-      const rest = queue2.slice(wolves).sort(() => random() - 0.5);
-      queue2.splice(0, queue2.length, ...leaders, ...rest);
-      board.queued = queue2;
-      board.waveSize = queue2.length;
-      board.waveHealth = queue2.reduce((sum, entry) => sum + (entry.def.hp + (entry.def.shell ?? 0)) * toughness(), 0);
+      const leaders = queue3.slice(0, wolves);
+      const rest = queue3.slice(wolves).sort(() => random() - 0.5);
+      queue3.splice(0, queue3.length, ...leaders, ...rest);
+      board.queued = queue3;
+      board.waveSize = queue3.length;
+      board.waveHealth = queue3.reduce((sum, entry) => sum + (entry.def.hp + (entry.def.shell ?? 0)) * toughness(), 0);
       board.waveAge = 0;
       board.earlyShare = EARLY_SHARE_MIN + random() * (EARLY_SHARE_MAX - EARLY_SHARE_MIN);
       board.spawnTimer = 0;
@@ -13926,7 +14109,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/garden-defence.ts
-  var PANEL_ID3 = "gc-garden-defence";
+  var PANEL_ID4 = "gc-garden-defence";
   var RECORD_KEY2 = "gardenDefence.record";
   var POSITION_KEY4 = "gardenDefence.position";
   var MAX_LANES = 5;
@@ -13964,68 +14147,68 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return channel(0) << 16 | channel(8) << 8 | channel(4);
   }
   function injectStyles2() {
-    if (document.getElementById(`${PANEL_ID3}-styles`)) return;
+    if (document.getElementById(`${PANEL_ID4}-styles`)) return;
     const style = document.createElement("style");
-    style.id = `${PANEL_ID3}-styles`;
+    style.id = `${PANEL_ID4}-styles`;
     style.textContent = `
-    #${PANEL_ID3}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gd-text);font:12px/1.45 system-ui,sans-serif;
+    #${PANEL_ID4}{position:fixed;inset:0;z-index:999993;pointer-events:none;color:var(--gd-text);font:12px/1.45 system-ui,sans-serif;
       --gd-bg:#0d1a10;--gd-bg-2:#15291a;--gd-panel:rgba(255,255,255,.035);--gd-line:rgba(134,239,172,.11);--gd-line-2:rgba(134,239,172,.22);
       --gd-text:#e5f2e7;--gd-strong:#f8fafc;--gd-muted:#90b096;--gd-accent-rgb:74,222,128;--gd-sun:#fbbf24}
-    #${PANEL_ID3}[hidden]{display:none}
-    #${PANEL_ID3} .gd-card{position:fixed;right:14px;bottom:56px;width:min(480px,calc(100vw - 24px));display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gd-line-2);border-radius:16px;background:linear-gradient(180deg,var(--gd-bg-2),var(--gd-bg) 150px);box-shadow:0 22px 60px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.05)}
-    #${PANEL_ID3} button{padding:5px 10px;border:1px solid var(--gd-line-2);border-radius:8px;background:var(--gd-panel);color:var(--gd-text);font:700 10px system-ui,sans-serif;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .08s}
-    #${PANEL_ID3} button:hover:not(:disabled){border-color:rgba(var(--gd-accent-rgb),.45);background:rgba(var(--gd-accent-rgb),.1);color:#dcfce7}
-    #${PANEL_ID3} button:active:not(:disabled){transform:translateY(1px)}
-    #${PANEL_ID3} button:disabled{opacity:.45;cursor:default}
-    #${PANEL_ID3} button[data-active=true]{border-color:rgba(var(--gd-accent-rgb),.55);background:rgba(var(--gd-accent-rgb),.16);color:#dcfce7}
-    #${PANEL_ID3} header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 10px 14px;cursor:move}
-    #${PANEL_ID3} .gd-title{display:flex;align-items:center;gap:10px;min-width:0}
-    #${PANEL_ID3} .gd-logo{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#2f6b35,#173d1d);box-shadow:inset 0 1px rgba(255,255,255,.14),0 4px 12px rgba(0,0,0,.35);font-size:18px}
-    #${PANEL_ID3} h2{margin:0;color:var(--gd-strong);font:800 14px/1.1 system-ui,sans-serif;letter-spacing:.01em}
-    #${PANEL_ID3} .gd-sub{margin-top:3px;color:var(--gd-muted);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-    #${PANEL_ID3} .gd-head-actions{display:flex;align-items:center;gap:4px}
-    #${PANEL_ID3} .gd-sun{display:flex;align-items:center;gap:6px;height:28px;margin-right:2px;padding:0 11px 0 5px;border:1px solid rgba(251,191,36,.35);border-radius:14px;background:rgba(251,191,36,.1);color:#fde68a;font:800 13px system-ui,sans-serif;font-variant-numeric:tabular-nums}
-    #${PANEL_ID3} .gd-sun i{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fffbeb,#fbbf24 50%,#d97706);box-shadow:0 0 8px rgba(251,191,36,.6)}
-    #${PANEL_ID3} button.gd-icon{width:26px;height:26px;padding:0;border-color:transparent;border-radius:8px;background:transparent;color:var(--gd-muted);font-size:12px}
-    #${PANEL_ID3} .gd-lawn-input{position:fixed;pointer-events:auto;touch-action:none;cursor:crosshair}
-    #${PANEL_ID3} .gd-body{padding:4px 12px 12px}
-    #${PANEL_ID3} .gd-waves{margin-bottom:10px}
-    #${PANEL_ID3} .gd-waves-label{display:flex;justify-content:space-between;margin-bottom:5px;color:var(--gd-muted);font-size:10px;font-weight:700}
-    #${PANEL_ID3} .gd-waves-label b{color:var(--gd-strong)}
-    #${PANEL_ID3} .gd-track{position:relative;height:8px;border-radius:4px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
-    #${PANEL_ID3} .gd-track i{position:absolute;inset:0 auto 0 0;width:0;border-radius:4px;background:linear-gradient(90deg,#4ade80,#a3e635);transition:width .3s}
-    #${PANEL_ID3} .gd-track span{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#1a2e1d;box-shadow:inset 0 0 0 2px #f87171;font-size:8px;line-height:14px;text-align:center}
-    #${PANEL_ID3} .gd-track span[data-done=true]{background:#f87171}
-    #${PANEL_ID3} .gd-banner{margin-bottom:10px;padding:8px 10px;border:1px solid rgba(248,113,113,.45);border-radius:10px;background:rgba(248,113,113,.12);color:#fecaca;font-size:11px;font-weight:800;text-align:center;letter-spacing:.04em;animation:gd-throb .6s ease-in-out infinite alternate}
-    #${PANEL_ID3} .gd-banner[data-kind=info]{border-color:rgba(125,211,252,.45);background:rgba(125,211,252,.1);color:#e0f2fe;animation:none}
+    #${PANEL_ID4}[hidden]{display:none}
+    #${PANEL_ID4} .gd-card{position:fixed;right:14px;bottom:56px;width:min(480px,calc(100vw - 24px));display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;user-select:none;touch-action:none;border:1px solid var(--gd-line-2);border-radius:16px;background:linear-gradient(180deg,var(--gd-bg-2),var(--gd-bg) 150px);box-shadow:0 22px 60px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.05)}
+    #${PANEL_ID4} button{padding:5px 10px;border:1px solid var(--gd-line-2);border-radius:8px;background:var(--gd-panel);color:var(--gd-text);font:700 10px system-ui,sans-serif;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .08s}
+    #${PANEL_ID4} button:hover:not(:disabled){border-color:rgba(var(--gd-accent-rgb),.45);background:rgba(var(--gd-accent-rgb),.1);color:#dcfce7}
+    #${PANEL_ID4} button:active:not(:disabled){transform:translateY(1px)}
+    #${PANEL_ID4} button:disabled{opacity:.45;cursor:default}
+    #${PANEL_ID4} button[data-active=true]{border-color:rgba(var(--gd-accent-rgb),.55);background:rgba(var(--gd-accent-rgb),.16);color:#dcfce7}
+    #${PANEL_ID4} header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 10px 14px;cursor:move}
+    #${PANEL_ID4} .gd-title{display:flex;align-items:center;gap:10px;min-width:0}
+    #${PANEL_ID4} .gd-logo{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#2f6b35,#173d1d);box-shadow:inset 0 1px rgba(255,255,255,.14),0 4px 12px rgba(0,0,0,.35);font-size:18px}
+    #${PANEL_ID4} h2{margin:0;color:var(--gd-strong);font:800 14px/1.1 system-ui,sans-serif;letter-spacing:.01em}
+    #${PANEL_ID4} .gd-sub{margin-top:3px;color:var(--gd-muted);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    #${PANEL_ID4} .gd-head-actions{display:flex;align-items:center;gap:4px}
+    #${PANEL_ID4} .gd-sun{display:flex;align-items:center;gap:6px;height:28px;margin-right:2px;padding:0 11px 0 5px;border:1px solid rgba(251,191,36,.35);border-radius:14px;background:rgba(251,191,36,.1);color:#fde68a;font:800 13px system-ui,sans-serif;font-variant-numeric:tabular-nums}
+    #${PANEL_ID4} .gd-sun i{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fffbeb,#fbbf24 50%,#d97706);box-shadow:0 0 8px rgba(251,191,36,.6)}
+    #${PANEL_ID4} button.gd-icon{width:26px;height:26px;padding:0;border-color:transparent;border-radius:8px;background:transparent;color:var(--gd-muted);font-size:12px}
+    #${PANEL_ID4} .gd-lawn-input{position:fixed;pointer-events:auto;touch-action:none;cursor:crosshair}
+    #${PANEL_ID4} .gd-body{padding:4px 12px 12px}
+    #${PANEL_ID4} .gd-waves{margin-bottom:10px}
+    #${PANEL_ID4} .gd-waves-label{display:flex;justify-content:space-between;margin-bottom:5px;color:var(--gd-muted);font-size:10px;font-weight:700}
+    #${PANEL_ID4} .gd-waves-label b{color:var(--gd-strong)}
+    #${PANEL_ID4} .gd-track{position:relative;height:8px;border-radius:4px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+    #${PANEL_ID4} .gd-track i{position:absolute;inset:0 auto 0 0;width:0;border-radius:4px;background:linear-gradient(90deg,#4ade80,#a3e635);transition:width .3s}
+    #${PANEL_ID4} .gd-track span{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#1a2e1d;box-shadow:inset 0 0 0 2px #f87171;font-size:8px;line-height:14px;text-align:center}
+    #${PANEL_ID4} .gd-track span[data-done=true]{background:#f87171}
+    #${PANEL_ID4} .gd-banner{margin-bottom:10px;padding:8px 10px;border:1px solid rgba(248,113,113,.45);border-radius:10px;background:rgba(248,113,113,.12);color:#fecaca;font-size:11px;font-weight:800;text-align:center;letter-spacing:.04em;animation:gd-throb .6s ease-in-out infinite alternate}
+    #${PANEL_ID4} .gd-banner[data-kind=info]{border-color:rgba(125,211,252,.45);background:rgba(125,211,252,.1);color:#e0f2fe;animation:none}
     @keyframes gd-throb{to{background:rgba(248,113,113,.2)}}
-    #${PANEL_ID3} .gd-seeds{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
-    #${PANEL_ID3} .gd-seed{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 3px 5px;overflow:hidden;border:1px solid var(--gd-line);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))}
-    #${PANEL_ID3} .gd-seed[data-selected=true]{border-color:rgba(var(--gd-accent-rgb),.7);background:rgba(var(--gd-accent-rgb),.16);box-shadow:0 0 0 2px rgba(var(--gd-accent-rgb),.2)}
-    #${PANEL_ID3} .gd-seed::after{content:"";position:absolute;inset:0 0 auto 0;height:calc(var(--cd,0) * 100%);background:rgba(0,0,0,.55);pointer-events:none}
-    #${PANEL_ID3} .gd-seed img{width:28px;height:28px;object-fit:contain}
-    #${PANEL_ID3} .gd-seed em{display:grid;place-items:center;width:28px;height:28px;color:var(--gd-muted);font-style:normal;font-size:14px}
-    #${PANEL_ID3} .gd-seed b{color:var(--gd-strong);font:700 9px system-ui,sans-serif;text-align:center;line-height:1.15}
-    #${PANEL_ID3} .gd-seed small{color:#fde68a;font:800 9px system-ui,sans-serif}
-    #${PANEL_ID3} .gd-seed .gd-once{position:absolute;top:3px;right:4px;color:#fca5a5;font:800 8px system-ui,sans-serif;font-style:normal}
-    #${PANEL_ID3} .gd-seed kbd{position:absolute;top:3px;left:4px;color:var(--gd-muted);font:700 8px system-ui,sans-serif}
-    #${PANEL_ID3} .gd-tools{display:flex;gap:5px;margin-top:8px}
-    #${PANEL_ID3} .gd-tools button{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:1;padding:7px 8px;font-size:11px}
-    #${PANEL_ID3} .gd-dev{margin-top:9px;padding:8px 9px;border:1px dashed rgba(167,139,250,.5);border-radius:9px;background:rgba(167,139,250,.08)}
-    #${PANEL_ID3} .gd-dev > b{display:block;margin-bottom:6px;color:#ddd6fe;font:800 10px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em}
-    #${PANEL_ID3} .gd-dev-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
-    #${PANEL_ID3} .gd-dev-row button{font-size:10px;padding:4px 7px}
-    #${PANEL_ID3} .gd-dev > small{display:block;margin-top:5px;color:var(--gd-muted);font-size:9px}
-    #${PANEL_ID3} .gd-status{margin-top:9px;color:var(--gd-text);font-size:11px;min-height:15px}
-    #${PANEL_ID3} .gd-foot{display:flex;justify-content:space-between;gap:8px;padding:9px 14px;border-top:1px solid var(--gd-line);color:var(--gd-muted);font-size:10px}
-    #${PANEL_ID3} .gd-end{margin-bottom:10px;padding:11px 12px;border-radius:12px;animation:gd-rise .35s ease-out}
+    #${PANEL_ID4} .gd-seeds{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+    #${PANEL_ID4} .gd-seed{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 3px 5px;overflow:hidden;border:1px solid var(--gd-line);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))}
+    #${PANEL_ID4} .gd-seed[data-selected=true]{border-color:rgba(var(--gd-accent-rgb),.7);background:rgba(var(--gd-accent-rgb),.16);box-shadow:0 0 0 2px rgba(var(--gd-accent-rgb),.2)}
+    #${PANEL_ID4} .gd-seed::after{content:"";position:absolute;inset:0 0 auto 0;height:calc(var(--cd,0) * 100%);background:rgba(0,0,0,.55);pointer-events:none}
+    #${PANEL_ID4} .gd-seed img{width:28px;height:28px;object-fit:contain}
+    #${PANEL_ID4} .gd-seed em{display:grid;place-items:center;width:28px;height:28px;color:var(--gd-muted);font-style:normal;font-size:14px}
+    #${PANEL_ID4} .gd-seed b{color:var(--gd-strong);font:700 9px system-ui,sans-serif;text-align:center;line-height:1.15}
+    #${PANEL_ID4} .gd-seed small{color:#fde68a;font:800 9px system-ui,sans-serif}
+    #${PANEL_ID4} .gd-seed .gd-once{position:absolute;top:3px;right:4px;color:#fca5a5;font:800 8px system-ui,sans-serif;font-style:normal}
+    #${PANEL_ID4} .gd-seed kbd{position:absolute;top:3px;left:4px;color:var(--gd-muted);font:700 8px system-ui,sans-serif}
+    #${PANEL_ID4} .gd-tools{display:flex;gap:5px;margin-top:8px}
+    #${PANEL_ID4} .gd-tools button{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:1;padding:7px 8px;font-size:11px}
+    #${PANEL_ID4} .gd-dev{margin-top:9px;padding:8px 9px;border:1px dashed rgba(167,139,250,.5);border-radius:9px;background:rgba(167,139,250,.08)}
+    #${PANEL_ID4} .gd-dev > b{display:block;margin-bottom:6px;color:#ddd6fe;font:800 10px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em}
+    #${PANEL_ID4} .gd-dev-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+    #${PANEL_ID4} .gd-dev-row button{font-size:10px;padding:4px 7px}
+    #${PANEL_ID4} .gd-dev > small{display:block;margin-top:5px;color:var(--gd-muted);font-size:9px}
+    #${PANEL_ID4} .gd-status{margin-top:9px;color:var(--gd-text);font-size:11px;min-height:15px}
+    #${PANEL_ID4} .gd-foot{display:flex;justify-content:space-between;gap:8px;padding:9px 14px;border-top:1px solid var(--gd-line);color:var(--gd-muted);font-size:10px}
+    #${PANEL_ID4} .gd-end{margin-bottom:10px;padding:11px 12px;border-radius:12px;animation:gd-rise .35s ease-out}
     @keyframes gd-rise{from{opacity:0;transform:translateY(6px)}}
-    #${PANEL_ID3} .gd-end[data-kind=lost]{border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.1)}
-    #${PANEL_ID3} .gd-end[data-kind=won]{border:1px solid rgba(251,191,36,.5);background:radial-gradient(circle at 0 0,rgba(251,191,36,.22),transparent 70%),rgba(255,255,255,.03)}
-    #${PANEL_ID3} .gd-end b{display:block;color:var(--gd-strong);font:800 15px system-ui,sans-serif}
-    #${PANEL_ID3} .gd-end small{display:block;margin-top:3px;color:var(--gd-text);font-size:11px}
-    #${PANEL_ID3} .gd-end div{display:flex;gap:6px;margin-top:9px}
-    #${PANEL_ID3} .gd-end div button{flex:1;padding:7px}
+    #${PANEL_ID4} .gd-end[data-kind=lost]{border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.1)}
+    #${PANEL_ID4} .gd-end[data-kind=won]{border:1px solid rgba(251,191,36,.5);background:radial-gradient(circle at 0 0,rgba(251,191,36,.22),transparent 70%),rgba(255,255,255,.03)}
+    #${PANEL_ID4} .gd-end b{display:block;color:var(--gd-strong);font:800 15px system-ui,sans-serif}
+    #${PANEL_ID4} .gd-end small{display:block;margin-top:3px;color:var(--gd-text);font-size:11px}
+    #${PANEL_ID4} .gd-end div{display:flex;gap:6px;margin-top:9px}
+    #${PANEL_ID4} .gd-end div button{flex:1;padding:7px}
   `;
     document.head.appendChild(style);
   }
@@ -14293,7 +14476,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     }
     function panel3() {
-      return document.getElementById(PANEL_ID3);
+      return document.getElementById(PANEL_ID4);
     }
     function save2() {
       saveLocal(RECORD_KEY2, record);
@@ -14678,7 +14861,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       poofs = poofs.filter((poof) => wallClock - poof.at < 0.5);
     }
-    function render4() {
+    function render5() {
       const geometry = scene.sync();
       const entities = scene.layer("entities");
       const mounds = scene.layer("plantShadow");
@@ -14731,7 +14914,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       wallClock += delta;
       try {
         if (board && !paused) board.step(delta);
-        render4();
+        render5();
         if (now - chromeAt > 250) {
           chromeAt = now;
           renderStatus();
@@ -14925,7 +15108,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (panel3()) return;
       injectStyles2();
       const host = document.createElement("div");
-      host.id = PANEL_ID3;
+      host.id = PANEL_ID4;
       host.hidden = true;
       host.dataset.gcUi = "gardenDefence";
       const card = document.createElement("div");
@@ -15028,6 +15211,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       petSystem: null,
       worldTapRouter: null,
       gardenInfoCard: null,
+      inventory: null,
       inventoryItems: [],
       inventoryReady: false,
       ownUserSlotIdx: null,
@@ -15059,7 +15243,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let hookReleaseTimer = 0;
     const armedSystemFields = /* @__PURE__ */ new Set();
     const capturedSinceArm = /* @__PURE__ */ new Set();
-    const CAPTURED_SYSTEMS = ["tapToMove", "tileObject", "pet", "worldTapRouter", "gardenInfoCard"];
+    const CAPTURED_SYSTEMS = ["tapToMove", "tileObject", "pet", "worldTapRouter", "gardenInfoCard", "inventory"];
     function resetPrivateSystems(reason) {
       live.fallbackHighlight?.destroy?.();
       live.tapToMove = null;
@@ -15119,10 +15303,20 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       } else if (system?.name === "gardenInfoCard" && system.view) {
         if (live.gardenInfoCard === system) return;
         live.gardenInfoCard = system;
-        setQuinoaEngine({ getSystem: (name) => name === "gardenInfoCard" ? live.gardenInfoCard : void 0 });
+        publishEngine();
         log("Native garden info card connected.");
+      } else if (system?.name === "inventory" && system.modalView) {
+        if (live.inventory === system) return;
+        live.inventory = system;
+        publishEngine();
+        log("Native inventory connected.");
       } else return;
       releaseGlobalHooksIfIdle();
+    }
+    function publishEngine() {
+      setQuinoaEngine({
+        getSystem: (name) => name === "gardenInfoCard" ? live.gardenInfoCard : name === "inventory" ? live.inventory : void 0
+      });
     }
     function capturePrivateSystem(target, key, value) {
       if (key === "lastHoverGridX" && target?.name === "tapToMove") {
@@ -16082,8 +16276,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return left - right;
     });
     otherSpecies.forEach((name, index) => {
-      const position = remainingPositions[index];
-      if (position !== void 0) cells[position] = { species: name, type: cellType(name) };
+      const position2 = remainingPositions[index];
+      if (position2 !== void 0) cells[position2] = { species: name, type: cellType(name) };
     });
     return cells;
   }
@@ -16685,7 +16879,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const body = root2.querySelector("[data-cleanser-body]");
     if (body) updateCleanserControls(body);
   }
-  function render() {
+  function render2() {
     const root2 = panel();
     if (!root2) return;
     const body = root2.querySelector("[data-cleanser-body]");
@@ -16706,7 +16900,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
       selectedMutation = button.dataset.cleanserMutation || "";
       refreshSnapshot();
-      render();
+      render2();
     });
     body.querySelectorAll("[data-cleanse-row]").forEach((button) => button.onclick = async () => {
       const row = rows.find((candidate) => candidate.key === button.dataset.cleanseRow);
@@ -16764,14 +16958,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     root2.hidden = !root2.hidden;
     if (!root2.hidden) {
       refreshSnapshot();
-      render();
+      render2();
     }
   }
   function initCropCleanserHelper() {
     page.__gardenCompanionToggleCropCleanser = toggle;
     onStateChange(reconcileCleanserCount);
     onSpritesReady(() => {
-      if (panel() && !panel().hidden) render();
+      if (panel() && !panel().hidden) render2();
     });
   }
 
@@ -16935,7 +17129,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     requestAnimationFrame(() => {
       renderQueued = false;
       if (drag) return;
-      render2();
+      render3();
     });
   }
   var rendered = /* @__PURE__ */ new WeakMap();
@@ -16944,7 +17138,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     rendered.set(node, html);
     node.innerHTML = html;
   }
-  function render2() {
+  function render3() {
     const element = root();
     if (!element || element.hidden) return;
     const grid = element.querySelector("[data-fm-grid]");
@@ -17047,14 +17241,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     const status = root()?.querySelector("[data-fm-status]");
     busyTiles = /* @__PURE__ */ new Set([local]);
     if (status) status.textContent = "Potting plant...";
-    render2();
+    render3();
     try {
       await actions.pot(local);
     } catch (error) {
       toast(`Potting stopped: ${error.message}.`, "error");
     } finally {
       busyTiles = /* @__PURE__ */ new Set();
-      render2();
+      render3();
     }
   }
   async function perform(work, target) {
@@ -17080,7 +17274,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     const involved = work.from === "tile" ? [work.local, target.local] : [target.local];
     busyTiles = new Set(involved);
     if (status) status.textContent = work.from !== "tile" ? "Planting..." : "Moving plant...";
-    render2();
+    render3();
     try {
       if (work.from === "seed") await plantSeed(work.species, target.local);
       else if (work.from === "tile") await actions.move(work.local, target.local);
@@ -17090,7 +17284,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     } finally {
       if (work.from === "seed") seeding = false;
       busyTiles = /* @__PURE__ */ new Set();
-      render2();
+      render3();
     }
   }
   function bindEvents(element) {
@@ -17177,14 +17371,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       if (plantNode) {
         const id = plantNode.dataset.item;
         armedPlant = armedPlant?.id === id ? null : { id, index: Number(plantNode.dataset.index) || 0 };
-        render2();
+        render3();
         return;
       }
       const seedNode = target.closest(".gc-fm-item[data-seed]");
       if (seedNode) {
         const species = seedNode.dataset.seed;
         armedSeed = armedSeed === species ? null : species;
-        render2();
+        render3();
         return;
       }
       const cellNode = target.closest(".gc-fm-cell[data-armed]");
@@ -17193,7 +17387,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       const work = armedSeed ? { from: "seed", species: armedSeed } : { from: "inventory", itemId: armedPlant.id };
       if (!cell || !dropActionFor(work, cell)) {
         toast("That tile is no longer empty.", "error");
-        render2();
+        render3();
         return;
       }
       void perform(work, cell);
@@ -17225,11 +17419,11 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     for (const type of ["keydown", "keyup", "keypress"]) input.addEventListener(type, (event) => event.stopPropagation());
     input.addEventListener("input", () => {
       search2 = input.value;
-      render2();
+      render3();
     });
     element.querySelectorAll("[data-fm-tab]").forEach((button) => button.onclick = () => {
       tab = button.dataset.fmTab;
-      render2();
+      render3();
     });
     bindEvents(element);
     document.body.appendChild(element);
@@ -17241,7 +17435,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     element.hidden = !element.hidden;
     if (element.hidden) return;
     page.__gardenCompanionLoadSpriteGroup?.("deferred");
-    render2();
+    render3();
   }
   function initFarmManager() {
     page.__gardenCompanionToggleFarmManager = toggle2;
@@ -17558,7 +17752,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         managerAwaitingContinue = selectedManagerRows().length > 0;
         toast(sent ? `Preserved ${sent} before the connection dropped. The rest are kept - press to continue when it is back.` : "The connection dropped. Your ticks are kept - press to continue when it is back.", "error");
         refreshManagerModal();
-        render3();
+        render4();
         return;
       }
       if (index >= rows.length) {
@@ -17571,7 +17765,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         const done = sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} across ${plants} plant${plants === 1 ? "" : "s"}.` : "Nothing was left to preserve.";
         toast(remaining2 ? `${done} ${remaining2} still ticked - press to continue.` : done, sent ? "success" : "error");
         refreshManagerModal();
-        render3();
+        render4();
         return;
       }
       const row = rows[index++];
@@ -17589,12 +17783,12 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
           batchDone = 0;
           toast(error.message, "error");
           refreshManagerModal();
-          render3();
+          render4();
           return;
         }
       }
       refreshManagerModal();
-      render3();
+      render4();
       window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
@@ -17742,14 +17936,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       run2();
     };
     holdFrame2 = requestAnimationFrame(tick);
-    render3(true);
+    render4(true);
   }
   function cancelHold2() {
     if (!holdStartedAt) return;
     holdStartedAt = 0;
     cancelAnimationFrame(holdFrame2);
     paintHold(0);
-    render3(true);
+    render4(true);
   }
   function paintHold(progress) {
     const fill = panel2()?.querySelector("[data-preserve-fill]");
@@ -17780,13 +17974,13 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       if (index < rows.length && !gameConnectionReady()) {
         sending2 = false;
         toast(sent ? `Preserved ${sent} before the connection dropped. Try the rest once it is back.` : "The connection dropped before anything was preserved.", "error");
-        render3();
+        render4();
         return;
       }
       if (index >= rows.length) {
         sending2 = false;
         toast(sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : "Nothing was left to preserve.", sent ? "success" : "error");
-        render3();
+        render4();
         return;
       }
       const row = rows[index++];
@@ -17798,11 +17992,11 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         } catch (error) {
           sending2 = false;
           toast(error.message, "error");
-          render3();
+          render4();
           return;
         }
       }
-      render3();
+      render4();
       window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
@@ -17824,7 +18018,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     element.style.bottom = "";
     element.style.transform = "";
   }
-  function render3(force = false) {
+  function render4(force = false) {
     const root2 = panel2();
     if (!state.preservationMode || page.__gardenCompanionCinematicFromGame?.()) {
       lastSignature = "";
@@ -17845,14 +18039,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     const affordable = total <= coins();
     const ready = gameConnectionReady();
     const holding = holdStartedAt > 0;
-    const signature2 = `${rows.length}|${total}|${affordable}|${ready}|${sending2}|${holding}|${canPreserveAll}|${canManage}|${manageCount}|${cropLabel(rows)}`;
+    const signature3 = `${rows.length}|${total}|${affordable}|${ready}|${sending2}|${holding}|${canPreserveAll}|${canManage}|${manageCount}|${cropLabel(rows)}`;
     const element = ensurePanel3();
     element.hidden = false;
-    if (!force && signature2 === lastSignature) {
+    if (!force && signature3 === lastSignature) {
       positionPanel(element);
       return;
     }
-    lastSignature = signature2;
+    lastSignature = signature3;
     const caption = element.querySelector("[data-preserve-caption]");
     const hint = element.querySelector("[data-preserve-hint]");
     const runButton = element.querySelector("[data-preserve-run]");
@@ -17872,10 +18066,10 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     element.dataset.holding = holding ? "true" : "false";
     positionPanel(element);
   }
-  var positionTicker2 = createTicker(() => render3(), 300);
+  var positionTicker2 = createTicker(() => render4(), 300);
   function syncPreserveAll() {
     positionTicker2.sync(state.preservationMode);
-    if (!state.preservationMode) render3();
+    if (!state.preservationMode) render4();
     refreshManagerModal();
   }
   function initPreserveAll() {
