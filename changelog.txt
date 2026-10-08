@@ -1,3 +1,6 @@
+0.9.37
+- Fixed the Discord activity showing no data anywhere (Garden Overview, active pets, weather and more)
+
 0.9.36
 - New add-on API: lets add-on userscripts share the companion's game state and command sequencer instead of hooking the game separately
 - Preserve All, the Preservation manager, Crop Locker, Crop Cleanser helper and Farm Manager now check crop readiness against the game's clock, so they no longer offer crops a moment early when your PC clock runs ahead

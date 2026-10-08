@@ -16,23 +16,36 @@ import { installPetSpriteLoader } from './pet-sprites-injector.js';
 import { feature } from './config.js';
 import { exposeAddonApi } from './addon-api.js';
 
-// First, so the game's own catalogs are seen before it finishes starting up.
-initCatalogCapture();
-initCompanion();
-initAbilitySilencer();
-initLevelUpSilencer();
-installPetSpriteLoader();
+/**
+ * In the Discord activity the game now loads itself a second time, into a same-origin iframe marked
+ * with `mc_shell_frame`, and the outer page is only a wrapper around it. The userscript matches both,
+ * and the wrapper has no room connection, so a copy running there drew its launchers over the game
+ * with no data behind them. This mirrors the game's own test for which frame is the real one.
+ */
+function isGameFrame(): boolean {
+  try { return !location.hostname.includes('discord') || new URLSearchParams(location.search).has('mc_shell_frame'); }
+  catch { return true; }
+}
 
-if (feature('overview')) initGardenOverview();
-initPlantDragMove();
-initPlanterPotSelection();
-initCelestialLayoutGuide();
-initCropCleanserHelper();
-initFarmManager();
-initGardenPlanner();
-initFishing();
-initGardenDefence();
-initPreserveAll();
+if (isGameFrame()) {
+  // First, so the game's own catalogs are seen before it finishes starting up.
+  initCatalogCapture();
+  initCompanion();
+  initAbilitySilencer();
+  initLevelUpSilencer();
+  installPetSpriteLoader();
 
-// Last, so an add-on userscript only ever sees a companion that has finished starting up.
-exposeAddonApi();
+  if (feature('overview')) initGardenOverview();
+  initPlantDragMove();
+  initPlanterPotSelection();
+  initCelestialLayoutGuide();
+  initCropCleanserHelper();
+  initFarmManager();
+  initGardenPlanner();
+  initFishing();
+  initGardenDefence();
+  initPreserveAll();
+
+  // Last, so an add-on userscript only ever sees a companion that has finished starting up.
+  exposeAddonApi();
+}
