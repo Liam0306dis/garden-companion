@@ -57,8 +57,10 @@ function findPetSlotDock(): { byPet: Map<string, PetDockRow> | null; rows: PetDo
     const rows = [...byPet.values()].sort((left, right) => left.centerY - right.centerY);
     return { byPet, rows, blocked: Boolean(view.actionButtonGroup) || view.selectedPetSlotId != null };
   }
-  const found = findVisiblePixiNodes(surface, ['PetSlots', 'PetActionButtons']);
-  const slots = found.get('PetSlots');
+  const found = findVisiblePixiNodes(surface, ['PetSlots', 'PetSlotTiles', 'PetActionButtons']);
+  // Since build 1446 the rows sit in a grid whose tile layer (PetSlotTiles) is the one child of
+  // PetSlots; reading PetSlots' own children then found a single row the height of the whole panel.
+  const slots = found.get('PetSlotTiles') ?? found.get('PetSlots');
   if (!slots || !Array.isArray(slots.children)) return null;
   const rows = slots.children
     .flatMap((child: Record<string, any>) => { const row = screenRow(surface, child); return row ? [row] : []; })
