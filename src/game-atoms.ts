@@ -11,7 +11,7 @@ import { retryUntil } from './retry.js';
  * into our state, and opening the game's shops and weather station the way its own buttons do.
  */
 export type GameInterface = 'weatherStation' | 'seedShop' | 'eggShop' | 'toolShop'
-  | 'petHutch' | 'decorShed' | 'toolShack' | 'seedSilo' | 'feedingTrough'
+  | 'petHutch' | 'decorShed' | 'toolShack' | 'seedSilo' | 'feedingTrough' | 'dailyQuests'
   // Weather shops, only openable while their weather runs. Kept out of GAME_INTERFACES because one
   // keybind opens whichever is running (see WEATHER_SHOP_KEY), rather than one row each.
   | 'snowShop' | 'thunderShop' | 'dawnShop' | 'amberShop' | 'rainShop';
@@ -26,6 +26,8 @@ export const GAME_INTERFACES: ReadonlyArray<{ id: GameInterface; label: string }
   { id: 'toolShack', label: 'Tool shack' },
   { id: 'seedSilo', label: 'Seed silo' },
   { id: 'feedingTrough', label: 'Feeding trough' },
+  // The quest booth's window, added in build 1448. The game opens it with this modal id.
+  { id: 'dailyQuests', label: 'Daily quests' },
 ];
 // The modal the game shows is read from activeModalAtom, but that is a read-only derived atom
 // (`atom(get => get(activeModalStateAtom))`); writing it throws "write is not a function". The

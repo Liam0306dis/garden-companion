@@ -1,3 +1,6 @@
+0.9.40
+- Keybinds: new shortcut to open the Daily Quests window
+
 0.9.39
 - Fixed the pet food buttons showing only one button next to the pet panel after the game update
 
