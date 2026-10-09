@@ -1,3 +1,8 @@
+0.9.38
+- Layout planner: lanterns, string lights and windchimes go on tile edges like in the game - pick the side with Side, mirror with Flip, and a lantern and string lights can share an edge
+- Layout planner: weather preview works again
+- Fixed the layout planner, plant drag and Garden Overview focus losing track of the farm after the game update
+
 0.9.37
 - Fixed the Discord activity showing no data anywhere (Garden Overview, active pets, weather and more)
 

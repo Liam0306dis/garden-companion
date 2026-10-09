@@ -121,6 +121,10 @@ export function initPlantDragMove(): void {
      */
     const capturedSinceArm = new Set<string>();
     const CAPTURED_SYSTEMS = ['tapToMove', 'tileObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory'];
+    // Build 1446 renamed the tile system to gardenObject when it started drawing edge decor too.
+    // Both names are taken, and counted as 'tileObject' so the release check below still lines up.
+    const TILE_SYSTEM_NAMES = new Set(['tileObject', 'gardenObject']);
+    const isTileSystem = (system: GameObject) => TILE_SYSTEM_NAMES.has(system?.name);
 
     function resetPrivateSystems(reason: string) {
         live.fallbackHighlight?.destroy?.();
@@ -160,13 +164,14 @@ export function initPlantDragMove(): void {
     }
 
     function captureNamedSystem(system: GameObject) {
-        if (CAPTURED_SYSTEMS.includes(system?.name)) capturedSinceArm.add(system.name);
+        const capturedName = isTileSystem(system) ? 'tileObject' : system?.name;
+        if (CAPTURED_SYSTEMS.includes(capturedName)) capturedSinceArm.add(capturedName);
         if (system?.name === 'tapToMove') {
             if (live.tapToMove === system) return;
             live.tapToMove = system;
             disarmPrivateField('lastHoverGridX');
             log('Native tap-to-move highlight connected.');
-        } else if (system?.name === 'tileObject' && system.tileViews instanceof pageWindow.Map) {
+        } else if (isTileSystem(system) && system.tileViews instanceof pageWindow.Map) {
             if (live.tileSystem === system) return;
             live.tileSystem = system;
             live.ownUserSlotIdx = null;
@@ -210,7 +215,7 @@ export function initPlantDragMove(): void {
     function capturePrivateSystem(target: GameObject, key: PropertyKey, value: unknown) {
         if (key === 'lastHoverGridX' && target?.name === 'tapToMove') {
             captureNamedSystem(target);
-        } else if (key === 'tileViews' && target?.name === 'tileObject' && value instanceof pageWindow.Map) {
+        } else if (key === 'tileViews' && isTileSystem(target) && value instanceof pageWindow.Map) {
             captureNamedSystem(target);
         } else if (key === 'registeredClaimants' && target?.name === 'worldTapRouter' && Array.isArray(value)) {
             captureNamedSystem(target);

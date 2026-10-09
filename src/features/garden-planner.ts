@@ -2,7 +2,6 @@ import { page } from '../page.js';
 import type { GardenTile } from '../types.js';
 import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { maxSizeMultiplier, sizeFromScale, slotScale } from '../crop-size.js';
-import { quinoaEngine } from '../quinoa-engine.js';
 import { createTicker } from '../ticker.js';
 import { NUMBER_LOCALE } from '../utils.js';
 import { onSpritesReady } from '../pets.js';
@@ -115,6 +114,19 @@ export function initGardenPlanner(): void {
       .sort((left, right) => rarityRank(left) - rarityRank(right) || left.localeCompare(right));
   }
 
+  /** One decor on an edge. Edge decor has no rotation, only a mirror. */
+  interface EdgeObject {
+    objectType: 'decor';
+    decorId: string;
+    mirrored: boolean;
+  }
+
+  /**
+   * What the game stores per edge in garden.edgeObjects: an edge holds a `line` (string lights) and
+   * a `hanging` decor (a lantern or windchime) side by side, and at least one of them.
+   */
+  type EdgeParts = Partial<Record<EdgePart, EdgeObject>>;
+
   interface PlannerState {
     open: boolean;
     mode: 'plants' | 'decor';
@@ -126,6 +138,8 @@ export function initGardenPlanner(): void {
     scale: number | null;
     mutations: Set<string>;
     tiles: Map<string, GardenTile>;
+    /** Edge decor by the game's edge key, `h:x:y` or `v:x:y` (see edgeKey). */
+    edges: Map<string, EdgeParts>;
     painting: boolean;
     erasing: boolean;
     /** Weather to preview the garden under: 'live' leaves it be, 'clear' forces clear skies. */
@@ -143,15 +157,16 @@ export function initGardenPlanner(): void {
     scale: null,
     mutations: new Set(),
     tiles: new Map(),
+    edges: new Map(),
     painting: false,
     erasing: false,
     weather: 'live',
   };
 
-  // Weather preview: the render loop draws every system from one shared frame context whose
-  // `weatherId` decides the sky, lighting and how plants and decor render. Wrapping the engine's
-  // draw lets the planner force that value client-side - Rain, Snow, Dawn and the rest - without the
-  // server ever changing the weather. 'live' passes through; leaving the planner drops back to it.
+  // Weather preview: the scene draws every system from one shared frame context whose `weatherId`
+  // decides the sky, lighting and how plants and decor render. The planner forces that value
+  // client-side - Rain, Snow, Dawn and the rest - without the server ever changing the weather.
+  // 'live' passes through; leaving the planner drops back to it.
   const WEATHER_CHOICES: ReadonlyArray<{ id: string; label: string }> = [
     { id: 'live', label: 'Live' },
     { id: 'clear', label: 'Clear' },
@@ -162,16 +177,36 @@ export function initGardenPlanner(): void {
     { id: 'AmberMoon', label: 'Amber' },
   ];
 
+  /**
+   * The scene object holding the frame context is out of reach, but the garden system is handed that
+   * same context on every draw. Its weatherId is turned into an accessor the first time it passes
+   * through: the scene still writes the real weather into it each frame, and everything that reads it
+   * afterwards (the weather presence that drives rain and sky, every tile view) gets the planner's
+   * choice while one is set. This replaced a wrap of engine.callDraw, which the game no longer has.
+   */
+  let weatherContext: Record<string, any> | null = null;
+
+  function overrideContextWeather(context: Record<string, any>): void {
+    weatherContext = context;
+    let real = context.weatherId;
+    Object.defineProperty(context, 'weatherId', {
+      configurable: true,
+      enumerable: true,
+      get: () => planner.open && planner.weather !== 'live' ? (planner.weather === 'clear' ? null : planner.weather) : real,
+      set: (value: unknown) => { real = value; },
+    });
+  }
+
   function patchWeatherDraw(): void {
-    const engine = quinoaEngine() as Record<string, any> | null;
-    if (!engine || typeof engine.callDraw !== 'function' || engine.__gcPlannerWeatherPatched) return;
-    const original = engine.callDraw.bind(engine);
-    engine.__gcPlannerWeatherPatched = true;
-    engine.callDraw = (context: any, delta: any) => {
-      if (planner.open && planner.weather !== 'live' && context && typeof context === 'object') {
-        context.weatherId = planner.weather === 'clear' ? null : planner.weather;
+    const system = tileSystem() as Record<string, any> | null;
+    if (!system || typeof system.draw !== 'function' || system.__gcPlannerWeatherPatched) return;
+    const original = system.draw;
+    system.__gcPlannerWeatherPatched = true;
+    system.draw = function(this: unknown, context: any, ...rest: unknown[]) {
+      if (context && typeof context === 'object' && context !== weatherContext) {
+        try { overrideContextWeather(context); } catch {}
       }
-      return original(context, delta);
+      return original.call(this, context, ...rest);
     };
   }
 
@@ -223,6 +258,43 @@ export function initGardenPlanner(): void {
     delete (system as any).__gcPlannerOriginalUpdate;
   }
 
+  /**
+   * Lanterns, string lights and windchimes hang on the edge between two tiles rather than on a
+   * tile. Only game builds that know about edges have this method, so on older builds edge decor
+   * just keeps going on tiles as before.
+   */
+  function edgeSupported(): boolean {
+    return typeof tileSystem()?.updateEdgeObjectData === 'function';
+  }
+
+  function edgeDecorSelected(): boolean {
+    return planner.mode === 'decor' && Boolean(DECOR[planner.decorId]?.edge) && edgeSupported();
+  }
+
+  /**
+   * The edge counterpart of patchTileUpdates. The game redraws our own edges from its predicted
+   * garden through updateAllEdgeObjectsInSlot, which calls this for every edge it holds or shows,
+   * so substituting the planned edge here covers additions and removals alike.
+   */
+  function patchEdgeUpdates(): void {
+    const system = tileSystem();
+    if (!system || !edgeSupported() || (system as any).__gcPlannerOriginalEdgeUpdate) return;
+    const original = system.updateEdgeObjectData.bind(system) as (slot: number, key: string, data: unknown) => unknown;
+    (system as any).__gcPlannerOriginalEdgeUpdate = original;
+    system.updateEdgeObjectData = (slot: number, key: string, data: unknown) => {
+      if (planner.open && !applyingOwn && slot === ownSlotIndex()) return original(slot, key, planner.edges.get(key));
+      return original(slot, key, data);
+    };
+  }
+
+  function unpatchEdgeUpdates(): void {
+    const system = systems()?.tileSystem;
+    const original = system && (system as any).__gcPlannerOriginalEdgeUpdate;
+    if (!original) return;
+    system.updateEdgeObjectData = original;
+    delete (system as any).__gcPlannerOriginalEdgeUpdate;
+  }
+
   function companionState(): Record<string, any> | null {
     return (page.__gardenCompanionState as Record<string, any>) ?? null;
   }
@@ -259,6 +331,77 @@ export function initGardenPlanner(): void {
     for (const [local, tile] of Object.entries((garden.boardwalkTileObjects ?? {}) as Record<string, GardenTile>)) tiles[`board:${local}`] = tile;
     return tiles;
   }
+
+  function liveEdges(): Record<string, EdgeParts> {
+    return (companionState()?.slot?.data?.garden?.edgeObjects ?? {}) as Record<string, EdgeParts>;
+  }
+
+  function edgeDecorCount(): number {
+    let count = 0;
+    for (const parts of planner.edges.values()) count += Object.keys(parts).length;
+    return count;
+  }
+
+  function selectedEdgePart(): EdgePart {
+    return DECOR[planner.decorId]?.edge ?? 'hanging';
+  }
+
+  /**
+   * Edge keys count tiles from the top-left corner of the box around the garden's dirt and
+   * boardwalk tiles, not from the world grid, which is how the game works them out too.
+   */
+  function gardenBounds(): { x: number; y: number; cols: number; rows: number } | null {
+    const slot = ownSlotIndex();
+    const map = tileSystem()?.map;
+    if (slot === null || !map) return null;
+    const globals = [
+      ...Object.values(map.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slot] ?? {}),
+      ...Object.values(map.userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx?.[slot] ?? {}),
+    ] as number[];
+    if (!globals.length) return null;
+    const xs = globals.map(index => index % map.cols);
+    const ys = globals.map(index => Math.floor(index / map.cols));
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return { x, y, cols: Math.max(...xs) - x + 1, rows: Math.max(...ys) - y + 1 };
+  }
+
+  type Side = 'up' | 'right' | 'down' | 'left';
+
+  /** The edge on one side of a garden-relative tile: `h` edges run along a tile's top, `v` edges down its left. */
+  function edgeKey(x: number, y: number, side: Side): string {
+    switch (side) {
+      case 'up': return `h:${x}:${y}`;
+      case 'down': return `h:${x}:${y + 1}`;
+      case 'left': return `v:${x}:${y}`;
+      case 'right': return `v:${x + 1}:${y}`;
+    }
+  }
+
+  /** The edge on one side of one of our tiles, keyed "dirt:3" or "board:3". */
+  function tileEdgeKey(localIndex: string, side: Side): string | null {
+    const bounds = gardenBounds();
+    const global = ownTileIndexes()[localIndex];
+    const cols = tileSystem()?.map?.cols;
+    if (!bounds || global === undefined || !cols) return null;
+    return edgeKey(global % cols - bounds.x, Math.floor(global / cols) - bounds.y, side);
+  }
+
+  /**
+   * How the game turns a held decor's rotation (flip included, see decorRotation) into an edge: the
+   * side of the tile it hangs on and whether it is mirrored. Turning it walks it round the tile.
+   */
+  const ROTATION_TO_EDGE: ReadonlyArray<[number, Side, boolean]> = [
+    [0, 'up', false], [-360, 'up', true], [90, 'right', true], [-90, 'right', false],
+    [180, 'down', true], [-180, 'down', false], [270, 'left', false], [-270, 'left', true],
+  ];
+
+  function edgeFromRotation(rotation: number): { side: Side; mirrored: boolean } {
+    const [, side, mirrored] = ROTATION_TO_EDGE.find(([angle]) => angle === rotation) ?? ROTATION_TO_EDGE[0];
+    return { side, mirrored };
+  }
+
+  const SIDE_LABELS: Record<number, string> = { 0: 'Top', 90: 'Right', 180: 'Bottom', 270: 'Left' };
 
   /**
    * Patch plants (clover, daisy, snowdrop, cattail) are single-harvest plants whose slots each
@@ -348,9 +491,33 @@ export function initGardenPlanner(): void {
 
   function applyAllTiles(): void {
     for (const localIndex of Object.keys(ownTileIndexes())) applyTile(localIndex);
+    applyAllEdges();
   }
 
-  function tileAtPointer(event: PointerEvent | MouseEvent): string | null {
+  /**
+   * Pushes every edge at once: the game's slot-wide update also removes edges it is showing that
+   * the data no longer holds. Edge views compare data before rebuilding, so re-pushing an unchanged
+   * edge costs nothing.
+   */
+  function applyAllEdges(): void {
+    const system = tileSystem();
+    const slot = ownSlotIndex();
+    if (!system || slot === null || !edgeSupported()) return;
+    const data = planner.open ? Object.fromEntries(planner.edges) : liveEdges();
+    applyingOwn = true;
+    try { system.updateAllEdgeObjectsInSlot(slot, data); } catch {} finally { applyingOwn = false; }
+  }
+
+  function applyEdge(key: string): void {
+    const system = tileSystem();
+    const slot = ownSlotIndex();
+    if (!system || slot === null || !edgeSupported()) return;
+    applyingOwn = true;
+    try { system.updateEdgeObjectData(slot, key, planner.edges.get(key)); } catch {} finally { applyingOwn = false; }
+  }
+
+  /** The world position under the pointer in tiles, the fraction saying where inside the tile. */
+  function worldTileAtPointer(event: PointerEvent | MouseEvent): { x: number; y: number } | null {
     const system = tileSystem();
     const canvas = document.querySelector('.QuinoaCanvas canvas') as HTMLCanvasElement | null;
     const renderer = systems()?.tapToMove?.renderer;
@@ -362,8 +529,24 @@ export function initGardenPlanner(): void {
       y: (event.clientY - rect.top) * renderer.screen.height / rect.height,
     };
     const world = system.worldContainer.toLocal(global);
-    const x = Math.floor(world.x / 256);
-    const y = Math.floor(world.y / 256);
+    return { x: world.x / 256, y: world.y / 256 };
+  }
+
+  /**
+   * The edge the held decor would hang on, as in the game: the tile under the pointer picks the
+   * tile, and the chosen facing picks which of its four sides.
+   */
+  function edgeAtPointer(event: PointerEvent | MouseEvent): string | null {
+    const localIndex = tileAtPointer(event);
+    return localIndex === null ? null : tileEdgeKey(localIndex, edgeFromRotation(decorRotation()).side);
+  }
+
+  function tileAtPointer(event: PointerEvent | MouseEvent): string | null {
+    const system = tileSystem();
+    const point = worldTileAtPointer(event);
+    if (!system || !point) return null;
+    const x = Math.floor(point.x);
+    const y = Math.floor(point.y);
     const map = system.map;
     if (x < 0 || y < 0 || x >= map.cols || y >= map.rows) return null;
     const globalIndex = x + y * map.cols;
@@ -379,7 +562,7 @@ export function initGardenPlanner(): void {
 
   function updateCount(): void {
     const label = document.querySelector<HTMLElement>('#gc-planner [data-plan-count]');
-    if (label) label.textContent = `${planner.tiles.size} planned`;
+    if (label) label.textContent = `${planner.tiles.size + edgeDecorCount()} planned`;
   }
 
   /**
@@ -427,6 +610,24 @@ export function initGardenPlanner(): void {
     updateCount();
   }
 
+  /** Puts the selected decor in its part of the edge, leaving the other part as it was. */
+  function placeEdge(key: string): void {
+    const decor: EdgeObject = { objectType: 'decor', decorId: planner.decorId, mirrored: edgeFromRotation(decorRotation()).mirrored };
+    planner.edges.set(key, { ...planner.edges.get(key), [selectedEdgePart()]: decor });
+    applyEdge(key);
+    updateCount();
+  }
+
+  /** Clears the selected decor's part of the edge, the way the game picks up one part at a time. */
+  function eraseEdge(key: string): void {
+    const parts = { ...planner.edges.get(key) };
+    delete parts[selectedEdgePart()];
+    if (Object.keys(parts).length) planner.edges.set(key, parts);
+    else planner.edges.delete(key);
+    applyEdge(key);
+    updateCount();
+  }
+
   function fromPlannerUi(event: Event): boolean {
     const target = event.target as HTMLElement | null;
     return Boolean(target?.closest?.('#gc-planner'));
@@ -434,6 +635,20 @@ export function initGardenPlanner(): void {
 
   function onPointerDown(event: PointerEvent): void {
     if (!planner.open || fromPlannerUi(event)) return;
+    if (edgeDecorSelected()) {
+      const key = edgeAtPointer(event);
+      if (key === null) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.button === 2) {
+        planner.erasing = true;
+        eraseEdge(key);
+      } else if (event.button === 0) {
+        planner.painting = true;
+        placeEdge(key);
+      }
+      return;
+    }
     const localIndex = tileAtPointer(event);
     if (localIndex === null) return;
     event.preventDefault();
@@ -449,6 +664,17 @@ export function initGardenPlanner(): void {
 
   function onPointerMove(event: PointerEvent): void {
     if (!planner.open || fromPlannerUi(event) || (!planner.painting && !planner.erasing)) return;
+    if (edgeDecorSelected()) {
+      const key = edgeAtPointer(event);
+      if (key === null) return;
+      const current = planner.edges.get(key)?.[selectedEdgePart()];
+      if (planner.erasing) {
+        if (current) eraseEdge(key);
+      } else if (current?.decorId !== planner.decorId || current.mirrored !== edgeFromRotation(decorRotation()).mirrored) {
+        placeEdge(key);
+      }
+      return;
+    }
     const localIndex = tileAtPointer(event);
     if (localIndex === null) return;
     if (planner.erasing) {
@@ -524,6 +750,7 @@ export function initGardenPlanner(): void {
     if (!planner.open) return;
     rebuildTileIndex();
     patchTileUpdates();
+    patchEdgeUpdates();
     patchWeatherDraw();
     applyAllTiles();
     hideNativeCardUi();
@@ -538,8 +765,10 @@ export function initGardenPlanner(): void {
     if (planner.open || !tileSystem()) return;
     planner.open = true;
     planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === 'plant' || tile?.objectType === 'decor'));
+    planner.edges = new Map(Object.entries(liveEdges()));
     rebuildTileIndex();
     patchTileUpdates();
+    patchEdgeUpdates();
     patchWeatherDraw();
     applyAllTiles();
     hideNativeCardUi();
@@ -559,6 +788,7 @@ export function initGardenPlanner(): void {
     // Back to the real weather. The draw wrapper stays installed but passes straight through now.
     planner.weather = 'live';
     unpatchTileUpdates();
+    unpatchEdgeUpdates();
     applyAllTiles();
     restoreNativeCardUi();
     document.body.classList.remove('gc-planning');
@@ -599,7 +829,11 @@ export function initGardenPlanner(): void {
     c?: string;
     /** Slot species for a part-filled or mixed patch. Absent means a full patch of `p`. */
     v?: string[];
+    /** Set on a mirrored edge decor. Edge decor is saved under "edge:<part>:<the game's edge key>". */
+    f?: 1;
   }
+
+  const EDGE_PREFIX = 'edge:';
 
   const MAX_LAYOUTS = 25;
 
@@ -655,6 +889,38 @@ export function initGardenPlanner(): void {
     } finally {
       planner.scale = previousScale;
     }
+  }
+
+  /** A saved layout's recipes as the planner's tiles and edges. */
+  function layoutFromRecipes(layout: Record<string, TileRecipe>): { tiles: Map<string, GardenTile>; edges: Map<string, EdgeParts> } {
+    const tiles = new Map<string, GardenTile>();
+    const edges = new Map<string, EdgeParts>();
+    const edgesWork = edgeSupported();
+    const addEdge = (edge: string, decorId: string, mirrored: boolean) => {
+      const part = DECOR[decorId]?.edge ?? 'hanging';
+      const parts = edges.get(edge) ?? {};
+      if (!parts[part]) edges.set(edge, { ...parts, [part]: { objectType: 'decor', decorId, mirrored } });
+    };
+    for (const [key, recipe] of Object.entries(layout)) {
+      if (key.startsWith(EDGE_PREFIX)) {
+        // The part comes from the decor itself, so the one in the key is only there to keep a line
+        // and a hanging decor on the same edge apart.
+        if (recipe.d) addEdge(key.slice(EDGE_PREFIX.length).replace(/^(line|hanging):/, ''), recipe.d, recipe.f === 1);
+        continue;
+      }
+      // Layouts saved before edges existed hold lanterns and windchimes on tiles, where the game no
+      // longer takes them. They move to the edge their facing pointed at, the way the game maps a
+      // held decor's rotation onto an edge.
+      if (edgesWork && recipe.d && DECOR[recipe.d]?.edge) {
+        const { side, mirrored } = edgeFromRotation(recipe.r ?? 0);
+        const edge = tileEdgeKey(key, side);
+        if (edge) addEdge(edge, recipe.d, mirrored);
+        continue;
+      }
+      const tile = fromRecipe(recipe);
+      if (tile) tiles.set(key, tile);
+    }
+    return { tiles, edges };
   }
 
   function savedLayouts(): Record<string, Record<string, TileRecipe>> {
@@ -714,8 +980,10 @@ export function initGardenPlanner(): void {
     const scaleMax = maxSizeMultiplier(PLANTS[scaleSpecies]?.crop);
     const scaleValue = scaleFor(scaleSpecies);
     const previousScroll = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)')?.scrollTop ?? 0;
-    panel.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size} planned</span><button data-plan-close>Exit</button></header>
-<div class="gc-planner-body"><small data-plan-notice>Left click places, right click removes. Drag to fill. Nothing here is sent to the game.</small>
+    panel.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size + edgeDecorCount()} planned</span><button data-plan-close>Exit</button></header>
+<div class="gc-planner-body"><small data-plan-notice>${edgeDecorSelected()
+  ? 'Hangs on the side of the tile picked under Side. Left click places, right click removes. Nothing here is sent to the game.'
+  : 'Left click places, right click removes. Drag to fill. Nothing here is sent to the game.'}</small>
 <div class="gc-planner-modes"><button data-plan-mode="plants" class="${decorMode ? '' : 'active'}">Plants</button><button data-plan-mode="decor" class="${decorMode ? 'active' : ''}">Decor</button></div>
 <div class="gc-planner-row"><b>Weather</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group gc-planner-weather">${WEATHER_CHOICES.map(choice => {
   const sprite = page.__gardenCompanionWeatherSprites?.[choice.id];
@@ -731,8 +999,8 @@ ${decorMode && DECOR[planner.decorId]?.mountable
 <div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`
   : ''}
 ${decorMode
-  ? `${DECOR[planner.decorId]?.rotates
-      ? `<div class="gc-planner-row"><b>Facing</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${[0, 90, 180, 270].map(angle => `<button data-plan-rotation="${angle}" data-active="${planner.rotation === angle}">${angle}</button>`).join('')}</div></div></div>`
+  ? `${DECOR[planner.decorId]?.rotates || edgeDecorSelected()
+      ? `<div class="gc-planner-row"><b>${edgeDecorSelected() ? 'Side' : 'Facing'}</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${[0, 90, 180, 270].map(angle => `<button data-plan-rotation="${angle}" data-active="${planner.rotation === angle}">${edgeDecorSelected() ? SIDE_LABELS[angle] : angle}</button>`).join('')}</div></div></div>`
       : ''}<div class="gc-planner-row"><b>Flip</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-flip="false" data-active="${!planner.flipped}">Normal</button><button data-plan-flip="true" data-active="${planner.flipped}">Flipped</button></div></div></div>`
   : `<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`}
 ${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies)}</span><button data-plan-scale-max data-active="${planner.scale === null}">Max</button></div>`}
@@ -764,11 +1032,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
     panel.querySelector<HTMLButtonElement>('[data-plan-clear]')!.onclick = () => {
       planner.tiles.clear();
+      planner.edges.clear();
       applyAllTiles();
       updateCount();
     };
     panel.querySelector<HTMLButtonElement>('[data-plan-reset]')!.onclick = () => {
       planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === 'plant' || tile?.objectType === 'decor'));
+      planner.edges = new Map(Object.entries(liveEdges()));
       applyAllTiles();
       updateCount();
     };
@@ -786,13 +1056,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-decor]').forEach(button => button.onclick = () => {
       const previous = planner.decorId;
       planner.decorId = button.dataset.planDecor!;
-      if (!DECOR[planner.decorId]?.rotates) planner.rotation = 0;
+      if (!DECOR[planner.decorId]?.rotates && !DECOR[planner.decorId]?.edge) planner.rotation = 0;
       panel!.querySelectorAll<HTMLButtonElement>('[data-plan-decor]').forEach(other => {
         other.dataset.active = String(other.dataset.planDecor === planner.decorId);
       });
       // Redraw when the facing or display-crop rows need to appear or disappear.
       if (Boolean(DECOR[previous]?.rotates) !== Boolean(DECOR[planner.decorId]?.rotates)
-        || Boolean(DECOR[previous]?.mountable) !== Boolean(DECOR[planner.decorId]?.mountable)) renderPanel();
+        || Boolean(DECOR[previous]?.mountable) !== Boolean(DECOR[planner.decorId]?.mountable)
+        || Boolean(DECOR[previous]?.edge) !== Boolean(DECOR[planner.decorId]?.edge)) renderPanel();
     });
     // The game reads movement and hotkeys from window in the bubble phase, so stopping the event
     // at the field keeps typed names out of the game while still typing normally.
@@ -810,7 +1081,12 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         showPlannerNotice(`You can keep ${MAX_LAYOUTS} layouts. Delete one first.`);
         return;
       }
-      const recipes = Object.fromEntries([...planner.tiles].map(([key, tile]) => [key, toRecipe(tile)]));
+      const recipes: Record<string, TileRecipe> = Object.fromEntries([...planner.tiles].map(([key, tile]) => [key, toRecipe(tile)]));
+      for (const [key, parts] of planner.edges) {
+        for (const [part, edge] of Object.entries(parts)) {
+          recipes[`${EDGE_PREFIX}${part}:${key}`] = { d: edge.decorId, ...(edge.mirrored ? { f: 1 as const } : {}) };
+        }
+      }
       const problem = storeLayouts({ ...layouts, [name]: recipes });
       if (problem) {
         showPlannerNotice(problem);
@@ -821,10 +1097,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     panel.querySelector<HTMLSelectElement>('[data-plan-load]')?.addEventListener('change', event => {
       const layout = savedLayouts()[(event.target as HTMLSelectElement).value];
       if (!layout) return;
-      planner.tiles = new Map(Object.entries(layout).flatMap(([key, recipe]) => {
-        const tile = fromRecipe(recipe);
-        return tile ? [[key, tile] as [string, GardenTile]] : [];
-      }));
+      ({ tiles: planner.tiles, edges: planner.edges } = layoutFromRecipes(layout));
       applyAllTiles();
       updateCount();
     });

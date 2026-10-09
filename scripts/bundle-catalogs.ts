@@ -7,6 +7,9 @@ export function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** Which part of an edge a decor fills: string lights run along it, lanterns and windchimes hang. */
+export type EdgePart = 'line' | 'hanging';
+
 export interface BundleCatalogs {
   /** Which capture the catalogs came from. Reported on every build: a shape change in the newest
    * bundle drops silently through to an older one, and the numbers alone look perfectly healthy. */
@@ -18,7 +21,7 @@ export interface BundleCatalogs {
   eggs: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds: Record<string, number> }>;
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
-  decor: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean }>;
+  decor: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean; edge?: EdgePart }>;
   /** Tools the game caps at a number held in the inventory (maxInventoryQuantity), by tool id. */
   toolLimits: Record<string, number>;
 }
@@ -168,14 +171,19 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
         // animated decor a Rive artboard in place of an atlas reference, so the field is captured
         // whole and the id picked out of whichever shape arrived.
         // canDisplayCrop marks decor that can show a harvested crop on top (pedestals, stools).
+        // edgePlacement marks decor that goes on the edge between two tiles. It takes the place of
+        // rotationVariants, such decor can only go on an edge, and its part says which half of the
+        // edge it fills: string lights are a `line`, lanterns and windchimes are `hanging`, and an
+        // edge holds one of each. The preview build had no part; everything there hung.
         const decor = Object.fromEntries([...bundle.matchAll(
-          /([A-Za-z][A-Za-z0-9_]*):\{(?:sprite|art):([A-Za-z_$]+\.Decor\.[A-Za-z0-9_]+|\{artboardName:`[A-Za-z0-9_]+`\}),((?:rotationVariants:\{.*?\},)?)name:`([^`]+)`([^{}]*?)rarity:[A-Za-z_$]+\.([A-Za-z]+)([^{}]*)/g)]
+          /([A-Za-z][A-Za-z0-9_]*):\{(?:sprite|art):([A-Za-z_$]+\.Decor\.[A-Za-z0-9_]+|\{artboardName:`[A-Za-z0-9_]+`\}),((?:rotationVariants:\{.*?\},)?)((?:edgePlacement:\{[^{}]*\},)?)name:`([^`]+)`([^{}]*?)rarity:[A-Za-z_$]+\.([A-Za-z]+)([^{}]*)/g)]
           .map(match => [match[1], {
-            name: match[4],
-            rarity: match[6],
+            name: match[5],
+            rarity: match[7],
             rotates: Boolean(match[3]),
             sprite: decorSpriteId(match[2]),
-            ...(/canDisplayCrop:!0/.test(match[5] + match[7]) ? { mountable: true } : {}),
+            ...(/canDisplayCrop:!0/.test(match[6] + match[8]) ? { mountable: true } : {}),
+            ...(match[4] ? { edge: (/part:`line`/.test(match[4]) ? 'line' : 'hanging') as EdgePart } : {}),
           }]));
         if (Object.keys(decor).length < 10) continue;
         const abilityColours = abilityColoursFromSnapshot(snapshot);

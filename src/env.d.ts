@@ -4,7 +4,9 @@ declare const __PET_CATALOG__: Record<string, { name: string; maxHunger: number;
 declare const __PLANT_CATALOG__: Record<string, { crop: { name?: string; baseSellPrice: number; baseWeight: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite?: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots?: number; regrows?: boolean; rarity?: string; slotSpecies?: string[]; component?: boolean }>;
 declare const __ABILITY_COLOURS__: Record<string, string>;
 declare const __MUTATION_CATALOG__: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
-declare const __DECOR_CATALOG__: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean }>;
+/** Which part of an edge a decor fills: string lights run along it, lanterns and windchimes hang. */
+type EdgePart = 'line' | 'hanging';
+declare const __DECOR_CATALOG__: Record<string, { name: string; rarity: string; rotates: boolean; sprite: string; mountable?: boolean; edge?: EdgePart }>;
 declare const __TOOL_LIMITS__: Record<string, number>;
 declare const __EGG_CATALOG__: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds?: Record<string, number> }>;
 declare const __BASIS_WASM_SHA256__: string;

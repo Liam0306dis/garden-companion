@@ -89,6 +89,8 @@ export function installPlantFocus(
   ignorePreserved: () => boolean,
 ): () => void {
   let tileSystem: any = null;
+  // Build 1446 renamed the tile system from tileObject to gardenObject; either is taken.
+  const TILE_SYSTEM_NAMES = new Set(['tileObject', 'gardenObject']);
   const originalAlpha = new WeakMap<object, number>();
   const desiredAlpha = new WeakMap<object, number>();
   const managed = new Set<any>();
@@ -201,7 +203,7 @@ export function installPlantFocus(
       set: function(this: any, value: unknown) {
         if (existing?.set) existing.set.call(this, value);
         else PageObject.defineProperty(this, 'tileViews', { configurable: true, enumerable: true, writable: true, value });
-        if (this?.name === 'tileObject' && value instanceof PageMap) capture(this);
+        if (TILE_SYSTEM_NAMES.has(this?.name) && value instanceof PageMap) capture(this);
       },
     });
   }
@@ -231,7 +233,7 @@ export function installPlantFocus(
     const wrappedDefineProperty = function(this: ObjectConstructor, target: object, property: PropertyKey, attributes: PropertyDescriptor & ThisType<any>): object {
       const result = originalDefineProperty(target, property, attributes) as object;
       try {
-        if (property === 'tileViews' && (target as any)?.name === 'tileObject' && attributes?.value instanceof PageMap) capture(target);
+        if (property === 'tileViews' && TILE_SYSTEM_NAMES.has((target as any)?.name) && attributes?.value instanceof PageMap) capture(target);
       } catch {}
       return result;
     };

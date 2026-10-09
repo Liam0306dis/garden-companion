@@ -43,6 +43,13 @@ const SCHEMA_MARKERS = [
   'shopPurchases',
 ];
 
+/**
+ * The `name` of each world system plant-drag-move.ts and overview-focus.ts capture. Build 1446
+ * renamed tileObject to gardenObject without any other marker changing, which quietly cut the
+ * planner, drag-move and overview focus off from the farm.
+ */
+const SYSTEM_NAMES = ['tapToMove', 'gardenObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory'];
+
 async function walkTs(dir: string): Promise<string[]> {
   const out: string[] = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -202,6 +209,11 @@ export async function checkSnapshot(snapshot: Snapshot, sent: SentCommands): Pro
   for (const marker of SCHEMA_MARKERS) {
     if (source.includes(marker)) result.ok.push(`marker ${marker}`);
     else result.warnings.push(`marker ${marker} not found in the bundle`);
+  }
+
+  for (const name of SYSTEM_NAMES) {
+    if (source.includes(`name=\`${name}\``)) result.ok.push(`system ${name}`);
+    else result.warnings.push(`system ${name} not found - a world system the script captures by name was renamed or removed`);
   }
 
   try {
