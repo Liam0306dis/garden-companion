@@ -36,8 +36,10 @@ export function setAbilityLogSearch(query: string): void {
  */
 
 export function recordAbilityActivities(fresh: ActivityLogEntry[]) {
+  let added = false;
   for (const entry of fresh) {
     if (!ABILITY_SET.has(entry.action)) continue;
+    added = true;
     const pet = (entry.parameters?.pet || entry.parameters?.sourcePet || {}) as Record<string, unknown>;
     state.abilityLog.unshift({
       at: Number(entry.timestamp),
@@ -48,6 +50,9 @@ export function recordAbilityActivities(fresh: ActivityLogEntry[]) {
   }
   state.abilityLog = trimAbilityLogs(state.abilityLog);
   saveAbilityLog();
+  // The panel's periodic redraw holds off while the pointer is over the log or it is scrolled, which
+  // is exactly how the tab is read - so a new proc is written into the open log here instead.
+  if (added) refreshAbilityPanel(true);
 }
 
 
@@ -383,16 +388,18 @@ function renderAbilityFilterBody(enabled: Set<string>): string {
  * disturbs it. That means the panel's own filter button and log rows have to be updated by hand when
  * a selection changes, since the auto-refresh is held off while the dialog is open.
  */
-function refreshAbilityPanel(): void {
+function refreshAbilityPanel(anchorToTop = false): void {
   const enabled = enabledAbilities();
   const openButton = page.document.querySelector<HTMLElement>('[data-ability-filter-open]');
   if (openButton) openButton.textContent = abilityFilterSummary(enabled);
   const log = page.document.querySelector<HTMLElement>('.gc-ability-log-card .gc-log');
   if (log) {
-    const scrollTop = log.scrollTop;
+    const { scrollTop, scrollHeight } = log;
     log.innerHTML = renderAbilityLogRows(enabled);
     hydrateAbilityLogSprites(log);
-    log.scrollTop = scrollTop;
+    // New procs land at the top. Scrolled down to read older ones, the view is held on the same
+    // rows by moving down as far as the new ones pushed them.
+    log.scrollTop = anchorToTop && scrollTop > 0 ? scrollTop + log.scrollHeight - scrollHeight : scrollTop;
   }
 }
 

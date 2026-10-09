@@ -1,3 +1,7 @@
+0.9.41
+- Alarm banners show a sprite of what the alert is for (shop item, weather or pet) instead of the "!"
+- Fixed the Pet Abilities tab not showing new procs until you switched tabs and back
+
 0.9.40
 - Keybinds: new shortcut to open the Daily Quests window
 

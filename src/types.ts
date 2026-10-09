@@ -236,6 +236,8 @@ export interface CompanionAlarmOptions {
   onAction?: (button: HTMLButtonElement) => void | Promise<void>;
   /** Show the banner without the tone, for an alert the player has muted the sound on. */
   silent?: boolean;
+  /** Sprite URL of what the alarm is about, shown in place of the `!` badge. Empty falls back to it. */
+  icon?: string;
 }
 
 export interface JotaiAtom {

@@ -277,6 +277,7 @@ function showShopAlarm(row: AvailableShopItem): void {
     label: `SHOP ALARM | ${SHOP_NAMES[row.shop] || humanize(row.shop)}`,
     title: `${humanize(row.id)} is available`,
     detail: `${row.remaining} remaining`,
+    icon: page.__gardenCompanionShopSprites?.[row.id],
     actionLabel: 'Buy all',
     onAction: async button => {
       button.disabled = true;

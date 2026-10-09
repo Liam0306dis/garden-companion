@@ -456,7 +456,7 @@ function renderAlarmCard(options: CompanionAlarmOptions): void {
   card.className = 'gc-alarm-card';
   const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : '';
   const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : '';
-  card.innerHTML = `<i class="gc-alarm-icon">!</i><div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
+  card.innerHTML = `${options.icon ? `<i class="gc-alarm-icon" data-sprite><img src="${escapeHtml(options.icon)}" alt=""></i>` : '<i class="gc-alarm-icon">!</i>'}<div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
   const entry: ActiveAlarm = { options, card };
   activeAlarms.push(entry);
   alarmStack().appendChild(card);

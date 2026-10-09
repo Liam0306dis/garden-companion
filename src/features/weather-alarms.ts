@@ -40,6 +40,7 @@ function raise(weather: string): void {
     label: 'WEATHER ALARM',
     title: `${weatherLabel(weather)} has started`,
     detail: weatherRemainingText(),
+    icon: page.__gardenCompanionWeatherSprites?.[weather],
   });
 }
 

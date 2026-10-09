@@ -4,7 +4,7 @@ import { abilityEffectText } from '../ability-effect.js';
 import { showAlarmBanner, stopAlarm } from '../alarms.js';
 import { feature } from '../config.js';
 import { ABILITY_DETAILS, GRANTER_CHANCES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PROC_RULES, STACKED_PASSIVE_BY_ABILITY, XP_PER_POTION } from '../constants.js';
-import { abilityActiveInWeather, activePets, allActivePetsStarving, formatEstimate, heldToolCount, hungerDisplay, petMetrics, petSprite, teamXpPerHour } from '../pets.js';
+import { abilityActiveInWeather, activePets, allActivePetsStarving, formatEstimate, heldToolCount, hungerDisplay, petMetrics, petSprite, petSpriteSource, teamXpPerHour } from '../pets.js';
 import { state } from '../state.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 import { weatherLabel } from './weather-timer.js';
@@ -12,6 +12,12 @@ import { weatherLabel } from './weather-timer.js';
 /** The Active Pets tab, the whole-team hunger alarm and the ability-ready alarm. */
 
 const HUNGER_ALARM_OWNER = 'pets:hunger';
+
+/** The whole team is starving, so the first pet on it stands in for the lot on the banner. */
+function firstPetSprite(): string | undefined {
+  const pet = activePets().find(entry => entry?.petSpecies);
+  return pet ? petSpriteSource(pet) : undefined;
+}
 let hungerAlarmRaised = false;
 
 /**
@@ -34,6 +40,7 @@ export function processPetHunger(): void {
   showAlarmBanner({
     owner: HUNGER_ALARM_OWNER,
     label: 'PET ALARM | HUNGER',
+    icon: firstPetSprite(),
     title: count === 1 ? 'Your pet has zero hunger' : `All ${count} pets have zero hunger`,
     // No detail or action button: the title says it, feeding happens on the docked pet food
     // buttons rather than in a panel, and Stop holds until something is actually fed.
@@ -71,6 +78,7 @@ function raiseCooldownAlarm(pet: Pet, ability: string): void {
   showAlarmBanner({
     owner: `${COOLDOWN_ALARM_OWNER}${pet.id}:${ability}`,
     label: 'PET ALARM | ABILITY READY',
+    icon: petSpriteSource(pet),
     title: `${petName(pet)}'s ${ABILITY_DETAILS[ability]?.name ?? humanize(ability)} is ready`,
   });
 }
