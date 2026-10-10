@@ -34,3 +34,7 @@ build.bat
 
 # Captured game bundles (npm run check-bundle). The game's own code, never published.
 bundles/
+
+# Local quest pool test output, not for publishing
+quest-results.json
+scripts/quest-roll-test.js

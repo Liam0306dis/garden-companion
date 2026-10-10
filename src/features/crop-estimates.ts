@@ -8,7 +8,7 @@ import { page } from '../page.js';
 import { crystalStrengthBonus, petMetrics } from '../pets.js';
 import { findPixiCard } from '../pixi.js';
 import { onQuinoaEngine, quinoaEngine } from '../quinoa-engine.js';
-import { onStateChange, state } from '../state.js';
+import { friendBonusMultiplier, onStateChange, state } from '../state.js';
 import { createTicker } from '../ticker.js';
 import { formatDuration, NUMBER_LOCALE } from '../utils.js';
 
@@ -94,7 +94,7 @@ function estimateLines(): string[] {
   const lines = [];
   if (feature('cropValues')) {
     const base = Number(page.__gardenCompanionPlantPrice?.(crop.species) || 0);
-    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * slotScale(PLANT_CATALOG[crop.species ?? '']?.crop, crop) * catalogMutationMultiplier(crop.mutations || []) * (1 + Math.min(5, Math.max(0, (state.room?.players?.length || 1) - 1)) * .1)).toLocaleString(NUMBER_LOCALE)}`);
+    if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * slotScale(PLANT_CATALOG[crop.species ?? '']?.crop, crop) * catalogMutationMultiplier(crop.mutations || []) * friendBonusMultiplier()).toLocaleString(NUMBER_LOCALE)}`);
   }
   if (feature('turtleTimer')) {
     const end = Number(crop.endTime || 0), rate = turtleRate(pets);

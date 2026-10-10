@@ -4,7 +4,8 @@ import { escapeHtml } from '../utils.js';
 import { page } from '../page.js';
 import { comboFromEvent, overviewShortcut } from '../key-combo.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
-import type { PlantSlot, PlayerSlot, RoomState } from '../types.js';
+import type { GameState, PlantSlot, PlayerSlot, RoomState } from '../types.js';
+import { friendBonusMultiplier } from '../state.js';
 import { ABILITY_DETAILS, MUTATION_CATALOG, PATCH_FAMILY_OF, patchName, PLANT_CATALOG, plantName } from '../constants.js';
 import { currentWeather } from './weather-timer.js';
 
@@ -23,6 +24,7 @@ interface PlantCatalogEntry {
 export interface OverviewRuntimeState {
   slot?: PlayerSlot | null;
   room?: RoomState | null;
+  game?: GameState | null;
 }
 
 interface SpeciesStats {
@@ -264,8 +266,7 @@ function calculateStats(
   const result: OverviewStats = { plants: 0, crops: 0, mature: 0, value: 0, projectedValue: 0, doubleHarvestMult: 1, cropRefundMult: 1, mutations: new Map(), species: [], nextMatureAt: null, allMatureAt: null, targetProgress: {}, granterEtas: [], unmutated: 0, notMaxSize: 0, allCrops: 0, friendBonus: 1, growthRate: 0 };
   const bySpecies = new Map<string, SpeciesStats>();
   const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
-  const friendCount = Math.min(5, Math.max(0, (runtime.room?.players?.length ?? 1) - 1));
-  const friendMultiplier = 1 + friendCount * 0.1;
+  const friendMultiplier = friendBonusMultiplier(runtime.game);
   result.friendBonus = friendMultiplier;
   const now = Date.now();
   const allMissing: Record<string, number> = {};

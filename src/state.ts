@@ -85,6 +85,16 @@ export function saveAbilityLog(): void {
   }
 }
 
+/**
+ * The sell-price friend bonus: a tenth per other player, up to five of them. Counted the way the
+ * game counts it - occupied user slots, not the room's player list, which also holds spectators and
+ * so read one bonus step too high whenever someone was watching.
+ */
+export function friendBonusMultiplier(game: GameState | null | undefined = state.game): number {
+  const players = (Array.isArray(game?.userSlots) ? game.userSlots : []).filter(slot => slot != null).length;
+  return 1 + Math.min(5, Math.max(0, players - 1)) * 0.1;
+}
+
 type StateListener = (reason: string) => void;
 const stateListeners = new Set<StateListener>();
 

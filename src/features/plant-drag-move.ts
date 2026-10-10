@@ -99,7 +99,11 @@ export function initPlantDragMove(): void {
         return pageWindow.__gardenCompanionFeature?.('dragMove') !== false;
     }
 
+    /** Set `gcPlantDragDebug` in local storage to 1 to trace each step. Failures are always logged. */
     function log(message: string, detail?: unknown) {
+        if (!(detail instanceof Error)) {
+            try { if (localStorage.getItem('gcPlantDragDebug') !== '1') return; } catch { return; }
+        }
         if (detail === undefined) console.log(`[PlantDrag] ${message}`);
         else console.log(`[PlantDrag] ${message}`, detail);
     }

@@ -105,6 +105,44 @@ function farmCells(): Cell[] | null {
   return cells.length ? cells : null;
 }
 
+/** One decor on a tile edge: string lights fill the `line` part, a lantern or windchime the `hanging` one. */
+type EdgeParts = Partial<Record<EdgePart, { decorId?: string; mirrored?: boolean }>>;
+
+/**
+ * Edge decor, drawn over the gaps between tiles. The game keys an edge `h:x:y` (along the top of tile
+ * x,y) or `v:x:y` (down its left), counted from the top-left of the box around the garden's dirt and
+ * boardwalk - the same box the map is laid out in, so the map's own origin lines them up.
+ *
+ * Purely a picture: the markers take no pointer events, so dragging and dropping on the tiles they
+ * overhang works exactly as before.
+ */
+function edgeMarkers(size: number): string {
+  const edges = (state.slot?.data?.garden as { edgeObjects?: Record<string, EdgeParts> } | undefined)?.edgeObjects;
+  if (!edges) return '';
+  const step = size + CELL_GAP;
+  const markers: string[] = [];
+  for (const [key, parts] of Object.entries(edges)) {
+    const match = /^([hv]):(-?\d+):(-?\d+)$/.exec(key);
+    if (!match || !parts) continue;
+    const horizontal = match[1] === 'h';
+    const x = Number(match[2]) * step - (horizontal ? 0 : CELL_GAP / 2);
+    const y = Number(match[3]) * step - (horizontal ? CELL_GAP / 2 : 0);
+    if (parts.line?.decorId) {
+      const box = horizontal ? `left:${x}px;top:${y - 2}px;width:${size}px;height:4px` : `left:${x - 2}px;top:${y}px;width:4px;height:${size}px`;
+      markers.push(`<i class="gc-fm-edge-line" style="${box}"></i>`);
+    }
+    if (parts.hanging?.decorId) {
+      const icon = Math.round(size * .55);
+      const centreX = horizontal ? x + size / 2 : x;
+      const centreY = horizontal ? y : y + size / 2;
+      const sprite = page.__gardenCompanionShopSprites?.[parts.hanging.decorId] || '';
+      const flip = parts.hanging.mirrored ? 'transform:scaleX(-1);' : '';
+      markers.push(`<i class="gc-fm-edge-hang" style="left:${Math.round(centreX - icon / 2)}px;top:${Math.round(centreY - icon / 2)}px;width:${icon}px;height:${icon}px;${flip}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="" draggable="false">` : ''}</i>`);
+    }
+  }
+  return markers.length ? `<div class="gc-fm-edges" aria-hidden="true">${markers.join('')}</div>` : '';
+}
+
 function pottedPlants(): PottedPlant[] {
   const items = (state.slot?.data?.inventory?.items ?? []) as unknown as Array<Record<string, any>>;
   return items
@@ -306,7 +344,7 @@ function render(): void {
       const movable = cell.kind === 'dirt' && cell.tile?.objectType === 'plant' && !busyTiles.has(cell.local) && !busy;
       const plantable = armedSpecies && cell.kind === 'dirt' && !cell.tile && !busyTiles.has(cell.local);
       return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || 'empty')}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ''}${plantable ? ' data-drop="place" data-armed="true"' : ''} style="grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}" title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ''}>${cellContent(cell)}</div>`;
-    }).join('')}</div>`);
+    }).join('')}${edgeMarkers(size)}</div>`);
   }
 
   element.querySelectorAll<HTMLButtonElement>('[data-fm-tab]').forEach(button => {
