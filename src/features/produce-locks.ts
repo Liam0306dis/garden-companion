@@ -99,7 +99,9 @@ function inventoryRect(): { left: number; top: number; right: number; bottom: nu
   const view = inventoryView();
   if (!view || view.isDestroyed || !view.isVisible || !view.showExpandedContent) return null;
   const surface = pixiSurface();
-  const node = view.modalBg || view.contentContainer || view.modalContainer;
+  // Newer builds keep the modal's PIXI parts on an itemSheet; older ones held them on the view.
+  const sheet = view.itemSheet;
+  const node = sheet?.modalBg || sheet?.contentContainer || sheet?.container || view.modalBg || view.contentContainer || view.modalContainer;
   if (!surface || !node || typeof node.getBounds !== 'function' || !pixiNodeVisible(node)) return null;
   try {
     const bounds = node.getBounds();

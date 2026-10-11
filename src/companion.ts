@@ -464,7 +464,7 @@ export function initCompanion(): void {
     ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food'], ['eggLuck', 'Egg Luck', 'Eggs']]],
     ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
     ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['alarmSound', 'Alert Settings'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
-    ['Tools', [['calculators', 'Calculators'], ['rooms', 'Rooms']]],
+    ['Tools', [['calculators', 'Calculators'], ['minigames', 'Minigames'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
     ['Support', [['supporter', 'Supporter']]],
   ];
@@ -484,6 +484,7 @@ export function initCompanion(): void {
     silence: 'Hide the game popups for abilities you no longer need to see.',
     calculators: 'XP, dust and value maths for pets and crops.',
     rooms: 'Public rooms with space for you, ready to join.',
+    minigames: 'Games played on your own farm tiles. Nothing is sent to the game.',
     keybinds: 'Shortcuts for teams, tools and companion windows.',
     features: 'Turn optional tools on or off, and open the extra windows.',
     supporter: 'Leave a tip if the companion has been useful.',
@@ -504,6 +505,7 @@ export function initCompanion(): void {
     silence: '<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0 1 9 0c0 2.5.5 3.8 1.5 5Z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>',
     calculators: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7h7"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01"/>',
     rooms: '<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
+    minigames: '<rect x="3" y="7" width="18" height="11" rx="4"/><path d="M8 10.5v3M6.5 12h3"/><path d="M15.5 11h.01M17 13.5h.01"/>',
     keybinds: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7.5 14h9"/>',
     features: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
     supporter: '<path d="M12 20s-7-4.3-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.7-7 10-7 10Z"/>',
@@ -633,6 +635,7 @@ export function initCompanion(): void {
   function renderTab() {
     if (activeTab === 'supporter') return renderSupporter();
     if (activeTab === 'features') return renderFeatures();
+    if (activeTab === 'minigames') return renderMinigames();
     if (activeTab === 'teams') return renderTeams();
     if (activeTab === 'petFood') return renderPetFoodTab();
     if (activeTab === 'calculators') return renderCalculators();
@@ -676,7 +679,11 @@ export function initCompanion(): void {
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
     ];
-    return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`).join('')}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Farm Manager</h3><p>A map of your garden. Drag plants to move or swap them, and plant potted plants or seeds onto empty tiles.</p></div><button class="gc-primary" data-open-farm-manager>Open manager</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Plan a buff layout for your celestial plants in Farm Manager, then drag them into place step by step.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+    return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? 'checked' : ''}><i></i></label>`).join('')}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Farm Manager</h3><p>A map of your garden. Drag plants to move or swap them, and plant potted plants or seeds onto empty tiles.</p></div><button class="gc-primary" data-open-farm-manager>Open manager</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Plan a buff layout for your celestial plants in Farm Manager, then drag them into place step by step.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+  }
+
+  function renderMinigames() {
+    return `<section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section>`;
   }
 
   function renderSilence() {

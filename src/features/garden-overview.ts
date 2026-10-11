@@ -12,6 +12,8 @@ import { currentWeather } from './weather-timer.js';
 /** Plant Growth Boost abilities and the weather each seasonal tier needs to be active. */
 const PLANT_GROWTH_ABILITIES = new Set(['PlantGrowthBoost', 'PlantGrowthBoostII', 'PlantGrowthBoostIII', 'SnowyPlantGrowthBoost', 'DawnPlantGrowthBoost', 'AmberPlantGrowthBoost', 'ThunderPlantGrowthBoost']);
 const PLANT_GROWTH_WEATHER: Record<string, string> = { SnowyPlantGrowthBoost: 'Frost', DawnPlantGrowthBoost: 'Dawn', AmberPlantGrowthBoost: 'AmberMoon', ThunderPlantGrowthBoost: 'Thunderstorm' };
+/** Crop size boosts that only work in one weather. */
+const SIZE_BOOST_WEATHER: Record<string, string> = { SnowyCropSizeBoost: 'Frost' };
 import { crystalStrengthBonus, mutationSprite, onSpritesReady, petMetrics, produceSprite } from '../pets.js';
 import { MAX_SIZE, maxSizeMultiplier, slotIsMaxSize, slotScale } from '../crop-size.js';
 import { toast } from '../toast.js';
@@ -419,23 +421,40 @@ function calculateStats(
   }
   result.growthRate = growthRate;
 
-  function addEta(mutation: string, ability: string | string[], chance: number, missing: number, total: number | null, countOnly = false): void {
-    const abilities = Array.isArray(ability) ? ability : [ability];
-    const pets = activePets.filter(pet => pet.hunger > 0 && pet.abilities?.some(name => abilities.includes(name)));
-    if (!pets.length) return;
-    const combinedTickRate = 1 - pets.reduce((remaining, pet) => {
-      const chancePerMinute = chance * petStrength(pet) / 100;
-      return remaining * (1 - (1 - Math.pow(1 - chancePerMinute / 100, 1 / 60)));
-    }, 1);
+  /**
+   * Every proc source among the fed active pets for the given abilities (chance in % per minute),
+   * as a per-second proc rate. Weather-gated abilities only count while their weather runs.
+   */
+  type ProcSource = { pet: (typeof activePets)[number]; ability: string; perSecond: number };
+  function procSources(chances: Record<string, number>): ProcSource[] {
+    const sources: ProcSource[] = [];
+    for (const pet of activePets) {
+      if (!(pet.hunger > 0)) continue;
+      for (const ability of pet.abilities ?? []) {
+        const chance = chances[ability];
+        if (chance == null) continue;
+        const required = SIZE_BOOST_WEATHER[ability];
+        if (required && required !== weatherNow) continue;
+        const chancePerMinute = chance * petStrength(pet) / 100;
+        sources.push({ pet, ability, perSecond: 1 - Math.pow(1 - chancePerMinute / 100, 1 / 60) });
+      }
+    }
+    return sources;
+  }
+
+  function addEta(mutation: string, sources: ProcSource[], missing: number, total: number | null, countOnly = false): void {
+    if (!sources.length) return;
+    const combinedTickRate = 1 - sources.reduce((remaining, source) => remaining * (1 - source.perSecond), 1);
     if (combinedTickRate <= 0) return;
     const meanSeconds = 1 / combinedTickRate;
-    result.granterEtas.push({ mutation, pets: pets.length, missing, total, meanSeconds, totalSeconds: missing * meanSeconds, countOnly });
+    const pets = new Set(sources.map(source => source.pet)).size;
+    result.granterEtas.push({ mutation, pets, missing, total, meanSeconds, totalSeconds: missing * meanSeconds, countOnly });
   }
 
   const missingPool = mutationConfig.granterAllGarden ? allMissing : trackedMissing;
   const poolTotal = mutationConfig.granterAllGarden ? result.allCrops : trackedEtaCrops;
   for (const [ability, rule] of Object.entries(GRANTERS)) {
-    addEta(rule.mutation, ability, rule.chance, missingPool[rule.mutation] ?? 0, poolTotal);
+    addEta(rule.mutation, procSources({ [ability]: rule.chance }), missingPool[rule.mutation] ?? 0, poolTotal);
   }
 
   /**
@@ -461,10 +480,16 @@ function calculateStats(
     const value = Number(ABILITY_DETAILS[ability]?.baseParameters?.sizeIncrease);
     return Number.isFinite(value) && value > 0 ? value : fallback;
   };
-  const maxSizeBoosts = boostsUntilMax(sizeIncreaseOf('ProduceScaleBoostII', 7));
-  const beeSizeBoosts = boostsUntilMax(sizeIncreaseOf('ProduceScaleBoost', 4));
-  addEta('Max Size', ['ProduceScaleBoostII', 'Crop Size Boost II'], .4, maxSizeBoosts, null, true);
-  addEta('Bee Size', 'ProduceScaleBoost', .3, beeSizeBoosts, null, true);
+  // Max Size pools Crop Size Boost II with Snowy Crop Size Boost (only while it snows). They grow a
+  // crop by different amounts, so the proc count uses their gains averaged by how often each fires.
+  const maxSources = procSources({ ProduceScaleBoostII: .4, 'Crop Size Boost II': .4, SnowyCropSizeBoost: .8 });
+  const increaseOf = (ability: string): number => ability === 'SnowyCropSizeBoost' ? sizeIncreaseOf(ability, 8) : sizeIncreaseOf('ProduceScaleBoostII', 7);
+  const maxRate = maxSources.reduce((sum, source) => sum + source.perSecond, 0);
+  const maxIncrease = maxRate > 0
+    ? maxSources.reduce((sum, source) => sum + source.perSecond * increaseOf(source.ability), 0) / maxRate
+    : increaseOf('ProduceScaleBoostII');
+  addEta('Max Size', maxSources, boostsUntilMax(maxIncrease), null, true);
+  addEta('Bee Size', procSources({ ProduceScaleBoost: .3 }), boostsUntilMax(sizeIncreaseOf('ProduceScaleBoost', 4)), null, true);
   return result;
 }
 
