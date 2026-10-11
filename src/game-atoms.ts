@@ -236,6 +236,31 @@ function mirrorFieldAtom(atom: JotaiAtom, key: string): void {
 }
 
 /**
+ * While one of our scenes holds the farm, the tile under the player is hidden but the game still
+ * offers its actions (Insta Grow, Pick Up, View) and Space would carry them out. The action HUD,
+ * actionAtom and the bound action all derive from the selected actions, so emptying those (and the
+ * info card's subject toggles) stands every one down.
+ * Reading the cinematic atom makes the claim a dependency, so the actions update the moment a scene
+ * opens or closes rather than on the player's next step.
+ */
+function suppressActionsDuringScenes(match: string, empty: unknown): void {
+  retryUntil(() => {
+    const atom = findAtom(match);
+    if (typeof atom?.read !== 'function') return false;
+    const flag = '__gardenCompanionSceneActions';
+    if (atom[flag]) return true;
+    const original = atom.read;
+    atom.read = function(get, ...args) {
+      const value = original.call(this, get, ...args);
+      if (cinematicAtom) try { (get as (target: JotaiAtom) => unknown)(cinematicAtom); } catch {}
+      return cinematicOwners.size ? empty : value;
+    };
+    atom[flag] = true;
+    return true;
+  }, `the ${match} scene guard`);
+}
+
+/**
  * Bundle 1206 folded cinematic mode into currentRoomAtom's state instance. The instance is re-handed
  * on a room reset, so cinematic is re-captured against whichever field atom is live.
  */
@@ -267,4 +292,8 @@ export function installAtomHooks() {
   // straight in would wipe the id the Welcome frame already gave us.
   hookAtom('playerIdAtom', 'atomPlayerId');
   hookAtom('actionAtom', 'currentAction');
+  suppressActionsDuringScenes('selectedSubjectActionsAtom', null);
+  suppressActionsDuringScenes('selectedActionsAtom', []);
+  // The garden info card's VIEW chips, one per other subject on the tile, read their own atom.
+  suppressActionsDuringScenes('toggleDataAtom', []);
 }

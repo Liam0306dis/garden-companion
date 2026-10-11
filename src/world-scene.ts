@@ -43,6 +43,8 @@ export interface WorldSceneConfig {
   onBuild?(geometry: WorldGeometry, scene: WorldScene): void;
   /** Where the active pets are penned while the scene is up. Omit to leave them where they are. */
   petArea?(geometry: WorldGeometry): WorldBounds | null;
+  /** Hides the active pets for as long as the scene is up, instead of penning them. */
+  hidePets?: boolean;
   /**
    * Farm tiles to fill with the game's own objects while the scene is up, keyed by global tile
    * index. The game draws these itself - Rive animations, true scale and all - where every other
@@ -106,6 +108,7 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
   let showcaseTiles = new Map<number, Record<string, unknown>>();
   const showcaseViews = new WeakSet<object>();
   const hiddenEffects = new Map<Record<string, any>, NodeState>();
+  const hiddenPets = new Map<Record<string, any>, NodeState>();
   const wrappedTileViews = new Map<Record<string, any>, (...args: any[]) => unknown>();
   const graphics = new Map<string, Record<string, any>>();
   let sprites: Record<string, any>[] = [];
@@ -216,8 +219,14 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
     suppressTileDraw = true;
     for (const index of geometry.globals) {
       if (showcaseTiles.has(index)) continue;
-      const node = geometry.system.tileViews?.get?.(index)?.displayObject;
+      const view = geometry.system.tileViews?.get?.(index);
+      const node = view?.displayObject;
       if (node && !node.destroyed) hideNode(node, hiddenTiles);
+      // Bundle 1465 moved ground marks (plant and decor shadows) and mutation decals into per-tile
+      // ground anchors on the AboveGround layer, outside the tile's own display object.
+      for (const anchor of view?.groundAnchors?.values?.() ?? []) {
+        if (anchor && !anchor.destroyed) hideNode(anchor, hiddenTiles);
+      }
     }
   }
 
@@ -316,6 +325,7 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
     restoreTileDraws();
     restoreNodes(hiddenTiles);
     restoreNodes(hiddenEffects);
+    restoreNodes(hiddenPets);
     for (const graphic of graphics.values()) destroyNode(graphic);
     graphics.clear();
     clearSprites();
@@ -361,7 +371,7 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
   }
 
   function penActivePets(system: Record<string, any>): void {
-    if (!active || !currentGeometry || !penArea) return;
+    if (!active || !currentGeometry || (!penArea && !config.hidePets)) return;
     const activeIds = new Set((state.slot?.data?.petSlots ?? []).map(pet => pet.id));
     const area = penArea;
     const farm = currentGeometry;
@@ -369,6 +379,8 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
       if (!activeIds.has(id) || system.petInfoById?.get?.(id)?.riddenByPlayerId) continue;
       const display = petView?.displayObject;
       if (!display?.position || display.destroyed) continue;
+      if (config.hidePets) { hideNode(display, hiddenPets); continue; }
+      if (!area) continue;
       const xProgress = Math.max(0, Math.min(1, (Number(display.x) - farm.left) / Math.max(1, farm.width)));
       const yProgress = Math.max(0, Math.min(1, (Number(display.y) - farm.top) / Math.max(1, farm.height)));
       display.position.set(area.left + xProgress * Math.max(0, area.width), area.top + yProgress * Math.max(0, area.height));

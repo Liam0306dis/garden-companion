@@ -204,13 +204,8 @@ export function initGardenDefence(): void {
       // Sprites are destroyed with the old scene, so everything standing needs a fresh one.
       forgetSprites();
     },
-    // Pets wait on the porch, not up on the roof.
-    petArea: geometry => ({
-      left: geometry.left + houseWidth(geometry) * .58,
-      top: geometry.top + 20,
-      width: Math.max(0, houseWidth(geometry) * .4 - 20),
-      height: Math.max(0, geometry.height - 40),
-    }),
+    // Pets would wander among the pests and plants, so they sit the game out.
+    hidePets: true,
   });
 
   /** Drops our handles on sprites the scene has already destroyed, so fresh ones are made. */
