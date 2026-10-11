@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.42
+// @version      0.9.43
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -37,7 +37,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.42", notes: ["Farm Manager: lanterns, string lights and windchimes on tile edges now show on the map", "Fixed the friend bonus in crop values and Garden Overview counting spectators as players"] }, { version: "0.9.41", notes: ['Alarm banners show a sprite of what the alert is for (shop item, weather or pet) instead of the "!"', "Fixed the Pet Abilities tab not showing new procs until you switched tabs and back"] }, { version: "0.9.40", notes: ["Keybinds: new shortcut to open the Daily Quests window"] }, { version: "0.9.39", notes: ["Fixed the pet food buttons showing only one button next to the pet panel after the game update"] }, { version: "0.9.38", notes: ["Layout planner: lanterns, string lights and windchimes go on tile edges like in the game - pick the side with Side, mirror with Flip, and a lantern and string lights can share an edge", "Layout planner: weather preview works again", "Fixed the layout planner, plant drag and Garden Overview focus losing track of the farm after the game update"] }, { version: "0.9.37", notes: ["Fixed the Discord activity showing no data anywhere (Garden Overview, active pets, weather and more)"] }, { version: "0.9.36", notes: ["New add-on API: lets add-on userscripts share the companion's game state and command sequencer instead of hooking the game separately", "Preserve All, the Preservation manager, Crop Locker, Crop Cleanser helper and Farm Manager now check crop readiness against the game's clock, so they no longer offer crops a moment early when your PC clock runs ahead", "Fewer false alarms after a reconnect when the companion loaded after the game had already connected", "Swapping two plants by dragging now checks there is room for both plants before taking Planter Pots out of the Tool Shack", "Plant drag no longer leaves the grab cursor stuck when the farm is still loading", "Less console spam while playing"] }, { version: "0.9.35", notes: ["New guided tour: click Tour in the bottom bar of the companion window for a step-by-step look at every tab and what it does"] }, { version: "0.9.34", notes: ["New Inventory produce locks (off by default, turn on in Features): a row of your produce above the open inventory - right click a crop to lock all of that type, right click again to unlock them"] }, { version: "0.9.33", notes: ["Alert Settings: new option to show alarms one below the other instead of stacked, moving up when the one above is bought or stopped", "Alert Settings: Move banner now also lets you resize the alarm by dragging its corner handle", "Locked crops show the padlock on the top right corner of the crop card instead of inside it"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.43", notes: ["Celestial layout is now a Celestials tab in Farm Manager: drag plants on the map to follow the plan step by step, or drop one onto another to swap them", "Badges show which celestial goes where, red numbers mark plants to move, and an arrow points out the selected step", "Hover a Moonbinder or Dawnbinder to see which plants it buffs", "Keeps your current layout when it already works, otherwise plans the fewest moves - Recalculate searches again", "A plant dropped on the wrong tile is flagged and becomes step 1"] }, { version: "0.9.42", notes: ["Farm Manager: lanterns, string lights and windchimes on tile edges now show on the map", "Fixed the friend bonus in crop values and Garden Overview counting spectators as players"] }, { version: "0.9.41", notes: ['Alarm banners show a sprite of what the alert is for (shop item, weather or pet) instead of the "!"', "Fixed the Pet Abilities tab not showing new procs until you switched tabs and back"] }, { version: "0.9.40", notes: ["Keybinds: new shortcut to open the Daily Quests window"] }, { version: "0.9.39", notes: ["Fixed the pet food buttons showing only one button next to the pet panel after the game update"] }, { version: "0.9.38", notes: ["Layout planner: lanterns, string lights and windchimes go on tile edges like in the game - pick the side with Side, mirror with Flip, and a lantern and string lights can share an edge", "Layout planner: weather preview works again", "Fixed the layout planner, plant drag and Garden Overview focus losing track of the farm after the game update"] }, { version: "0.9.37", notes: ["Fixed the Discord activity showing no data anywhere (Garden Overview, active pets, weather and more)"] }, { version: "0.9.36", notes: ["New add-on API: lets add-on userscripts share the companion's game state and command sequencer instead of hooking the game separately", "Preserve All, the Preservation manager, Crop Locker, Crop Cleanser helper and Farm Manager now check crop readiness against the game's clock, so they no longer offer crops a moment early when your PC clock runs ahead", "Fewer false alarms after a reconnect when the companion loaded after the game had already connected", "Swapping two plants by dragging now checks there is room for both plants before taking Planter Pots out of the Tool Shack", "Plant drag no longer leaves the grab cursor stuck when the farm is still loading", "Less console spam while playing"] }, { version: "0.9.35", notes: ["New guided tour: click Tour in the bottom bar of the companion window for a step-by-step look at every tab and what it does"] }, { version: "0.9.34", notes: ["New Inventory produce locks (off by default, turn on in Features): a row of your produce above the open inventory - right click a crop to lock all of that type, right click again to unlock them"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -8823,7 +8823,7 @@ ${eggs.map(eggCard).join("")}`;
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Farm Manager</h3><p>A map of your garden. Drag plants to move or swap them, and plant potted plants or seeds onto empty tiles.</p></div><button class="gc-primary" data-open-farm-manager>Open manager</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Overlay a buff layout for your current celestial plants on either side of the farm.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Farm Manager</h3><p>A map of your garden. Drag plants to move or swap them, and plant potted plants or seeds onto empty tiles.</p></div><button class="gc-primary" data-open-farm-manager>Open manager</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Plan a buff layout for your celestial plants in Farm Manager, then drag them into place step by step.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderSilence() {
       const selected3 = new Set(config.silencedAbilities || []);
@@ -9246,6 +9246,7 @@ ${eggs.map(eggCard).join("")}`;
 /* ── Farm Manager ────────────────────────────────────────────────────────────────────────────── */\r
 #gc-farm-manager { position:fixed;z-index:2147483644;left:24px;top:70px;width:min(1080px,calc(100vw - 24px));max-height:calc(100vh - 24px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }\r
 #gc-farm-manager[hidden] { display:none; }\r
+#gc-farm-manager[data-tab="celestial"] { width:min(1310px,calc(100vw - 24px)); }\r
 #gc-farm-manager > header { flex:none;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }\r
 #gc-farm-manager > header > div { display:flex;align-items:center;gap:9px;color:var(--gc-strong);font-size:14px;font-weight:600; }\r
 #gc-farm-manager > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-green); }\r
@@ -9261,7 +9262,7 @@ ${eggs.map(eggCard).join("")}`;
 .gc-fm-edge-line[style*="width:4px"] { background:repeating-linear-gradient(180deg,#ffd76a 0 3px,#ff9f43 3px 6px); }\r
 .gc-fm-edge-hang { display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7)); }\r
 .gc-fm-edge-hang img { width:100%;height:100%;object-fit:contain; }\r
-.gc-fm-cell { position:relative;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#4a3423;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);user-select:none; }\r
+.gc-fm-cell { position:relative;container-type:size;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#4a3423;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);user-select:none; }\r
 .gc-fm-cell[data-kind="board"] { background:#2b2620;opacity:.6; }\r
 .gc-fm-cell[data-type="empty"][data-kind="dirt"] { background:#3a2a1d; }\r
 .gc-fm-cell[draggable="true"] { cursor:grab; }\r
@@ -9274,14 +9275,21 @@ ${eggs.map(eggCard).join("")}`;
 @keyframes gc-fm-pulse { 50% { opacity:.4; } }\r
 .gc-fm-dragging .gc-fm-cell[data-kind="dirt"]:not([data-drop]) { opacity:.45; }\r
 .gc-fm-cell[data-drop] { box-shadow:inset 0 0 0 2px rgba(62,207,142,.6); }\r
+.gc-fm-cell[data-drop="swap"] { box-shadow:inset 0 0 0 2px rgba(253,230,138,.75); }\r
 .gc-fm-cell[data-armed] { cursor:pointer; }\r
 .gc-fm-cell[data-armed]:hover { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }\r
 .gc-fm-placing { display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:3px 10px;border:1px solid rgba(62,207,142,.45);border-radius:999px;background:rgba(62,207,142,.12);color:var(--gc-green);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase; }\r
 .gc-fm-placing[hidden] { display:none; }\r
+.gc-fm-subtitle { color:var(--gc-muted);font-size:12px;font-weight:400; }\r
+.gc-fm-subtitle[hidden] { display:none; }\r
+.gc-fm-warn { display:inline-flex;align-items:center;margin-left:6px;padding:3px 10px;border:1px solid rgba(253,230,138,.6);border-radius:999px;background:rgba(253,230,138,.14);color:#fde68a;font-size:11px;font-weight:700;animation:gc-fm-pulse 1.4s ease-in-out infinite; }\r
+.gc-fm-warn[hidden] { display:none; }\r
 .gc-fm-placing img { width:16px;height:16px;object-fit:contain; }\r
 .gc-fm-item { cursor:pointer; }\r
 .gc-fm-item[data-active="true"] { border-color:rgba(62,207,142,.6);background:rgba(62,207,142,.12); }\r
 .gc-fm-cell[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }\r
+#gc-farm-manager .gc-fm-moves { flex:none;width:230px;min-height:0;display:flex;flex-direction:column;gap:6px;padding:12px;overflow-x:hidden;overflow-y:auto;contain:size;border-right:1px solid var(--gc-line);background:var(--gc-side); }\r
+#gc-farm-manager .gc-fm-moves[hidden] { display:none; }\r
 #gc-farm-manager aside { position:relative;contain:size;flex:none;width:230px;display:flex;flex-direction:column;gap:8px;padding:12px;border-left:1px solid var(--gc-line);background:var(--gc-side); }\r
 #gc-farm-manager[data-potting="full"] aside { box-shadow:inset 0 0 0 2px rgba(240,113,113,.4); }\r
 #gc-farm-manager[data-potting="true"] aside { box-shadow:inset 0 0 0 2px rgba(62,207,142,.35); }\r
@@ -9293,12 +9301,12 @@ ${eggs.map(eggCard).join("")}`;
 .gc-fm-capacity b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }\r
 .gc-fm-capacity[data-full="true"] { border-color:rgba(240,113,113,.45);background:rgba(240,113,113,.08); }\r
 .gc-fm-capacity[data-full="true"] b { color:var(--gc-danger); }\r
-.gc-fm-tabs { display:grid;grid-template-columns:1fr 1fr;gap:4px; }\r
+.gc-fm-tabs { display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px; }\r
 .gc-fm-tabs button { height:30px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font); }\r
 .gc-fm-tabs button[data-active="true"] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);color:var(--gc-strong); }\r
 #gc-farm-manager aside input { height:30px;padding:0 9px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-input);color:var(--gc-text);font:12px var(--gc-font);outline:none; }\r
 #gc-farm-manager aside input:focus { border-color:var(--gc-accent-line); }\r
-.gc-fm-list { flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:4px; }\r
+.gc-fm-list { flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;display:flex;flex-direction:column;gap:4px; }\r
 .gc-fm-item { display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);user-select:none; }\r
 .gc-fm-item[draggable="true"] { cursor:grab; }\r
 .gc-fm-item[draggable="true"]:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }\r
@@ -9702,8 +9710,8 @@ ${eggs.map(eggCard).join("")}`;
 #gc-planner header { display:flex;align-items:center;gap:9px;padding:11px 12px 11px 14px;border-bottom:1px solid var(--gc-line); }\r
 #gc-planner header b { flex:1;color:var(--gc-strong);font-size:13px;font-weight:600; }\r
 #gc-planner header span { color:var(--gc-muted);font-size:11px; }\r
-#gc-planner header button,#gc-celestial-layout header button { padding:5px 10px;color:#fecaca;border:1px solid rgba(240,113,113,.35);border-radius:var(--gc-radius-sm);background:rgba(240,113,113,.1);cursor:pointer;font:500 11px var(--gc-font); }\r
-#gc-planner header button:hover,#gc-celestial-layout header button:hover:not(:disabled) { color:#fff;border-color:rgba(240,113,113,.55);background:rgba(240,113,113,.18); }\r
+#gc-planner header button { padding:5px 10px;color:#fecaca;border:1px solid rgba(240,113,113,.35);border-radius:var(--gc-radius-sm);background:rgba(240,113,113,.1);cursor:pointer;font:500 11px var(--gc-font); }\r
+#gc-planner header button:hover { color:#fff;border-color:rgba(240,113,113,.55);background:rgba(240,113,113,.18); }\r
 .gc-planner-body { padding:12px 14px 14px; }\r
 .gc-planner-body > small { display:block;margin-bottom:10px;color:var(--gc-muted);font-size:11px; }\r
 .gc-planner-modes { display:flex;gap:2px;margin-bottom:10px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }\r
@@ -9742,37 +9750,6 @@ ${eggs.map(eggCard).join("")}`;
 .gc-planner-row input:focus,.gc-planner-row select:focus { border-color:var(--gc-accent-line); }\r
 body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }\r
 \r
-#gc-celestial-layout { position:fixed;right:12px;top:16px;z-index:99993;width:min(330px,calc(100vw - 24px));box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font);user-select:none; }\r
-#gc-celestial-layout * { box-sizing:border-box; }\r
-#gc-celestial-layout header { display:flex;align-items:center;gap:9px;padding:11px 12px 11px 14px;border-bottom:1px solid var(--gc-line);cursor:move;touch-action:none; }\r
-#gc-celestial-layout header b { flex:1;color:var(--gc-strong);font-size:13px;font-weight:600; }\r
-#gc-celestial-layout button { padding:6px 10px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }\r
-#gc-celestial-layout button:hover:not(:disabled) { color:var(--gc-strong);background:var(--gc-surface-3); }\r
-#gc-celestial-layout button:disabled { opacity:.4;cursor:not-allowed; }\r
-.gc-celestial-body { padding:12px 14px 14px; }\r
-.gc-celestial-body > small { display:block;margin-bottom:10px;color:var(--gc-muted);font-size:11px; }\r
-.gc-celestial-label { margin:10px 0 6px;color:var(--gc-faint);font-size:11px;font-weight:600; }\r
-.gc-celestial-segments { display:flex;gap:2px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }\r
-#gc-celestial-layout .gc-celestial-segments button { flex:1;border-color:transparent;color:var(--gc-muted);background:transparent; }\r
-#gc-celestial-layout .gc-celestial-segments button[data-active=true] { color:var(--gc-strong);border-color:var(--gc-line-strong);background:var(--gc-surface-3); }\r
-.gc-celestial-body > small.gc-celestial-sources { margin:6px 0 0;color:var(--gc-faint);font-size:11px; }\r
-.gc-celestial-counts { display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:12px; }\r
-.gc-celestial-counts span { display:flex;align-items:center;gap:6px;min-width:0;padding:6px 8px;color:var(--gc-muted);border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);font-size:11px; }\r
-.gc-celestial-counts b { min-width:18px;color:var(--gc-strong);font-size:12px;font-variant-numeric:tabular-nums; }\r
-#gc-celestial-layout [data-celestial-status] { min-height:30px;margin:10px 0 8px;padding:8px 10px;color:var(--gc-text);border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);font-size:12px; }\r
-#gc-celestial-layout [data-celestial-status][data-tone=error] { color:#fecaca;border-color:rgba(240,113,113,.3);background:rgba(240,113,113,.08); }\r
-.gc-celestial-placement { margin:-2px 0 8px;color:var(--gc-text);font-size:12px;font-weight:550;text-align:center; }\r
-.gc-celestial-legend { display:flex;gap:12px;margin-bottom:10px;color:var(--gc-muted);font-size:11px; }\r
-.gc-celestial-legend span { display:flex;align-items:center;gap:5px; }\r
-.gc-celestial-legend span::before { content:'';width:8px;height:8px;border:1px solid rgba(167,139,250,.7);border-radius:2px;background:rgba(167,139,250,.2); }\r
-.gc-celestial-legend [data-kind=correct]::before { border-color:#4ade80;background:rgba(34,197,94,.35); }\r
-.gc-celestial-legend [data-kind=wrong]::before { border-color:#fb7185;background:rgba(239,68,68,.35); }\r
-#gc-celestial-layout .gc-celestial-refresh { width:100%; }\r
-#gc-celestial-overlay { position:fixed;inset:0;z-index:99988;overflow:hidden;pointer-events:none; }\r
-.gc-celestial-tile { position:fixed;box-sizing:border-box;overflow:hidden;border:2px solid rgba(167,139,250,.72);border-radius:9%;background:rgba(124,58,237,.035);box-shadow:inset 0 0 12px rgba(124,58,237,.12);transform:scale(.86);transform-origin:center; }\r
-.gc-celestial-tile[data-state=correct] { border-color:rgba(74,222,128,.9);background:rgba(34,197,94,.045);box-shadow:inset 0 0 14px rgba(34,197,94,.12),0 0 8px rgba(34,197,94,.3); }\r
-.gc-celestial-tile[data-state=wrong] { border-color:rgba(251,113,133,.95);background:rgba(239,68,68,.055);box-shadow:inset 0 0 14px rgba(239,68,68,.14),0 0 8px rgba(239,68,68,.35); }\r
-.gc-celestial-tile span { position:absolute;inset:0;display:grid;place-items:center;padding:8%;box-sizing:border-box;color:#ddd6fe;text-align:center;text-shadow:0 1px 3px #000;font:700 clamp(8px,1.3vw,13px)/1.15 var(--gc-font); }\r
 \r
 /* ── Journal ─────────────────────────────────────────────────────────────────────────────────── */\r
 .gc-journal-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }\r
@@ -9961,6 +9938,51 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
 .gc-produce-lock[data-locked="all"] { border-color:rgba(245,197,66,.7); }\r
 .gc-produce-lock[data-locked="all"] .gc-produce-lock-pad { display:block; }\r
 .gc-produce-lock[data-locked="some"] .gc-produce-lock-pad { display:block;opacity:.45; }\r
+\r
+/* Farm Manager - Celestial tab. Badge sizes use container units (cqmin) so they scale with the tile. */\r
+.gc-fm-cel { display:flex;flex-direction:column;gap:6px;min-width:0;overflow-wrap:anywhere; }\r
+.gc-fm-cel-label { margin-top:4px;color:var(--gc-faint);font-size:11px;font-weight:600; }\r
+.gc-fm-cel-seg { display:flex;gap:2px;padding:3px;border:1px solid var(--gc-line);border-radius:9px;background:var(--gc-input); }\r
+.gc-fm-cel-seg button { flex:1;height:26px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--gc-muted);cursor:pointer;font:600 11px var(--gc-font); }\r
+.gc-fm-cel-seg button[data-active="true"] { border-color:var(--gc-line-strong);background:var(--gc-surface-3);color:var(--gc-strong); }\r
+.gc-fm-cel-counts { display:grid;grid-template-columns:1fr 1fr;gap:4px; }\r
+.gc-fm-cel-counts span { display:flex;align-items:center;gap:5px;min-width:0;padding:4px 6px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface); }\r
+.gc-fm-cel-counts em { flex:1;min-width:0;overflow:hidden;color:var(--gc-muted);font-size:11px;font-style:normal;text-overflow:ellipsis;white-space:nowrap; }\r
+.gc-fm-cel-counts b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }\r
+.gc-fm-chip { display:inline-grid;place-items:center;min-width:22px;height:18px;padding:0 4px;border-radius:5px;color:#111;background:var(--chip);font:700 10px/1 var(--gc-font);font-style:normal; }\r
+.gc-fm-cel-msg { margin:0;padding:6px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);font-size:11px; }\r
+.gc-fm-cel-msg[data-tone="error"] { color:#fecaca;border-color:rgba(240,113,113,.35);background:rgba(240,113,113,.08); }\r
+.gc-fm-cel-progress { color:var(--gc-strong);font-weight:600;text-align:center; }\r
+.gc-fm-cel-steps { display:flex;flex-direction:column;gap:4px; }\r
+.gc-fm-cel-step { display:flex;align-items:center;gap:7px;padding:5px 7px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);cursor:pointer; }\r
+.gc-fm-cel-step:hover { border-color:var(--gc-line-strong); }\r
+.gc-fm-cel-step[data-current="true"] { border-color:#fde68a;background:rgba(253,230,138,.08); }\r
+.gc-fm-cel-step > b { min-width:14px;color:var(--gc-strong);font-variant-numeric:tabular-nums; }\r
+.gc-fm-cel-step span { display:flex;flex-direction:column;min-width:0; }\r
+.gc-fm-cel-step span b { color:var(--gc-strong);font-weight:600; }\r
+.gc-fm-cel-step small { color:var(--gc-muted);font-size:11px; }\r
+.gc-fm-cel-step small.gc-fm-cel-warn { color:#fca5a5; }\r
+.gc-fm-cel-done { padding:10px;color:#bbf7d0;border:1px dashed rgba(74,222,128,.4);border-radius:var(--gc-radius-sm);text-align:center; }\r
+.gc-fm-cel-refresh { height:28px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);color:var(--gc-text);cursor:pointer;font:600 12px var(--gc-font); }\r
+.gc-fm-cel-refresh:hover { background:var(--gc-surface-3);color:var(--gc-strong); }\r
+.gc-fm-cel-help { color:var(--gc-faint);font-size:11px;line-height:1.35; }\r
+.gc-fm-cell[data-cel-area="false"] { opacity:.55; }\r
+.gc-fm-cell[data-cel="planned"] { box-shadow:inset 0 0 0 2px var(--chip);background:color-mix(in srgb,var(--chip) 18%,#3a2a1d); }\r
+.gc-fm-cell[data-cel="planned"] img { opacity:.35; }\r
+.gc-fm-cell[data-cel="ok"] { box-shadow:inset 0 0 0 1px rgba(74,222,128,.45); }\r
+.gc-fm-cell[data-cel="move"] { box-shadow:inset 0 0 0 3px #fb7185;background:#5a2a2e; }\r
+.gc-fm-cell[data-cel-active="true"] { outline:3px solid #fde68a;outline-offset:1px;z-index:2; }\r
+.gc-fm-cell[data-cel-source] { outline:3px solid var(--chip);outline-offset:1px;z-index:2; }\r
+.gc-fm-cell[data-cel-lit="moon"] { box-shadow:inset 0 0 0 3px #fb923c,0 0 10px rgba(251,146,60,.7); }\r
+.gc-fm-cell[data-cel-lit="dawn"] { box-shadow:inset 0 0 0 3px #38bdf8,0 0 10px rgba(56,189,248,.7); }\r
+.gc-fm-cell > i.gc-fm-cel-badge,.gc-fm-cell > i.gc-fm-cel-tick,.gc-fm-cell > i.gc-fm-cel-num { position:absolute;display:grid;place-items:center;box-sizing:border-box;font-style:normal;line-height:1;white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.6); }\r
+.gc-fm-cel-badge { left:3cqmin;top:3cqmin;min-width:46cqmin;height:34cqmin;padding:0 4cqmin;border-radius:6cqmin;color:#111 !important;background:var(--chip);font:800 22cqmin var(--gc-font) !important; }\r
+.gc-fm-cel-tick { right:3cqmin;top:3cqmin;width:34cqmin;height:34cqmin;border-radius:50%;color:#052e16 !important;background:#4ade80;font:900 24cqmin var(--gc-font) !important; }\r
+.gc-fm-cel-num { right:3cqmin;bottom:3cqmin;width:46cqmin;height:46cqmin;border-radius:50%;color:#fff !important;background:#e11d48;border:2px solid #fff;font:900 28cqmin var(--gc-font) !important;font-variant-numeric:tabular-nums; }\r
+.gc-fm-cell > i.gc-fm-cel-oops { position:absolute;left:3cqmin;bottom:3cqmin;display:grid;place-items:center;width:34cqmin;height:34cqmin;border-radius:50%;color:#111;background:#fde68a;font:900 26cqmin var(--gc-font);font-style:normal;line-height:1;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.6);animation:gc-fm-pulse 1s ease-in-out infinite; }\r
+.gc-fm-cel-arrow { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3; }\r
+.gc-fm-cel-arrow line { stroke:#fde68a;stroke-width:3;stroke-linecap:round;stroke-dasharray:6 4;filter:drop-shadow(0 1px 1px #000); }\r
+\r
 `;
       document.head.appendChild(style);
       mountLunarTimer(togglePanel);
@@ -15915,7 +15937,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const HOLD_MOVE_TOLERANCE_PX = 12;
     const POT_TIMEOUT_MS = 1e4;
     const PLACE_TIMEOUT_MS2 = 12e3;
-    const TILE_SIZE3 = 256;
+    const TILE_SIZE2 = 256;
     const NATIVE_INPUT_GRACE_MS = 1500;
     const HOOK_RELEASE_TIMEOUT_MS = 6e4;
     const WRAPPED_FLAG = "__plantDragMoverWrapped";
@@ -16340,8 +16362,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const global = clientToGameGlobal(clientX, clientY, canvas);
       if (!global) return null;
       const world = tileSystem.worldContainer.toLocal(global);
-      const x = Math.floor(world.x / TILE_SIZE3);
-      const y = Math.floor(world.y / TILE_SIZE3);
+      const x = Math.floor(world.x / TILE_SIZE2);
+      const y = Math.floor(world.y / TILE_SIZE2);
       const map = tileSystem.map;
       if (x < 0 || y < 0 || x >= map.cols || y >= map.rows) return null;
       const globalIndex = x + y * map.cols;
@@ -16383,7 +16405,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const tile = pointToFarmTile(clientX, clientY, activePress.target);
       const isValid = tile && tile.userSlotIdx === live.ownUserSlotIdx && tile.localTileIndex !== activePress.source?.localTileIndex && (!tile.object || tile.object.objectType === "plant");
       marker.visible = Boolean(isValid);
-      if (isValid) marker.position.set(tile.x * TILE_SIZE3 + TILE_SIZE3 / 2, tile.y * TILE_SIZE3 + TILE_SIZE3 / 2);
+      if (isValid) marker.position.set(tile.x * TILE_SIZE2 + TILE_SIZE2 / 2, tile.y * TILE_SIZE2 + TILE_SIZE2 / 2);
     }
     function clearFallbackHighlight() {
       if (live.fallbackHighlight) live.fallbackHighlight.visible = false;
@@ -16830,685 +16852,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     watchPotCommands();
   }
 
-  // src/celestial-layout.ts
-  function cellType(species) {
-    if (species === "MoonCelestial") return "moon";
-    if (species === "DawnCelestial") return "dawn";
-    return species ? "other" : "empty";
-  }
-  function seededRandom(seedText) {
-    let seed = 2166136261;
-    for (const character of seedText) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619);
-    return () => {
-      seed += 1831565813;
-      let value = seed;
-      value = Math.imul(value ^ value >>> 15, value | 1);
-      value ^= value + Math.imul(value ^ value >>> 7, value | 61);
-      return ((value ^ value >>> 14) >>> 0) / 4294967296;
-    };
-  }
-  function shuffle(items, random) {
-    for (let index = items.length - 1; index > 0; index--) {
-      const other = Math.floor(random() * (index + 1));
-      [items[index], items[other]] = [items[other], items[index]];
-    }
-    return items;
-  }
-  function inspect(cells, rows, columns, goal, blocked, includeCoverage = false) {
-    const coverage = includeCoverage ? Array.from({ length: cells.length }, () => ({ amber: false, dawn: false })) : [];
-    let required = 0;
-    let met = 0;
-    let score = 0;
-    let minRow = rows;
-    let maxRow = -1;
-    let minColumn = columns;
-    let maxColumn = -1;
-    let distanceFromCenter = 0;
-    const centerRow = (rows - 1) / 2;
-    const centerColumn = (columns - 1) / 2;
-    for (let index = 0; index < cells.length; index++) {
-      if (cells[index].type === "empty") continue;
-      const row = Math.floor(index / columns);
-      const column = index % columns;
-      let amber = false;
-      let dawn = false;
-      for (let rowOffset = -1; rowOffset <= 1; rowOffset++) {
-        for (let columnOffset = -1; columnOffset <= 1; columnOffset++) {
-          if (rowOffset === 0 && columnOffset === 0) continue;
-          const neighbourRow = row + rowOffset;
-          const neighbourColumn = column + columnOffset;
-          if (neighbourRow < 0 || neighbourRow >= rows || neighbourColumn < 0 || neighbourColumn >= columns) continue;
-          const neighbour = cells[neighbourRow * columns + neighbourColumn];
-          if (neighbour.type === "moon") amber = true;
-          if (neighbour.type === "dawn") dawn = true;
-        }
-      }
-      if (includeCoverage) coverage[index] = { amber, dawn };
-      const hasRequiredBuffs = (goal === "dawn" || goal === "both" ? dawn : true) && (goal === "amber" || goal === "both" ? amber : true);
-      required++;
-      if (hasRequiredBuffs) met++;
-      score += hasRequiredBuffs ? 30 : -1e6;
-      if (blocked[index]) score -= 1e4;
-      if (amber && dawn) score += 0.2;
-      distanceFromCenter += Math.abs(row - centerRow) + Math.abs(column - centerColumn);
-      minRow = Math.min(minRow, row);
-      maxRow = Math.max(maxRow, row);
-      minColumn = Math.min(minColumn, column);
-      maxColumn = Math.max(maxColumn, column);
-    }
-    if (required) {
-      const occupiedArea = (maxRow - minRow + 1) * (maxColumn - minColumn + 1);
-      const emptyInside = occupiedArea - required;
-      const layoutCenterOffset = Math.abs((minRow + maxRow) / 2 - centerRow) + Math.abs((minColumn + maxColumn) / 2 - centerColumn);
-      score -= occupiedArea * 1.5;
-      score -= emptyInside * 2;
-      score -= layoutCenterOffset * 8;
-      score -= distanceFromCenter * 0.08;
-    }
-    return { score, required, met, coverage };
-  }
-  function initialLayout(species, rows, columns, random, blocked, unavailable) {
-    const positions = Array.from({ length: rows * columns }, (_, index) => index).filter((index) => !unavailable[index]).sort((left, right) => {
-      if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
-      const leftRow = Math.floor(left / columns);
-      const leftColumn = left % columns;
-      const rightRow = Math.floor(right / columns);
-      const rightColumn = right % columns;
-      const leftDistance = Math.max(Math.abs(leftRow - (rows - 1) / 2), Math.abs(leftColumn - (columns - 1) / 2));
-      const rightDistance = Math.max(Math.abs(rightRow - (rows - 1) / 2), Math.abs(rightColumn - (columns - 1) / 2));
-      return leftDistance - rightDistance || left - right;
-    });
-    const shuffled = shuffle([...species], random);
-    const cells = Array.from({ length: rows * columns }, () => ({ species: null, type: "empty" }));
-    shuffled.forEach((plant, index) => {
-      cells[positions[index]] = { species: plant, type: cellType(plant) };
-    });
-    return cells;
-  }
-  function singleBuffLayout(species, rows, columns, goal, blocked, unavailable) {
-    const sourceSpecies = goal === "amber" ? "MoonCelestial" : "DawnCelestial";
-    const sourceCount = species.filter((name) => name === sourceSpecies).length;
-    if (sourceCount < 2) return null;
-    const capacity = rows * columns;
-    const centerRow = (rows - 1) / 2;
-    const centerColumn = (columns - 1) / 2;
-    const neighbours = (index) => {
-      const row = Math.floor(index / columns);
-      const column = index % columns;
-      const found = [];
-      for (let rowOffset = -1; rowOffset <= 1; rowOffset++) {
-        for (let columnOffset = -1; columnOffset <= 1; columnOffset++) {
-          if (!rowOffset && !columnOffset) continue;
-          const nextRow = row + rowOffset;
-          const nextColumn = column + columnOffset;
-          if (nextRow >= 0 && nextRow < rows && nextColumn >= 0 && nextColumn < columns) found.push(nextRow * columns + nextColumn);
-        }
-      }
-      return found;
-    };
-    const pairs = [];
-    for (let row = 0; row < rows; row++) {
-      for (let column = 0; column < columns; column++) {
-        const first = row * columns + column;
-        for (const second of [column + 1 < columns ? first + 1 : -1, row + 1 < rows ? first + columns : -1]) {
-          if (second < 0) continue;
-          if (unavailable[first] || unavailable[second]) continue;
-          pairs.push({ sources: [first, second], covered: [.../* @__PURE__ */ new Set([...neighbours(first), ...neighbours(second)])].filter((index) => !unavailable[index]) });
-        }
-      }
-    }
-    const selectedSources = /* @__PURE__ */ new Set();
-    const covered = /* @__PURE__ */ new Set();
-    while (covered.size < species.length && selectedSources.size + 2 <= sourceCount) {
-      let best = null;
-      let bestScore = -Infinity;
-      for (const pair of pairs) {
-        if (selectedSources.has(pair.sources[0]) || selectedSources.has(pair.sources[1])) continue;
-        const newlyCovered = pair.covered.filter((index) => !covered.has(index));
-        const emptyGain = newlyCovered.filter((index) => !blocked[index]).length;
-        const pairCenterDistance = pair.sources.reduce((total, index) => {
-          const row = Math.floor(index / columns);
-          const column = index % columns;
-          return total + Math.abs(row - centerRow) + Math.abs(column - centerColumn);
-        }, 0);
-        const score = newlyCovered.length * 1e5 + emptyGain * 1e3 - pairCenterDistance;
-        if (score > bestScore) {
-          best = pair;
-          bestScore = score;
-        }
-      }
-      if (!best) break;
-      best.sources.forEach((index) => selectedSources.add(index));
-      best.covered.forEach((index) => covered.add(index));
-    }
-    if (covered.size < species.length || selectedSources.size > sourceCount) return null;
-    const selectable = [...covered].filter((index) => !selectedSources.has(index)).sort((left, right) => {
-      if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
-      const leftDistance = Math.abs(Math.floor(left / columns) - centerRow) + Math.abs(left % columns - centerColumn);
-      const rightDistance = Math.abs(Math.floor(right / columns) - centerRow) + Math.abs(right % columns - centerColumn);
-      return leftDistance - rightDistance || left - right;
-    });
-    while (selectedSources.size < sourceCount) {
-      const next = selectable.shift();
-      if (next === void 0) return null;
-      selectedSources.add(next);
-    }
-    const cells = Array.from({ length: capacity }, () => ({ species: null, type: "empty" }));
-    selectedSources.forEach((index) => {
-      cells[index] = { species: sourceSpecies, type: cellType(sourceSpecies) };
-    });
-    const otherSpecies = species.filter((name) => name !== sourceSpecies);
-    const remainingPositions = [...covered].filter((index) => !selectedSources.has(index)).sort((left, right) => {
-      if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
-      return left - right;
-    });
-    otherSpecies.forEach((name, index) => {
-      const position2 = remainingPositions[index];
-      if (position2 !== void 0) cells[position2] = { species: name, type: cellType(name) };
-    });
-    return cells;
-  }
-  function resultFrom(cells, inspection, goal) {
-    return {
-      cells: cells.map((cell, index) => ({
-        species: cell.species,
-        amber: inspection.coverage[index].amber,
-        dawn: inspection.coverage[index].dawn,
-        met: cell.type === "empty" || (goal === "dawn" || goal === "both" ? inspection.coverage[index].dawn : true) && (goal === "amber" || goal === "both" ? inspection.coverage[index].amber : true)
-      })),
-      required: inspection.required,
-      met: inspection.met,
-      error: inspection.met === inspection.required ? "" : `${inspection.required - inspection.met} plant slots could not receive the selected buffs.`
-    };
-  }
-  function generateCelestialLayout(species, rows, columns, goal, blocked = [], unavailable = []) {
-    const capacity = rows * columns - unavailable.filter(Boolean).length;
-    if (!species.length) return { cells: [], required: 0, met: 0, error: "No celestial plants are currently planted." };
-    if (species.length > capacity) return { cells: [], required: species.length, met: 0, error: `The selected side has ${capacity} slots, but ${species.length} celestial plants are planted.` };
-    const moonCount = species.filter((name) => name === "MoonCelestial").length;
-    const dawnCount = species.filter((name) => name === "DawnCelestial").length;
-    if ((goal === "amber" || goal === "both") && moonCount < 2) {
-      return { cells: [], required: species.length, met: 0, error: "At least two Moonbinders are needed because a plant cannot grant Amberbound to itself." };
-    }
-    if ((goal === "dawn" || goal === "both") && dawnCount < 2) {
-      return { cells: [], required: species.length, met: 0, error: "At least two Dawnbinders are needed because a plant cannot grant Dawnbound to itself." };
-    }
-    if (goal === "amber" || goal === "dawn") {
-      const constructed = singleBuffLayout(species, rows, columns, goal, blocked, unavailable);
-      if (constructed) {
-        const inspection = inspect(constructed, rows, columns, goal, blocked, true);
-        if (inspection.met === inspection.required) return resultFrom(constructed, inspection, goal);
-      }
-    }
-    const random = seededRandom(`${rows}x${columns}:${goal}:${[...species].sort().join(",")}:${blocked.map((value) => value ? 1 : 0).join("")}:${unavailable.map((value) => value ? 1 : 0).join("")}`);
-    const amberCapacity = moonCount * 8;
-    const dawnCapacity = dawnCount * 8;
-    const provablyImpossible = (goal === "amber" || goal === "both" ? species.length > amberCapacity : false) || (goal === "dawn" || goal === "both" ? species.length > dawnCapacity : false);
-    const restarts = provablyImpossible ? 2 : 8;
-    const steps = provablyImpossible ? 300 : 900;
-    const deadline = performance.now() + 120;
-    let best = null;
-    let bestInspection = null;
-    for (let restart = 0; restart < restarts; restart++) {
-      const current = initialLayout(species, rows, columns, random, blocked, unavailable);
-      let currentInspection = inspect(current, rows, columns, goal, blocked);
-      for (let step = 0; step < steps && currentInspection.met !== currentInspection.required; step++) {
-        if ((step & 31) === 0 && performance.now() >= deadline) break;
-        const first = Math.floor(random() * current.length);
-        let second = Math.floor(random() * current.length);
-        for (let attempt = 0; attempt < 8 && current[first].type === current[second].type; attempt++) {
-          second = Math.floor(random() * current.length);
-        }
-        if (first === second || current[first].type === current[second].type) continue;
-        if (current[first].type !== "empty" && current[second].type === "empty" && unavailable[second]) continue;
-        if (current[second].type !== "empty" && current[first].type === "empty" && unavailable[first]) continue;
-        [current[first], current[second]] = [current[second], current[first]];
-        const candidate = inspect(current, rows, columns, goal, blocked);
-        const temperature = Math.max(0.05, 1.1 * (1 - step / steps));
-        if (candidate.score >= currentInspection.score || random() < Math.exp((candidate.score - currentInspection.score) / temperature)) {
-          currentInspection = candidate;
-        } else {
-          [current[first], current[second]] = [current[second], current[first]];
-        }
-      }
-      if (!bestInspection || currentInspection.score > bestInspection.score) {
-        best = current.map((cell) => ({ ...cell }));
-        bestInspection = currentInspection;
-      }
-      if (bestInspection.met === bestInspection.required || performance.now() >= deadline) break;
-    }
-    const finalCells = best ?? initialLayout(species, rows, columns, random, blocked, unavailable);
-    const result = inspect(finalCells, rows, columns, goal, blocked, true);
-    return resultFrom(finalCells, result, goal);
-  }
-
-  // src/features/celestial-layout-guide.ts
-  var CELESTIAL_SPECIES = /* @__PURE__ */ new Set(["MoonCelestial", "DawnCelestial", "Dawnbreaker", "Starweaver"]);
-  var SPECIES_LABELS = {
-    MoonCelestial: "Moonbinder",
-    DawnCelestial: "Dawnbinder",
-    Dawnbreaker: "Dawnbreaker",
-    Starweaver: "Starweaver"
-  };
-  var TILE_SIZE2 = 256;
-  var POSITION_KEY5 = "gardenCompanion.celestialLayoutPosition.v1";
-  function placementType(species) {
-    if (species === "MoonCelestial") return "moon";
-    if (species === "DawnCelestial") return "dawn";
-    return "other";
-  }
-  function initCelestialLayoutGuide() {
-    const guide = {
-      open: false,
-      side: null,
-      goal: "both",
-      plan: /* @__PURE__ */ new Map(),
-      covered: /* @__PURE__ */ new Map(),
-      message: "Choose the left or right side to generate a guide.",
-      tone: "normal"
-    };
-    const originalStyles = /* @__PURE__ */ new WeakMap();
-    const styled = /* @__PURE__ */ new Set();
-    const ghostTemplates = /* @__PURE__ */ new Map();
-    const ghosts = /* @__PURE__ */ new Map();
-    let mappedTiles = /* @__PURE__ */ new Map();
-    let animationFrame = 0;
-    let lastStateAt = 0;
-    function systems() {
-      return page.__gardenCompanionFarmSystems ?? null;
-    }
-    function tileSystem() {
-      const system = systems()?.tileSystem;
-      return system?.map && system?.worldContainer ? system : null;
-    }
-    function ownSlotIndex() {
-      const captured = systems()?.ownUserSlotIdx;
-      if (typeof captured === "number") return captured;
-      return typeof state.slotIndex === "number" ? state.slotIndex : null;
-    }
-    function liveTiles() {
-      return state.slot?.data?.garden?.tileObjects ?? {};
-    }
-    function isPreserved(tile) {
-      return tile?.objectType === "plant" && Boolean(tile.slots?.some((slot) => slot.preserved === true));
-    }
-    function dirtTiles() {
-      const system = tileSystem();
-      const slotIndex = ownSlotIndex();
-      if (!system || slotIndex === null) return [];
-      const mapping = system.map.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slotIndex];
-      if (!mapping) return [];
-      return Object.entries(mapping).map(([localIndex, value]) => {
-        const globalIndex = Number(value);
-        return {
-          localIndex,
-          globalIndex,
-          x: globalIndex % system.map.cols,
-          y: Math.floor(globalIndex / system.map.cols)
-        };
-      }).filter((tile) => Number.isInteger(tile.globalIndex));
-    }
-    function sideTiles(side, tiles) {
-      const columns = [...new Set(tiles.map((tile) => tile.x))].sort((left, right) => left - right);
-      const split = Math.floor(columns.length / 2);
-      const selectedColumns = new Set(side === "left" ? columns.slice(0, split) : columns.slice(split));
-      return tiles.filter((tile) => selectedColumns.has(tile.x)).sort((left, right) => left.y - right.y || left.x - right.x);
-    }
-    function currentCelestials() {
-      return Object.values(liveTiles()).flatMap((tile) => tile?.objectType === "plant" && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species) ? [tile.species] : []);
-    }
-    function status(message, tone2 = "normal") {
-      guide.message = message;
-      guide.tone = tone2;
-      const element = document.querySelector("#gc-celestial-layout [data-celestial-status]");
-      if (element) {
-        element.textContent = message;
-        element.dataset.tone = tone2;
-      }
-    }
-    function clearPlan() {
-      restoreStyles();
-      destroyGhosts();
-      guide.plan.clear();
-      guide.covered.clear();
-      mappedTiles.clear();
-      document.getElementById("gc-celestial-overlay")?.replaceChildren();
-    }
-    function generate() {
-      clearPlan();
-      if (!guide.side) {
-        status("Choose the left or right side to generate a guide.");
-        return;
-      }
-      const allTiles = dirtTiles();
-      const tiles = sideTiles(guide.side, allTiles);
-      mappedTiles = new Map(allTiles.map((tile) => [tile.localIndex, tile]));
-      const rows = new Set(tiles.map((tile) => tile.y)).size;
-      const columns = new Set(tiles.map((tile) => tile.x)).size;
-      if (!tiles.length || rows * columns !== tiles.length) {
-        status("The selected farm side could not be mapped yet. Enter your garden and try Refresh.", "error");
-        return;
-      }
-      const plants = currentCelestials();
-      const current = liveTiles();
-      const unavailable = tiles.map((tile) => isPreserved(current[tile.localIndex]));
-      const blocked = tiles.map((tile) => {
-        const occupant = current[tile.localIndex];
-        return Boolean(occupant && !(occupant.objectType === "plant" && CELESTIAL_SPECIES.has(occupant.species)));
-      });
-      const result = generateCelestialLayout(plants, rows, columns, guide.goal, blocked, unavailable);
-      if (!result.cells.length) {
-        status(result.error, "error");
-        return;
-      }
-      result.cells.forEach((cell, index) => {
-        const tile = tiles[index];
-        if (!tile || !cell.species) return;
-        guide.plan.set(tile.localIndex, cell.species);
-        guide.covered.set(tile.localIndex, cell.met);
-      });
-      const buff = guide.goal === "both" ? "both buffs" : guide.goal === "amber" ? "Amberbound" : "Dawnbound";
-      status(result.error || `${result.met} of ${result.required} celestial plants receive ${buff}.`, result.error ? "error" : "normal");
-      new Set(guide.plan.values()).forEach((species) => templateFor(species));
-      updateOverlay();
-    }
-    function templateFor(species) {
-      const cached = ghostTemplates.get(species);
-      if (cached) return cached;
-      const system = tileSystem();
-      const renderer = page.__GARDEN_COMPANION_PIXI__?.renderer ?? page.__GARDEN_COMPANION_PIXI__?.app?.renderer;
-      if (!system?.worldContainer || typeof renderer?.textureGenerator?.generateTexture !== "function") return null;
-      const current = liveTiles();
-      const sourceRef = [...mappedTiles.values()].find((tile) => current[tile.localIndex]?.objectType === "plant" && current[tile.localIndex]?.species === species);
-      if (!sourceRef) return null;
-      const display = system.tileViews?.get?.(sourceRef.globalIndex)?.childView?.plantVisual?.container;
-      if (!display || typeof display.getBounds !== "function") return null;
-      const stack = [display];
-      let spriteNode = null;
-      while (stack.length && !spriteNode) {
-        const node = stack.pop();
-        if (!node || typeof node !== "object") continue;
-        if (node.renderPipeId === "sprite" && node.texture && !("textures" in node) && typeof node.constructor === "function") spriteNode = node;
-        else if (Array.isArray(node.children)) stack.push(...node.children);
-      }
-      if (!spriteNode) return null;
-      restoreStyle(display);
-      try {
-        const texture = renderer.textureGenerator.generateTexture({ target: display, resolution: 1 });
-        if (!texture) return null;
-        const bounds = display.getBounds();
-        const topLeft = system.worldContainer.toLocal({ x: bounds.x, y: bounds.y });
-        const bottomRight = system.worldContainer.toLocal({ x: bounds.x + bounds.width, y: bounds.y + bounds.height });
-        const template = {
-          texture,
-          Sprite: spriteNode.constructor,
-          offsetX: topLeft.x - sourceRef.x * TILE_SIZE2,
-          offsetY: topLeft.y - sourceRef.y * TILE_SIZE2,
-          width: bottomRight.x - topLeft.x,
-          height: bottomRight.y - topLeft.y
-        };
-        ghostTemplates.set(species, template);
-        return template;
-      } catch {
-        return null;
-      }
-    }
-    function destroyGhost(ghost) {
-      try {
-        ghost.destroy?.({ children: true, texture: false, textureSource: false });
-      } catch {
-        try {
-          ghost.parent?.removeChild?.(ghost);
-        } catch {
-        }
-      }
-    }
-    function destroyGhosts(except = /* @__PURE__ */ new Set()) {
-      for (const [localIndex, ghost] of ghosts) {
-        if (except.has(localIndex)) continue;
-        destroyGhost(ghost);
-        ghosts.delete(localIndex);
-      }
-    }
-    function showGhost(ref, species) {
-      const system = tileSystem();
-      const template = templateFor(species);
-      if (!system?.worldContainer || !template) return false;
-      let ghost = ghosts.get(ref.localIndex);
-      if (ghost?.__celestialSpecies !== species || ghost?.destroyed || ghost?.parent !== system.worldContainer) {
-        if (ghost) destroyGhost(ghost);
-        try {
-          ghost = new template.Sprite({ texture: template.texture });
-        } catch {
-          return false;
-        }
-        ghost.__celestialSpecies = species;
-        ghost.eventMode = "none";
-        ghost.interactive = false;
-        ghost.zIndex = 999e3;
-        system.worldContainer.addChild(ghost);
-        ghosts.set(ref.localIndex, ghost);
-      }
-      ghost.position?.set?.(ref.x * TILE_SIZE2 + template.offsetX, ref.y * TILE_SIZE2 + template.offsetY);
-      ghost.width = template.width;
-      ghost.height = template.height;
-      ghost.tint = 14207231;
-      ghost.alpha = 0.46;
-      return true;
-    }
-    function overlayRoot() {
-      let root2 = document.getElementById("gc-celestial-overlay");
-      if (!root2) {
-        root2 = document.createElement("div");
-        root2.id = "gc-celestial-overlay";
-        document.body.appendChild(root2);
-      }
-      return root2;
-    }
-    function worldBounds(system, surface, x, y, width, height) {
-      if (!system.worldContainer?.toGlobal) return null;
-      try {
-        const corners = [
-          system.worldContainer.toGlobal({ x, y }),
-          system.worldContainer.toGlobal({ x: x + width, y }),
-          system.worldContainer.toGlobal({ x, y: y + height }),
-          system.worldContainer.toGlobal({ x: x + width, y: y + height })
-        ];
-        const xs = corners.map((point) => surface.toScreenX(point.x));
-        const ys = corners.map((point) => surface.toScreenY(point.y));
-        const left = Math.min(...xs);
-        const right = Math.max(...xs);
-        const top = Math.min(...ys);
-        const bottom = Math.max(...ys);
-        if (![left, right, top, bottom].every(Number.isFinite) || right <= left || bottom <= top) return null;
-        return { left, top, width: right - left, height: bottom - top };
-      } catch {
-        return null;
-      }
-    }
-    function tileBounds(system, surface, tile) {
-      return worldBounds(system, surface, tile.x * TILE_SIZE2, tile.y * TILE_SIZE2, TILE_SIZE2, TILE_SIZE2);
-    }
-    function positionElement(element, bounds) {
-      element.hidden = !bounds;
-      if (!bounds) return;
-      element.style.left = `${bounds.left}px`;
-      element.style.top = `${bounds.top}px`;
-      element.style.width = `${bounds.width}px`;
-      element.style.height = `${bounds.height}px`;
-    }
-    function positionOverlay() {
-      if (!guide.open || !guide.plan.size) return;
-      const system = tileSystem();
-      const surface = pixiSurface();
-      if (!system || !surface) return;
-      document.querySelectorAll("#gc-celestial-overlay [data-celestial-tile]").forEach((element) => {
-        const ref = mappedTiles.get(element.dataset.celestialTile);
-        positionElement(element, ref ? tileBounds(system, surface, ref) : null);
-      });
-    }
-    function restoreStyle(display) {
-      const original = originalStyles.get(display);
-      if (!original) return;
-      try {
-        if (original.tint === void 0) delete display.tint;
-        else display.tint = original.tint;
-        display.alpha = original.alpha;
-      } catch {
-      }
-      originalStyles.delete(display);
-      styled.delete(display);
-    }
-    function restoreStyles(except = /* @__PURE__ */ new Set()) {
-      [...styled].forEach((display) => {
-        if (!except.has(display)) restoreStyle(display);
-      });
-    }
-    function stylePlant(tile, tint, alpha, seen3) {
-      const view = tileSystem()?.tileViews?.get?.(tile.globalIndex);
-      const display = view?.childView?.plantVisual?.container;
-      if (!display || display.destroyed) return;
-      if (!originalStyles.has(display)) {
-        originalStyles.set(display, {
-          tint: "tint" in display ? display.tint : void 0,
-          alpha: Number.isFinite(display.alpha) ? display.alpha : 1
-        });
-      }
-      const original = originalStyles.get(display);
-      display.tint = tint;
-      display.alpha = original.alpha * alpha;
-      styled.add(display);
-      seen3.add(display);
-    }
-    function tileElement(root2, localIndex) {
-      let element = root2.querySelector(`[data-celestial-tile="${CSS.escape(localIndex)}"]`);
-      if (!element) {
-        element = document.createElement("div");
-        element.className = "gc-celestial-tile";
-        element.dataset.celestialTile = localIndex;
-        root2.appendChild(element);
-      }
-      return element;
-    }
-    function updateOverlay() {
-      if (!guide.open || !guide.plan.size) {
-        restoreStyles();
-        destroyGhosts();
-        return;
-      }
-      const root2 = overlayRoot();
-      const current = liveTiles();
-      const wanted = new Set(guide.plan.keys());
-      for (const [localIndex, tile] of Object.entries(current)) {
-        if (tile?.objectType === "plant" && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species)) wanted.add(localIndex);
-      }
-      root2.querySelectorAll("[data-celestial-tile]").forEach((element) => {
-        if (!wanted.has(element.dataset.celestialTile)) element.remove();
-      });
-      const seenStyles = /* @__PURE__ */ new Set();
-      const seenGhosts = /* @__PURE__ */ new Set();
-      let correctCount = 0;
-      for (const localIndex of wanted) {
-        const ref = mappedTiles.get(localIndex);
-        if (!ref) continue;
-        const planned = guide.plan.get(localIndex) ?? null;
-        const actualTile = current[localIndex];
-        const actual = actualTile?.objectType === "plant" && !isPreserved(actualTile) && CELESTIAL_SPECIES.has(actualTile.species) ? actualTile.species : null;
-        const covered = guide.covered.get(localIndex) !== false;
-        const compatible = Boolean(planned && actual && placementType(planned) === placementType(actual));
-        const correct = compatible && covered;
-        if (correct) correctCount++;
-        const wrong = Boolean(actual || planned && actualTile?.objectType);
-        const element = tileElement(root2, localIndex);
-        element.dataset.state = correct ? "correct" : wrong || !covered ? "wrong" : "empty";
-        element.title = planned ? `${correct && actual ? SPECIES_LABELS[actual] : SPECIES_LABELS[planned]}${correct ? " - correct" : actual ? ` - replace ${SPECIES_LABELS[actual]}` : " - move here"}` : actual ? `${SPECIES_LABELS[actual]} - move this plant` : "";
-        element.replaceChildren();
-        if (planned && !compatible) {
-          if (showGhost(ref, planned)) seenGhosts.add(localIndex);
-          else {
-            const label = document.createElement("span");
-            label.textContent = SPECIES_LABELS[planned];
-            element.appendChild(label);
-          }
-        }
-        if (actual) stylePlant(ref, correct ? 6750092 : 16732773, 1, seenStyles);
-      }
-      destroyGhosts(seenGhosts);
-      restoreStyles(seenStyles);
-      const progress = document.querySelector("#gc-celestial-layout [data-celestial-placement]");
-      if (progress) progress.textContent = `${correctCount} of ${guide.plan.size} plants in position`;
-      positionOverlay();
-    }
-    function frame(now) {
-      if (!guide.open) return;
-      if (now - lastStateAt >= 250) {
-        lastStateAt = now;
-        updateOverlay();
-      } else positionOverlay();
-      animationFrame = requestAnimationFrame(frame);
-    }
-    function renderPanel() {
-      if (!guide.open) return;
-      let panel3 = document.getElementById("gc-celestial-layout");
-      let needsDraggable = false;
-      if (!panel3) {
-        panel3 = document.createElement("div");
-        panel3.id = "gc-celestial-layout";
-        document.body.appendChild(panel3);
-        panel3.addEventListener("pointerdown", (event) => event.stopPropagation());
-        needsDraggable = true;
-      }
-      const counts = currentCelestials().reduce((totals, species) => {
-        totals[species] = (totals[species] ?? 0) + 1;
-        return totals;
-      }, {});
-      panel3.innerHTML = `<header><b>Celestial layout</b><button data-celestial-close>Close</button></header>
-<div class="gc-celestial-body"><small>Choose a farm side and the buffs every celestial plant should receive. The guide never moves plants.</small>
-<div class="gc-celestial-label">Farm side</div><div class="gc-celestial-segments"><button data-celestial-side="left" data-active="${guide.side === "left"}">Left</button><button data-celestial-side="right" data-active="${guide.side === "right"}">Right</button></div>
-<div class="gc-celestial-label">Every plant needs</div><div class="gc-celestial-segments"><button data-celestial-goal="amber" data-active="${guide.goal === "amber"}">Amberbound</button><button data-celestial-goal="dawn" data-active="${guide.goal === "dawn"}">Dawnbound</button><button data-celestial-goal="both" data-active="${guide.goal === "both"}">Both</button></div>
-<small class="gc-celestial-sources">Moonbinder grants Amberbound. Dawnbinder grants Dawnbound.</small>
-<div class="gc-celestial-counts">${[...CELESTIAL_SPECIES].map((species) => `<span><b>${counts[species] ?? 0}</b>${SPECIES_LABELS[species]}</span>`).join("")}</div>
-<p data-celestial-status data-tone="${guide.tone}">${guide.message}</p>
-<div class="gc-celestial-placement" data-celestial-placement>${guide.plan.size ? `0 of ${guide.plan.size} plants in position` : "No guide placed"}</div>
-<div class="gc-celestial-legend"><span data-kind="ghost">Faded guide</span><span data-kind="correct">Correct</span><span data-kind="wrong">Move</span></div>
-<button class="gc-celestial-refresh" data-celestial-refresh ${guide.side ? "" : "disabled"}>Refresh from garden</button></div>`;
-      if (needsDraggable) makeDraggable(panel3, POSITION_KEY5);
-      panel3.querySelector("[data-celestial-close]").onclick = close2;
-      panel3.querySelectorAll("[data-celestial-side]").forEach((button) => button.onclick = () => {
-        guide.side = button.dataset.celestialSide;
-        renderPanel();
-        generate();
-      });
-      panel3.querySelectorAll("[data-celestial-goal]").forEach((button) => button.onclick = () => {
-        guide.goal = button.dataset.celestialGoal;
-        renderPanel();
-        if (guide.side) generate();
-      });
-      panel3.querySelector("[data-celestial-refresh]").onclick = () => {
-        renderPanel();
-        generate();
-      };
-    }
-    function open() {
-      page.__gardenCompanionLoadSpriteGroup?.("deferred");
-      if (guide.open) return;
-      guide.open = true;
-      renderPanel();
-      animationFrame = requestAnimationFrame(frame);
-    }
-    function close2() {
-      if (!guide.open) return;
-      guide.open = false;
-      cancelAnimationFrame(animationFrame);
-      clearPlan();
-      document.getElementById("gc-celestial-overlay")?.remove();
-      document.getElementById("gc-celestial-layout")?.remove();
-    }
-    page.__gardenCompanionToggleCelestialLayout = () => guide.open ? close2() : open();
-  }
-
   // src/features/crop-cleanser-helper.ts
-  var POSITION_KEY6 = "gardenCompanion.cropCleanserPosition.v1";
+  var POSITION_KEY5 = "gardenCompanion.cropCleanserPosition.v1";
   var MUTATIONS = [
     "Wet",
     "Chilled",
@@ -17677,7 +17022,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       root2.hidden = true;
     };
     document.body.appendChild(root2);
-    makeDraggable(root2, POSITION_KEY6);
+    makeDraggable(root2, POSITION_KEY5);
     return root2;
   }
   function toggle() {
@@ -17696,8 +17041,472 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
   }
 
+  // src/celestial-layout.ts
+  function cellType(species) {
+    if (species === "MoonCelestial") return "moon";
+    if (species === "DawnCelestial") return "dawn";
+    return species ? "other" : "empty";
+  }
+  function seededRandom(seedText) {
+    let seed = 2166136261;
+    for (const character of seedText) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619);
+    return () => {
+      seed += 1831565813;
+      let value = seed;
+      value = Math.imul(value ^ value >>> 15, value | 1);
+      value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+      return ((value ^ value >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(items, random) {
+    for (let index = items.length - 1; index > 0; index--) {
+      const other = Math.floor(random() * (index + 1));
+      [items[index], items[other]] = [items[other], items[index]];
+    }
+    return items;
+  }
+  function inspect(cells, rows, columns, goal, blocked, includeCoverage = false) {
+    const coverage2 = includeCoverage ? Array.from({ length: cells.length }, () => ({ amber: false, dawn: false })) : [];
+    let required = 0;
+    let met = 0;
+    let score = 0;
+    let minRow = rows;
+    let maxRow = -1;
+    let minColumn = columns;
+    let maxColumn = -1;
+    let distanceFromCenter = 0;
+    const centerRow = (rows - 1) / 2;
+    const centerColumn = (columns - 1) / 2;
+    for (let index = 0; index < cells.length; index++) {
+      if (cells[index].type === "empty") continue;
+      const row = Math.floor(index / columns);
+      const column = index % columns;
+      let amber = false;
+      let dawn = false;
+      for (let rowOffset = -1; rowOffset <= 1; rowOffset++) {
+        for (let columnOffset = -1; columnOffset <= 1; columnOffset++) {
+          if (rowOffset === 0 && columnOffset === 0) continue;
+          const neighbourRow = row + rowOffset;
+          const neighbourColumn = column + columnOffset;
+          if (neighbourRow < 0 || neighbourRow >= rows || neighbourColumn < 0 || neighbourColumn >= columns) continue;
+          const neighbour = cells[neighbourRow * columns + neighbourColumn];
+          if (neighbour.type === "moon") amber = true;
+          if (neighbour.type === "dawn") dawn = true;
+        }
+      }
+      if (includeCoverage) coverage2[index] = { amber, dawn };
+      const hasRequiredBuffs = (goal === "dawn" || goal === "both" ? dawn : true) && (goal === "amber" || goal === "both" ? amber : true);
+      required++;
+      if (hasRequiredBuffs) met++;
+      score += hasRequiredBuffs ? 30 : -1e6;
+      if (blocked[index]) score -= 1e4;
+      if (amber && dawn) score += 0.2;
+      distanceFromCenter += Math.abs(row - centerRow) + Math.abs(column - centerColumn);
+      minRow = Math.min(minRow, row);
+      maxRow = Math.max(maxRow, row);
+      minColumn = Math.min(minColumn, column);
+      maxColumn = Math.max(maxColumn, column);
+    }
+    if (required) {
+      const occupiedArea = (maxRow - minRow + 1) * (maxColumn - minColumn + 1);
+      const emptyInside = occupiedArea - required;
+      const layoutCenterOffset = Math.abs((minRow + maxRow) / 2 - centerRow) + Math.abs((minColumn + maxColumn) / 2 - centerColumn);
+      score -= occupiedArea * 1.5;
+      score -= emptyInside * 2;
+      score -= layoutCenterOffset * 8;
+      score -= distanceFromCenter * 0.08;
+    }
+    return { score, required, met, coverage: coverage2 };
+  }
+  function initialLayout(species, rows, columns, random, blocked, unavailable) {
+    const positions = Array.from({ length: rows * columns }, (_, index) => index).filter((index) => !unavailable[index]).sort((left, right) => {
+      if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
+      const leftRow = Math.floor(left / columns);
+      const leftColumn = left % columns;
+      const rightRow = Math.floor(right / columns);
+      const rightColumn = right % columns;
+      const leftDistance = Math.max(Math.abs(leftRow - (rows - 1) / 2), Math.abs(leftColumn - (columns - 1) / 2));
+      const rightDistance = Math.max(Math.abs(rightRow - (rows - 1) / 2), Math.abs(rightColumn - (columns - 1) / 2));
+      return leftDistance - rightDistance || left - right;
+    });
+    const shuffled = shuffle([...species], random);
+    const cells = Array.from({ length: rows * columns }, () => ({ species: null, type: "empty" }));
+    shuffled.forEach((plant, index) => {
+      cells[positions[index]] = { species: plant, type: cellType(plant) };
+    });
+    return cells;
+  }
+  function singleBuffLayout(species, rows, columns, goal, blocked, unavailable) {
+    const sourceSpecies = goal === "amber" ? "MoonCelestial" : "DawnCelestial";
+    const sourceCount = species.filter((name) => name === sourceSpecies).length;
+    if (sourceCount < 2) return null;
+    const capacity = rows * columns;
+    const centerRow = (rows - 1) / 2;
+    const centerColumn = (columns - 1) / 2;
+    const neighbours = (index) => {
+      const row = Math.floor(index / columns);
+      const column = index % columns;
+      const found = [];
+      for (let rowOffset = -1; rowOffset <= 1; rowOffset++) {
+        for (let columnOffset = -1; columnOffset <= 1; columnOffset++) {
+          if (!rowOffset && !columnOffset) continue;
+          const nextRow = row + rowOffset;
+          const nextColumn = column + columnOffset;
+          if (nextRow >= 0 && nextRow < rows && nextColumn >= 0 && nextColumn < columns) found.push(nextRow * columns + nextColumn);
+        }
+      }
+      return found;
+    };
+    const pairs = [];
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < columns; column++) {
+        const first = row * columns + column;
+        for (const second of [column + 1 < columns ? first + 1 : -1, row + 1 < rows ? first + columns : -1]) {
+          if (second < 0) continue;
+          if (unavailable[first] || unavailable[second]) continue;
+          pairs.push({ sources: [first, second], covered: [.../* @__PURE__ */ new Set([...neighbours(first), ...neighbours(second)])].filter((index) => !unavailable[index]) });
+        }
+      }
+    }
+    const selectedSources = /* @__PURE__ */ new Set();
+    const covered = /* @__PURE__ */ new Set();
+    while (covered.size < species.length && selectedSources.size + 2 <= sourceCount) {
+      let best = null;
+      let bestScore = -Infinity;
+      for (const pair of pairs) {
+        if (selectedSources.has(pair.sources[0]) || selectedSources.has(pair.sources[1])) continue;
+        const newlyCovered = pair.covered.filter((index) => !covered.has(index));
+        const emptyGain = newlyCovered.filter((index) => !blocked[index]).length;
+        const pairCenterDistance = pair.sources.reduce((total, index) => {
+          const row = Math.floor(index / columns);
+          const column = index % columns;
+          return total + Math.abs(row - centerRow) + Math.abs(column - centerColumn);
+        }, 0);
+        const score = newlyCovered.length * 1e5 + emptyGain * 1e3 - pairCenterDistance;
+        if (score > bestScore) {
+          best = pair;
+          bestScore = score;
+        }
+      }
+      if (!best) break;
+      best.sources.forEach((index) => selectedSources.add(index));
+      best.covered.forEach((index) => covered.add(index));
+    }
+    if (covered.size < species.length || selectedSources.size > sourceCount) return null;
+    const selectable = [...covered].filter((index) => !selectedSources.has(index)).sort((left, right) => {
+      if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
+      const leftDistance = Math.abs(Math.floor(left / columns) - centerRow) + Math.abs(left % columns - centerColumn);
+      const rightDistance = Math.abs(Math.floor(right / columns) - centerRow) + Math.abs(right % columns - centerColumn);
+      return leftDistance - rightDistance || left - right;
+    });
+    while (selectedSources.size < sourceCount) {
+      const next = selectable.shift();
+      if (next === void 0) return null;
+      selectedSources.add(next);
+    }
+    const cells = Array.from({ length: capacity }, () => ({ species: null, type: "empty" }));
+    selectedSources.forEach((index) => {
+      cells[index] = { species: sourceSpecies, type: cellType(sourceSpecies) };
+    });
+    const otherSpecies = species.filter((name) => name !== sourceSpecies);
+    const remainingPositions = [...covered].filter((index) => !selectedSources.has(index)).sort((left, right) => {
+      if (Boolean(blocked[left]) !== Boolean(blocked[right])) return blocked[left] ? 1 : -1;
+      return left - right;
+    });
+    otherSpecies.forEach((name, index) => {
+      const position2 = remainingPositions[index];
+      if (position2 !== void 0) cells[position2] = { species: name, type: cellType(name) };
+    });
+    return cells;
+  }
+  function resultFrom(cells, inspection, goal) {
+    return {
+      cells: cells.map((cell, index) => ({
+        species: cell.species,
+        amber: inspection.coverage[index].amber,
+        dawn: inspection.coverage[index].dawn,
+        met: cell.type === "empty" || (goal === "dawn" || goal === "both" ? inspection.coverage[index].dawn : true) && (goal === "amber" || goal === "both" ? inspection.coverage[index].amber : true)
+      })),
+      required: inspection.required,
+      met: inspection.met,
+      error: inspection.met === inspection.required ? "" : `${inspection.required - inspection.met} plant slots could not receive the selected buffs.`
+    };
+  }
+  function generateCelestialLayout(species, rows, columns, goal, blocked = [], unavailable = [], salt = "") {
+    const capacity = rows * columns - unavailable.filter(Boolean).length;
+    if (!species.length) return { cells: [], required: 0, met: 0, error: "No celestial plants are currently planted." };
+    if (species.length > capacity) return { cells: [], required: species.length, met: 0, error: `The selected side has ${capacity} slots, but ${species.length} celestial plants are planted.` };
+    const moonCount = species.filter((name) => name === "MoonCelestial").length;
+    const dawnCount = species.filter((name) => name === "DawnCelestial").length;
+    if ((goal === "amber" || goal === "both") && moonCount < 2) {
+      return { cells: [], required: species.length, met: 0, error: "At least two Moonbinders are needed because a plant cannot grant Amberbound to itself." };
+    }
+    if ((goal === "dawn" || goal === "both") && dawnCount < 2) {
+      return { cells: [], required: species.length, met: 0, error: "At least two Dawnbinders are needed because a plant cannot grant Dawnbound to itself." };
+    }
+    if (goal === "amber" || goal === "dawn") {
+      const constructed = singleBuffLayout(species, rows, columns, goal, blocked, unavailable);
+      if (constructed) {
+        const inspection = inspect(constructed, rows, columns, goal, blocked, true);
+        if (inspection.met === inspection.required) return resultFrom(constructed, inspection, goal);
+      }
+    }
+    const random = seededRandom(`${salt}${rows}x${columns}:${goal}:${[...species].sort().join(",")}:${blocked.map((value) => value ? 1 : 0).join("")}:${unavailable.map((value) => value ? 1 : 0).join("")}`);
+    const amberCapacity = moonCount * 8;
+    const dawnCapacity = dawnCount * 8;
+    const provablyImpossible = (goal === "amber" || goal === "both" ? species.length > amberCapacity : false) || (goal === "dawn" || goal === "both" ? species.length > dawnCapacity : false);
+    const restarts = provablyImpossible ? 2 : 8;
+    const steps = provablyImpossible ? 300 : 900;
+    const deadline = performance.now() + 120;
+    let best = null;
+    let bestInspection = null;
+    for (let restart = 0; restart < restarts; restart++) {
+      const current = initialLayout(species, rows, columns, random, blocked, unavailable);
+      let currentInspection = inspect(current, rows, columns, goal, blocked);
+      for (let step = 0; step < steps && currentInspection.met !== currentInspection.required; step++) {
+        if ((step & 31) === 0 && performance.now() >= deadline) break;
+        const first = Math.floor(random() * current.length);
+        let second = Math.floor(random() * current.length);
+        for (let attempt = 0; attempt < 8 && current[first].type === current[second].type; attempt++) {
+          second = Math.floor(random() * current.length);
+        }
+        if (first === second || current[first].type === current[second].type) continue;
+        if (current[first].type !== "empty" && current[second].type === "empty" && unavailable[second]) continue;
+        if (current[second].type !== "empty" && current[first].type === "empty" && unavailable[first]) continue;
+        [current[first], current[second]] = [current[second], current[first]];
+        const candidate = inspect(current, rows, columns, goal, blocked);
+        const temperature = Math.max(0.05, 1.1 * (1 - step / steps));
+        if (candidate.score >= currentInspection.score || random() < Math.exp((candidate.score - currentInspection.score) / temperature)) {
+          currentInspection = candidate;
+        } else {
+          [current[first], current[second]] = [current[second], current[first]];
+        }
+      }
+      if (!bestInspection || currentInspection.score > bestInspection.score) {
+        best = current.map((cell) => ({ ...cell }));
+        bestInspection = currentInspection;
+      }
+      if (bestInspection.met === bestInspection.required || performance.now() >= deadline) break;
+    }
+    const finalCells = best ?? initialLayout(species, rows, columns, random, blocked, unavailable);
+    const result = inspect(finalCells, rows, columns, goal, blocked, true);
+    return resultFrom(finalCells, result, goal);
+  }
+
+  // src/celestial-plan.ts
+  var CELESTIAL_SPECIES = /* @__PURE__ */ new Set(["MoonCelestial", "DawnCelestial", "Dawnbreaker", "Starweaver"]);
+  var CELESTIAL_LABELS = {
+    MoonCelestial: "Moonbinder",
+    DawnCelestial: "Dawnbinder",
+    Dawnbreaker: "Dawnbreaker",
+    Starweaver: "Starweaver"
+  };
+  var CELESTIAL_BADGE = {
+    MoonCelestial: { short: "Mb", color: "#fb923c" },
+    DawnCelestial: { short: "Db", color: "#38bdf8" },
+    Dawnbreaker: { short: "Br", color: "#f472b6" },
+    Starweaver: { short: "Sw", color: "#a78bfa" }
+  };
+  function placementType(species) {
+    if (species === "MoonCelestial") return "moon";
+    if (species === "DawnCelestial") return "dawn";
+    return "other";
+  }
+  function isPreserved(tile) {
+    return tile?.objectType === "plant" && Boolean(tile.slots?.some((slot) => slot.preserved === true));
+  }
+  function celestialOn(tile) {
+    return tile?.objectType === "plant" && !isPreserved(tile) && CELESTIAL_SPECIES.has(tile.species) ? tile.species : null;
+  }
+  function sideCells(side, cells) {
+    const columns = [...new Set(cells.map((cell) => cell.x))].sort((a, b) => a - b);
+    const split = Math.floor(columns.length / 2);
+    const chosen = new Set(side === "left" ? columns.slice(0, split) : columns.slice(split));
+    return cells.filter((cell) => chosen.has(cell.x)).sort((a, b) => a.y - b.y || a.x - b.x);
+  }
+  function likelySide(cells) {
+    const count = (side) => sideCells(side, cells).filter((cell) => celestialOn(cell.tile)).length;
+    const left = count("left");
+    const right = count("right");
+    if (!left && !right) return null;
+    return right > left ? "right" : "left";
+  }
+  var planCache = /* @__PURE__ */ new Map();
+  var PLAN_CACHE_SIZE = 8;
+  function planKey(cells, side, goal) {
+    return `${side}|${goal}|${cells.map((cell) => {
+      const tile = cell.tile;
+      if (!tile) return "";
+      const preserved = isPreserved(tile) ? "*" : "";
+      return tile.objectType === "plant" && CELESTIAL_SPECIES.has(tile.species) ? `${tile.species}${preserved}` : "#";
+    }).join(",")}`;
+  }
+  function buildCelestialPlan(cells, side, goal, force = false) {
+    const key = planKey(cells, side, goal);
+    const cached = force ? void 0 : planCache.get(key);
+    if (cached) return cached;
+    const plan = computeCelestialPlan(cells, side, goal, force ? String(Date.now()) : "");
+    planCache.set(key, plan);
+    if (planCache.size > PLAN_CACHE_SIZE) planCache.delete(planCache.keys().next().value);
+    return plan;
+  }
+  function computeCelestialPlan(cells, side, goal, salt = "") {
+    const tiles = sideCells(side, cells);
+    const xs = [...new Set(tiles.map((cell) => cell.x))].sort((a, b) => a - b);
+    const ys = [...new Set(tiles.map((cell) => cell.y))].sort((a, b) => a - b);
+    const empty = {
+      side,
+      goal,
+      plan: /* @__PURE__ */ new Map(),
+      covered: /* @__PURE__ */ new Map(),
+      sideTiles: new Set(tiles.map((cell) => cell.local)),
+      labels: new Map(tiles.map((cell) => [cell.local, { row: ys.indexOf(cell.y) + 1, column: xs.indexOf(cell.x) + 1 }])),
+      message: "",
+      tone: "normal"
+    };
+    if (!tiles.length || xs.length * ys.length !== tiles.length) {
+      return { ...empty, message: "This side of the farm could not be mapped yet. Walk into your garden and refresh.", tone: "error" };
+    }
+    const plants = cells.flatMap((cell) => {
+      const species = celestialOn(cell.tile);
+      return species ? [species] : [];
+    });
+    const unavailable = tiles.map((cell) => isPreserved(cell.tile));
+    const blocked = tiles.map((cell) => Boolean(cell.tile && !(cell.tile.objectType === "plant" && CELESTIAL_SPECIES.has(cell.tile.species))));
+    const buff = goal === "both" ? "both buffs" : goal === "amber" ? "Amberbound" : "Dawnbound";
+    const rows = ys.length;
+    const columns = xs.length;
+    const currentTypes = tiles.map((cell) => {
+      const species = celestialOn(cell.tile);
+      return species ? placementType(species) : null;
+    });
+    const offSide = cells.some((cell) => celestialOn(cell.tile) && !empty.sideTiles.has(cell.local));
+    if (!offSide && plants.length) {
+      const met = coverage(currentTypes, rows, columns, goal);
+      if (met.every((ok, index) => ok || !currentTypes[index])) {
+        tiles.forEach((cell, index) => {
+          const species = celestialOn(cell.tile);
+          if (!species) return;
+          empty.plan.set(cell.local, species);
+          empty.covered.set(cell.local, true);
+        });
+        return { ...empty, message: `Your layout already gives all ${plants.length} celestial plants ${buff}.`, tone: "normal" };
+      }
+    }
+    const result = generateCelestialLayout(plants, rows, columns, goal, blocked, unavailable, salt);
+    if (!result.cells.length) return { ...empty, message: result.error, tone: "error" };
+    const placed = bestPlacement(result.cells.map((cell) => cell.species ? placementType(cell.species) : null), currentTypes, rows, columns, blocked, unavailable);
+    result.cells.forEach((cell, index) => {
+      if (!cell.species) return;
+      const target = tiles[placed(index)];
+      if (!target) return;
+      empty.plan.set(target.local, cell.species);
+      empty.covered.set(target.local, cell.met);
+    });
+    return {
+      ...empty,
+      message: result.error || `${result.met} of ${result.required} celestial plants receive ${buff}.`,
+      tone: result.error ? "error" : "normal"
+    };
+  }
+  function coverage(types, rows, columns, goal) {
+    return types.map((type, index) => {
+      if (!type) return false;
+      const row = Math.floor(index / columns);
+      const column = index % columns;
+      let amber = false;
+      let dawn = false;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        const r = row + dr;
+        const c = column + dc;
+        if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
+        const neighbour = types[r * columns + c];
+        if (neighbour === "moon") amber = true;
+        if (neighbour === "dawn") dawn = true;
+      }
+      return goal === "amber" ? amber : goal === "dawn" ? dawn : amber && dawn;
+    });
+  }
+  function bestPlacement(planned, current, rows, columns, blocked, unavailable) {
+    const used = planned.flatMap((type, index) => type ? [index] : []);
+    const rowsUsed = used.map((index) => Math.floor(index / columns));
+    const columnsUsed = used.map((index) => index % columns);
+    const [minR, maxR, minC, maxC] = [Math.min(...rowsUsed), Math.max(...rowsUsed), Math.min(...columnsUsed), Math.max(...columnsUsed)];
+    let best = { score: -1, map: (index) => index };
+    for (const flipR of [false, true]) for (const flipC of [false, true]) {
+      for (let dr = -minR; dr <= rows - 1 - maxR; dr++) for (let dc = -minC; dc <= columns - 1 - maxC; dc++) {
+        const map = (index) => {
+          let r = Math.floor(index / columns);
+          let c = index % columns;
+          if (flipR) r = minR + maxR - r;
+          if (flipC) c = minC + maxC - c;
+          return (r + dr) * columns + (c + dc);
+        };
+        let score = 0;
+        let fits = true;
+        for (const index of used) {
+          const target = map(index);
+          if (blocked[target] || unavailable[target]) {
+            fits = false;
+            break;
+          }
+          if (current[target] === planned[index]) score++;
+        }
+        if (fits && score > best.score) best = { score, map };
+      }
+    }
+    return best.map;
+  }
+  function placedRight(plan, cell) {
+    const planned = plan.plan.get(cell.local);
+    const actual = celestialOn(cell.tile);
+    return Boolean(planned && actual && placementType(planned) === placementType(actual));
+  }
+  function celestialMoves(plan, cells) {
+    const byLocal = new Map(cells.map((cell) => [cell.local, cell]));
+    const destinations = [...plan.plan.entries()].filter(([local]) => {
+      const cell = byLocal.get(local);
+      return cell && !placedRight(plan, cell);
+    });
+    const sources = cells.filter((cell) => celestialOn(cell.tile) && !placedRight(plan, cell));
+    const distance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    const used = /* @__PURE__ */ new Set();
+    const raw = [];
+    for (const [to, planned] of destinations) {
+      const target = byLocal.get(to);
+      let best = null;
+      for (const source of sources) {
+        if (used.has(source.local) || placementType(celestialOn(source.tile)) !== placementType(planned)) continue;
+        if (!best || distance(source, target) < distance(best, target)) best = source;
+      }
+      if (!best) continue;
+      used.add(best.local);
+      raw.push({ from: best.local, to, species: celestialOn(best.tile), occupied: false });
+    }
+    const ordered = [];
+    const vacated = /* @__PURE__ */ new Set();
+    const pending = [...raw];
+    while (pending.length) {
+      const ready = pending.findIndex((move) => !byLocal.get(move.to)?.tile || vacated.has(move.to));
+      const next = pending.splice(ready === -1 ? 0 : ready, 1)[0];
+      next.occupied = ready === -1;
+      ordered.push(next);
+      vacated.add(next.from);
+    }
+    return ordered;
+  }
+  function binderOn(plan, cell) {
+    const species = celestialOn(cell.tile) ?? plan?.plan.get(cell.local) ?? null;
+    const kind = species ? placementType(species) : null;
+    return kind === "moon" || kind === "dawn" ? kind : null;
+  }
+  function neighboursOf(cell, cells, plan) {
+    return cells.filter((other) => other !== cell && Math.abs(other.x - cell.x) <= 1 && Math.abs(other.y - cell.y) <= 1 && (!plan || plan.sideTiles.has(other.local)));
+  }
+
   // src/features/farm-manager.ts
-  var POSITION_KEY7 = "gardenCompanion.farmManagerPosition.v1";
+  var POSITION_KEY6 = "gardenCompanion.farmManagerPosition.v1";
   var MIN_CELL = 14;
   var CELL_GAP = 2;
   var MAX_CELL = 56;
@@ -17709,6 +17518,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var renderQueued = false;
   var search2 = "";
   var tab = "plants";
+  var celPlan = null;
+  var celSide = null;
+  var celGoal = "both";
+  var celHoveredStep = null;
+  var celMoves = [];
+  var celMisplaced = null;
+  var celMisplacedText = "";
   var armedSeed = null;
   var armedPlant = null;
   var seeding = false;
@@ -17739,6 +17555,135 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     add("dirt", map.userSlotIdxAndDirtTileIdxToGlobalTileIdx?.[slot], garden?.tileObjects);
     add("board", map.userSlotIdxAndBoardwalkTileIdxToGlobalTileIdx?.[slot], garden?.boardwalkTileObjects);
     return cells.length ? cells : null;
+  }
+  function planCells(cells) {
+    return (cells ?? []).filter((cell) => cell.kind === "dirt").map((cell) => ({ local: cell.local, x: cell.x, y: cell.y, tile: cell.tile }));
+  }
+  var celCalculating = false;
+  var celCalcTimer = 0;
+  function requestCelestialPlan(force = false) {
+    celCalculating = true;
+    render3();
+    if (celCalcTimer) clearTimeout(celCalcTimer);
+    celCalcTimer = window.setTimeout(() => {
+      celCalcTimer = 0;
+      requestAnimationFrame(() => {
+        rebuildCelestialPlan(force);
+        celCalculating = false;
+        render3();
+      });
+    }, 0);
+  }
+  function rebuildCelestialPlan(force = false) {
+    const cells = planCells(farmCells());
+    if (!celSide) celSide = likelySide(cells) ?? "left";
+    celPlan = cells.length ? buildCelestialPlan(cells, celSide, celGoal, force) : null;
+    celHoveredStep = null;
+    celMoves = [];
+    celMisplaced = null;
+    celMovesBasis = "";
+  }
+  function celBadge(species) {
+    const badge = CELESTIAL_BADGE[species];
+    return `<i class="gc-fm-chip" style="--chip:${badge.color}">${badge.short}</i>`;
+  }
+  function celTileName(local) {
+    const label = celPlan?.labels.get(local);
+    return label ? `row ${label.row}, col ${label.column}` : `tile ${local}`;
+  }
+  var celMovesBasis = "";
+  var celMovesPlan = null;
+  function stableMoves(plan, cells, busy) {
+    if (busy || busyTiles.size) return celMoves;
+    const basis = cells.map((cell) => cell.tile ? `${cell.local}:${celestialOn(cell.tile) ?? "#"}` : "").join(",");
+    if (basis === celMovesBasis && plan === celMovesPlan) return celMoves;
+    celMovesBasis = basis;
+    celMovesPlan = plan;
+    const byLocal = new Map(cells.map((cell) => [cell.local, cell]));
+    const kept = celMoves.filter((move) => {
+      const from = byLocal.get(move.from);
+      const to = byLocal.get(move.to);
+      return from && to && celestialOn(from.tile) === move.species && !placedRight(plan, from) && plan.plan.has(move.to) && !placedRight(plan, to);
+    });
+    const usedFrom = new Set(kept.map((move) => move.from));
+    const usedTo = new Set(kept.map((move) => move.to));
+    let added = celestialMoves(plan, cells).filter((move) => !usedFrom.has(move.from) && !usedTo.has(move.to));
+    const misplaced = celMisplaced;
+    if (misplaced !== null && !byLocal.get(misplaced)?.tile) celMisplaced = null;
+    const fixIndex = misplaced === null ? -1 : added.findIndex((move) => move.from === misplaced);
+    const keptFix = misplaced === null ? -1 : kept.findIndex((move) => move.from === misplaced);
+    if (fixIndex !== -1) {
+      const [fix] = added.splice(fixIndex, 1);
+      kept.unshift(fix);
+    } else if (keptFix > 0) {
+      kept.unshift(...kept.splice(keptFix, 1));
+    } else if (misplaced !== null && keptFix === -1) {
+      celMisplaced = null;
+    }
+    const vacated = /* @__PURE__ */ new Set();
+    return [...kept, ...added].map((move) => {
+      const occupied = Boolean(byLocal.get(move.to)?.tile) && !vacated.has(move.to);
+      vacated.add(move.from);
+      return { ...move, occupied };
+    });
+  }
+  function selectCelestialStep(index) {
+    const element = root();
+    const move = celMoves[index];
+    if (!element || !move) return;
+    celHoveredStep = index;
+    element.querySelectorAll("[data-cel-step]").forEach((row) => {
+      row.dataset.current = String(Number(row.dataset.celStep) === index);
+    });
+    element.querySelectorAll("[data-cel-active]").forEach((node) => {
+      delete node.dataset.celActive;
+    });
+    const cellNode = (local) => element.querySelector(`.gc-fm-cell[data-kind="dirt"][data-local="${local}"]`);
+    const from = cellNode(move.from);
+    const to = cellNode(move.to);
+    if (from) from.dataset.celActive = "true";
+    if (to) to.dataset.celActive = "true";
+    const line = element.querySelector(".gc-fm-cel-arrow line");
+    if (line && from && to) {
+      line.setAttribute("x1", String(from.offsetLeft + from.offsetWidth / 2));
+      line.setAttribute("y1", String(from.offsetTop + from.offsetHeight / 2));
+      line.setAttribute("x2", String(to.offsetLeft + to.offsetWidth / 2));
+      line.setAttribute("y2", String(to.offsetTop + to.offsetHeight / 2));
+    } else render3();
+    const status = element.querySelector("[data-fm-status]");
+    if (status && !busyTiles.size) status.textContent = status.textContent.replace(/^Step \d+/, `Step ${index + 1}`);
+  }
+  function checkCelestialDrop(local) {
+    if (!celPlan) return;
+    const cell = planCells(farmCells()).find((item) => item.local === local);
+    const species = celestialOn(cell?.tile);
+    if (!cell || !species || placedRight(celPlan, cell)) return;
+    celMisplaced = local;
+    const planned = celPlan.plan.get(local);
+    celMisplacedText = planned ? `Wrong spot: that tile is for a ${CELESTIAL_LABELS[planned]}, not a ${CELESTIAL_LABELS[species]}` : `Wrong spot: that tile isn't in the plan for the ${CELESTIAL_LABELS[species]}`;
+    toast(`${celMisplacedText} - step 1 now moves it.`, "error");
+  }
+  function celestialSteps(moves) {
+    const steps = !celPlan || !celPlan.plan.size ? `<div class="gc-fm-empty">${celPlan?.tone === "error" ? "" : "No celestial plants to plan."}</div>` : moves.length ? moves.map((move, index) => `<div class="gc-fm-cel-step" data-cel-step="${index}" data-current="${index === (celHoveredStep ?? 0)}"><b>${index + 1}</b>${celBadge(move.species)}<span><b>${escapeHtml(CELESTIAL_LABELS[move.species])}</b><small>${escapeHtml(celTileName(move.from))} &rarr; ${escapeHtml(celTileName(move.to))}</small>${move.occupied ? '<small class="gc-fm-cel-warn">Tile is occupied - drop onto it to swap the two (2 Planter Pots)</small>' : ""}</span></div>`).join("") : '<div class="gc-fm-cel-done">Every celestial is in place.</div>';
+    return `<div class="gc-fm-cel-label">Moves (${moves.length}) - click one to show its arrow</div><div class="gc-fm-cel-steps">${steps}</div>`;
+  }
+  function celestialPanel(cells, moves) {
+    const counts = {};
+    for (const cell of cells ?? []) {
+      const species = celestialOn(cell.tile);
+      if (species) counts[species] = (counts[species] ?? 0) + 1;
+    }
+    const segment = (attr, value, label, active) => `<button data-${attr}="${value}" data-active="${active}">${label}</button>`;
+    const placed = celPlan ? planCells(cells).filter((cell) => celPlan.plan.has(cell.local) && placedRight(celPlan, cell)).length : 0;
+    return `<div class="gc-fm-cel">
+<div class="gc-fm-cel-label">Farm side</div><div class="gc-fm-cel-seg">${segment("cel-side", "left", "Left", celSide === "left")}${segment("cel-side", "right", "Right", celSide === "right")}</div>
+<div class="gc-fm-cel-label">Every plant needs</div><div class="gc-fm-cel-seg">${segment("cel-goal", "amber", "Amber", celGoal === "amber")}${segment("cel-goal", "dawn", "Dawn", celGoal === "dawn")}${segment("cel-goal", "both", "Both", celGoal === "both")}</div>
+<button class="gc-fm-cel-refresh" data-cel-refresh title="Search again from scratch - can find a different layout">Recalculate</button>
+<div class="gc-fm-cel-counts">${[...CELESTIAL_SPECIES].map((species) => `<span>${celBadge(species)}<em>${CELESTIAL_LABELS[species]}</em><b>${counts[species] ?? 0}</b></span>`).join("")}</div>
+${celCalculating ? '<p class="gc-fm-cel-msg">Calculating layout...</p>' : celPlan?.message ? `<p class="gc-fm-cel-msg" data-tone="${celPlan.tone}">${escapeHtml(celPlan.message)}</p>` : ""}
+${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.plan.size} in place</div>` : ""}
+<small class="gc-fm-cel-help">Moonbinder (Mb) gives Amberbound and Dawnbinder (Db) gives Dawnbound to the 8 tiles around it. Hover a binder on the map to see which plants it reaches.</small>
+</div>`;
   }
   function edgeMarkers(size) {
     const edges = state.slot?.data?.garden?.edgeObjects;
@@ -17873,7 +17818,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return spriteImage(eggId ? page.__gardenCompanionShopSprites?.[eggId] || "" : "", eggId || "?");
   }
   function dropAction(cell) {
-    if (!drag || cell.kind !== "dirt" || cell.tile || busyTiles.has(cell.local)) return null;
+    if (!drag || cell.kind !== "dirt" || busyTiles.has(cell.local)) return null;
+    if (cell.tile) {
+      return tab === "celestial" && drag.from === "tile" && cell.tile.objectType === "plant" && cell.local !== drag.local ? "swap" : null;
+    }
     return drag.from === "tile" ? "move" : "place";
   }
   function scheduleRender() {
@@ -17889,7 +17837,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function setHtml(node, html) {
     if (rendered.get(node) === html) return;
     rendered.set(node, html);
+    const scroll = node.scrollTop;
     node.innerHTML = html;
+    if (scroll) node.scrollTop = scroll;
   }
   function render3() {
     const element = root();
@@ -17917,6 +17867,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}Placing ${escapeHtml(speciesName2(armedSpecies))}`);
     }
     const cells = farmCells();
+    if (tab === "celestial" && !celPlan && cells && !celCalculating) {
+      requestCelestialPlan();
+      return;
+    }
+    const warn = element.querySelector("[data-fm-warn]");
+    celMoves = tab === "celestial" && celPlan ? stableMoves(celPlan, planCells(cells), busy) : [];
+    if (celHoveredStep !== null && celHoveredStep >= celMoves.length) celHoveredStep = null;
+    const warning = tab === "celestial" && celMisplaced !== null ? `${celMisplacedText} - see step 1` : "";
+    warn.hidden = !warning;
+    if (warn.textContent !== warning) warn.textContent = warning;
     if (!cells) {
       setHtml(grid, '<div class="gc-fm-empty">Waiting for your farm to load. Walk into your garden once if this does not clear.</div>');
     } else {
@@ -17926,21 +17886,61 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const rows = Math.max(...cells.map((cell) => cell.y)) - minY + 1;
       const width = Math.max(120, grid.clientWidth - 24 - (columns - 1) * CELL_GAP);
       const size = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(width / columns)));
+      const celestial = tab === "celestial" && celPlan ? celPlan : null;
+      const plan = celestial ? planCells(cells) : [];
+      const planByLocal = new Map(plan.map((cell) => [cell.local, cell]));
+      const stepOf = new Map(celMoves.map((move, index) => [move.from, index + 1]));
+      const activeMove = celMoves[celHoveredStep ?? 0] ?? null;
+      const annotate = (cell) => {
+        if (!celestial || cell.kind !== "dirt") return { attrs: "", inner: "" };
+        const planned = celestial.plan.get(cell.local) ?? null;
+        const actual = celestialOn(cell.tile);
+        const planCell = planByLocal.get(cell.local);
+        const right = planned ? placedRight(celestial, planCell) : false;
+        const mustMove = Boolean(actual && !right);
+        if (!planned && !actual) return { attrs: celestial.sideTiles.has(cell.local) ? ' data-cel-area="true"' : "", inner: "" };
+        const state2 = right ? "ok" : mustMove ? "move" : "planned";
+        const shown = planned ?? actual;
+        const active = activeMove && (activeMove.from === cell.local || activeMove.to === cell.local);
+        let inner = planned && !right ? `<i class="gc-fm-cel-badge">${CELESTIAL_BADGE[planned].short}</i>` : "";
+        if (mustMove) inner += `<i class="gc-fm-cel-num">${stepOf.get(cell.local) ?? "!"}</i>`;
+        if (cell.local === celMisplaced) inner += '<i class="gc-fm-cel-oops">!</i>';
+        if (planned && !cell.tile) inner = `${spriteImage(produceSprite(planned), "")}${inner}`;
+        return { attrs: ` data-cel="${state2}" data-cel-area="${celestial.sideTiles.has(cell.local)}"${active ? ' data-cel-active="true"' : ""} style="--chip:${CELESTIAL_BADGE[shown].color};`, inner };
+      };
+      const centre = (local) => {
+        const cell = cells.find((item) => item.kind === "dirt" && item.local === local);
+        return cell ? { x: (cell.x - minX) * (size + CELL_GAP) + size / 2, y: (cell.y - minY) * (size + CELL_GAP) + size / 2 } : null;
+      };
+      const a = celestial && activeMove ? centre(activeMove.from) : null;
+      const b = celestial && activeMove ? centre(activeMove.to) : null;
+      const arrow = a && b ? `<svg class="gc-fm-cel-arrow"><defs><marker id="gc-fm-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fde68a"/></marker></defs><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" marker-end="url(#gc-fm-head)"/></svg>` : "";
       setHtml(grid, `<div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map((cell) => {
         const movable = cell.kind === "dirt" && cell.tile?.objectType === "plant" && !busyTiles.has(cell.local) && !busy;
         const plantable = armedSpecies && cell.kind === "dirt" && !cell.tile && !busyTiles.has(cell.local);
-        return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || "empty")}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ""}${plantable ? ' data-drop="place" data-armed="true"' : ""} style="grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}" title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ""}>${cellContent(cell)}</div>`;
-      }).join("")}${edgeMarkers(size)}</div>`);
+        const extra = annotate(cell);
+        const position2 = `grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}`;
+        const style = extra.attrs.includes('style="') ? `${position2}"` : ` style="${position2}"`;
+        return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || "empty")}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ""}${plantable ? ' data-drop="place" data-armed="true"' : ""}${extra.attrs}${style} title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ""}>${cellContent(cell)}${extra.inner}</div>`;
+      }).join("")}${edgeMarkers(size)}${arrow}</div>`);
     }
     element.querySelectorAll("[data-fm-tab]").forEach((button) => {
       button.dataset.active = String(button.dataset.fmTab === tab);
     });
     const capacity = element.querySelector("[data-fm-capacity]");
     capacity.hidden = tab !== "plants";
+    element.querySelector("[data-fm-search]").hidden = tab === "celestial";
     const used = INVENTORY_SLOTS2 - freeInventorySlots();
     capacity.dataset.full = String(used >= INVENTORY_SLOTS2);
     setHtml(capacity, `<span>Inventory</span><b>${used}/${INVENTORY_SLOTS2}</b>`);
-    if (tab === "seeds") {
+    if (element.dataset.tab !== tab) element.dataset.tab = tab;
+    element.querySelector("[data-fm-subtitle]").hidden = tab !== "celestial";
+    const movesColumn = element.querySelector("[data-fm-moves]");
+    movesColumn.hidden = tab !== "celestial";
+    if (tab === "celestial") setHtml(movesColumn, celestialSteps(celMoves));
+    if (tab === "celestial") {
+      setHtml(list, celestialPanel(cells, celMoves));
+    } else if (tab === "seeds") {
       const seeds = stacks.filter((stack) => matches2(stack.species));
       setHtml(list, seeds.length ? seeds.map((stack) => `<div class="gc-fm-item" data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one${stack.stored ? `
 ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species)}<span><b>${escapeHtml(speciesName2(stack.species))}</b><small>x${stack.loose + stack.stored}${stack.stored ? " · Silo" : ""}</small></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No seeds match." : "No seeds in your inventory or Seed Silo."}</div>`);
@@ -17949,7 +17949,10 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     }
     const count = cells?.filter((cell) => cell.kind === "dirt" && cell.tile?.objectType === "plant").length ?? 0;
     const free = cells?.filter((cell) => cell.kind === "dirt" && !cell.tile).length ?? 0;
-    if (!busy) {
+    if (!busy && tab === "celestial") {
+      const text = celMoves.length ? `Step ${(celHoveredStep ?? 0) + 1}: drag the plant with the red number to the tile the arrow points at - drop onto a plant to swap them. A move uses a Planter Pot, a swap two (${planterPots()} left).` : celPlan?.plan.size ? "Celestial layout complete." : "Plant some celestials to plan a layout.";
+      if (status.textContent !== text) status.textContent = text;
+    } else if (!busy) {
       const text = armedSpecies ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName2(armedSpecies)}; click it in the list again to stop.` : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it, or right click it to pot it; each uses a Planter Pot.`;
       if (status.textContent !== text) status.textContent = text;
     }
@@ -18018,20 +18021,27 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     }
     if (work.from === "tile") {
       if (refusePotless()) return;
-      if (freeInventorySlots() < 1) {
-        toast("Your inventory is full, so the plant cannot be lifted. Free a slot first.", "error");
+      const swap = Boolean(target.tile);
+      if (swap && planterPots() < 2) {
+        toast("A swap needs two Planter Pots.", "error");
+        return;
+      }
+      if (freeInventorySlots() < (swap ? 2 : 1)) {
+        toast(swap ? "A swap needs two free inventory slots." : "Your inventory is full, so the plant cannot be lifted. Free a slot first.", "error");
         return;
       }
     }
     const status = root()?.querySelector("[data-fm-status]");
     const involved = work.from === "tile" ? [work.local, target.local] : [target.local];
     busyTiles = new Set(involved);
-    if (status) status.textContent = work.from !== "tile" ? "Planting..." : "Moving plant...";
+    if (status) status.textContent = work.from !== "tile" ? "Planting..." : target.tile ? "Swapping plants..." : "Moving plant...";
     render3();
     try {
       if (work.from === "seed") await plantSeed(work.species, target.local);
-      else if (work.from === "tile") await actions.move(work.local, target.local);
-      else await actions.replant(target.local, work.itemId);
+      else if (work.from === "tile") {
+        await actions.move(work.local, target.local);
+        if (tab === "celestial") checkCelestialDrop(target.local);
+      } else await actions.replant(target.local, work.itemId);
     } catch (error) {
       toast(`Move stopped: ${error.message}.`, "error");
     } finally {
@@ -18105,10 +18115,37 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       void perform(work, target);
     });
     element.addEventListener("dragend", clearDrag);
+    element.addEventListener("mouseover", (event) => {
+      if (tab !== "celestial" || drag) return;
+      const target = event.target;
+      const node = target.closest('.gc-fm-cell[data-kind="dirt"]');
+      element.querySelectorAll("[data-cel-lit],[data-cel-source]").forEach((other) => {
+        delete other.dataset.celLit;
+        delete other.dataset.celSource;
+      });
+      if (!node) return;
+      const cells = planCells(farmCells());
+      const cell = cells.find((item) => item.local === Number(node.dataset.local));
+      const kind = cell ? binderOn(celPlan, cell) : null;
+      if (!cell || !kind) return;
+      node.dataset.celSource = kind;
+      for (const other of neighboursOf(cell, cells, celPlan)) {
+        if (!celestialOn(other.tile) && !celPlan?.plan.has(other.local)) continue;
+        const otherNode = element.querySelector(`.gc-fm-cell[data-kind="dirt"][data-local="${other.local}"]`);
+        if (otherNode) otherNode.dataset.celLit = kind;
+      }
+    });
+    element.addEventListener("mouseleave", () => {
+      element.querySelectorAll("[data-cel-lit],[data-cel-source]").forEach((other) => {
+        delete other.dataset.celLit;
+        delete other.dataset.celSource;
+      });
+    });
     element.addEventListener("contextmenu", (event) => {
       const target = event.target;
       if (!target.closest("[data-fm-grid]")) return;
       event.preventDefault();
+      if (tab === "celestial") return;
       const cellNode = target.closest('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
       if (!cellNode) return;
       if (cellNode.dataset.pending) return;
@@ -18120,6 +18157,27 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     });
     element.addEventListener("click", (event) => {
       const target = event.target;
+      const side = target.closest("[data-cel-side]")?.dataset.celSide;
+      if (side === "left" || side === "right") {
+        celSide = side;
+        requestCelestialPlan();
+        return;
+      }
+      const goal = target.closest("[data-cel-goal]")?.dataset.celGoal;
+      if (goal) {
+        celGoal = goal;
+        requestCelestialPlan();
+        return;
+      }
+      const step = target.closest("[data-cel-step]");
+      if (step) {
+        selectCelestialStep(Number(step.dataset.celStep));
+        return;
+      }
+      if (target.closest("[data-cel-refresh]")) {
+        requestCelestialPlan(true);
+        return;
+      }
       const plantNode = target.closest(".gc-fm-item[data-item]");
       if (plantNode) {
         const id = plantNode.dataset.item;
@@ -18162,8 +18220,8 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     element.id = "gc-farm-manager";
     element.hidden = true;
     element.dataset.gcUi = "";
-    element.innerHTML = `<header><div><i></i><span>Farm Manager</span><b class="gc-fm-placing" data-fm-placing hidden></b></div><button data-fm-close aria-label="Close">×</button></header>
-<main><div class="gc-fm-grid" data-fm-grid data-no-drag></div><aside data-no-drag><div class="gc-fm-tabs"><button data-fm-tab="plants">Plants</button><button data-fm-tab="seeds">Seeds</button></div><div class="gc-fm-capacity" data-fm-capacity hidden></div><input data-fm-search placeholder="Search" spellcheck="false"><div class="gc-fm-list" data-fm-inventory></div></aside></main>
+    element.innerHTML = `<header><div><i></i><span>Farm Manager</span><small class="gc-fm-subtitle" data-fm-subtitle hidden>Plans the best placement so every celestial gets full Moonbinder and Dawnbinder coverage</small><b class="gc-fm-placing" data-fm-placing hidden></b><b class="gc-fm-warn" data-fm-warn hidden></b></div><button data-fm-close aria-label="Close">×</button></header>
+<main><div class="gc-fm-moves" data-fm-moves data-no-drag hidden></div><div class="gc-fm-grid" data-fm-grid data-no-drag></div><aside data-no-drag><div class="gc-fm-tabs"><button data-fm-tab="plants">Plants</button><button data-fm-tab="seeds">Seeds</button><button data-fm-tab="celestial">Celestials</button></div><div class="gc-fm-capacity" data-fm-capacity hidden></div><input data-fm-search placeholder="Search" spellcheck="false"><div class="gc-fm-list" data-fm-inventory></div></aside></main>
 <footer data-fm-status></footer>`;
     element.querySelector("[data-fm-close]").onclick = () => {
       element.hidden = true;
@@ -18176,22 +18234,36 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     });
     element.querySelectorAll("[data-fm-tab]").forEach((button) => button.onclick = () => {
       tab = button.dataset.fmTab;
+      if (tab === "celestial") celPlan = null;
       render3();
     });
     bindEvents(element);
     document.body.appendChild(element);
-    makeDraggable(element, POSITION_KEY7, { handle: "header" });
+    makeDraggable(element, POSITION_KEY6, { handle: "header" });
     return element;
   }
   function toggle2() {
     const element = ensurePanel2();
     element.hidden = !element.hidden;
     if (element.hidden) return;
+    if (tab === "celestial") celPlan = null;
     page.__gardenCompanionLoadSpriteGroup?.("deferred");
     render3();
   }
+  function toggleCelestial() {
+    const element = ensurePanel2();
+    if (!element.hidden && tab === "celestial") {
+      element.hidden = true;
+      return;
+    }
+    tab = "celestial";
+    celPlan = null;
+    if (element.hidden) toggle2();
+    else render3();
+  }
   function initFarmManager() {
     page.__gardenCompanionToggleFarmManager = toggle2;
+    page.__gardenCompanionToggleCelestialLayout = toggleCelestial;
     onStateChange(scheduleRender);
     onSpritesReady(scheduleRender);
     window.addEventListener("resize", scheduleRender);
@@ -18978,7 +19050,6 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     if (feature("overview")) initGardenOverview();
     initPlantDragMove();
     initPlanterPotSelection();
-    initCelestialLayoutGuide();
     initCropCleanserHelper();
     initFarmManager();
     initGardenPlanner();

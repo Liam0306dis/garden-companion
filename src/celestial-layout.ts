@@ -238,6 +238,8 @@ export function generateCelestialLayout(
   goal: CelestialGoal,
   blocked: readonly boolean[] = [],
   unavailable: readonly boolean[] = [],
+  /** Varies the search's seed, so a forced recalculation can find a different layout for the same garden. */
+  salt = '',
 ): CelestialLayoutResult {
   const capacity = rows * columns - unavailable.filter(Boolean).length;
   if (!species.length) return { cells: [], required: 0, met: 0, error: 'No celestial plants are currently planted.' };
@@ -259,7 +261,7 @@ export function generateCelestialLayout(
     }
   }
 
-  const random = seededRandom(`${rows}x${columns}:${goal}:${[...species].sort().join(',')}:${blocked.map(value => value ? 1 : 0).join('')}:${unavailable.map(value => value ? 1 : 0).join('')}`);
+  const random = seededRandom(`${salt}${rows}x${columns}:${goal}:${[...species].sort().join(',')}:${blocked.map(value => value ? 1 : 0).join('')}:${unavailable.map(value => value ? 1 : 0).join('')}`);
   const amberCapacity = moonCount * 8;
   const dawnCapacity = dawnCount * 8;
   const provablyImpossible = (goal === 'amber' || goal === 'both' ? species.length > amberCapacity : false)

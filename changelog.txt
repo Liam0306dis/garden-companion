@@ -1,3 +1,10 @@
+0.9.43
+- Celestial layout is now a Celestials tab in Farm Manager: drag plants on the map to follow the plan step by step, or drop one onto another to swap them
+- Badges show which celestial goes where, red numbers mark plants to move, and an arrow points out the selected step
+- Hover a Moonbinder or Dawnbinder to see which plants it buffs
+- Keeps your current layout when it already works, otherwise plans the fewest moves - Recalculate searches again
+- A plant dropped on the wrong tile is flagged and becomes step 1
+
 0.9.42
 - Farm Manager: lanterns, string lights and windchimes on tile edges now show on the map
 - Fixed the friend bonus in crop values and Garden Overview counting spectators as players

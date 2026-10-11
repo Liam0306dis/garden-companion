@@ -8,7 +8,6 @@ import { initFishing } from './features/fishing.js';
 import { initGardenDefence } from './features/garden-defence.js';
 import { initPlantDragMove } from './features/plant-drag-move.js';
 import { initPlanterPotSelection } from './features/planter-pot-selection.js';
-import { initCelestialLayoutGuide } from './features/celestial-layout-guide.js';
 import { initCropCleanserHelper } from './features/crop-cleanser-helper.js';
 import { initFarmManager } from './features/farm-manager.js';
 import { initPreserveAll } from './features/preserve-all.js';
@@ -38,7 +37,6 @@ if (isGameFrame()) {
   if (feature('overview')) initGardenOverview();
   initPlantDragMove();
   initPlanterPotSelection();
-  initCelestialLayoutGuide();
   initCropCleanserHelper();
   initFarmManager();
   initGardenPlanner();
