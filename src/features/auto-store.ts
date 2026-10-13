@@ -1,4 +1,5 @@
 import { feature } from '../config.js';
+import { TOOL_LIMITS } from '../constants.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { toolIsHeld } from '../pets.js';
 import { state } from '../state.js';
@@ -125,15 +126,33 @@ function inventoryItems(): StoredItem[] {
   return (state.slot?.data?.inventory?.items ?? []) as unknown as StoredItem[];
 }
 
-function storedKeys(rule: StoreRule): Set<string> {
+/** What the storage holds, by key, with the size of its first stack - the one the game tops up. */
+function storedStacks(rule: StoreRule): Map<string, number> {
   const storage = (state.slot?.data?.inventory?.storages ?? []).find(entry => entry.decorId === rule.storageId);
   const items = (storage?.items ?? []) as unknown as StoredItem[];
-  const keys = new Set<string>();
+  const stacks = new Map<string, number>();
   for (const item of items) {
     const key = rule.key(item);
-    if (key) keys.add(key);
+    if (key && !stacks.has(key)) stacks.set(key, Number(item.quantity || 0));
   }
-  return keys;
+  return stacks;
+}
+
+/**
+ * Capped tools (99 for most) stack to their limit in the Tool Shack just as in the inventory. The
+ * game's MoveItem moves only as many as the shack's stack has room for - 10 onto 95 moves 4 and
+ * leaves 6 - and refuses the move outright once that stack is full, so 10 Watering Cans onto a
+ * shack holding 99 is rejected. Only tools carry a cap, as in the game's own check.
+ */
+function storageFull(rule: StoreRule, key: string, stored: number): boolean {
+  if (rule.itemType !== 'Tool') return false;
+  const limit = (TOOL_LIMITS as Record<string, number>)[key];
+  return Boolean(limit) && stored >= limit;
+}
+
+/** As storageFull, read fresh - the drain recheck holds only the key. */
+function storageFullNow(rule: StoreRule, key: string): boolean {
+  return storageFull(rule, key, storedStacks(rule).get(key) ?? 0);
 }
 
 /** Everything that decides what would be sent, so an unchanged inventory can be left alone. */
@@ -152,12 +171,13 @@ function flush(): void {
   let queuedAny = false;
   for (const rule of RULES) {
     if (!rule.enabled()) continue;
-    const stored = storedKeys(rule);
+    const stored = storedStacks(rule);
     if (!stored.size) continue;
     for (const item of inventoryItems()) {
       if (item.itemType !== rule.itemType) continue;
       const key = rule.key(item);
       if (!key || !stored.has(key) || isBusy(rule, key) || isTimedTool(item)) continue;
+      if (storageFull(rule, key, stored.get(key)!)) continue;
       const pending = `${rule.storageId}:${key}`;
       if (sentAt.has(pending) || queued.has(pending)) continue;
       queued.add(pending);
@@ -180,7 +200,7 @@ function drain(): void {
   queued.delete(next.pending);
   // Rechecked here as well as at queue time: a drag can start while a move for the same tool is
   // still sitting in the queue behind everything else.
-  if (next.rule.enabled() && !isBusy(next.rule, next.key) && !toolHasTimer(next.key)) {
+  if (next.rule.enabled() && !isBusy(next.rule, next.key) && !toolHasTimer(next.key) && !storageFullNow(next.rule, next.key)) {
     // Marked only once it is away, so the grace covers waiting for the echo rather than the wait
     // in the queue behind everything else.
     try {

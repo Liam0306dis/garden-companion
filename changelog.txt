@@ -1,3 +1,6 @@
+0.9.46
+- Auto-store no longer tries to move a tool into the Tool Shack when its stack there is already full
+
 0.9.45
 - Fishing and Garden Defence: plant and decor shadows no longer show through, and the game's Insta Grow, Pick Up and View buttons are hidden while playing
 - Garden Defence: pets are hidden while playing
