@@ -1,5 +1,8 @@
+0.9.48
+- Further fixes for input lag when swapping or placing items
+
 0.9.47
-- Fixed swapping and placing items feeling laggy, with items briefly snapping back, after the companion had sent a command of its own
+- Fixed input lag when swapping or placing items, where items would briefly snap back
 
 0.9.46
 - Auto-store no longer tries to move a tool into the Tool Shack when its stack there is already full

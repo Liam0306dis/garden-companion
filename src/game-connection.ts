@@ -1,5 +1,7 @@
 import { page } from './page.js';
 import { atomMap, findAtom } from './atom-cache.js';
+import { quinoaEngine } from './quinoa-engine.js';
+import type { JotaiAtom } from './types.js';
 
 /**
  * The QuinoaCommand envelope carries a commandSequence, and the server accepts an envelope only when
@@ -229,8 +231,10 @@ export function renumberOutgoingCommand(frame: Record<string, unknown>): boolean
   if (sequence < 0) seedWithoutWelcome(frame);
   if (sequence < 0) return false;
   const gameNumber = frame.commandSequence;
-  frame.commandSequence = allocateSequence();
-  if (typeof frame.requestId === 'string' && gameNumber !== frame.commandSequence) noteWireNumber(frame.requestId, frame.commandSequence as number);
+  const wire = allocateSequence();
+  frame.commandSequence = wire;
+  // Only the game's own frames arrive numbered, and only the game files bookkeeping under that number.
+  if (typeof gameNumber === 'number' && typeof frame.requestId === 'string' && gameNumber !== wire) noteWireNumber(frame.requestId, wire);
   return true;
 }
 
@@ -239,48 +243,92 @@ export function renumberOutgoingCommand(frame: Record<string, unknown>): boolean
  * might still be filing its bookkeeping for it.
  *
  * Renumbering has a cost on the game's side. It files every command it sends - the prediction that
- * shows a swap or placement before the server answers, and the fence that holds back conflicting
- * commands - under the number its own counter chose, and drops each once the server's executed
- * frontier reaches that number. Our commands take wire numbers its counter never hears of, so after
- * the first one its numbers run behind the wire, the frontier reaches them a command early, and the
- * prediction is dropped while the command is still in flight: the item snaps back until the real
- * state arrives, which is felt as input lag. Writing the wire number onto those entries as the game
- * files them puts them back in step. Nothing on the wire changes, so other mods see the same stream.
+ * shows a swap or placement before the server answers, the fence that holds back conflicting
+ * commands, and the currency HUD's pending gain - under the number its own counter chose, and drops
+ * each once the server's executed frontier reaches that number. Our commands take wire numbers its
+ * counter never hears of, so after the first one its numbers run behind the wire, the frontier
+ * reaches them a command early, and the prediction is dropped while the command is still in flight:
+ * the item snaps back until the real state arrives, which is felt as input lag. Writing the wire
+ * number onto those entries puts them back in step. Nothing on the wire changes, so other mods see
+ * the same stream.
+ *
+ * The cleaner fix - advancing the game's counter for our commands - is out of reach: the counter and
+ * the game's sender are both module-private.
  */
 const wireNumbers = new Map<string, number>();
 
+/** The last array the game wrote to each numbered list, so an entry filed before its frame left is still reached. */
+const lastLists = new Map<JotaiAtom, unknown>();
+
 function noteWireNumber(requestId: string, wire: number): void {
   wireNumbers.set(requestId, wire);
-  // The entries are filed in the same tick the frame leaves, so this only has to outlive that.
+  // Today the game files its entries straight after the send returns, and the write hook catches
+  // them; a build that files first is covered by restamping what is already filed.
+  for (const list of lastLists.values()) restampEntries(list);
+  // The currency HUD is told about the command after the send returns, in the same synchronous run,
+  // so its entry exists by the time a microtask runs - and well before its next frame reads it.
+  queueMicrotask(restampCurrencySources);
+  // Everything is filed within the tick the frame leaves, so this only has to outlive that.
   setTimeout(() => wireNumbers.delete(requestId), 10_000);
+}
+
+function restampEntry(entry: Record<string, unknown> | null | undefined): void {
+  const wire = typeof entry?.requestId === 'string' ? wireNumbers.get(entry.requestId) : undefined;
+  if (wire !== undefined && entry!.commandSequence !== wire) entry!.commandSequence = wire;
 }
 
 function restampEntries(value: unknown): void {
   if (!wireNumbers.size || !Array.isArray(value)) return;
-  for (const entry of value) {
-    const wire = typeof entry?.requestId === 'string' ? wireNumbers.get(entry.requestId) : undefined;
-    if (wire !== undefined && entry.commandSequence !== wire) entry.commandSequence = wire;
-  }
+  for (const entry of value) restampEntry(entry);
+}
+
+/** The currency HUD keeps its own set of pending gains, each holding the dispatch the game sent. */
+function restampCurrencySources(): void {
+  try {
+    const sources = quinoaEngine()?.getSystem?.('currencyHud')?.pendingSources;
+    if (!(sources instanceof Set)) return;
+    for (const source of sources) restampEntry(source?.dispatch);
+  } catch { /* a reshaped HUD only loses the restamp */ }
 }
 
 /** The game's two lists filed by command number: both are plain atoms the game writes whole arrays to. */
 const NUMBERED_LIST_ATOMS = ['enqueuedQuinoaPredictionsAtom', 'trackedQuinoaPredictionFencesAtom'];
+/** When the game's engine was first seen running, which starts the grace period for a missing list. */
+let engineSeenAt = 0;
+/** Long enough for the canvas chunks that hold the lists to finish loading on a slow connection. */
+const RESTAMP_GRACE_MS = 60_000;
 
-/** True once every list is hooked; a list this build does not have is left alone. */
+/**
+ * True once every list is hooked - or once the game has been running for a while without one of
+ * them, since a renamed list will not turn up later and polling the whole atom cache for it would
+ * never end. The clock starts at the engine rather than the room connection: the lists live in the
+ * canvas chunks, which can still be loading after the first room frame has arrived.
+ *
+ * One more copy of the game's number is out of reach: the RPC tracker builds each command's receipt
+ * from its own attempt record, and that tracker is module-private. Receipts are only ever sorted by
+ * that number, and the game's numbers run in the same order as the wire's, so nothing reads it wrong.
+ */
 export function installPredictionRestamp(): boolean {
   if (!atomMap()) return false;
+  const missing: string[] = [];
   for (const label of NUMBERED_LIST_ATOMS) {
     const atom = findAtom(label);
-    if (!atom || typeof atom.write !== 'function' || atom.__gardenCompanionRestamp) continue;
+    if (!atom || typeof atom.write !== 'function') { missing.push(label); continue; }
+    if (atom.__gardenCompanionRestamp) continue;
     const originalWrite = atom.write;
     atom.write = function(get, set, ...args) {
       // Guarded so a surprise in the shape can never take the game's own write down with it.
-      try { restampEntries(args[0]); } catch { /* keep the write */ }
+      try { restampEntries(args[0]); lastLists.set(atom, args[0]); } catch { /* keep the write */ }
       return originalWrite.call(this, get, set, ...args);
     };
     atom.__gardenCompanionRestamp = true;
   }
-  return NUMBERED_LIST_ATOMS.every(label => findAtom(label)?.__gardenCompanionRestamp);
+  if (!missing.length) return true;
+  if (!quinoaEngine()) return false;
+  engineSeenAt ||= Date.now();
+  if (Date.now() - engineSeenAt < RESTAMP_GRACE_MS) return false;
+  console.warn('[Garden Companion] Prediction restamp could not find these game atoms; swaps may lag after our own commands.', missing);
+  return true;
 }
 
 /**
