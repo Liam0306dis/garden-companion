@@ -1,3 +1,6 @@
+0.9.47
+- Fixed swapping and placing items feeling laggy, with items briefly snapping back, after the companion had sent a command of its own
+
 0.9.46
 - Auto-store no longer tries to move a tool into the Tool Shack when its stack there is already full
 

@@ -3,7 +3,7 @@ import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
 import { ABILITY_DETAILS, KOFI_URL, TRACKED_ABILITY_CATALOG } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { applyAlarmLayout, armAlarmAudio, installAlarms } from './alarms.js';
-import { getSequencerDiagnostics, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, renumberOutgoingCommand, seedCommandSequence } from './game-connection.js';
+import { getSequencerDiagnostics, installPredictionRestamp, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, renumberOutgoingCommand, seedCommandSequence } from './game-connection.js';
 import { installCropEstimates, syncCropEstimates } from './features/crop-estimates.js';
 import { syncProduceLocks } from './features/produce-locks.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -786,6 +786,7 @@ export function initCompanion(): void {
 
   installGameModalAccess();
   retryUntil(subscribeToState, 'the room state subscription');
+  retryUntil(installPredictionRestamp, 'the prediction restamp');
   installAtomHooks();
   installInstantHarvest();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });

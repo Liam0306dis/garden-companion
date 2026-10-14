@@ -1,4 +1,5 @@
 import { page } from './page.js';
+import { atomMap, findAtom } from './atom-cache.js';
 
 /**
  * The QuinoaCommand envelope carries a commandSequence, and the server accepts an envelope only when
@@ -227,8 +228,59 @@ export function renumberOutgoingCommand(frame: Record<string, unknown>): boolean
   if (frame.type !== 'QuinoaCommand') return false;
   if (sequence < 0) seedWithoutWelcome(frame);
   if (sequence < 0) return false;
+  const gameNumber = frame.commandSequence;
   frame.commandSequence = allocateSequence();
+  if (typeof frame.requestId === 'string' && gameNumber !== frame.commandSequence) noteWireNumber(frame.requestId, frame.commandSequence as number);
   return true;
+}
+
+/**
+ * The number each of the game's commands actually left with, by request id, for as long as the game
+ * might still be filing its bookkeeping for it.
+ *
+ * Renumbering has a cost on the game's side. It files every command it sends - the prediction that
+ * shows a swap or placement before the server answers, and the fence that holds back conflicting
+ * commands - under the number its own counter chose, and drops each once the server's executed
+ * frontier reaches that number. Our commands take wire numbers its counter never hears of, so after
+ * the first one its numbers run behind the wire, the frontier reaches them a command early, and the
+ * prediction is dropped while the command is still in flight: the item snaps back until the real
+ * state arrives, which is felt as input lag. Writing the wire number onto those entries as the game
+ * files them puts them back in step. Nothing on the wire changes, so other mods see the same stream.
+ */
+const wireNumbers = new Map<string, number>();
+
+function noteWireNumber(requestId: string, wire: number): void {
+  wireNumbers.set(requestId, wire);
+  // The entries are filed in the same tick the frame leaves, so this only has to outlive that.
+  setTimeout(() => wireNumbers.delete(requestId), 10_000);
+}
+
+function restampEntries(value: unknown): void {
+  if (!wireNumbers.size || !Array.isArray(value)) return;
+  for (const entry of value) {
+    const wire = typeof entry?.requestId === 'string' ? wireNumbers.get(entry.requestId) : undefined;
+    if (wire !== undefined && entry.commandSequence !== wire) entry.commandSequence = wire;
+  }
+}
+
+/** The game's two lists filed by command number: both are plain atoms the game writes whole arrays to. */
+const NUMBERED_LIST_ATOMS = ['enqueuedQuinoaPredictionsAtom', 'trackedQuinoaPredictionFencesAtom'];
+
+/** True once every list is hooked; a list this build does not have is left alone. */
+export function installPredictionRestamp(): boolean {
+  if (!atomMap()) return false;
+  for (const label of NUMBERED_LIST_ATOMS) {
+    const atom = findAtom(label);
+    if (!atom || typeof atom.write !== 'function' || atom.__gardenCompanionRestamp) continue;
+    const originalWrite = atom.write;
+    atom.write = function(get, set, ...args) {
+      // Guarded so a surprise in the shape can never take the game's own write down with it.
+      try { restampEntries(args[0]); } catch { /* keep the write */ }
+      return originalWrite.call(this, get, set, ...args);
+    };
+    atom.__gardenCompanionRestamp = true;
+  }
+  return NUMBERED_LIST_ATOMS.every(label => findAtom(label)?.__gardenCompanionRestamp);
 }
 
 /**
