@@ -73,15 +73,15 @@ const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
     'PassionFruit', 'DragonFruit', 'Cacao', 'Lychee', 'Sunflower', 'Starweaver', 'DawnCelestial', 'MoonCelestial', 'Daisy',
     'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'Snowdrop', 'PineTree', 'Leek', 'Squash', 'Poinsettia',
     'Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial',
-    // The Rain and Amber shops, from a preview build and not live yet.
     'Clover', 'Delphinium', 'Persimmon', 'Habanero', 'Marigold', 'Emberbloom',
+    'GhostPlant', 'Foxfire', 'DeadlyNightshade',
   ],
   // SnowEgg and WinterEgg are both live ids for the same egg, and only WinterEgg has atlas art,
   // so both are listed and both resolve to that one frame.
-  egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'WinterEgg', 'ThunderEgg', 'AmberEgg'],
+  egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'WinterEgg', 'ThunderEgg', 'AmberEgg', 'SpookyEgg'],
   // The Shards are the Rain and Amber shops' tools, and follow the same sprite paths as the rest.
   tool: ['PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion',
-    'RainWardShard', 'SnowWardShard', 'ThunderWardShard', 'HungerShard', 'XPShard', 'StrengthShard'],
+    'RainWardShard', 'SnowWardShard', 'ThunderWardShard', 'HungerShard', 'XPShard', 'StrengthShard', 'CarvingKnife'],
 };
 
 /**
@@ -179,26 +179,34 @@ async function detectAssetBases(): Promise<string[]> {
   return [];
 }
 
-async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[]; petRiveUrl: string | null }> {
+/**
+ * Every Rive file of pets, `rive/pets` first. Build 1598 put the Haunt event's pets (Moth, Snake, Toad)
+ * in a file of their own, `rive/halloween-pets`, so only reading `rive/pets` left them without art.
+ */
+const PET_RIVE_ALIAS = /^rive\/(?:[\w-]+-)?pets(?:\.riv)?$/;
+
+async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[]; petRiveUrls: string[] }> {
   try {
     const response = await fetch(`${assetsBase}manifest.json`);
-    if (!response.ok) return { atlasPaths: [], petRiveUrl: null };
+    if (!response.ok) return { atlasPaths: [], petRiveUrls: [] };
     const manifest = await response.json() as AssetManifest;
     const paths = new Set<string>();
-    let petRiveUrl: string | null = null;
+    const petRiveUrls: string[] = [];
     for (const bundle of manifest.bundles ?? []) {
       for (const asset of bundle.assets ?? []) {
         const source = bestSource(asset.src ?? []);
         if (!source) continue;
         if (source.startsWith('atlases/') && source.endsWith('.json')) paths.add(source);
-        if (asset.alias?.some(alias => alias === 'rive/pets.riv' || alias === 'rive/pets')) {
-          petRiveUrl = new URL(source, assetsBase).href;
+        if (asset.alias?.some(alias => PET_RIVE_ALIAS.test(alias))) {
+          const url = new URL(source, assetsBase).href;
+          if (asset.alias.some(alias => alias.startsWith('rive/pets'))) petRiveUrls.unshift(url);
+          else petRiveUrls.push(url);
         }
       }
     }
-    return { atlasPaths: [...paths], petRiveUrl };
+    return { atlasPaths: [...paths], petRiveUrls };
   } catch {
-    return { atlasPaths: [], petRiveUrl: null };
+    return { atlasPaths: [], petRiveUrls: [] };
   }
 }
 
@@ -765,10 +773,10 @@ export async function initPetSprites(): Promise<void> {
   // rather than every sprite on the page.
   const bases = await detectAssetBases();
   let assetsBase: string | null = null;
-  let sources: { atlasPaths: string[]; petRiveUrl: string | null } | null = null;
+  let sources: { atlasPaths: string[]; petRiveUrls: string[] } | null = null;
   for (const base of bases) {
     const found = await assetSources(base);
-    if (found.atlasPaths.length || found.petRiveUrl) { assetsBase = base; sources = found; break; }
+    if (found.atlasPaths.length || found.petRiveUrls.length) { assetsBase = base; sources = found; break; }
   }
   if (!assetsBase) return;
   const version = assetsBase.match(/\/version\/([^/]+)\//)?.[1] ?? 'unknown';
@@ -808,7 +816,7 @@ export async function initPetSprites(): Promise<void> {
     page.__gardenCompanionPetSpritesReady?.();
   }
 
-  async function loadSources(): Promise<{ atlasPaths: string[]; petRiveUrl: string | null }> {
+  async function loadSources(): Promise<{ atlasPaths: string[]; petRiveUrls: string[] }> {
     return sources ??= await assetSources(assetsBase!);
   }
 
@@ -854,7 +862,7 @@ export async function initPetSprites(): Promise<void> {
   }
 
   async function decodeEssential(): Promise<StageResult> {
-    const { atlasPaths, petRiveUrl } = await loadSources();
+    const { atlasPaths, petRiveUrls } = await loadSources();
     const { wanted, trimmedWanted } = essentialRequest();
     const { frames, trimmed, complete: atlasComplete, usedWorker } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
@@ -864,9 +872,12 @@ export async function initPetSprites(): Promise<void> {
     // worker is doing the cutting; on the main thread it would put that work back on startup.
     if (usedWorker) void runStage('deferred');
     let riveComplete = true;
-    if (petRiveUrl) {
+    // Each later file is only asked for the pets the earlier ones did not draw.
+    for (const url of petRiveUrls) {
+      const missing = species.filter(name => !frames.has(normaliseKey(`sprite/pet/${name}`)));
+      if (!missing.length) break;
       try {
-        for (const [key, image] of await petFrames(petRiveUrl, species)) frames.set(key, image);
+        for (const [key, image] of await petFrames(url, missing)) frames.set(key, image);
       } catch (error) {
         // The whole animation file failed, not one pet timing out, so anything atlas-less is now
         // missing - not a bundle worth persisting.
@@ -939,9 +950,10 @@ export async function initPetSprites(): Promise<void> {
         // Bumped when a caching bug means old entries may be wrong: `s2` retires every bundle written
         // before partial decodes stopped being cached, which had left some users with a permanently
         // missing pet sprite. `s3` retires bundles cropped from the half-size sheet, which decoded
-        // cleanly and so were cached with every lower-half frame (the plants) blank.
+        // cleanly and so were cached with every lower-half frame (the plants) blank. `s4` retires bundles
+        // from before the Halloween pets' Rive file was read, cached complete with those pets missing.
         // The tag rides on the fingerprint so eviction still matches by prefix.
-        const fingerprintKey = `s3-${rawFingerprint}`;
+        const fingerprintKey = `s4-${rawFingerprint}`;
         const request = requests[stage]();
         const key = `${fingerprintKey}:${stage}:${requestSignature(request.wanted, request.trimmedWanted)}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.

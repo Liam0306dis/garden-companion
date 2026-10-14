@@ -155,18 +155,33 @@ function storageFullNow(rule: StoreRule, key: string): boolean {
   return storageFull(rule, key, storedStacks(rule).get(key) ?? 0);
 }
 
-/** Everything that decides what would be sent, so an unchanged inventory can be left alone. */
-function inventorySignature(): string {
-  return inventoryItems()
+/**
+ * Everything that decides what would be sent, so an unchanged picture can be left alone. Not just
+ * the inventory: an item skipped because its storage was full, its kind was paused or its tool was
+ * busy has to be looked at again once that clears, even though the inventory itself has not moved.
+ */
+function flushSignature(): string {
+  const inventory = inventoryItems()
     .filter(item => RULES.some(rule => rule.itemType === item.itemType))
     .map(item => `${item.itemType}:${item.species ?? item.decorId ?? item.toolId ?? ''}:${item.quantity ?? ''}`)
     .join('|');
+  const storages = RULES.map(rule => [...storedStacks(rule)].map(([key, count]) => `${key}:${count}`).join(',')).join('/');
+  const paused = [...pauses].filter(([, count]) => count > 0).map(([type]) => type).join(',');
+  // Only tools the Shack already holds, the ones a hold is actually keeping back. Switching between
+  // any other tools must not change this, or every switch would resend moves the server refused.
+  const toolRule = RULES.find(rule => rule.itemType === 'Tool')!;
+  const shackTools = storedStacks(toolRule);
+  const busyTools = inventoryItems()
+    .filter(item => item.itemType === 'Tool' && item.toolId && shackTools.has(item.toolId) && isBusy(toolRule, item.toolId))
+    .map(item => item.toolId)
+    .join(',');
+  return `${inventory}#${storages}#${paused}#${busyTools}`;
 }
 
 function flush(): void {
   const now = Date.now();
   for (const [key, at] of sentAt) if (now - at > RESEND_GRACE_MS) sentAt.delete(key);
-  const signature = inventorySignature();
+  const signature = flushSignature();
   if (signature === lastQueuedSignature) return;
   let queuedAny = false;
   for (const rule of RULES) {

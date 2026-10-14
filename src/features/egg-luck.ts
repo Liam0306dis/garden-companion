@@ -24,9 +24,8 @@ import { escapeHtml, humanize, loadLocal, NUMBER_LOCALE, saveLocal } from '../ut
  * tallied apart from hatches: the bars measure the first, the odds table the second.
  *
  * Such a pet is recognised by the `extraPet` it arrives with rather than by the name of the entry
- * carrying it. The ability is tiered, and a preview build already logs `DoubleHatchII` against a
- * name that does not appear in the live bundle at all - so matching the name would have quietly
- * stopped counting those pets the day the tier shipped, while the parameter stays put.
+ * carrying it. The ability is tiered, so matching the name would quietly stop counting those pets the
+ * day another tier ships, while the parameter stays put.
  */
 
 /**

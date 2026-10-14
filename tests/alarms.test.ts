@@ -76,3 +76,19 @@ test('an action that throws puts its button back and leaves the alarm up', async
   assert.equal(document.getElementById('gc-toast')?.textContent, 'The game connection is not ready.');
   stopAlarm();
 });
+
+test('raising an owner that is already up refreshes it instead of adding a duplicate', () => {
+  showAlarmBanner({ owner: 'shop:seed:Carrot', label: 'SHOP', title: 'Carrot', detail: '5 remaining' });
+  showAlarmBanner({ owner: 'shop:seed:Corn', label: 'SHOP', title: 'Corn' });
+  // Showing, so it is redrawn in place with the new options.
+  showAlarmBanner({ owner: 'shop:seed:Carrot', label: 'SHOP', title: 'Carrot restocked', detail: '8 remaining' });
+  assert.deepEqual(titles(), ['Carrot restocked']);
+  assert.equal(banner()!.querySelector('[data-alarm-detail]')!.textContent, '8 remaining');
+  // Queued, so it is replaced where it stands rather than queued a second time.
+  showAlarmBanner({ owner: 'shop:seed:Corn', label: 'SHOP', title: 'Corn again' });
+  assert.match(queueLine().textContent!, /1 more alarm queued/);
+  stopAlarm('shop:seed:Carrot');
+  assert.deepEqual(titles(), ['Corn again']);
+  stopAlarm();
+  assert.equal(banner(), null);
+});

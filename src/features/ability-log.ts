@@ -184,7 +184,7 @@ export function procOutcomeTooltip(ability: string, data: Record<string, unknown
 
 /**
  * The individual abilities the picker can toggle, in display order. A filter option can list a tier
- * that this bundle's catalog does not have yet (the tables come from a preview build), so an option
+ * that this bundle's catalog does not have, so an option
  * that always draws empty is dropped, and within a group only the abilities that actually exist are
  * offered - toggling one no pet can have does nothing.
  */

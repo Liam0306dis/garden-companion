@@ -940,7 +940,7 @@ body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
 @keyframes gc-pm-pulse { 0%,100% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 0 rgba(52,211,153,.5); } 50% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 6px rgba(52,211,153,0); } }
 .gc-preserve-manager[data-holding=true] .gc-pm-run { transform:translateY(2px); }
 .gc-pm-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399); }
-.gc-pm-run [data-mgr-label],.gc-pm-run span { position:relative; }
+.gc-pm-run [data-pm-label],.gc-pm-run span { position:relative; }
 /* Crop locks: the Preservation manager's dialog, with a filter strip and a lock state per row. */
 /* A fixed height, not one that follows the list: filtering shrinks the list, and a centred dialog
    that shrinks moves every control out from under the pointer mid-click. */

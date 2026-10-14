@@ -144,6 +144,8 @@ export function initGardenPlanner(): void {
     erasing: boolean;
     /** Weather to preview the garden under: 'live' leaves it be, 'clear' forces clear skies. */
     weather: string;
+    /** Time of day to preview the garden under, alongside the weather: 'live' leaves it be. */
+    time: string;
   }
 
   const planner: PlannerState = {
@@ -161,6 +163,7 @@ export function initGardenPlanner(): void {
     painting: false,
     erasing: false,
     weather: 'live',
+    time: 'live',
   };
 
   // Weather preview: the scene draws every system from one shared frame context whose `weatherId`
@@ -186,6 +189,32 @@ export function initGardenPlanner(): void {
    */
   let weatherContext: Record<string, any> | null = null;
 
+  // Time of day works the same way, through the frame context's `dayNightPhase01` (0-1 around the
+  // day, starting at sunrise), and stacks with the weather - Amber at sunset is both at once. Each
+  // choice is the middle of its stage in the day cycle (AsyncEpoch chunk
+  // `{day:570,sunset:10,midnight:10,sunrise:10}`). A game without a day/night cycle has no such field,
+  // and then the Time row is not shown.
+  const TIME_CHOICES: ReadonlyArray<{ id: string; label: string }> = [
+    { id: 'live', label: 'Live' },
+    { id: 'day', label: 'Day' },
+    { id: 'sunset', label: 'Sunset' },
+    { id: 'midnight', label: 'Midnight' },
+    { id: 'sunrise', label: 'Sunrise' },
+  ];
+  const DAY_CYCLE: ReadonlyArray<[string, number]> = [['sunrise', 10], ['day', 570], ['sunset', 10], ['midnight', 10]];
+  const TIME_PHASE: Record<string, number> = (() => {
+    const total = DAY_CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0);
+    const phases: Record<string, number> = {};
+    let start = 0;
+    for (const [stage, minutes] of DAY_CYCLE) {
+      phases[stage] = (start + minutes / 2) / total;
+      start += minutes;
+    }
+    return phases;
+  })();
+  /** Whether the frame context has a day/night phase to override, which is when the Time row shows. */
+  let hasDayNight = false;
+
   function overrideContextWeather(context: Record<string, any>): void {
     weatherContext = context;
     let real = context.weatherId;
@@ -195,6 +224,19 @@ export function initGardenPlanner(): void {
       get: () => planner.open && planner.weather !== 'live' ? (planner.weather === 'clear' ? null : planner.weather) : real,
       set: (value: unknown) => { real = value; },
     });
+    if (!('dayNightPhase01' in context)) return;
+    let realPhase = context.dayNightPhase01;
+    Object.defineProperty(context, 'dayNightPhase01', {
+      configurable: true,
+      enumerable: true,
+      get: () => planner.open && planner.time !== 'live' ? TIME_PHASE[planner.time] ?? realPhase : realPhase,
+      set: (value: unknown) => { realPhase = value; },
+    });
+    if (!hasDayNight) {
+      hasDayNight = true;
+      // Found during a draw after the panel was built: draw it again with the Time row.
+      if (planner.open) queueMicrotask(renderPanel);
+    }
   }
 
   function patchWeatherDraw(): void {
@@ -785,8 +827,9 @@ export function initGardenPlanner(): void {
     if (!planner.open) return;
     planner.open = false;
     backstop.stop();
-    // Back to the real weather. The draw wrapper stays installed but passes straight through now.
+    // Back to the real weather and time. The draw wrapper stays installed but passes straight through now.
     planner.weather = 'live';
+    planner.time = 'live';
     unpatchTileUpdates();
     unpatchEdgeUpdates();
     applyAllTiles();
@@ -989,6 +1032,7 @@ export function initGardenPlanner(): void {
   const sprite = page.__gardenCompanionWeatherSprites?.[choice.id];
   return `<button data-plan-weather="${choice.id}" data-active="${planner.weather === choice.id}" title="${choice.label}">${sprite ? `<img src="${sprite}" alt="${choice.label}">` : choice.label}</button>`;
 }).join('')}</div></div></div>
+${hasDayNight ? `<div class="gc-planner-row"><b>Time</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${TIME_CHOICES.map(choice => `<button data-plan-time="${choice.id}" data-active="${planner.time === choice.id}">${choice.label}</button>`).join('')}</div></div></div>` : ''}
 <div class="gc-planner-grid">${decorMode ? decorOptions : options}</div>
 ${decorMode && DECOR[planner.decorId]?.mountable
   ? `<div class="gc-planner-row"><b>Display crop</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-mount="" data-active="${!planner.mountedSpecies}">None</button></div></div></div>
@@ -1051,6 +1095,13 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       patchWeatherDraw();
       panel!.querySelectorAll<HTMLButtonElement>('[data-plan-weather]').forEach(other => {
         other.dataset.active = String(other.dataset.planWeather === planner.weather);
+      });
+    });
+    panel.querySelectorAll<HTMLButtonElement>('[data-plan-time]').forEach(button => button.onclick = () => {
+      planner.time = button.dataset.planTime!;
+      patchWeatherDraw();
+      panel!.querySelectorAll<HTMLButtonElement>('[data-plan-time]').forEach(other => {
+        other.dataset.active = String(other.dataset.planTime === planner.time);
       });
     });
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-decor]').forEach(button => button.onclick = () => {

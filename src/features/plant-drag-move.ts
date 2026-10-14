@@ -1,12 +1,12 @@
 import type { CompanionPage, FarmSystems } from '../types.js';
-import { noteRoomSocketClosed, noteRoomSocketOpened } from '../connection-state.js';
+import { onRoomSocketReopened } from '../connection-state.js';
 import { state } from '../state.js';
 import { ensureToolReady, freeInventorySlots, holdTool, shackToolCount } from '../pets.js';
 import { setQuinoaEngine } from '../quinoa-engine.js';
 import { atomMap } from '../atom-cache.js';
 import { page } from '../page.js';
 import { retryUntil } from '../retry.js';
-import { markOwnCommand } from '../game-connection.js';
+import { sendQuinoaCommand } from '../game-connection.js';
 
 /**
  * The engine's systems and views are untyped minified objects reached by name, so they are held as
@@ -32,7 +32,6 @@ interface LiveSystems extends FarmSystems {
     hudSuppressed: boolean;
     nativeActionHolding: boolean;
     blockDragUntil: number;
-    activeSocket: WebSocket | null;
     fallbackHighlight: GameObject | null;
 }
 
@@ -86,13 +85,11 @@ export function initPlantDragMove(): void {
         hudSuppressed: false,
         nativeActionHolding: false,
         blockDragUntil: 0,
-        activeSocket: null,
         fallbackHighlight: null,
     };
 
     let press: Press | null = null;
     let toastTimer = 0;
-    let openedRoomSocketCount = 0;
     let moveBusy = false;
 
     function isEnabled() {
@@ -336,51 +333,12 @@ export function initPlantDragMove(): void {
 
     installSystemRegistryCapture();
 
-    function captureGameSocket() {
-        const OriginalWebSocket = pageWindow.WebSocket;
-        if (!OriginalWebSocket || (OriginalWebSocket as unknown as GameObject)[WRAPPED_FLAG]) return;
-
-        function PlantDragWebSocket(...args: ConstructorParameters<typeof WebSocket>) {
-            const socket = new OriginalWebSocket(...args);
-            const isRoomSocket = String(args[0] ?? '').includes('/api/rooms/');
-            if (!isRoomSocket) return socket;
-
-            live.activeSocket = socket;
-            socket.addEventListener('open', () => {
-                openedRoomSocketCount++;
-                // Published for everything that diffs game state, not just this feature.
-                noteRoomSocketOpened();
-                if (openedRoomSocketCount > 1) {
-                    armPrivateSystemCapture();
-                    log('Reconnect detected; private farm-system capture armed.');
-                }
-            });
-            socket.addEventListener('close', noteRoomSocketClosed);
-            return socket;
-        }
-
-        PlantDragWebSocket.prototype = OriginalWebSocket.prototype;
-        objectCtor.setPrototypeOf(PlantDragWebSocket, OriginalWebSocket);
-        PlantDragWebSocket[WRAPPED_FLAG] = true;
-        pageWindow.WebSocket = PlantDragWebSocket as unknown as typeof WebSocket;
-    }
-
-    captureGameSocket();
-
-    /**
-     * Loaded after the game connected, the constructor hook above never saw the room socket, so the
-     * first reconnect was counted as the first connection: nothing heard about the drop, and the farm
-     * systems were not re-armed until a second one.
-     */
-    function adoptExistingSocket() {
-        const socket = pageWindow.MagicCircle_RoomConnection?.currentWebSocket;
-        if (!socket || openedRoomSocketCount > 0 || socket.readyState !== pageWindow.WebSocket.OPEN) return;
-        openedRoomSocketCount = 1;
-        noteRoomSocketOpened();
-        socket.addEventListener('close', noteRoomSocketClosed);
-    }
-
-    adoptExistingSocket();
+    // Room sockets are tracked once, by the companion's own socket hook. A reconnect builds fresh
+    // farm systems, so the private capture is armed again for them.
+    onRoomSocketReopened(() => {
+        armPrivateSystemCapture();
+        log('Reconnect detected; private farm-system capture armed.');
+    });
 
     function ensureToast() {
         let toast = document.getElementById('mg-plant-drag-toast');
@@ -716,16 +674,6 @@ export function initPlantDragMove(): void {
         return inventoryItems().find(item => item?.itemType === 'Plant' && item?.id === plantItemId);
     }
 
-    function sendMessage(message: Record<string, unknown>) {
-        // The room connection's own socket covers one that opened before we loaded, which the
-        // constructor hook above never saw.
-        const socket = live.activeSocket ?? pageWindow.MagicCircle_RoomConnection?.currentWebSocket ?? null;
-        if (!socket || socket.readyState !== pageWindow.WebSocket.OPEN) {
-            throw new Error('Game WebSocket is not connected');
-        }
-        socket.send(JSON.stringify(message));
-    }
-
     /**
      * The id of the potted plant is ours to choose, not the server's to report.
      *
@@ -734,32 +682,18 @@ export function initPlantDragMove(): void {
      * no plantItemId meant the plant was created under an id of undefined, which is why nothing that
      * looked for it afterwards ever found it. Naming it also means there is nothing to search for:
      * the item that comes back is the one we asked for.
+     *
+     * Marked as our own so the planter pot keeper leaves it alone: the player never picked up a pot.
      */
     function sendPotPlant(slot: number, plantItemId: string) {
-        const requestId = pageWindow.crypto.randomUUID();
-        // Marked so the planter pot keeper leaves it alone: the player never picked up a pot here.
-        markOwnCommand(requestId);
-        // No sequence here: it is stamped on the way out of the socket, from the same counter the
-        // game's own commands are renumbered by.
-        sendMessage({
-            scopePath: ['Room', 'Quinoa'],
-            type: 'QuinoaCommand',
-            requestId,
-            command: { type: 'PotPlant', slot, plantItemId },
-        });
+        const requestId = sendQuinoaCommand({ type: 'PotPlant', slot, plantItemId }, { own: true });
         log(`Sent PotPlant for farm slot ${slot}.`, { requestId });
     }
 
     function sendPlantGardenPlant(slot: number, itemId: string) {
-        // The game has sent PlantGardenPlant inside the QuinoaCommand envelope since its commands
-        // moved onto the shared reducer; sent bare the server refuses it. check-bundle watches this.
-        const requestId = pageWindow.crypto.randomUUID();
-        sendMessage({
-            scopePath: ['Room', 'Quinoa'],
-            type: 'QuinoaCommand',
-            requestId,
-            command: { type: 'PlantGardenPlant', slot, itemId },
-        });
+        // Inside the QuinoaCommand envelope, as the game sends it; sent bare the server refuses it.
+        // check-bundle watches this.
+        const requestId = sendQuinoaCommand({ type: 'PlantGardenPlant', slot, itemId });
         log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId, requestId });
     }
 

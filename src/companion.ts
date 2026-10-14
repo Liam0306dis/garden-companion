@@ -34,6 +34,7 @@ import { installPixiCapture } from './pixi.js';
 import { processPetAbilityCooldowns, processPetHunger, renderAbilities, stopPetAbilityAlarms } from './features/active-pets.js';
 import { installInstantHarvest } from './features/instant-harvest.js';
 import { noteServerClock } from './server-clock.js';
+import { trackRoomSocket } from './connection-state.js';
 import { mountLunarTimer, updateLunarTimer, watchSocketHealth } from './features/lunar-timer.js';
 import { allPets, heldProduce, onSpritesReady, refreshHungerDisplay, useXpPotion } from './pets.js';
 import {
@@ -134,6 +135,7 @@ export function initCompanion(): void {
       if (String(args[0] ?? '').includes('/api/rooms/')) {
         noteGameSocket(socket);
         watchSocketHealth(socket);
+        trackRoomSocket(socket);
       }
       return socket;
     } as unknown as typeof WebSocket;
@@ -233,6 +235,7 @@ export function initCompanion(): void {
     guardOutgoingHarvests(socket);
     noteGameSocket(socket);
     watchSocketHealth(socket);
+    trackRoomSocket(socket);
   }
 
   function readPlayerId(): string | null {

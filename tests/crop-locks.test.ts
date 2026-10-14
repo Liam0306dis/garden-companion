@@ -9,6 +9,14 @@ import type { PlayerSlot } from '../src/types.js';
 const click = (selector: string) => document.querySelector<HTMLElement>(selector)!.click();
 const label = (kind: string) => document.querySelector(`[data-lock-run="${kind}"] [data-lock-label]`)!.textContent;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Waits until `done` holds rather than for a fixed time: the sends are paced by timers, and on a busy
+ * machine (the whole suite running at once) a fixed wait can end a step or two early.
+ */
+async function waitFor(done: () => boolean, timeoutMs = 10_000): Promise<void> {
+  const until = Date.now() + timeoutMs;
+  while (!done() && Date.now() < until) await wait(20);
+}
 const press = (kind: string) => document.querySelector(`[data-lock-run="${kind}"]`)!
   .dispatchEvent(new PointerEvent('pointerdown', { button: 0, bubbles: true }));
 
@@ -34,7 +42,8 @@ test('crop locks lists every crop by plant and needs a press and hold to send', 
   assert.equal(socket.sent.length, 0, 'a plain click sends nothing');
 
   press('unlock');
-  await wait(900);
+  // Done once the hold has sent and the run has finished (the button no longer shows progress).
+  await waitFor(() => socket.sent.length > 0 && !label('unlock')!.startsWith('Unlocking'));
   const sent = socket.sent.map(data => JSON.parse(data).command);
   assert.deepEqual(sent, [{ type: 'SetGrowSlotLock', slot: 9, growSlotId: 0, locked: false }]);
   assert.equal(label('lock'), 'Lock 3', 'the other ticks are kept');
@@ -56,7 +65,8 @@ test('one press locks at most 15 crops', async () => {
   click('[data-lock-all]');
   assert.equal(label('lock'), 'Lock 15');
   press('lock');
-  await wait(700 + 16 * 100);
+  // Done once the run has finished and the button shows what is left.
+  await waitFor(() => socket.sent.length >= 15 && !label('lock')!.startsWith('Locking'));
   assert.equal(socket.sent.length, 15);
   assert.equal(label('lock'), 'Lock 5', 'the rest wait for the next press');
   closeCropLocks();

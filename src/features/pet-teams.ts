@@ -1,5 +1,5 @@
 import type { Pet, PetTeamEmblem } from '../types.js';
-import { runPetSwapToss } from './pet-swap-toss.js';
+import { petSwapTossing, runPetSwapToss } from './pet-swap-toss.js';
 import { abilityChips } from '../ability-chips.js';
 import { config } from '../config.js';
 import { ABILITY_DETAILS, MAX_PET_TEAMS, MAX_TEAM_PETS, PET_CATALOG } from '../constants.js';
@@ -305,7 +305,9 @@ function teamMemberTile(member: { petId: string; petSpecies: string; name?: stri
  */
 export function applyPetTeam(teamId: string): void {
   const commit = () => sendQuinoaCommand({ type: 'ApplyPetTeam', teamId });
-  if (activeTeamIds().includes(teamId)) commit();
+  // While a toss is running the request still goes through it, so it replaces the one in flight
+  // rather than being sent ahead of it - even when it names the team that is out right now.
+  if (activeTeamIds().includes(teamId) && !petSwapTossing()) commit();
   else runPetSwapToss(commit);
 }
 

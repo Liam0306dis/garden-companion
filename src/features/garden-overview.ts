@@ -123,6 +123,11 @@ const MUTATION_IDS: Record<keyof Pick<MutationConfig, 'wet' | 'chilled' | 'froze
   wet: 'Wet', chilled: 'Chilled', frozen: 'Frozen', amberlit: 'Ambershine', dawnlit: 'Dawnlit', dawncharged: 'Dawncharged', ambercharged: 'Ambercharged', thunderstruck: 'Thunderstruck', thundercharged: 'Thundercharged', rainbow: 'Rainbow', gold: 'Gold',
 };
 
+/** One Frozen / Thunder bar stands in for Frozen, Thunderstruck and Thundercharged once two of them are tracked. */
+function mergesFrozenThunder(config: MutationConfig): boolean {
+  return config.combineFrozenThunderstruck && [config.frozen, config.thunderstruck, config.thundercharged].filter(Boolean).length >= 2;
+}
+
 function loadMutationConfig(): MutationConfig {
   try {
     const stored = JSON.parse(localStorage.getItem(MUTATION_KEY) || 'null');
@@ -277,6 +282,8 @@ function calculateStats(
   // The mutation estimates always leave preserved crops out, whatever the overview's own setting:
   // a preserved crop is never going to be worked on, so it should not hold an estimate open.
   let trackedEtaCrops = 0;
+  // The merged Frozen / Thunder bar counts a crop holding any of the tracked ones among the three.
+  const frozenThunderNames = (['frozen', 'thunderstruck', 'thundercharged'] as const).filter(key => mutationConfig[key]).map(key => MUTATION_IDS[key]);
 
   function recordMissing(target: Record<string, number>, mutations: string[]): void {
     const thunder = mutations.includes('Thunderstruck') || mutations.includes('Thundercharged');
@@ -342,7 +349,7 @@ function calculateStats(
       }
       const slotMutations = slot.mutations ?? [];
       if (slotMutations.some(name => name === 'Rainbow' || name === 'Gold')) result.targetProgress.RainbowGold = (result.targetProgress.RainbowGold ?? 0) + 1;
-      if (slotMutations.some(name => name === 'Frozen' || name === 'Thunderstruck')) result.targetProgress.FrozenThunderstruck = (result.targetProgress.FrozenThunderstruck ?? 0) + 1;
+      if (slotMutations.some(name => frozenThunderNames.includes(name))) result.targetProgress.FrozenThunderstruck = (result.targetProgress.FrozenThunderstruck ?? 0) + 1;
       if (slotMutations.some(name => name === 'Ambershine' || name === 'Dawnlit')) result.targetProgress.AmberDawn = (result.targetProgress.AmberDawn ?? 0) + 1;
       if (slotMutations.some(name => ['Dawncharged', 'Dawnbound', 'Ambercharged', 'Amberbound'].includes(name))) result.targetProgress.DawnAmbercharged = (result.targetProgress.DawnAmbercharged ?? 0) + 1;
       if (!(slot.mutations || []).length) result.unmutated++;
@@ -718,7 +725,7 @@ export function initGardenOverview(): void {
         + settingsHead('Tracked mutations', `<em>${trackedMutations.size}</em>`)
         + `${groups}${otherGroup}`
         + settingsHead('Show as one bar')
-        + `${mergeRow('combineRainbow', 'Rainbow + Gold')}${mergeRow('combineFrozenThunderstruck', 'Frozen + Thunderstruck')}${mergeRow('combineAmberDawn', 'Amberlit + Dawnlit')}${mergeRow('combineDawnAmbercharged', 'Dawnbound + Amberbound')}`
+        + `${mergeRow('combineRainbow', 'Rainbow + Gold')}${mergeRow('combineFrozenThunderstruck', 'Frozen + Thunder')}${mergeRow('combineAmberDawn', 'Amberlit + Dawnlit')}${mergeRow('combineDawnAmbercharged', 'Dawnbound + Amberbound')}`
         + settingsHead('Counting')
         + `${mergeRow('granterAllGarden', 'Whole garden', 'Estimate from every plant, not just tracked ones')}${mergeRow('ignorePreserved', 'Ignore preserved', 'Leave preserved crops out of every count')}`
         + `</section>`;
@@ -791,7 +798,7 @@ export function initGardenOverview(): void {
     const rows: Array<[string, string, number]> = [];
     if (mutationConfig.combineRainbow && mutationConfig.rainbow && mutationConfig.gold) rows.push(['Rainbow / Gold', 'Rainbow', stats.targetProgress.RainbowGold ?? 0]);
     else { if (mutationConfig.rainbow) rows.push(['Rainbow', 'Rainbow', stats.targetProgress.Rainbow ?? 0]); if (mutationConfig.gold) rows.push(['Gold', 'Gold', stats.targetProgress.Gold ?? 0]); }
-    if (mutationConfig.combineFrozenThunderstruck && mutationConfig.frozen && mutationConfig.thunderstruck) rows.push(['Frozen / Thunder', 'Frozen', stats.targetProgress.FrozenThunderstruck ?? 0]);
+    if (mergesFrozenThunder(mutationConfig)) rows.push(['Frozen / Thunder', 'Frozen', stats.targetProgress.FrozenThunderstruck ?? 0]);
     else {
       if (mutationConfig.frozen) rows.push(['Frozen', 'Frozen', stats.targetProgress.Frozen ?? 0]);
       if (mutationConfig.thunderstruck) rows.push(['Thunderstruck', 'Thunderstruck', stats.targetProgress.Thunderstruck ?? 0]);

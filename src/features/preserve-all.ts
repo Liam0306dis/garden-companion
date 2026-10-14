@@ -280,7 +280,7 @@ function managerListMarkup(plants: ManagerPlant[]): string {
       const active = selected.has(row.key);
       const crop = row.species
         ? `<span class="gc-pm-crop">${escapeHtml(plantName(row.species))}</span>` : '';
-      return `<div class="gc-pm-slot" role="button" tabindex="0" data-mgr-slot="${escapeHtml(row.key)}" data-active="${active}">`
+      return `<div class="gc-pm-slot" role="button" tabindex="0" data-pm-slot="${escapeHtml(row.key)}" data-active="${active}">`
         + `<i class="gc-pm-check">${active ? '&#10003;' : ''}</i>`
         + `<span class="gc-pm-size">${row.sizePercent}%</span>`
         + crop
@@ -289,7 +289,7 @@ function managerListMarkup(plants: ManagerPlant[]): string {
         + '</div>';
     }).join('');
     return `<section class="gc-pm-plant">`
-      + `<div class="gc-pm-plant-head" role="button" tabindex="0" data-mgr-plant="${escapeHtml(plant.itemId)}" data-state="${on === 0 ? 'none' : on === plant.rows.length ? 'all' : 'some'}">`
+      + `<div class="gc-pm-plant-head" role="button" tabindex="0" data-pm-plant="${escapeHtml(plant.itemId)}" data-state="${on === 0 ? 'none' : on === plant.rows.length ? 'all' : 'some'}">`
       + `${icon}<b>${escapeHtml(plant.name)}</b><small>${on}/${plant.rows.length}</small><i class="gc-pm-check">${mark}</i></div>`
       + `<div class="gc-pm-slots">${slots}</div></section>`;
   }).join('');
@@ -297,12 +297,12 @@ function managerListMarkup(plants: ManagerPlant[]): string {
 
 function managerModalMarkup(): string {
   return `<div class="gc-preserve-manager" role="dialog" aria-label="Preservation manager">`
-    + `<header class="gc-modal-head"><h3>Preservation manager</h3><button class="gc-modal-close" data-mgr-close aria-label="Close">&times;</button></header>`
-    + `<div class="gc-modal-tools"><input class="gc-pm-search" type="text" data-mgr-search placeholder="Search plants" spellcheck="false" value="${escapeHtml(managerSearch)}"><div><button data-mgr-all>Select all</button><button data-mgr-none>Clear</button></div></div>`
-    + `<div class="gc-pm-summary-row"><span class="gc-modal-summary" data-mgr-summary></span></div>`
-    + `<div class="gc-modal-body" data-mgr-list>${managerListMarkup(visibleManagerPlants(managerPlants()))}</div>`
-    + `<footer class="gc-pm-foot"><div class="gc-pm-foot-info"><span class="gc-pm-total" data-mgr-total></span><span class="gc-pm-hint" data-mgr-hint></span></div>`
-    + `<button class="gc-pm-run" data-mgr-run><i class="gc-pm-fill" data-mgr-fill></i><span data-mgr-label></span></button></footer></div>`;
+    + `<header class="gc-modal-head"><h3>Preservation manager</h3><button class="gc-modal-close" data-pm-close aria-label="Close">&times;</button></header>`
+    + `<div class="gc-modal-tools"><input class="gc-pm-search" type="text" data-pm-search placeholder="Search plants" spellcheck="false" value="${escapeHtml(managerSearch)}"><div><button data-pm-all>Select all</button><button data-pm-none>Clear</button></div></div>`
+    + `<div class="gc-pm-summary-row"><span class="gc-modal-summary" data-pm-summary></span></div>`
+    + `<div class="gc-modal-body" data-pm-list>${managerListMarkup(visibleManagerPlants(managerPlants()))}</div>`
+    + `<footer class="gc-pm-foot"><div class="gc-pm-foot-info"><span class="gc-pm-total" data-pm-total></span><span class="gc-pm-hint" data-pm-hint></span></div>`
+    + `<button class="gc-pm-run" data-pm-run><i class="gc-pm-fill" data-pm-fill></i><span data-pm-label></span></button></footer></div>`;
 }
 
 /**
@@ -322,7 +322,7 @@ let managerListSignature = '';
 function redrawManagerList(plants: ManagerPlant[]): void {
   const root = managerModal();
   if (!root || managerHoldAt || sending) return;
-  const list = root.querySelector<HTMLElement>('[data-mgr-list]');
+  const list = root.querySelector<HTMLElement>('[data-pm-list]');
   if (!list) return;
   const scroll = list.scrollTop;
   list.innerHTML = managerListMarkup(visibleManagerPlants(plants));
@@ -339,10 +339,10 @@ function syncManagerSelectionDom(): void {
   const root = managerModal();
   if (!root) return;
   root.querySelectorAll<HTMLElement>('.gc-pm-plant').forEach(section => {
-    const slots = [...section.querySelectorAll<HTMLElement>('.gc-pm-slot[data-mgr-slot]')];
+    const slots = [...section.querySelectorAll<HTMLElement>('.gc-pm-slot[data-pm-slot]')];
     let on = 0;
     for (const el of slots) {
-      const active = selected.has(el.dataset.mgrSlot || '');
+      const active = selected.has(el.dataset.pmSlot || '');
       if (active) on += 1;
       el.dataset.active = String(active);
       const check = el.querySelector('.gc-pm-check');
@@ -383,13 +383,13 @@ function updateManagerFooter(): void {
   const plants = new Set(selectedRows.map(row => row.itemId)).size;
   const capped = selectedRows.length > MANAGER_BATCH_CAP;
 
-  const summary = root.querySelector<HTMLElement>('[data-mgr-summary]');
+  const summary = root.querySelector<HTMLElement>('[data-pm-summary]');
   if (summary) summary.textContent = selectedRows.length
     ? `${selectedRows.length} slot${selectedRows.length === 1 ? '' : 's'} ticked across ${plants} plant${plants === 1 ? '' : 's'}`
       + (capped ? ` · ${MANAGER_BATCH_CAP} per press` : '')
     : 'Tick the slots you want to preserve.';
 
-  const totalEl = root.querySelector<HTMLElement>('[data-mgr-total]');
+  const totalEl = root.querySelector<HTMLElement>('[data-pm-total]');
   if (totalEl) {
     totalEl.textContent = selectedRows.length
       ? (affordable ? `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)}` : `This press 🪙 ${batchCost.toLocaleString(NUMBER_LOCALE)} - more than you have`)
@@ -400,7 +400,7 @@ function updateManagerFooter(): void {
   const awaiting = managerAwaitingContinue && selectedRows.length > 0 && !sending;
   const ready = gameConnectionReady();
 
-  const label = root.querySelector<HTMLElement>('[data-mgr-label]');
+  const label = root.querySelector<HTMLElement>('[data-pm-label]');
   if (label) label.textContent = sending
     ? `Preserving ${Math.min(batchDone + 1, batchTotal)}/${batchTotal}...`
     : managerHoldAt ? 'Keep holding...'
@@ -409,7 +409,7 @@ function updateManagerFooter(): void {
 
   // A short line under the total makes the gate explicit: what a press does, that more remains, or
   // that the game connection is down and the ticks are being held for it.
-  const hint = root.querySelector<HTMLElement>('[data-mgr-hint]');
+  const hint = root.querySelector<HTMLElement>('[data-pm-hint]');
   if (hint) hint.textContent = sending ? ''
     : !selectedRows.length ? ''
     : !ready ? 'Waiting for the game connection - your ticks are kept'
@@ -420,7 +420,7 @@ function updateManagerFooter(): void {
   if (sending) managerPaintHold(batchTotal ? batchDone / batchTotal : 0);
   else if (!managerHoldAt) managerPaintHold(0);
 
-  const button = root.querySelector<HTMLButtonElement>('[data-mgr-run]');
+  const button = root.querySelector<HTMLButtonElement>('[data-pm-run]');
   if (button) {
     button.disabled = sending || batch.length === 0 || !affordable || !ready;
     button.title = !ready ? 'The game connection is not ready.' : affordable ? '' : 'Not enough coins to preserve this batch.';
@@ -449,13 +449,13 @@ function refreshManagerModal(): void {
 }
 
 function managerPaintHold(progress: number): void {
-  const fill = managerModal()?.querySelector<HTMLElement>('[data-mgr-fill]');
+  const fill = managerModal()?.querySelector<HTMLElement>('[data-pm-fill]');
   if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
 }
 
 function managerStartHold(): void {
   if (sending || managerHoldAt) return;
-  const button = managerModal()?.querySelector<HTMLButtonElement>('[data-mgr-run]');
+  const button = managerModal()?.querySelector<HTMLButtonElement>('[data-pm-run]');
   if (!button || button.disabled) return;
   managerHoldAt = performance.now();
   const tick = () => {
@@ -610,16 +610,16 @@ function openManager(): void {
 
   backdrop.addEventListener('click', event => {
     const target = event.target as HTMLElement;
-    if (target === backdrop || target.closest('[data-mgr-close]')) { closeManager(); return; }
-    if (target.closest('[data-mgr-run]')) return; // driven by the hold handlers, not a click
-    if (target.closest('[data-mgr-all]')) {
+    if (target === backdrop || target.closest('[data-pm-close]')) { closeManager(); return; }
+    if (target.closest('[data-pm-run]')) return; // driven by the hold handlers, not a click
+    if (target.closest('[data-pm-all]')) {
       event.preventDefault();
       // Only the plants the search is showing, so "Select all" acts on what is in front of the player.
       for (const plant of visibleManagerPlants(managerPlants())) for (const row of plant.rows) selected.add(row.key);
       onManagerSelectionChanged();
       return;
     }
-    if (target.closest('[data-mgr-none]')) {
+    if (target.closest('[data-pm-none]')) {
       event.preventDefault();
       // Symmetrically, clear only the shown results, leaving ticks on plants filtered out.
       if (managerSearch.trim()) {
@@ -630,10 +630,10 @@ function openManager(): void {
       onManagerSelectionChanged();
       return;
     }
-    const head = target.closest<HTMLElement>('[data-mgr-plant]');
+    const head = target.closest<HTMLElement>('[data-pm-plant]');
     if (head) {
       event.preventDefault();
-      const plant = managerPlants().find(entry => entry.itemId === head.dataset.mgrPlant);
+      const plant = managerPlants().find(entry => entry.itemId === head.dataset.pmPlant);
       if (!plant) return;
       // A plant whose slots are all ticked clears itself; anything else fills in.
       const turningOff = plant.rows.every(row => selected.has(row.key));
@@ -641,17 +641,17 @@ function openManager(): void {
       onManagerSelectionChanged();
       return;
     }
-    const slot = target.closest<HTMLElement>('[data-mgr-slot]');
+    const slot = target.closest<HTMLElement>('[data-pm-slot]');
     if (slot) {
       event.preventDefault();
-      const key = slot.dataset.mgrSlot!;
+      const key = slot.dataset.pmSlot!;
       selected.has(key) ? selected.delete(key) : selected.add(key);
       onManagerSelectionChanged();
       return;
     }
   });
 
-  const runButton = backdrop.querySelector<HTMLButtonElement>('[data-mgr-run]')!;
+  const runButton = backdrop.querySelector<HTMLButtonElement>('[data-pm-run]')!;
   runButton.addEventListener('pointerdown', event => {
     if (runButton.disabled || event.button !== 0) return;
     event.preventDefault();
@@ -661,10 +661,10 @@ function openManager(): void {
   for (const type of ['pointerup', 'pointercancel', 'pointerleave']) runButton.addEventListener(type, managerCancelHold);
 
   // Only the list is redrawn on a keystroke and the field lives outside it, so focus and caret hold.
-  backdrop.querySelector<HTMLInputElement>('[data-mgr-search]')?.addEventListener('input', event => {
+  backdrop.querySelector<HTMLInputElement>('[data-pm-search]')?.addEventListener('input', event => {
     managerSearch = (event.target as HTMLInputElement).value.toLowerCase();
     refreshManagerModal();
-    const list = managerModal()?.querySelector<HTMLElement>('[data-mgr-list]');
+    const list = managerModal()?.querySelector<HTMLElement>('[data-pm-list]');
     if (list) list.scrollTop = 0;
   });
 

@@ -200,10 +200,11 @@ function settleInitialShops(signature: string): void {
 }
 
 /**
- * After a reconnect the shops are re-adopted rather than re-diffed. Nothing that was already on
- * the shelf before the drop is news to the player, so the settled snapshot becomes the new
- * baseline silently and only changes after that raise an alarm. Going through the initial-load
- * path instead would alarm for everything in stock, which is the behaviour being fixed.
+ * After a reconnect the shops are diffed against what was there before the drop, once the world
+ * has settled. A watched item that came back into stock, or whose shop restocked while we were away,
+ * is news the player missed and alarms like any other restock; stock that was already on the shelf
+ * and has not turned over stays quiet. Waiting for it to settle is what keeps the half-delivered
+ * world of the first patches from reading as everything selling out and coming back.
  */
 let resettling = false;
 let resettleTimer = 0;
@@ -217,8 +218,8 @@ function beginResettle(): void {
   pendingInitialSignature = '';
   resettleSignature = '';
   resettling = true;
-  // The clocks ran on without us, so a jump across the gap is not a restock we can attribute.
-  restockIds.clear();
+  // The restock clocks are kept: one that moved across the gap is a restock that happened while we
+  // were away, and the settled snapshot is compared against them.
 }
 
 function settleAfterReconnect(signature: string): void {
@@ -235,15 +236,11 @@ function settleAfterReconnect(signature: string): void {
       return;
     }
     resettling = false;
-    // An item that sold out while we were away should not keep ringing for stock it no longer has.
-    const before = new Set(state.lastShopSignature.split('|').map(value => value.split(':').slice(0, 2).join(':')));
-    const availableKeys = new Set(available.map(row => `${row.shop}:${row.id}`));
-    if (state.initializedShops) for (const key of before) if (key && !availableKeys.has(key)) stopAlarm(`shop:${key}`);
-    state.lastShopSignature = settled;
-    // Seed the clocks from the settled snapshot so the next real restock is the first one seen.
-    restockedShops();
-    state.initializedShops = true;
-    for (const row of available) updateAlarmDetail(`shop:${row.shop}:${row.id}`, `${row.remaining} remaining`);
+    // The same diff as any patch: sold-out alarms come down, details update, and anything newly in
+    // stock or restocked across the gap alarms. A drop before the first settle alarms as a first
+    // load would.
+    applyShopSnapshot(available, settled, restockedShops());
+    stopCappedAlarms(available);
   }, RECONNECT_SETTLE_MS);
 }
 

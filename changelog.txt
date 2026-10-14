@@ -1,3 +1,18 @@
+0.9.49
+- Shop Alarms: new Spooky tab for the Halloween shop
+- The Halloween pets (Moth, Snake, Toad) and the Spooky shop's seeds, egg and Carving Knife now show their art
+- Weather Alarms: a Night alarm for when night falls
+- Layout planner: preview the garden at Day, Sunset, Midnight or Sunrise, together with any weather
+- Garden Overview: the Frozen / Thunder bar now also counts Thundercharged, and merges whenever two of Frozen, Thunderstruck and Thundercharged are tracked
+- Pet Food: locked crops are no longer picked to feed
+- An alarm that fires again while it is still showing no longer stacks a duplicate
+- Inventory produce locks: clicking a species again while it is still locking no longer leaves some crops the wrong way
+- Auto-store: items skipped while a tool was in use or storage was full are now stored once they can be
+- Shop Alarms: after a reconnect, an alarm now sounds for anything you watch that restocked while you were disconnected
+- Pokemon Mode: caught pets now shrink into the ball in a red glow, which shakes three times and clicks shut
+- Pokemon Mode: picking another team while balls are still in the air now ends on the last team picked
+- XP and Hunger Potions: using one no longer moves you onto the pet first
+
 0.9.48
 - Further fixes for input lag when swapping or placing items
 

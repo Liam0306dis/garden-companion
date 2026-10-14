@@ -4,7 +4,7 @@ import { config, saveConfig, feature } from '../config.js';
 import { PET_CATALOG } from '../constants.js';
 import { sendQuinoaCommand } from '../game-connection.js';
 import { panelActions } from '../panel-actions.js';
-import { activePets, allPets, heldProduce, heldToolCount, petDiet, produceSprite, produceValue, useReplenishPotion } from '../pets.js';
+import { activePets, allPets, favouritedIds, heldProduce, heldToolCount, petDiet, produceSprite, produceValue, useReplenishPotion } from '../pets.js';
 import { type PixiSurface, findVisiblePixiNodes, pixiNodeVisible, pixiSurface } from '../pixi.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import { toast } from '../toast.js';
@@ -87,7 +87,9 @@ function chosenFood(species: string): string {
 }
 
 function petFoodRows(): PetFoodRow[] {
-  const produce = heldProduce();
+  // A locked crop cannot be fed, so it is neither offered nor counted.
+  const locked = favouritedIds();
+  const produce = heldProduce().filter(item => !locked.has(item.id));
   return activePets().filter(pet => pet?.id).map(pet => {
     const choice = chosenFood(pet.petSpecies);
     const potion = choice === HUNGER_POTION;

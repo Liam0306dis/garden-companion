@@ -174,7 +174,7 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
         // edgePlacement marks decor that goes on the edge between two tiles. It takes the place of
         // rotationVariants, such decor can only go on an edge, and its part says which half of the
         // edge it fills: string lights are a `line`, lanterns and windchimes are `hanging`, and an
-        // edge holds one of each. The preview build had no part; everything there hung.
+        // edge holds one of each.
         const decor = Object.fromEntries([...bundle.matchAll(
           /([A-Za-z][A-Za-z0-9_]*):\{(?:sprite|art):([A-Za-z_$]+\.Decor\.[A-Za-z0-9_]+|\{artboardName:`[A-Za-z0-9_]+`\}),((?:rotationVariants:\{.*?\},)?)((?:edgePlacement:\{[^{}]*\},)?)name:`([^`]+)`([^{}]*?)rarity:[A-Za-z_$]+\.([A-Za-z]+)([^{}]*)/g)]
           .map(match => [match[1], {

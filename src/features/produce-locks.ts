@@ -1,8 +1,7 @@
 import { createTicker } from '../ticker.js';
 import { feature } from '../config.js';
-import { state } from '../state.js';
 import { sendQuinoaCommandAwaitingResult } from '../game-connection.js';
-import { heldProduce, produceSprite } from '../pets.js';
+import { favouritedIds, heldProduce, produceSprite } from '../pets.js';
 import { pixiNodeVisible, pixiSurface } from '../pixi.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import { toast } from '../toast.js';
@@ -21,12 +20,22 @@ import { escapeHtml, humanize } from '../utils.js';
 
 const PANEL_ID = 'gc-produce-locks';
 
-function favouritedIds(): Set<string> {
-  const ids = (state.slot?.data?.inventory as { favoritedItemIds?: unknown } | undefined)?.favoritedItemIds;
-  return new Set(Array.isArray(ids) ? ids.map(String) : []);
-}
-
 interface SpeciesRow { species: string; ids: string[]; locked: number }
+
+/**
+ * The lock state each item was toggled towards, until the inventory shows it. A toggle in flight is
+ * not in the favourites yet, so without this a second click read the item as still unlocked and
+ * queued it again, toggling it twice. Entries expire in case a command was lost.
+ */
+const expected = new Map<string, { locked: boolean; until: number }>();
+const EXPECTED_MS = 10_000;
+
+function isLocked(id: string, favourites: Set<string>): boolean {
+  const pending = expected.get(id);
+  if (pending && (favourites.has(id) === pending.locked || Date.now() > pending.until)) expected.delete(id);
+  else if (pending) return pending.locked;
+  return favourites.has(id);
+}
 
 function speciesRows(): SpeciesRow[] {
   const favourites = favouritedIds();
@@ -35,33 +44,38 @@ function speciesRows(): SpeciesRow[] {
     let row = bySpecies.get(item.species);
     if (!row) bySpecies.set(item.species, row = { species: item.species, ids: [], locked: 0 });
     row.ids.push(item.id);
-    if (favourites.has(item.id)) row.locked++;
+    if (isLocked(item.id, favourites)) row.locked++;
   }
   return [...bySpecies.values()].sort((left, right) => humanize(left.species).localeCompare(humanize(right.species)));
 }
 
 /**
- * Item ids waiting to be toggled. Each is sent only once the server has answered the one before, so
- * a few hundred crops go out as fast as the server takes them and never as one burst.
+ * Item ids waiting to be toggled, each with the lock state it is meant to end up in. Each is sent
+ * only once the server has answered the one before, so a few hundred crops go out as fast as the
+ * server takes them and never as one burst. The target travels with the id because the command is a
+ * toggle: an item that reached that state some other way while it waited (the game's own padlock)
+ * is skipped rather than flipped back.
  */
-const queue: string[] = [];
-const queued = new Set<string>();
+const queue = new Map<string, boolean>();
 let draining = false;
 
 async function drain(): Promise<void> {
   if (draining) return;
   draining = true;
   try {
-    while (queue.length) {
-      const itemId = queue.shift()!;
-      queued.delete(itemId);
+    for (let next = queue.entries().next(); !next.done; next = queue.entries().next()) {
+      const [itemId, lock] = next.value;
+      queue.delete(itemId);
+      // Already that way, or gone from the inventory (sold or fed while it waited): nothing to send.
+      if (isLocked(itemId, favouritedIds()) === lock || !heldProduce().some(item => item.id === itemId)) continue;
+      expected.set(itemId, { locked: lock, until: Date.now() + EXPECTED_MS });
       const result = await sendQuinoaCommandAwaitingResult({ type: 'ToggleLockItem', itemId });
+      if (!result.ok) expected.delete(itemId);
       // A lost connection would time out every remaining item in turn, so the rest are dropped.
       if (result.timedOut) throw new Error('The game stopped answering; the remaining locks were not sent.');
     }
   } catch (error) {
-    queue.length = 0;
-    queued.clear();
+    queue.clear();
     toast((error as Error).message, 'error');
   } finally {
     draining = false;
@@ -69,23 +83,19 @@ async function drain(): Promise<void> {
 }
 
 /**
- * The command is a toggle, so the direction is decided here and only the items not already that way
- * are sent. Anything still queued for this species is dropped first, so a second click while the
- * first is draining reverses it cleanly rather than toggling items twice.
+ * The direction is decided here and only the items not already that way are queued. Anything still
+ * queued for this species is replaced, and an item already sent is judged by where its toggle is
+ * heading, so a second click while the first is draining reverses it cleanly rather than toggling
+ * items twice.
  */
 function toggleSpecies(species: string): void {
   const row = speciesRows().find(entry => entry.species === species);
   if (!row) return;
-  const ids = new Set(row.ids);
-  for (let index = queue.length - 1; index >= 0; index--) {
-    if (ids.has(queue[index])) { queued.delete(queue[index]); queue.splice(index, 1); }
-  }
+  for (const id of row.ids) queue.delete(id);
   const favourites = favouritedIds();
   const lock = row.locked < row.ids.length;
   for (const id of row.ids) {
-    if (favourites.has(id) === lock || queued.has(id)) continue;
-    queued.add(id);
-    queue.push(id);
+    if (isLocked(id, favourites) !== lock) queue.set(id, lock);
   }
   void drain();
 }

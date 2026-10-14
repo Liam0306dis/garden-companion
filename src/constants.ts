@@ -88,9 +88,8 @@ export const UNREACHABLE_ABILITIES = (() => {
 
 export const ABILITY_FILTER_OPTIONS: Array<{ key: string; label: string; abilities: readonly string[] }> = [
   ...ABILITY_GROUPS.map(([label, abilities]) => ({ key: label, label, abilities })),
-  // Only the ones this build's catalog actually has. An ability can be listed here before the game
-  // ships it - the tables are written from a preview bundle - and an option filtering for something
-  // no pet can have yet is an option that always comes back empty.
+  // Only the ones this build's catalog actually has: an option filtering for something no pet can
+  // have is an option that always comes back empty.
   ...UNGROUPED_TRACKED_ABILITIES.filter(ability => ABILITY_SET.has(ability))
     .map(ability => ({ key: ability, label: ABILITY_DETAILS[ability]?.name || humanize(ability), abilities: [ability] })),
 ];
@@ -123,19 +122,19 @@ export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
   ['SnowyEggGrowthBoost', 'Frost'], ['ThunderEggGrowthBoost', 'Thunderstorm'],
 ]);
 
-export const SHOP_NAMES: Record<string, string> = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber' };
-export const SHOP_TABS = [['seed', 'Seeds'], ['amber', 'Amber'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['rain', 'Rain'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
+export const SHOP_NAMES: Record<string, string> = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber', spooky: 'Spooky' };
+export const SHOP_TABS = [['seed', 'Seeds'], ['spooky', 'Spooky'], ['amber', 'Amber'], ['dawn', 'Dawn'], ['thunder', 'Thunder'], ['snow', 'Snow'], ['rain', 'Rain'], ['egg', 'Eggs'], ['tool', 'Tools'], ['decor', 'Decor']];
 
+// An alarm can only be armed from a tab, and a shop that has never opened has no live stock to build
+// one from - so without these the first restock is the earliest you could ask to be told about it,
+// which is exactly the one worth knowing about.
 export const SEASONAL_SHOP_ITEMS: Record<string, string[]> = {
   dawn: ['Daisy', 'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'DawnCelestial', 'DawnEgg'],
   thunder: ['Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial', 'ThunderEgg', 'ThunderWardShard', 'SmallGravestone', 'MediumGravestone', 'LargeGravestone', 'Cauldron', 'WindchimeMoon', 'WindchimeStar', 'WindSpinner', 'WindTurner'],
   snow: ['Snowdrop', 'PineTree', 'Leek', 'Squash', 'Poinsettia', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'SnowWardShard', 'ColoredStringLights', 'WoodCaribou', 'StoneCaribou', 'MarbleCaribou'],
-  // Not live yet. Taken from a preview build's shop payload, and listed for the same reason the
-  // others are: an alarm can only be armed from a tab, and a shop that has never opened has no live
-  // stock to build one from - so without these the first restock is the earliest you could ask to
-  // be told about it, which is exactly the one worth knowing about.
   rain: ['Clover', 'Delphinium', 'Mushroom', 'VioletCort', 'RainWardShard', 'WoodFrog', 'StoneBirdbath', 'MarbleFountain'],
   amber: ['Persimmon', 'Habanero', 'Marigold', 'Emberbloom', 'MoonCelestial', 'AmberEgg', 'HungerShard', 'XPShard', 'StrengthShard', 'StoneMoonGate', 'StoneTorch', 'StoneFirepit'],
+  spooky: ['GhostPlant', 'Foxfire', 'DeadlyNightshade', 'SpookyEgg', 'CarvingKnife', 'HauntLamp', 'CroakwardenLamp', 'HaySheave', 'Spiderweb', 'StoneGargoyle'],
 };
 
 export const ITEM_KEYS = ['species', 'eggId', 'toolId', 'decorId'] as const;

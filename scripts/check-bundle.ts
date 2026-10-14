@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import { catalogsFromSnapshots } from './bundle-catalogs.js';
@@ -13,6 +14,7 @@ import { argValue, DEFAULT_ORIGIN, liveVersion, pullSnapshot, readSnapshot, ROOT
  *     so the list cannot fall behind it;
  *   - the envelope still carries exactly the fields the sequencer stamps;
  *   - the weather forecast fields and weather ids the timer and alarms read;
+ *   - the day/night cycle the Night alarm and the planner's Time row copy, when the game has one;
  *   - the connection and map markers the socket hooks and scenes read;
  *   - that the build can still scrape its catalogs out of this bundle.
  *
@@ -159,6 +161,46 @@ export function typeLiteralPresent(source: string, type: string): boolean {
 
 export interface CheckResult { drift: string[]; warnings: string[]; ok: string[] }
 
+/** Files that copy the game's day/night cycle as `DAY_CYCLE` (minutes per stage). */
+const DAY_CYCLE_FILES = ['src/features/weather-alarms.ts', 'src/features/garden-planner.ts'];
+
+/**
+ * The game's day/night cycle, `X={day:N,dusk:N,midnight:N,sunrise:N},Y=Object.values(X)...` (the
+ * object the client sums into its cycle length), or null when the bundle has none. Other objects with
+ * the same keys exist (colour tables, transition timings), hence the Object.values anchor.
+ */
+export function bundleDayCycle(source: string): Record<string, number> | null {
+  const match = /=\{day:(\d+),dusk:(\d+),midnight:(\d+),sunrise:(\d+)\},[\w$]+=Object\.values\(/.exec(source);
+  return match ? { day: +match[1], dusk: +match[2], midnight: +match[3], sunrise: +match[4] } : null;
+}
+
+/** `DAY_CYCLE` as a file declares it: `[['sunrise', 10], ['day', 570], ...]`. */
+export function sourceDayCycle(text: string): Record<string, number> | null {
+  const block = /DAY_CYCLE[^=]*=\s*\[([^;]*?)\];/.exec(text)?.[1];
+  if (!block) return null;
+  const out: Record<string, number> = {};
+  for (const match of block.matchAll(/\['(\w+)',\s*(\d+)\]/g)) out[match[1]] = Number(match[2]);
+  return Object.keys(out).length ? out : null;
+}
+
+function checkDayCycle(source: string, result: CheckResult): void {
+  const live = bundleDayCycle(source);
+  const show = (cycle: Record<string, number>) => ['sunrise', 'day', 'dusk', 'midnight'].map(stage => `${stage} ${cycle[stage]}`).join(', ');
+  if (!live) {
+    result.ok.push('no day/night cycle in this bundle (the Night alarm and planner Time row stay hidden)');
+    return;
+  }
+  for (const file of DAY_CYCLE_FILES) {
+    let text = '';
+    try { text = readFileSync(resolve(ROOT, file), 'utf8'); } catch { /* reported below */ }
+    const ours = sourceDayCycle(text);
+    if (!ours) { result.warnings.push(`could not read DAY_CYCLE from ${file}`); continue; }
+    const differs = Object.keys(live).some(stage => ours[stage] !== live[stage]);
+    if (differs) result.drift.push(`day/night cycle is ${show(live)} minutes, ${file} DAY_CYCLE has ${show(ours)} - update it`);
+    else result.ok.push(`day/night cycle (${show(live)}) matches ${file}`);
+  }
+}
+
 export async function checkSnapshot(snapshot: Snapshot, sent: SentCommands): Promise<CheckResult> {
   const result: CheckResult = { drift: [], warnings: [], ok: [] };
   const source = [...snapshot.files.values()].join('\n').replace(/\s+/g, '');
@@ -205,6 +247,8 @@ export async function checkSnapshot(snapshot: Snapshot, sent: SentCommands): Pro
   }
   if (/\.Lunar\]:\{durationMinutes:/.test(source)) result.ok.push('weather group Lunar');
   else result.warnings.push('weather group Lunar not found - weather-forecast.ts matches groupId "Lunar"');
+
+  checkDayCycle(source, result);
 
   for (const marker of SCHEMA_MARKERS) {
     if (source.includes(marker)) result.ok.push(`marker ${marker}`);

@@ -10,6 +10,7 @@
 
 let roomSocketOpens = 0;
 const listeners = new Set<() => void>();
+const reopenListeners = new Set<() => void>();
 
 function emit(): void {
   for (const listener of listeners) {
@@ -20,7 +21,29 @@ function emit(): void {
 /** Called for every room socket that opens. The first is the initial connection, not a reconnect. */
 export function noteRoomSocketOpened(): void {
   roomSocketOpens++;
-  if (roomSocketOpens > 1) emit();
+  if (roomSocketOpens <= 1) return;
+  emit();
+  for (const listener of reopenListeners) {
+    try { listener(); } catch (error) { console.warn('[Garden Companion] A reconnect listener failed.', error); }
+  }
+}
+
+/**
+ * Counts a room socket's open and close exactly once, however many times it is handed over. The
+ * companion's one socket hook feeds this for every feature, so nothing that diffs game state depends
+ * on a particular feature having wrapped the socket.
+ */
+export function trackRoomSocket(socket: WebSocket & { __gardenCompanionTracked?: boolean }): void {
+  if (socket.__gardenCompanionTracked) return;
+  socket.__gardenCompanionTracked = true;
+  if (socket.readyState === WebSocket.OPEN) noteRoomSocketOpened();
+  else socket.addEventListener('open', noteRoomSocketOpened, { once: true });
+  socket.addEventListener('close', noteRoomSocketClosed, { once: true });
+}
+
+/** Runs only on the reopen of a reconnect, never on the first connection or on a close. */
+export function onRoomSocketReopened(listener: () => void): void {
+  reopenListeners.add(listener);
 }
 
 /**

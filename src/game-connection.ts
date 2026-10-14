@@ -416,10 +416,12 @@ export function sendBareCommand(command: Record<string, unknown>): void {
  * numbers. Going out through the socket puts our commands past the single stamp, which is the only
  * arrangement where two senders never collide.
  */
-export function sendQuinoaCommand(command: Record<string, unknown>): string {
+export function sendQuinoaCommand(command: Record<string, unknown>, options: { own?: boolean } = {}): string {
   const requestId = crypto.randomUUID();
   const frame = { scopePath: ['Room', 'Quinoa'], type: 'QuinoaCommand', requestId, command };
   if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error('The game connection is not ready.');
+  // Marked before it leaves: the outgoing watchers run inside the send itself.
+  if (options.own) markOwnCommand(requestId);
   activeSocket.send(JSON.stringify(frame));
   return requestId;
 }

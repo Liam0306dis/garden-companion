@@ -59,16 +59,45 @@ test('selling out stops the alarm', () => {
   assert.equal(alarmTitle(), null);
 });
 
-test('a reconnect re-adopts the shelf silently', () => {
+test('a reconnect leaves stock that has not turned over alone', () => {
+  world({ Carrot: 5, Beet: 3 }, {}, 'r2');
+  processShops();
+  stopAlarm();
   noteRoomSocketClosed();
   noteRoomSocketOpened();
-  world({ Carrot: 5, Beet: 3 }, {}, 'r3');
+  world({ Carrot: 5, Beet: 3 }, {}, 'r2');
   processShops();
   mock.timers.tick(2500);
   assert.equal(alarmTitle(), null, 'stock already there before the drop is not news');
-  world({ Carrot: 5, Beet: 3 }, {}, 'r3');
   processShops();
   assert.equal(alarmTitle(), null);
+});
+
+test('a reconnect alarms for a restock that happened while away', () => {
+  noteRoomSocketClosed();
+  // A half-delivered shelf part-way through the reconnect is not a sell-out.
+  world({}, {}, 'r2');
+  noteRoomSocketOpened();
+  processShops();
+  world({ Carrot: 5, Beet: 3 }, {}, 'r3');
+  processShops();
+  assert.equal(alarmTitle(), null, 'nothing fires before the world has settled');
+  mock.timers.tick(2500);
+  assert.equal(alarmTitle(), 'Carrot is available');
+  stopAlarm();
+});
+
+test('a reconnect alarms for an item that came back into stock while away', () => {
+  world({ Carrot: 5, Beet: 3 }, { Carrot: 5 }, 'r3');
+  processShops();
+  assert.equal(alarmTitle(), null);
+  noteRoomSocketClosed();
+  noteRoomSocketOpened();
+  world({ Carrot: 5, Beet: 3 }, {}, 'r4');
+  processShops();
+  mock.timers.tick(2500);
+  assert.equal(alarmTitle(), 'Carrot is available');
+  stopAlarm();
 });
 
 test('turning an alert on while in stock fires straight away, and Buy all buys every remaining one in one purchase', async () => {

@@ -53,11 +53,38 @@ export async function readSnapshot(dir: string): Promise<Snapshot> {
   return { dir, version, files, failed, externalScripts };
 }
 
-/** GET with redirects. Node's fetch decodes gzip and brotli itself. */
-async function get(url: string): Promise<string> {
+/**
+ * GET with redirects. Node's fetch decodes gzip and brotli itself. `meta`, when given, gets the
+ * response's Cloudflare cache status (`cache`: HIT, MISS, ...).
+ */
+async function get(url: string, meta?: { cache?: string }): Promise<string> {
   const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+  if (meta) meta.cache = response.headers.get('cf-cache-status') ?? '';
   return response.text();
+}
+
+/**
+ * Chunk names carry a content hash (`name-XXXXXXXX.js`), so a chunk an earlier complete capture
+ * already holds is byte-identical and can be copied instead of downloaded. Each release reuses
+ * roughly a fifth to a third of its chunks. This matters because a new version's chunks are not in
+ * Cloudflare's cache yet: every first download goes to the origin (~0.8 s each, against ~0.1 s once
+ * cached), and the pull is deliberately one file at a time.
+ */
+const HASHED_CHUNK = /-[A-Za-z0-9_-]{8}\.js$/;
+
+async function cachedChunks(): Promise<Map<string, string>> {
+  const byName = new Map<string, string>();
+  for (const dir of await snapshotDirs()) {
+    try {
+      const meta = JSON.parse(await readFile(resolve(dir, '_meta.json'), 'utf8'));
+      if (Array.isArray(meta.failed) && meta.failed.length) continue;
+    } catch { continue; }
+    for (const name of await readdir(dir)) {
+      if (HASHED_CHUNK.test(name) && !byName.has(name)) byName.set(name, resolve(dir, name));
+    }
+  }
+  return byName;
 }
 
 /**
@@ -161,13 +188,24 @@ export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) 
   const files = new Map<string, string>();
   const failed: Snapshot['failed'] = [];
   const externalScripts = new Set(entryUrls.filter(url => url.origin !== originUrl.origin).map(url => url.toString()));
+  const cached = await cachedChunks();
+  const stats = { reused: 0, downloaded: 0, misses: 0, started: Date.now() };
   while (queue.length) {
     const { name, url } = queue.shift()!;
     if (seen.has(url)) continue;
     seen.add(url);
     let source: string;
-    try { source = await get(url); }
-    catch (error) { failed.push({ name, error: (error as Error).message }); continue; }
+    const local = HASHED_CHUNK.test(name) ? cached.get(name) : undefined;
+    if (local) {
+      source = await readFile(local, 'utf8');
+      stats.reused++;
+    } else {
+      const meta: { cache?: string } = {};
+      try { source = await get(url, meta); }
+      catch (error) { failed.push({ name, error: (error as Error).message }); continue; }
+      stats.downloaded++;
+      if (meta.cache && meta.cache !== 'HIT') stats.misses++;
+    }
     await writeFile(resolve(dir, name), source);
     files.set(name, source);
     if (files.size % 25 === 0) log('.');
@@ -175,6 +213,7 @@ export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) 
     for (const external of refs.externalScripts) externalScripts.add(external);
     for (const chunk of refs.chunks) if (!seen.has(chunk.url)) queue.push(chunk);
   }
+  log(`\n${stats.downloaded} downloaded (${stats.misses} not yet in Cloudflare's cache), ${stats.reused} reused from older captures, ${Math.round((Date.now() - stats.started) / 1000)}s`);
   // Recorded so an offline run can report the version, and so a partial pull is visible rather than
   // passing for drift.
   await writeFile(resolve(dir, '_meta.json'), JSON.stringify({

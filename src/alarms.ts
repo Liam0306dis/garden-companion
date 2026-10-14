@@ -452,14 +452,19 @@ export function stopAlarm(owner?: string): void {
 }
 
 function renderAlarmCard(options: CompanionAlarmOptions): void {
-  const card = document.createElement('div');
-  card.className = 'gc-alarm-card';
+  const entry: ActiveAlarm = { options, card: document.createElement('div') };
+  entry.card.className = 'gc-alarm-card';
+  fillAlarmCard(entry);
+  activeAlarms.push(entry);
+  alarmStack().appendChild(entry.card);
+}
+
+/** Draws a card from its options. Also used to refresh a card in place when its owner is raised again. */
+function fillAlarmCard(entry: ActiveAlarm): void {
+  const { options, card } = entry;
   const detail = options.detail ? `<span data-alarm-detail>${escapeHtml(options.detail)}</span>` : '';
   const action = options.actionLabel ? `<button data-buy>${escapeHtml(options.actionLabel)}</button>` : '';
   card.innerHTML = `${options.icon ? `<i class="gc-alarm-icon" data-sprite><img src="${escapeHtml(options.icon)}" alt=""></i>` : '<i class="gc-alarm-icon">!</i>'}<div><small>${escapeHtml(options.label)}</small><strong>${escapeHtml(options.title)}</strong>${detail}<em data-alarm-queue></em></div>${action}<button data-stop>Stop alarm</button>`;
-  const entry: ActiveAlarm = { options, card };
-  activeAlarms.push(entry);
-  alarmStack().appendChild(card);
   card.querySelector<HTMLButtonElement>('[data-stop]')!.onclick = () => removeAlarms(new Set([entry]));
   const actionButton = card.querySelector<HTMLButtonElement>('[data-buy]');
   if (actionButton && options.onAction) {
@@ -476,7 +481,31 @@ function renderAlarmCard(options: CompanionAlarmOptions): void {
   }
 }
 
+/**
+ * One alarm per owner. Raised again while it is still up (a shop restocking under a banner nobody
+ * dismissed), the existing alarm takes the new options where it stands - redrawn if it is on screen,
+ * replaced if it is queued - rather than a duplicate stacking up behind it. Answers whether it did.
+ */
+function refreshExistingAlarm(options: CompanionAlarmOptions): boolean {
+  const owner = options.owner;
+  if (owner === undefined) return false;
+  const active = activeAlarms.find(entry => entry.options.owner === owner);
+  const queued = alarmQueue.findIndex(entry => entry.owner === owner);
+  if (active) {
+    // Redrawing the card would take a placement's Done button with it.
+    finishEditingAlarmPosition();
+    active.options = options;
+    fillAlarmCard(active);
+    updateAlarmQueueCount();
+  } else if (queued >= 0) alarmQueue[queued] = options;
+  else return false;
+  // The new options may have muted the last alarm that wanted sound.
+  if (!anyUnmutedAlarm()) stopCustomSound();
+  return true;
+}
+
 export function showAlarmBanner(options: CompanionAlarmOptions): void {
+  if (refreshExistingAlarm(options)) return;
   if (activeAlarms.length >= maxVisibleAlarms()) {
     alarmQueue.push(options);
     updateAlarmQueueCount();
