@@ -889,9 +889,19 @@ export function initGardenPlanner(): void {
     document.getElementById('gc-planner')?.remove();
   }
 
+  /** The crop the size slider is for: the mounted crop on a display decor, else the selected plant. */
+  function scaleSpecies(): string {
+    return planner.mode === 'decor' ? planner.mountedSpecies || planner.species : planner.species;
+  }
+
+  /** Max reads as on whenever the size is at the crop's limit, including a larger size clamped down to it. */
+  function scaleAtMax(species: string): boolean {
+    return planner.scale === null || planner.scale >= maxSizeMultiplier(PLANTS[species]?.crop);
+  }
+
   /** Keeps the size slider in step with the selected crop, whose maximum differs per species. */
   function refreshScaleControl(panel: HTMLElement): void {
-    const species = planner.mode === 'decor' ? planner.mountedSpecies || planner.species : planner.species;
+    const species = scaleSpecies();
     const slider = panel.querySelector<HTMLInputElement>('[data-plan-scale]');
     if (!slider) return;
     const max = maxSizeMultiplier(PLANTS[species]?.crop);
@@ -902,7 +912,7 @@ export function initGardenPlanner(): void {
     const label = panel.querySelector<HTMLElement>('[data-plan-scale-value]');
     if (label) label.textContent = sizeSummary(value, species);
     const maxButton = panel.querySelector<HTMLButtonElement>('[data-plan-scale-max]');
-    if (maxButton) maxButton.dataset.active = String(planner.scale === null);
+    if (maxButton) maxButton.dataset.active = String(scaleAtMax(species));
   }
 
   /**
@@ -1072,9 +1082,8 @@ export function initGardenPlanner(): void {
     }).join('');
     const decorMode = planner.mode === 'decor';
     const layoutNames = Object.keys(savedLayouts()).sort();
-    const scaleSpecies = decorMode ? planner.mountedSpecies || planner.species : planner.species;
-    const scaleMax = maxSizeMultiplier(PLANTS[scaleSpecies]?.crop);
-    const scaleValue = scaleFor(scaleSpecies);
+    const scaleMax = maxSizeMultiplier(PLANTS[scaleSpecies()]?.crop);
+    const scaleValue = scaleFor(scaleSpecies());
     const previousScroll = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)')?.scrollTop ?? 0;
     panel.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size + edgeDecorCount()} planned</span><button data-plan-close>Exit</button></header>
 <div class="gc-planner-body"><small data-plan-notice>${edgeDecorSelected()
@@ -1100,7 +1109,7 @@ ${decorMode
       ? `<div class="gc-planner-row"><b>${edgeDecorSelected() ? 'Side' : 'Facing'}</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${[0, 90, 180, 270].map(angle => `<button data-plan-rotation="${angle}" data-active="${planner.rotation === angle}">${edgeDecorSelected() ? SIDE_LABELS[angle] : angle}</button>`).join('')}</div></div></div>`
       : ''}<div class="gc-planner-row"><b>Flip</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-flip="false" data-active="${!planner.flipped}">Normal</button><button data-plan-flip="true" data-active="${planner.flipped}">Flipped</button></div></div></div>`
   : `<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`}
-${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies)}</span><button data-plan-scale-max data-active="${planner.scale === null}">Max</button></div>`}
+${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies())}</span><button data-plan-scale-max data-active="${scaleAtMax(scaleSpecies())}">Max</button></div>`}
 <div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
 <div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
 ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select><button data-plan-delete>Delete</button></div>` : ''}</div>`;
@@ -1217,12 +1226,15 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
     refreshScaleControl(panel);
     const scaleInput = panel.querySelector<HTMLInputElement>('[data-plan-scale]');
+    // The crop is read on every input rather than once here: picking another plant only refreshes the
+    // slider, so a crop captured at render time measured the new plant against the old one's maximum.
     if (scaleInput) scaleInput.oninput = () => {
       planner.scale = Number(scaleInput.value);
+      const species = scaleSpecies();
       const label = panel!.querySelector<HTMLElement>('[data-plan-scale-value]');
-      if (label) label.textContent = sizeSummary(Number(scaleInput.value), scaleSpecies);
+      if (label) label.textContent = sizeSummary(scaleFor(species), species);
       const maxButton = panel!.querySelector<HTMLButtonElement>('[data-plan-scale-max]');
-      if (maxButton) maxButton.dataset.active = 'false';
+      if (maxButton) maxButton.dataset.active = String(scaleAtMax(species));
     };
     panel.querySelector<HTMLButtonElement>('[data-plan-scale-max]')?.addEventListener('click', () => {
       planner.scale = null;
