@@ -1,5 +1,5 @@
 0.9.51
-- Layout planner: right-click now removes edge decor (lanterns, string lights, windchimes) whatever you are holding - click near the side it hangs on
+- Layout planner: right-click now removes edge decor (lanterns, string lights, windchimes) whatever you are holding - click near the side it hangs on, and both decors on that edge go at once
 - Layout planner: the chosen mutations are easier to see - the others are dimmed, and the chosen ones are listed by name
 
 0.9.50

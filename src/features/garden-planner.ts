@@ -589,10 +589,9 @@ export function initGardenPlanner(): void {
   /**
    * The planned edge decor a right-click points at: the nearest side, if the pointer is close to it
    * and that edge holds decor - any side, and with any item selected, since a plant or tile decor in
-   * hand used to leave edge decor impossible to remove. With edge decor in hand only edges holding
-   * that decor's part count, so it still picks up one part at a time as the game does. The key is
-   * worked out from the world tile, so it does not have to be one of ours: an edge on the garden's
-   * outer border can be hit from outside it, where its art hangs.
+   * hand used to leave edge decor impossible to remove. The key is worked out from the world tile,
+   * so it does not have to be one of ours: an edge on the garden's outer border can be hit from
+   * outside it, where its art hangs.
    */
   function edgeToErase(event: PointerEvent | MouseEvent): string | null {
     if (!planner.edges.size) return null;
@@ -601,11 +600,7 @@ export function initGardenPlanner(): void {
     if (!point || !bounds) return null;
     const localIndex = tileAtPoint(point, true);
     const reach = localIndex !== null && planner.tiles.has(localIndex) ? EDGE_ERASE_REACH_OVER_PLAN : EDGE_ERASE_REACH;
-    const part = edgeDecorSelected() ? selectedEdgePart() : null;
-    return nearestEdge(point, bounds, reach, key => {
-      const parts = planner.edges.get(key);
-      return Boolean(parts && (part ? parts[part] : Object.keys(parts).length));
-    });
+    return nearestEdge(point, bounds, reach, key => Object.keys(planner.edges.get(key) ?? {}).length > 0);
   }
 
   function tileAtPointer(event: PointerEvent | MouseEvent): string | null {
@@ -691,15 +686,12 @@ export function initGardenPlanner(): void {
   }
 
   /**
-   * Clears the selected decor's part of the edge, the way the game picks up one part at a time. With
-   * no edge decor in hand there is no part to pick, so the whole edge is cleared.
+   * Clears the edge: both parts, so string lights and the lantern or web hanging from the same line
+   * go together. Picking them up one at a time, as the game does, left one behind for every click
+   * and read as the eraser not working.
    */
   function eraseEdge(key: string): void {
-    const parts = { ...planner.edges.get(key) };
-    if (edgeDecorSelected()) delete parts[selectedEdgePart()];
-    else for (const name of Object.keys(parts) as EdgePart[]) delete parts[name];
-    if (Object.keys(parts).length) planner.edges.set(key, parts);
-    else planner.edges.delete(key);
+    planner.edges.delete(key);
     applyEdge(key);
     updateCount();
   }
@@ -759,7 +751,7 @@ export function initGardenPlanner(): void {
       if (edge !== null) eraseEdge(edge);
       if (edgeDecorSelected()) {
         const facing = edge === null ? edgeAtPointer(event) : null;
-        if (facing !== null && planner.edges.get(facing)?.[selectedEdgePart()]) eraseEdge(facing);
+        if (facing !== null && planner.edges.has(facing)) eraseEdge(facing);
         return;
       }
     } else if (edgeDecorSelected()) {
