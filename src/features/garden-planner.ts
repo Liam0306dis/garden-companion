@@ -2,6 +2,7 @@ import { page } from '../page.js';
 import type { GardenTile } from '../types.js';
 import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { maxSizeMultiplier, sizeFromScale, slotScale } from '../crop-size.js';
+import { edgeKey, nearestEdge, type Side } from './planner-edges.js';
 import { createTicker } from '../ticker.js';
 import { NUMBER_LOCALE } from '../utils.js';
 import { onSpritesReady } from '../pets.js';
@@ -408,18 +409,6 @@ export function initGardenPlanner(): void {
     return { x, y, cols: Math.max(...xs) - x + 1, rows: Math.max(...ys) - y + 1 };
   }
 
-  type Side = 'up' | 'right' | 'down' | 'left';
-
-  /** The edge on one side of a garden-relative tile: `h` edges run along a tile's top, `v` edges down its left. */
-  function edgeKey(x: number, y: number, side: Side): string {
-    switch (side) {
-      case 'up': return `h:${x}:${y}`;
-      case 'down': return `h:${x}:${y + 1}`;
-      case 'left': return `v:${x}:${y}`;
-      case 'right': return `v:${x + 1}:${y}`;
-    }
-  }
-
   /** The edge on one side of one of our tiles, keyed "dirt:3" or "board:3". */
   function tileEdgeKey(localIndex: string, side: Side): string | null {
     const bounds = gardenBounds();
@@ -583,10 +572,51 @@ export function initGardenPlanner(): void {
     return localIndex === null ? null : tileEdgeKey(localIndex, edgeFromRotation(decorRotation()).side);
   }
 
-  function tileAtPointer(event: PointerEvent | MouseEvent): string | null {
-    const system = tileSystem();
+  /**
+   * How near a side the pointer has to be to mean the decor on it. Over a tile with something planned
+   * on it the reach is kept to a thin band along the line, so most of that tile still erases the tile
+   * itself; over an empty tile (or off the garden, where edge art on the border hangs) it is wider.
+   */
+  const EDGE_ERASE_REACH = 0.3;
+  const EDGE_ERASE_REACH_OVER_PLAN = 0.12;
+
+  /**
+   * The garden's box while a right-drag is erasing, so each move does not rescan every tile for it.
+   * Taken when the drag starts and dropped when it ends.
+   */
+  let erasingBounds: ReturnType<typeof gardenBounds> = null;
+
+  /**
+   * The planned edge decor a right-click points at: the nearest side, if the pointer is close to it
+   * and that edge holds decor - any side, and with any item selected, since a plant or tile decor in
+   * hand used to leave edge decor impossible to remove. With edge decor in hand only edges holding
+   * that decor's part count, so it still picks up one part at a time as the game does. The key is
+   * worked out from the world tile, so it does not have to be one of ours: an edge on the garden's
+   * outer border can be hit from outside it, where its art hangs.
+   */
+  function edgeToErase(event: PointerEvent | MouseEvent): string | null {
+    if (!planner.edges.size) return null;
     const point = worldTileAtPointer(event);
-    if (!system || !point) return null;
+    const bounds = erasingBounds ?? gardenBounds();
+    if (!point || !bounds) return null;
+    const localIndex = tileAtPoint(point, true);
+    const reach = localIndex !== null && planner.tiles.has(localIndex) ? EDGE_ERASE_REACH_OVER_PLAN : EDGE_ERASE_REACH;
+    const part = edgeDecorSelected() ? selectedEdgePart() : null;
+    return nearestEdge(point, bounds, reach, key => {
+      const parts = planner.edges.get(key);
+      return Boolean(parts && (part ? parts[part] : Object.keys(parts).length));
+    });
+  }
+
+  function tileAtPointer(event: PointerEvent | MouseEvent): string | null {
+    const point = worldTileAtPointer(event);
+    return point ? tileAtPoint(point) : null;
+  }
+
+  /** `anyTile` offers boardwalk tiles with a plant selected too, for finding edges rather than placing. */
+  function tileAtPoint(point: { x: number; y: number }, anyTile = false): string | null {
+    const system = tileSystem();
+    if (!system) return null;
     const x = Math.floor(point.x);
     const y = Math.floor(point.y);
     const map = system.map;
@@ -596,7 +626,7 @@ export function initGardenPlanner(): void {
     if (dirt && dirt.userSlotIdx === ownSlotIndex()) return `dirt:${dirt.dirtTileIdx}`;
     // Boardwalk tiles hold decor only, so plants are not offered there.
     const boardwalk = map.globalTileIdxToBoardwalk?.[globalIndex];
-    if (boardwalk && boardwalk.userSlotIdx === ownSlotIndex() && planner.mode === 'decor') {
+    if (boardwalk && boardwalk.userSlotIdx === ownSlotIndex() && (anyTile || planner.mode === 'decor')) {
       return `board:${boardwalk.boardwalkTileIdx}`;
     }
     return null;
@@ -660,10 +690,14 @@ export function initGardenPlanner(): void {
     updateCount();
   }
 
-  /** Clears the selected decor's part of the edge, the way the game picks up one part at a time. */
+  /**
+   * Clears the selected decor's part of the edge, the way the game picks up one part at a time. With
+   * no edge decor in hand there is no part to pick, so the whole edge is cleared.
+   */
   function eraseEdge(key: string): void {
     const parts = { ...planner.edges.get(key) };
-    delete parts[selectedEdgePart()];
+    if (edgeDecorSelected()) delete parts[selectedEdgePart()];
+    else for (const name of Object.keys(parts) as EdgePart[]) delete parts[name];
     if (Object.keys(parts).length) planner.edges.set(key, parts);
     else planner.edges.delete(key);
     applyEdge(key);
@@ -677,6 +711,17 @@ export function initGardenPlanner(): void {
 
   function onPointerDown(event: PointerEvent): void {
     if (!planner.open || fromPlannerUi(event)) return;
+    if (event.button === 2) {
+      erasingBounds = gardenBounds();
+      const edge = edgeToErase(event);
+      if (edge !== null) {
+        event.preventDefault();
+        event.stopPropagation();
+        planner.erasing = true;
+        eraseEdge(edge);
+        return;
+      }
+    }
     if (edgeDecorSelected()) {
       const key = edgeAtPointer(event);
       if (key === null) return;
@@ -706,13 +751,22 @@ export function initGardenPlanner(): void {
 
   function onPointerMove(event: PointerEvent): void {
     if (!planner.open || fromPlannerUi(event) || (!planner.painting && !planner.erasing)) return;
-    if (edgeDecorSelected()) {
+    if (planner.erasing) {
+      // A drag erases what it passes: the edge it runs along, and the tile under it as well. With edge
+      // decor in hand, the edge it faces stands in only when the pointer is near no edge - otherwise
+      // one move could clear an edge it never went near alongside the one it did.
+      const edge = edgeToErase(event);
+      if (edge !== null) eraseEdge(edge);
+      if (edgeDecorSelected()) {
+        const facing = edge === null ? edgeAtPointer(event) : null;
+        if (facing !== null && planner.edges.get(facing)?.[selectedEdgePart()]) eraseEdge(facing);
+        return;
+      }
+    } else if (edgeDecorSelected()) {
       const key = edgeAtPointer(event);
       if (key === null) return;
       const current = planner.edges.get(key)?.[selectedEdgePart()];
-      if (planner.erasing) {
-        if (current) eraseEdge(key);
-      } else if (current?.decorId !== planner.decorId || current.mirrored !== edgeFromRotation(decorRotation()).mirrored) {
+      if (current?.decorId !== planner.decorId || current.mirrored !== edgeFromRotation(decorRotation()).mirrored) {
         placeEdge(key);
       }
       return;
@@ -733,6 +787,7 @@ export function initGardenPlanner(): void {
   function onPointerUp(): void {
     planner.painting = false;
     planner.erasing = false;
+    erasingBounds = null;
   }
 
   function blockEvent(event: Event): void {
@@ -988,6 +1043,12 @@ export function initGardenPlanner(): void {
     if (notice) notice.textContent = message;
   }
 
+  /** The chosen mutations by name, since the icons alone are small and easy to misread. */
+  function mutationSummary(): string {
+    const names = [...planner.mutations].map(id => MUTATIONS[id]?.name ?? id);
+    return names.length ? `Selected: ${names.join(', ')}` : 'No mutations selected';
+  }
+
   function renderPanel(): void {
     if (!planner.open) return;
     let panel = document.getElementById('gc-planner');
@@ -1011,7 +1072,7 @@ export function initGardenPlanner(): void {
           `<button class="gc-planner-mutation" data-plan-mutation="${id}" data-group="${group}" data-active="${planner.mutations.has(id)}" title="${mutation.name} x${mutation.coinMultiplier}">${mutationIcon(id)}</button>`)
         .join('');
       return `<div class="gc-planner-mutation-group">${buttons}</div>`;
-    }).join('');
+    }).join('') + `<small class="gc-planner-mutation-summary" data-plan-mutation-summary>${mutationSummary()}</small>`;
     const decorOptions = sortedDecor().map(id => {
       const sprite = page.__gardenCompanionShopSprites?.[id] || '';
       const details = DECOR[id];
@@ -1073,6 +1134,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       panel!.querySelectorAll<HTMLButtonElement>('[data-plan-mutation]').forEach(other => {
         other.dataset.active = String(planner.mutations.has(other.dataset.planMutation!));
       });
+      const summary = panel!.querySelector<HTMLElement>('[data-plan-mutation-summary]');
+      if (summary) summary.textContent = mutationSummary();
     });
     panel.querySelector<HTMLButtonElement>('[data-plan-clear]')!.onclick = () => {
       planner.tiles.clear();

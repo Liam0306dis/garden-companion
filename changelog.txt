@@ -1,3 +1,7 @@
+0.9.51
+- Layout planner: right-click now removes edge decor (lanterns, string lights, windchimes) whatever you are holding - click near the side it hangs on
+- Layout planner: the chosen mutations are easier to see - the others are dimmed, and the chosen ones are listed by name
+
 0.9.50
 - Weather Alarms: the Night alarm now has its icon, and sounds on time even when nothing else in the game is changing
 
