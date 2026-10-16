@@ -2,6 +2,7 @@
 - Layout planner: right-click now removes edge decor (lanterns, string lights, windchimes) whatever you are holding - click near the side it hangs on, and both decors on that edge go at once
 - Layout planner: the chosen mutations are easier to see - the others are dimmed, and the chosen ones are listed by name
 - Layout planner: the size slider now follows the plant you pick, rather than the one picked when the panel opened
+- Layout planner: letting go of the size slider hands the keys back, so WASD moves you again instead of the slider
 
 0.9.50
 - Weather Alarms: the Night alarm now has its icon, and sounds on time even when nothing else in the game is changing

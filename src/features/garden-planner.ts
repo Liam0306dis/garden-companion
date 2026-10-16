@@ -1236,6 +1236,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const maxButton = panel!.querySelector<HTMLButtonElement>('[data-plan-scale-max]');
       if (maxButton) maxButton.dataset.active = String(scaleAtMax(species));
     };
+    // Let go of the slider once it is released: left focused, the keys that walk the player kept
+    // nudging it instead.
+    scaleInput?.addEventListener('pointerup', () => scaleInput.blur());
+    scaleInput?.addEventListener('change', () => scaleInput.blur());
     panel.querySelector<HTMLButtonElement>('[data-plan-scale-max]')?.addEventListener('click', () => {
       planner.scale = null;
       renderPanel();
