@@ -3,6 +3,7 @@ import { config, saveConfig } from '../config.js';
 import { page } from '../page.js';
 import { serverNow, shopSecondsLeft } from '../server-clock.js';
 import { state } from '../state.js';
+import { createTicker } from '../ticker.js';
 import { escapeHtml } from '../utils.js';
 import { currentWeather, weatherLabel, weatherRemainingText, WEATHER_TYPES } from './weather-timer.js';
 
@@ -104,11 +105,21 @@ function raiseNight(): void {
     label: 'WEATHER ALARM',
     title: 'Night has fallen',
     detail: nightText(),
+    icon: page.__gardenCompanionWeatherSprites?.[NIGHT],
   });
 }
 
+/**
+ * Night falls on the clock, not on a state change, so a quiet room (alone in the garden, nothing
+ * growing or moving) could send no patch for a while after sunset and the alarm would sound late.
+ * While the Night alarm is ticked this checks between patches as well.
+ */
+const nightTicker = createTicker(() => processNightAlarm(), 5_000);
+
 function processNightAlarm(): void {
-  if (!hasNightCycle()) { seenNight = undefined; return; }
+  const cycle = hasNightCycle();
+  nightTicker.sync(cycle && Boolean(alerts()[NIGHT]));
+  if (!cycle) { seenNight = undefined; return; }
   const night = isNight(nightPhase().phase);
   // A banner left up keeps counting down through sunset, midnight and sunrise.
   if (night) updateAlarmDetail(NIGHT_OWNER, nightText());
@@ -142,6 +153,7 @@ export function toggleWeatherAlert(weather: string, enabled: boolean): void {
   config.weatherAlerts = next;
   saveConfig();
   if (weather === NIGHT) {
+    nightTicker.sync(enabled && hasNightCycle());
     if (!enabled) stopAlarm(NIGHT_OWNER);
     else {
       armAlarmAudio();
@@ -192,9 +204,11 @@ export function renderWeatherAlarms(): string {
       + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + '</label>';
   }).join('');
   // Night: only on a build that has one (see hasNightCycle).
+  const nightSprite = page.__gardenCompanionWeatherSprites?.[NIGHT] || '';
+  const nightIcon = nightSprite ? `<img src="${escapeHtml(nightSprite)}" alt="">` : '';
   const nightRow = hasNightCycle()
     ? `<label class="gc-check"><input type="checkbox" data-weather-alert="${NIGHT}" ${chosen[NIGHT] ? 'checked' : ''}>`
-      + `<span class="gc-shop-sprite"></span>`
+      + `<span class="gc-shop-sprite">${nightIcon}</span>`
       + `<span><b>${NIGHT}</b><small>${escapeHtml(nightText())}</small></span>`
       + alertMuteButton(`data-weather-mute="${NIGHT}"`, Boolean(mutedNow[NIGHT])) + '</label>'
     : '';

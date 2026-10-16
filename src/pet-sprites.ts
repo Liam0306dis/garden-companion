@@ -123,6 +123,8 @@ const WEATHER_ICON_CANDIDATES: Record<string, string> = {
   Thunderstorm: 'sprite/ui/ThunderstormIcon',
   Dawn: 'sprite/ui/DawnIcon',
   AmberMoon: 'sprite/ui/AmberMoonIcon',
+  // Not a weather, but the Night alarm sits among them and the game's own icon for night is this one.
+  Night: 'sprite/ui/MidnightIcon',
 };
 
 const EMBLEM_ICON_SPRITES: Record<string, string> = {
