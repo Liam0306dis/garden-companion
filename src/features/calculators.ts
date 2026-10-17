@@ -41,13 +41,21 @@ const CROP_REGROW: Record<string, [number, number]> = {
   Strawberry: [15 / 60, 5 / 60], Tomato: [1, 20 / 60], BurrosTail: [4.5, 1.5], FavaBean: [12, 2], PassionFruit: [90, 30],
   Blueberry: [33 / 60, 11 / 60], Cabbage: [52 / 60, 0], Corn: [45 / 60, 0], Grape: [22.5, 0], Sunflower: [1320, 0],
   Habanero: [15, 5], Persimmon: [90, 30], Marigold: [240, 0],
+  // Timed in game during the Haunt event.
+  DeadlyNightshade: [45, 15],
 };
 const CROP_GROW: Record<string, number> = {
   Daffodil: 50 / 60, Lily: 4, Carrot: 4 / 60, Aloe: 45 / 60, Bamboo: 1320, Cactus: 180, Beet: 1, Clover: 6,
   Delphinium: 25 / 60, FourLeafClover: 6, Gentian: 1.5, Leek: 1.5, Mushroom: 1320, OrangeTulip: 8 / 60,
   Pumpkin: 35, VioletCort: 1320, Watermelon: 12,
   Cardoon: 2, Milkcap: 1320, Echeveria: 20, Saffron: 2, Cattail: 3, Daisy: 1.5,
+  // Timed in game during the Haunt event. A Foxfire Spore plants about six crops, ripening 5 minutes apart
+  // from the first at 15.
+  GhostPlant: 10, Foxfire: 15,
+  Lavender: 100 / 60,
 };
+/** Minutes between a patch seed's crops ripening, where they do not all ripen together. */
+const PATCH_RIPEN_STEP: Record<string, number> = { Foxfire: 5 };
 
 /** The game's own sell-dust multipliers, before size: rarity, how rare the hatch was, and colour. */
 export function dustMultiplier(species: string, mutations: string[] = [], eggId?: string): number {
@@ -842,10 +850,18 @@ function renderFoodCalculator(): string {
       cover = `${plants} plant${plants === 1 ? '' : 's'}`;
       output = `${(plants * perPlant).toFixed(1)} fruit/hr from ${plants} plant${plants === 1 ? '' : 's'} (${perPlant.toFixed(1)} each)`;
     } else if (!plant?.regrows && CROP_GROW[crop]) {
-      const perTile = 60 / CROP_GROW[crop];
+      // A patch seed plants several crops (a Foxfire Spore 5 to 7), so seeds are counted by the
+      // average a seed gives rather than one seed per crop - which had 3 Snakes on Foxfire wanting
+      // 2 spores an hour when one every three hours feeds them.
+      const [fewest, most] = plant?.cropsPerSeed ?? [1, 1];
+      const perSeed = (fewest + most) / 2;
+      const seeds = need / perSeed;
+      // A seed's crops are all picked by the time its last one ripens, which for a staggered patch is
+      // well after the first: six Foxfire take 15 + 5 x 5 = 40 minutes, not 15.
+      const perTile = perSeed * 60 / (CROP_GROW[crop] + (PATCH_RIPEN_STEP[crop] ?? 0) * (perSeed - 1));
       const tiles = Math.max(1, Math.ceil(need / perTile));
-      cover = `${Math.ceil(need)} seeds/hr`;
-      output = `${tiles} tile${tiles === 1 ? '' : 's'} replanted continuously`;
+      cover = perSeed > 1 ? `${seeds < 10 ? seeds.toFixed(1) : Math.ceil(seeds)} seeds/hr` : `${Math.ceil(need)} seeds/hr`;
+      output = `${tiles} tile${tiles === 1 ? '' : 's'} replanted continuously${perSeed > 1 ? ` (~${perSeed} crops per seed)` : ''}`;
     }
     return `<tr><td><span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>${escapeHtml(plantName(crop))}</td><td><b>${need.toFixed(1)}</b>/hr</td><td>${escapeHtml(cover)}<small>${escapeHtml(output)}</small></td></tr>`;
   }).join('');

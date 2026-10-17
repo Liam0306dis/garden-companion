@@ -1,3 +1,7 @@
+0.9.55
+- Pet food calculator: Ghost Plant, Foxfire, Deadly Nightshade and Lavender now have grow times, so pets that eat them get a figure
+- Pet food calculator: patch crops count the several crops each seed plants, so 3 Snakes on Foxfire need about one spore every three hours, not 2 an hour
+
 0.9.54
 - Layout planner: a patch can mix plain, gold and rainbow crops - adding a crop no longer changes the ones already there, and saved layouts keep each crop's own
 - Layout planner: patch crops (clover, snowdrop, daisy and the like) are spread and tilted the way real patches are, instead of at odd angles

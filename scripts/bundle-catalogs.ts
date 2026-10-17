@@ -17,7 +17,7 @@ export interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string ; abilities: string[] }>;
-  plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean }>;
+  plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean; cropsPerSeed?: [min: number, max: number] }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds: Record<string, number> }>;
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
@@ -120,6 +120,12 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
                 return first ? { x: Number(first[1]), y: Number(first[2]) } : undefined;
               })(),
               slots: Math.max(1, capacity || (plantBlock.match(/\{x:/g) || []).length),
+              // How many crops one seed adds to a patch (a Foxfire Spore plants 5 to 7), which is not
+              // the patch's capacity: food planning counts seeds by this.
+              ...(capacity ? { cropsPerSeed: [
+                Number(plantBlock.match(/slotCountMin:([0-9]+)/)?.[1] || 1),
+                Number(plantBlock.match(/slotCountMax:([0-9]+)/)?.[1] || 1),
+              ] as [number, number] } : {}),
               regrows: /harvestType:[A-Za-z_$]+\.Multiple/.test(plantBlock),
               rarity: match[2].match(/rarity:[A-Za-z_$]+\.([A-Za-z]+)/)?.[1] || 'Common',
             } as BundleCatalogs['plants'][string],
