@@ -190,6 +190,8 @@ export const HUNGER_MINUTES: Record<string, number> = {
   SnowFox: 45, Stoat: 60, WhiteCaribou: 75, Squirrel: 30, Turtle: 90, Goat: 60, Sheep: 60, Ostrich: 45,
   Pony: 60, Horse: 75, FireHorse: 90, Bat: 30, Platypus: 60, ThunderWolf: 60, Butterfly: 30, Peacock: 60, Capybara: 60,
   Rooster: 60, RedFox: 45, Phoenix: 90,
+  // Spooky Egg: timed in game from the bar's drain per second (about 27, 21 and 18 against 50k, 75k and 100k).
+  Moth: 30, Toad: 60, Snake: 90,
 };
 
 /** The only link in the script that asks anything of anyone, so it lives somewhere obvious. */

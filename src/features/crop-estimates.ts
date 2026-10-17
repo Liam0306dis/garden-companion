@@ -1,11 +1,11 @@
 import type { Pet, PlantSlot } from '../types.js';
 import { feature } from '../config.js';
-import { PLANT_CATALOG } from '../constants.js';
+import { ABILITY_DETAILS, PLANT_CATALOG } from '../constants.js';
 import { slotScale } from '../crop-size.js';
 import { protectionReason } from './crop-protection.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
-import { crystalStrengthBonus, petMetrics } from '../pets.js';
+import { abilityActiveInWeather, crystalStrengthBonus, petMetrics } from '../pets.js';
 import { findPixiCard } from '../pixi.js';
 import { onQuinoaEngine, quinoaEngine } from '../quinoa-engine.js';
 import { friendBonusMultiplier, onStateChange, state } from '../state.js';
@@ -30,26 +30,37 @@ function petStrength(pet: Pet): number {
   return petMetrics(pet)?.strength ?? 87 + crystalStrengthBonus();
 }
 
-function turtleRate(pets: Pet[]): number {
-  return pets.filter(pet => pet.hunger > 0 && pet.petSpecies === 'Turtle' && (pet.abilities || []).includes('PlantGrowthBoostII')).reduce((sum, pet) => {
-    const strength = petStrength(pet);
-    return sum + (strength / 100 * 5) * 60 * (1 - Math.pow(1 - 0.27 * strength / 100, 1 / 60));
-  }, 0);
-}
-
-const EGG_ABILITIES: Record<string, [minutes: number, chance: number]> = { EggGrowthBoost: [7, .21], EggGrowthBoostI: [9, .24], EggGrowthBoostII_NEW: [9, .24], EggGrowthBoostII: [11, .27] };
-const EGG_PETS = new Set(['Chicken', 'Turkey', 'Turtle']);
-function eggRate(pets: Pet[]): number {
+/**
+ * Seconds per second that pets' growth procs take off a timer. Read from each ability's own figures
+ * in the bundle (chance and minutes per proc), for any pet and any tier: this used to count only
+ * Turtles with Plant Growth Boost II, and only Chickens, Turkeys and Turtles for eggs, so a Moth's
+ * Plant Growth Boost III and a Toad's Egg Growth Boost counted for nothing. A weather-gated boost
+ * counts only while its weather runs.
+ */
+function reductionRate(pets: Pet[], parameter: string, legacy: Record<string, [minutes: number, chance: number]> = {}): number {
   let total = 0;
   for (const pet of pets) {
-    if (!EGG_PETS.has(pet.petSpecies) || pet.hunger <= 0) continue;
+    if (pet.hunger <= 0) continue;
     const strength = petStrength(pet);
     for (const ability of pet.abilities || []) {
-      const rule = EGG_ABILITIES[ability];
-      if (rule) total += (strength / 100 * rule[0]) * 60 * (1 - Math.pow(1 - rule[1] * strength / 100, 1 / 60));
+      const details = ABILITY_DETAILS[ability];
+      const minutes = Number(details?.baseParameters?.[parameter] ?? legacy[ability]?.[0] ?? 0);
+      const chance = details?.baseProbability != null ? details.baseProbability / 100 : legacy[ability]?.[1] ?? 0;
+      if (!minutes || !chance || !abilityActiveInWeather(ability)) continue;
+      total += (strength / 100 * minutes) * 60 * (1 - Math.pow(1 - chance * strength / 100, 1 / 60));
     }
   }
   return total;
+}
+
+function growthRate(pets: Pet[]): number {
+  return reductionRate(pets, 'plantGrowthReductionMinutes');
+}
+
+/** Ids older saves can still carry, which the current bundle no longer describes. */
+const LEGACY_EGG_ABILITIES: Record<string, [minutes: number, chance: number]> = { EggGrowthBoostI: [9, .24], EggGrowthBoostII_NEW: [9, .24] };
+function eggRate(pets: Pet[]): number {
+  return reductionRate(pets, 'eggGrowthTimeReductionMinutes', LEGACY_EGG_ABILITIES);
 }
 
 const VALUE_PREFIX = '🪙 ';
@@ -97,7 +108,7 @@ function estimateLines(): string[] {
     if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * slotScale(PLANT_CATALOG[crop.species ?? '']?.crop, crop) * catalogMutationMultiplier(crop.mutations || []) * friendBonusMultiplier()).toLocaleString(NUMBER_LOCALE)}`);
   }
   if (feature('turtleTimer')) {
-    const end = Number(crop.endTime || 0), rate = turtleRate(pets);
+    const end = Number(crop.endTime || 0), rate = growthRate(pets);
     if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
   }
   return lines;

@@ -2,6 +2,8 @@
 - Layout planner: planned crops face different ways, as real ones do, rather than all pointing the same direction
 - Layout planner: patch crops (clover, snowdrop, daisy and the like) are spread and tilted the way real patches are, instead of at odd angles
 - Witchfire is now known as the Foxfire patch's rare crop (Garden Overview groups them, and the planner grows it in a Foxfire patch)
+- Moth, Toad and Snake now have hunger times (30, 60 and 90 minutes), so the food planner and hunger estimates cover them
+- Crop and egg timers now count every pet's growth boosts - a Moth's Plant Growth Boost and a Toad's Egg Growth Boost included - not just Turtles, Chickens and Turkeys
 
 0.9.52
 - Layout planner: right-click clears both decors on an edge at once (string lights with a lantern, web or chime)
