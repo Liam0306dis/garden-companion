@@ -18,6 +18,7 @@ import { processAutoStore } from './features/auto-store.js';
 import { noteWeatherChange } from './features/weather-timer.js';
 import { forecastTrace } from './weather-forecast.js';
 import { bindAlarmSoundEvents, renderAlarmSound } from './features/alarm-sound.js';
+import { bindSkyEvents, renderSky } from './features/sky.js';
 import { bindWeatherAlarmEvents, processWeatherAlarms, renderWeatherAlarms, weatherAlarmSignature } from './features/weather-alarms.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
@@ -467,7 +468,7 @@ export function initCompanion(): void {
     ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food'], ['eggLuck', 'Egg Luck', 'Eggs']]],
     ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
     ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['alarmSound', 'Alert Settings'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
-    ['Tools', [['calculators', 'Calculators'], ['minigames', 'Minigames'], ['rooms', 'Rooms']]],
+    ['Tools', [['calculators', 'Calculators'], ['sky', 'Lighting'], ['minigames', 'Minigames'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
     ['Support', [['supporter', 'Supporter']]],
   ];
@@ -486,6 +487,7 @@ export function initCompanion(): void {
     alarmSound: 'Sounds, volume and pet alarms used by every alert.',
     silence: 'Hide the game popups for abilities you no longer need to see.',
     calculators: 'XP, dust and value maths for pets and crops.',
+    sky: 'Keep a weather or time of day on screen, and set how dark and bright the game looks.',
     rooms: 'Public rooms with space for you, ready to join.',
     minigames: 'Games played on your own farm tiles. Nothing is sent to the game.',
     keybinds: 'Shortcuts for teams, tools and companion windows.',
@@ -507,6 +509,7 @@ export function initCompanion(): void {
     alarmSound: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>',
     silence: '<path d="M18 16H6c1-1.2 1.5-2.5 1.5-5a4.5 4.5 0 0 1 9 0c0 2.5.5 3.8 1.5 5Z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>',
     calculators: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7h7"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01"/>',
+    sky: '<path d="M9 18h6"/><path d="M10 21.5h4"/><path d="M15.1 14.5c.2-1 .7-1.7 1.4-2.5A5 5 0 0 0 17.9 8 5.9 5.9 0 0 0 6.1 8c0 1.1.3 2.3 1.4 3.5.7.8 1.2 1.5 1.4 3"/>',
     rooms: '<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
     minigames: '<rect x="3" y="7" width="18" height="11" rx="4"/><path d="M8 10.5v3M6.5 12h3"/><path d="M15.5 11h.01M17 13.5h.01"/>',
     keybinds: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7.5 14h9"/>',
@@ -653,6 +656,7 @@ export function initCompanion(): void {
     if (activeTab === 'protection') return renderCropProtection();
     if (activeTab === 'journal') return renderJournal();
     if (activeTab === 'eggLuck') return renderEggLuck();
+    if (activeTab === 'sky') return renderSky();
     return '';
   }
 
@@ -751,6 +755,7 @@ export function initCompanion(): void {
     bindShopEvents(main);
     bindWeatherAlarmEvents(main);
     bindAlarmSoundEvents(main, renderPanelPreservingScroll);
+    bindSkyEvents(main, renderPanelPreservingScroll);
     bindJournalEvents(main);
     bindEggLuckEvents(main);
     bindCropProtectionEvents(main);

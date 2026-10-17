@@ -125,6 +125,12 @@ const WEATHER_ICON_CANDIDATES: Record<string, string> = {
   AmberMoon: 'sprite/ui/AmberMoonIcon',
   // Not a weather, but the Night alarm sits among them and the game's own icon for night is this one.
   Night: 'sprite/ui/MidnightIcon',
+  // The Lighting tab's other buttons, keyed apart from the weathers so nothing that looks a weather up
+  // by id can land on them.
+  skyClear: 'sprite/ui/ClearIcon',
+  skyDay: 'sprite/ui/SunnyIcon',
+  skySunset: 'sprite/ui/SunsetIcon',
+  skySunrise: 'sprite/ui/SunriseIcon',
 };
 
 const EMBLEM_ICON_SPRITES: Record<string, string> = {

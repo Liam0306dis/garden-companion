@@ -14,6 +14,7 @@ import { initPreserveAll } from './features/preserve-all.js';
 import { installPetSpriteLoader } from './pet-sprites-injector.js';
 import { feature } from './config.js';
 import { exposeAddonApi } from './addon-api.js';
+import { initSky } from './features/sky.js';
 
 /**
  * In the Discord activity the game now loads itself a second time, into a same-origin iframe marked
@@ -40,6 +41,7 @@ if (isGameFrame()) {
   initCropCleanserHelper();
   initFarmManager();
   initGardenPlanner();
+  initSky();
   initFishing();
   initGardenDefence();
   initPreserveAll();

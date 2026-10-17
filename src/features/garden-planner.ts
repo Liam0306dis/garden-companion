@@ -3,7 +3,9 @@ import type { GardenTile } from '../types.js';
 import { DECOR_CATALOG, MUTATION_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { maxSizeMultiplier, sizeFromScale, slotScale } from '../crop-size.js';
 import { edgeKey, nearestEdge, type Side } from './planner-edges.js';
+import { glowScale, onSkyChange, skyNeedsFrameHook, skyPhase, skySettings, skyWeather, stageAt } from './sky.js';
 import { createTicker } from '../ticker.js';
+import { guarded } from '../safe-hook.js';
 import { NUMBER_LOCALE } from '../utils.js';
 import { onSpritesReady } from '../pets.js';
 
@@ -216,22 +218,191 @@ export function initGardenPlanner(): void {
   /** Whether the frame context has a day/night phase to override, which is when the Time row shows. */
   let hasDayNight = false;
 
+  /**
+   * Above zero while a system that must see the real weather and time is drawing: the right-side
+   * rail's day/night ring and night badge, and the game's sunset watcher (which shows the Spooky Shop
+   * toast). Drawn at the previewed or locked time they told the player it was night when it was not.
+   */
+  let realViewDepth = 0;
+  const REAL_VIEW_SYSTEMS: ReadonlyArray<[name: string, method: string]> = [['rightSideRail', 'draw'], ['sunsetPrompt', 'update']];
+  /**
+   * Above zero while any other system draws or updates. The frame context is also the game's
+   * global one, which its tooltips and day/night cards read whenever they refresh - outside any draw
+   * - so the previewed or locked time of day is only handed out inside a system's draw, and every
+   * other read sees the real time. (The weather stays swapped everywhere: the scene builds its rain
+   * and sky from it before any system draws.)
+   */
+  let sceneDrawDepth = 0;
+
+  /** The real phase, as the scene last wrote it, for the stage the dayNight system publishes. */
+  let realPhaseNow: number | null = null;
+
+  /**
+   * Glow: the night lights of decor (lamps, lanterns) and crops are set by the game at night strength
+   * times a maximum fixed per item, so nothing else here can reach them. Each decor light is an
+   * instance of a small class made per decor type, holding a steadyAlpha its draw applies every frame
+   * (and the held lamp's glows are another class with the same field); crops set theirs in their
+   * visual's updateNightPresentation. None of these classes is reachable by name, so their instances
+   * are met through the garden's views and each class is patched once to scale the alpha it just set,
+   * capped at fully opaque. New decor types are picked up by a later pass.
+   */
+  const GLOW_PATCHED = '__gcGlowPatched';
+  let lastGlowWalk = 0;
+
+  function scaleGlowAlpha(target: Record<string, any>, key: string): void {
+    const scale = glowScale();
+    const value = target[key];
+    if (scale !== 1 && typeof value === 'number' && Number.isFinite(value)) target[key] = Math.max(0, Math.min(1, value * scale));
+  }
+
+  function patchGlowClass(node: Record<string, any>): void {
+    const proto = Object.getPrototypeOf(node);
+    if (!proto || proto === Object.prototype || proto[GLOW_PATCHED]) return;
+    // A decor light (jumpPresentation) or a held-lamp glow (setDayNightPhase): both set steadyAlpha.
+    for (const method of ['jumpPresentation', 'setDayNightPhase']) {
+      const original = proto[method];
+      if (typeof original !== 'function' || typeof node.steadyAlpha !== 'number') continue;
+      // The game's own call always runs and returns as normal; only the scaling after it is guarded.
+      proto[method] = function(this: Record<string, any>, ...args: unknown[]) {
+        const result = original.apply(this, args);
+        if (glowScale() !== 1) guarded('Glow (decor)', () => scaleGlowAlpha(this, 'steadyAlpha'), undefined);
+        return result;
+      };
+      proto[GLOW_PATCHED] = true;
+      return;
+    }
+    // A crop visual: its night light and mutation-icon glows are set directly.
+    const original = proto.updateNightPresentation;
+    if (typeof original === 'function' && 'nightLight' in node) {
+      proto.updateNightPresentation = function(this: Record<string, any>, ...args: unknown[]) {
+        const result = original.apply(this, args);
+        if (glowScale() !== 1) guarded('Glow (crops)', () => {
+          for (const glow of [this.nightLight, ...(Array.isArray(this.mutationIconGlows) ? this.mutationIconGlows : [])]) {
+            if (!glow || typeof glow.alpha !== 'number') continue;
+            scaleGlowAlpha(glow, 'alpha');
+            glow.visible = glow.alpha > 0;
+          }
+        }, undefined);
+        return result;
+      };
+      proto[GLOW_PATCHED] = true;
+    }
+  }
+
+  /**
+   * Reaches the lights by the game's own fields rather than by walking objects (a blind walk reached
+   * its typed render buffers and took the page down). A tile view's childView is its decor - lights in
+   * its features list - or its plant, whose crops getCropVisuals lists; an edge view keeps its decor
+   * per part in componentViews.
+   */
+  function patchGlows(): void {
+    const now = Date.now();
+    if (now - lastGlowWalk < 10_000) return;
+    lastGlowWalk = now;
+    const system = tileSystem();
+    if (!system) return;
+    const decorViews: Array<Record<string, any>> = [];
+    if (system.tileViews instanceof Map) {
+      for (const tileView of system.tileViews.values()) {
+        const child = tileView?.childView;
+        if (!child || typeof child !== 'object') continue;
+        if (Array.isArray(child.features)) decorViews.push(child);
+        else if (typeof child.getCropVisuals === 'function') {
+          try { for (const visual of child.getCropVisuals() ?? []) if (visual && typeof visual === 'object') patchGlowClass(visual); } catch {}
+        }
+      }
+    }
+    if (system.edgeViewsBySlot instanceof Map) {
+      for (const slot of system.edgeViewsBySlot.values()) {
+        if (!(slot instanceof Map)) continue;
+        for (const edgeView of slot.values()) {
+          for (const part of Object.values(edgeView?.componentViews ?? {}) as Array<Record<string, any> | null>) {
+            if (Array.isArray(part?.view?.features)) decorViews.push(part.view);
+          }
+        }
+      }
+    }
+    for (const decor of decorViews) {
+      for (const feature of decor.features) if (feature && typeof feature === 'object' && typeof feature.steadyAlpha === 'number') patchGlowClass(feature);
+    }
+  }
+
+  function patchRealViewSystems(): void {
+    if (glowScale() !== 1) guarded('Glow (finding lights)', patchGlows, undefined);
+    // The dayNight system draws the night at the drawn phase, which is wanted, but also publishes the
+    // stage it works out from it to an atom the weather tooltip and nocturnal-pet bonus read. That
+    // stage is swapped back for the real one, so the tooltip says Daytime when it is daytime.
+    const dayNight = systems()?.dayNight as Record<string, any> | undefined;
+    if (dayNight && typeof dayNight.publishStage === 'function' && !dayNight.__gcRealStagePatched) {
+      const original = dayNight.publishStage;
+      dayNight.__gcRealStagePatched = true;
+      // Only while a time is being shown in place of the real one: otherwise the game's own stage is
+      // already right, and stageAt's copy of the day cycle could only make it less so.
+      dayNight.publishStage = function(this: unknown, stage: unknown, ...rest: unknown[]) {
+        const published = guarded('Real day stage', () => {
+          const shifted = (planner.open && planner.time !== 'live') || skySettings().time !== 'live';
+          return shifted && typeof realPhaseNow === 'number' && Number.isFinite(realPhaseNow) ? stageAt(realPhaseNow) : stage;
+        }, stage);
+        return original.call(this, published, ...rest);
+      };
+    }
+    const all = systems()?.allSystems;
+    if (all instanceof Map) {
+      for (const [name, system] of all as Map<string, Record<string, any>>) {
+        if (!system || REAL_VIEW_SYSTEMS.some(([real]) => real === name) || system.__gcSceneDrawPatched) continue;
+        system.__gcSceneDrawPatched = true;
+        for (const method of ['draw', 'update']) {
+          const original = system[method];
+          if (typeof original !== 'function') continue;
+          system[method] = function(this: unknown, ...args: unknown[]) {
+            sceneDrawDepth++;
+            try { return original.apply(this, args); } finally { sceneDrawDepth--; }
+          };
+        }
+      }
+    }
+    for (const [name, method] of REAL_VIEW_SYSTEMS) {
+      const system = systems()?.[name] as Record<string, any> | undefined;
+      if (!system || typeof system[method] !== 'function' || system.__gcRealViewPatched) continue;
+      const original = system[method];
+      system.__gcRealViewPatched = true;
+      system[method] = function(this: unknown, ...args: unknown[]) {
+        realViewDepth++;
+        try { return original.apply(this, args); } finally { realViewDepth--; }
+      };
+    }
+  }
+
   function overrideContextWeather(context: Record<string, any>): void {
     weatherContext = context;
     let real = context.weatherId;
     Object.defineProperty(context, 'weatherId', {
       configurable: true,
       enumerable: true,
-      get: () => planner.open && planner.weather !== 'live' ? (planner.weather === 'clear' ? null : planner.weather) : real,
+      // The planner's own preview first, then the Lighting tab's lock, then the real weather.
+      // Read by the whole scene every frame, so whatever goes wrong here hands back the real weather.
+      // The common case - nothing locked - returns before any of that, as this is read many times a frame.
+      get: () => {
+        if (realViewDepth || (!(planner.open && planner.weather !== 'live') && skySettings().weather === 'live')) return real;
+        return guarded('Weather lock', () => planner.open && planner.weather !== 'live' ? (planner.weather === 'clear' ? null : planner.weather) : skyWeather(real), real);
+      },
       set: (value: unknown) => { real = value; },
     });
     if (!('dayNightPhase01' in context)) return;
     let realPhase = context.dayNightPhase01;
+    realPhaseNow = typeof realPhase === 'number' ? realPhase : null;
     Object.defineProperty(context, 'dayNightPhase01', {
       configurable: true,
       enumerable: true,
-      get: () => planner.open && planner.time !== 'live' ? TIME_PHASE[planner.time] ?? realPhase : realPhase,
-      set: (value: unknown) => { realPhase = value; },
+      get: () => {
+        if (realViewDepth || !sceneDrawDepth || (!(planner.open && planner.time !== 'live') && skySettings().time === 'live')) return realPhase;
+        // Only a finite 0-1 phase is ever handed out; anything else, or a throw, gives the real one.
+        return guarded('Time lock', () => {
+          const phase = planner.open && planner.time !== 'live' ? TIME_PHASE[planner.time] ?? realPhase : skyPhase(Number(realPhase));
+          return typeof phase === 'number' && Number.isFinite(phase) && phase >= 0 && phase <= 1 ? phase : realPhase;
+        }, realPhase);
+      },
+      set: (value: unknown) => { realPhase = value; realPhaseNow = typeof value === 'number' ? value : null; },
     });
     if (!hasDayNight) {
       hasDayNight = true;
@@ -241,6 +412,7 @@ export function initGardenPlanner(): void {
   }
 
   function patchWeatherDraw(): void {
+    patchRealViewSystems();
     const system = tileSystem() as Record<string, any> | null;
     if (!system || typeof system.draw !== 'function' || system.__gcPlannerWeatherPatched) return;
     const original = system.draw;
@@ -249,9 +421,16 @@ export function initGardenPlanner(): void {
       if (context && typeof context === 'object' && context !== weatherContext) {
         try { overrideContextWeather(context); } catch {}
       }
-      return original.call(this, context, ...rest);
+      sceneDrawDepth++;
+      try { return original.call(this, context, ...rest); } finally { sceneDrawDepth--; }
     };
   }
+
+  // The Lighting tab needs the same hook with the planner closed. The garden system is rebuilt when
+  // the room changes, so it is re-checked every few seconds while a sky setting is in use.
+  const skyHook = createTicker(() => patchWeatherDraw(), 2000);
+  onSkyChange(() => skyHook.sync(skyNeedsFrameHook()));
+  skyHook.sync(skyNeedsFrameHook());
 
   function systems() {
     return page.__gardenCompanionFarmSystems ?? null;

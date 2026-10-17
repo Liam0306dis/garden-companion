@@ -5,6 +5,7 @@ import { toast } from './toast.js';
 import { onCurrentRoomState, type RoomStateInstance } from './game-room-state.js';
 import { atomMap, findAtom } from './atom-cache.js';
 import { retryUntil } from './retry.js';
+import { gameStore, watchAtom } from './game-store.js';
 
 /**
  * Reading and driving the game through its own jotai atoms: mirroring the values the panel needs
@@ -42,8 +43,8 @@ let gameAtomSet: ((atom: JotaiAtom, value: unknown) => unknown) | null = null;
  * drops it, since the game calls it unofficial) fall back to the setter captured from an atom write.
  */
 function atomSetter(): ((atom: JotaiAtom, value: unknown) => unknown) | null {
-  const store = (page as unknown as { __jotaiStore?: { set?: unknown } }).__jotaiStore;
-  if (typeof store?.set === 'function') return (atom, value) => (store.set as (atom: JotaiAtom, value: unknown) => unknown)(atom, value);
+  const store = gameStore();
+  if (store) return (atom, value) => store.set(atom, value);
   return gameAtomSet;
 }
 const wrappedAtomWrites = new Map<JotaiAtom, { original: JotaiAtom['write']; capture: JotaiAtom['write'] }>();
@@ -229,6 +230,12 @@ function hookAtom(match: string, key: string): void {
 function mirrorFieldAtom(atom: JotaiAtom, key: string): void {
   const flag = `__gardenCompanion:${key}`;
   if (!atom || atom[flag]) return;
+  // The store (1604+) follows primitive and derived atoms alike, with nothing patched; the read and
+  // write wraps below are for builds without it.
+  if (watchAtom(atom, value => mirrorAtomValue(key, value), key)) {
+    atom[flag] = true;
+    return;
+  }
   if (typeof atom.read === 'function') {
     const original = atom.read;
     atom.read = function(get, ...args) {

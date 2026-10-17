@@ -1,3 +1,9 @@
+0.9.56
+- New Lighting tab (Tools): keep any weather or time of day on screen, only for you - alarms, timers and the game's own weather tooltip still follow the real ones
+- Lighting: tune night - how dark it gets, how strongly it is tinted, and the night, sunset and sunrise tint colours
+- Lighting: a Glow slider for how brightly lamps, lanterns and glowing crops shine at night
+- Lighting: brightness, contrast, saturation, warmth and hue for the whole game view
+
 0.9.55
 - Pet food calculator: Ghost Plant, Foxfire, Deadly Nightshade and Lavender now have grow times, so pets that eat them get a figure
 - Pet food calculator: patch crops count the several crops each seed plants, so 3 Snakes on Foxfire need about one spore every three hours, not 2 an hour

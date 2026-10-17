@@ -4,6 +4,7 @@ import { state } from '../state.js';
 import { ensureToolReady, freeInventorySlots, holdTool, shackToolCount } from '../pets.js';
 import { setQuinoaEngine } from '../quinoa-engine.js';
 import { atomMap } from '../atom-cache.js';
+import { watchAtom } from '../game-store.js';
 import { page } from '../page.js';
 import { retryUntil } from '../retry.js';
 import { sendQuinoaCommand } from '../game-connection.js';
@@ -165,6 +166,18 @@ export function initPlantDragMove(): void {
     }
 
     function captureNamedSystem(system: GameObject) {
+        // Systems that read the time of day for the HUD and the sunset toast, which the planner and the
+        // Lighting tab keep on the real time while the scene is drawn at another.
+        // This runs inside the game's own Map.set, so nothing here may throw back into it.
+        try {
+            if (system?.name === 'rightSideRail' || system?.name === 'sunsetPrompt' || system?.name === 'dayNight') live[system.name] = system;
+            // Every named system, for the planner's frame hook: a locked time of day is only shown to
+            // systems while they draw, so it needs to know which calls are draws.
+            if (typeof system?.name === 'string') {
+                if (!(live.allSystems instanceof Map)) live.allSystems = new Map();
+                (live.allSystems as Map<string, GameObject>).set(system.name, system);
+            }
+        } catch {}
         const capturedName = isTileSystem(system) ? 'tileObject' : system?.name;
         if (CAPTURED_SYSTEMS.includes(capturedName)) capturedSinceArm.add(capturedName);
         if (system?.name === 'tapToMove') {
@@ -409,6 +422,12 @@ export function initPlantDragMove(): void {
             const flag = `${WRAPPED_FLAG}:${debugLabel}`;
             if (atom[flag]) return true;
 
+            // Through the store the game publishes (1604+), as its developers asked, rather than by
+            // patching the atom's read; the read patch stays for builds without one.
+            if (watchAtom(atom, onValue, debugLabel)) {
+                atom[flag] = true;
+                return true;
+            }
             const originalRead = atom.read;
             atom.read = function(get, ...args) {
                 const value = originalRead.call(this, get, ...args);

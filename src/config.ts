@@ -41,6 +41,7 @@ export const DEFAULTS: CompanionConfig = {
   shopAlertsMuted: {},
   weatherAlerts: {},
   weatherAlertsMuted: {},
+  sky: { weather: 'live', time: 'live', night: 100, nightColour: 100, glow: 100, nightTint: '', sunsetTint: '', sunriseTint: '', brightness: 100, contrast: 100, saturation: 100, warmth: 0, hue: 0 },
   alarmSound: { preset: 'classic', volume: 60, pitch: 0 },
   petFoodChoices: {},
   teamKeybinds: {},

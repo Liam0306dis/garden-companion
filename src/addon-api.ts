@@ -5,6 +5,7 @@ import * as constants from './constants.js';
 import * as cropSize from './crop-size.js';
 import * as draggable from './draggable.js';
 import * as gameConnection from './game-connection.js';
+import * as gameStore from './game-store.js';
 import * as listSearch from './list-search.js';
 import * as pageModule from './page.js';
 import * as panelActions from './panel-actions.js';
@@ -49,6 +50,7 @@ export function exposeAddonApi(): void {
       'crop-size': cropSize,
       'draggable': draggable,
       'game-connection': gameConnection,
+      'game-store': gameStore,
       'list-search': listSearch,
       'page': pageModule,
       'panel-actions': panelActions,

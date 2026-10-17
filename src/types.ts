@@ -291,7 +291,33 @@ export interface CompanionConfig {
   petFoodChoices: Record<string, string>;
   teamKeybinds: Record<string, string>;
   interfaceKeybinds: Record<string, string>;
-  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string> | AlarmSoundSettings;
+  sky: SkySettings;
+  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string> | AlarmSoundSettings | SkySettings;
+}
+
+/** Lighting tab: a locked weather and time of day, and how the game is drawn (percentages). */
+export interface SkySettings {
+  /** 'live', 'clear' or a weather id. */
+  weather: string;
+  /** 'live' or a stage of the day cycle. */
+  time: string;
+  /** Percent of the game's own night darkening. */
+  night: number;
+  /** Percent of the game's own night tint opacity. */
+  nightColour: number;
+  /** Percent of the game's own night glow, for decor lights and crops. */
+  glow: number;
+  /** '#rrggbb', or empty for the game's own colour. */
+  nightTint: string;
+  sunsetTint: string;
+  sunriseTint: string;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  /** 0-100, as a sepia filter. */
+  warmth: number;
+  /** Degrees. */
+  hue: number;
 }
 
 /** How every alarm sounds: a built-in preset or the player's own file, with volume and pitch on top. */
