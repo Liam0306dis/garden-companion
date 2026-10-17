@@ -464,6 +464,8 @@ export function initGardenPlanner(): void {
     Daisy: 'PurpleDaisy', PurpleDaisy: 'Daisy',
     Clover: 'FourLeafClover', FourLeafClover: 'Clover',
     Cattail: 'VariegatedCattail', VariegatedCattail: 'Cattail',
+    Emberbloom: 'Embercrown', Embercrown: 'Emberbloom',
+    Foxfire: 'Witchfire', Witchfire: 'Foxfire',
   };
 
   function sharesPatch(host: string, species: string): boolean {
@@ -474,8 +476,13 @@ export function initGardenPlanner(): void {
    * `slotSpecies` grows a patch a crop at a time, and lets a patch hold a mix of a species and its
    * rare variant. Offsets are still calculated against the full capacity, so crops already down
    * keep their positions and each new one lands in a gap rather than the patch rearranging itself.
+   *
+   * Each crop also gets its own facing, as the server gives real ones: a coin-flip `flipped`, and a
+   * start time a few milliseconds apart - regrowing plants with rotateSlotOffsetsRandomly tilt each
+   * crop by `35 - startTime % 70` degrees, so identical start times stood every crop at one angle.
+   * `previous` is the tile being added to, whose crops keep the facing they already had.
    */
-  function plannedTile(species: string, mutations: string[], slotSpecies?: string[]): GardenTile {
+  function plannedTile(species: string, mutations: string[], slotSpecies?: string[], previous?: GardenTile): GardenTile {
     const now = Date.now();
     const capacity = Math.max(1, Number(PLANTS[species]?.slots || 1));
     const isPatch = patchCapacity(species) > 0;
@@ -492,9 +499,14 @@ export function initGardenPlanner(): void {
       maturedAt: matured,
       slots: Array.from({ length: slots }, (_, slotId) => {
         const grown = contents?.[slotId] || PLANTS[species]?.slotSpecies?.[slotId] || species;
+        const before = previous?.objectType === 'plant' && previous.species === species
+          ? (previous.slots as Array<{ species?: string; startTime?: number; flipped?: boolean }> | undefined)?.[slotId]
+          : undefined;
+        const kept = before?.species === grown && typeof before.startTime === 'number';
         return {
           species: grown,
-          startTime: started,
+          startTime: kept ? before.startTime! : started - Math.floor(Math.random() * 70),
+          flipped: kept ? Boolean(before.flipped) : Math.random() < .5,
           endTime: matured,
           ...slotSizeFields(grown),
           mutations: [...mutations],
@@ -665,7 +677,7 @@ export function initGardenPlanner(): void {
         : current.length >= capacity
           ? [...current.slice(0, capacity - 1), planner.species]
           : [...current, planner.species];
-      planner.tiles.set(localIndex, plannedTile(host, [...planner.mutations], grown));
+      planner.tiles.set(localIndex, plannedTile(host, [...planner.mutations], grown, existing));
     }
     applyTile(localIndex);
     updateCount();

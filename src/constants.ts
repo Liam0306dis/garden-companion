@@ -213,6 +213,8 @@ export const PATCH_FAMILIES: ReadonlyArray<readonly string[]> = [
   // Emberbloom seeds the tile and embercrowns grow in it, which is the clover shape: one seed
   // sprite between them, capacity on the parent, and the child sold nowhere.
   ['Emberbloom', 'Embercrown'],
+  // The Haunt event's pair, the same shape again: witchfire grows in a foxfire patch.
+  ['Foxfire', 'Witchfire'],
 ];
 
 /** Species to the family it shares a tile with, keyed by the family's first member. */

@@ -1,3 +1,7 @@
+0.9.53
+- Layout planner: planned crops face different ways, as real ones do, rather than all pointing the same direction
+- Witchfire is now known as the Foxfire patch's rare crop (Garden Overview groups them, and the planner grows it in a Foxfire patch)
+
 0.9.52
 - Layout planner: right-click clears both decors on an edge at once (string lights with a lantern, web or chime)
 - Layout planner: the size slider now follows the plant you pick, rather than the one picked when the panel opened

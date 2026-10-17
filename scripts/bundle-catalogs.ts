@@ -133,6 +133,14 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
             row.entry.slots = capacityBySeed.get(row.seedSprite)!;
           }
         }
+        // The seed is not always shared: Witchfire grows in a foxfire patch from a Mushroom spore. The
+        // game lists each patch with the rare crop that grows in it, so that list settles the rest.
+        const capacityBySpecies = new Map(plantRows.filter(row => row.capacity).map(row => [row.species, row.capacity]));
+        for (const pair of bundle.matchAll(/\{patchSpeciesId:`([A-Za-z0-9_]+)`,rareCropSpeciesId:`([A-Za-z0-9_]+)`\}/g)) {
+          const rare = plantRows.find(row => row.species === pair[2]);
+          const capacity = capacityBySpecies.get(pair[1]);
+          if (rare && !rare.capacity && capacity) rare.entry.slots = capacity;
+        }
         // Species that only exist inside another plant's slots are not separately plantable.
         const componentSpecies = new Set(plantRows.flatMap(row => row.slotSpecies.filter(Boolean)));
         for (const row of plantRows) {
