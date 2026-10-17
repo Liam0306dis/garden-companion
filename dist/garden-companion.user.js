@@ -5999,6 +5999,11 @@ ${eggs.map(eggCard).join("")}`;
   var activeModalStateAtom = null;
   var cinematicAtom = null;
   var gameAtomSet = null;
+  function atomSetter() {
+    const store = page.__jotaiStore;
+    if (typeof store?.set === "function") return (atom, value) => store.set(atom, value);
+    return gameAtomSet;
+  }
   var wrappedAtomWrites = /* @__PURE__ */ new Map();
   function restoreAtomWriteCaptures() {
     for (const [atom, { original, capture }] of wrappedAtomWrites) {
@@ -6010,7 +6015,7 @@ ${eggs.map(eggCard).join("")}`;
     if (!atom) return atom;
     const atomKey = String(key);
     if (atomKey.endsWith("/activeModalStateAtom")) activeModalStateAtom = atom;
-    if (gameAtomSet || typeof atom?.write !== "function" || wrappedAtomWrites.has(atom)) return atom;
+    if (atomSetter() || typeof atom?.write !== "function" || wrappedAtomWrites.has(atom)) return atom;
     const original = atom.write;
     const capture = function(get, set, ...args) {
       gameAtomSet = (target, value) => set(target, value);
@@ -6024,15 +6029,16 @@ ${eggs.map(eggCard).join("")}`;
   function installGameModalAccess() {
     retryUntil(() => {
       atomMap()?.forEach((atom, key) => inspectGameAtom(key, atom));
-      return Boolean(activeModalStateAtom && gameAtomSet);
+      return Boolean(activeModalStateAtom && atomSetter());
     }, "the interface shortcuts");
   }
   function openGameInterface(target) {
-    if (!activeModalStateAtom || !gameAtomSet) {
+    const set = atomSetter();
+    if (!activeModalStateAtom || !set) {
       toast("The game interface is still loading.", "error");
       return;
     }
-    gameAtomSet(activeModalStateAtom, (previous) => {
+    set(activeModalStateAtom, (previous) => {
       if (typeof previous === "string" || previous === null) return target;
       const openId = Number(previous?.openId) || 0;
       return { modal: target, openId: openId + 1 };
@@ -6067,7 +6073,8 @@ ${eggs.map(eggCard).join("")}`;
   var cinematicBeforeClaim = false;
   var applyingOwnCinematic = false;
   page.__gardenCompanionSetCinematic = (enabled, owner = "default") => {
-    if (!cinematicAtom || !gameAtomSet) return false;
+    const set = atomSetter();
+    if (!cinematicAtom || !set) return false;
     try {
       if (enabled) {
         if (!cinematicOwners.size) cinematicBeforeClaim = cinematicValue;
@@ -6075,7 +6082,7 @@ ${eggs.map(eggCard).join("")}`;
       } else cinematicOwners.delete(owner);
       applyingOwnCinematic = true;
       try {
-        gameAtomSet(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim);
+        set(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim);
       } finally {
         applyingOwnCinematic = false;
       }

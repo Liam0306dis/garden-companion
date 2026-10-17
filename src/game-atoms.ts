@@ -35,6 +35,17 @@ export const GAME_INTERFACES: ReadonlyArray<{ id: GameInterface; label: string }
 let activeModalStateAtom: JotaiAtom | null = null;
 let cinematicAtom: JotaiAtom | null = null;
 let gameAtomSet: ((atom: JotaiAtom, value: unknown) => unknown) | null = null;
+
+/**
+ * The store's setter. Since build 1604 the game publishes its jotai store as window.__jotaiStore
+ * before it renders, which is there from the start and needs no patching; older builds (or one that
+ * drops it, since the game calls it unofficial) fall back to the setter captured from an atom write.
+ */
+function atomSetter(): ((atom: JotaiAtom, value: unknown) => unknown) | null {
+  const store = (page as unknown as { __jotaiStore?: { set?: unknown } }).__jotaiStore;
+  if (typeof store?.set === 'function') return (atom, value) => (store.set as (atom: JotaiAtom, value: unknown) => unknown)(atom, value);
+  return gameAtomSet;
+}
 const wrappedAtomWrites = new Map<JotaiAtom, { original: JotaiAtom['write']; capture: JotaiAtom['write'] }>();
 
 export function restoreAtomWriteCaptures(): void {
@@ -56,7 +67,7 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
   // installGameRoomStateHooks below rather than here.
   // The engine is captured from the system registry in plant-drag-move.ts (bundle 1141 removed the
   // engine atom this used to hook), so nothing to do here for it.
-  if (gameAtomSet || typeof atom?.write !== 'function' || wrappedAtomWrites.has(atom)) return atom;
+  if (atomSetter() || typeof atom?.write !== 'function' || wrappedAtomWrites.has(atom)) return atom;
   const original = atom.write;
   const capture: NonNullable<JotaiAtom['write']> = function(this: JotaiAtom, get, set, ...args) {
     gameAtomSet = (target, value) => set(target, value);
@@ -78,12 +89,13 @@ export function inspectGameAtom(key: unknown, atom: JotaiAtom): JotaiAtom {
 export function installGameModalAccess(): void {
   retryUntil(() => {
     atomMap()?.forEach((atom, key) => inspectGameAtom(key, atom));
-    return Boolean(activeModalStateAtom && gameAtomSet);
+    return Boolean(activeModalStateAtom && atomSetter());
   }, 'the interface shortcuts');
 }
 
 export function openGameInterface(target: GameInterface): void {
-  if (!activeModalStateAtom || !gameAtomSet) {
+  const set = atomSetter();
+  if (!activeModalStateAtom || !set) {
     toast('The game interface is still loading.', 'error');
     return;
   }
@@ -91,7 +103,7 @@ export function openGameInterface(target: GameInterface): void {
   // (its cards use it to tell a fresh open from a re-render). Writing the bare id left `.modal`
   // undefined, so nothing opened. The updater mirrors the game's open, and still accepts the old
   // bare-string shape should a bundle ever go back to it.
-  gameAtomSet(activeModalStateAtom, (previous: unknown) => {
+  set(activeModalStateAtom, (previous: unknown) => {
     if (typeof previous === 'string' || previous === null) return target;
     const openId = Number((previous as { openId?: unknown } | undefined)?.openId) || 0;
     return { modal: target, openId: openId + 1 };
@@ -158,14 +170,15 @@ let cinematicBeforeClaim = false;
 let applyingOwnCinematic = false;
 
 page.__gardenCompanionSetCinematic = (enabled: boolean, owner = 'default') => {
-  if (!cinematicAtom || !gameAtomSet) return false;
+  const set = atomSetter();
+  if (!cinematicAtom || !set) return false;
   try {
     if (enabled) {
       if (!cinematicOwners.size) cinematicBeforeClaim = cinematicValue;
       cinematicOwners.add(owner);
     } else cinematicOwners.delete(owner);
     applyingOwnCinematic = true;
-    try { gameAtomSet(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim); }
+    try { set(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim); }
     finally { applyingOwnCinematic = false; }
     return true;
   } catch { return false; }
