@@ -87,11 +87,18 @@ export function skyWeather(real: unknown): unknown {
 
 // The day cycle (AsyncEpoch chunk `{day:570,sunset:10,midnight:10,sunrise:10}`, starting at sunrise).
 // Kept in step with garden-planner.ts and weather-alarms.ts, which copy the same cycle.
-const CYCLE: ReadonlyArray<[stage: string, minutes: number]> = [['sunrise', 10], ['day', 570], ['sunset', 10], ['midnight', 10]];
+// check-bundle compares DAY_CYCLE against the live bundle.
+const DAY_CYCLE: ReadonlyArray<[stage: string, minutes: number]> = [['sunrise', 10], ['day', 570], ['sunset', 10], ['midnight', 10]];
+const CYCLE = DAY_CYCLE;
 const TOTAL = CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0);
-const SUNRISE_END = 10 / TOTAL;
-const SUNSET_START = (10 + 570) / TOTAL;
-const SUNSET_END = (10 + 570 + 10) / TOTAL;
+const stageEnd = (stage: string) => {
+  let end = 0;
+  for (const [name, minutes] of CYCLE) { end += minutes; if (name === stage) break; }
+  return end / TOTAL;
+};
+const SUNRISE_END = stageEnd('sunrise');
+const SUNSET_START = stageEnd('day');
+const SUNSET_END = stageEnd('sunset');
 const STAGE_MIDDLE: Record<string, number> = (() => {
   const middles: Record<string, number> = {};
   let start = 0;

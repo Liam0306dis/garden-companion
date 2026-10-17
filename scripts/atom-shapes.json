@@ -14,6 +14,7 @@
   "myPredictedInventoryItemsAtom": "_(_=>_(_).inventory.items)",
   "mySelectedItemIdAtom": "_(_=>_(_).itemId)",
   "myUserSlotIdxAtom": "_(_=>{_ _=_(_),_=_(_).findIndex(_=>_?.userId===_);return _>=0?_:null})",
+  "nightGradeSettingsAtom": "_(_)",
   "playerIdAtom": "_(_.id)",
   "selectedActionsAtom": "_(_=>_(_)?.actions??_(_).subjectlessActions)",
   "selectedCropSlotIdAtom": "_(_=>_(_)?.slotId??null)",

@@ -5344,11 +5344,20 @@ ${filter}
     if (weather === "live") return real;
     return weather === "clear" ? null : weather;
   }
-  var CYCLE = [["sunrise", 10], ["day", 570], ["sunset", 10], ["midnight", 10]];
+  var DAY_CYCLE = [["sunrise", 10], ["day", 570], ["sunset", 10], ["midnight", 10]];
+  var CYCLE = DAY_CYCLE;
   var TOTAL = CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0);
-  var SUNRISE_END = 10 / TOTAL;
-  var SUNSET_START = (10 + 570) / TOTAL;
-  var SUNSET_END = (10 + 570 + 10) / TOTAL;
+  var stageEnd = (stage) => {
+    let end = 0;
+    for (const [name, minutes] of CYCLE) {
+      end += minutes;
+      if (name === stage) break;
+    }
+    return end / TOTAL;
+  };
+  var SUNRISE_END = stageEnd("sunrise");
+  var SUNSET_START = stageEnd("day");
+  var SUNSET_END = stageEnd("sunset");
   var STAGE_MIDDLE = (() => {
     const middles = {};
     let start = 0;
@@ -5567,8 +5576,8 @@ ${slider("hue", "Hue", -180, 180, sky.hue)}
   var NIGHT = "Night";
   var NIGHT_OWNER = "night";
   var MINUTE_MS = 6e4;
-  var DAY_CYCLE = [["sunrise", 10], ["day", 570], ["sunset", 10], ["midnight", 10]];
-  var CYCLE_MS = DAY_CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0) * MINUTE_MS;
+  var DAY_CYCLE2 = [["sunrise", 10], ["day", 570], ["sunset", 10], ["midnight", 10]];
+  var CYCLE_MS = DAY_CYCLE2.reduce((sum, [, minutes]) => sum + minutes, 0) * MINUTE_MS;
   function hasNightCycle() {
     if (!state.game) return false;
     const quest = state.slot?.data?.spookyQuest;
@@ -5576,7 +5585,7 @@ ${slider("hue", "Hue", -180, 180, sky.hue)}
   }
   function nightPhase(now = serverNow()) {
     let into = (now % CYCLE_MS + CYCLE_MS) % CYCLE_MS;
-    for (const [phase, minutes] of DAY_CYCLE) {
+    for (const [phase, minutes] of DAY_CYCLE2) {
       const length = minutes * MINUTE_MS;
       if (into < length) return { phase, msLeft: length - into };
       into -= length;
@@ -12455,12 +12464,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       { id: "midnight", label: "Midnight" },
       { id: "sunrise", label: "Sunrise" }
     ];
-    const DAY_CYCLE2 = [["sunrise", 10], ["day", 570], ["sunset", 10], ["midnight", 10]];
+    const DAY_CYCLE3 = [["sunrise", 10], ["day", 570], ["sunset", 10], ["midnight", 10]];
     const TIME_PHASE = (() => {
-      const total = DAY_CYCLE2.reduce((sum, [, minutes]) => sum + minutes, 0);
+      const total = DAY_CYCLE3.reduce((sum, [, minutes]) => sum + minutes, 0);
       const phases = {};
       let start = 0;
-      for (const [stage, minutes] of DAY_CYCLE2) {
+      for (const [stage, minutes] of DAY_CYCLE3) {
         phases[stage] = (start + minutes / 2) / total;
         start += minutes;
       }

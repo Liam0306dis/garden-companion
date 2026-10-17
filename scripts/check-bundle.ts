@@ -50,7 +50,34 @@ const SCHEMA_MARKERS = [
  * renamed tileObject to gardenObject without any other marker changing, which quietly cut the
  * planner, drag-move and overview focus off from the farm.
  */
-const SYSTEM_NAMES = ['tapToMove', 'gardenObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory'];
+const SYSTEM_NAMES = ['tapToMove', 'gardenObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory', 'rightSideRail', 'sunsetPrompt', 'dayNight'];
+
+/**
+ * Property names and string literals the Lighting tab, the planner's frame hook and the atom watchers
+ * read off the game. The game's minifier renames variables but keeps property names and strings, so
+ * these survive a normal update and only go missing when the game really changes them. Each feature
+ * is guarded and turns itself off rather than crash when one disappears, so this is the only warning.
+ */
+const HOOK_MARKERS: ReadonlyArray<[marker: string, usedBy: string]> = [
+  ['__jotaiStore=', 'the Lighting night settings (shortcuts and atom watchers fall back to the older hooks)'],
+  ['dayNightPhase01', 'the planner and Lighting time lock'],
+  ['weatherId', 'the planner and Lighting weather lock'],
+  ['publishStage(', 'the real day stage kept for the weather tooltip'],
+  ['childView', 'Glow (tile decor and crops)'],
+  ['this.features=', 'Glow (decor lights)'],
+  ['edgeViewsBySlot', "Glow (edge decor) and the planner's edges"],
+  ['componentViews', 'Glow (edge decor)'],
+  ['steadyAlpha', 'Glow (decor lights)'],
+  ['jumpPresentation(', 'Glow (decor lights)'],
+  ['setDayNightPhase(', 'Glow (held lamps)'],
+  ['updateNightPresentation(', 'Glow (crops)'],
+  ['getCropVisuals(', 'Glow (crops)'],
+  ['mutationIconGlows', 'Glow (crops)'],
+  ['colorOpacity:', 'Lighting night tint strength'],
+  ['sunsetColor:', 'Lighting sunset tint'],
+  ['sunriseColor:', 'Lighting sunrise tint'],
+  ['rareCropSpeciesId:`', "the build's patch rare-crop slots (Witchfire in Foxfire)"],
+];
 
 async function walkTs(dir: string): Promise<string[]> {
   const out: string[] = [];
@@ -162,16 +189,17 @@ export function typeLiteralPresent(source: string, type: string): boolean {
 export interface CheckResult { drift: string[]; warnings: string[]; ok: string[] }
 
 /** Files that copy the game's day/night cycle as `DAY_CYCLE` (minutes per stage). */
-const DAY_CYCLE_FILES = ['src/features/weather-alarms.ts', 'src/features/garden-planner.ts'];
+const DAY_CYCLE_FILES = ['src/features/weather-alarms.ts', 'src/features/garden-planner.ts', 'src/features/sky.ts'];
 
 /**
- * The game's day/night cycle, `X={day:N,dusk:N,midnight:N,sunrise:N},Y=Object.values(X)...` (the
+ * The game's day/night cycle, `X={day:N,sunset:N,midnight:N,sunrise:N},Y=Object.values(X)...` (the
  * object the client sums into its cycle length), or null when the bundle has none. Other objects with
- * the same keys exist (colour tables, transition timings), hence the Object.values anchor.
+ * the same keys exist (colour tables, transition timings), hence the Object.values anchor. Preview
+ * builds called sunset `dusk`, so either is read, as `sunset`.
  */
 export function bundleDayCycle(source: string): Record<string, number> | null {
-  const match = /=\{day:(\d+),dusk:(\d+),midnight:(\d+),sunrise:(\d+)\},[\w$]+=Object\.values\(/.exec(source);
-  return match ? { day: +match[1], dusk: +match[2], midnight: +match[3], sunrise: +match[4] } : null;
+  const match = /=\{day:(\d+),(?:dusk|sunset):(\d+),midnight:(\d+),sunrise:(\d+)\},[\w$]+=Object\.values\(/.exec(source);
+  return match ? { day: +match[1], sunset: +match[2], midnight: +match[3], sunrise: +match[4] } : null;
 }
 
 /** `DAY_CYCLE` as a file declares it: `[['sunrise', 10], ['day', 570], ...]`. */
@@ -185,7 +213,7 @@ export function sourceDayCycle(text: string): Record<string, number> | null {
 
 function checkDayCycle(source: string, result: CheckResult): void {
   const live = bundleDayCycle(source);
-  const show = (cycle: Record<string, number>) => ['sunrise', 'day', 'dusk', 'midnight'].map(stage => `${stage} ${cycle[stage]}`).join(', ');
+  const show = (cycle: Record<string, number>) => ['sunrise', 'day', 'sunset', 'midnight'].map(stage => `${stage} ${cycle[stage]}`).join(', ');
   if (!live) {
     result.ok.push('no day/night cycle in this bundle (the Night alarm and planner Time row stay hidden)');
     return;
@@ -258,6 +286,11 @@ export async function checkSnapshot(snapshot: Snapshot, sent: SentCommands): Pro
   for (const name of SYSTEM_NAMES) {
     if (source.includes(`name=\`${name}\``)) result.ok.push(`system ${name}`);
     else result.warnings.push(`system ${name} not found - a world system the script captures by name was renamed or removed`);
+  }
+
+  for (const [marker, usedBy] of HOOK_MARKERS) {
+    if (source.includes(marker)) result.ok.push(`hook ${marker}`);
+    else result.warnings.push(`hook ${marker} not found - ${usedBy} will quietly stop working`);
   }
 
   try {
