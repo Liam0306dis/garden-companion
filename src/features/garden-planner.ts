@@ -437,15 +437,33 @@ export function initGardenPlanner(): void {
   /**
    * Patch plants (clover, daisy, snowdrop, cattail) are single-harvest plants whose slots each
    * carry their own x, y and rotation. Without those the game draws a single crop in the middle,
-   * so positions are scattered here the way the server would supply them.
+   * so positions are scattered here the way the server supplies them. Measured from a real garden's
+   * snowdrop patches: x within +-0.35 and y within +-0.4 of the tile centre (a square, not squashed),
+   * a tilt of only a few degrees either way, and about a third of the crops flipped.
+   *
+   * Each new crop is the best of a handful of random spots - the one furthest from the crops already
+   * down - so a patch spreads out rather than piling crops on top of each other.
    */
-  function patchSlotOffset(index: number, count: number): { x: number; y: number; rotation: number } {
-    const radius = .42 * Math.sqrt((index + .5) / count);
-    const angle = index * 2.399963;
+  const PATCH_HALF_WIDTH = .35;
+  const PATCH_HALF_HEIGHT = .4;
+  const PATCH_MAX_TILT = 6;
+  const PATCH_FLIP_CHANCE = 1 / 3;
+
+  function patchSlotOffset(taken: ReadonlyArray<{ x: number; y: number }>): { x: number; y: number; rotation: number } {
+    let best = { x: 0, y: 0 };
+    let bestGap = -1;
+    for (let attempt = 0; attempt < 24; attempt++) {
+      const spot = {
+        x: (Math.random() * 2 - 1) * PATCH_HALF_WIDTH,
+        y: (Math.random() * 2 - 1) * PATCH_HALF_HEIGHT,
+      };
+      const gap = Math.min(Infinity, ...taken.map(other => Math.hypot(spot.x - other.x, spot.y - other.y)));
+      if (gap > bestGap) { best = spot; bestGap = gap; }
+    }
     return {
-      x: Number((radius * Math.cos(angle)).toFixed(4)),
-      y: Number((radius * Math.sin(angle) * .62).toFixed(4)),
-      rotation: (index * 47) % 31 - 15,
+      x: Number(best.x.toFixed(4)),
+      y: Number(best.y.toFixed(4)),
+      rotation: Number(((Math.random() * 2 - 1) * PATCH_MAX_TILT).toFixed(2)),
     };
   }
 
@@ -474,10 +492,10 @@ export function initGardenPlanner(): void {
 
   /**
    * `slotSpecies` grows a patch a crop at a time, and lets a patch hold a mix of a species and its
-   * rare variant. Offsets are still calculated against the full capacity, so crops already down
-   * keep their positions and each new one lands in a gap rather than the patch rearranging itself.
+   * rare variant. Crops already down keep their positions, and each new one lands in a gap rather
+   * than the patch rearranging itself.
    *
-   * Each crop also gets its own facing, as the server gives real ones: a coin-flip `flipped`, and a
+   * Each crop also gets its own facing, as the server gives real ones: a random `flipped`, and a
    * start time a few milliseconds apart - regrowing plants with rotateSlotOffsetsRandomly tilt each
    * crop by `35 - startTime % 70` degrees, so identical start times stood every crop at one angle.
    * `previous` is the tile being added to, whose crops keep the facing they already had.
@@ -497,24 +515,43 @@ export function initGardenPlanner(): void {
       species,
       plantedAt: started,
       maturedAt: matured,
-      slots: Array.from({ length: slots }, (_, slotId) => {
-        const grown = contents?.[slotId] || PLANTS[species]?.slotSpecies?.[slotId] || species;
-        const before = previous?.objectType === 'plant' && previous.species === species
-          ? (previous.slots as Array<{ species?: string; startTime?: number; flipped?: boolean }> | undefined)?.[slotId]
-          : undefined;
-        const kept = before?.species === grown && typeof before.startTime === 'number';
+      slots: plannedSlots(),
+    } as GardenTile;
+
+    function plannedSlots(): Record<string, unknown>[] {
+      type Slot = { species?: string; startTime?: number; flipped?: boolean; x?: number; y?: number; rotation?: number };
+      const earlier = previous?.objectType === 'plant' && previous.species === species ? (previous.slots as Slot[] | undefined) ?? [] : [];
+      const grownAt = (slotId: number) => contents?.[slotId] || PLANTS[species]?.slotSpecies?.[slotId] || species;
+      const keeps = (slotId: number) => {
+        const before = earlier[slotId];
+        return before?.species === grownAt(slotId) && typeof before.startTime === 'number' ? before : undefined;
+      };
+      // Every kept crop's spot is taken before any new one is placed, so a new crop avoids all of them.
+      const taken = Array.from({ length: slots }, (_, slotId) => keeps(slotId))
+        .filter((before): before is Slot => typeof before?.x === 'number' && typeof before.y === 'number')
+        .map(before => ({ x: before.x!, y: before.y! }));
+      return Array.from({ length: slots }, (_, slotId) => {
+        const grown = grownAt(slotId);
+        const before = keeps(slotId);
+        let offset: { x: number; y: number; rotation: number } | null = null;
+        if (isPatch) {
+          offset = before && typeof before.x === 'number' && typeof before.y === 'number'
+            ? { x: before.x, y: before.y, rotation: before.rotation ?? 0 }
+            : patchSlotOffset(taken);
+          if (!before || typeof before.x !== 'number') taken.push(offset);
+        }
         return {
           species: grown,
-          startTime: kept ? before.startTime! : started - Math.floor(Math.random() * 70),
-          flipped: kept ? Boolean(before.flipped) : Math.random() < .5,
+          startTime: before ? before.startTime! : started - Math.floor(Math.random() * 70),
+          flipped: before ? Boolean(before.flipped) : Math.random() < (isPatch ? PATCH_FLIP_CHANCE : .5),
           endTime: matured,
           ...slotSizeFields(grown),
           mutations: [...mutations],
           slotId,
-          ...(isPatch ? patchSlotOffset(slotId, capacity) : {}),
+          ...(offset ?? {}),
         };
-      }),
-    } as GardenTile;
+      });
+    }
   }
 
   /**

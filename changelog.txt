@@ -1,5 +1,6 @@
 0.9.53
 - Layout planner: planned crops face different ways, as real ones do, rather than all pointing the same direction
+- Layout planner: patch crops (clover, snowdrop, daisy and the like) are spread and tilted the way real patches are, instead of at odd angles
 - Witchfire is now known as the Foxfire patch's rare crop (Garden Overview groups them, and the planner grows it in a Foxfire patch)
 
 0.9.52
