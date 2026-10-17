@@ -499,8 +499,18 @@ export function initGardenPlanner(): void {
    * start time a few milliseconds apart - regrowing plants with rotateSlotOffsetsRandomly tilt each
    * crop by `35 - startTime % 70` degrees, so identical start times stood every crop at one angle.
    * `previous` is the tile being added to, whose crops keep the facing they already had.
+   *
+   * With `keepCrops`, the crops already in `previous` also keep their own mutations and size, so a
+   * patch can hold plain, gold and rainbow crops side by side: only the crop being added (or the one
+   * at `replaced`, which a click on a full patch swaps) takes the mutations and size now selected.
    */
-  function plannedTile(species: string, mutations: string[], slotSpecies?: string[], previous?: GardenTile): GardenTile {
+  function plannedTile(
+    species: string,
+    mutations: string[],
+    slotSpecies?: string[],
+    previous?: GardenTile,
+    { keepCrops = false, replaced }: { keepCrops?: boolean; replaced?: number } = {},
+  ): GardenTile {
     const now = Date.now();
     const capacity = Math.max(1, Number(PLANTS[species]?.slots || 1));
     const isPatch = patchCapacity(species) > 0;
@@ -519,7 +529,7 @@ export function initGardenPlanner(): void {
     } as GardenTile;
 
     function plannedSlots(): Record<string, unknown>[] {
-      type Slot = { species?: string; startTime?: number; flipped?: boolean; x?: number; y?: number; rotation?: number };
+      type Slot = { species?: string; startTime?: number; flipped?: boolean; x?: number; y?: number; rotation?: number; mutations?: string[]; size?: number };
       const earlier = previous?.objectType === 'plant' && previous.species === species ? (previous.slots as Slot[] | undefined) ?? [] : [];
       const grownAt = (slotId: number) => contents?.[slotId] || PLANTS[species]?.slotSpecies?.[slotId] || species;
       const keeps = (slotId: number) => {
@@ -533,6 +543,7 @@ export function initGardenPlanner(): void {
       return Array.from({ length: slots }, (_, slotId) => {
         const grown = grownAt(slotId);
         const before = keeps(slotId);
+        const unchanged = keepCrops && before && slotId !== replaced;
         let offset: { x: number; y: number; rotation: number } | null = null;
         if (isPatch) {
           offset = before && typeof before.x === 'number' && typeof before.y === 'number'
@@ -545,8 +556,8 @@ export function initGardenPlanner(): void {
           startTime: before ? before.startTime! : started - Math.floor(Math.random() * 70),
           flipped: before ? Boolean(before.flipped) : Math.random() < (isPatch ? PATCH_FLIP_CHANCE : .5),
           endTime: matured,
-          ...slotSizeFields(grown),
-          mutations: [...mutations],
+          ...(unchanged && typeof before.size === 'number' ? { size: before.size } : slotSizeFields(grown)),
+          mutations: [...(unchanged ? before.mutations ?? [] : mutations)],
           slotId,
           ...(offset ?? {}),
         };
@@ -709,12 +720,18 @@ export function initGardenPlanner(): void {
       const current = host === existing?.species ? (existing?.slots ?? []).map(slot => slot.species || host) : [];
       // A full patch has nowhere to append, so the click swaps the last crop instead. Without this
       // the new species is sliced back off and the click looks like it did nothing at all.
+      const full = current.length >= capacity;
       const grown = host === planner.species && (fill || capacity === 0)
         ? undefined
-        : current.length >= capacity
+        : full
           ? [...current.slice(0, capacity - 1), planner.species]
           : [...current, planner.species];
-      planner.tiles.set(localIndex, plannedTile(host, [...planner.mutations], grown, existing));
+      // Adding one crop leaves the others as they were - mutations and size included - so a patch can
+      // mix plain, gold and rainbow. Filling (drag or shift-click) lays the whole patch out afresh.
+      planner.tiles.set(localIndex, plannedTile(host, [...planner.mutations], grown, existing, {
+        keepCrops: grown !== undefined,
+        replaced: grown !== undefined && full ? capacity - 1 : undefined,
+      }));
     }
     applyTile(localIndex);
     updateCount();
@@ -978,6 +995,10 @@ export function initGardenPlanner(): void {
     c?: string;
     /** Slot species for a part-filled or mixed patch. Absent means a full patch of `p`. */
     v?: string[];
+    /** Per-crop mutations for a patch whose crops differ. Absent means every crop has `m`. */
+    n?: string[][];
+    /** Per-crop size multipliers for a patch whose crops differ. Absent means every crop has `s`. */
+    z?: number[];
     /** Set on a mirrored edge decor. Edge decor is saved under "edge:<part>:<the game's edge key>". */
     f?: 1;
   }
@@ -1007,6 +1028,8 @@ export function initGardenPlanner(): void {
     // Only stored when it differs from a full patch of the host species, which is the common case.
     const custom = capacity > 0 && grown.length > 0
       && (grown.length < capacity || grown.some(name => name !== host));
+    const slotsMutations = (tile.slots ?? []).map(entry => [...(entry.mutations ?? [])].sort().join('|'));
+    const slotsScales = (tile.slots ?? []).map(entry => round2(slotScale(PLANTS[entry.species || host]?.crop, entry)) ?? 1);
     return {
       p: tile.species,
       m: slot?.mutations ?? [],
@@ -1014,6 +1037,8 @@ export function initGardenPlanner(): void {
       // it back into `size`.
       s: round2(slotScale(PLANTS[host]?.crop, slot)),
       ...(custom ? { v: grown } : {}),
+      ...(capacity > 0 && new Set(slotsMutations).size > 1 ? { n: (tile.slots ?? []).map(entry => entry.mutations ?? []) } : {}),
+      ...(capacity > 0 && new Set(slotsScales).size > 1 ? { z: slotsScales } : {}),
     };
   }
 
@@ -1034,7 +1059,16 @@ export function initGardenPlanner(): void {
         }
         return tile;
       }
-      return recipe.p ? plannedTile(recipe.p, recipe.m ?? [], recipe.v) : null;
+      if (!recipe.p) return null;
+      const tile = plannedTile(recipe.p, recipe.m ?? [], recipe.v);
+      if (recipe.n || recipe.z) {
+        (tile.slots ?? []).forEach((entry, index) => {
+          if (recipe.n?.[index]) entry.mutations = [...recipe.n[index]];
+          const scale = recipe.z?.[index];
+          if (typeof scale === 'number') entry.size = sizeFromScale(maxSizeMultiplier(PLANTS[entry.species || recipe.p!]?.crop), scale);
+        });
+      }
+      return tile;
     } finally {
       planner.scale = previousScale;
     }

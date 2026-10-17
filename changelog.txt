@@ -1,4 +1,5 @@
 0.9.54
+- Layout planner: a patch can mix plain, gold and rainbow crops - adding a crop no longer changes the ones already there, and saved layouts keep each crop's own
 - Layout planner: patch crops (clover, snowdrop, daisy and the like) are spread and tilted the way real patches are, instead of at odd angles
 - Moth, Toad and Snake now have hunger times (30, 60 and 90 minutes), so the food planner and hunger estimates cover them
 - Crop and egg timers now count every pet's growth boosts - a Moth's Plant Growth Boost and a Toad's Egg Growth Boost included - not just Turtles, Chickens and Turkeys
