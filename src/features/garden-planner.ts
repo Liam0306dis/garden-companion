@@ -677,6 +677,9 @@ export function initGardenPlanner(): void {
    * Each crop also gets its own facing, as the server gives real ones: a random `flipped`, and a
    * start time a few milliseconds apart - regrowing plants with rotateSlotOffsetsRandomly tilt each
    * crop by `35 - startTime % 70` degrees, so identical start times stood every crop at one angle.
+   * Regrowing plants are never flipped: their crops hang at fixed spots with a fixed lean (a
+   * Moonbinder's lean -30 and 20 degrees), and a flip mirrors the crop and reverses its lean in place,
+   * so it tipped away from the plant, which real ones in the garden never do.
    * `previous` is the tile being added to, whose crops keep the facing they already had.
    *
    * With `keepCrops`, the crops already in `previous` also keep their own mutations and size, so a
@@ -693,6 +696,7 @@ export function initGardenPlanner(): void {
     const now = Date.now();
     const capacity = Math.max(1, Number(PLANTS[species]?.slots || 1));
     const isPatch = patchCapacity(species) > 0;
+    const regrows = Boolean(PLANTS[species]?.regrows);
     const contents = isPatch && slotSpecies?.length ? slotSpecies.slice(0, capacity) : null;
     const slots = contents?.length ?? capacity;
     // Displayed size is size x growth progress, and progress divides by the growth window,
@@ -733,7 +737,7 @@ export function initGardenPlanner(): void {
         return {
           species: grown,
           startTime: before ? before.startTime! : started - Math.floor(Math.random() * 70),
-          flipped: before ? Boolean(before.flipped) : Math.random() < (isPatch ? PATCH_FLIP_CHANCE : .5),
+          flipped: !regrows && (before ? Boolean(before.flipped) : Math.random() < (isPatch ? PATCH_FLIP_CHANCE : .5)),
           endTime: matured,
           ...(unchanged && typeof before.size === 'number' ? { size: before.size } : slotSizeFields(grown)),
           mutations: [...(unchanged ? before.mutations ?? [] : mutations)],
@@ -786,20 +790,41 @@ export function initGardenPlanner(): void {
     try { system.updateEdgeObjectData(slot, key, planner.edges.get(key)); } catch {} finally { applyingOwn = false; }
   }
 
-  /** The world position under the pointer in tiles, the fraction saying where inside the tile. */
-  function worldTileAtPointer(event: PointerEvent | MouseEvent): { x: number; y: number } | null {
-    const system = tileSystem();
+  /** The pointer in the renderer's screen space, as the game's own hit tests take it. */
+  function pointerGlobal(event: PointerEvent | MouseEvent): { x: number; y: number } | null {
     const canvas = document.querySelector('.QuinoaCanvas canvas') as HTMLCanvasElement | null;
     const renderer = systems()?.tapToMove?.renderer;
-    if (!system?.worldContainer || !canvas || !renderer?.screen) return null;
+    if (!canvas || !renderer?.screen) return null;
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
-    const global = {
+    return {
       x: (event.clientX - rect.left) * renderer.screen.width / rect.width,
       y: (event.clientY - rect.top) * renderer.screen.height / rect.height,
     };
+  }
+
+  /** The world position under the pointer in tiles, the fraction saying where inside the tile. */
+  function worldTileAtPointer(event: PointerEvent | MouseEvent): { x: number; y: number } | null {
+    const system = tileSystem();
+    const global = pointerGlobal(event);
+    if (!system?.worldContainer || !global) return null;
     const world = system.worldContainer.toLocal(global);
     return { x: world.x / 256, y: world.y / 256 };
+  }
+
+  /**
+   * Whether the pointer is over the game's own canvas UI - the inventory, shops, quest and pet panels
+   * are drawn on the same canvas as the garden, so the DOM target alone cannot tell them apart. Asks
+   * the world tap router the question the game asks before letting a tap reach the world. Not its
+   * isWorldPointerSuppressed, which also says yes whenever world interaction is locked, as it may be
+   * in the cinematic mode the planner runs in.
+   */
+  function overCanvasUi(event: PointerEvent | MouseEvent): boolean {
+    const router = systems()?.worldTapRouter;
+    if (typeof router?.getTopmostUiHit !== 'function') return false;
+    const global = pointerGlobal(event);
+    if (!global) return false;
+    try { return router.getTopmostUiHit(global) != null; } catch { return false; }
   }
 
   /**
@@ -941,13 +966,18 @@ export function initGardenPlanner(): void {
     updateCount();
   }
 
-  function fromPlannerUi(event: Event): boolean {
+  /**
+   * Whether the event landed on the garden itself rather than on UI over it - DOM UI (the companion
+   * panel, say) or the game's canvas UI (inventory, shops). Only the planner panel used to be
+   * excluded, so clicking or dragging on any of those painted or erased the tiles under the pointer.
+   */
+  function onGarden(event: PointerEvent | MouseEvent): boolean {
     const target = event.target as HTMLElement | null;
-    return Boolean(target?.closest?.('#gc-planner'));
+    return Boolean(target?.closest?.('.QuinoaCanvas')) && !overCanvasUi(event);
   }
 
   function onPointerDown(event: PointerEvent): void {
-    if (!planner.open || fromPlannerUi(event)) return;
+    if (!planner.open || !onGarden(event)) return;
     if (event.button === 2) {
       erasingBounds = gardenBounds();
       const edge = edgeToErase(event);
@@ -987,7 +1017,7 @@ export function initGardenPlanner(): void {
   }
 
   function onPointerMove(event: PointerEvent): void {
-    if (!planner.open || fromPlannerUi(event) || (!planner.painting && !planner.erasing)) return;
+    if (!planner.open || !onGarden(event) || (!planner.painting && !planner.erasing)) return;
     if (planner.erasing) {
       // A drag erases what it passes: the edge it runs along, and the tile under it as well. With edge
       // decor in hand, the edge it faces stands in only when the pointer is near no edge - otherwise
@@ -1027,8 +1057,8 @@ export function initGardenPlanner(): void {
     erasingBounds = null;
   }
 
-  function blockEvent(event: Event): void {
-    if (planner.open && !fromPlannerUi(event)) { event.preventDefault(); event.stopPropagation(); }
+  function blockEvent(event: MouseEvent): void {
+    if (planner.open && onGarden(event)) { event.preventDefault(); event.stopPropagation(); }
   }
 
   // The game's crop info card and its harvest controls would still pop up while planning,
@@ -1180,6 +1210,12 @@ export function initGardenPlanner(): void {
     z?: number[];
     /** Set on a mirrored edge decor. Edge decor is saved under "edge:<part>:<the game's edge key>". */
     f?: 1;
+    /**
+     * Each crop's facing, so a loaded layout looks as it was saved rather than rolled afresh:
+     * [flipped 0/1, startTime % 70 (the tilt regrowing crops take from it), and for a patch crop its
+     * x, y and rotation]. Absent in layouts saved before it, which get new facings as they always did.
+     */
+    o?: Array<[flip: 0 | 1, tilt: number, x?: number, y?: number, rotation?: number]>;
   }
 
   const EDGE_PREFIX = 'edge:';
@@ -1190,12 +1226,18 @@ export function initGardenPlanner(): void {
     return typeof value === 'number' ? Math.round(value * 100) / 100 : undefined;
   }
 
+  /** A mounted crop's scale, worked out from its size when it has no usable `scale` of its own. */
+  function mountedScale(crop: NonNullable<GardenTile['mountedCrop']>): number {
+    if (typeof crop.size === 'number') return slotScale(PLANTS[crop.species]?.crop, crop);
+    return typeof crop.scale === 'number' ? crop.scale : 1;
+  }
+
   function toRecipe(tile: GardenTile): TileRecipe {
     if (tile.objectType === 'decor') {
       return {
         d: tile.decorId,
         r: tile.rotation,
-        ...(tile.mountedCrop ? { c: tile.mountedCrop.species, m: tile.mountedCrop.mutations, s: round2(tile.mountedCrop.scale) } : {}),
+        ...(tile.mountedCrop ? { c: tile.mountedCrop.species, m: tile.mountedCrop.mutations, s: round2(mountedScale(tile.mountedCrop)) } : {}),
       };
     }
     const slot = tile.slots?.[0];
@@ -1218,7 +1260,32 @@ export function initGardenPlanner(): void {
       ...(custom ? { v: grown } : {}),
       ...(capacity > 0 && new Set(slotsMutations).size > 1 ? { n: (tile.slots ?? []).map(entry => entry.mutations ?? []) } : {}),
       ...(capacity > 0 && new Set(slotsScales).size > 1 ? { z: slotsScales } : {}),
+      ...(tile.slots?.length ? { o: tile.slots.map(facingOf) } : {}),
     };
+  }
+
+  type SlotFacing = NonNullable<TileRecipe['o']>[number];
+
+  function facingOf(entry: Record<string, any>): SlotFacing {
+    const facing: SlotFacing = [entry.flipped ? 1 : 0, typeof entry.startTime === 'number' ? entry.startTime % 70 : 0];
+    if (typeof entry.x === 'number' && typeof entry.y === 'number') facing.push(entry.x, entry.y, round2(entry.rotation) ?? 0);
+    return facing;
+  }
+
+  /** Puts a saved facing back on a freshly planned crop: its start time keeps its tilt, still in the past. */
+  function applyFacing(entry: Record<string, any>, facing: SlotFacing | undefined, regrows: boolean): void {
+    if (!Array.isArray(facing)) return;
+    const [flip, tilt, x, y, rotation] = facing;
+    // Regrowing crops stay unflipped (see plannedTile), even from a layout saved before that.
+    entry.flipped = flip === 1 && !regrows;
+    if (typeof entry.startTime === 'number' && Number.isInteger(tilt) && tilt >= 0 && tilt < 70) {
+      entry.startTime = entry.startTime - (entry.startTime % 70) + tilt;
+    }
+    if (typeof x === 'number' && typeof y === 'number' && typeof entry.x === 'number') {
+      entry.x = x;
+      entry.y = y;
+      entry.rotation = typeof rotation === 'number' ? rotation : 0;
+    }
   }
 
   function fromRecipe(recipe: TileRecipe): GardenTile | null {
@@ -1228,11 +1295,15 @@ export function initGardenPlanner(): void {
       if (recipe.d) {
         const tile = { objectType: 'decor', decorId: recipe.d, rotation: recipe.r ?? 0 } as GardenTile;
         if (recipe.c) {
+          // `size` as well as `scale`, as plannedDecor sets them: the game draws the crop from its
+          // size, so without it a loaded crop showed at the default size whatever was saved.
+          const scale = recipe.s ?? scaleFor(recipe.c);
           tile.mountedCrop = {
             id: crypto.randomUUID(),
             species: recipe.c,
             itemType: 'Produce',
-            scale: recipe.s ?? scaleFor(recipe.c),
+            scale,
+            size: sizeFromScale(maxSizeMultiplier(PLANTS[recipe.c]?.crop), scale),
             mutations: recipe.m ?? [],
           };
         }
@@ -1240,6 +1311,7 @@ export function initGardenPlanner(): void {
       }
       if (!recipe.p) return null;
       const tile = plannedTile(recipe.p, recipe.m ?? [], recipe.v);
+      if (recipe.o) (tile.slots ?? []).forEach((entry, index) => applyFacing(entry, recipe.o![index], Boolean(PLANTS[recipe.p!]?.regrows)));
       if (recipe.n || recipe.z) {
         (tile.slots ?? []).forEach((entry, index) => {
           if (recipe.n?.[index]) entry.mutations = [...recipe.n[index]];

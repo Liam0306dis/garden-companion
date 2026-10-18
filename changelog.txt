@@ -1,3 +1,9 @@
+0.9.57
+- Layout planner: clicking or dragging in the companion panel, the inventory, a shop or any of the game's own panels and buttons no longer paints or erases the tiles underneath
+- Layout planner: Moonbinder and other regrowing crops hang and lean the way they do in the garden, instead of some being mirrored and tipped the wrong way
+- Layout planner: a saved layout loads with every crop facing and placed as it was saved, rather than shuffling patch crops and tilts each time (save older layouts again to keep them)
+- Layout planner: produce on pedestals and stools loads at the size it was saved at, not the default size
+
 0.9.56
 - New Lighting tab (Tools): keep any weather or time of day on screen, only for you - alarms, timers and the game's own weather tooltip still follow the real ones
 - Lighting: tune night - how dark it gets, how strongly it is tinted, and the night, sunset and sunrise tint colours

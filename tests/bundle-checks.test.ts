@@ -33,7 +33,9 @@ test('atom shapes ignore minified names but keep keys, properties and literals',
 test('the companion\'s own command list is read from its source', async () => {
   const sent = await companionCommands();
   for (const type of ['HarvestCrop', 'PurchaseShopItem', 'PotPlant', 'PlantGardenPlant', 'Preserve', 'CropCleanser']) assert.ok(sent.wrapped.has(type), type);
-  assert.deepEqual([...sent.bare.keys()], ['PlayerPosition']);
+  // Nothing is sent bare since the XP potion stopped stepping onto the pet first (build 1558); the
+  // bare/wrapped split itself is covered by the module-alias test below.
+  assert.deepEqual([...sent.bare.keys()], []);
 });
 
 test('bare and wrapped senders are told apart through module aliases', () => {
