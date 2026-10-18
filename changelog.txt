@@ -3,6 +3,8 @@
 - Layout planner: Moonbinder and other regrowing crops hang and lean the way they do in the garden, instead of some being mirrored and tipped the wrong way
 - Layout planner: a saved layout loads with every crop facing and placed as it was saved, rather than shuffling patch crops and tilts each time (save older layouts again to keep them)
 - Layout planner: produce on pedestals and stools loads at the size it was saved at, not the default size
+- Layout planner: saving your real garden keeps every crop as it is - each one's own mutations, size and facing, and which crops are already picked - so it loads looking like the game
+- Layout planner: picking a layout from the list hands the keys back, so WASD moves you again
 
 0.9.56
 - New Lighting tab (Tools): keep any weather or time of day on screen, only for you - alarms, timers and the game's own weather tooltip still follow the real ones

@@ -677,9 +677,9 @@ export function initGardenPlanner(): void {
    * Each crop also gets its own facing, as the server gives real ones: a random `flipped`, and a
    * start time a few milliseconds apart - regrowing plants with rotateSlotOffsetsRandomly tilt each
    * crop by `35 - startTime % 70` degrees, so identical start times stood every crop at one angle.
-   * Regrowing plants are never flipped: their crops hang at fixed spots with a fixed lean (a
-   * Moonbinder's lean -30 and 20 degrees), and a flip mirrors the crop and reverses its lean in place,
-   * so it tipped away from the plant, which real ones in the garden never do.
+   * New crops on regrowing plants are never flipped: their crops hang at fixed spots with a fixed lean
+   * (a Moonbinder's lean -30 and 20 degrees), and a flip mirrors the crop and reverses its lean in
+   * place, so it tipped away from the plant. Crops already there keep whatever flip they have.
    * `previous` is the tile being added to, whose crops keep the facing they already had.
    *
    * With `keepCrops`, the crops already in `previous` also keep their own mutations and size, so a
@@ -737,7 +737,7 @@ export function initGardenPlanner(): void {
         return {
           species: grown,
           startTime: before ? before.startTime! : started - Math.floor(Math.random() * 70),
-          flipped: !regrows && (before ? Boolean(before.flipped) : Math.random() < (isPatch ? PATCH_FLIP_CHANCE : .5)),
+          flipped: before ? Boolean(before.flipped) : !regrows && Math.random() < (isPatch ? PATCH_FLIP_CHANCE : .5),
           endTime: matured,
           ...(unchanged && typeof before.size === 'number' ? { size: before.size } : slotSizeFields(grown)),
           mutations: [...(unchanged ? before.mutations ?? [] : mutations)],
@@ -1204,10 +1204,15 @@ export function initGardenPlanner(): void {
     c?: string;
     /** Slot species for a part-filled or mixed patch. Absent means a full patch of `p`. */
     v?: string[];
-    /** Per-crop mutations for a patch whose crops differ. Absent means every crop has `m`. */
+    /** Per-crop mutations when a plant's crops differ. Absent means every crop has `m`. */
     n?: string[][];
-    /** Per-crop size multipliers for a patch whose crops differ. Absent means every crop has `s`. */
+    /** Per-crop size multipliers when a plant's crops differ. Absent means every crop has `s`. */
     z?: number[];
+    /**
+     * The slot ids the crops sit in, when they are not simply 0, 1, 2... of a full plant - a
+     * regrowing plant with some crops picked, say. `o`, `n` and `z` follow this order.
+     */
+    i?: number[];
     /** Set on a mirrored edge decor. Edge decor is saved under "edge:<part>:<the game's edge key>". */
     f?: 1;
     /**
@@ -1250,6 +1255,9 @@ export function initGardenPlanner(): void {
     const custom = capacity > 0 && grown.length > 0
       && (grown.length < capacity || grown.some(name => name !== host));
     const slotsMutations = (tile.slots ?? []).map(entry => [...(entry.mutations ?? [])].sort().join('|'));
+    const ids = (tile.slots ?? []).map(entry => entry.slotId);
+    const fullPlant = Math.max(1, Number(PLANTS[host]?.slots || 1));
+    const customIds = ids.some((id, index) => id !== index) || (capacity === 0 && ids.length !== fullPlant);
     const slotsScales = (tile.slots ?? []).map(entry => round2(slotScale(PLANTS[entry.species || host]?.crop, entry)) ?? 1);
     return {
       p: tile.species,
@@ -1258,8 +1266,11 @@ export function initGardenPlanner(): void {
       // it back into `size`.
       s: round2(slotScale(PLANTS[host]?.crop, slot)),
       ...(custom ? { v: grown } : {}),
-      ...(capacity > 0 && new Set(slotsMutations).size > 1 ? { n: (tile.slots ?? []).map(entry => entry.mutations ?? []) } : {}),
-      ...(capacity > 0 && new Set(slotsScales).size > 1 ? { z: slotsScales } : {}),
+      // Kept for every plant, not just patches: a regrowing plant's crops each roll their own
+      // mutations and size, and a saved garden came back with every crop copying the first.
+      ...(new Set(slotsMutations).size > 1 ? { n: (tile.slots ?? []).map(entry => entry.mutations ?? []) } : {}),
+      ...(new Set(slotsScales).size > 1 ? { z: slotsScales } : {}),
+      ...(customIds && ids.every(id => Number.isInteger(id)) ? { i: ids as number[] } : {}),
       ...(tile.slots?.length ? { o: tile.slots.map(facingOf) } : {}),
     };
   }
@@ -1273,11 +1284,10 @@ export function initGardenPlanner(): void {
   }
 
   /** Puts a saved facing back on a freshly planned crop: its start time keeps its tilt, still in the past. */
-  function applyFacing(entry: Record<string, any>, facing: SlotFacing | undefined, regrows: boolean): void {
+  function applyFacing(entry: Record<string, any>, facing: SlotFacing | undefined): void {
     if (!Array.isArray(facing)) return;
     const [flip, tilt, x, y, rotation] = facing;
-    // Regrowing crops stay unflipped (see plannedTile), even from a layout saved before that.
-    entry.flipped = flip === 1 && !regrows;
+    entry.flipped = flip === 1;
     if (typeof entry.startTime === 'number' && Number.isInteger(tilt) && tilt >= 0 && tilt < 70) {
       entry.startTime = entry.startTime - (entry.startTime % 70) + tilt;
     }
@@ -1311,7 +1321,13 @@ export function initGardenPlanner(): void {
       }
       if (!recipe.p) return null;
       const tile = plannedTile(recipe.p, recipe.m ?? [], recipe.v);
-      if (recipe.o) (tile.slots ?? []).forEach((entry, index) => applyFacing(entry, recipe.o![index], Boolean(PLANTS[recipe.p!]?.regrows)));
+      if (recipe.i && tile.slots) {
+        // A patch's crops are numbered by position, so they only take the saved ids; another
+        // plant's slot id picks which crop it is, so the missing ones are dropped.
+        if (patchCapacity(recipe.p) > 0) tile.slots.forEach((entry, index) => { if (Number.isInteger(recipe.i![index])) entry.slotId = recipe.i![index]; });
+        else tile.slots = recipe.i.map(id => tile.slots!.find(entry => entry.slotId === id)).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+      }
+      if (recipe.o) (tile.slots ?? []).forEach((entry, index) => applyFacing(entry, recipe.o![index]));
       if (recipe.n || recipe.z) {
         (tile.slots ?? []).forEach((entry, index) => {
           if (recipe.n?.[index]) entry.mutations = [...recipe.n[index]];
@@ -1544,6 +1560,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       renderPanel();
     });
     panel.querySelector<HTMLSelectElement>('[data-plan-load]')?.addEventListener('change', event => {
+      // Hand the keys back, as the size slider does, or WASD keeps scrolling the list, not the player.
+      (event.target as HTMLSelectElement).blur();
       const layout = savedLayouts()[(event.target as HTMLSelectElement).value];
       if (!layout) return;
       ({ tiles: planner.tiles, edges: planner.edges } = layoutFromRecipes(layout));
