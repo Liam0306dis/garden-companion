@@ -113,6 +113,17 @@ export function openGameInterface(target: GameInterface): void {
 
 const cinematicOwners = new Set<string>();
 let cinematicValue = false;
+/** Set while the player has cinematic mode on from our button; see the write guard below. */
+let cinematicPinned = false;
+let holdingCameraAtom: JotaiAtom | null = null;
+
+/** Whether the Camera is in hand, the one time the game's own Hide UI can switch cinematic off. */
+function holdingCamera(): boolean {
+  holdingCameraAtom ??= findAtom('isHoldingCameraAtom');
+  const store = gameStore();
+  if (!holdingCameraAtom || !store) return false;
+  try { return Boolean(store.get(holdingCameraAtom)); } catch { return false; }
+}
 
 /**
  * The atom has no getter, so its value is followed by watching what gets written to it. Ours and
@@ -127,6 +138,18 @@ function watchCinematicValue(atom: JotaiAtom): void {
   if (typeof atom.write !== 'function' || atom.__gardenCompanionCinematicWatch) return;
   const originalWrite = atom.write;
   atom.write = function(get, set, ...args) {
+    // Since build 1634 the camera system switches cinematic mode off on every frame the Camera is
+    // not in hand, which made our button (and every scene that hides the HUD with it) flip straight
+    // back. While we hold it on, a write turning it off that is not ours is dropped - except the
+    // player pressing Hide UI with the Camera in hand, which only our button's pin gives way to.
+    if (!applyingOwnCinematic && (cinematicPinned || cinematicOwners.size)) {
+      const next = args[0];
+      const resolved = typeof next === 'function' ? (next as (value: boolean) => unknown)(cinematicValue) : next;
+      if (!resolved) {
+        if (cinematicOwners.size || !holdingCamera()) return undefined;
+        cinematicPinned = false;
+      }
+    }
     const result = originalWrite.call(this, get, set, ...args);
     const previous = cinematicValue;
     try {
@@ -143,6 +166,43 @@ function watchCinematicValue(atom: JotaiAtom): void {
   };
   atom.__gardenCompanionCinematicWatch = true;
 }
+
+/**
+ * Flips cinematic mode the way the game's own button used to, as the player's choice rather than a
+ * claim, so a scene opened later still hands it back when it closes. Returns the new state, or null
+ * while the atom has not been captured yet.
+ */
+page.__gardenCompanionToggleCinematic = () => {
+  const set = atomSetter();
+  if (!cinematicAtom || !set) return null;
+  const next = !cinematicValue;
+  // Written as our own so the guard lets it through; pinned so the camera system cannot undo it.
+  applyingOwnCinematic = true;
+  try {
+    cinematicPinned = next;
+    set(cinematicAtom, next);
+  } catch {
+    cinematicPinned = false;
+    return null;
+  } finally { applyingOwnCinematic = false; }
+  return cinematicValue;
+};
+
+/** Whether one of our own scenes is holding cinematic mode on right now. */
+page.__gardenCompanionCinematicClaimed = () => cinematicOwners.size > 0;
+
+/**
+ * Lets go of the button's pin and turns cinematic mode off with it, for when the button goes away
+ * (switched off in Tools) and would otherwise leave no way back out.
+ */
+page.__gardenCompanionReleaseCinematicPin = () => {
+  if (!cinematicPinned) return;
+  cinematicPinned = false;
+  const set = atomSetter();
+  if (!cinematicAtom || !set) return;
+  applyingOwnCinematic = true;
+  try { set(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim); } catch {} finally { applyingOwnCinematic = false; }
+};
 
 /**
  * True only while the player has put the game into cinematic mode themselves. Our own scenes claim
@@ -179,8 +239,11 @@ page.__gardenCompanionSetCinematic = (enabled: boolean, owner = 'default') => {
       cinematicOwners.add(owner);
     } else cinematicOwners.delete(owner);
     applyingOwnCinematic = true;
-    try { set(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim); }
+    try { set(cinematicAtom, cinematicOwners.size > 0 || cinematicBeforeClaim || cinematicPinned); }
     finally { applyingOwnCinematic = false; }
+    // Told even when the value stays the same: who holds it changed, which the cinematic button
+    // shows (it steps aside while one of our scenes has it).
+    for (const listener of cinematicListeners) listener();
     return true;
   } catch { return false; }
 };
@@ -281,6 +344,24 @@ function suppressActionsDuringScenes(match: string, empty: unknown): void {
 }
 
 /**
+ * A room reset hands over a fresh field atom that starts off. What we track is read back from it,
+ * and a pin or a scene that was holding cinematic on puts it straight back on, so the button and the
+ * toggle do not go on believing the old atom's value.
+ */
+function syncCinematicToNewAtom(atom: JotaiAtom): void {
+  const previous = cinematicValue;
+  const store = gameStore();
+  // Without the store to ask, the fresh atom's starting value (off) is the best answer.
+  try { cinematicValue = store ? Boolean(store.get(atom)) : false; } catch { cinematicValue = false; }
+  const set = atomSetter();
+  if ((cinematicPinned || cinematicOwners.size) && !cinematicValue && set) {
+    applyingOwnCinematic = true;
+    try { set(atom, true); } catch {} finally { applyingOwnCinematic = false; }
+  }
+  if (cinematicValue !== previous) for (const listener of cinematicListeners) listener();
+}
+
+/**
  * Bundle 1206 folded cinematic mode into currentRoomAtom's state instance. The instance is re-handed
  * on a room reset, so cinematic is re-captured against whichever field atom is live.
  */
@@ -290,6 +371,7 @@ function installGameRoomStateHooks(): void {
     if (cinematic && cinematic !== cinematicAtom) {
       cinematicAtom = cinematic;
       watchCinematicValue(cinematic);
+      syncCinematicToNewAtom(cinematic);
     }
   });
 }

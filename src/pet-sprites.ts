@@ -131,6 +131,9 @@ const WEATHER_ICON_CANDIDATES: Record<string, string> = {
   skyDay: 'sprite/ui/SunnyIcon',
   skySunset: 'sprite/ui/SunsetIcon',
   skySunrise: 'sprite/ui/SunriseIcon',
+  // The cinematic mode button's two faces, the icons the game's own rail button used before 1634.
+  cameraOff: 'sprite/ui/CameraOff',
+  cameraOn: 'sprite/ui/CameraOn',
 };
 
 const EMBLEM_ICON_SPRITES: Record<string, string> = {

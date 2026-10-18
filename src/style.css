@@ -59,6 +59,15 @@
 /* Sits beside the Garden Overview button, which is 32px at left:10px, so this clears it by 8px. */
 #gc-lunar-mini { position:fixed;left:50px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-md);background:var(--gc-bg);color:var(--gc-text);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45); }
 #gc-lunar-mini:hover { background:var(--gc-surface-2); }
+/* Docked under the right-side rail by script; this top right corner is where it waits while cinematic mode is on. */
+#gc-cinematic { position:fixed;top:12px;right:12px;z-index:99988;width:36px;height:36px;padding:0;box-sizing:border-box;display:grid;place-items:center;border:0;background:transparent;color:#fff;cursor:pointer;transition:opacity .15s,transform .1s;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+#gc-cinematic[hidden] { display:none; }
+#gc-cinematic:hover { transform:scale(1.08); }
+#gc-cinematic img { width:36px;height:36px;object-fit:contain;pointer-events:none; }
+#gc-cinematic svg { width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none; }
+/* Faded while cinematic mode is on, so it keeps out of the shot but is still there to click. */
+#gc-cinematic[data-active="true"] { opacity:.35; }
+#gc-cinematic[data-active="true"]:hover { opacity:1; }
 #gc-lunar-mini .gc-lunar-mark { width:16px;height:16px; }
 #gc-lunar-mini .gc-lunar-mark::after { top:1px;left:5px;width:13px;height:13px;background:var(--gc-bg); }
 #gc-lunar-mini:hover .gc-lunar-mark::after { background:var(--gc-surface-2); }

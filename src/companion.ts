@@ -37,6 +37,7 @@ import { installInstantHarvest } from './features/instant-harvest.js';
 import { noteServerClock } from './server-clock.js';
 import { trackRoomSocket } from './connection-state.js';
 import { mountLunarTimer, updateLunarTimer, watchSocketHealth } from './features/lunar-timer.js';
+import { mountCinematicButton, updateCinematicButton } from './features/cinematic-button.js';
 import { allPets, heldProduce, onSpritesReady, refreshHungerDisplay, useXpPotion } from './pets.js';
 import {
   closeTeamPicker,
@@ -683,6 +684,7 @@ export function initCompanion(): void {
       ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
       ['autoStoreDecor', 'Auto-store decor', 'Move decor into the Decor Shed when it already holds that item'],
       ['autoStoreTools', 'Auto-store tools', 'Move tools into the Tool Shack when it already holds that tool - one being used, or held, is left alone'],
+      ['cinematicButton', 'Cinematic mode button', 'A camera button under Daily Quests on the right-side rail that hides the game HUD and brings it back (Esc exits too), as the game had before it moved cinematic mode onto the Camera'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
     ];
@@ -712,6 +714,7 @@ export function initCompanion(): void {
       if (input.dataset.feature === 'alarmList') applyAlarmLayout();
       if (input.checked && (input.dataset.feature === 'petHungerAlarm' || input.dataset.feature === 'petAbilityAlarm')) armAlarmAudio();
       updateLunarTimer();
+      updateCinematicButton();
       renderPetFood();
       syncProduceLocks();
       syncCropEstimates();
@@ -768,6 +771,7 @@ export function initCompanion(): void {
     style.textContent = __GARDEN_COMPANION_CSS__;
     document.head.appendChild(style);
     mountLunarTimer(togglePanel);
+    mountCinematicButton();
     onSpritesReady(() => {
       // Whatever tab is open is redrawn: nearly every one shows some artwork, and this fires only
       // once or twice per load. A field being typed in holds it off until focus leaves the panel.
@@ -783,6 +787,7 @@ export function initCompanion(): void {
       syncProduceLocks();
       // The forecast sprite is asked for from the timer itself, so this is where it arrives.
       updateLunarTimer();
+      updateCinematicButton();
     });
     watchExistingSocket();
     watchForGameUpdateDialog();

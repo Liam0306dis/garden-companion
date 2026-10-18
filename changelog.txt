@@ -1,6 +1,8 @@
 0.9.58
 - Layout planner: saving your real garden keeps every crop as it is - each one's own mutations, size and facing, and which crops are already picked - so it loads looking like the game
 - Layout planner: picking a layout from the list hands the keys back, so WASD moves you again
+- Cinematic mode button is back: the game's old camera button sits under Daily Quests and hides the HUD with one click, no Camera needed - while it's on the button waits in the top right corner, and Esc or another click brings the HUD back (switch it off in Tools)
+- Layout planner and minigames keep the game's HUD hidden again - the new Camera was bringing it straight back
 
 0.9.57
 - Layout planner: clicking or dragging in the companion panel, the inventory, a shop or any of the game's own panels and buttons no longer paints or erases the tiles underneath
