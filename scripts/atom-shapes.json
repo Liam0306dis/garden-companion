@@ -5,6 +5,7 @@
   "currentRoomAtom": "_(_ _)",
   "enqueuedQuinoaPredictionsAtom": "_([])",
   "hudSuppressedByOverlayAtom": "_(_=>_(_)||_(_)||_(_))",
+  "isHoldingCameraAtom": "_(_=>{_ _=_(_);return _?.itemType===_.Tool&&_.toolId===`Camera`})",
   "isInMyGardenAtom": "_(_=>{_ _=_(_),_=_(_);return _?_.playerId===_:!1})",
   "myCurrentGardenObjectAtom": "_(_=>{_ _=_(_);return _?_(_,_):null})",
   "myCurrentGardenTileAtom": "_(_=>{_ _=_(_);_(!_)return null;_ _=_(_),_=_(_),_=_.globalTileIdxToDirtTile[_],_=_.globalTileIdxToBoardwalk[_];_(!_&&!_)return null;_(_&&_)return _(Error(`Player tile maps _ both dirt _ boardwalk`),`player_tile_mapping_invalid`,{extra:{globalTileIndex:_}}),null;_ _=null;_(_)_={userSlotIdx:_.userSlotIdx,localTileIndex:_.dirtTileIdx,tileType:`Dirt`};else _(_)_={userSlotIdx:_.userSlotIdx,localTileIndex:_.boardwalkTileIdx,tileType:`Boardwalk`};else return null;_{userSlotIdx:_,localTileIndex:_,tileType:_}=_;return{tileType:_,userSlotIdx:_,localTileIndex:_,playerId:_[_]?.userId}})",

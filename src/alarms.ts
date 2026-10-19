@@ -355,6 +355,11 @@ function alarmStack(): HTMLElement {
   if (!stack) {
     stack = document.createElement('div');
     stack.id = 'gc-alarm';
+    // A clicked button would otherwise take focus and hold it while a buy runs (and past the card
+    // going away), so the game ignores its keys until focus drifts back. The click still fires.
+    stack.addEventListener('mousedown', event => {
+      if ((event.target as HTMLElement | null)?.closest('button')) event.preventDefault();
+    });
     document.body.appendChild(stack);
   }
   return stack;
