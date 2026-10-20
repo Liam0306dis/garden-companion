@@ -17,6 +17,7 @@
   "myUserSlotIdxAtom": "_(_=>{_ _=_(_),_=_(_).findIndex(_=>_?.userId===_);return _>=0?_:null})",
   "nightGradeSettingsAtom": "_(_)",
   "playerIdAtom": "_(_.id)",
+  "pumpkinCarvingTargetAtom": "_(null)",
   "selectedActionsAtom": "_(_=>_(_)?.actions??_(_).subjectlessActions)",
   "selectedCropSlotIdAtom": "_(_=>_(_)?.slotId??null)",
   "selectedSubjectActionsAtom": "_(_=>{_{subjects:_}=_(_),_=_(_);return _.find(_=>_.key===_)??_[0]??null})",
