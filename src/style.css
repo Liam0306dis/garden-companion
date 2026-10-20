@@ -1114,3 +1114,27 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-fm-cel-arrow { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3; }
 .gc-fm-cel-arrow line { stroke:#fde68a;stroke-width:3;stroke-linecap:round;stroke-dasharray:6 4;filter:drop-shadow(0 1px 1px #000); }
 
+
+/* ── Pumpkin carving from a picture ───────────────────────────────────────────────────────────── */
+#gc-carve-import { position:fixed;z-index:99988;padding:7px 14px;border:1px solid rgba(255,255,255,.25);border-radius:999px;color:#fff;background:rgba(20,20,23,.82);cursor:pointer;font:600 12px var(--gc-font);box-shadow:0 2px 8px rgba(0,0,0,.4); }
+#gc-carve-import[hidden] { display:none; }
+#gc-carve-import:hover { background:var(--gc-accent); }
+.gc-carve-modal { width:440px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }
+.gc-carve-preview { display:block;width:100%;height:auto;border-radius:var(--gc-radius-sm);background:var(--gc-input); }
+.gc-carve-status { margin:8px 0 6px;color:var(--gc-muted);font-size:12px; }
+.gc-carve-slider { display:grid;grid-template-columns:84px 1fr;align-items:center;gap:8px;margin:4px 0; }
+.gc-carve-slider input { width:100%;accent-color:var(--gc-accent); }
+.gc-carve-check { display:flex;align-items:center;gap:8px;margin:8px 0 2px; }
+.gc-carve-check input { accent-color:var(--gc-accent); }
+.gc-carve-actions { display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--gc-line); }
+.gc-modal-backdrop .gc-carve-go { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }
+.gc-modal-backdrop .gc-carve-go:disabled { opacity:.5;cursor:default; }
+.gc-carve-modes { display:flex;gap:4px;margin:2px 0 8px;padding:3px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-input); }
+.gc-carve-modes label { flex:1; }
+.gc-carve-modes input { position:absolute;opacity:0;pointer-events:none; }
+.gc-carve-modes span { display:block;padding:5px 6px;border-radius:var(--gc-radius-sm);text-align:center;color:var(--gc-muted);font-weight:600;font-size:12px;cursor:pointer; }
+.gc-carve-modes input:checked + span { color:#fff;background:var(--gc-accent); }
+.gc-carve-modal [data-modes][hidden] { display:none; }
+.gc-carve-preview { cursor:grab;touch-action:none; }
+.gc-carve-preview[data-dragging=true] { cursor:grabbing; }
+.gc-carve-hint { margin:4px 0 0;color:var(--gc-muted);font-size:11px;text-align:center; }

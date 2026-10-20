@@ -281,6 +281,7 @@ export interface CompanionConfig {
   autoRefreshGameUpdates: boolean;
   lunarTimer: boolean;
   cinematicButton: boolean;
+  pumpkinImport: boolean;
   abilitySilencer: boolean;
   silencedAbilities: string[];
   silenceLevelUps: boolean;

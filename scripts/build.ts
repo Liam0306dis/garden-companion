@@ -102,6 +102,18 @@ if (!Object.keys(catalogs.toolLimits).length) {
 
 const petSpriteLoader = await buildSpriteLoader(catalogs, { withoutSprites });
 
+// The pumpkin carving import traces pictures in a worker of its own, carried in as source.
+const carvingWorker = await build({
+  entryPoints: [resolve(root, 'src', 'carving-worker.ts')],
+  bundle: true,
+  format: 'iife',
+  platform: 'browser',
+  target: ['es2022'],
+  charset: 'utf8',
+  legalComments: 'none',
+  write: false,
+});
+
 await build({
   entryPoints: [resolve(root, 'src', 'index.ts')],
   outfile: resolve(root, 'dist', 'garden-companion.user.js'),
@@ -124,6 +136,7 @@ await build({
     __TOOL_LIMITS__: JSON.stringify(catalogs.toolLimits),
     __ABILITY_COLOURS__: JSON.stringify(catalogs.abilityColours),
     __PET_SPRITE_LOADER__: JSON.stringify(petSpriteLoader),
+    __CARVING_WORKER__: JSON.stringify(carvingWorker.outputFiles[0].text),
     __GARDEN_COMPANION_CSS__: JSON.stringify(css),
     __CHANGELOG__: JSON.stringify(changelog),
   },

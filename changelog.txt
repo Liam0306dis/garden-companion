@@ -1,3 +1,6 @@
+0.9.61
+- Pumpkin carving: a Select a picture button in the carving window turns any picture into a carving - choose Stained glass (colourful art, with lines left between colours), Shape (the outline) or Light and dark, drag and scroll the preview to frame the part you want, adjust it with the sliders (outlines are traced finer than the carving grid and use the whole carving limit, so they follow the picture closely), and it is cut into the pumpkin (switch it off in Features)
+
 0.9.60
 - Alerts: clicking Buy, Stop alarm or the speaker button no longer holds on to the keyboard, so the game takes your keys straight away even after spam clicking
 

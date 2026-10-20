@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.60
+// @version      0.9.61
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -37,7 +37,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.60", notes: ["Alerts: clicking Buy, Stop alarm or the speaker button no longer holds on to the keyboard, so the game takes your keys straight away even after spam clicking"] }, { version: "0.9.59", notes: ["Cinematic mode button is back: the game's old camera button sits under Daily Quests and hides the HUD with one click, no Camera needed - while it's on the button waits in the top right corner, and Esc or another click brings the HUD back (switch it off in Features)", "Layout planner and minigames keep the game's HUD hidden again - the new Camera was bringing it straight back"] }, { version: "0.9.58", notes: ["Layout planner: saving your real garden keeps every crop as it is - each one's own mutations, size and facing, and which crops are already picked - so it loads looking like the game", "Layout planner: picking a layout from the list hands the keys back, so WASD moves you again"] }, { version: "0.9.57", notes: ["Layout planner: clicking or dragging in the companion panel, the inventory, a shop or any of the game's own panels and buttons no longer paints or erases the tiles underneath", "Layout planner: Moonbinder and other regrowing crops hang and lean the way they do in the garden, instead of some being mirrored and tipped the wrong way", "Layout planner: a saved layout loads with every crop facing and placed as it was saved, rather than shuffling patch crops and tilts each time (save older layouts again to keep them)", "Layout planner: produce on pedestals and stools loads at the size it was saved at, not the default size"] }, { version: "0.9.56", notes: ["New Lighting tab (Tools): keep any weather or time of day on screen, only for you - alarms, timers and the game's own weather tooltip still follow the real ones", "Lighting: tune night - how dark it gets, how strongly it is tinted, and the night, sunset and sunrise tint colours", "Lighting: a Glow slider for how brightly lamps, lanterns and glowing crops shine at night", "Lighting: brightness, contrast, saturation, warmth and hue for the whole game view"] }, { version: "0.9.55", notes: ["Pet food calculator: Ghost Plant, Foxfire, Deadly Nightshade and Lavender now have grow times, so pets that eat them get a figure", "Pet food calculator: patch crops count the several crops each seed plants, so 3 Snakes on Foxfire need about one spore every three hours, not 2 an hour"] }, { version: "0.9.54", notes: ["Layout planner: a patch can mix plain, gold and rainbow crops - adding a crop no longer changes the ones already there, and saved layouts keep each crop's own", "Layout planner: patch crops (clover, snowdrop, daisy and the like) are spread and tilted the way real patches are, instead of at odd angles", "Moth, Toad and Snake now have hunger times (30, 60 and 90 minutes), so the food planner and hunger estimates cover them", "Crop and egg timers now count every pet's growth boosts - a Moth's Plant Growth Boost and a Toad's Egg Growth Boost included - not just Turtles, Chickens and Turkeys"] }, { version: "0.9.53", notes: ["Layout planner: planned crops face different ways, as real ones do, rather than all pointing the same direction", "Witchfire is now known as the Foxfire patch's rare crop (Garden Overview groups them, and the planner grows it in a Foxfire patch)"] }, { version: "0.9.52", notes: ["Layout planner: right-click clears both decors on an edge at once (string lights with a lantern, web or chime)", "Layout planner: the size slider now follows the plant you pick, rather than the one picked when the panel opened", "Layout planner: letting go of the size slider hands the keys back, so WASD moves you again instead of the slider"] }, { version: "0.9.51", notes: ["Layout planner: right-click now removes edge decor (lanterns, string lights, windchimes) whatever you are holding - click near the side it hangs on", "Layout planner: the chosen mutations are easier to see - the others are dimmed, and the chosen ones are listed by name"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.61", notes: ["Pumpkin carving: a Select a picture button in the carving window turns any picture into a carving - choose Stained glass (colourful art, with lines left between colours), Shape (the outline) or Light and dark, drag and scroll the preview to frame the part you want, adjust it with the sliders (outlines are traced finer than the carving grid and use the whole carving limit, so they follow the picture closely), and it is cut into the pumpkin (switch it off in Features)"] }, { version: "0.9.60", notes: ["Alerts: clicking Buy, Stop alarm or the speaker button no longer holds on to the keyboard, so the game takes your keys straight away even after spam clicking"] }, { version: "0.9.59", notes: ["Cinematic mode button is back: the game's old camera button sits under Daily Quests and hides the HUD with one click, no Camera needed - while it's on the button waits in the top right corner, and Esc or another click brings the HUD back (switch it off in Features)", "Layout planner and minigames keep the game's HUD hidden again - the new Camera was bringing it straight back"] }, { version: "0.9.58", notes: ["Layout planner: saving your real garden keeps every crop as it is - each one's own mutations, size and facing, and which crops are already picked - so it loads looking like the game", "Layout planner: picking a layout from the list hands the keys back, so WASD moves you again"] }, { version: "0.9.57", notes: ["Layout planner: clicking or dragging in the companion panel, the inventory, a shop or any of the game's own panels and buttons no longer paints or erases the tiles underneath", "Layout planner: Moonbinder and other regrowing crops hang and lean the way they do in the garden, instead of some being mirrored and tipped the wrong way", "Layout planner: a saved layout loads with every crop facing and placed as it was saved, rather than shuffling patch crops and tilts each time (save older layouts again to keep them)", "Layout planner: produce on pedestals and stools loads at the size it was saved at, not the default size"] }, { version: "0.9.56", notes: ["New Lighting tab (Tools): keep any weather or time of day on screen, only for you - alarms, timers and the game's own weather tooltip still follow the real ones", "Lighting: tune night - how dark it gets, how strongly it is tinted, and the night, sunset and sunrise tint colours", "Lighting: a Glow slider for how brightly lamps, lanterns and glowing crops shine at night", "Lighting: brightness, contrast, saturation, warmth and hue for the whole game view"] }, { version: "0.9.55", notes: ["Pet food calculator: Ghost Plant, Foxfire, Deadly Nightshade and Lavender now have grow times, so pets that eat them get a figure", "Pet food calculator: patch crops count the several crops each seed plants, so 3 Snakes on Foxfire need about one spore every three hours, not 2 an hour"] }, { version: "0.9.54", notes: ["Layout planner: a patch can mix plain, gold and rainbow crops - adding a crop no longer changes the ones already there, and saved layouts keep each crop's own", "Layout planner: patch crops (clover, snowdrop, daisy and the like) are spread and tilted the way real patches are, instead of at odd angles", "Moth, Toad and Snake now have hunger times (30, 60 and 90 minutes), so the food planner and hunger estimates cover them", "Crop and egg timers now count every pet's growth boosts - a Moth's Plant Growth Boost and a Toad's Egg Growth Boost included - not just Turtles, Chickens and Turkeys"] }, { version: "0.9.53", notes: ["Layout planner: planned crops face different ways, as real ones do, rather than all pointing the same direction", "Witchfire is now known as the Foxfire patch's rare crop (Garden Overview groups them, and the planner grows it in a Foxfire patch)"] }, { version: "0.9.52", notes: ["Layout planner: right-click clears both decors on an edge at once (string lights with a lantern, web or chime)", "Layout planner: the size slider now follows the plant you pick, rather than the one picked when the panel opened", "Layout planner: letting go of the size slider hands the keys back, so WASD moves you again instead of the slider"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheave", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -710,6 +710,7 @@
     autoRefreshGameUpdates: true,
     lunarTimer: true,
     cinematicButton: true,
+    pumpkinImport: true,
     abilitySilencer: true,
     silencedAbilities: [],
     silenceLevelUps: false,
@@ -8659,6 +8660,862 @@ ${eggs.map(eggCard).join("")}`;
     updateCinematicButton();
   }
 
+  // src/carving-trace.ts
+  var CARVING_GRID = 256;
+  var CARVING_MAX_BYTES = 2304;
+  var CARVING_MAX_POINTS = 255;
+  var FACE_SCALE = 540 / 256;
+  var FACE = { cx: 270 / FACE_SCALE, cy: 270 / FACE_SCALE, rx: 270 / FACE_SCALE, ry: 180 / FACE_SCALE };
+  var FACE_MARGIN = 1.5;
+  function insideFace(x, y, margin = 0) {
+    const dx = (x - FACE.cx) / (FACE.rx - margin);
+    const dy = (y - FACE.cy) / (FACE.ry - margin);
+    return dx * dx + dy * dy <= 1;
+  }
+  var PICTURE_DETAIL = 3;
+  function clipMaskToFace(mask, scale = 1) {
+    const n = CARVING_GRID * scale;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        if (!insideFace((x + 0.5) / scale, (y + 0.5) / scale, FACE_MARGIN)) mask[y * n + x] = 0;
+      }
+    }
+  }
+  function otsuThreshold(values) {
+    const histogram = new Array(256).fill(0);
+    for (let i = 0; i < values.length; i++) histogram[Math.max(0, Math.min(255, Math.round(values[i])))]++;
+    const total = values.length;
+    let sum = 0;
+    for (let i = 0; i < 256; i++) sum += i * histogram[i];
+    let below = 0, sumBelow = 0, best = 0, threshold = 128;
+    for (let t = 0; t < 256; t++) {
+      below += histogram[t];
+      if (below === 0) continue;
+      const above = total - below;
+      if (above === 0) break;
+      sumBelow += t * histogram[t];
+      const meanBelow = sumBelow / below;
+      const meanAbove = (sum - sumBelow) / above;
+      const between = below * above * (meanBelow - meanAbove) ** 2;
+      if (between > best) {
+        best = between;
+        threshold = t + 0.5;
+      }
+    }
+    return threshold;
+  }
+  function doubleArea(loop) {
+    let area = 0;
+    for (let i = 0; i < loop.length; i++) {
+      const a = loop[i], b = loop[(i + 1) % loop.length];
+      area += a.x * b.y - b.x * a.y;
+    }
+    return area;
+  }
+  function traceLoops(mask, scale = 1) {
+    const n = CARVING_GRID * scale;
+    const cut = (x, y) => x >= 0 && y >= 0 && x < n && y < n && mask[y * n + x] === 1;
+    const stride = n + 1;
+    const key = (x, y) => y * stride + x;
+    const outgoing = /* @__PURE__ */ new Map();
+    const add = (x, y, direction) => {
+      const k = key(x, y);
+      const list = outgoing.get(k);
+      if (list) list.push(direction);
+      else outgoing.set(k, [direction]);
+    };
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        if (!cut(x, y)) continue;
+        if (!cut(x, y - 1)) add(x, y, 0);
+        if (!cut(x + 1, y)) add(x + 1, y, 1);
+        if (!cut(x, y + 1)) add(x + 1, y + 1, 2);
+        if (!cut(x - 1, y)) add(x, y + 1, 3);
+      }
+    }
+    const step = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    const loops = [];
+    for (const [start, list] of outgoing) {
+      while (list.length) {
+        let x = start % stride, y = Math.floor(start / stride);
+        let direction = list.pop();
+        const loop = [];
+        for (; ; ) {
+          loop.push({ x, y });
+          x += step[direction][0];
+          y += step[direction][1];
+          if (key(x, y) === start) break;
+          const here = outgoing.get(key(x, y));
+          if (!here || here.length === 0) break;
+          const order = [(direction + 1) % 4, direction, (direction + 3) % 4];
+          const pick = order.find((candidate) => here.includes(candidate));
+          if (pick === void 0) break;
+          here.splice(here.indexOf(pick), 1);
+          direction = pick;
+        }
+        if (loop.length >= 4) loops.push(dropStraights(loop));
+      }
+    }
+    return loops;
+  }
+  function dropStraights(loop) {
+    const out = [];
+    for (let i = 0; i < loop.length; i++) {
+      const a = loop[(i - 1 + loop.length) % loop.length], b = loop[i], c = loop[(i + 1) % loop.length];
+      if ((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x) !== 0) out.push(b);
+    }
+    return out;
+  }
+  function segmentDistance(p, a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const length = dx * dx + dy * dy;
+    const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length));
+    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+  }
+  function simplifyOpen(points, epsilon) {
+    if (points.length < 3) return points.slice();
+    const keep = new Uint8Array(points.length);
+    keep[0] = keep[points.length - 1] = 1;
+    const stack = [[0, points.length - 1]];
+    while (stack.length) {
+      const [first, last] = stack.pop();
+      let worst = -1, index = -1;
+      for (let i = first + 1; i < last; i++) {
+        const distance = segmentDistance(points[i], points[first], points[last]);
+        if (distance > worst) {
+          worst = distance;
+          index = i;
+        }
+      }
+      if (worst > epsilon) {
+        keep[index] = 1;
+        stack.push([first, index], [index, last]);
+      }
+    }
+    return points.filter((_, i) => keep[i]);
+  }
+  function simplifyLoop(loop, epsilon) {
+    if (loop.length <= 4 || epsilon <= 0) return loop.slice();
+    let far = 0, best = -1;
+    for (let i = 1; i < loop.length; i++) {
+      const distance = Math.hypot(loop[i].x - loop[0].x, loop[i].y - loop[0].y);
+      if (distance > best) {
+        best = distance;
+        far = i;
+      }
+    }
+    const first = simplifyOpen(loop.slice(0, far + 1), epsilon);
+    const second = simplifyOpen([...loop.slice(far), loop[0]], epsilon);
+    const result = [...first, ...second.slice(1, -1)];
+    return result.length >= 3 ? result : loop.slice(0, 3);
+  }
+  function pointInLoop(point, loop) {
+    let inside = false;
+    for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
+      const a = loop[i], b = loop[j];
+      if (a.y > point.y !== b.y > point.y && point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    }
+    return inside;
+  }
+  var MAX_ISLANDS = 60;
+  function groupRegions(loops, minArea, cell) {
+    const outlines = [];
+    const islands = [];
+    for (const loop of loops) {
+      const area = doubleArea(loop) / 2;
+      if (Math.abs(area) < minArea) continue;
+      if (area > 0) {
+        const xs = loop.map((point) => point.x), ys = loop.map((point) => point.y);
+        outlines.push({ outline: loop, islands: [], area, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] });
+      } else islands.push({ loop, area: -area });
+    }
+    outlines.sort((a, b) => a.area - b.area);
+    islands.sort((a, b) => b.area - a.area);
+    for (const { loop: island } of islands) {
+      const a = island[0], b = island[1];
+      const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      const off = cell / 2;
+      const probe = { x: (a.x + b.x) / 2 - (b.y - a.y) / length * off, y: (a.y + b.y) / 2 + (b.x - a.x) / length * off };
+      const owner = outlines.find(({ box, outline }) => probe.x >= box[0] && probe.x <= box[2] && probe.y >= box[1] && probe.y <= box[3] && pointInLoop(probe, outline));
+      if (owner && owner.islands.length < MAX_ISLANDS) owner.islands.push(island);
+    }
+    return outlines.map(({ outline, islands: own, area }) => ({ outline, islands: own, area }));
+  }
+  function segmentsCross(a, b, c, d) {
+    const side = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
+    const shared = (p, q) => p.x === q.x && p.y === q.y;
+    if (shared(a, c) || shared(a, d) || shared(b, c) || shared(b, d)) return false;
+    return side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;
+  }
+  function bridge(outline, islands) {
+    let polygon = outline.slice();
+    const pending = islands.slice();
+    const edgesOf = (loop) => loop.map((point, i) => [point, loop[(i + 1) % loop.length]]);
+    while (pending.length) {
+      const island = pending.shift();
+      const blockers = [...edgesOf(polygon), ...pending.flatMap(edgesOf), ...edgesOf(island)];
+      const pairs = [];
+      for (let i2 = 0; i2 < polygon.length; i2++) {
+        for (let j2 = 0; j2 < island.length; j2++) {
+          pairs.push({ i: i2, j: j2, distance: Math.hypot(polygon[i2].x - island[j2].x, polygon[i2].y - island[j2].y) });
+        }
+      }
+      pairs.sort((a, b) => a.distance - b.distance);
+      const clear = pairs.slice(0, 400).find(({ i: i2, j: j2 }) => blockers.every(([c, d]) => !segmentsCross(polygon[i2], island[j2], c, d)));
+      if (!clear) continue;
+      const { i, j } = clear;
+      const rotated = [...island.slice(j), ...island.slice(0, j)];
+      polygon = [...polygon.slice(0, i + 1), ...rotated, island[j], ...polygon.slice(i)];
+    }
+    return polygon;
+  }
+  function carvingBytes(strokes) {
+    return strokes.reduce((total, stroke) => total + 2 + stroke.points.length * 2, 0);
+  }
+  function encodeCarving(strokes) {
+    const bytes = [];
+    for (const stroke of strokes) {
+      bytes.push(stroke.closed ? 1 : 0, stroke.points.length);
+      for (const { x, y } of stroke.points) bytes.push(x, y);
+    }
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary);
+  }
+  function toStroke(loop) {
+    const points = [];
+    for (const point of loop) {
+      const x = Math.max(0, Math.min(255, Math.round(point.x)));
+      const y = Math.max(0, Math.min(255, Math.round(point.y)));
+      const last = points[points.length - 1];
+      if (!last || last.x !== x || last.y !== y) points.push({ x, y });
+    }
+    if (points.length > 1 && points[0].x === points[points.length - 1].x && points[0].y === points[points.length - 1].y) points.pop();
+    return { closed: true, points };
+  }
+  var MAX_SMOOTHING = 12;
+  function regionStroke(region, epsilon) {
+    let outline = simplifyLoop(region.outline, epsilon);
+    for (let e = epsilon * 1.35; outline.length > CARVING_MAX_POINTS && e <= MAX_SMOOTHING * 8; e *= 1.35) outline = simplifyLoop(region.outline, e);
+    if (outline.length > CARVING_MAX_POINTS) return null;
+    let room = CARVING_MAX_POINTS - outline.length;
+    const islands = [];
+    for (const island of region.islands) {
+      const simplified = simplifyLoop(island, epsilon);
+      if (simplified.length < 3 || simplified.length + 2 > room) continue;
+      islands.push(simplified);
+      room -= simplified.length + 2;
+    }
+    const stroke = toStroke(bridge(outline, islands));
+    return stroke.points.length >= 3 && stroke.points.length <= CARVING_MAX_POINTS ? stroke : null;
+  }
+  function strokesAt(regions, epsilon) {
+    const strokes = [];
+    for (const region of regions) {
+      const stroke = regionStroke(region, epsilon);
+      if (stroke) strokes.push(stroke);
+    }
+    return { strokes, failed: regions.length - strokes.length };
+  }
+  function traceCarving(mask, options = {}) {
+    const minSmoothing = Math.max(0.3, options.smoothing ?? 0.8);
+    const scale = options.scale ?? 1;
+    const loops = traceLoops(mask, scale);
+    if (scale !== 1) for (const loop of loops) for (const point of loop) {
+      point.x /= scale;
+      point.y /= scale;
+    }
+    let regions = groupRegions(loops, options.minArea ?? 2, 1 / scale).sort((a, b) => b.area - a.area);
+    const fits = (epsilon2) => carvingBytes(strokesAt(regions, epsilon2).strokes) <= CARVING_MAX_BYTES;
+    let dropped = 0;
+    let epsilon = minSmoothing;
+    if (!fits(epsilon)) {
+      while (regions.length > 1 && !fits(MAX_SMOOTHING)) {
+        const keep = Math.max(1, Math.floor(regions.length * 0.85));
+        dropped += regions.length - keep;
+        regions = regions.slice(0, keep);
+      }
+      let low = minSmoothing, high = MAX_SMOOTHING;
+      for (let i = 0; i < 10; i++) {
+        const middle = (low + high) / 2;
+        if (fits(middle)) high = middle;
+        else low = middle;
+      }
+      epsilon = high;
+    }
+    const { strokes, failed } = strokesAt(regions, epsilon);
+    dropped += failed;
+    while (strokes.length && carvingBytes(strokes) > CARVING_MAX_BYTES) {
+      strokes.pop();
+      dropped++;
+    }
+    return { strokes, bytes: carvingBytes(strokes), smoothing: epsilon, dropped };
+  }
+  var MIN_LINE_WIDTH = 2;
+  function lumaOver(data, pixel, backdrop) {
+    const a = data[pixel * 4 + 3] / 255;
+    return (0.299 * data[pixel * 4] + 0.587 * data[pixel * 4 + 1] + 0.114 * data[pixel * 4 + 2]) * a + backdrop * (1 - a);
+  }
+  function pictureBackground(data, width, height) {
+    for (let i = 3; i < data.length; i += 4) if (data[i] < 128) return null;
+    const rs = [], gs = [], bs = [];
+    const take = (x, y) => {
+      const i = (y * width + x) * 4;
+      rs.push(data[i]);
+      gs.push(data[i + 1]);
+      bs.push(data[i + 2]);
+    };
+    for (let x = 0; x < width; x++) {
+      take(x, 0);
+      take(x, height - 1);
+    }
+    for (let y = 0; y < height; y++) {
+      take(0, y);
+      take(width - 1, y);
+    }
+    const median = (values) => values.sort((a, b) => a - b)[values.length >> 1];
+    return { r: median(rs), g: median(gs), b: median(bs) };
+  }
+  function pictureMask(data, background, settings, scale = 1) {
+    const n = CARVING_GRID * scale;
+    const mask = new Uint8Array(n * n);
+    const alpha = (i) => data[i * 4 + 3] / 255;
+    if (settings.mode === "shade") {
+      const backdrop = settings.invert ? 0 : 255;
+      for (let i = 0; i < mask.length; i++) {
+        const luma = lumaOver(data, i, backdrop);
+        mask[i] = (settings.invert ? luma >= settings.threshold : luma < settings.threshold) ? 1 : 0;
+      }
+      clipMaskToFace(mask, scale);
+      return mask;
+    }
+    for (let i = 0; i < mask.length; i++) {
+      if (alpha(i) < 0.5) continue;
+      if (!background) {
+        mask[i] = 1;
+        continue;
+      }
+      const distance = Math.max(Math.abs(data[i * 4] - background.r), Math.abs(data[i * 4 + 1] - background.g), Math.abs(data[i * 4 + 2] - background.b));
+      mask[i] = distance > settings.tolerance ? 1 : 0;
+    }
+    if (settings.mode === "glass") {
+      const difference = (i, j) => Math.max(
+        Math.abs(data[i * 4] * alpha(i) - data[j * 4] * alpha(j)),
+        Math.abs(data[i * 4 + 1] * alpha(i) - data[j * 4 + 1] * alpha(j)),
+        Math.abs(data[i * 4 + 2] * alpha(i) - data[j * 4 + 2] * alpha(j)),
+        Math.abs(data[i * 4 + 3] - data[j * 4 + 3])
+      );
+      const neighbours = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+      let line = new Uint8Array(n * n);
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const i = y * n + x;
+        if (!mask[i]) continue;
+        for (const [dx, dy] of neighbours) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= n || ny >= n || !mask[ny * n + nx]) continue;
+          if (difference(i, ny * n + nx) > settings.edges) {
+            line[i] = 1;
+            break;
+          }
+        }
+      }
+      const width = Math.max(MIN_LINE_WIDTH, settings.lineWidth);
+      const passes = Math.max(0, Math.round((width * scale - 2) / 2));
+      for (let grow = 0; grow < passes; grow++) {
+        const wider = line.slice();
+        for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++) {
+          const i = y * n + x;
+          if (line[i - 1] || line[i + 1] || line[i - n] || line[i + n]) wider[i] = 1;
+        }
+        line = wider;
+      }
+      for (let i = 0; i < mask.length; i++) if (line[i]) mask[i] = 0;
+    }
+    clipMaskToFace(mask, scale);
+    return mask;
+  }
+
+  // src/carving-worker.ts
+  function runCarvingJob(job) {
+    return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale), { smoothing: job.smoothing, scale: job.scale });
+  }
+  var scope = globalThis;
+  if (typeof scope.document === "undefined" && typeof scope.postMessage === "function") {
+    let held = null;
+    scope.onmessage = (event) => {
+      const message = event.data;
+      try {
+        if (message.data) held = { key: message.pictureKey, data: message.data };
+        if (held?.key !== message.pictureKey) throw new Error("The picture for this job was not sent.");
+        scope.postMessage({ id: message.id, result: runCarvingJob({ ...message, data: held.data }) });
+      } catch (error) {
+        scope.postMessage({ id: message.id, error: String(error) });
+      }
+    };
+    scope.postMessage({ type: "ready" });
+  }
+
+  // src/features/pumpkin-import.ts
+  var BUTTON_ID = "gc-carve-import";
+  var DIALOG_ID = "gc-carve-dialog";
+  var MODAL_NAME = "pumpkinCarving";
+  var ART_LABEL = "CarvablePumpkin";
+  var PREVIEW_SCALE = 1.6;
+  var PREVIEW_TOP = Math.floor(FACE.cy - FACE.ry) - 2;
+  var PREVIEW_BOTTOM = Math.ceil(FACE.cy + FACE.ry) + 2;
+  var modalAtom = null;
+  var targetAtom = null;
+  var carvingOpen = false;
+  var artNode = null;
+  function carvingTarget() {
+    const store = gameStore();
+    if (!store || !targetAtom) return null;
+    const value = store.get(targetAtom);
+    return value && Number.isInteger(value.localTileIndex) && value.growSlotId != null ? value : null;
+  }
+  function closeGameCarving() {
+    const store = gameStore();
+    if (!store || !modalAtom) return;
+    const current = store.get(modalAtom);
+    if (current?.modal !== MODAL_NAME) return;
+    store.set(modalAtom, { modal: null, openId: (Number(current.openId) || 0) + 1 });
+  }
+  function placeButton() {
+    const button = document.getElementById(BUTTON_ID);
+    if (!button || button.hidden) return;
+    const surface = pixiSurface();
+    if (!artNode || artNode.destroyed || !artNode.parent) artNode = surface && findVisiblePixiNodes(surface, [ART_LABEL]).get(ART_LABEL) || null;
+    const art = artNode;
+    const bounds = art?.getBounds?.();
+    if (!surface || !bounds || !(bounds.width > 0)) {
+      button.style.left = "50%";
+      button.style.top = "16px";
+      button.style.transform = "translateX(-50%)";
+      return;
+    }
+    button.style.transform = "";
+    const left = surface.toScreenX(bounds.x + bounds.width / 2) - button.offsetWidth / 2;
+    const top = surface.toScreenY(bounds.y) + 8;
+    button.style.left = `${Math.max(8, Math.round(left))}px`;
+    button.style.top = `${Math.max(8, Math.round(top))}px`;
+  }
+  var placeTicker = createTicker(placeButton, 250);
+  function syncButton() {
+    const button = document.getElementById(BUTTON_ID);
+    if (!button) return;
+    const show = carvingOpen && feature("pumpkinImport");
+    button.hidden = !show;
+    placeTicker.sync(show);
+    if (!show) document.getElementById(DIALOG_ID)?.remove();
+  }
+  function updatePumpkinImport() {
+    syncButton();
+  }
+  function pickFile() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) void openPicture(file);
+    };
+    input.click();
+  }
+  function mountPumpkinImport() {
+    if (document.getElementById(BUTTON_ID)) return;
+    const button = document.createElement("button");
+    button.id = BUTTON_ID;
+    button.hidden = true;
+    button.textContent = "Select a picture";
+    button.title = "Carve this pumpkin from a picture";
+    button.addEventListener("click", () => {
+      button.blur();
+      pickFile();
+    });
+    document.body.appendChild(button);
+    window.addEventListener("dragover", (event) => {
+      if (!button.hidden && event.dataTransfer?.types.includes("Files")) event.preventDefault();
+    });
+    window.addEventListener("drop", (event) => {
+      if (button.hidden) return;
+      const file = [...event.dataTransfer?.files ?? []].find((item) => item.type.startsWith("image/"));
+      if (!file) return;
+      event.preventDefault();
+      void openPicture(file);
+    });
+    retryUntil(() => {
+      modalAtom ??= findAtom("activeModalStateAtom");
+      targetAtom ??= findAtom("pumpkinCarvingTargetAtom");
+      const store = gameStore();
+      if (!modalAtom || !targetAtom || !store) return false;
+      const watched = modalAtom;
+      const follow = () => {
+        const value = store.get(watched);
+        const modal2 = typeof value === "string" ? value : value?.modal;
+        carvingOpen = modal2 === MODAL_NAME;
+        syncButton();
+      };
+      store.sub(watched, follow);
+      follow();
+      return true;
+    }, "the pumpkin carving import");
+  }
+  var workerStart = null;
+  var workerJobs = /* @__PURE__ */ new Map();
+  var nextJobId = 1;
+  var workerPictureKey = null;
+  var dialogCount = 0;
+  function carvingWorker() {
+    return workerStart ??= new Promise((resolve) => {
+      if (typeof Worker !== "function" || false) {
+        resolve(null);
+        return;
+      }
+      const url = URL.createObjectURL(new Blob(['"use strict";\n(() => {\n  // src/carving-trace.ts\n  var CARVING_GRID = 256;\n  var CARVING_MAX_BYTES = 2304;\n  var CARVING_MAX_POINTS = 255;\n  var FACE_SCALE = 540 / 256;\n  var FACE = { cx: 270 / FACE_SCALE, cy: 270 / FACE_SCALE, rx: 270 / FACE_SCALE, ry: 180 / FACE_SCALE };\n  var FACE_MARGIN = 1.5;\n  function insideFace(x, y, margin = 0) {\n    const dx = (x - FACE.cx) / (FACE.rx - margin);\n    const dy = (y - FACE.cy) / (FACE.ry - margin);\n    return dx * dx + dy * dy <= 1;\n  }\n  function clipMaskToFace(mask, scale = 1) {\n    const n = CARVING_GRID * scale;\n    for (let y = 0; y < n; y++) {\n      for (let x = 0; x < n; x++) {\n        if (!insideFace((x + 0.5) / scale, (y + 0.5) / scale, FACE_MARGIN)) mask[y * n + x] = 0;\n      }\n    }\n  }\n  function doubleArea(loop) {\n    let area = 0;\n    for (let i = 0; i < loop.length; i++) {\n      const a = loop[i], b = loop[(i + 1) % loop.length];\n      area += a.x * b.y - b.x * a.y;\n    }\n    return area;\n  }\n  function traceLoops(mask, scale = 1) {\n    const n = CARVING_GRID * scale;\n    const cut = (x, y) => x >= 0 && y >= 0 && x < n && y < n && mask[y * n + x] === 1;\n    const stride = n + 1;\n    const key = (x, y) => y * stride + x;\n    const outgoing = /* @__PURE__ */ new Map();\n    const add = (x, y, direction) => {\n      const k = key(x, y);\n      const list = outgoing.get(k);\n      if (list) list.push(direction);\n      else outgoing.set(k, [direction]);\n    };\n    for (let y = 0; y < n; y++) {\n      for (let x = 0; x < n; x++) {\n        if (!cut(x, y)) continue;\n        if (!cut(x, y - 1)) add(x, y, 0);\n        if (!cut(x + 1, y)) add(x + 1, y, 1);\n        if (!cut(x, y + 1)) add(x + 1, y + 1, 2);\n        if (!cut(x - 1, y)) add(x, y + 1, 3);\n      }\n    }\n    const step = [[1, 0], [0, 1], [-1, 0], [0, -1]];\n    const loops = [];\n    for (const [start, list] of outgoing) {\n      while (list.length) {\n        let x = start % stride, y = Math.floor(start / stride);\n        let direction = list.pop();\n        const loop = [];\n        for (; ; ) {\n          loop.push({ x, y });\n          x += step[direction][0];\n          y += step[direction][1];\n          if (key(x, y) === start) break;\n          const here = outgoing.get(key(x, y));\n          if (!here || here.length === 0) break;\n          const order = [(direction + 1) % 4, direction, (direction + 3) % 4];\n          const pick = order.find((candidate) => here.includes(candidate));\n          if (pick === void 0) break;\n          here.splice(here.indexOf(pick), 1);\n          direction = pick;\n        }\n        if (loop.length >= 4) loops.push(dropStraights(loop));\n      }\n    }\n    return loops;\n  }\n  function dropStraights(loop) {\n    const out = [];\n    for (let i = 0; i < loop.length; i++) {\n      const a = loop[(i - 1 + loop.length) % loop.length], b = loop[i], c = loop[(i + 1) % loop.length];\n      if ((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x) !== 0) out.push(b);\n    }\n    return out;\n  }\n  function segmentDistance(p, a, b) {\n    const dx = b.x - a.x, dy = b.y - a.y;\n    const length = dx * dx + dy * dy;\n    const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length));\n    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));\n  }\n  function simplifyOpen(points, epsilon) {\n    if (points.length < 3) return points.slice();\n    const keep = new Uint8Array(points.length);\n    keep[0] = keep[points.length - 1] = 1;\n    const stack = [[0, points.length - 1]];\n    while (stack.length) {\n      const [first, last] = stack.pop();\n      let worst = -1, index = -1;\n      for (let i = first + 1; i < last; i++) {\n        const distance = segmentDistance(points[i], points[first], points[last]);\n        if (distance > worst) {\n          worst = distance;\n          index = i;\n        }\n      }\n      if (worst > epsilon) {\n        keep[index] = 1;\n        stack.push([first, index], [index, last]);\n      }\n    }\n    return points.filter((_, i) => keep[i]);\n  }\n  function simplifyLoop(loop, epsilon) {\n    if (loop.length <= 4 || epsilon <= 0) return loop.slice();\n    let far = 0, best = -1;\n    for (let i = 1; i < loop.length; i++) {\n      const distance = Math.hypot(loop[i].x - loop[0].x, loop[i].y - loop[0].y);\n      if (distance > best) {\n        best = distance;\n        far = i;\n      }\n    }\n    const first = simplifyOpen(loop.slice(0, far + 1), epsilon);\n    const second = simplifyOpen([...loop.slice(far), loop[0]], epsilon);\n    const result = [...first, ...second.slice(1, -1)];\n    return result.length >= 3 ? result : loop.slice(0, 3);\n  }\n  function pointInLoop(point, loop) {\n    let inside = false;\n    for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {\n      const a = loop[i], b = loop[j];\n      if (a.y > point.y !== b.y > point.y && point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x) inside = !inside;\n    }\n    return inside;\n  }\n  var MAX_ISLANDS = 60;\n  function groupRegions(loops, minArea, cell) {\n    const outlines = [];\n    const islands = [];\n    for (const loop of loops) {\n      const area = doubleArea(loop) / 2;\n      if (Math.abs(area) < minArea) continue;\n      if (area > 0) {\n        const xs = loop.map((point) => point.x), ys = loop.map((point) => point.y);\n        outlines.push({ outline: loop, islands: [], area, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] });\n      } else islands.push({ loop, area: -area });\n    }\n    outlines.sort((a, b) => a.area - b.area);\n    islands.sort((a, b) => b.area - a.area);\n    for (const { loop: island } of islands) {\n      const a = island[0], b = island[1];\n      const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;\n      const off = cell / 2;\n      const probe = { x: (a.x + b.x) / 2 - (b.y - a.y) / length * off, y: (a.y + b.y) / 2 + (b.x - a.x) / length * off };\n      const owner = outlines.find(({ box, outline }) => probe.x >= box[0] && probe.x <= box[2] && probe.y >= box[1] && probe.y <= box[3] && pointInLoop(probe, outline));\n      if (owner && owner.islands.length < MAX_ISLANDS) owner.islands.push(island);\n    }\n    return outlines.map(({ outline, islands: own, area }) => ({ outline, islands: own, area }));\n  }\n  function segmentsCross(a, b, c, d) {\n    const side = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));\n    const shared = (p, q) => p.x === q.x && p.y === q.y;\n    if (shared(a, c) || shared(a, d) || shared(b, c) || shared(b, d)) return false;\n    return side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;\n  }\n  function bridge(outline, islands) {\n    let polygon = outline.slice();\n    const pending = islands.slice();\n    const edgesOf = (loop) => loop.map((point, i) => [point, loop[(i + 1) % loop.length]]);\n    while (pending.length) {\n      const island = pending.shift();\n      const blockers = [...edgesOf(polygon), ...pending.flatMap(edgesOf), ...edgesOf(island)];\n      const pairs = [];\n      for (let i2 = 0; i2 < polygon.length; i2++) {\n        for (let j2 = 0; j2 < island.length; j2++) {\n          pairs.push({ i: i2, j: j2, distance: Math.hypot(polygon[i2].x - island[j2].x, polygon[i2].y - island[j2].y) });\n        }\n      }\n      pairs.sort((a, b) => a.distance - b.distance);\n      const clear = pairs.slice(0, 400).find(({ i: i2, j: j2 }) => blockers.every(([c, d]) => !segmentsCross(polygon[i2], island[j2], c, d)));\n      if (!clear) continue;\n      const { i, j } = clear;\n      const rotated = [...island.slice(j), ...island.slice(0, j)];\n      polygon = [...polygon.slice(0, i + 1), ...rotated, island[j], ...polygon.slice(i)];\n    }\n    return polygon;\n  }\n  function carvingBytes(strokes) {\n    return strokes.reduce((total, stroke) => total + 2 + stroke.points.length * 2, 0);\n  }\n  function toStroke(loop) {\n    const points = [];\n    for (const point of loop) {\n      const x = Math.max(0, Math.min(255, Math.round(point.x)));\n      const y = Math.max(0, Math.min(255, Math.round(point.y)));\n      const last = points[points.length - 1];\n      if (!last || last.x !== x || last.y !== y) points.push({ x, y });\n    }\n    if (points.length > 1 && points[0].x === points[points.length - 1].x && points[0].y === points[points.length - 1].y) points.pop();\n    return { closed: true, points };\n  }\n  var MAX_SMOOTHING = 12;\n  function regionStroke(region, epsilon) {\n    let outline = simplifyLoop(region.outline, epsilon);\n    for (let e = epsilon * 1.35; outline.length > CARVING_MAX_POINTS && e <= MAX_SMOOTHING * 8; e *= 1.35) outline = simplifyLoop(region.outline, e);\n    if (outline.length > CARVING_MAX_POINTS) return null;\n    let room = CARVING_MAX_POINTS - outline.length;\n    const islands = [];\n    for (const island of region.islands) {\n      const simplified = simplifyLoop(island, epsilon);\n      if (simplified.length < 3 || simplified.length + 2 > room) continue;\n      islands.push(simplified);\n      room -= simplified.length + 2;\n    }\n    const stroke = toStroke(bridge(outline, islands));\n    return stroke.points.length >= 3 && stroke.points.length <= CARVING_MAX_POINTS ? stroke : null;\n  }\n  function strokesAt(regions, epsilon) {\n    const strokes = [];\n    for (const region of regions) {\n      const stroke = regionStroke(region, epsilon);\n      if (stroke) strokes.push(stroke);\n    }\n    return { strokes, failed: regions.length - strokes.length };\n  }\n  function traceCarving(mask, options = {}) {\n    const minSmoothing = Math.max(0.3, options.smoothing ?? 0.8);\n    const scale = options.scale ?? 1;\n    const loops = traceLoops(mask, scale);\n    if (scale !== 1) for (const loop of loops) for (const point of loop) {\n      point.x /= scale;\n      point.y /= scale;\n    }\n    let regions = groupRegions(loops, options.minArea ?? 2, 1 / scale).sort((a, b) => b.area - a.area);\n    const fits = (epsilon2) => carvingBytes(strokesAt(regions, epsilon2).strokes) <= CARVING_MAX_BYTES;\n    let dropped = 0;\n    let epsilon = minSmoothing;\n    if (!fits(epsilon)) {\n      while (regions.length > 1 && !fits(MAX_SMOOTHING)) {\n        const keep = Math.max(1, Math.floor(regions.length * 0.85));\n        dropped += regions.length - keep;\n        regions = regions.slice(0, keep);\n      }\n      let low = minSmoothing, high = MAX_SMOOTHING;\n      for (let i = 0; i < 10; i++) {\n        const middle = (low + high) / 2;\n        if (fits(middle)) high = middle;\n        else low = middle;\n      }\n      epsilon = high;\n    }\n    const { strokes, failed } = strokesAt(regions, epsilon);\n    dropped += failed;\n    while (strokes.length && carvingBytes(strokes) > CARVING_MAX_BYTES) {\n      strokes.pop();\n      dropped++;\n    }\n    return { strokes, bytes: carvingBytes(strokes), smoothing: epsilon, dropped };\n  }\n  var MIN_LINE_WIDTH = 2;\n  function lumaOver(data, pixel, backdrop) {\n    const a = data[pixel * 4 + 3] / 255;\n    return (0.299 * data[pixel * 4] + 0.587 * data[pixel * 4 + 1] + 0.114 * data[pixel * 4 + 2]) * a + backdrop * (1 - a);\n  }\n  function pictureMask(data, background, settings, scale = 1) {\n    const n = CARVING_GRID * scale;\n    const mask = new Uint8Array(n * n);\n    const alpha = (i) => data[i * 4 + 3] / 255;\n    if (settings.mode === "shade") {\n      const backdrop = settings.invert ? 0 : 255;\n      for (let i = 0; i < mask.length; i++) {\n        const luma = lumaOver(data, i, backdrop);\n        mask[i] = (settings.invert ? luma >= settings.threshold : luma < settings.threshold) ? 1 : 0;\n      }\n      clipMaskToFace(mask, scale);\n      return mask;\n    }\n    for (let i = 0; i < mask.length; i++) {\n      if (alpha(i) < 0.5) continue;\n      if (!background) {\n        mask[i] = 1;\n        continue;\n      }\n      const distance = Math.max(Math.abs(data[i * 4] - background.r), Math.abs(data[i * 4 + 1] - background.g), Math.abs(data[i * 4 + 2] - background.b));\n      mask[i] = distance > settings.tolerance ? 1 : 0;\n    }\n    if (settings.mode === "glass") {\n      const difference = (i, j) => Math.max(\n        Math.abs(data[i * 4] * alpha(i) - data[j * 4] * alpha(j)),\n        Math.abs(data[i * 4 + 1] * alpha(i) - data[j * 4 + 1] * alpha(j)),\n        Math.abs(data[i * 4 + 2] * alpha(i) - data[j * 4 + 2] * alpha(j)),\n        Math.abs(data[i * 4 + 3] - data[j * 4 + 3])\n      );\n      const neighbours = [[1, 0], [0, 1], [-1, 0], [0, -1]];\n      let line = new Uint8Array(n * n);\n      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {\n        const i = y * n + x;\n        if (!mask[i]) continue;\n        for (const [dx, dy] of neighbours) {\n          const nx = x + dx, ny = y + dy;\n          if (nx < 0 || ny < 0 || nx >= n || ny >= n || !mask[ny * n + nx]) continue;\n          if (difference(i, ny * n + nx) > settings.edges) {\n            line[i] = 1;\n            break;\n          }\n        }\n      }\n      const width = Math.max(MIN_LINE_WIDTH, settings.lineWidth);\n      const passes = Math.max(0, Math.round((width * scale - 2) / 2));\n      for (let grow = 0; grow < passes; grow++) {\n        const wider = line.slice();\n        for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++) {\n          const i = y * n + x;\n          if (line[i - 1] || line[i + 1] || line[i - n] || line[i + n]) wider[i] = 1;\n        }\n        line = wider;\n      }\n      for (let i = 0; i < mask.length; i++) if (line[i]) mask[i] = 0;\n    }\n    clipMaskToFace(mask, scale);\n    return mask;\n  }\n\n  // src/carving-worker.ts\n  function runCarvingJob(job) {\n    return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale), { smoothing: job.smoothing, scale: job.scale });\n  }\n  var scope = globalThis;\n  if (typeof scope.document === "undefined" && typeof scope.postMessage === "function") {\n    let held = null;\n    scope.onmessage = (event) => {\n      const message = event.data;\n      try {\n        if (message.data) held = { key: message.pictureKey, data: message.data };\n        if (held?.key !== message.pictureKey) throw new Error("The picture for this job was not sent.");\n        scope.postMessage({ id: message.id, result: runCarvingJob({ ...message, data: held.data }) });\n      } catch (error) {\n        scope.postMessage({ id: message.id, error: String(error) });\n      }\n    };\n    scope.postMessage({ type: "ready" });\n  }\n})();\n'], { type: "text/javascript" }));
+      let worker;
+      try {
+        worker = new Worker(url);
+      } catch {
+        URL.revokeObjectURL(url);
+        resolve(null);
+        return;
+      }
+      const timer = window.setTimeout(() => {
+        worker.terminate();
+        resolve(null);
+      }, 3e3);
+      worker.onmessage = (event) => {
+        const message = event.data;
+        if (message.type === "ready") {
+          window.clearTimeout(timer);
+          URL.revokeObjectURL(url);
+          resolve(worker);
+          return;
+        }
+        const pending = message.id ? workerJobs.get(message.id) : void 0;
+        if (!pending) return;
+        workerJobs.delete(message.id);
+        if (!message.result) workerPictureKey = null;
+        pending.resolve(message.result ?? traceHere(pending.job));
+      };
+      worker.onerror = () => {
+        window.clearTimeout(timer);
+        resolve(null);
+        workerStart = Promise.resolve(null);
+        worker.terminate();
+        for (const [id, { job, resolve: answer }] of workerJobs) {
+          workerJobs.delete(id);
+          answer(traceHere(job));
+        }
+      };
+    });
+  }
+  var traceHere = (job) => Promise.resolve().then(() => runCarvingJob(job));
+  async function traceInWorker(job) {
+    const worker = await carvingWorker();
+    if (!worker) return traceHere(job);
+    const id = nextJobId++;
+    return new Promise((resolve) => {
+      workerJobs.set(id, { job, resolve });
+      const message = workerPictureKey === job.pictureKey ? { ...job, id, data: void 0 } : { ...job, id };
+      workerPictureKey = job.pictureKey;
+      worker.postMessage(message);
+    });
+  }
+  var SOURCE_MAX_PX = 1024;
+  var MAX_FILE_BYTES = 10 * 1024 * 1024;
+  var MAX_PICTURE_PIXELS = 4e7;
+  var PictureTooLarge = class extends Error {
+  };
+  async function loadImage(file) {
+    if (file.size > MAX_FILE_BYTES) throw new PictureTooLarge();
+    const url = URL.createObjectURL(file);
+    try {
+      const image = new Image();
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = url;
+      });
+      if (image.naturalWidth * image.naturalHeight > MAX_PICTURE_PIXELS) throw new PictureTooLarge();
+      const scale = Math.min(1, SOURCE_MAX_PX / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      context.imageSmoothingQuality = "high";
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+  function drawPicture(image, zoom, offsetX = 0, offsetY = 0) {
+    const size = CARVING_GRID * PICTURE_DETAIL;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.scale(PICTURE_DETAIL, PICTURE_DETAIL);
+    const fit = Math.min(FACE.rx * 2 / image.width, FACE.ry * 2 / image.height) * zoom;
+    const width = image.width * fit, height = image.height * fit;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(image, FACE.cx + offsetX - width / 2, FACE.cy + offsetY - height / 2, width, height);
+    return context.getImageData(0, 0, size, size).data;
+  }
+  function readBackground(image) {
+    const scale = Math.min(1, 128 / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return pictureBackground(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+  }
+  function drawPreview(canvas, strokes) {
+    const context = canvas.getContext("2d");
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.setTransform(PREVIEW_SCALE, 0, 0, PREVIEW_SCALE, 0, -PREVIEW_TOP * PREVIEW_SCALE);
+    context.save();
+    context.beginPath();
+    context.ellipse(FACE.cx, FACE.cy, FACE.rx, FACE.ry, 0, 0, Math.PI * 2);
+    context.clip();
+    const trace2 = (points) => {
+      context.beginPath();
+      points.forEach(({ x, y }, i) => i ? context.lineTo(x + 0.5, y + 0.5) : context.moveTo(x + 0.5, y + 0.5));
+      context.closePath();
+    };
+    context.fillStyle = context.strokeStyle = "#ffd65a";
+    context.lineWidth = 1;
+    context.lineJoin = "round";
+    for (const { points } of strokes) {
+      trace2(points);
+      context.fill();
+    }
+    context.globalCompositeOperation = "destination-over";
+    for (const { points } of strokes) {
+      trace2(points);
+      context.stroke();
+    }
+    context.fillStyle = "#d9731f";
+    context.fillRect(0, PREVIEW_TOP, CARVING_GRID, PREVIEW_BOTTOM - PREVIEW_TOP);
+    context.restore();
+  }
+  async function openPicture(file) {
+    let image;
+    try {
+      image = await loadImage(file);
+    } catch (error) {
+      toast(error instanceof PictureTooLarge ? `That picture is too big - up to ${MAX_FILE_BYTES / 1024 / 1024} MB and ${MAX_PICTURE_PIXELS / 1e6} megapixels.` : "That picture could not be opened.", "error");
+      return;
+    }
+    document.getElementById(DIALOG_ID)?.remove();
+    const background = readBackground(image);
+    const settings = { mode: "glass", threshold: 128, invert: false, tolerance: 40, edges: 35, lineWidth: 2, zoom: 1, smoothing: 0.4, offsetX: 0, offsetY: 0 };
+    const drawn = drawPicture(image, 1);
+    const inside = [];
+    const size = CARVING_GRID * PICTURE_DETAIL;
+    for (let y = 0; y < size; y += PICTURE_DETAIL) for (let x = 0; x < size; x += PICTURE_DETAIL) {
+      const dx = ((x + 0.5) / PICTURE_DETAIL - FACE.cx) / FACE.rx, dy = ((y + 0.5) / PICTURE_DETAIL - FACE.cy) / FACE.ry;
+      if (dx * dx + dy * dy > 1) continue;
+      inside.push(lumaOver(drawn, y * size + x, 255));
+    }
+    settings.threshold = Math.round(otsuThreshold(inside));
+    const backdrop = document.createElement("div");
+    backdrop.id = DIALOG_ID;
+    backdrop.className = "gc-modal-backdrop";
+    backdrop.innerHTML = `<div class="gc-carve-modal" role="dialog" aria-label="Carve from a picture">
+    <div class="gc-modal-head"><h3>Carve from a picture</h3><button class="gc-modal-close" data-carve-close aria-label="Close">×</button></div>
+    <div class="gc-modal-body">
+      <canvas class="gc-carve-preview" width="${Math.round(CARVING_GRID * PREVIEW_SCALE)}" height="${Math.round((PREVIEW_BOTTOM - PREVIEW_TOP) * PREVIEW_SCALE)}" title="Drag to move the picture, scroll to resize it, double-click to centre it"></canvas>
+      <p class="gc-carve-hint">Drag the picture to move it, scroll to resize, double-click to centre</p>
+      <p class="gc-carve-status" data-carve-status></p>
+      <div class="gc-carve-modes" role="radiogroup">${[["glass", "Stained glass"], ["shape", "Shape"], ["shade", "Light and dark"]].map(([mode, label]) => `<label><input type="radio" name="gc-carve-mode" data-carve="mode" value="${mode}" ${mode === settings.mode ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
+      <label class="gc-carve-slider" data-modes="shade"><span>Threshold</span><input type="range" min="1" max="254" data-carve="threshold" value="${settings.threshold}"></label>
+      <label class="gc-carve-slider" data-modes="shape glass"><span>Background</span><input type="range" min="2" max="200" data-carve="tolerance" value="${settings.tolerance}" title="How different from the background a part must be to be cut"></label>
+      <label class="gc-carve-slider" data-modes="glass"><span>Lines</span><input type="range" min="10" max="200" data-carve="edges" value="${210 - settings.edges}" title="More draws a line at smaller colour changes"></label>
+      <label class="gc-carve-slider" data-modes="glass"><span>Line width</span><input type="range" min="${MIN_LINE_WIDTH}" max="5" data-carve="lineWidth" value="${settings.lineWidth}"></label>
+      <label class="gc-carve-slider"><span>Size</span><input type="range" min="30" max="250" data-carve="zoom" value="100"></label>
+      <label class="gc-carve-slider"><span>Smoothing</span><input type="range" min="3" max="60" data-carve="smoothing" value="4" title="The least the outlines are smoothed - more is used when a picture needs it to fit"></label>
+      <label class="gc-carve-check" data-modes="shade"><input type="checkbox" data-carve="invert"><span>Cut the light parts instead of the dark</span></label>
+    </div>
+    <div class="gc-carve-actions"><button data-carve-close>Cancel</button><button class="gc-carve-go" data-carve-go>Carve pumpkin</button></div>
+  </div>`;
+    document.body.appendChild(backdrop);
+    const canvas = backdrop.querySelector("canvas");
+    const status = backdrop.querySelector("[data-carve-status]");
+    const go = backdrop.querySelector("[data-carve-go]");
+    let result = null;
+    let carving = false;
+    let frame = 0;
+    const dialog = ++dialogCount;
+    const pictureKey = () => `${dialog}:${settings.zoom}:${settings.offsetX}:${settings.offsetY}`;
+    let picture = { key: pictureKey(), data: drawn };
+    const showModeControls = () => backdrop.querySelectorAll("[data-modes]").forEach((element) => {
+      element.hidden = !element.dataset.modes.split(" ").includes(settings.mode);
+    });
+    showModeControls();
+    const show = (traced, asked) => {
+      result = traced;
+      drawPreview(canvas, traced.strokes);
+      const used = Math.round(traced.bytes / CARVING_MAX_BYTES * 100);
+      status.textContent = traced.strokes.length === 0 ? "Nothing to cut - try another style or moving the sliders." : `${traced.strokes.length} cut${traced.strokes.length === 1 ? "" : "s"}, ${used}% of the carving limit` + (traced.smoothing > asked + 0.05 ? ", smoothed to fit" : "") + (traced.dropped ? `, ${traced.dropped} small piece${traced.dropped === 1 ? "" : "s"} left out` : "");
+      go.disabled = carving || traced.strokes.length === 0;
+    };
+    let tracing = false;
+    let stale = false;
+    const retrace = () => {
+      if (tracing) {
+        stale = true;
+        return;
+      }
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(async () => {
+        tracing = true;
+        stale = false;
+        if (picture.key !== pictureKey()) picture = { key: pictureKey(), data: drawPicture(image, settings.zoom, settings.offsetX, settings.offsetY) };
+        const { zoom: _zoom, offsetX: _x, offsetY: _y, smoothing, ...pictureSettings } = settings;
+        let traced = null;
+        try {
+          traced = await traceInWorker({ id: 0, pictureKey: picture.key, data: picture.data, background, settings: pictureSettings, smoothing, scale: PICTURE_DETAIL });
+        } catch (error) {
+          console.warn("[Garden Companion] Tracing the picture failed:", error);
+        } finally {
+          tracing = false;
+        }
+        if (!backdrop.isConnected) return;
+        if (traced) show(traced, smoothing);
+        else {
+          status.textContent = "This picture could not be traced at these settings.";
+          go.disabled = true;
+          result = null;
+        }
+        if (stale) retrace();
+      });
+    };
+    retrace();
+    const zoomInput = backdrop.querySelector('[data-carve="zoom"]');
+    const unitsPerPixel = () => CARVING_GRID / (canvas.getBoundingClientRect().width || CARVING_GRID);
+    const reach = CARVING_GRID * 0.75;
+    let dragFrom = null;
+    canvas.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      try {
+        canvas.setPointerCapture(event.pointerId);
+      } catch {
+      }
+      dragFrom = { x: event.clientX, y: event.clientY, offsetX: settings.offsetX, offsetY: settings.offsetY };
+      canvas.dataset.dragging = "true";
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (!dragFrom) return;
+      const scale = unitsPerPixel();
+      const clamp = (value) => Math.round(Math.max(-reach, Math.min(reach, value)) * 2) / 2;
+      const offsetX = clamp(dragFrom.offsetX + (event.clientX - dragFrom.x) * scale);
+      const offsetY = clamp(dragFrom.offsetY + (event.clientY - dragFrom.y) * scale);
+      if (offsetX === settings.offsetX && offsetY === settings.offsetY) return;
+      settings.offsetX = offsetX;
+      settings.offsetY = offsetY;
+      retrace();
+    });
+    const endDrag = () => {
+      dragFrom = null;
+      delete canvas.dataset.dragging;
+    };
+    canvas.addEventListener("pointerup", endDrag);
+    canvas.addEventListener("pointercancel", endDrag);
+    canvas.addEventListener("dblclick", () => {
+      settings.offsetX = settings.offsetY = 0;
+      retrace();
+    });
+    canvas.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      if (event.deltaY === 0) return;
+      const percent = Math.max(Number(zoomInput.min), Math.min(Number(zoomInput.max), Math.round(settings.zoom * 100 * (event.deltaY < 0 ? 1.08 : 1 / 1.08))));
+      zoomInput.value = String(percent);
+      settings.zoom = percent / 100;
+      retrace();
+    }, { passive: false });
+    backdrop.addEventListener("keydown", (event) => {
+      event.stopPropagation();
+      if (event.key === "Escape") close2();
+    });
+    const close2 = () => {
+      cancelAnimationFrame(frame);
+      backdrop.remove();
+    };
+    backdrop.addEventListener("input", (event) => {
+      const input = event.target;
+      switch (input.dataset.carve) {
+        case "threshold":
+          settings.threshold = Number(input.value);
+          break;
+        case "zoom":
+          settings.zoom = Number(input.value) / 100;
+          break;
+        case "smoothing":
+          settings.smoothing = Number(input.value) / 10;
+          break;
+        case "invert":
+          settings.invert = input.checked;
+          break;
+        case "tolerance":
+          settings.tolerance = Number(input.value);
+          break;
+        case "edges":
+          settings.edges = 210 - Number(input.value);
+          break;
+        case "lineWidth":
+          settings.lineWidth = Number(input.value);
+          break;
+        case "mode":
+          settings.mode = input.value;
+          showModeControls();
+          break;
+        default:
+          return;
+      }
+      retrace();
+    });
+    backdrop.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target === backdrop || target.closest("[data-carve-close]")) close2();
+    });
+    go.addEventListener("click", async () => {
+      const target = carvingTarget();
+      if (!result || !target || !carvingOpen) {
+        toast("Open the carving window on a pumpkin first.", "error");
+        return;
+      }
+      if (carving) return;
+      carving = true;
+      go.disabled = true;
+      go.textContent = "Carving...";
+      let answer;
+      try {
+        answer = await sendQuinoaCommandAwaitingResult({
+          type: "CarvePumpkin",
+          slot: target.localTileIndex,
+          growSlotId: target.growSlotId,
+          carving: encodeCarving(result.strokes)
+        });
+      } catch (error) {
+        answer = { ok: false, code: error.message };
+      }
+      carving = false;
+      if (!answer.ok) {
+        go.disabled = result.strokes.length === 0;
+        go.textContent = "Carve pumpkin";
+        toast(answer.timedOut ? "The game did not answer - check the pumpkin before trying again." : `The game refused the carving${answer.code ? ` (${answer.code})` : ""}.`, "error");
+        return;
+      }
+      close2();
+      closeGameCarving();
+      toast("Pumpkin carved");
+    });
+  }
+
   // src/features/shop-alarms.ts
   var shop_alarms_exports = {};
   __export(shop_alarms_exports, {
@@ -9688,6 +10545,7 @@ ${eggs.map(eggCard).join("")}`;
         ["autoStoreDecor", "Auto-store decor", "Move decor into the Decor Shed when it already holds that item"],
         ["autoStoreTools", "Auto-store tools", "Move tools into the Tool Shack when it already holds that tool - one being used, or held, is left alone"],
         ["cinematicButton", "Cinematic mode button", "A camera button under Daily Quests on the right-side rail that hides the game HUD and brings it back (Esc exits too), as the game had before it moved cinematic mode onto the Camera"],
+        ["pumpkinImport", "Carve pumpkins from pictures", "A Select a picture button in the pumpkin carving window - the picture you pick is cut into the pumpkin"],
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
@@ -9711,6 +10569,7 @@ ${eggs.map(eggCard).join("")}`;
         if (input.checked && (input.dataset.feature === "petHungerAlarm" || input.dataset.feature === "petAbilityAlarm")) armAlarmAudio();
         updateLunarTimer();
         updateCinematicButton();
+        updatePumpkinImport();
         renderPetFood();
         syncProduceLocks();
         syncCropEstimates();
@@ -10904,10 +11763,35 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-fm-cel-arrow { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3; }
 .gc-fm-cel-arrow line { stroke:#fde68a;stroke-width:3;stroke-linecap:round;stroke-dasharray:6 4;filter:drop-shadow(0 1px 1px #000); }
 
+
+/* ── Pumpkin carving from a picture ───────────────────────────────────────────────────────────── */
+#gc-carve-import { position:fixed;z-index:99988;padding:7px 14px;border:1px solid rgba(255,255,255,.25);border-radius:999px;color:#fff;background:rgba(20,20,23,.82);cursor:pointer;font:600 12px var(--gc-font);box-shadow:0 2px 8px rgba(0,0,0,.4); }
+#gc-carve-import[hidden] { display:none; }
+#gc-carve-import:hover { background:var(--gc-accent); }
+.gc-carve-modal { width:440px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }
+.gc-carve-preview { display:block;width:100%;height:auto;border-radius:var(--gc-radius-sm);background:var(--gc-input); }
+.gc-carve-status { margin:8px 0 6px;color:var(--gc-muted);font-size:12px; }
+.gc-carve-slider { display:grid;grid-template-columns:84px 1fr;align-items:center;gap:8px;margin:4px 0; }
+.gc-carve-slider input { width:100%;accent-color:var(--gc-accent); }
+.gc-carve-check { display:flex;align-items:center;gap:8px;margin:8px 0 2px; }
+.gc-carve-check input { accent-color:var(--gc-accent); }
+.gc-carve-actions { display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--gc-line); }
+.gc-modal-backdrop .gc-carve-go { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }
+.gc-modal-backdrop .gc-carve-go:disabled { opacity:.5;cursor:default; }
+.gc-carve-modes { display:flex;gap:4px;margin:2px 0 8px;padding:3px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-input); }
+.gc-carve-modes label { flex:1; }
+.gc-carve-modes input { position:absolute;opacity:0;pointer-events:none; }
+.gc-carve-modes span { display:block;padding:5px 6px;border-radius:var(--gc-radius-sm);text-align:center;color:var(--gc-muted);font-weight:600;font-size:12px;cursor:pointer; }
+.gc-carve-modes input:checked + span { color:#fff;background:var(--gc-accent); }
+.gc-carve-modal [data-modes][hidden] { display:none; }
+.gc-carve-preview { cursor:grab;touch-action:none; }
+.gc-carve-preview[data-dragging=true] { cursor:grabbing; }
+.gc-carve-hint { margin:4px 0 0;color:var(--gc-muted);font-size:11px;text-align:center; }
 `;
       document.head.appendChild(style);
       mountLunarTimer(togglePanel);
       mountCinematicButton();
+      mountPumpkinImport();
       onSpritesReady(() => {
         const panel3 = document.getElementById("gc-panel");
         if (panel3 && !panel3.hidden) {
@@ -10923,6 +11807,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
         syncProduceLocks();
         updateLunarTimer();
         updateCinematicButton();
+        updatePumpkinImport();
       });
       watchExistingSocket();
       watchForGameUpdateDialog();
@@ -11239,17 +12124,17 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
   // src/features/overview-styles.ts
   var STYLE_ID2 = "gc-overview-style";
   var PANEL_ID2 = "gc-overview-panel";
-  var BUTTON_ID = "gc-overview-button";
+  var BUTTON_ID2 = "gc-overview-button";
   function injectOverviewStyles() {
     if (document.getElementById(STYLE_ID2)) return;
     const style = document.createElement("style");
     style.id = STYLE_ID2;
     style.textContent = `
-    #${PANEL_ID2},#${BUTTON_ID}{--go-bg:var(--gc-bg,#141417);--go-surface:var(--gc-surface,#1a1a1e);--go-surface-2:var(--gc-surface-2,#222227);--go-surface-3:var(--gc-surface-3,#2a2a30);--go-input:var(--gc-input,#0e0e10);--go-line:var(--gc-line,rgba(255,255,255,.07));--go-line-strong:var(--gc-line-strong,rgba(255,255,255,.12));--go-text:var(--gc-text,#ececef);--go-strong:var(--gc-strong,#fafafa);--go-muted:var(--gc-muted,#a1a1aa);--go-faint:var(--gc-faint,#83838d);--go-accent:var(--gc-accent,#7c6cf2);--go-accent-text:var(--gc-accent-text,#b3a9ff);--go-accent-soft:var(--gc-accent-soft,rgba(124,108,242,.14));--go-accent-line:var(--gc-accent-line,rgba(124,108,242,.45));--go-green:var(--gc-green,#3ecf8e);--go-gold:var(--gc-gold,#f5c04a);--go-font:var(--gc-font,"Segoe UI",system-ui,sans-serif);--go-mono:var(--gc-mono,ui-monospace,Consolas,monospace)}
-    #${BUTTON_ID}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--go-line-strong);border-radius:9px;background:var(--go-bg);color:var(--go-text);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+    #${PANEL_ID2},#${BUTTON_ID2}{--go-bg:var(--gc-bg,#141417);--go-surface:var(--gc-surface,#1a1a1e);--go-surface-2:var(--gc-surface-2,#222227);--go-surface-3:var(--gc-surface-3,#2a2a30);--go-input:var(--gc-input,#0e0e10);--go-line:var(--gc-line,rgba(255,255,255,.07));--go-line-strong:var(--gc-line-strong,rgba(255,255,255,.12));--go-text:var(--gc-text,#ececef);--go-strong:var(--gc-strong,#fafafa);--go-muted:var(--gc-muted,#a1a1aa);--go-faint:var(--gc-faint,#83838d);--go-accent:var(--gc-accent,#7c6cf2);--go-accent-text:var(--gc-accent-text,#b3a9ff);--go-accent-soft:var(--gc-accent-soft,rgba(124,108,242,.14));--go-accent-line:var(--gc-accent-line,rgba(124,108,242,.45));--go-green:var(--gc-green,#3ecf8e);--go-gold:var(--gc-gold,#f5c04a);--go-font:var(--gc-font,"Segoe UI",system-ui,sans-serif);--go-mono:var(--gc-mono,ui-monospace,Consolas,monospace)}
+    #${BUTTON_ID2}{position:fixed;left:10px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--go-line-strong);border-radius:9px;background:var(--go-bg);color:var(--go-text);font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
     /* Solid on hover rather than translucent: this button sits on the game canvas, so a see-through
        fill would show the garden through it instead of lighting it up. */
-    #${BUTTON_ID}:hover{background:var(--go-surface-2)}
+    #${BUTTON_ID2}:hover{background:var(--go-surface-2)}
     #${PANEL_ID2}{position:fixed;inset:0;z-index:999994;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:transparent;pointer-events:none;color:var(--go-text);font:13px/1.45 var(--go-font);-webkit-font-smoothing:antialiased}
     #${PANEL_ID2} *,#${PANEL_ID2} *::before,#${PANEL_ID2} *::after{box-sizing:border-box}
     #${PANEL_ID2}[hidden]{display:none}
@@ -12136,11 +13021,11 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       if (!input) return;
       input.oninput = () => {
         const query = input.value.trim().toLowerCase();
-        const scope = input.parentElement;
-        scope?.querySelectorAll("[data-filter-text]").forEach((row) => {
+        const scope2 = input.parentElement;
+        scope2?.querySelectorAll("[data-filter-text]").forEach((row) => {
           row.hidden = Boolean(query && !row.dataset.filterText?.includes(query));
         });
-        scope?.querySelectorAll(".go-pill-group").forEach((group) => {
+        scope2?.querySelectorAll(".go-pill-group").forEach((group) => {
           group.hidden = ![...group.querySelectorAll("[data-filter-text]")].some((row) => !row.hidden);
         });
       };
@@ -12505,7 +13390,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       injectOverviewStyles();
       page.__gardenCompanionToggleOverview = toggle4;
       const button = document.createElement("button");
-      button.id = BUTTON_ID;
+      button.id = BUTTON_ID2;
       button.innerHTML = "&#x1F33F;";
       button.title = "Garden Overview";
       button.onclick = toggle4;
@@ -14732,10 +15617,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const { left, top, width, height } = jettyRect(water);
       dockBounds = { left, top, width, height };
       graphic.clear();
-      const bridge = 34;
-      graphic.roundRect(left + 16, top + 22, width + bridge, height, 10).fill({ color: 732984, alpha: 0.38 });
-      graphic.roundRect(left - 8, top - 8, width + bridge + 8, height + 16, 10).fill({ color: 3875859, alpha: 1 });
-      drawPlanks(graphic, left, top, width + bridge, height, "x", 31);
+      const bridge2 = 34;
+      graphic.roundRect(left + 16, top + 22, width + bridge2, height, 10).fill({ color: 732984, alpha: 0.38 });
+      graphic.roundRect(left - 8, top - 8, width + bridge2 + 8, height + 16, 10).fill({ color: 3875859, alpha: 1 });
+      drawPlanks(graphic, left, top, width + bridge2, height, "x", 31);
       graphic.rect(left - 8, top - 4, 6, height + 8).fill({ color: 3103290, alpha: 0.6 });
       graphic.rect(left + width - 6, top - 6, 14, height + 12).fill({ color: 6240800, alpha: 0.9 });
       const pilings = [

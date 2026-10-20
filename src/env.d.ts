@@ -12,5 +12,6 @@ declare const __EGG_CATALOG__: Record<string, { name: string; spawnWeights: Reco
 declare const __BASIS_WASM_SHA256__: string;
 declare const __PET_SPRITE_LOADER__: string;
 declare const __SPRITE_WORKER__: string;
+declare const __CARVING_WORKER__: string;
 declare const __GARDEN_COMPANION_CSS__: string;
 declare const __CHANGELOG__: Array<{ version: string; notes: string[] }>;
