@@ -22,7 +22,7 @@ import { bindSkyEvents, renderSky } from './features/sky.js';
 import { bindWeatherAlarmEvents, processWeatherAlarms, renderWeatherAlarms, weatherAlarmSignature } from './features/weather-alarms.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
-import { bindEggLuckEvents, eggLuckSignature, renderEggLuck } from './features/egg-luck.js';
+import { bindEggLuckEvents, eggLuckSignature, endEggLuckEditing, renderEggLuck } from './features/egg-luck.js';
 import { processActivityLog } from './activity-log.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
@@ -352,6 +352,7 @@ export function initCompanion(): void {
     if (!tab || tab === activeTab) return;
     cancelPanelRefresh();
     activeTab = tab;
+    endEggLuckEditing();
     if (activeTab !== 'abilityLog') { setAbilityFilterMenuOpen(false); setAbilityFilterInteracting(false); }
     renderPanel();
   }
@@ -395,6 +396,7 @@ export function initCompanion(): void {
   function closePanel() {
     cancelKeybindCapture?.();
     closeTeamPicker();
+    endEggLuckEditing();
     const panel = document.getElementById('gc-panel');
     if (panel) panel.hidden = true;
     setAbilityFilterMenuOpen(false);

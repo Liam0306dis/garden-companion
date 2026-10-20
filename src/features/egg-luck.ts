@@ -248,14 +248,79 @@ export function recordEggHatches(entries: ActivityLogEntry[]): void {
   if (changed) save();
 }
 
+// Seeded so it is never empty: the panel treats an empty signature as "always redraw".
+let frozenSignature = JSON.stringify(luck);
+
 /** Redraw only when a hatch has actually landed, rather than on every state frame. */
 export function eggLuckSignature(): string {
-  return JSON.stringify(luck);
+  // Held while a card is being edited: the edits change the tally, and a live refresh landing on
+  // the focusout from a pity box would redraw before the click on Done arrives and swallow it. The
+  // edit buttons redraw for themselves, so nothing is lost by waiting.
+  if (!editing.size) frozenSignature = JSON.stringify(luck);
+  return frozenSignature;
 }
 
 export function resetEggLuck(eggId: string): void {
   delete luck[eggId];
   save();
+}
+
+/** Eggs whose card is open for hand edits. Not saved: a reload should land back on the plain view. */
+const editing = new Set<string>();
+
+/** Leaves edit mode on every card, for when the panel closes or the tab changes without Done. */
+export function endEggLuckEditing(): void {
+  editing.clear();
+}
+
+/**
+ * Hand-adjusts one egg+species tally, for hatches made before install or in a session without the
+ * script. `field` is 'hatched' or a colour. The counts are kept consistent with each other - a Gold
+ * pet is also a hatch, so adding one past the species' hatch count adds the hatch too, and removing
+ * hatches trims colours that would no longer fit. Pity counters are left alone; they are set directly.
+ */
+function adjustEggLuck(eggId: string, species: string, field: string, delta: number): void {
+  const record = luck[eggId] ?? blankEgg();
+  const perSpecies = record.speciesColours[species] ?? (record.speciesColours[species] = {});
+  const setHatched = (next: number): void => {
+    const change = next - (record.species[species] || 0);
+    record.species[species] = next;
+    record.hatches = Math.max(0, record.hatches + change);
+    record.pulls = Math.max(0, record.pulls + change);
+    for (const colour of COLOURS) {
+      const over = (perSpecies[colour] || 0) - next;
+      if (over <= 0) continue;
+      perSpecies[colour] = next;
+      record.colours[colour] = Math.max(0, (record.colours[colour] || 0) - over);
+    }
+  };
+  if (field === 'hatched') {
+    setHatched(Math.max(0, (record.species[species] || 0) + delta));
+  } else if (COLOURS.includes(field)) {
+    const next = Math.max(0, (perSpecies[field] || 0) + delta);
+    record.colours[field] = Math.max(0, (record.colours[field] || 0) + next - (perSpecies[field] || 0));
+    perSpecies[field] = next;
+    if (next > (record.species[species] || 0)) setHatched(next);
+  }
+  luck[eggId] = record;
+  save();
+}
+
+/** Sets a pity counter by hand. The player is stating the game's figure, so it counts as synced. */
+function setPityCount(eggId: string, key: string, misses: number): void {
+  const record = luck[eggId] ?? blankEgg();
+  record.counters[key] = { misses: Math.max(0, Math.floor(misses) || 0), synced: true };
+  luck[eggId] = record;
+  save();
+}
+
+/** A table cell's count, or in edit mode the count between - and + buttons. */
+function stepCell(eggId: string, species: string, field: string, count: number, editMode: boolean): string {
+  if (!editMode) return count ? count.toLocaleString(NUMBER_LOCALE) : (field === 'hatched' ? '0' : '-');
+  const data = `data-egg-adjust="${escapeHtml(eggId)}" data-species="${escapeHtml(species)}" data-field="${escapeHtml(field)}"`;
+  return `<span class="gc-egg-step"><button ${data} data-delta="-1" title="Remove one">&#8722;</button>`
+    + `<b>${count.toLocaleString(NUMBER_LOCALE)}</b>`
+    + `<button ${data} data-delta="1" title="Add one">+</button></span>`;
 }
 
 function eggName(eggId: string): string {
@@ -280,10 +345,13 @@ function dueCount(eggId: string, record: EggRecord): number {
  * One guarantee's progress. An unsynced counter is shown as a floor rather than a figure, because
  * the hatches from before tracking began are in the game's count and not in ours.
  */
-function pityRow(eggId: string, label: string, sprite: string, record: EggRecord, key: string): string {
+function pityRow(eggId: string, label: string, sprite: string, record: EggRecord, key: string, editMode = false): string {
   const threshold = pityThreshold(eggId, key);
   const { misses, synced } = record.counters[key] ?? emptyCounter();
   const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
+  const count = editMode
+    ? `<input type="number" min="0" value="${misses}" data-egg-pity="${escapeHtml(eggId)}" data-key="${escapeHtml(key)}" title="Pulls since ${escapeHtml(label)} last landed"> / ${threshold.toLocaleString(NUMBER_LOCALE)}`
+    : `${synced ? '' : '&#8805;'}${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}`;
   const title = synced
     ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`
     : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
@@ -291,7 +359,7 @@ function pityRow(eggId: string, label: string, sprite: string, record: EggRecord
     + `<span class="gc-shop-sprite">${icon}</span>`
     + `<span class="gc-egg-pity-label">${escapeHtml(label)}</span>`
     + `<span class="gc-egg-bar"><i style="width:${Math.min(100, misses / threshold * 100).toFixed(1)}%"></i></span>`
-    + `<span class="gc-egg-pity-count">${synced ? '' : '&#8805;'}${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}</span>`
+    + `<span class="gc-egg-pity-count">${count}</span>`
     + '</div>';
 }
 
@@ -304,20 +372,25 @@ function eggCard(eggId: string): string {
   // only when there is a difference to explain.
   const pullNote = record.pulls === record.hatches ? '' : ` (${record.pulls.toLocaleString(NUMBER_LOCALE)} pulls)`;
   const hatched = `<span class="gc-pill">${record.hatches.toLocaleString(NUMBER_LOCALE)} hatched${pullNote}</span>`;
+  const editMode = editing.has(eggId);
+  const editButton = `<button class="gc-egg-edit" data-egg-edit="${escapeHtml(eggId)}" aria-pressed="${editMode}" title="Add or remove hatches, Gold and Rainbow by hand, and set the pity counters">${editMode ? 'Done' : 'Edit'}</button>`;
   // An egg with nothing recorded is already one line, so it stays a plain heading with nothing to
-  // fold - a control that opens an empty card would only invite the click.
-  if (!record.hatches) {
-    return `<section class="gc-card gc-egg-card" data-empty="true"><div class="gc-row"><h3>${title}</h3>${hatched}</div>`
+  // fold - a control that opens an empty card would only invite the click. Editing opens it anyway,
+  // since that is how hatches from before install get in.
+  if (!record.hatches && !editMode) {
+    return `<section class="gc-card gc-egg-card" data-empty="true"><div class="gc-row gc-egg-headrow"><h3>${title}</h3>${hatched}${editButton}</div>`
       + '<p>No hatches seen yet.</p></section>';
   }
   const open = !collapsed.has(eggId);
   // A guarantee that has come due is the one thing worth seeing without opening the card.
   const due = dueCount(eggId, record);
-  const head = `<button class="gc-egg-head" data-egg-toggle="${escapeHtml(eggId)}" aria-expanded="${open}">`
+  const head = `<div class="gc-egg-headrow"><button class="gc-egg-head" data-egg-toggle="${escapeHtml(eggId)}" aria-expanded="${open}">`
     + `<h3>${title}</h3>`
     + (due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : '')
     + hatched
-    + `<i>${open ? '&#9650;' : '&#9660;'}</i></button>`;
+    // The arrow is its own button so Edit can sit between the pills and it, keeping it at the edge.
+    + `</button>${editButton}<button class="gc-egg-head gc-egg-arrow" data-egg-toggle="${escapeHtml(eggId)}" aria-expanded="${open}" aria-label="${open ? 'Collapse' : 'Expand'}">`
+    + `<i>${open ? '&#9650;' : '&#9660;'}</i></button></div>`;
 
   const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
   const weightTotal = Object.values(weights).reduce((sum, weight) => sum + (Number(weight) || 0), 0);
@@ -331,12 +404,13 @@ function eggCard(eggId: string): string {
     const petIcon = petSprite ? `<img src="${escapeHtml(petSprite)}" alt="">` : '';
     const gold = record.speciesColours[id]?.Gold || 0;
     const rainbow = record.speciesColours[id]?.Rainbow || 0;
-    return `<tr${count ? '' : ' class="gc-egg-none"'}><td><span class="gc-shop-sprite">${petIcon}</span>${escapeHtml(speciesName(id))}</td>`
-      + `<td>${count.toLocaleString(NUMBER_LOCALE)}</td>`
-      + `<td>${gold ? gold.toLocaleString(NUMBER_LOCALE) : '-'}</td>`
-      + `<td>${rainbow ? rainbow.toLocaleString(NUMBER_LOCALE) : '-'}</td>`
-      + `<td>${share(count, record.hatches)}</td>`
-      + `<td>${odds}</td></tr>`;
+    // Share and odds are read-only and there is no room for them beside the steppers.
+    const tail = editMode ? '' : `<td>${share(count, record.hatches)}</td><td>${odds}</td>`;
+    return `<tr${count || editMode ? '' : ' class="gc-egg-none"'}><td><span class="gc-shop-sprite">${petIcon}</span>${escapeHtml(speciesName(id))}</td>`
+      + `<td>${stepCell(eggId, id, 'hatched', count, editMode)}</td>`
+      + `<td>${stepCell(eggId, id, 'Gold', gold, editMode)}</td>`
+      + `<td>${stepCell(eggId, id, 'Rainbow', rainbow, editMode)}</td>`
+      + `${tail}</tr>`;
   }).join('');
   const goldHead = mutationSprite('Gold') ? `<img src="${escapeHtml(mutationSprite('Gold'))}" alt="Gold">` : 'Gold';
   const rainbowHead = mutationSprite('Rainbow') ? `<img src="${escapeHtml(mutationSprite('Rainbow'))}" alt="Rainbow">` : 'Rainbow';
@@ -346,13 +420,14 @@ function eggCard(eggId: string): string {
     .join('');
   const pity = [
     ...pitySpeciesList(eggId).map(species =>
-      pityRow(eggId, speciesName(species), page.__gardenCompanionPetSprites?.[species] || '', record, species)),
-    ...COLOURS.map(colour => pityRow(eggId, colour, mutationSprite(colour), record, colour)),
+      pityRow(eggId, speciesName(species), page.__gardenCompanionPetSprites?.[species] || '', record, species, editMode)),
+    ...COLOURS.map(colour => pityRow(eggId, colour, mutationSprite(colour), record, colour, editMode)),
   ].join('');
+  const tailHead = editMode ? '' : '<th>Yours</th><th>Odds</th>';
 
-  return `<section class="gc-card gc-egg-card">${head}
+  return `<section class="gc-card gc-egg-card"${editMode ? ' data-editing="true"' : ''}>${head}
 <div class="gc-egg-body"${open ? '' : ' hidden'}>
-<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th class="gc-egg-mut" title="Gold found">${goldHead}</th><th class="gc-egg-mut" title="Rainbow found">${rainbowHead}</th><th>Yours</th><th>Odds</th></tr></thead><tbody>${rows}</tbody></table>
+<table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th class="gc-egg-mut" title="Gold found">${goldHead}</th><th class="gc-egg-mut" title="Rainbow found">${rainbowHead}</th>${tailHead}</tr></thead><tbody>${rows}</tbody></table>
 <div class="gc-egg-colours">${colours}<button data-egg-reset="${escapeHtml(eggId)}" title="Clear everything recorded for this egg">Reset</button></div>
 <div class="gc-egg-pities">${pity}</div></div></section>`;
 }
@@ -379,5 +454,25 @@ export function bindEggLuckEvents(main: HTMLElement): void {
   main.querySelectorAll<HTMLButtonElement>('[data-egg-reset]').forEach(button => button.onclick = () => {
     resetEggLuck(button.dataset.eggReset!);
     panelActions.renderPanelPreservingScroll();
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-egg-edit]').forEach(button => button.onclick = () => {
+    const eggId = button.dataset.eggEdit!;
+    editing.has(eggId) ? editing.delete(eggId) : editing.add(eggId);
+    // Opening a folded card for editing unfolds it for real, rather than forcing it open, so the
+    // arrow keeps working while editing instead of appearing to do nothing.
+    if (editing.has(eggId) && collapsed.has(eggId)) toggleEggCollapsed(eggId);
+    panelActions.renderPanelPreservingScroll();
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-egg-adjust]').forEach(button => button.onclick = () => {
+    adjustEggLuck(button.dataset.eggAdjust!, button.dataset.species!, button.dataset.field!, Number(button.dataset.delta) || 0);
+    panelActions.renderPanelPreservingScroll();
+  });
+  // Saved as typed but not redrawn: a redraw on blur would swap out the button being clicked (Done,
+  // or a stepper), swallowing that click. Enter redraws, so the bar can be checked without leaving.
+  main.querySelectorAll<HTMLInputElement>('[data-egg-pity]').forEach(input => {
+    input.oninput = () => setPityCount(input.dataset.eggPity!, input.dataset.key!, Number(input.value));
+    input.onkeydown = event => {
+      if (event.key === 'Enter') panelActions.renderPanelPreservingScroll();
+    };
   });
 }

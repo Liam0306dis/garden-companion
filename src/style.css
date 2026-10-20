@@ -1051,6 +1051,17 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-egg-pity-count { flex:0 0 84px;color:var(--gc-muted);font-size:11px;text-align:right;font-variant-numeric:tabular-nums; }
 .gc-egg-pity[data-due=true] .gc-egg-bar i { background:var(--gc-green); }
 .gc-egg-pity[data-due=true] .gc-egg-pity-count { color:#86efac; }
+.gc-egg-headrow { display:flex;align-items:center;gap:8px; }
+.gc-egg-headrow h3 { flex:1 1 auto;min-width:0; }
+#gc-panel .gc-egg-head.gc-egg-arrow { width:auto;flex:0 0 auto;padding:0 2px; }
+#gc-panel .gc-egg-edit { flex:0 0 auto;min-height:24px;padding:2px 10px;font-size:11px;color:var(--gc-muted);background:transparent; }
+#gc-panel .gc-egg-edit[aria-pressed=true] { color:var(--gc-accent-text);border-color:var(--gc-accent); }
+.gc-egg-card[data-editing=true] .gc-egg-table th:nth-child(n+2),.gc-egg-card[data-editing=true] .gc-egg-table td:nth-child(n+2) { width:22%; }
+.gc-egg-step { display:inline-flex;align-items:center;justify-content:flex-end;gap:4px; }
+.gc-egg-step b { min-width:2ch;font-weight:600;text-align:center; }
+#gc-panel .gc-egg-step button { width:20px;min-height:20px;height:20px;padding:0;font-size:12px;line-height:1; }
+.gc-egg-card[data-editing=true] .gc-egg-pity-count { flex-basis:110px; }
+#gc-panel .gc-egg-pity-count input { width:56px;padding:2px 4px;font-size:11px;text-align:right; }
 
 /* The Ko-fi link is an anchor, not a button, so it borrows the primary button's look. */
 #gc-panel a.gc-kofi { width:132px;flex:0 0 auto;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:var(--gc-radius-sm);text-decoration:none;white-space:nowrap;font-size:12px;font-weight:600; }
