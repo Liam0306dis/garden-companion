@@ -1,5 +1,6 @@
-import type { JotaiAtom } from './types.js';
+import type { FullState, JotaiAtom } from './types.js';
 import { page } from './page.js';
+import { findAtom } from './atom-cache.js';
 
 /**
  * The game's jotai store. Since build 1604 the game publishes it as window.__jotaiStore before it
@@ -38,4 +39,28 @@ export function watchAtom(atom: JotaiAtom, onValue: (value: unknown) => void, la
   }
   emit();
   return true;
+}
+
+const atomLookups = new Map<string, { atom: JotaiAtom | null; missedAt: number }>();
+
+/**
+ * An atom by debugLabel, kept once found. A miss is only looked for again every few seconds, since
+ * finding one walks the whole atom registry and callers ask on every room frame.
+ */
+export function cachedAtom(label: string): JotaiAtom | null {
+  const known = atomLookups.get(label);
+  if (known?.atom) return known.atom;
+  if (known && Date.now() - known.missedAt < 5000) return null;
+  const atom = findAtom(label);
+  atomLookups.set(label, { atom, missedAt: Date.now() });
+  return atom;
+}
+
+/**
+ * Whether a room state from roomPublicationAtom or stateAtom is a real one. Both start out holding
+ * an empty placeholder with no room id until the first state arrives from the server; the publish
+ * time can't tell them apart, since builds before 1684 don't put one on the atom.
+ */
+export function isRealRoomState(fullState: FullState | null | undefined): fullState is FullState {
+  return !!fullState?.child && !!fullState.data?.roomId;
 }

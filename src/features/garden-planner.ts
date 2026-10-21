@@ -298,8 +298,9 @@ export function initGardenPlanner(): void {
       for (const [name, system] of all as Map<string, Record<string, any>>) {
         if (!system || REAL_VIEW_SYSTEMS.some(([real]) => real === name) || system.__gcSceneDrawPatched) continue;
         system.__gcSceneDrawPatched = true;
-        // The lighting system draws its lamps and glows in lateDraw, after the scene.
-        for (const method of ['draw', 'update', 'lateDraw']) {
+        // The lighting system draws its lamps and glows in lateDraw, after the scene. Only its own:
+        // the other lateDraws (cursor, overlays) have no business seeing a locked time of day.
+        for (const method of name === 'lighting' ? ['draw', 'update', 'lateDraw'] : ['draw', 'update']) {
           const original = system[method];
           if (typeof original !== 'function') continue;
           system[method] = function(this: unknown, ...args: unknown[]) {

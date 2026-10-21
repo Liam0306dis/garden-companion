@@ -1,8 +1,8 @@
 import { page } from './page.js';
 import { atomMap, findAtom } from './atom-cache.js';
 import { quinoaEngine } from './quinoa-engine.js';
-import { gameStore } from './game-store.js';
-import type { JotaiAtom } from './types.js';
+import { cachedAtom, gameStore, isRealRoomState } from './game-store.js';
+import type { FullState, JotaiAtom } from './types.js';
 
 /**
  * The QuinoaCommand envelope carries a commandSequence, and the server accepts an envelope only when
@@ -103,17 +103,13 @@ function noteFrontier(value: unknown, source: 'property' | 'frame'): void {
   if (executed > frontier) frontier = executed;
 }
 
-let publicationAtom: JotaiAtom | null = null;
-
 function readPublicationAtom(): { executedCommandSequence?: unknown } | null {
   const store = gameStore();
-  if (!store) return null;
-  publicationAtom ??= findAtom('roomPublicationAtom');
-  if (!publicationAtom) return null;
+  const atom = store && cachedAtom('roomPublicationAtom');
+  if (!atom) return null;
   try {
-    const publication = store.get(publicationAtom) as { executedCommandSequence?: unknown; publishedAtServerMs?: unknown } | null;
-    // The atom holds a placeholder (published at 0) until the first real frame lands.
-    return publication && Number(publication.publishedAtServerMs) > 0 ? publication : null;
+    const publication = store.get(atom) as { executedCommandSequence?: unknown; state?: FullState } | null;
+    return publication && isRealRoomState(publication.state) ? publication : null;
   } catch {
     return null;
   }

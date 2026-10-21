@@ -30,7 +30,7 @@ import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, is
 import { bindListSearch } from './list-search.js';
 import { page } from './page.js';
 import { findAtom } from './atom-cache.js';
-import { gameStore, watchAtom } from './game-store.js';
+import { gameStore, isRealRoomState, watchAtom } from './game-store.js';
 import { setPanelActions } from './panel-actions.js';
 import { retryUntil } from './retry.js';
 import { installPixiCapture } from './pixi.js';
@@ -289,6 +289,8 @@ export function initCompanion(): void {
    */
   function subscribeToState(): boolean {
     if (gameStore()) {
+      // Looked up directly, not through cachedAtom: this runs once (retried until it connects), and a
+      // cached miss would hold the panel back for seconds after the atoms register.
       const publication = findAtom('roomPublicationAtom');
       if (publication) {
         return watchRoomState(publication, value => (value as { state?: FullState } | null)?.state);
@@ -302,16 +304,12 @@ export function initCompanion(): void {
     return true;
   }
 
-  /**
-   * Applies each new room state `read` finds in the atom's value; the same state twice is skipped.
-   * Both atoms start out holding an empty placeholder with no room id until the first real state
-   * lands, which is how it is told apart - older builds' publication has no publish time to go by.
-   */
+  /** Applies each new, real room state `read` finds in the atom's value; the same state twice is skipped. */
   function watchRoomState(atom: JotaiAtom, read: (value: unknown) => FullState | null | undefined): boolean {
     let last: unknown;
     return watchAtom(atom, value => {
       const fullState = read(value);
-      if (!fullState?.child || !fullState.data?.roomId || fullState === last) return;
+      if (!isRealRoomState(fullState) || fullState === last) return;
       last = fullState;
       applyState(fullState);
     }, 'room state');

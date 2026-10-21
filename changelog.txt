@@ -1,3 +1,7 @@
+0.9.65
+- Layout planner and Lighting: a locked or previewed time of day only changes the lights and sky, not the rest of the game's screen
+- Small fixes for the latest game update
+
 0.9.64
 - The panel fills in again in rooms still on the previous game version
 
