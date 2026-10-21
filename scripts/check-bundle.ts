@@ -34,8 +34,7 @@ const WEATHER_IDS = ['Rain', 'Frost', 'Thunderstorm', 'Dawn', 'AmberMoon'];
 const SCHEMA_MARKERS = [
   'selfPlayerId',
   'executedCommandSequence',
-  'lastDistributedRoomPublication',
-  'subscribeToPatches',
+  'roomPublicationAtom',
   'MagicCircle_RoomConnection',
   'currentWebSocket',
   'userSlotIdxAndDirtTileIdxToGlobalTileIdx',
@@ -50,7 +49,7 @@ const SCHEMA_MARKERS = [
  * renamed tileObject to gardenObject without any other marker changing, which quietly cut the
  * planner, drag-move and overview focus off from the farm.
  */
-const SYSTEM_NAMES = ['tapToMove', 'gardenObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory', 'rightSideRail', 'sunsetPrompt', 'dayNight'];
+const SYSTEM_NAMES = ['tapToMove', 'gardenObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory', 'rightSideRail', 'sunsetPrompt', 'dayNight', 'lighting'];
 
 /**
  * Property names and string literals the Lighting tab, the planner's frame hook and the atom watchers
@@ -63,16 +62,13 @@ const HOOK_MARKERS: ReadonlyArray<[marker: string, usedBy: string]> = [
   ['dayNightPhase01', 'the planner and Lighting time lock'],
   ['weatherId', 'the planner and Lighting weather lock'],
   ['publishStage(', 'the real day stage kept for the weather tooltip'],
-  ['childView', 'Glow (tile decor and crops)'],
-  ['this.features=', 'Glow (decor lights)'],
-  ['edgeViewsBySlot', "Glow (edge decor) and the planner's edges"],
-  ['componentViews', 'Glow (edge decor)'],
-  ['steadyAlpha', 'Glow (decor lights)'],
-  ['jumpPresentation(', 'Glow (decor lights)'],
-  ['setDayNightPhase(', 'Glow (held lamps)'],
-  ['updateNightPresentation(', 'Glow (crops)'],
-  ['getCropVisuals(', 'Glow (crops)'],
-  ['mutationIconGlows', 'Glow (crops)'],
+  ['childView', 'overview focus (tile plants)'],
+  ['getCropVisuals(', 'overview focus (crops)'],
+  ['illuminationHandoffs', "Glow (the lighting system's lights)"],
+  ['drawnByDay', "Glow (a light's glow sprites)"],
+  ['lateDraw(', 'night lights under a previewed or locked time of day'],
+  ['drawIllumination(', 'Glow (ground illumination)'],
+  ['faceGlow', 'Glow (lit faces)'],
   ['colorOpacity:', 'Lighting night tint strength'],
   ['sunsetColor:', 'Lighting sunset tint'],
   ['sunriseColor:', 'Lighting sunrise tint'],

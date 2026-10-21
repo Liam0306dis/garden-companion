@@ -1,3 +1,6 @@
+0.9.63
+- Update for the latest game update: the panel, shops, pet hunger, auto-store and weather alarms update again, Glow and the planner's night preview light up lamps and crop glows again
+
 0.9.62
 - Egg luck: an Edit button on every egg lets you add or remove hatches, Gold and Rainbow for each pet with - and + buttons, and type in where each pity counter stands, so hatches from before you installed can be counted - press Done when finished
 

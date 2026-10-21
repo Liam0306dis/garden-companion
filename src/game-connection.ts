@@ -1,6 +1,7 @@
 import { page } from './page.js';
 import { atomMap, findAtom } from './atom-cache.js';
 import { quinoaEngine } from './quinoa-engine.js';
+import { gameStore } from './game-store.js';
 import type { JotaiAtom } from './types.js';
 
 /**
@@ -102,9 +103,26 @@ function noteFrontier(value: unknown, source: 'property' | 'frame'): void {
   if (executed > frontier) frontier = executed;
 }
 
+let publicationAtom: JotaiAtom | null = null;
+
+function readPublicationAtom(): { executedCommandSequence?: unknown } | null {
+  const store = gameStore();
+  if (!store) return null;
+  publicationAtom ??= findAtom('roomPublicationAtom');
+  if (!publicationAtom) return null;
+  try {
+    const publication = store.get(publicationAtom) as { executedCommandSequence?: unknown; publishedAtServerMs?: unknown } | null;
+    // The atom holds a placeholder (published at 0) until the first real frame lands.
+    return publication && Number(publication.publishedAtServerMs) > 0 ? publication : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The server's confirmed command frontier, read straight off the room connection - the same
- * `lastDistributedRoomPublication.executedCommandSequence` the game seeds its own counter from. It is
+ * `lastDistributedRoomPublication.executedCommandSequence` the game seeds its own counter from (since
+ * build 1684, the same field on roomPublicationAtom, read through the game's store). It is
  * a plain property, so reading it needs no frame parsing and stays cheap enough to consult on every
  * command. Absent (an older or renamed field) leaves whatever the frame scan and Welcome have set.
  *
@@ -116,7 +134,7 @@ function readServerFrontier(): void {
     MagicCircle_RoomConnection?: { lastDistributedRoomPublication?: { executedCommandSequence?: unknown } };
   }).MagicCircle_RoomConnection;
   if (!connection) return;
-  const publication = connection.lastDistributedRoomPublication;
+  const publication = connection.lastDistributedRoomPublication ?? readPublicationAtom();
   // Probed only once a publication exists. The first frames of a connection arrive before one does,
   // and judging the property then recorded it as missing for the whole session.
   if (!publication) return;

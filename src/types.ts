@@ -168,7 +168,7 @@ export interface FullState {
 export interface RoomConnection {
   currentWebSocket?: WebSocket;
   sendMessage(command: Record<string, unknown>): void;
-  subscribeToPatches(callback: (patches: unknown[], state: FullState) => void): void | (() => void);
+  subscribeToPatches?(callback: (patches: unknown[], state: FullState) => void): void | (() => void);
 }
 
 export interface CompanionPage extends Window {

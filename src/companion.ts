@@ -29,6 +29,8 @@ import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
 import { bindListSearch } from './list-search.js';
 import { page } from './page.js';
+import { findAtom } from './atom-cache.js';
+import { gameStore, watchAtom } from './game-store.js';
 import { setPanelActions } from './panel-actions.js';
 import { retryUntil } from './retry.js';
 import { installPixiCapture } from './pixi.js';
@@ -278,33 +280,53 @@ export function initCompanion(): void {
     return { slot: null, index: null };
   }
 
+  /**
+   * The room state, followed through the game's roomPublicationAtom (since build 1684, which dropped
+   * subscribeToPatches): its `state` is the same { data, child: { data } } a patch subscriber was
+   * handed, and the atom is set once per published frame. Older builds keep the patch subscription.
+   */
   function subscribeToState(): boolean {
+    const publication = findAtom('roomPublicationAtom');
+    if (publication && gameStore()) {
+      let last: unknown;
+      return watchAtom(publication, value => {
+        const current = value as { state?: FullState; publishedAtServerMs?: unknown } | null;
+        // The atom holds an empty placeholder (published at 0) until the first real frame lands.
+        if (!(Number(current?.publishedAtServerMs) > 0)) return;
+        const fullState = current?.state;
+        if (!fullState || fullState === last) return;
+        last = fullState;
+        applyState(fullState);
+      }, 'room state');
+    }
     const connection = page.MagicCircle_RoomConnection;
     if (typeof connection?.subscribeToPatches !== 'function') return false;
-    connection.subscribeToPatches((_patches: unknown[], fullState: FullState) => {
-      state.room = fullState?.data || null;
-      state.game = fullState?.child?.data || null;
-      state.playerId = welcomePlayerId || fullState?.selfPlayerId || state.room?.selfPlayerId || state.atomPlayerId || state.playerId || readPlayerId();
-      const picked = pickSlot(state.game, state.room, state.playerId);
-      state.slot = picked.slot;
-      state.slotIndex = picked.index;
-      page.__gardenCompanionState = state;
-      refreshCompletedTeamSave();
-      refreshCompletedTeamDelete();
-      refreshCompletedTeamMove();
-      processActivityLog();
-      processShops();
-      processPetHunger();
-      processPetAbilityCooldowns();
-      processAutoStore();
-      noteWeatherChange();
-      processWeatherAlarms();
-      renderPetFood();
-      refreshTeamActiveMarkers();
-      refreshOpenPanel();
-      notifyStateChange('patch');
-    });
+    connection.subscribeToPatches((_patches: unknown[], fullState: FullState) => applyState(fullState));
     return true;
+  }
+
+  function applyState(fullState: FullState): void {
+    state.room = fullState?.data || null;
+    state.game = fullState?.child?.data || null;
+    state.playerId = welcomePlayerId || fullState?.selfPlayerId || state.room?.selfPlayerId || state.atomPlayerId || state.playerId || readPlayerId();
+    const picked = pickSlot(state.game, state.room, state.playerId);
+    state.slot = picked.slot;
+    state.slotIndex = picked.index;
+    page.__gardenCompanionState = state;
+    refreshCompletedTeamSave();
+    refreshCompletedTeamDelete();
+    refreshCompletedTeamMove();
+    processActivityLog();
+    processShops();
+    processPetHunger();
+    processPetAbilityCooldowns();
+    processAutoStore();
+    noteWeatherChange();
+    processWeatherAlarms();
+    renderPetFood();
+    refreshTeamActiveMarkers();
+    refreshOpenPanel();
+    notifyStateChange('patch');
   }
 
   installPixiCapture();

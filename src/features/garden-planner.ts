@@ -238,93 +238,40 @@ export function initGardenPlanner(): void {
   let realPhaseNow: number | null = null;
 
   /**
-   * Glow: the night lights of decor (lamps, lanterns) and crops are set by the game at night strength
-   * times a maximum fixed per item, so nothing else here can reach them. Each decor light is an
-   * instance of a small class made per decor type, holding a steadyAlpha its draw applies every frame
-   * (and the held lamp's glows are another class with the same field); crops set theirs in their
-   * visual's updateNightPresentation. None of these classes is reachable by name, so their instances
-   * are met through the garden's views and each class is patched once to scale the alpha it just set,
-   * capped at fully opaque. New decor types are picked up by a later pass.
+   * Glow: every night light - decor lamps and lanterns, the held lamp, and crops' mutation-icon glows -
+   * is one instance of the game's light class, kept in the `lighting` system's `lights` set and drawn
+   * each frame by draw(nightStrength, flicker). That draw sets the alpha of the light's glow sprites,
+   * halos, ground illumination and face glow from scratch, so the class is patched once to scale
+   * whichever of them it just showed, capped at fully opaque. The class is not reachable by name, so
+   * it is met through the first light in the set.
    */
   const GLOW_PATCHED = '__gcGlowPatched';
-  let lastGlowWalk = 0;
 
-  function scaleGlowAlpha(target: Record<string, any>, key: string): void {
-    const scale = glowScale();
-    const value = target[key];
-    if (scale !== 1 && typeof value === 'number' && Number.isFinite(value)) target[key] = Math.max(0, Math.min(1, value * scale));
+  function scaleGlowAlpha(target: Record<string, any> | null | undefined): void {
+    if (!target?.visible || typeof target.alpha !== 'number' || !Number.isFinite(target.alpha)) return;
+    target.alpha = Math.max(0, Math.min(1, target.alpha * glowScale()));
   }
 
-  function patchGlowClass(node: Record<string, any>): void {
-    const proto = Object.getPrototypeOf(node);
-    if (!proto || proto === Object.prototype || proto[GLOW_PATCHED]) return;
-    // A decor light (jumpPresentation) or a held-lamp glow (setDayNightPhase): both set steadyAlpha.
-    for (const method of ['jumpPresentation', 'setDayNightPhase']) {
-      const original = proto[method];
-      if (typeof original !== 'function' || typeof node.steadyAlpha !== 'number') continue;
-      // The game's own call always runs and returns as normal; only the scaling after it is guarded.
-      proto[method] = function(this: Record<string, any>, ...args: unknown[]) {
-        const result = original.apply(this, args);
-        if (glowScale() !== 1) guarded('Glow (decor)', () => scaleGlowAlpha(this, 'steadyAlpha'), undefined);
-        return result;
-      };
-      proto[GLOW_PATCHED] = true;
-      return;
-    }
-    // A crop visual: its night light and mutation-icon glows are set directly.
-    const original = proto.updateNightPresentation;
-    if (typeof original === 'function' && 'nightLight' in node) {
-      proto.updateNightPresentation = function(this: Record<string, any>, ...args: unknown[]) {
-        const result = original.apply(this, args);
-        if (glowScale() !== 1) guarded('Glow (crops)', () => {
-          for (const glow of [this.nightLight, ...(Array.isArray(this.mutationIconGlows) ? this.mutationIconGlows : [])]) {
-            if (!glow || typeof glow.alpha !== 'number') continue;
-            scaleGlowAlpha(glow, 'alpha');
-            glow.visible = glow.alpha > 0;
-          }
-        }, undefined);
-        return result;
-      };
-      proto[GLOW_PATCHED] = true;
-    }
-  }
-
-  /**
-   * Reaches the lights by the game's own fields rather than by walking objects (a blind walk reached
-   * its typed render buffers and took the page down). A tile view's childView is its decor - lights in
-   * its features list - or its plant, whose crops getCropVisuals lists; an edge view keeps its decor
-   * per part in componentViews.
-   */
   function patchGlows(): void {
-    const now = Date.now();
-    if (now - lastGlowWalk < 10_000) return;
-    lastGlowWalk = now;
-    const system = tileSystem();
-    if (!system) return;
-    const decorViews: Array<Record<string, any>> = [];
-    if (system.tileViews instanceof Map) {
-      for (const tileView of system.tileViews.values()) {
-        const child = tileView?.childView;
-        if (!child || typeof child !== 'object') continue;
-        if (Array.isArray(child.features)) decorViews.push(child);
-        else if (typeof child.getCropVisuals === 'function') {
-          try { for (const visual of child.getCropVisuals() ?? []) if (visual && typeof visual === 'object') patchGlowClass(visual); } catch {}
-        }
-      }
-    }
-    if (system.edgeViewsBySlot instanceof Map) {
-      for (const slot of system.edgeViewsBySlot.values()) {
-        if (!(slot instanceof Map)) continue;
-        for (const edgeView of slot.values()) {
-          for (const part of Object.values(edgeView?.componentViews ?? {}) as Array<Record<string, any> | null>) {
-            if (Array.isArray(part?.view?.features)) decorViews.push(part.view);
-          }
-        }
-      }
-    }
-    for (const decor of decorViews) {
-      for (const feature of decor.features) if (feature && typeof feature === 'object' && typeof feature.steadyAlpha === 'number') patchGlowClass(feature);
-    }
+    const lighting = (systems()?.allSystems as Map<string, Record<string, any>> | undefined)?.get?.('lighting');
+    if (!(lighting?.lights instanceof Set)) return;
+    const light = lighting.lights.values().next().value as Record<string, any> | undefined;
+    const proto = light && Object.getPrototypeOf(light);
+    if (!proto || proto === Object.prototype || proto[GLOW_PATCHED] || typeof proto.draw !== 'function') return;
+    const original = proto.draw;
+    // The game's own call always runs and returns as normal; only the scaling after it is guarded.
+    proto.draw = function(this: Record<string, any>, ...args: unknown[]) {
+      const result = original.apply(this, args);
+      if (glowScale() !== 1) guarded('Glow', () => {
+        // A glow drawn by day keeps its alpha between frames, so scaling it would compound.
+        for (const glow of Array.isArray(this.glows) ? this.glows : []) if (!glow?.drawnByDay) scaleGlowAlpha(glow?.sprite);
+        for (const halo of Array.isArray(this.halos) ? this.halos : []) scaleGlowAlpha(halo);
+        scaleGlowAlpha(this.illumination);
+        scaleGlowAlpha(this.faceGlow);
+      }, undefined);
+      return result;
+    };
+    proto[GLOW_PATCHED] = true;
   }
 
   function patchRealViewSystems(): void {
@@ -351,7 +298,8 @@ export function initGardenPlanner(): void {
       for (const [name, system] of all as Map<string, Record<string, any>>) {
         if (!system || REAL_VIEW_SYSTEMS.some(([real]) => real === name) || system.__gcSceneDrawPatched) continue;
         system.__gcSceneDrawPatched = true;
-        for (const method of ['draw', 'update']) {
+        // The lighting system draws its lamps and glows in lateDraw, after the scene.
+        for (const method of ['draw', 'update', 'lateDraw']) {
           const original = system[method];
           if (typeof original !== 'function') continue;
           system[method] = function(this: unknown, ...args: unknown[]) {
