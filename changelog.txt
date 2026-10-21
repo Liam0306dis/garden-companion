@@ -1,3 +1,6 @@
+0.9.67
+- Changes to play nicer alongside AriesMod and QPM: commands no longer get stuck when AriesMod blocks one, QPM's locker and command tracking now apply to the commands Garden Companion sends, held keys are let go when you switch windows, and less slowdown from page-wide hooks
+
 0.9.66
 - Pet food: the feed buttons should never feed a carved pumpkin
 

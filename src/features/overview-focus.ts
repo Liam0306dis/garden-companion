@@ -1,6 +1,7 @@
 import type { CompanionPage, PlantSlot } from '../types.js';
 import { slotIsMaxSize } from '../crop-size.js';
 import { createTicker } from '../ticker.js';
+import { quinoaEngine } from '../quinoa-engine.js';
 import type { OverviewRuntimeState } from './garden-overview.js';
 
 /**
@@ -94,7 +95,6 @@ export function installPlantFocus(
   const originalAlpha = new WeakMap<object, number>();
   const desiredAlpha = new WeakMap<object, number>();
   const managed = new Set<any>();
-  const systemsByViews = new WeakMap<object, any>();
 
   function restore(display: any): void {
     if (!display || !originalAlpha.has(display)) return;
@@ -177,7 +177,6 @@ export function installPlantFocus(
         if (tileSystem === system) {
           restoreAll();
           tileSystem = null;
-          setTimeout(armTileViewsCapture, 0);
         }
         return originalDestroy.apply(this, args);
       };
@@ -186,62 +185,22 @@ export function installPlantFocus(
   }
 
   const PageMap = page.Map as MapConstructor;
-  const PageObject = page.Object as ObjectConstructor & { __gardenCompanionFocusDefineWrapped?: boolean };
 
-  function armTileViewsCapture(): void {
-    if (tileSystem) return;
-    const prototype = PageObject.prototype as object;
-    const existing = PageObject.getOwnPropertyDescriptor(prototype, 'tileViews');
-    const existingGetter = existing?.get as (() => unknown) & { __gardenCompanionFocusTrap?: boolean } | undefined;
-    if (existingGetter?.__gardenCompanionFocusTrap || existing && !existing.configurable) return;
-    let storedValue: unknown;
-    const getter = function(this: any) { return existingGetter ? existingGetter.call(this) : storedValue; } as (() => unknown) & { __gardenCompanionFocusTrap?: boolean };
-    getter.__gardenCompanionFocusTrap = true;
-    PageObject.defineProperty(prototype, 'tileViews', {
-      configurable: true,
-      get: getter,
-      set: function(this: any, value: unknown) {
-        if (existing?.set) existing.set.call(this, value);
-        else PageObject.defineProperty(this, 'tileViews', { configurable: true, enumerable: true, writable: true, value });
-        if (TILE_SYSTEM_NAMES.has(this?.name) && value instanceof PageMap) capture(this);
-      },
-    });
+  /**
+   * The tile system is the one plant drag move already catches as the game builds it (and catches
+   * again after a reconnect). This used to keep its own net out - wraps on Map.prototype.set and
+   * Object.defineProperty and a trap on Object.prototype - that stayed on for good, so every Map
+   * write and property definition in the page, the game's and other mods' alike, paid for it.
+   *
+   * Plant drag move's hooks stand down after a minute in case a system never comes, so a garden
+   * built later than that is asked of the game's engine by name instead.
+   */
+  function followTileSystem(): void {
+    const engine = quinoaEngine();
+    const system = (page.__gardenCompanionFarmSystems?.tileSystem
+      ?? [...TILE_SYSTEM_NAMES].map(name => engine?.getSystem?.(name)).find(Boolean)) as any;
+    if (system && system !== tileSystem && !system.destroyed) capture(system);
   }
-
-  const mapPrototype = PageMap?.prototype as Map<unknown, unknown> & { set: (...args: any[]) => any; __gardenCompanionFocusWrapped?: boolean };
-  if (mapPrototype && !mapPrototype.__gardenCompanionFocusWrapped) {
-    const originalSet = mapPrototype.set;
-    mapPrototype.set = function(key: unknown, value: any) {
-      const result = originalSet.call(this, key, value);
-      try {
-        const map = value?.map;
-        const looksLikeTileView = Number.isInteger(key) && value?.globalTileIdx === key && value?.displayObject &&
-          'tileObject' in value && typeof value.onDataChanged === 'function' && map?.globalTileIdxToDirtTile && map?.globalTileIdxToBoardwalk;
-        if (looksLikeTileView && tileSystem?.tileViews !== this) {
-          let system = systemsByViews.get(this);
-          if (!system) { system = { name: 'tileObject', tileViews: this, map }; systemsByViews.set(this, system); }
-          capture(system);
-        }
-      } catch {}
-      return result;
-    };
-    mapPrototype.__gardenCompanionFocusWrapped = true;
-  }
-
-  if (!PageObject.__gardenCompanionFocusDefineWrapped) {
-    const originalDefineProperty = PageObject.defineProperty;
-    const wrappedDefineProperty = function(this: ObjectConstructor, target: object, property: PropertyKey, attributes: PropertyDescriptor & ThisType<any>): object {
-      const result = originalDefineProperty(target, property, attributes) as object;
-      try {
-        if (property === 'tileViews' && TILE_SYSTEM_NAMES.has((target as any)?.name) && attributes?.value instanceof PageMap) capture(target);
-      } catch {}
-      return result;
-    };
-    PageObject.defineProperty = wrappedDefineProperty as typeof Object.defineProperty;
-    PageObject.__gardenCompanionFocusDefineWrapped = true;
-  }
-
-  armTileViewsCapture();
 
   /**
    * Growing plants cross into maturity on their own and the game redraws tiles whenever it likes,
@@ -253,6 +212,7 @@ export function installPlantFocus(
   function apply(): void {
     const config = focusConfig();
     focusTicker.sync(config.enabled);
+    followTileSystem();
     const slotIndex = runtime().slotIndex;
     const views = tileSystem?.tileViews;
     const dirtMap = tileSystem?.map?.globalTileIdxToDirtTile;

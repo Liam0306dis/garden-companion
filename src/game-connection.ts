@@ -2,7 +2,7 @@ import { page } from './page.js';
 import { atomMap, findAtom } from './atom-cache.js';
 import { quinoaEngine } from './quinoa-engine.js';
 import { cachedAtom, gameStore, isRealRoomState } from './game-store.js';
-import type { FullState, JotaiAtom } from './types.js';
+import type { FullState, JotaiAtom, RoomConnection } from './types.js';
 
 /**
  * The QuinoaCommand envelope carries a commandSequence, and the server accepts an envelope only when
@@ -252,6 +252,68 @@ export function renumberOutgoingCommand(frame: Record<string, unknown>): boolean
   return true;
 }
 
+/** Gives back the number a frame took when it never reached the wire, as long as nothing has taken one since. */
+function releaseSequence(wire: number): void {
+  if (sequence === wire + 1) sequence = wire;
+}
+
+/**
+ * The stamp sits on the socket prototype's send, under the per-socket hooks - ours (the harvest
+ * guard) and any another mod adds - so the number is chosen as the frame goes down the wire, after
+ * everything that might still drop it.
+ *
+ * Where it sits matters because other mods drop commands too. AriesMod's outgoing rules (its locker,
+ * inventory reserve) drop from its own hook on this same prototype. Stamped before that hook, a
+ * dropped command had already taken a number, the next one left with a gap and the server refused
+ * it - and AriesMod, once it has sent a command of its own, renumbers from the higher of our number
+ * and its own and never comes back down, so a single gap refused every command until a reconnect.
+ * Installed first, at document-start, AriesMod's hook wraps this one, so a command it drops never
+ * gets here and never takes a number.
+ *
+ * Should another mod have patched the prototype before us, it sits under this hook instead and can
+ * still drop what we stamped. That drop is silent, so it is read off the socket: a send queues the
+ * frame's bytes on bufferedAmount synchronously, and a frame that never reached the native send
+ * queues nothing. The number is handed back when that happens.
+ *
+ * Whatever sits underneath is never guessed at from how its code prints (a Proxy or a bound copy of
+ * the native send prints as native too). The check runs on every command instead, and is only
+ * trusted once the socket has been seen to count a frame nobody drops - a position update or ping
+ * going through this same send. Until then a number is never handed back, since handing one back
+ * for a frame that did go out would give the next command a number the server has already run, and
+ * it drops those without a word.
+ */
+let bufferedAmountTracksSends = false;
+
+export function installCommandStamp(): void {
+  const proto = (page.WebSocket as typeof WebSocket | undefined)?.prototype as (WebSocket & { __gardenCompanionStamp?: boolean }) | undefined;
+  if (!proto || proto.__gardenCompanionStamp || typeof proto.send !== 'function') return;
+  const inner = proto.send;
+  proto.send = function(this: WebSocket, data: Parameters<WebSocket['send']>[0]) {
+    const frame = parseOutgoingFrame(data);
+    const arrivedWith = frame?.commandSequence;
+    if (!frame || !renumberOutgoingCommand(frame)) {
+      if (bufferedAmountTracksSends || this.readyState !== WebSocket.OPEN) return inner.call(this, data);
+      const queued = this.bufferedAmount;
+      const result = inner.call(this, data);
+      if (this.bufferedAmount > queued) bufferedAmountTracksSends = true;
+      return result;
+    }
+    const wire = frame.commandSequence as number;
+    const queued = this.bufferedAmount;
+    try {
+      // Usually the number upstream already chose is the right one, and the frame goes out untouched.
+      const result = inner.call(this, arrivedWith === wire ? data : JSON.stringify(frame));
+      if (bufferedAmountTracksSends && this.readyState === WebSocket.OPEN && this.bufferedAmount === queued) releaseSequence(wire);
+      return result;
+    } catch (error) {
+      // A socket still connecting throws rather than sending, and nothing went out under the number.
+      releaseSequence(wire);
+      throw error;
+    }
+  };
+  proto.__gardenCompanionStamp = true;
+}
+
 /**
  * The number each of the game's commands actually left with, by request id, for as long as the game
  * might still be filing its bookkeeping for it.
@@ -352,11 +414,18 @@ export function installPredictionRestamp(): boolean {
  */
 export function parseOutgoingFrame(data: unknown): Record<string, unknown> | null {
   if (typeof data !== 'string' || !(data.includes('QuinoaCommand') || data.includes('HarvestCrop'))) return null;
+  // The harvest guard and the stamp below it are handed the same string in the same send, so the
+  // second asks for what the first already parsed. Request ids make every command's text unique.
+  if (data === lastParsed.data) return lastParsed.frame;
   try {
-    const frame = JSON.parse(data);
-    return frame && typeof frame === 'object' ? frame as Record<string, unknown> : null;
+    const parsed = JSON.parse(data);
+    const frame = parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+    lastParsed = { data, frame };
+    return frame;
   } catch { return null; }
 }
+
+let lastParsed: { data: string | null; frame: Record<string, unknown> | null } = { data: null, frame: null };
 
 /** The socket the game is using, kept so our commands can leave by the same door as everything else. */
 let activeSocket: WebSocket | null = null;
@@ -365,9 +434,21 @@ export function noteGameSocket(socket: WebSocket): void {
   activeSocket = socket;
 }
 
-/** Whether a command could be sent right now: a socket exists and is open. */
+/** The game's room connection, while it is the one writing to the socket our commands go out on. */
+function roomConnectionForSocket(): RoomConnection | null {
+  const room = page.MagicCircle_RoomConnection;
+  return room && room.currentWebSocket === activeSocket ? room : null;
+}
+
+/**
+ * Whether a command could be sent right now: a socket exists and is open, and the server has let it
+ * in. A socket is open for a while before its Welcome arrives, and the game refuses to send in that
+ * window, so a command asked for then would go nowhere.
+ */
 export function gameConnectionReady(): boolean {
-  return !!activeSocket && activeSocket.readyState === WebSocket.OPEN;
+  if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) return false;
+  const room = roomConnectionForSocket();
+  return typeof room?.isConnected === 'function' ? room.isConnected() !== false : true;
 }
 
 /** The command, and the frame it left in - which carries the requestId the server answers with. */
@@ -422,22 +503,57 @@ export function sendBareCommand(command: Record<string, unknown>): void {
 }
 
 /**
- * Sent down the socket rather than through the game's connection, and with no sequence of its own.
+ * Sent the way the game sends its own commands, and with no sequence of its own.
  *
- * Both halves of that matter. sendMessage does not pass the socket send we wrap, so a command sent
- * that way left with no sequence at all and the server refused it; numbering it here instead fixed
- * that but set a second counter running beside the game's, and the two started picking the same
- * numbers. Going out through the socket puts our commands past the single stamp, which is the only
- * arrangement where two senders never collide.
+ * The route is the room connection's trySendMessageNow, which writes to the socket, so the command
+ * still passes the single stamp - the only arrangement where two senders never collide. Taking the
+ * game's route rather than writing to the socket ourselves means other mods see our commands the way
+ * they see the game's: QPM numbers every command at that same entry point and expects its count to
+ * match the wire, and its locker gets its say before anything leaves. Without that entry point (an
+ * older build), the command goes straight to the socket as before.
+ *
+ * A false return from trySendMessageNow - the server not having let the socket in yet, or a mod
+ * refusing the command - means nothing went out, and it throws with that reason rather than as a
+ * closed connection. Callers that handle each command on its own use trySendQuinoaCommand instead.
+ *
+ * Not sendMessage: that does not reach the socket send we wrap, so a command sent that way left with
+ * no sequence at all and the server refused it.
  */
 export function sendQuinoaCommand(command: Record<string, unknown>, options: { own?: boolean } = {}): string {
+  const { requestId, sent } = dispatchCommand(command, options);
+  // Thrown, like a closed socket: every caller treats a throw as "nothing went out" and keeps its
+  // state for a retry, where carrying on would untick, count or wait on a command that never left.
+  if (!sent) throw new Error(`The command was not sent: ${NOT_SENT_REASON}.`);
+  return requestId;
+}
+
+/**
+ * The same send, saying whether the command actually left: null when the connection was still
+ * joining or another mod refused it. For callers that would otherwise untick, count or wait on a
+ * command that never went out.
+ */
+export function trySendQuinoaCommand(command: Record<string, unknown>, options: { own?: boolean } = {}): string | null {
+  const { requestId, sent } = dispatchCommand(command, options);
+  return sent ? requestId : null;
+}
+
+/** What a feature tells the player about a command that did not leave. */
+export const NOT_SENT_REASON = 'the connection is still joining, or another mod refused it';
+
+function dispatchCommand(command: Record<string, unknown>, options: { own?: boolean } = {}): { requestId: string; sent: boolean } {
   const requestId = crypto.randomUUID();
   const frame = { scopePath: ['Room', 'Quinoa'], type: 'QuinoaCommand', requestId, command };
   if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error('The game connection is not ready.');
   // Marked before it leaves: the outgoing watchers run inside the send itself.
   if (options.own) markOwnCommand(requestId);
+  const room = roomConnectionForSocket();
+  if (typeof room?.trySendMessageNow === 'function') {
+    const sent = room.trySendMessageNow(frame) === true;
+    if (!sent) console.info(`[Garden Companion] A command was not sent: ${NOT_SENT_REASON}.`, { type: command.type });
+    return { requestId, sent };
+  }
   activeSocket.send(JSON.stringify(frame));
-  return requestId;
+  return { requestId, sent: true };
 }
 
 export interface CommandResult { ok: boolean; code?: string; timedOut?: boolean }
@@ -464,7 +580,9 @@ function settlePendingResult(data: unknown): void {
  * (a dropped connection) resolves as timed out instead of holding the caller forever.
  */
 export function sendQuinoaCommandAwaitingResult(command: Record<string, unknown>, timeoutMs = 5000): Promise<CommandResult> {
-  const requestId = sendQuinoaCommand(command);
+  const { requestId, sent } = dispatchCommand(command);
+  // Nothing went out, so no answer is coming: settle now rather than after the whole timeout.
+  if (!sent) return Promise.resolve({ ok: false, code: 'not_sent' });
   return new Promise(resolve => {
     const timer = setTimeout(() => {
       pendingResults.delete(requestId);

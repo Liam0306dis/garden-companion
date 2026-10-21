@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.66
+// @version      0.9.67
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -37,7 +37,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.66", notes: ["Pet food: the feed buttons should never feed a carved pumpkin"] }, { version: "0.9.65", notes: ["Layout planner and Lighting: a locked or previewed time of day only changes the lights and sky, not the rest of the game's screen", "Small fixes for the latest game update"] }, { version: "0.9.64", notes: ["The panel fills in again in rooms still on the previous game version"] }, { version: "0.9.63", notes: ["Update for the latest game update: the panel, shops, pet hunger, auto-store and weather alarms update again, Glow and the planner's night preview light up lamps and crop glows again"] }, { version: "0.9.62", notes: ["Egg luck: an Edit button on every egg lets you add or remove hatches, Gold and Rainbow for each pet with - and + buttons, and type in where each pity counter stands, so hatches from before you installed can be counted - press Done when finished"] }, { version: "0.9.61", notes: ["Pumpkin carving: a Select a picture button in the carving window turns any picture into a carving - choose Stained glass (colourful art, with lines left between colours), Shape (the outline) or Light and dark, drag and scroll the preview to frame the part you want, adjust it with the sliders (outlines are traced finer than the carving grid and use the whole carving limit, so they follow the picture closely), and it is cut into the pumpkin (switch it off in Features)"] }, { version: "0.9.60", notes: ["Alerts: clicking Buy, Stop alarm or the speaker button no longer holds on to the keyboard, so the game takes your keys straight away even after spam clicking"] }, { version: "0.9.59", notes: ["Cinematic mode button is back: the game's old camera button sits under Daily Quests and hides the HUD with one click, no Camera needed - while it's on the button waits in the top right corner, and Esc or another click brings the HUD back (switch it off in Features)", "Layout planner and minigames keep the game's HUD hidden again - the new Camera was bringing it straight back"] }, { version: "0.9.58", notes: ["Layout planner: saving your real garden keeps every crop as it is - each one's own mutations, size and facing, and which crops are already picked - so it loads looking like the game", "Layout planner: picking a layout from the list hands the keys back, so WASD moves you again"] }, { version: "0.9.57", notes: ["Layout planner: clicking or dragging in the companion panel, the inventory, a shop or any of the game's own panels and buttons no longer paints or erases the tiles underneath", "Layout planner: Moonbinder and other regrowing crops hang and lean the way they do in the garden, instead of some being mirrored and tipped the wrong way", "Layout planner: a saved layout loads with every crop facing and placed as it was saved, rather than shuffling patch crops and tilts each time (save older layouts again to keep them)", "Layout planner: produce on pedestals and stools loads at the size it was saved at, not the default size"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.67", notes: ["Changes to play nicer alongside AriesMod and QPM: commands no longer get stuck when AriesMod blocks one, QPM's locker and command tracking now apply to the commands Garden Companion sends, held keys are let go when you switch windows, and less slowdown from page-wide hooks"] }, { version: "0.9.66", notes: ["Pet food: the feed buttons should never feed a carved pumpkin"] }, { version: "0.9.65", notes: ["Layout planner and Lighting: a locked or previewed time of day only changes the lights and sky, not the rest of the game's screen", "Small fixes for the latest game update"] }, { version: "0.9.64", notes: ["The panel fills in again in rooms still on the previous game version"] }, { version: "0.9.63", notes: ["Update for the latest game update: the panel, shops, pet hunger, auto-store and weather alarms update again, Glow and the planner's night preview light up lamps and crop glows again"] }, { version: "0.9.62", notes: ["Egg luck: an Edit button on every egg lets you add or remove hatches, Gold and Rainbow for each pet with - and + buttons, and type in where each pity counter stands, so hatches from before you installed can be counted - press Done when finished"] }, { version: "0.9.61", notes: ["Pumpkin carving: a Select a picture button in the carving window turns any picture into a carving - choose Stained glass (colourful art, with lines left between colours), Shape (the outline) or Light and dark, drag and scroll the preview to frame the part you want, adjust it with the sliders (outlines are traced finer than the carving grid and use the whole carving limit, so they follow the picture closely), and it is cut into the pumpkin (switch it off in Features)"] }, { version: "0.9.60", notes: ["Alerts: clicking Buy, Stop alarm or the speaker button no longer holds on to the keyboard, so the game takes your keys straight away even after spam clicking"] }, { version: "0.9.59", notes: ["Cinematic mode button is back: the game's old camera button sits under Daily Quests and hides the HUD with one click, no Camera needed - while it's on the button waits in the top right corner, and Esc or another click brings the HUD back (switch it off in Features)", "Layout planner and minigames keep the game's HUD hidden again - the new Camera was bringing it straight back"] }, { version: "0.9.58", notes: ["Layout planner: saving your real garden keeps every crop as it is - each one's own mutations, size and facing, and which crops are already picked - so it loads looking like the game", "Layout planner: picking a layout from the list hands the keys back, so WASD moves you again"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheave", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -941,8 +941,10 @@
   // src/game-connection.ts
   var game_connection_exports = {};
   __export(game_connection_exports, {
+    NOT_SENT_REASON: () => NOT_SENT_REASON,
     gameConnectionReady: () => gameConnectionReady,
     getSequencerDiagnostics: () => getSequencerDiagnostics,
+    installCommandStamp: () => installCommandStamp,
     installPredictionRestamp: () => installPredictionRestamp,
     isOwnCommand: () => isOwnCommand,
     markOwnCommand: () => markOwnCommand,
@@ -955,7 +957,8 @@
     seedCommandSequence: () => seedCommandSequence,
     sendBareCommand: () => sendBareCommand,
     sendQuinoaCommand: () => sendQuinoaCommand,
-    sendQuinoaCommandAwaitingResult: () => sendQuinoaCommandAwaitingResult
+    sendQuinoaCommandAwaitingResult: () => sendQuinoaCommandAwaitingResult,
+    trySendQuinoaCommand: () => trySendQuinoaCommand
   });
 
   // src/atom-cache.ts
@@ -1169,6 +1172,37 @@
     if (typeof gameNumber === "number" && typeof frame.requestId === "string" && gameNumber !== wire) noteWireNumber(frame.requestId, wire);
     return true;
   }
+  function releaseSequence(wire) {
+    if (sequence === wire + 1) sequence = wire;
+  }
+  var bufferedAmountTracksSends = false;
+  function installCommandStamp() {
+    const proto = page.WebSocket?.prototype;
+    if (!proto || proto.__gardenCompanionStamp || typeof proto.send !== "function") return;
+    const inner = proto.send;
+    proto.send = function(data) {
+      const frame = parseOutgoingFrame(data);
+      const arrivedWith = frame?.commandSequence;
+      if (!frame || !renumberOutgoingCommand(frame)) {
+        if (bufferedAmountTracksSends || this.readyState !== WebSocket.OPEN) return inner.call(this, data);
+        const queued4 = this.bufferedAmount;
+        const result = inner.call(this, data);
+        if (this.bufferedAmount > queued4) bufferedAmountTracksSends = true;
+        return result;
+      }
+      const wire = frame.commandSequence;
+      const queued3 = this.bufferedAmount;
+      try {
+        const result = inner.call(this, arrivedWith === wire ? data : JSON.stringify(frame));
+        if (bufferedAmountTracksSends && this.readyState === WebSocket.OPEN && this.bufferedAmount === queued3) releaseSequence(wire);
+        return result;
+      } catch (error) {
+        releaseSequence(wire);
+        throw error;
+      }
+    };
+    proto.__gardenCompanionStamp = true;
+  }
   var wireNumbers = /* @__PURE__ */ new Map();
   var lastLists = /* @__PURE__ */ new Map();
   function noteWireNumber(requestId, wire) {
@@ -1226,19 +1260,29 @@
   }
   function parseOutgoingFrame(data) {
     if (typeof data !== "string" || !(data.includes("QuinoaCommand") || data.includes("HarvestCrop"))) return null;
+    if (data === lastParsed.data) return lastParsed.frame;
     try {
-      const frame = JSON.parse(data);
-      return frame && typeof frame === "object" ? frame : null;
+      const parsed = JSON.parse(data);
+      const frame = parsed && typeof parsed === "object" ? parsed : null;
+      lastParsed = { data, frame };
+      return frame;
     } catch {
       return null;
     }
   }
+  var lastParsed = { data: null, frame: null };
   var activeSocket = null;
   function noteGameSocket(socket) {
     activeSocket = socket;
   }
+  function roomConnectionForSocket() {
+    const room = page.MagicCircle_RoomConnection;
+    return room && room.currentWebSocket === activeSocket ? room : null;
+  }
   function gameConnectionReady() {
-    return !!activeSocket && activeSocket.readyState === WebSocket.OPEN;
+    if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) return false;
+    const room = roomConnectionForSocket();
+    return typeof room?.isConnected === "function" ? room.isConnected() !== false : true;
   }
   var commandListeners = /* @__PURE__ */ new Set();
   var ownRequestIds = /* @__PURE__ */ new Set();
@@ -1268,12 +1312,28 @@
     activeSocket.send(JSON.stringify({ scopePath: ["Room", "Quinoa"], ...command }));
   }
   function sendQuinoaCommand(command, options = {}) {
+    const { requestId, sent } = dispatchCommand(command, options);
+    if (!sent) throw new Error(`The command was not sent: ${NOT_SENT_REASON}.`);
+    return requestId;
+  }
+  function trySendQuinoaCommand(command, options = {}) {
+    const { requestId, sent } = dispatchCommand(command, options);
+    return sent ? requestId : null;
+  }
+  var NOT_SENT_REASON = "the connection is still joining, or another mod refused it";
+  function dispatchCommand(command, options = {}) {
     const requestId = crypto.randomUUID();
     const frame = { scopePath: ["Room", "Quinoa"], type: "QuinoaCommand", requestId, command };
     if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) throw new Error("The game connection is not ready.");
     if (options.own) markOwnCommand(requestId);
+    const room = roomConnectionForSocket();
+    if (typeof room?.trySendMessageNow === "function") {
+      const sent = room.trySendMessageNow(frame) === true;
+      if (!sent) console.info(`[Garden Companion] A command was not sent: ${NOT_SENT_REASON}.`, { type: command.type });
+      return { requestId, sent };
+    }
     activeSocket.send(JSON.stringify(frame));
-    return requestId;
+    return { requestId, sent: true };
   }
   var pendingResults = /* @__PURE__ */ new Map();
   function settlePendingResult(data) {
@@ -1289,7 +1349,8 @@
     }
   }
   function sendQuinoaCommandAwaitingResult(command, timeoutMs = 5e3) {
-    const requestId = sendQuinoaCommand(command);
+    const { requestId, sent } = dispatchCommand(command);
+    if (!sent) return Promise.resolve({ ok: false, code: "not_sent" });
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         pendingResults.delete(requestId);
@@ -3469,6 +3530,7 @@ ${filter}
     sendDone = 0;
     let index = 0;
     let sent = 0;
+    let unsent = 0;
     const finish = (message, ok) => {
       sending = false;
       sendTotal = 0;
@@ -3486,23 +3548,28 @@ ${filter}
       if (index >= rows.length) {
         const split = selectedSplit();
         const left = (locking ? split.toLock : split.toUnlock).length;
-        const done = sent ? `${verb} ${sent} crop${sent === 1 ? "" : "s"}.` : "Nothing was left to change.";
-        finish(left ? `${done} ${left} still ticked - press & hold to continue.` : done, sent > 0);
+        const done = sent ? `${verb} ${sent} crop${sent === 1 ? "" : "s"}.` : unsent ? "Nothing was changed." : "Nothing was left to change.";
+        const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}) and still ticked.` : "";
+        finish(left > unsent ? `${done}${notSent} ${left} still ticked - press & hold to continue.` : `${done}${notSent}`, sent > 0 && !unsent);
         return;
       }
       const row = rows[index++];
       sendDone = index;
       const live = allRows(lockGroups()).find((candidate) => candidate.key === row.key);
+      let keepTick = false;
       if (live && live.locked !== locking) {
         try {
-          sendQuinoaCommand({ type: "SetGrowSlotLock", slot: row.tile, growSlotId: row.slotId, locked: locking });
-          sent++;
+          if (trySendQuinoaCommand({ type: "SetGrowSlotLock", slot: row.tile, growSlotId: row.slotId, locked: locking })) sent++;
+          else {
+            unsent++;
+            keepTick = true;
+          }
         } catch (error) {
           finish(error.message, false);
           return;
         }
       }
-      selected.delete(row.key);
+      if (!keepTick) selected.delete(row.key);
       updateFooter();
       window.setTimeout(step, SEND_INTERVAL);
     };
@@ -7380,7 +7447,13 @@ ${eggs.map(eggCard).join("")}`;
     return `<span class="gc-team-pet${owned ? "" : " is-missing"}" title="${escapeHtml(`${label} - ${detail}`)}">${sprite}<span><b>${escapeHtml(label)}</b><small>${escapeHtml(meta)}</small>${abilityChips(owned?.abilities || [])}</span></span>`;
   }
   function applyPetTeam(teamId) {
-    const commit = () => sendQuinoaCommand({ type: "ApplyPetTeam", teamId });
+    const commit = () => {
+      try {
+        sendQuinoaCommand({ type: "ApplyPetTeam", teamId });
+      } catch (error) {
+        toast(error.message, "error");
+      }
+    };
     if (activeTeamIds().includes(teamId) && !petSwapTossing()) commit();
     else runPetSwapToss(commit);
   }
@@ -7389,8 +7462,9 @@ ${eggs.map(eggCard).join("")}`;
     const index = order.findIndex((team) => team.id === teamId);
     const target = index + offset;
     if (index < 0 || target < 0 || target >= order.length) return;
-    pendingTeamOrder = order.map((team) => team.id).join(",");
+    const before = order.map((team) => team.id).join(",");
     sendQuinoaCommand({ type: "MovePetTeam", movePetTeamId: teamId, toPetTeamIndex: target });
+    pendingTeamOrder = before;
   }
   function renderTeams() {
     const full = teams().length >= MAX_PET_TEAMS;
@@ -7416,9 +7490,9 @@ ${eggs.map(eggCard).join("")}`;
     return JSON.stringify([confirmDeleteTeamId, teams().map((team) => [team.id, team.name, emblemKey(team.emblem), team.members.map((member) => `${member.petId}:${member.name || ""}`)])]);
   }
   function requestTeamDelete(teamId) {
+    sendQuinoaCommand({ type: "DeletePetTeam", teamId });
     pendingTeamDeleteId = teamId;
     confirmDeleteTeamId = null;
-    sendQuinoaCommand({ type: "DeletePetTeam", teamId });
   }
   function askDeleteConfirmation(teamId) {
     confirmDeleteTeamId = teamId;
@@ -7433,7 +7507,13 @@ ${eggs.map(eggCard).join("")}`;
       return members.length === expected2.petIds.length && members.every((petId, index) => petId === expected2.petIds[index]);
     });
     if (!saved) return;
-    if (expected2.emblem && emblemKey(expected2.emblem) !== emblemKey(saved.emblem)) setPetTeamEmblem(saved.id, expected2.emblem);
+    if (expected2.emblem && emblemKey(expected2.emblem) !== emblemKey(saved.emblem)) {
+      try {
+        setPetTeamEmblem(saved.id, expected2.emblem);
+      } catch (error) {
+        toast(`The team was saved without its emblem. ${error.message}`, "error");
+      }
+    }
     pendingTeamSave = null;
     const panel3 = document.getElementById("gc-panel");
     if (panel3 && !panel3.hidden && panelActions.activeTab() === "teams") panelActions.renderPanel();
@@ -7484,8 +7564,8 @@ ${eggs.map(eggCard).join("")}`;
     main.querySelector("[data-open-team-picker]")?.addEventListener("click", () => openTeamPicker(null));
     main.querySelectorAll("[data-edit-team]").forEach((button) => button.onclick = () => openTeamPicker(button.dataset.editTeam));
     main.querySelectorAll("[data-apply-team]").forEach((button) => button.onclick = () => {
-      applyPetTeam(button.dataset.applyTeam);
       toast("Team activation requested.", "success");
+      applyPetTeam(button.dataset.applyTeam);
       button.disabled = true;
       button.textContent = "Activating...";
     });
@@ -7505,8 +7585,14 @@ ${eggs.map(eggCard).join("")}`;
       if (!teamId) return;
       button.disabled = true;
       button.textContent = "Deleting...";
-      requestTeamDelete(teamId);
-      toast("Team deletion requested.", "success");
+      try {
+        requestTeamDelete(teamId);
+        toast("Team deletion requested.", "success");
+      } catch (error) {
+        toast(error.message, "error");
+        button.disabled = false;
+        button.textContent = "Delete team";
+      }
     });
   }
 
@@ -7655,8 +7741,8 @@ ${eggs.map(eggCard).join("")}`;
       if (!team) return;
       event.preventDefault();
       event.stopPropagation();
-      applyPetTeam(team.id);
       toast(`Switching to ${team.name}.`, "success");
+      applyPetTeam(team.id);
     }, true);
   }
   var lastCycledTeamId = null;
@@ -7672,8 +7758,8 @@ ${eggs.map(eggCard).join("")}`;
     const next = list[((current < 0 ? -step : current + step) % list.length + list.length) % list.length];
     if (!next) return;
     lastCycledTeamId = next.id;
-    applyPetTeam(next.id);
     toast(`Switching to ${next.name}.`, "success");
+    applyPetTeam(next.id);
   }
   function renderKeybinds() {
     const shortcutRow = (label, attribute, value) => `<label class="gc-shortcut-row"><b>${escapeHtml(label)}</b><input readonly ${attribute} value="${escapeHtml(value)}" placeholder="Click, then press keys"></label>`;
@@ -8328,7 +8414,7 @@ ${eggs.map(eggCard).join("")}`;
       const tile = dirtIndex == null ? void 0 : tileObjects[String(dirtIndex)];
       if (!tile?.slots?.length) return;
       const now = serverNow();
-      const readyRareGold = (slot2) => slot2?.preserved !== true && slot2?.locked !== true && Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow");
+      const readyRareGold = (slot2) => slot2?.preserved !== true && slot2?.locked !== true && Number(slot2?.endTime) <= now && (slot2?.mutations || []).some((value) => value === "Gold" || value === "Rainbow") && !protectionReason(slot2, slot2?.species || tile.species || "");
       if (!harvested || harvested.tile !== String(dirtIndex)) harvested = { tile: String(dirtIndex), ids: /* @__PURE__ */ new Set() };
       const taken = harvested.ids;
       for (const id of [...taken]) {
@@ -8343,8 +8429,16 @@ ${eggs.map(eggCard).join("")}`;
       event.preventDefault();
       event.stopImmediatePropagation();
       const slot = tile.slots[index];
+      let requestId = null;
+      try {
+        requestId = trySendQuinoaCommand({ type: "HarvestCrop", slot: Number(dirtIndex), slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
+      } catch {
+      }
+      if (!requestId) {
+        toast(`The harvest was not sent: ${NOT_SENT_REASON}.`, "error");
+        return;
+      }
       taken.add(targetId);
-      sendQuinoaCommand({ type: "HarvestCrop", slot: Number(dirtIndex), slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
       toast("Harvest requested.", "success");
     }, true);
   }
@@ -10170,17 +10264,27 @@ ${eggs.map(eggCard).join("")}`;
     function guardOutgoingHarvests(socket) {
       if (socket.__gardenCompanionGuarded) return;
       socket.__gardenCompanionGuarded = true;
-      const originalSend = socket.send;
+      const ownSend = Object.prototype.hasOwnProperty.call(socket, "send") ? socket.send : null;
       socket.send = function(data) {
+        const send = ownSend ?? Object.getPrototypeOf(socket).send;
         const frame = parseOutgoingFrame(data);
-        if (!frame) return originalSend.call(this, data);
+        if (!frame) return send.call(this, data);
         const blocked = blockOutgoingHarvest(frame);
         if (blocked) {
           if (blocked.requestId) refuseCommand(socket, blocked.requestId);
           return;
         }
         noteOutgoingCommand(frame);
-        return originalSend.call(this, renumberOutgoingCommand(frame) ? JSON.stringify(frame) : data);
+        return send.call(this, data);
+      };
+    }
+    function guardRoomHarvests(room) {
+      if (!room || room.__gardenCompanionGuarded || typeof room.trySendMessageNow !== "function") return;
+      room.__gardenCompanionGuarded = true;
+      const original = room.trySendMessageNow;
+      room.trySendMessageNow = function(message) {
+        if (message && typeof message === "object" && blockOutgoingHarvest(message)) return false;
+        return original.call(this, message);
       };
     }
     function installGameUpdateSocketDetector() {
@@ -10201,6 +10305,7 @@ ${eggs.map(eggCard).join("")}`;
       GardenCompanionWebSocket.prototype = OriginalWebSocket.prototype;
       page.WebSocket = GardenCompanionWebSocket;
     }
+    installCommandStamp();
     installGameUpdateSocketDetector();
     function installBackgroundMode() {
       if (!feature("backgroundMode")) return;
@@ -10214,8 +10319,11 @@ ${eggs.map(eggCard).join("")}`;
       }
       const keepVisible = (event) => event.stopImmediatePropagation();
       page.document.addEventListener("visibilitychange", keepVisible, true);
-      page.addEventListener("blur", keepVisible, true);
-      page.addEventListener("focus", keepVisible, true);
+      const pageAddEventListener = page.addEventListener;
+      page.addEventListener = function(type, listener, options) {
+        if ((type === "blur" || type === "focus") && typeof listener === "function" && (listener.name === "bound onBlur" || listener.name === "bound onFocus")) return;
+        return pageAddEventListener.call(this, type, listener, options);
+      };
       let audioContext = null;
       const startSilentAudio = () => {
         if (!feature("backgroundMode")) return;
@@ -10315,6 +10423,7 @@ ${eggs.map(eggCard).join("")}`;
       }, "room state");
     }
     function applyState(fullState) {
+      guardRoomHarvests(page.MagicCircle_RoomConnection);
       state.room = fullState?.data || null;
       state.game = fullState?.child?.data || null;
       state.playerId = welcomePlayerId || fullState?.selfPlayerId || state.room?.selfPlayerId || state.atomPlayerId || state.playerId || readPlayerId();
@@ -11946,6 +12055,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
   }
 
   // src/features/ability-silencer.ts
+  var HIDE_FOR_MS = 15e3;
+  var firstSeen = /* @__PURE__ */ new Map();
+  function seenFor(petId, performedAt) {
+    const seen3 = firstSeen.get(petId);
+    if (seen3 && seen3.performedAt === performedAt) return performance.now() - seen3.at;
+    firstSeen.set(petId, { performedAt, at: performance.now() });
+    return 0;
+  }
   function initAbilitySilencer() {
     retryUntil(installSilencer, "the ability silencer");
   }
@@ -11959,12 +12076,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       const config2 = page.__gardenCompanionConfig?.();
       if (!config2?.abilitySilencer || !value || typeof value !== "object" || Array.isArray(value)) return value;
       const silenced = new Set(config2.silencedAbilities);
+      if (!silenced.size) return value;
       let filtered = null;
       for (const [petId, rawInfo] of Object.entries(value)) {
         if (!rawInfo || typeof rawInfo !== "object" || Array.isArray(rawInfo)) continue;
         const info = rawInfo;
         const event = info.lastActionEvent;
         if (event?.action !== "ability" || !silenced.has(String(event.abilityId ?? ""))) continue;
+        if (seenFor(petId, event.performedAt) > HIDE_FOR_MS) continue;
         filtered ??= { ...value };
         const { lastActionEvent: _silenced, ...visibleInfo } = info;
         filtered[petId] = visibleInfo;
@@ -12063,7 +12182,6 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     const originalAlpha = /* @__PURE__ */ new WeakMap();
     const desiredAlpha = /* @__PURE__ */ new WeakMap();
     const managed = /* @__PURE__ */ new Set();
-    const systemsByViews = /* @__PURE__ */ new WeakMap();
     function restore(display) {
       if (!display || !originalAlpha.has(display)) return;
       if (!display.destroyed) display.alpha = originalAlpha.get(display);
@@ -12132,7 +12250,6 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
           if (tileSystem === system) {
             restoreAll();
             tileSystem = null;
-            setTimeout(armTileViewsCapture, 0);
           }
           return originalDestroy.apply(this, args);
         };
@@ -12140,68 +12257,16 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       setTimeout(apply, 0);
     }
     const PageMap = page2.Map;
-    const PageObject = page2.Object;
-    function armTileViewsCapture() {
-      if (tileSystem) return;
-      const prototype = PageObject.prototype;
-      const existing = PageObject.getOwnPropertyDescriptor(prototype, "tileViews");
-      const existingGetter = existing?.get;
-      if (existingGetter?.__gardenCompanionFocusTrap || existing && !existing.configurable) return;
-      let storedValue;
-      const getter = function() {
-        return existingGetter ? existingGetter.call(this) : storedValue;
-      };
-      getter.__gardenCompanionFocusTrap = true;
-      PageObject.defineProperty(prototype, "tileViews", {
-        configurable: true,
-        get: getter,
-        set: function(value) {
-          if (existing?.set) existing.set.call(this, value);
-          else PageObject.defineProperty(this, "tileViews", { configurable: true, enumerable: true, writable: true, value });
-          if (TILE_SYSTEM_NAMES.has(this?.name) && value instanceof PageMap) capture(this);
-        }
-      });
+    function followTileSystem() {
+      const engine2 = quinoaEngine();
+      const system = page2.__gardenCompanionFarmSystems?.tileSystem ?? [...TILE_SYSTEM_NAMES].map((name) => engine2?.getSystem?.(name)).find(Boolean);
+      if (system && system !== tileSystem && !system.destroyed) capture(system);
     }
-    const mapPrototype = PageMap?.prototype;
-    if (mapPrototype && !mapPrototype.__gardenCompanionFocusWrapped) {
-      const originalSet = mapPrototype.set;
-      mapPrototype.set = function(key, value) {
-        const result = originalSet.call(this, key, value);
-        try {
-          const map = value?.map;
-          const looksLikeTileView = Number.isInteger(key) && value?.globalTileIdx === key && value?.displayObject && "tileObject" in value && typeof value.onDataChanged === "function" && map?.globalTileIdxToDirtTile && map?.globalTileIdxToBoardwalk;
-          if (looksLikeTileView && tileSystem?.tileViews !== this) {
-            let system = systemsByViews.get(this);
-            if (!system) {
-              system = { name: "tileObject", tileViews: this, map };
-              systemsByViews.set(this, system);
-            }
-            capture(system);
-          }
-        } catch {
-        }
-        return result;
-      };
-      mapPrototype.__gardenCompanionFocusWrapped = true;
-    }
-    if (!PageObject.__gardenCompanionFocusDefineWrapped) {
-      const originalDefineProperty = PageObject.defineProperty;
-      const wrappedDefineProperty = function(target, property, attributes) {
-        const result = originalDefineProperty(target, property, attributes);
-        try {
-          if (property === "tileViews" && TILE_SYSTEM_NAMES.has(target?.name) && attributes?.value instanceof PageMap) capture(target);
-        } catch {
-        }
-        return result;
-      };
-      PageObject.defineProperty = wrappedDefineProperty;
-      PageObject.__gardenCompanionFocusDefineWrapped = true;
-    }
-    armTileViewsCapture();
     const focusTicker = createTicker(() => apply(), 600);
     function apply() {
       const config2 = focusConfig();
       focusTicker.sync(config2.enabled);
+      followTileSystem();
       const slotIndex = runtime().slotIndex;
       const views = tileSystem?.tileViews;
       const dirtMap = tileSystem?.map?.globalTileIdxToDirtTile;
@@ -18694,12 +18759,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return inventoryItems2().find((item) => item?.itemType === "Plant" && item?.id === plantItemId);
     }
     function sendPotPlant(slot, plantItemId) {
-      const requestId = sendQuinoaCommand({ type: "PotPlant", slot, plantItemId }, { own: true });
+      const requestId = trySendQuinoaCommand({ type: "PotPlant", slot, plantItemId }, { own: true });
+      if (!requestId) throw new Error(`The plant was not picked up: ${NOT_SENT_REASON}`);
       log(`Sent PotPlant for farm slot ${slot}.`, { requestId });
     }
     function sendPlantGardenPlant(slot, itemId2) {
-      const requestId = sendQuinoaCommand({ type: "PlantGardenPlant", slot, itemId: itemId2 });
-      log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId: itemId2, requestId });
+      const requestId = trySendQuinoaCommand({ type: "PlantGardenPlant", slot, itemId: itemId2 });
+      if (requestId) log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId: itemId2, requestId });
+      return requestId !== null;
     }
     function prepareHeldPlant(activePress) {
       const source = pointToFarmTile(activePress.startX, activePress.startY, activePress.target);
@@ -18792,7 +18859,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       activePress.phase = "placing";
       showToast("Placing plant...", "normal", 0);
-      sendPlantGardenPlant(destination.localTileIndex, plantId);
+      if (!sendPlantGardenPlant(destination.localTileIndex, plantId)) {
+        showToast(`The plant was not placed: ${NOT_SENT_REASON}. It is safe in your inventory.`, "error", 5e3);
+        return false;
+      }
       const placed = await waitFor2(() => {
         const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
         const itemStillHeld = inventoryItems2().some((item) => item?.id === plantId);
@@ -20783,6 +20853,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     batchDone = 0;
     let index = 0;
     let sent = 0;
+    let unsent = 0;
     const step = () => {
       if (index < rows.length && !gameConnectionReady()) {
         sending2 = false;
@@ -20802,7 +20873,8 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         managerAwaitingContinue = remaining2 > 0;
         const plants = new Set(rows.map((row2) => row2.itemId)).size;
         const done = sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} across ${plants} plant${plants === 1 ? "" : "s"}.` : "Nothing was left to preserve.";
-        toast(remaining2 ? `${done} ${remaining2} still ticked - press to continue.` : done, sent ? "success" : "error");
+        const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}) and still ticked.` : "";
+        toast(remaining2 > unsent ? `${done}${notSent} ${remaining2} still ticked - press to continue.` : `${done}${notSent}`, sent && !unsent ? "success" : "error");
         refreshManagerModal();
         render4();
         return;
@@ -20813,9 +20885,10 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       const stillReady = liveItem && eligibleFrom(liveItem.slots).some((slot) => String(slot.slotId) === String(row.slotId));
       if (stillReady) {
         try {
-          sendQuinoaCommand({ type: "Preserve", itemId: row.itemId, growSlotIdx: row.slotId });
-          selected2.delete(row.key);
-          sent++;
+          if (trySendQuinoaCommand({ type: "Preserve", itemId: row.itemId, growSlotIdx: row.slotId })) {
+            selected2.delete(row.key);
+            sent++;
+          } else unsent++;
         } catch (error) {
           sending2 = false;
           batchTotal = 0;
@@ -21009,6 +21082,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     sending2 = true;
     let index = 0;
     let sent = 0;
+    let unsent = 0;
     const step = () => {
       if (index < rows.length && !gameConnectionReady()) {
         sending2 = false;
@@ -21018,7 +21092,8 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       }
       if (index >= rows.length) {
         sending2 = false;
-        toast(sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : "Nothing was left to preserve.", sent ? "success" : "error");
+        const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}).` : "";
+        toast(`${sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : unsent ? "Nothing was preserved." : "Nothing was left to preserve."}${notSent}`, sent && !unsent ? "success" : "error");
         render4();
         return;
       }
@@ -21026,8 +21101,8 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       const live = eligibleSlots().find((candidate) => String(candidate.slotId) === String(row.slotId));
       if (live && state.selectedItemId === itemId2) {
         try {
-          sendQuinoaCommand({ type: "Preserve", itemId: itemId2, growSlotIdx: row.slotId });
-          sent++;
+          if (trySendQuinoaCommand({ type: "Preserve", itemId: itemId2, growSlotIdx: row.slotId })) sent++;
+          else unsent++;
         } catch (error) {
           sending2 = false;
           toast(error.message, "error");

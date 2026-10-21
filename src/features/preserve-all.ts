@@ -3,7 +3,7 @@ import { PLANT_CATALOG, plantName, patchName, mutationName } from '../constants.
 import { slotScale, slotSizePercent } from '../crop-size.js';
 import { page } from '../page.js';
 import { findPixiCard } from '../pixi.js';
-import { sendQuinoaCommand, gameConnectionReady } from '../game-connection.js';
+import { NOT_SENT_REASON, trySendQuinoaCommand, gameConnectionReady } from '../game-connection.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { produceSprite, mutationSprite, onSpritesReady } from '../pets.js';
 import { onStateChange, state } from '../state.js';
@@ -508,6 +508,7 @@ function runManager(): void {
   batchDone = 0;
   let index = 0;
   let sent = 0;
+  let unsent = 0;
   const step = () => {
     // A socket that drops part-way through stops the batch where it is; the slots not yet sent are
     // still ticked, saved for a press once the connection returns rather than lost or errored out.
@@ -534,7 +535,8 @@ function runManager(): void {
       const done = sent
         ? `Preserving ${sent} slot${sent === 1 ? '' : 's'} across ${plants} plant${plants === 1 ? '' : 's'}.`
         : 'Nothing was left to preserve.';
-      toast(remaining ? `${done} ${remaining} still ticked - press to continue.` : done, sent ? 'success' : 'error');
+      const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}) and still ticked.` : '';
+      toast(remaining > unsent ? `${done}${notSent} ${remaining} still ticked - press to continue.` : `${done}${notSent}`, sent && !unsent ? 'success' : 'error');
       refreshManagerModal();
       render();
       return;
@@ -545,9 +547,11 @@ function runManager(): void {
     const stillReady = liveItem && eligibleFrom(liveItem.slots).some(slot => String(slot.slotId) === String(row.slotId));
     if (stillReady) {
       try {
-        sendQuinoaCommand({ type: 'Preserve', itemId: row.itemId, growSlotIdx: row.slotId });
-        selected.delete(row.key);
-        sent++;
+        // A slot whose command did not leave keeps its tick, so it is neither lost nor counted.
+        if (trySendQuinoaCommand({ type: 'Preserve', itemId: row.itemId, growSlotIdx: row.slotId })) {
+          selected.delete(row.key);
+          sent++;
+        } else unsent++;
       } catch (error) {
         sending = false;
         batchTotal = 0;
@@ -772,6 +776,7 @@ function run(): void {
   sending = true;
   let index = 0;
   let sent = 0;
+  let unsent = 0;
   const step = () => {
     // A dropped socket stops the batch cleanly; the slots it did not reach are still unpreserved on
     // the plant, so the bar simply offers them again once the connection is back.
@@ -785,7 +790,8 @@ function run(): void {
     }
     if (index >= rows.length) {
       sending = false;
-      toast(sent ? `Preserving ${sent} slot${sent === 1 ? '' : 's'} of ${cropLabel(rows)}.` : 'Nothing was left to preserve.', sent ? 'success' : 'error');
+      const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}).` : '';
+      toast(`${sent ? `Preserving ${sent} slot${sent === 1 ? '' : 's'} of ${cropLabel(rows)}.` : unsent ? 'Nothing was preserved.' : 'Nothing was left to preserve.'}${notSent}`, sent && !unsent ? 'success' : 'error');
       render();
       return;
     }
@@ -793,8 +799,8 @@ function run(): void {
     const live = eligibleSlots().find(candidate => String(candidate.slotId) === String(row.slotId));
     if (live && state.selectedItemId === itemId) {
       try {
-        sendQuinoaCommand({ type: 'Preserve', itemId, growSlotIdx: row.slotId });
-        sent++;
+        if (trySendQuinoaCommand({ type: 'Preserve', itemId, growSlotIdx: row.slotId })) sent++;
+        else unsent++;
       } catch (error) {
         sending = false;
         toast((error as Error).message, 'error');

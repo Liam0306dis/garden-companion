@@ -171,6 +171,10 @@ export interface FullState {
 export interface RoomConnection {
   currentWebSocket?: WebSocket;
   sendMessage(command: Record<string, unknown>): void;
+  /** How the game sends its commands since build 1195: false when nothing was sent. */
+  trySendMessageNow?(message: Record<string, unknown>): boolean;
+  /** The socket is open and the server's Welcome has let it in. */
+  isConnected?(): boolean;
   subscribeToPatches?(callback: (patches: unknown[], state: FullState) => void): void | (() => void);
 }
 

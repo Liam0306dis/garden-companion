@@ -7,7 +7,7 @@ import { atomMap } from '../atom-cache.js';
 import { watchAtom } from '../game-store.js';
 import { page } from '../page.js';
 import { retryUntil } from '../retry.js';
-import { sendQuinoaCommand } from '../game-connection.js';
+import { NOT_SENT_REASON, trySendQuinoaCommand } from '../game-connection.js';
 
 /**
  * The engine's systems and views are untyped minified objects reached by name, so they are held as
@@ -705,15 +705,18 @@ export function initPlantDragMove(): void {
      * Marked as our own so the planter pot keeper leaves it alone: the player never picked up a pot.
      */
     function sendPotPlant(slot: number, plantItemId: string) {
-        const requestId = sendQuinoaCommand({ type: 'PotPlant', slot, plantItemId }, { own: true });
+        const requestId = trySendQuinoaCommand({ type: 'PotPlant', slot, plantItemId }, { own: true });
+        // Thrown rather than waited out: the pot is not coming, and the move can say why at once.
+        if (!requestId) throw new Error(`The plant was not picked up: ${NOT_SENT_REASON}`);
         log(`Sent PotPlant for farm slot ${slot}.`, { requestId });
     }
 
     function sendPlantGardenPlant(slot: number, itemId: string) {
         // Inside the QuinoaCommand envelope, as the game sends it; sent bare the server refuses it.
         // check-bundle watches this.
-        const requestId = sendQuinoaCommand({ type: 'PlantGardenPlant', slot, itemId });
-        log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId, requestId });
+        const requestId = trySendQuinoaCommand({ type: 'PlantGardenPlant', slot, itemId });
+        if (requestId) log(`Sent PlantGardenPlant for farm slot ${slot}.`, { itemId, requestId });
+        return requestId !== null;
     }
 
     function prepareHeldPlant(activePress: Press) {
@@ -845,7 +848,11 @@ export function initPlantDragMove(): void {
 
         activePress.phase = 'placing';
         showToast('Placing plant...', 'normal', 0);
-        sendPlantGardenPlant(destination.localTileIndex, plantId);
+        // Not sent means nothing will land, so it is reported now rather than after the full wait.
+        if (!sendPlantGardenPlant(destination.localTileIndex, plantId)) {
+            showToast(`The plant was not placed: ${NOT_SENT_REASON}. It is safe in your inventory.`, 'error', 5000);
+            return false;
+        }
 
         const placed = await waitFor(() => {
             const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });

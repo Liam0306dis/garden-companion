@@ -304,7 +304,12 @@ function teamMemberTile(member: { petId: string; petSpecies: string; name?: stri
  * twice should not cost a second of animation to change nothing.
  */
 export function applyPetTeam(teamId: string): void {
-  const commit = () => sendQuinoaCommand({ type: 'ApplyPetTeam', teamId });
+  // Reported here: after a toss the send runs from an animation callback, where a throw has no one
+  // to catch it.
+  const commit = () => {
+    try { sendQuinoaCommand({ type: 'ApplyPetTeam', teamId }); }
+    catch (error) { toast((error as Error).message, 'error'); }
+  };
   // While a toss is running the request still goes through it, so it replaces the one in flight
   // rather than being sent ahead of it - even when it names the team that is out right now.
   if (activeTeamIds().includes(teamId) && !petSwapTossing()) commit();
@@ -321,8 +326,9 @@ export function moveTeam(teamId: string, offset: number): void {
   const index = order.findIndex(team => team.id === teamId);
   const target = index + offset;
   if (index < 0 || target < 0 || target >= order.length) return;
-  pendingTeamOrder = order.map(team => team.id).join(',');
+  const before = order.map(team => team.id).join(',');
   sendQuinoaCommand({ type: 'MovePetTeam', movePetTeamId: teamId, toPetTeamIndex: target });
+  pendingTeamOrder = before;
 }
 
 export function renderTeams(): string {
@@ -356,9 +362,10 @@ export function teamsSignature(): string {
 }
 
 export function requestTeamDelete(teamId: string): void {
+  sendQuinoaCommand({ type: 'DeletePetTeam', teamId });
+  // Only once it has left: a delete that was never sent must not be waited on.
   pendingTeamDeleteId = teamId;
   confirmDeleteTeamId = null;
-  sendQuinoaCommand({ type: 'DeletePetTeam', teamId });
 }
 
 export function askDeleteConfirmation(teamId: string | null): void {
@@ -376,7 +383,11 @@ export function refreshCompletedTeamSave(): void {
     return members.length === expected.petIds.length && members.every((petId, index) => petId === expected.petIds[index]);
   });
   if (!saved) return;
-  if (expected.emblem && emblemKey(expected.emblem) !== emblemKey(saved.emblem)) setPetTeamEmblem(saved.id, expected.emblem);
+  // Runs inside the room state update, which a throw must never reach.
+  if (expected.emblem && emblemKey(expected.emblem) !== emblemKey(saved.emblem)) {
+    try { setPetTeamEmblem(saved.id, expected.emblem); }
+    catch (error) { toast(`The team was saved without its emblem. ${(error as Error).message}`, 'error'); }
+  }
   pendingTeamSave = null;
   const panel = document.getElementById('gc-panel');
   if (panel && !panel.hidden && panelActions.activeTab() === 'teams') panelActions.renderPanel();
@@ -438,8 +449,9 @@ export function bindPetTeamEvents(main: HTMLElement): void {
   main.querySelector('[data-open-team-picker]')?.addEventListener('click', () => openTeamPicker(null));
   main.querySelectorAll<HTMLButtonElement>('[data-edit-team]').forEach(button => button.onclick = () => openTeamPicker(button.dataset.editTeam));
   main.querySelectorAll<HTMLButtonElement>('[data-apply-team]').forEach(button => button.onclick = () => {
-    applyPetTeam(button.dataset.applyTeam!);
+    // Said first, so a send that fails straight away replaces it with the reason.
     toast('Team activation requested.', 'success');
+    applyPetTeam(button.dataset.applyTeam!);
     button.disabled = true;
     button.textContent = 'Activating...';
   });
@@ -458,7 +470,13 @@ export function bindPetTeamEvents(main: HTMLElement): void {
     if (!teamId) return;
     button.disabled = true;
     button.textContent = 'Deleting...';
-    requestTeamDelete(teamId);
-    toast('Team deletion requested.', 'success');
+    try {
+      requestTeamDelete(teamId);
+      toast('Team deletion requested.', 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+      button.disabled = false;
+      button.textContent = 'Delete team';
+    }
   });
 }

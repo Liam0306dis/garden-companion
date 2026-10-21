@@ -1,9 +1,9 @@
-import type { FullState, GameState, JotaiAtom, PlayerSlot, RoomState } from './types.js';
+import type { FullState, GameState, JotaiAtom, PlayerSlot, RoomConnection, RoomState } from './types.js';
 import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
 import { ABILITY_DETAILS, KOFI_URL, TRACKED_ABILITY_CATALOG } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
 import { applyAlarmLayout, armAlarmAudio, installAlarms } from './alarms.js';
-import { getSequencerDiagnostics, installPredictionRestamp, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, renumberOutgoingCommand, seedCommandSequence } from './game-connection.js';
+import { getSequencerDiagnostics, installCommandStamp, installPredictionRestamp, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, seedCommandSequence } from './game-connection.js';
 import { installCropEstimates, syncCropEstimates } from './features/crop-estimates.js';
 import { syncProduceLocks } from './features/produce-locks.js';
 import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
@@ -106,19 +106,40 @@ export function initCompanion(): void {
   function guardOutgoingHarvests(socket: WebSocket & { __gardenCompanionGuarded?: boolean }): void {
     if (socket.__gardenCompanionGuarded) return;
     socket.__gardenCompanionGuarded = true;
-    const originalSend = socket.send;
+    // A send of the socket's own is another mod's and is kept. Otherwise the prototype's is looked up
+    // on every call rather than taken now: a mod that patches it after this socket opened (AriesMod
+    // can, depending on load order) would otherwise be skipped for this socket's whole life.
+    const ownSend = Object.prototype.hasOwnProperty.call(socket, 'send') ? socket.send : null;
     socket.send = function(data: Parameters<WebSocket['send']>[0]) {
+      const send = ownSend ?? Object.getPrototypeOf(socket).send as WebSocket['send'];
       const frame = parseOutgoingFrame(data);
-      if (!frame) return originalSend.call(this, data);
+      if (!frame) return send.call(this, data);
       const blocked = blockOutgoingHarvest(frame);
       if (blocked) {
         if (blocked.requestId) refuseCommand(socket, blocked.requestId);
         return;
       }
       noteOutgoingCommand(frame);
-      // Renumbered on the way out so one counter covers the game's commands and ours, which is the
-      // only way two senders can share a sequence without ever picking the same number.
-      return originalSend.call(this, renumberOutgoingCommand(frame) ? JSON.stringify(frame) : data);
+      // Numbered further down, on the prototype's send (see installCommandStamp).
+      return send.call(this, data);
+    };
+  }
+
+  /**
+   * The same guard one step earlier, on the room connection's trySendMessageNow, where the game's
+   * commands start. QPM numbers every command at its own entry point below this one, so a harvest
+   * stopped only at the socket had already taken a QPM number that never reached the wire, leaving
+   * QPM's count one ahead each time. Stopped here it takes no number from anyone. Answering false is
+   * the game's own "not sent": it then never draws the harvest at all, so there is nothing to undo.
+   * The socket guard stays for anything that reaches the socket another way.
+   */
+  function guardRoomHarvests(room: (RoomConnection & { __gardenCompanionGuarded?: boolean }) | undefined): void {
+    if (!room || room.__gardenCompanionGuarded || typeof room.trySendMessageNow !== 'function') return;
+    room.__gardenCompanionGuarded = true;
+    const original = room.trySendMessageNow;
+    room.trySendMessageNow = function(this: unknown, message: Record<string, unknown>) {
+      if (message && typeof message === 'object' && blockOutgoingHarvest(message)) return false;
+      return original.call(this, message);
     };
   }
 
@@ -149,6 +170,7 @@ export function initCompanion(): void {
     page.WebSocket = GardenCompanionWebSocket;
   }
 
+  installCommandStamp();
   installGameUpdateSocketDetector();
 
   function installBackgroundMode(): void {
@@ -163,8 +185,21 @@ export function initCompanion(): void {
     }
     const keepVisible = (event: Event) => event.stopImmediatePropagation();
     page.document.addEventListener('visibilitychange', keepVisible, true);
-    page.addEventListener('blur', keepVisible, true);
-    page.addEventListener('focus', keepVisible, true);
+    /**
+     * Blur and focus reach everyone. Swallowing them for the whole page kept them from the game's own
+     * handlers that let go of held keys and pointers, and from other mods' (AriesMod's hotkeys and
+     * Ghost, QPM's spectator keys and camera), so a key held while switching away stayed held.
+     *
+     * The one blur handler that works against running in the background is the sound library's,
+     * which pauses the game's audio when the window loses focus, so that one alone is kept from
+     * registering. It is the only `bound onBlur` / `bound onFocus` the game puts on the window; a
+     * renamed one is simply let through, which costs the sound while unfocused and nothing else.
+     */
+    const pageAddEventListener = page.addEventListener;
+    page.addEventListener = function(this: Window, type: string, listener: EventListenerOrEventListenerObject | null, options?: boolean | AddEventListenerOptions) {
+      if ((type === 'blur' || type === 'focus') && typeof listener === 'function' && (listener.name === 'bound onBlur' || listener.name === 'bound onFocus')) return;
+      return (pageAddEventListener as EventTarget['addEventListener']).call(this, type, listener, options);
+    } as Window['addEventListener'];
 
     let audioContext: AudioContext | null = null;
     const startSilentAudio = () => {
@@ -316,6 +351,8 @@ export function initCompanion(): void {
   }
 
   function applyState(fullState: FullState): void {
+    // The room connection exists by the first state; the guard's own flag makes every later call free.
+    guardRoomHarvests(page.MagicCircle_RoomConnection);
     state.room = fullState?.data || null;
     state.game = fullState?.child?.data || null;
     state.playerId = welcomePlayerId || fullState?.selfPlayerId || state.room?.selfPlayerId || state.atomPlayerId || state.playerId || readPlayerId();

@@ -138,8 +138,9 @@ function installShortcutListener(): void {
     const team = teams().find(item => config.teamKeybinds[item.id] === combo);
     if (!team) return;
     event.preventDefault(); event.stopPropagation();
-    applyPetTeam(team.id);
+    // Said first, so a send that fails straight away replaces it with the reason.
     toast(`Switching to ${team.name}.`, 'success');
+    applyPetTeam(team.id);
   }, true);
 }
 
@@ -165,8 +166,8 @@ export function cyclePetTeam(step: number): void {
   const next = list[(((current < 0 ? -step : current + step) % list.length) + list.length) % list.length];
   if (!next) return;
   lastCycledTeamId = next.id;
-  applyPetTeam(next.id);
   toast(`Switching to ${next.name}.`, 'success');
+  applyPetTeam(next.id);
 }
 
 

@@ -99,7 +99,7 @@ export async function companionCommands(srcDir = resolve(ROOT, 'src')): Promise<
   for (const file of await walkTs(srcDir)) {
     const text = await readFile(file, 'utf8');
     const rel = relative(ROOT, file).replace(/\\/g, '/');
-    for (const match of text.matchAll(/sendQuinoaCommand\(\{\s*type:\s*'([A-Z]\w+)'/g)) note(wrapped, match[1], rel);
+    for (const match of text.matchAll(/(?:try)?[sS]endQuinoaCommand\(\{\s*type:\s*'([A-Z]\w+)'/g)) note(wrapped, match[1], rel);
     for (const match of text.matchAll(/type:\s*'QuinoaCommand',[\s\S]{0,120}?command:\s*\{\s*type:\s*'([A-Z]\w+)'/g)) note(wrapped, match[1], rel);
     for (const match of text.matchAll(/sendBareCommand\(\{\s*type:\s*'([A-Z]\w+)'/g)) note(bare, match[1], rel);
     for (const match of text.matchAll(/scopePath:\s*\['Room',\s*'Quinoa'\],\s*type:\s*'([A-Z]\w+)'/g)) {

@@ -1,6 +1,7 @@
 import type { PlantSlot } from '../types.js';
 import { feature } from '../config.js';
-import { sendQuinoaCommand } from '../game-connection.js';
+import { NOT_SENT_REASON, trySendQuinoaCommand } from '../game-connection.js';
+import { protectionReason } from './crop-protection.js';
 import { isTyping } from '../keybinds.js';
 import { serverNow } from '../server-clock.js';
 import { state } from '../state.js';
@@ -53,7 +54,10 @@ export function installInstantHarvest(): void {
     // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
     // which is exactly what this key skips, so a preserved slot is never a candidate here.
     // A slot the game has locked is skipped the same way: the lock exists to stop harvests.
-    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && slot?.locked !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
+    // A crop Crop Protection guards is left to the game's own press and hold too, where the guard
+    // stops it and says why; taken here, its refusal would only come back as "not sent".
+    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && slot?.locked !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow')
+      && !protectionReason(slot, slot?.species || tile.species || '');
     // Reset the pending set when the tile changes, and drop any slot the state now agrees is gone -
     // once it reads as not-ready the harvest has landed and it no longer needs suppressing (and a
     // future regrow can be taken again).
@@ -72,13 +76,22 @@ export function installInstantHarvest(): void {
     if (index < 0) return;
     event.preventDefault(); event.stopImmediatePropagation();
     const slot = tile.slots[index];
-    taken.add(targetId);
     // Harvest is one of the commands the game sends inside the QuinoaCommand envelope, so it
     // needs the sequence too - sent raw the server rejects it and the crop simply stays put.
     // Since bundle 1116 it also carries a client-minted cropItemId: the reducer uses it as the id
     // of the produce the harvest drops into the inventory, and a harvest without one is rejected.
     // Any fresh unique UUID works - the server assigns it to the produce and we never read it back.
-    sendQuinoaCommand({ type: 'HarvestCrop', slot: Number(dirtIndex), slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
+    let requestId: string | null = null;
+    try {
+      requestId = trySendQuinoaCommand({ type: 'HarvestCrop', slot: Number(dirtIndex), slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
+    } catch { /* a closed socket: reported below like any other harvest that did not leave */ }
+    // Only a harvest that left is taken: the mark is cleared once the slot reads as harvested, which
+    // a harvest that never went out would never do, so the slot could not be picked again.
+    if (!requestId) {
+      toast(`The harvest was not sent: ${NOT_SENT_REASON}.`, 'error');
+      return;
+    }
+    taken.add(targetId);
     toast('Harvest requested.', 'success');
   }, true);
 }

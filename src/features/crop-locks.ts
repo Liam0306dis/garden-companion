@@ -1,7 +1,7 @@
 import type { PlantSlot } from '../types.js';
 import { mutationName, patchName, plantName } from '../constants.js';
 import { slotSizePercent } from '../crop-size.js';
-import { gameConnectionReady, sendQuinoaCommand } from '../game-connection.js';
+import { NOT_SENT_REASON, gameConnectionReady, trySendQuinoaCommand } from '../game-connection.js';
 import { page } from '../page.js';
 import { mutationSprite, onSpritesReady, produceSprite } from '../pets.js';
 import { onStateChange, state } from '../state.js';
@@ -340,7 +340,8 @@ function run(locking: boolean): void {
   sendDone = 0;
   let index = 0;
   let sent = 0;
-  const finish = (message: string, ok: boolean) => {
+  let unsent = 0;
+  const finish =(message: string, ok: boolean) => {
     sending = false;
     sendTotal = 0;
     sendDone = 0;
@@ -357,23 +358,26 @@ function run(locking: boolean): void {
     if (index >= rows.length) {
       const split = selectedSplit();
       const left = (locking ? split.toLock : split.toUnlock).length;
-      const done = sent ? `${verb} ${sent} crop${sent === 1 ? '' : 's'}.` : 'Nothing was left to change.';
-      finish(left ? `${done} ${left} still ticked - press & hold to continue.` : done, sent > 0);
+      const done = sent ? `${verb} ${sent} crop${sent === 1 ? '' : 's'}.` : unsent ? 'Nothing was changed.' : 'Nothing was left to change.';
+      const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}) and still ticked.` : '';
+      finish(left > unsent ? `${done}${notSent} ${left} still ticked - press & hold to continue.` : `${done}${notSent}`, sent > 0 && !unsent);
       return;
     }
     const row = rows[index++];
     sendDone = index;
     const live = allRows(lockGroups()).find(candidate => candidate.key === row.key);
+    // Unticked once it is done or no longer needs doing; a command that did not leave keeps its tick.
+    let keepTick = false;
     if (live && live.locked !== locking) {
       try {
-        sendQuinoaCommand({ type: 'SetGrowSlotLock', slot: row.tile, growSlotId: row.slotId, locked: locking });
-        sent++;
+        if (trySendQuinoaCommand({ type: 'SetGrowSlotLock', slot: row.tile, growSlotId: row.slotId, locked: locking })) sent++;
+        else { unsent++; keepTick = true; }
       } catch (error) {
         finish((error as Error).message, false);
         return;
       }
     }
-    selected.delete(row.key);
+    if (!keepTick) selected.delete(row.key);
     updateFooter();
     window.setTimeout(step, SEND_INTERVAL);
   };
