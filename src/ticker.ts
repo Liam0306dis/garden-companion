@@ -1,3 +1,4 @@
+import { warn } from './diagnostics.js';
 /**
  * A repeating job that only runs while something needs it. Features start one when their panel
  * opens or their subject appears and stop it when that goes away, so nothing polls for a panel that
@@ -15,7 +16,7 @@ export interface Ticker {
 export function createTicker(job: () => void, intervalMs: number): Ticker {
   let timer = 0;
   const run = () => {
-    try { job(); } catch (error) { console.warn('[Garden Companion] A repeating job failed.', error); }
+    try { job(); } catch (error) { warn('A repeating job failed.', error); }
   };
   const ticker: Ticker = {
     start() {

@@ -1,6 +1,7 @@
 import type { CompanionConfig } from './types.js';
 import { notifyStateChange } from './state.js';
 import { ABILITY_CATALOG, EXCLUDED_TOOL_ALERTS, EXCLUDED_TRACKED_ABILITIES, PET_CATALOG, STORE_KEY } from './constants.js';
+import { warn } from './diagnostics.js';
 
 /** Features that cannot be turned off, so their toggles never appear in the panel. */
 export const ALWAYS_ENABLED = new Set(['overview', 'petTeams', 'abilities', 'rooms', 'shopAlarms', 'interfaceShortcuts', 'abilitySilencer', 'lunarTimer']);
@@ -89,7 +90,7 @@ export function saveConfig(): void {
   try { GM_setValue(STORE_KEY, config); }
   catch {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(config)); }
-    catch (error) { console.warn('[Garden Companion] Settings could not be saved.', error); }
+    catch (error) { warn('Settings could not be saved.', error); }
   }
 }
 

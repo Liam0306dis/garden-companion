@@ -12,6 +12,7 @@ import { retryUntil } from '../retry.js';
 import { createTicker } from '../ticker.js';
 import { toast } from '../toast.js';
 import type { JotaiAtom } from '../types.js';
+import { warn } from '../diagnostics.js';
 
 /**
  * Carving a pumpkin from a picture. While the game's carving window is open (a Carving Knife used
@@ -393,7 +394,7 @@ async function openPicture(file: File): Promise<void> {
       try {
         traced = await traceInWorker({ id: 0, pictureKey: picture.key, data: picture.data, background, settings: pictureSettings, smoothing, scale: PICTURE_DETAIL });
       } catch (error) {
-        console.warn('[Garden Companion] Tracing the picture failed:', error);
+        warn('Tracing the picture failed:', error);
       } finally {
         // Always cleared, or one failed trace would leave every later change waiting on it.
         tracing = false;

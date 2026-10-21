@@ -47,6 +47,15 @@ interface AssetManifest {
  * and taking both would decode a whole second copy of the atlas to throw away. A build that offers
  * only one variant, as everything before 1019 did, simply has one to choose from.
  */
+/**
+ * This loader runs in the page as a bundle of its own, so it cannot share the companion's
+ * diagnostics module; it hands its warnings over through the page, where the companion listens.
+ */
+function warn(message: string, error?: unknown): void {
+  console.warn(`[Garden Companion] ${message}`, error);
+  try { (window as unknown as { __gardenCompanionNoteIssue?: (level: string, message: string, error?: unknown) => void }).__gardenCompanionNoteIssue?.('warn', message, error); } catch { /* reporting is best effort */ }
+}
+
 function bestSource(sources: ManifestSource[]): string {
   let best = '';
   let bestResolution = -Infinity;
@@ -369,7 +378,7 @@ async function petFrames(url: string, species: string[]): Promise<Map<string, st
       const pets = await worker.rive(source, await response.arrayBuffer(), species.map(name => [name, PET_ARTBOARD_NAMES[name] ?? name]));
       if (pets) return new Map(pets.map(([name, image]) => [normaliseKey(`sprite/pet/${name}`), image]));
     } catch (error) {
-      console.warn('[Garden Companion] Pets could not be drawn in the worker; drawing them here instead.', error);
+      warn('Pets could not be drawn in the worker; drawing them here instead.', error);
     }
   }
   return loadRivePetFrames(url, species);
@@ -893,7 +902,7 @@ export async function initPetSprites(): Promise<void> {
         // The whole animation file failed, not one pet timing out, so anything atlas-less is now
         // missing - not a bundle worth persisting.
         riveComplete = false;
-        console.warn('[Garden Companion] Current pet animations could not be rendered.', error);
+        warn('Current pet animations could not be rendered.', error);
       }
     }
     return {
@@ -979,7 +988,7 @@ export async function initPetSprites(): Promise<void> {
         if (complete) void writeCache(key, bundle, fingerprintKey, identified);
       } catch (error) {
         running.delete(stage);
-        console.warn(`[Garden Companion] ${stage} sprites could not be loaded.`, error);
+        warn(`${stage} sprites could not be loaded.`, error);
       }
     })();
     running.set(stage, task);

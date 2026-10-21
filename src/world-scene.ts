@@ -1,6 +1,7 @@
 import { page } from './page.js';
 import { state } from './state.js';
 import { pixiSurface } from './pixi.js';
+import { warn } from './diagnostics.js';
 
 /**
  * Shared plumbing for minigames that borrow the player's own farm tiles and draw something else on
@@ -532,7 +533,7 @@ export function createWorldScene(config: WorldSceneConfig): WorldScene {
      */
     fail(error: unknown, message: string): void {
       broken = true;
-      if (!warned) console.warn(`[Garden Companion] ${message}`, error);
+      if (!warned) warn(`${message}`, error);
       warned = true;
       teardown();
     },

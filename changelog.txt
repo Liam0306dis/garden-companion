@@ -1,3 +1,6 @@
+0.9.68
+- Diagnostics: a new Diagnostics tab in the bottom bar shows what is working and what is not, with a Copy report button for sending a report when something breaks (it leaves out your player id and room) - the tab shows a red dot when something has stopped working
+
 0.9.67
 - Changes to play nicer alongside AriesMod and QPM: commands no longer get stuck when AriesMod blocks one, QPM's locker and command tracking now apply to the commands Garden Companion sends, held keys are let go when you switch windows, and less slowdown from page-wide hooks
 

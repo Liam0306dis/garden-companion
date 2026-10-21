@@ -3,6 +3,7 @@ import { atomMap, findAtom } from './atom-cache.js';
 import { quinoaEngine } from './quinoa-engine.js';
 import { cachedAtom, gameStore, isRealRoomState } from './game-store.js';
 import type { FullState, JotaiAtom, RoomConnection } from './types.js';
+import { warn } from './diagnostics.js';
 
 /**
  * The QuinoaCommand envelope carries a commandSequence, and the server accepts an envelope only when
@@ -192,7 +193,7 @@ function healToFrontier(): void {
   if (frontier < 0) return;
   diagnostics.heals += 1;
   diagnostics.lastHeal = { from: sequence, to: frontier + 1 };
-  console.warn('[Garden Companion] invalid_sequence - resyncing command counter to the server frontier.', {
+  warn('invalid_sequence - resyncing command counter to the server frontier.', {
     ...diagnostics.lastHeal,
     frontierFromProperty: diagnostics.frontierFromProperty,
     frontierFromFrame: diagnostics.frontierFromFrame,
@@ -403,7 +404,7 @@ export function installPredictionRestamp(): boolean {
   if (!quinoaEngine()) return false;
   engineSeenAt ||= Date.now();
   if (Date.now() - engineSeenAt < RESTAMP_GRACE_MS) return false;
-  console.warn('[Garden Companion] Prediction restamp could not find these game atoms; swaps may lag after our own commands.', missing);
+  warn('Prediction restamp could not find these game atoms; swaps may lag after our own commands.', missing);
   return true;
 }
 

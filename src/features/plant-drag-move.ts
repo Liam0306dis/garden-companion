@@ -8,6 +8,7 @@ import { watchAtom } from '../game-store.js';
 import { page } from '../page.js';
 import { retryUntil } from '../retry.js';
 import { NOT_SENT_REASON, trySendQuinoaCommand } from '../game-connection.js';
+import { warn } from '../diagnostics.js';
 
 /**
  * The engine's systems and views are untyped minified objects reached by name, so they are held as
@@ -431,7 +432,7 @@ export function initPlantDragMove(): void {
             const originalRead = atom.read;
             atom.read = function(get, ...args) {
                 const value = originalRead.call(this, get, ...args);
-                try { onValue(value); } catch (error) { console.warn('[PlantDrag] Atom observer failed:', error); }
+                try { onValue(value); } catch (error) { warn('Plant drag move could not read a game value.', error); }
                 return value;
             };
             atom[flag] = true;

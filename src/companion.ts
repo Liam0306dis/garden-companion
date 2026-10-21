@@ -59,8 +59,12 @@ import { escapeHtml, humanize, scriptVersion } from './utils.js';
 import { makeDraggable } from './draggable.js';
 import { toggleWhatsNew, whatsNewUnseen } from './whats-new.js';
 import { startTour } from './tour.js';
+import { diagnosticsAlert, diagnosticsIssues, installErrorCapture, onDiagnosticsChange, warn } from './diagnostics.js';
+import { buildReport, sortedChecks, timeAgo } from './diagnostics-report.js';
 
 export function initCompanion(): void {
+  // First, so anything that goes wrong while the rest starts up is already on record.
+  installErrorCapture();
   pruneStaleConfig();
   setPanelActions({
     renderPanel, renderPanelPreservingScroll, refreshOpenPanel, cancelPanelRefresh,
@@ -181,7 +185,7 @@ export function initCompanion(): void {
       Object.defineProperty(documentPrototype, 'visibilityState', { configurable: true, get: () => 'visible' });
       page.document.hasFocus = () => true;
     } catch (error) {
-      console.warn('[Garden Companion] Could not install background visibility mode.', error);
+      warn('Could not install background visibility mode.', error);
     }
     const keepVisible = (event: Event) => event.stopImmediatePropagation();
     page.document.addEventListener('visibilitychange', keepVisible, true);
@@ -219,7 +223,7 @@ export function initCompanion(): void {
         oscillator.connect(gain).connect(audioContext.destination);
         oscillator.start();
       } catch (error) {
-        console.warn('[Garden Companion] Could not start background audio context.', error);
+        warn('Could not start background audio context.', error);
       }
     };
     page.addEventListener('pointerdown', startSilentAudio, true);
@@ -543,7 +547,7 @@ export function initCompanion(): void {
     ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['alarmSound', 'Alert Settings'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
     ['Tools', [['calculators', 'Calculators'], ['sky', 'Lighting'], ['minigames', 'Minigames'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
-    ['Support', [['supporter', 'Supporter']]],
+    ['Support', [['supporter', 'Supporter'], ['diagnostics', 'Diagnostics']]],
   ];
   const TABS = TAB_GROUPS.flatMap(([, tabs]) => tabs);
   // One line under each tab's title, so a tab says what it is for before you read its controls.
@@ -566,6 +570,7 @@ export function initCompanion(): void {
     keybinds: 'Shortcuts for teams, tools and companion windows.',
     features: 'Turn optional tools on or off, and open the extra windows.',
     supporter: 'Leave a tip if the companion has been useful.',
+    diagnostics: 'What is working, what is not, and a report you can send when something breaks.',
   };
   const tabGroupOf = (id: string): string => TAB_GROUPS.find(([, tabs]) => tabs.some(([tab]) => tab === id))?.[0] || '';
   // Stroke icons on a 24px grid, drawn by the nav's own stroke rule so they follow the tab colour.
@@ -588,6 +593,7 @@ export function initCompanion(): void {
     keybinds: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7.5 14h9"/>',
     features: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
     supporter: '<path d="M12 20s-7-4.3-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.7-7 10-7 10Z"/>',
+    diagnostics: '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>',
   };
   const tabIcon = (id: string): string => `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICONS[id] ?? ''}</svg>`;
   const CHEVRON_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
@@ -605,10 +611,29 @@ export function initCompanion(): void {
   const FOOTER_LABELS: Record<string, string> = { supporter: 'Support the Tool' };
   function footerHtml(): string {
     const tabs = TAB_GROUPS.filter(([group]) => FOOTER_GROUPS.has(group)).flatMap(([, tabs]) => tabs);
-    return `<footer class="gc-footer"><div>${tabs.map(([id, title, navLabel]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}">${tabIcon(id)}<span>${FOOTER_LABELS[id] ?? navLabel ?? title}</span></button>`).join('')}</div>`
+    const button = ([id, title, navLabel]: [string, string, string?]) => `<button data-tab="${id}" class="${id === activeTab ? 'active' : ''}"${id === 'diagnostics' && diagnosticsAlert() ? ' data-alert="true"' : ''}>${tabIcon(id)}<span>${FOOTER_LABELS[id] ?? navLabel ?? title}</span></button>`;
+    // Diagnostics sits at the right end with the tour, apart from the tabs you work in.
+    const diagnostics = tabs.find(([id]) => id === 'diagnostics');
+    return `<footer class="gc-footer"><div>${tabs.filter(([id]) => id !== 'diagnostics').map(button).join('')}</div>`
       + `<span class="gc-footer-end"><button data-tour title="A guided look at every feature">${TOUR_ICON}<span>Tour</span></button>`
+      + (diagnostics ? button(diagnostics) : '')
       + `<button class="gc-version" data-whats-new${whatsNewUnseen() ? ' data-unseen="true"' : ''} title="What's new">v${escapeHtml(scriptVersion())}</button></span></footer>`;
   }
+
+  // The footer dot and an open Diagnostics tab follow the diagnostics as they change, the tab at most
+  // once a second, and never while its report is out for copying by hand.
+  let diagnosticsRedraw: ReturnType<typeof setTimeout> | null = null;
+  onDiagnosticsChange(() => {
+    document.querySelector('#gc-panel .gc-footer [data-tab="diagnostics"]')?.toggleAttribute('data-alert', diagnosticsAlert());
+    if (diagnosticsRedraw) return;
+    diagnosticsRedraw = setTimeout(() => {
+      diagnosticsRedraw = null;
+      const panel = document.getElementById('gc-panel');
+      if (!panel || panel.hidden || activeTab !== 'diagnostics' || panelRefreshBlocked(panel)) return;
+      if (panel.querySelector('[data-diagnostics-report]:not([hidden])')) return;
+      renderPanelPreservingScroll();
+    }, 1000);
+  });
 
   function navHtml(): string {
     return TAB_GROUPS.filter(([group]) => !FOOTER_GROUPS.has(group)).map(([group, tabs]) => {
@@ -713,6 +738,7 @@ export function initCompanion(): void {
 
   function renderTab() {
     if (activeTab === 'supporter') return renderSupporter();
+    if (activeTab === 'diagnostics') return renderDiagnostics();
     if (activeTab === 'features') return renderFeatures();
     if (activeTab === 'minigames') return renderMinigames();
     if (activeTab === 'teams') return renderTeams();
@@ -741,6 +767,33 @@ export function initCompanion(): void {
     return `<p class="gc-note">If my mods and tools have saved you time or made the game a little more comfortable to play, you can say thanks with a tip below. It is never expected, but always appreciated.</p>
 <section class="gc-card gc-launch-row"><div><h3>Buy me a coffee</h3></div><a class="gc-primary gc-kofi" href="${escapeHtml(KOFI_URL)}" target="_blank" rel="noopener noreferrer">Open Ko-fi</a></section>
 <p class="gc-note">Running v${escapeHtml(scriptVersion())}. Bug reports and ideas mean just as much as a tip, so send them my way.</p>`;
+  }
+
+  const STATUS_LABELS: Record<string, string> = { failed: 'Not working', waiting: 'Waiting', ok: 'Working' };
+  // Whether the Working list is open, kept across the tab's live redraws, which would otherwise shut it.
+  let diagnosticsWorkingOpen = false;
+
+  /**
+   * Problems first, then what went wrong recently, then everything that is fine folded away: the
+   * tab is opened when something is off, so that is what it leads with.
+   */
+  function renderDiagnostics() {
+    const checks = sortedChecks();
+    const problems = checks.filter(check => check.status !== 'ok');
+    const working = checks.filter(check => check.status === 'ok');
+    const issues = diagnosticsIssues().reverse();
+    const failed = problems.filter(check => check.status === 'failed').length;
+    const summary = failed ? `${failed} part${failed === 1 ? ' is' : 's are'} not working.`
+      : problems.length ? `${problems.length} part${problems.length === 1 ? ' is' : 's are'} still waiting for the game.`
+        : 'Everything that has started appears to be working.';
+    const row = (check: (typeof checks)[number]) => `<div class="gc-diag-row" data-status="${check.status}"><span class="gc-pill">${STATUS_LABELS[check.status]}</span><b>${escapeHtml(check.name)}</b>${check.detail ? `<small>${escapeHtml(check.detail)}</small>` : ''}</div>`;
+    const issueRows = issues.map(issue => `<div class="gc-diag-row" data-status="${issue.level === 'error' ? 'failed' : 'waiting'}"><span class="gc-pill">${issue.level === 'error' ? 'Error' : 'Warning'}</span><b>${escapeHtml(issue.message)}${issue.count > 1 ? ` <small>x${issue.count}</small>` : ''}</b><small>${escapeHtml(timeAgo(issue.at))}${issue.detail ? ` - ${escapeHtml(issue.detail)}` : ''}</small></div>`).join('');
+    return `<p class="gc-note">If something is not working, press Copy report and send it along with what you were doing. The report leaves out your player id and room.</p>`
+      + `<section class="gc-card gc-launch-row"><div><h3>Report</h3><p>${summary}</p></div><button class="gc-primary" data-copy-diagnostics>Copy report</button></section>`
+      + `<textarea class="gc-diag-report" data-diagnostics-report readonly hidden></textarea>`
+      + `<section class="gc-card"><h3>Problems</h3>${problems.length ? problems.map(row).join('') : '<p class="gc-note">None.</p>'}</section>`
+      + `<section class="gc-card"><h3>Recent warnings and errors</h3>${issueRows || '<p class="gc-note">None so far.</p>'}</section>`
+      + `<details class="gc-card" data-diagnostics-working${diagnosticsWorkingOpen ? ' open' : ''}><summary><h3>Working (${working.length})</h3></summary>${working.map(row).join('')}</details>`;
   }
 
   function renderFeatures() {
@@ -774,6 +827,24 @@ export function initCompanion(): void {
   }
 
   function bindTabEvents(main: HTMLElement): void {
+    main.querySelector<HTMLButtonElement>('[data-copy-diagnostics]')?.addEventListener('click', () => {
+      const report = buildReport();
+      // Shown and selected when the clipboard refuses, so it can still be copied by hand.
+      const showForCopying = () => {
+        const area = main.querySelector<HTMLTextAreaElement>('[data-diagnostics-report]');
+        if (!area) return;
+        area.value = report;
+        area.hidden = false;
+        area.focus();
+        area.select();
+        toast(`Press ${/Mac|iPhone|iPad/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl'}+C to copy the report.`, 'error');
+      };
+      try {
+        navigator.clipboard.writeText(report).then(() => toast('Report copied. Paste it into your message.', 'success'), showForCopying);
+      } catch { showForCopying(); }
+    });
+    const working = main.querySelector<HTMLDetailsElement>('[data-diagnostics-working]');
+    working?.addEventListener('toggle', () => { diagnosticsWorkingOpen = working.open; });
     main.querySelectorAll<HTMLInputElement>('[data-feature]').forEach(input => input.onchange = () => {
       config[input.dataset.feature!] = input.checked;
       // Instant harvest and Crop Protection pull in opposite directions on the same crops, so

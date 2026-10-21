@@ -137,6 +137,19 @@
 #gc-panel .gc-footer button.active svg { color:var(--gc-accent-text);opacity:1; }
 #gc-panel .gc-footer .gc-version { position:relative;flex:0 0 auto;height:26px;padding:0 8px;color:var(--gc-faint);font:500 12px var(--gc-font);font-variant-numeric:tabular-nums; }
 #gc-panel .gc-footer .gc-version[data-unseen="true"] { color:var(--gc-accent-text); }
+#gc-panel .gc-footer button[data-alert] { position:relative; }
+#gc-panel .gc-footer button[data-alert]::after { content:'';position:absolute;top:4px;left:21px;width:7px;height:7px;border-radius:50%;background:var(--gc-danger);box-shadow:0 0 0 2px var(--gc-side); }
+.gc-diag-row { display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:2px;align-items:baseline;padding:7px 0;border-top:1px solid var(--gc-line); }
+.gc-card h3 + .gc-diag-row, .gc-card summary + .gc-diag-row { border-top:0; }
+.gc-diag-row b { min-width:0;overflow-wrap:anywhere;font-weight:500; }
+.gc-diag-row small { grid-column:2;color:var(--gc-faint);overflow-wrap:anywhere; }
+.gc-diag-row[data-status="failed"] .gc-pill { color:var(--gc-danger);border-color:var(--gc-danger); }
+.gc-diag-row[data-status="waiting"] .gc-pill { color:var(--gc-gold);border-color:var(--gc-gold); }
+.gc-diag-row[data-status="ok"] .gc-pill { color:var(--gc-green);border-color:var(--gc-green); }
+details.gc-card summary { cursor:pointer;list-style:none; }
+details.gc-card summary h3 { display:inline; }
+.gc-diag-report { width:100%;min-height:180px;margin-top:10px;padding:8px;box-sizing:border-box;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);font:12px var(--gc-mono);resize:vertical; }
+.gc-diag-report[hidden] { display:none; }
 #gc-panel .gc-footer .gc-version[data-unseen="true"]::after { content:'';position:absolute;top:3px;right:1px;width:7px;height:7px;border-radius:50%;background:var(--gc-accent);box-shadow:0 0 0 2px var(--gc-side); }
 #gc-panel .gc-footer .gc-footer-end { display:flex;align-items:center;gap:4px; }
 /* Guided tour: a catcher over the page so clicks cannot wander off mid-step, a dimming path with a

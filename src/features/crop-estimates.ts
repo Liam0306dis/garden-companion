@@ -11,6 +11,7 @@ import { onQuinoaEngine, quinoaEngine } from '../quinoa-engine.js';
 import { friendBonusMultiplier, onStateChange, state } from '../state.js';
 import { createTicker } from '../ticker.js';
 import { formatDuration, NUMBER_LOCALE } from '../utils.js';
+import { warn } from '../diagnostics.js';
 
 /**
  * Crop and egg estimates on the game's own info card: what the selected crop is worth and how long
@@ -479,7 +480,7 @@ function hookGardenInfoCard(engine: ReturnType<typeof quinoaEngine>): void {
   // reshaping it here lands in the same frame.
   if (typeof originalRebuild === 'function') view.rebuild = function(...args: unknown[]) {
     const result = originalRebuild.apply(this, args);
-    try { relayoutNativeEstimates(this, hook.signature); } catch (error) { console.warn('[GC] card estimate layout failed', error); }
+    try { relayoutNativeEstimates(this, hook.signature); } catch (error) { warn('Crop estimates could not lay out the crop card.', error); }
     return result;
   };
   // The layout pass stacks the card above the action buttons from each section's stored height. If
@@ -489,7 +490,7 @@ function hookGardenInfoCard(engine: ReturnType<typeof quinoaEngine>): void {
   const originalLayout = view.layout;
   if (typeof originalLayout === 'function') view.layout = function(...args: unknown[]) {
     const result = originalLayout.apply(this, args);
-    try { if (fitCardSectionHeight(this)) originalLayout.apply(this, args); } catch (error) { console.warn('[GC] card height check failed', error); }
+    try { if (fitCardSectionHeight(this)) originalLayout.apply(this, args); } catch (error) { warn('Crop estimates could not check the crop card height.', error); }
     return result;
   };
   view.__gardenCompanionEstimateHook = true;

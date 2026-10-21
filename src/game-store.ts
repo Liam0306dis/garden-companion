@@ -1,6 +1,7 @@
 import type { FullState, JotaiAtom } from './types.js';
 import { page } from './page.js';
 import { findAtom } from './atom-cache.js';
+import { warn } from './diagnostics.js';
 
 /**
  * The game's jotai store. Since build 1604 the game publishes it as window.__jotaiStore before it
@@ -30,7 +31,7 @@ export function watchAtom(atom: JotaiAtom, onValue: (value: unknown) => void, la
   const store = gameStore();
   if (!store) return false;
   const emit = () => {
-    try { onValue(store.get(atom)); } catch (error) { console.warn(`[Garden Companion] Watching ${label} failed:`, error); }
+    try { onValue(store.get(atom)); } catch (error) { warn(`Watching ${label} failed:`, error); }
   };
   try {
     store.sub(atom, emit);

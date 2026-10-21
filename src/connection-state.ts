@@ -1,3 +1,4 @@
+import { warn } from './diagnostics.js';
 /**
  * A reconnect does not hand the world back in one piece. The socket reopens and the first patches
  * can carry an empty shop list, a garden with no tiles, or a restock clock that has jumped forward
@@ -14,7 +15,7 @@ const reopenListeners = new Set<() => void>();
 
 function emit(): void {
   for (const listener of listeners) {
-    try { listener(); } catch (error) { console.warn('[Garden Companion] A reconnect listener failed.', error); }
+    try { listener(); } catch (error) { warn('A reconnect listener failed.', error); }
   }
 }
 
@@ -24,7 +25,7 @@ export function noteRoomSocketOpened(): void {
   if (roomSocketOpens <= 1) return;
   emit();
   for (const listener of reopenListeners) {
-    try { listener(); } catch (error) { console.warn('[Garden Companion] A reconnect listener failed.', error); }
+    try { listener(); } catch (error) { warn('A reconnect listener failed.', error); }
   }
 }
 

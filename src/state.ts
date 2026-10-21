@@ -1,6 +1,7 @@
 import type { GameState, GardenTile, PlantSlot, PlayerSlot, RoomState } from './types.js';
 import { LOG_KEY, LOG_PER_ABILITY } from './constants.js';
 import { loadLocal, saveLocalOrFail, scriptVersion } from './utils.js';
+import { warn } from './diagnostics.js';
 
 export interface AbilityLogRow {
   at: number;
@@ -124,7 +125,7 @@ export function notifyStateChange(reason: string): void {
     pendingReasons.clear();
     for (const listener of stateListeners) {
       for (const pending of reasons) {
-        try { listener(pending); } catch (error) { console.warn('[Garden Companion] A state listener failed.', error); }
+        try { listener(pending); } catch (error) { warn('A state listener failed.', error); }
       }
     }
   });

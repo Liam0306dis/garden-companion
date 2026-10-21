@@ -7,6 +7,8 @@
  * no data and nothing in the console to say why, so this never stops - it only slows down, polling
  * quickly while the page is starting and settling to an occasional check after that.
  */
+import { setCheck, warn } from './diagnostics.js';
+
 const FAST_INTERVAL_MS = 500;
 const SLOW_INTERVAL_MS = 5_000;
 const FAST_PHASE_MS = 120_000;
@@ -14,15 +16,18 @@ const FAST_PHASE_MS = 120_000;
 export function retryUntil(attempt: () => boolean, label: string): void {
   const started = Date.now();
   let warned = false;
+  // Each hook is a check in the diagnostics, waiting until it connects.
+  setCheck(label, 'waiting');
   const run = () => {
     let done = false;
     try { done = attempt(); }
-    catch (error) { console.warn(`[Garden Companion] ${label} failed while hooking into the game.`, error); }
-    if (done) return;
+    catch (error) { warn(`${label} failed while hooking into the game.`, error); }
+    if (done) { setCheck(label, 'ok'); return; }
     const waited = Date.now() - started;
     if (waited >= FAST_PHASE_MS && !warned) {
       warned = true;
       console.info(`[Garden Companion] Still waiting for the game before ${label} can start; checking every few seconds.`);
+      setCheck(label, 'waiting', 'still waiting for the game after two minutes');
     }
     setTimeout(run, waited < FAST_PHASE_MS ? FAST_INTERVAL_MS : SLOW_INTERVAL_MS);
   };

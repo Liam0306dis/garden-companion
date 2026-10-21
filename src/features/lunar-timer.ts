@@ -6,6 +6,7 @@ import { serverNow } from '../server-clock.js';
 import { escapeHtml, formatDuration, loadLocal, saveLocal, scriptVersion } from '../utils.js';
 import { forecastStatus, nextWeather } from '../weather-forecast.js';
 import { weatherLabel } from './weather-timer.js';
+import { warn } from '../diagnostics.js';
 
 /**
  * The draggable timer widget: the next lunar event or weather, the room connection's health, and
@@ -44,7 +45,7 @@ let lunarTimeout = 0;
 function scheduleLunarTick(): void {
   lunarTimeout = window.setTimeout(() => {
     lunarTimeout = 0;
-    try { updateLunarTimer(); } catch (error) { console.warn('[Garden Companion] A repeating job failed.', error); }
+    try { updateLunarTimer(); } catch (error) { warn('A repeating job failed.', error); }
     if (!lunarTimeout) scheduleLunarTick();
   }, 1000 - (serverNow() % 1000) + 5);
 }

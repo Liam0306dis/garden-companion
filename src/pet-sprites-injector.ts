@@ -1,5 +1,6 @@
 import { page } from './page.js';
 import { VENDOR_URLS } from './vendor-urls.js';
+import { warn } from './diagnostics.js';
 
 /**
  * The sprite loader is a sizeable part of this script: the code that fetches every atlas, the
@@ -103,7 +104,7 @@ export function installPetSpriteLoader(): void {
     return disabled;
   };
   if (spritesDisabled()) {
-    console.warn('[Garden Companion] Sprite loading is disabled; artwork will be missing. Run __gardenCompanionDisableSprites(false) to restore it.');
+    warn('Sprite loading is disabled; artwork will be missing. Run __gardenCompanionDisableSprites(false) to restore it.');
     return;
   }
   const start = () => whenIdle(inject);

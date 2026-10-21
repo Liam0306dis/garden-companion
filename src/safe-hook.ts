@@ -7,6 +7,8 @@
  * breaking the page.
  */
 
+import { noteIssue, setCheck, warn } from './diagnostics.js';
+
 const MAX_FAILURES = 3;
 const failures = new Map<string, number>();
 
@@ -21,7 +23,10 @@ export function guarded<T>(name: string, work: () => T, fallback: T): T {
   } catch (error) {
     const count = (failures.get(name) ?? 0) + 1;
     failures.set(name, count);
-    if (count >= MAX_FAILURES) console.warn(`[Garden Companion] ${name} kept failing and has been switched off until the page is reloaded.`, error);
+    if (count >= MAX_FAILURES) {
+      warn(`${name} kept failing and has been switched off until the page is reloaded.`, error);
+      setCheck(name, 'failed', 'kept failing, switched off until the page is reloaded');
+    } else noteIssue('warn', `${name} failed`, error);
     return fallback;
   }
 }
