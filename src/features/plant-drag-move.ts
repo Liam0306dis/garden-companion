@@ -59,6 +59,18 @@ export function plantActions(): FarmPlantActions | null {
     return farmPlantActions;
 }
 
+/**
+ * Which garden is ours, for plant moves and the Farm Manager alike.
+ *
+ * The game's own record of our slot comes first: it is the authority, and it follows a room change
+ * or a new seat the moment the game knows. The slot read off the tile we last stood on in our garden
+ * is next - it was once the only source, and it was forgotten whenever the game rebuilt its tile map
+ * and could be left over from a previous room when it was not. Our slot in the room state is last.
+ */
+export function resolveOwnSlot(gameSlot: number | null | undefined, rememberedSlot: number | null | undefined, roomSlot: number | null | undefined): number | null {
+    return gameSlot ?? rememberedSlot ?? roomSlot ?? null;
+}
+
 export function initPlantDragMove(): void {
     const pageWindow = page as CompanionPage & typeof globalThis;
     const HOLD_MS = 1000;
@@ -460,6 +472,8 @@ export function initPlantDragMove(): void {
             }],
             ['myCurrentGardenTileAtom', (value: any) => {
                 live.currentGardenTile = value;
+                // Learned again on every step inside your garden too, not only on walking in.
+                refreshOwnUserSlot();
             }],
             ['isInMyGardenAtom', (value: any) => {
                 live.isInMyGarden = value === true;
@@ -606,7 +620,7 @@ export function initPlantDragMove(): void {
         // Empty tiles take a plain move; a tile already holding one of your plants takes a swap. Both
         // are valid drops, so both highlight - only a foreign tile or a non-plant object is refused.
         const isValid = tile
-            && tile.userSlotIdx === live.ownUserSlotIdx
+            && tile.userSlotIdx === ownSlot()
             && tile.localTileIndex !== activePress.source?.localTileIndex
             && (!tile.object || tile.object.objectType === 'plant');
         marker.visible = Boolean(isValid);
@@ -725,10 +739,14 @@ export function initPlantDragMove(): void {
         if (!source || source.object?.objectType !== 'plant') {
             throw new Error('That is not a Plant!');
         }
-        if (live.ownUserSlotIdx == null) {
+        // Your garden is known from the game's own record of your slot, not only from where you last
+        // stood. That one was forgotten each time the game rebuilt its tile map (a room change, a
+        // reconnect) and only learned again on walking back in, so a move made while still standing
+        // in your garden was refused.
+        if (ownSlot() == null) {
             throw new Error('Stand on a tile in your own garden first so ownership can be verified');
         }
-        if (source.userSlotIdx !== live.ownUserSlotIdx) {
+        if (source.userSlotIdx !== ownSlot()) {
             throw new Error('That plant is not in your garden');
         }
         // Only whether a move is possible. Fetching a pot out of the Tool Shack waits on the server,
@@ -748,7 +766,7 @@ export function initPlantDragMove(): void {
             activePress.target,
         );
         if (!destination) throw new Error('Release over one of your farm tiles');
-        if (destination.userSlotIdx !== live.ownUserSlotIdx) {
+        if (destination.userSlotIdx !== ownSlot()) {
             throw new Error('That tile is not in your garden');
         }
         if (destination.localTileIndex === activePress.source.localTileIndex) {
@@ -871,12 +889,9 @@ export function initPlantDragMove(): void {
         return placed;
     }
 
-    /**
-     * Our own slot, by the tile we last stood on when there is one and by the game's own record of
-     * it otherwise, so the Farm Manager works from anywhere in the room.
-     */
+    /** Our own slot, wherever we stand in the room (see resolveOwnSlot). */
     function ownSlot(): number | null {
-        return live.ownUserSlotIdx ?? state.userSlotIndex ?? state.slotIndex ?? null;
+        return resolveOwnSlot(state.userSlotIndex, live.ownUserSlotIdx, state.slotIndex);
     }
 
     function ownDirtTile(localIndex: number): FarmTile | null {
