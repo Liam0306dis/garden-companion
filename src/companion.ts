@@ -1,4 +1,4 @@
-import type { FullState, GameState, PlayerSlot, RoomState } from './types.js';
+import type { FullState, GameState, JotaiAtom, PlayerSlot, RoomState } from './types.js';
 import { config, feature, pruneStaleConfig, saveConfig } from './config.js';
 import { ABILITY_DETAILS, KOFI_URL, TRACKED_ABILITY_CATALOG } from './constants.js';
 import { bindCalculatorEvents, calculatorsSignature, renderCalculators } from './features/calculators.js';
@@ -283,26 +283,38 @@ export function initCompanion(): void {
   /**
    * The room state, followed through the game's roomPublicationAtom (since build 1684, which dropped
    * subscribeToPatches): its `state` is the same { data, child: { data } } a patch subscriber was
-   * handed, and the atom is set once per published frame. Older builds keep the patch subscription.
+   * handed, and the atom is set once per published frame. If that atom is ever renamed, stateAtom -
+   * which the game derives from it and has held the room state under that name for much longer - is
+   * followed instead. Older builds without the store keep the patch subscription.
    */
   function subscribeToState(): boolean {
-    const publication = findAtom('roomPublicationAtom');
-    if (publication && gameStore()) {
-      let last: unknown;
-      return watchAtom(publication, value => {
-        const current = value as { state?: FullState; publishedAtServerMs?: unknown } | null;
-        // The atom holds an empty placeholder (published at 0) until the first real frame lands.
-        if (!(Number(current?.publishedAtServerMs) > 0)) return;
-        const fullState = current?.state;
-        if (!fullState || fullState === last) return;
-        last = fullState;
-        applyState(fullState);
-      }, 'room state');
+    if (gameStore()) {
+      const publication = findAtom('roomPublicationAtom');
+      if (publication) {
+        return watchRoomState(publication, value => (value as { state?: FullState } | null)?.state);
+      }
+      const roomState = findAtom('stateAtom');
+      if (roomState) return watchRoomState(roomState, value => value as FullState | null);
     }
     const connection = page.MagicCircle_RoomConnection;
     if (typeof connection?.subscribeToPatches !== 'function') return false;
     connection.subscribeToPatches((_patches: unknown[], fullState: FullState) => applyState(fullState));
     return true;
+  }
+
+  /**
+   * Applies each new room state `read` finds in the atom's value; the same state twice is skipped.
+   * Both atoms start out holding an empty placeholder with no room id until the first real state
+   * lands, which is how it is told apart - older builds' publication has no publish time to go by.
+   */
+  function watchRoomState(atom: JotaiAtom, read: (value: unknown) => FullState | null | undefined): boolean {
+    let last: unknown;
+    return watchAtom(atom, value => {
+      const fullState = read(value);
+      if (!fullState?.child || !fullState.data?.roomId || fullState === last) return;
+      last = fullState;
+      applyState(fullState);
+    }, 'room state');
   }
 
   function applyState(fullState: FullState): void {

@@ -143,6 +143,7 @@ export interface RoomPlayer {
 }
 
 export interface RoomState {
+  roomId?: string | null;
   selfPlayerId?: string;
   players?: RoomPlayer[];
 }

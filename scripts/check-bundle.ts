@@ -35,6 +35,7 @@ const SCHEMA_MARKERS = [
   'selfPlayerId',
   'executedCommandSequence',
   'roomPublicationAtom',
+  'debugLabel=`stateAtom`',
   'MagicCircle_RoomConnection',
   'currentWebSocket',
   'userSlotIdxAndDirtTileIdxToGlobalTileIdx',

@@ -1,3 +1,6 @@
+0.9.64
+- The panel fills in again in rooms still on the previous game version
+
 0.9.63
 - Update for the latest game update: the panel, shops, pet hunger, auto-store and weather alarms update again, Glow and the planner's night preview light up lamps and crop glows again
 
