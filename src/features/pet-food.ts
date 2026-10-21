@@ -87,9 +87,10 @@ function chosenFood(species: string): string {
 }
 
 function petFoodRows(): PetFoodRow[] {
-  // A locked crop cannot be fed, so it is neither offered nor counted.
+  // A locked crop cannot be fed, so it is neither offered nor counted. A carved pumpkin is the
+  // player's artwork, which the game would happily feed away, so it is held back the same way.
   const locked = favouritedIds();
-  const produce = heldProduce().filter(item => !locked.has(item.id));
+  const produce = heldProduce().filter(item => !locked.has(item.id) && !item.carving);
   return activePets().filter(pet => pet?.id).map(pet => {
     const choice = chosenFood(pet.petSpecies);
     const potion = choice === HUNGER_POTION;

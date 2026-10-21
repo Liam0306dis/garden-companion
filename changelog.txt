@@ -1,3 +1,6 @@
+0.9.66
+- Pet food: the feed buttons should never feed a carved pumpkin
+
 0.9.65
 - Layout planner and Lighting: a locked or previewed time of day only changes the lights and sky, not the rest of the game's screen
 - Small fixes for the latest game update

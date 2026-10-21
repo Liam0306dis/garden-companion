@@ -23,6 +23,8 @@ export interface ProduceItem {
   /** Integer 50-100. */
   size?: number;
   mutations?: string[];
+  /** Set on a carved pumpkin: the encoded carving strokes. */
+  carving?: string;
 }
 
 export interface PetTeamMember {
