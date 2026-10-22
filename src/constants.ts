@@ -21,6 +21,12 @@ export const PET_CATALOG = __PET_CATALOG__;
 export const EGG_CATALOG = __EGG_CATALOG__;
 export const PLANT_CATALOG = __PLANT_CATALOG__;
 export const MUTATION_CATALOG = __MUTATION_CATALOG__;
+/** The game's mutation groups. A crop carries at most one mutation from each. */
+export const MUTATION_GROUPS = ['Growth', 'Hydro', 'Lunar'];
+export const MUTATION_GROUP_LABELS: Record<string, string> = { Growth: 'Colour', Hydro: 'Weather', Lunar: 'Lunar' };
+export function mutationsInGroup(group: string): string[] {
+  return Object.keys(MUTATION_CATALOG).filter(id => MUTATION_CATALOG[id]?.group === group);
+}
 export const DECOR_CATALOG = __DECOR_CATALOG__;
 /** The most of each capped tool the inventory can hold (99 for most), read from the game's catalog. */
 export const TOOL_LIMITS = __TOOL_LIMITS__;

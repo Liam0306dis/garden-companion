@@ -1,6 +1,6 @@
 import './setup.js';
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { afterEach, test } from 'node:test';
 import { config } from '../src/config.js';
 import { blockOutgoingHarvest, protectionReason } from '../src/features/crop-protection.js';
 import { state } from '../src/state.js';
@@ -42,6 +42,14 @@ test('species and max size rules apply, mutations first', () => {
   config.protectMaxSize = false;
 });
 
+test('a slot with no id is found by its place on the tile', () => {
+  config.cropProtection = true;
+  config.protectedMutations = ['Gold'];
+  garden([{ species: 'Carrot', mutations: [] }, { species: 'Carrot', mutations: ['Gold'] }]);
+  assert.ok(blockOutgoingHarvest(harvest(7, 1)));
+  assert.equal(blockOutgoingHarvest(harvest(7, 0)), null);
+});
+
 test('a harvest before the garden has loaded is held rather than waved through', () => {
   config.cropProtection = true;
   state.slot = null;
@@ -51,4 +59,59 @@ test('a harvest before the garden has loaded is held rather than waved through',
 test('anything that is not a harvest passes', () => {
   config.cropProtection = true;
   assert.equal(blockOutgoingHarvest({ type: 'QuinoaCommand', command: { type: 'FeedPet' } }), null);
+});
+
+afterEach(() => {
+  config.protectedMutations = [];
+  config.protectMaxSize = false;
+  config.protectedSpecies = {};
+  config.harvestRules = {};
+});
+
+const crop = (size: number | undefined, mutations: string[]) => ({ slotId: 0, species: 'Carrot', size, mutations }) as never;
+
+function protect(combos: Array<{ minSize: number; mutations: string[] }>, locks: string[] = [], maxSize = false): void {
+  config.cropProtection = true;
+  config.protectedMutations = locks;
+  config.protectMaxSize = maxSize;
+  config.protectedSpecies = { Carrot: true };
+  config.harvestRules = { Carrot: { combos } };
+}
+
+test('a combo lets a protected species through once it has the size and every mutation', () => {
+  protect([{ minSize: 100, mutations: ['Ambercharged', 'Thundercharged'] }, { minSize: 90, mutations: ['Frozen', 'Rainbow'] }]);
+  assert.equal(protectionReason(crop(100, ['Ambercharged', 'Thundercharged']), 'Carrot'), null);
+  assert.equal(protectionReason(crop(90, ['Frozen', 'Rainbow']), 'Carrot'), null, 'each combo has its own size');
+  assert.ok(protectionReason(crop(95, ['Ambercharged', 'Thundercharged']), 'Carrot'), 'too small for that combo');
+  assert.ok(protectionReason(crop(100, ['Frozen']), 'Carrot'), 'half a combo');
+});
+
+test('a combo with nothing picked lets nothing through', () => {
+  protect([{ minSize: 50, mutations: [] }]);
+  assert.equal(protectionReason(crop(100, ['Gold']), 'Carrot'), 'Carrot');
+});
+
+test('a size only combo works, but does not lift a mutation lock', () => {
+  protect([{ minSize: 90, mutations: [] }], ['Rainbow']);
+  assert.equal(protectionReason(crop(95, []), 'Carrot'), null);
+  assert.equal(protectionReason(crop(95, ['Rainbow']), 'Carrot'), 'Rainbow');
+});
+
+test('a combo lifts max size and the mutation locks it names', () => {
+  protect([{ minSize: 70, mutations: ['Rainbow', 'Chilled'] }, { minSize: 90, mutations: ['Rainbow', 'Thundercharged'] }], ['Thundercharged', 'Rainbow'], true);
+  assert.equal(protectionReason(crop(100, ['Rainbow', 'Thundercharged']), 'Carrot'), null);
+  assert.equal(protectionReason(crop(100, ['Rainbow', 'Chilled']), 'Carrot'), null);
+  assert.equal(protectionReason(crop(100, ['Rainbow']), 'Carrot'), 'Rainbow', 'no combo met, so the locks stand');
+});
+
+test('a mutation this build does not know still has to be on the crop', () => {
+  protect([{ minSize: 50, mutations: ['BrandNewMutation', 'Rainbow'] }]);
+  assert.ok(protectionReason(crop(60, ['Rainbow']), 'Carrot'));
+  assert.equal(protectionReason(crop(60, ['Rainbow', 'BrandNewMutation']), 'Carrot'), null);
+});
+
+test('a crop with no size on record reads as the smallest', () => {
+  protect([{ minSize: 50, mutations: ['Gold'] }, { minSize: 80, mutations: ['Rainbow'] }]);
+  assert.equal(protectionReason(crop(undefined, ['Gold']), 'Carrot'), null);
+  assert.ok(protectionReason(crop(undefined, ['Rainbow']), 'Carrot'));
 });

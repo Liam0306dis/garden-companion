@@ -30,6 +30,7 @@ export const DEFAULTS: CompanionConfig = {
   protectMaxSize: false,
   protectedMutations: [],
   protectedSpecies: {},
+  harvestRules: {},
   interfaceShortcuts: true,
   backgroundMode: true,
   autoRefreshGameUpdates: true,
@@ -131,8 +132,13 @@ export function pruneStaleConfig(): void {
   // has been captured, so a species newer than our last build would be unticked on every load, and
   // a species the game has dropped can never match a crop anyway.
   config.protectedSpecies = Object.fromEntries(Object.entries(savedProtectedSpecies).filter(([, on]) => on === true));
+  const savedHarvestRules = config.harvestRules && typeof config.harvestRules === 'object' ? config.harvestRules : {};
+  // A rule with no combos reads the same as no rule. Rules for unticked species are kept, so ticking
+  // one again brings its combos back.
+  config.harvestRules = Object.fromEntries(Object.entries(savedHarvestRules).filter(([, rule]) => Array.isArray(rule?.combos) && rule.combos.length > 0));
   if (config.silencedAbilities.length !== savedSilencedAbilities.length
     || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length
     || Object.keys(config.petFoodChoices).length !== Object.keys(savedFoodChoices).length
-    || Object.keys(config.protectedSpecies).length !== Object.keys(savedProtectedSpecies).length) saveConfig();
+    || Object.keys(config.protectedSpecies).length !== Object.keys(savedProtectedSpecies).length
+    || Object.keys(config.harvestRules).length !== Object.keys(savedHarvestRules).length) saveConfig();
 }

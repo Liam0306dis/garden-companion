@@ -19,7 +19,7 @@ export function maxSizeMultiplier(crop: CropEntry | undefined | null): number {
 }
 
 /** Rounded and clamped, as the game does before using a size for anything; unreadable is 50. */
-function clampSize(size: number): number {
+export function clampSize(size: number): number {
   const value = Number(size);
   return Number.isFinite(value) ? Math.min(MAX_SIZE, Math.max(BASE_SIZE, Math.round(value))) : BASE_SIZE;
 }

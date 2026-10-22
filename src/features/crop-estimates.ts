@@ -79,7 +79,8 @@ const GAME_ATTRIBUTE_COLOR = 0xb5b5b5;
 function selectedCrop(crops: PlantSlot[]): PlantSlot | null {
   if (!crops.length) return null;
   const selected = Number(state.selectedSlotId) || 0;
-  const exact = crops.find(slot => Number(slot?.slotId) === selected);
+  // A slot with no id of its own is numbered by its place on the tile, as the harvest guard reads it.
+  const exact = crops.find((slot, index) => Number(slot?.slotId ?? index) === selected);
   if (exact) return exact;
   const bySlotId = [...crops].sort((left, right) => Number(left?.slotId) - Number(right?.slotId));
   return bySlotId.find(slot => Number(slot?.slotId) >= selected) ?? bySlotId[0] ?? null;
@@ -156,8 +157,9 @@ function protectionLines(): string[] {
   const crops = Array.isArray(state.currentCrop) ? state.currentCrop : [];
   const crop = selectedCrop(crops);
   if (!crop) return [];
-  // Just the padlock. Which rule caught it belongs in the panel, not on a card you walk past.
-  return protectionReason(crop, crop.species || '') ? [LOCK] : [];
+  // Just the padlock. Which rule caught it belongs in the panel, not on a card you walk past. The
+  // species falls back to the tile's, as the harvest guard does, so the two never disagree.
+  return protectionReason(crop, crop.species || state.currentGardenObject?.species || '') ? [LOCK] : [];
 }
 
 function cardLines(): string[] {

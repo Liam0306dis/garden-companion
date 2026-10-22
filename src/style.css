@@ -721,6 +721,27 @@ details.gc-card summary h3 { display:inline; }
 .gc-value-pill small { color:var(--gc-muted);font-size:11px;font-weight:500; }
 .gc-value-pill.on { color:var(--gc-strong)!important;border-color:var(--gc-accent-line)!important;background:var(--gc-accent-soft)!important; }
 .gc-value-pill.on small { color:var(--gc-accent-text); }
+.gc-ready-rule { display:flex;flex-direction:column;gap:8px;padding:10px 0;border-top:1px solid var(--gc-line); }
+.gc-ready-rule:first-child { border-top:0;padding-top:0; }
+.gc-ready-rule > button { align-self:flex-start; }
+.gc-ready-head { display:flex;align-items:center;gap:8px; }
+.gc-ready-head > span:nth-child(2) { display:flex;flex-direction:column;flex:1 1 auto;min-width:0; }
+.gc-ready-head small { color:var(--gc-muted);font-size:11px; }
+.gc-ready-size-input { display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gc-muted); }
+/* Same label width and gap as the mutation group rows, so the box lines up with the pills below. */
+.gc-ready-size-input > span { width:60px;flex:0 0 auto;margin-right:4px; }
+#gc-panel .gc-ready-size-input input { width:48px;min-width:0;height:24px;padding:0 6px;box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-input);color:var(--gc-text);font:12px var(--gc-font);text-align:right;outline:none; }
+.gc-ready-combo { display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--gc-line);border-radius:8px; }
+.gc-ready-picked { display:flex;align-items:flex-start;justify-content:space-between;gap:8px; }
+.gc-ready-picked > div { display:flex;flex-wrap:wrap;align-items:center;gap:4px; }
+.gc-ready-picked > span { display:flex;gap:4px;flex:0 0 auto; }
+.gc-ready-picked i { color:var(--gc-muted);font-style:normal;font-size:12px; }
+.gc-ready-chip { display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 4px;border:1px solid var(--gc-accent-line);border-radius:999px;background:var(--gc-accent-soft);color:var(--gc-strong);font-size:12px;font-weight:600; }
+.gc-ready-chip img { width:18px;height:18px;object-fit:contain; }
+.gc-ready-chip.gc-ready-size { padding-left:8px; }
+.gc-ready-chip.gc-ready-any { padding-left:8px;border-color:var(--gc-line-strong);background:none;color:var(--gc-muted);font-weight:500; }
+.gc-ready-combo .gc-value-pill:not(.on) img { opacity:.35;filter:grayscale(1); }
+.gc-ready-combo .gc-value-pill:not(.on):hover img { opacity:.8;filter:none; }
 .gc-value-foot { display:flex;align-items:center;justify-content:space-between;gap:10px; }
 .gc-value-foot label { display:flex;align-items:center;gap:9px; }
 .gc-value-foot span { color:var(--gc-muted);font-size:12px;font-weight:500; }

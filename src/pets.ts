@@ -1,5 +1,5 @@
 import type { Pet, ProduceItem } from './types.js';
-import { ABILITY_DETAILS, HUNGER_MINUTES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PLANT_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
+import { ABILITY_DETAILS, HUNGER_MINUTES, MUTATION_CATALOG, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PLANT_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
 import { slotScale } from './crop-size.js';
 import { catalogMutationMultiplier } from './mutation-value.js';
 import { sendQuinoaCommand } from './game-connection.js';
@@ -51,6 +51,17 @@ export function produceSprite(species: string): string {
 /** The game's own mutation icon, keyed by mutation id. Empty until the sprite atlases finish. */
 export function mutationSprite(mutation: string): string {
   return page.__gardenCompanionMutationSprites?.[mutation] || '';
+}
+
+/**
+ * A mutation's icon, or its name whenever the icon has not loaded or no longer exists. Labelled, it is
+ * the icon (if any) followed by the name.
+ */
+export function mutationFace(mutation: string, labelled = false): string {
+  const name = MUTATION_CATALOG[mutation]?.name || humanize(mutation);
+  const icon = mutationSprite(mutation);
+  if (labelled) return `${icon ? `<img src="${escapeHtml(icon)}" alt="">` : ''}${escapeHtml(name)}`;
+  return icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(name)}">` : `<span>${escapeHtml(name)}</span>`;
 }
 
 const spriteReadyListeners = new Set<() => void>();

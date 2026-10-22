@@ -1,3 +1,6 @@
+0.9.73
+- Crop protection: protected species can unlock themselves once ready, by size and mutation combos
+
 0.9.72
 - Layout planner: names with quotes load and delete properly
 - Plant drag move: a failed swap says your plant is in your inventory

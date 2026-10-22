@@ -259,6 +259,12 @@ export interface JotaiAtom {
   [key: string]: unknown;
 }
 
+/** One way a crop counts as ready: at least `minSize` (50-100), carrying every mutation listed. */
+export interface HarvestCombo { minSize: number; mutations: string[] }
+
+/** Lets a protected species through once it meets any one of its combos. */
+export interface HarvestRule { combos: HarvestCombo[] }
+
 export interface CompanionConfig {
   overview: boolean;
   dragMove: boolean;
@@ -285,6 +291,8 @@ export interface CompanionConfig {
   protectMaxSize: boolean;
   protectedMutations: string[];
   protectedSpecies: Record<string, boolean>;
+  /** Per protected species: when it is ready, and so let through. */
+  harvestRules: Record<string, HarvestRule>;
   interfaceShortcuts: boolean;
   backgroundMode: boolean;
   autoRefreshGameUpdates: boolean;
@@ -306,7 +314,7 @@ export interface CompanionConfig {
   teamKeybinds: Record<string, string>;
   interfaceKeybinds: Record<string, string>;
   sky: SkySettings;
-  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string> | AlarmSoundSettings | SkySettings;
+  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string> | AlarmSoundSettings | SkySettings | Record<string, HarvestRule>;
 }
 
 /** Lighting tab: a locked weather and time of day, and how the game is drawn (percentages). */

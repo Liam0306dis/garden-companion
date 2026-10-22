@@ -1,13 +1,13 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MAX_TEAM_PETS, MUTATION_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MAX_TEAM_PETS, MUTATION_CATALOG, MUTATION_GROUP_LABELS, MUTATION_GROUPS, mutationsInGroup, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { abilityEffectText } from '../ability-effect.js';
 import { maxSizeMultiplier, sizeFromScale } from '../crop-size.js';
 import { bindListSearch } from '../list-search.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { abilityXpPerHour, activePets, allPets, crystalStrengthBonus, mutationSprite, petDiet, petMetrics, petSprite, produceSprite, STRENGTH_CRYSTAL_BONUS } from '../pets.js';
+import { abilityXpPerHour, activePets, allPets, crystalStrengthBonus, mutationFace, petDiet, petMetrics, petSprite, produceSprite, STRENGTH_CRYSTAL_BONUS } from '../pets.js';
 import { state } from '../state.js';
 import { escapeHtml, formatDuration, humanize, NUMBER_LOCALE } from '../utils.js';
 import { weatherLabel } from './weather-timer.js';
@@ -212,8 +212,6 @@ const CALCULATOR_TABS = [['dust', 'Dust'], ['value', 'Crop Value'], ['food', 'Fo
  * mutation adds its own multiplier less one on top. That reproduces the combination table the game
  * shows, and keeps working for mutations added after this was written.
  */
-const VALUE_GROUPS = ['Growth', 'Hydro', 'Lunar'];
-const VALUE_GROUP_LABELS: Record<string, string> = { Growth: 'Colour', Hydro: 'Weather', Lunar: 'Lunar' };
 /** Each extra player in the room is worth ten percent, and the game caps the whole bonus at double. */
 const FRIEND_STEP = .1;
 const FRIEND_CAP = 2;
@@ -236,10 +234,6 @@ function valueSpeciesList(): string[] {
 function currentValueSpecies(): string {
   const list = valueSpeciesList();
   return list.includes(valueSpecies) ? valueSpecies : list[0] || '';
-}
-
-function mutationsInGroup(group: string): string[] {
-  return Object.keys(MUTATION_CATALOG).filter(id => MUTATION_CATALOG[id]?.group === group);
 }
 
 function friendMultiplier(friends: number): number {
@@ -304,7 +298,7 @@ export function clearValueMutations(): void {
 }
 
 function selectedValueMutations(): string[] {
-  return VALUE_GROUPS.map(group => valueMutations[group]).filter(Boolean);
+  return MUTATION_GROUPS.map(group => valueMutations[group]).filter(Boolean);
 }
 
 export function setCalculatorTab(tab: string): void {
@@ -395,18 +389,16 @@ function renderValueCalculator(): string {
   const options = valueSpeciesList()
     .map(id => `<option value="${escapeHtml(id)}" ${id === species ? 'selected' : ''}>${escapeHtml(plantName(id))}</option>`)
     .join('');
-  const groups = VALUE_GROUPS.map(group => {
+  const groups = MUTATION_GROUPS.map(group => {
     const ids = mutationsInGroup(group);
     if (!ids.length) return '';
     const pills = ids.map(id => {
       const on = valueMutations[group] === id;
       const name = MUTATION_CATALOG[id]?.name || humanize(id);
-      const icon = mutationSprite(id);
-      // The name still labels the button whenever its icon has not loaded, or no longer exists.
-      const face = icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(name)}">` : `<span>${escapeHtml(name)}</span>`;
+      const face = mutationFace(id);
       return `<button class="gc-value-pill${on ? ' on' : ''}" title="${escapeHtml(name)}" data-value-mutation="${escapeHtml(group)}" data-value-mutation-id="${escapeHtml(id)}">${face}<small>x${MUTATION_CATALOG[id]?.coinMultiplier}</small></button>`;
     }).join('');
-    return `<div class="gc-value-group"><b>${escapeHtml(VALUE_GROUP_LABELS[group] || group)}</b><div>${pills}</div></div>`;
+    return `<div class="gc-value-group"><b>${escapeHtml(MUTATION_GROUP_LABELS[group] || group)}</b><div>${pills}</div></div>`;
   }).join('');
   const friendOptions = Array.from({ length: MAX_FRIENDS + 1 }, (_, count) =>
     `<option value="${count}" ${count === valueFriends ? 'selected' : ''}>${count + 1} (+${Math.round((friendMultiplier(count) - 1) * 100)}%)</option>`).join('');
