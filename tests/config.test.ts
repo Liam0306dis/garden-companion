@@ -11,6 +11,10 @@ gmStore.set(STORE_KEY, {
   shopAlerts: { 'seed:Carrot': true, 'seed:Beet': false, 'tool:Shovel': true, 'tool:WateringCan': true },
   petFoodChoices: { Worm: 'NotInItsDiet', Snail: 'ReplenishPotion', BrandNewPet: 'Anything' },
   protectedSpecies: { Carrot: true, Beet: false },
+  harvestRules: {
+    Carrot: { combos: [{ minSize: 90, mutations: ['Rainbow', 'Frozen'] }, { minSize: 90, mutations: ['Frozen', 'Rainbow'] }, { minSize: 80, mutations: ['Rainbow', 'Frozen'] }] },
+    Beet: { combos: [] },
+  },
 });
 const { config, DEFAULTS, feature, pruneStaleConfig, saveConfig } = await import('../src/config.js');
 
@@ -25,6 +29,8 @@ test('pruning drops what no longer applies and keeps what might', () => {
   assert.deepEqual(Object.keys(config.shopAlerts).sort(), ['seed:Carrot', 'tool:WateringCan'], 'unticked alerts and unsellable tools are dropped');
   assert.deepEqual(config.petFoodChoices, { Snail: 'ReplenishPotion', BrandNewPet: 'Anything' }, 'potions and species newer than the build are kept');
   assert.deepEqual(config.protectedSpecies, { Carrot: true });
+  assert.deepEqual(Object.keys(config.harvestRules), ['Carrot'], 'a rule with no combos is dropped');
+  assert.deepEqual(config.harvestRules.Carrot.combos.map(combo => combo.minSize), [90, 80], 'a repeated combo is dropped, in any order');
   assert.deepEqual((gmStore.get(STORE_KEY) as typeof config).shopAlerts, config.shopAlerts, 'the pruned config is saved');
 });
 

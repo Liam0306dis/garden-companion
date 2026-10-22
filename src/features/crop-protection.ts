@@ -2,6 +2,7 @@ import type { HarvestCombo, HarvestRule, PlantSlot } from '../types.js';
 import { config, feature, saveConfig } from '../config.js';
 import { MUTATION_CATALOG, MUTATION_GROUP_LABELS, MUTATION_GROUPS, mutationsInGroup, PLANT_CATALOG, plantName } from '../constants.js';
 import { BASE_SIZE, clampSize, MAX_SIZE, slotIsMaxSize, slotSizePercent } from '../crop-size.js';
+import { comboKey, repeatsEarlierCombo } from '../harvest-combos.js';
 import { bindListSearch } from '../list-search.js';
 import { openCropLocks } from './crop-locks.js';
 import { mutationFace, mutationSprite, produceSprite } from '../pets.js';
@@ -197,7 +198,8 @@ function saveHarvestRule(species: string, rule: HarvestRule): void {
 const openCombos = new Set<string>();
 
 /** One combo: its size, then a row of pills per mutation group, at most one picked from each. */
-function renderCombo(species: string, combo: HarvestCombo, index: number): string {
+function renderCombo(species: string, rule: HarvestRule, index: number): string {
+  const combo = rule.combos[index];
   const groups = MUTATION_GROUPS.map(group => {
     const pills = mutationsInGroup(group).map(id => {
       const name = MUTATION_CATALOG[id]?.name || humanize(id);
@@ -212,7 +214,7 @@ function renderCombo(species: string, combo: HarvestCombo, index: number): strin
   const other = unknown ? `<div class="gc-value-group"><b>Other</b><div>${unknown}</div></div>` : '';
   const open = comboIsOpen(species, combo, index);
   const size = `<label class="gc-ready-size-input"><span>Min size</span><input type="number" min="${BASE_SIZE}" max="${MAX_SIZE}" step="1" value="${combo.minSize}" data-ready-size>%</label>`;
-  return `<div class="gc-ready-combo" data-ready-combo="${index}"><div class="gc-ready-picked">${comboHeader(species, combo, index)}</div>${open ? size + groups + other : ''}</div>`;
+  return `<div class="gc-ready-combo" data-ready-combo="${index}"><div class="gc-ready-picked">${comboHeader(species, rule, index)}</div>${open ? size + groups + other : ''}</div>`;
 }
 
 function comboIsOpen(species: string, combo: HarvestCombo, index: number): boolean {
@@ -223,23 +225,40 @@ function comboIsOpen(species: string, combo: HarvestCombo, index: number): boole
  * The chips naming what the combo asks for, so it reads without scanning the pills, and its Edit or
  * Done and Remove buttons.
  */
-function comboHeader(species: string, combo: HarvestCombo, index: number): string {
+function comboHeader(species: string, rule: HarvestRule, index: number): string {
+  const combo = rule.combos[index];
   const chips = combo.mutations.map(id => `<span class="gc-ready-chip">${mutationFace(id, true)}</span>`);
   if (combo.minSize > BASE_SIZE) chips.unshift(`<span class="gc-ready-chip gc-ready-size">${combo.minSize >= MAX_SIZE ? 'Max size' : `Size ${combo.minSize}+`}</span>`);
-  const summary = chips.join('<i>+</i>') || '<span class="gc-ready-chip gc-ready-any">Pick a size or mutations</span>';
+  // A repeat is allowed while it is being built - a combo on its way to Rainbow + Frozen passes
+  // through plain Rainbow - so it is only flagged here, and dropped when it is closed with Done.
+  const repeat = comboIsSet(combo) && repeatsEarlierCombo(rule.combos, index)
+    ? '<span class="gc-ready-repeat">Same as a combo above</span>' : '';
+  const summary = (chips.join('<i>+</i>') || '<span class="gc-ready-chip gc-ready-any">Pick a size or mutations</span>') + repeat;
   const toggle = comboIsSet(combo) ? `<button data-ready-toggle-combo>${comboIsOpen(species, combo, index) ? 'Done' : 'Edit'}</button>` : '';
   return `<div>${summary}</div><span>${toggle}<button data-ready-remove-combo>Remove</button></span>`;
 }
 
-/** Whether another combo in the rule already asks for exactly this: the same size and mutations. */
-function duplicatesCombo(rule: HarvestRule, combo: HarvestCombo, index: number): boolean {
-  if (!comboIsSet(combo)) return false;
-  const wanted = [...combo.mutations].sort().join('+');
-  return rule.combos.some((other, otherIndex) => otherIndex !== index
-    && other.minSize === combo.minSize && [...other.mutations].sort().join('+') === wanted);
+/** Whether any other combo in the rule asks for exactly what this one does. */
+function sameAsAnother(rule: HarvestRule, index: number): boolean {
+  const key = comboKey(rule.combos[index]);
+  return rule.combos.some((other, otherIndex) => otherIndex !== index && comboKey(other) === key);
 }
 
-const DUPLICATE_COMBO = 'That combo is already set for this crop.';
+/** Drops a combo, and forgets which of the species' combos were open, as the rest shift down. */
+function dropCombo(species: string, rule: HarvestRule, index: number): void {
+  rule.combos.splice(index, 1);
+  for (const key of [...openCombos]) if (key.startsWith(`${species}:`)) openCombos.delete(key);
+}
+
+/**
+ * After an edit: a combo emptied back to nothing while another empty one is waiting is the same
+ * blank twice, so it goes. Returns whether it did.
+ */
+function dropSecondBlank(species: string, rule: HarvestRule, index: number): boolean {
+  if (comboIsSet(rule.combos[index]) || !sameAsAnother(rule, index)) return false;
+  dropCombo(species, rule, index);
+  return true;
+}
 
 function ruleSummary(rule: HarvestRule): string {
   return rule.combos.some(comboIsSet) ? 'Harvest allowed once ready' : 'Always locked';
@@ -258,7 +277,7 @@ function renderReadyRules(): string {
     const rule = harvestRule(id);
     const sprite = produceSprite(id);
     const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
-    const combos = rule.combos.map((combo, index) => renderCombo(id, combo, index)).join('');
+    const combos = rule.combos.map((_, index) => renderCombo(id, rule, index)).join('');
     return `<div class="gc-ready-rule" data-ready-species="${escapeHtml(id)}">
 <div class="gc-ready-head"><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small data-ready-summary>${ruleSummary(rule)}</small></span></div>
 ${combos}<button data-ready-add-combo ${rule.combos.some(combo => !comboIsSet(combo)) ? 'disabled title="Fill in the empty combo first"' : ''}>Add combo</button></div>`;
@@ -283,22 +302,25 @@ function bindReadyRules(holder: HTMLElement): void {
       if (combo) input.value = String(combo.minSize);
       return;
     }
-    const previous = combo.minSize;
     combo.minSize = clampSize(typed);
-    if (duplicatesCombo(rule, combo, index)) {
-      toast(DUPLICATE_COMBO, 'error');
-      input.value = String(previous);
+    input.value = String(combo.minSize);
+    if (dropSecondBlank(species, rule, index)) {
+      saveHarvestRule(species, rule);
+      redraw();
       return;
     }
-    input.value = String(combo.minSize);
     // Kept open while it is being edited, even now it counts as set.
     openCombos.add(`${species}:${index}`);
     saveHarvestRule(species, rule);
-    // Only the header and summary change. Redrawing the whole block would drop the focus a Tab out
-    // of this box has just moved on.
-    const header = input.closest('[data-ready-combo]')?.querySelector<HTMLElement>('.gc-ready-picked');
-    if (header) header.innerHTML = comboHeader(species, combo, index);
-    const summary = input.closest('.gc-ready-rule')?.querySelector<HTMLElement>('[data-ready-summary]');
+    // Only the headers and summary change. Redrawing the whole block would drop the focus a Tab out
+    // of this box has just moved on. Every header is redone, as a repeat flag can move between them.
+    const ruleElement = input.closest<HTMLElement>('.gc-ready-rule');
+    ruleElement?.querySelectorAll<HTMLElement>('[data-ready-combo]').forEach(element => {
+      const header = element.querySelector<HTMLElement>('.gc-ready-picked');
+      const at = Number(element.dataset.readyCombo);
+      if (header && rule.combos[at]) header.innerHTML = comboHeader(species, rule, at);
+    });
+    const summary = ruleElement?.querySelector<HTMLElement>('[data-ready-summary]');
     if (summary) summary.textContent = ruleSummary(rule);
     bindReadyRules(holder);
   });
@@ -314,17 +336,25 @@ function bindReadyRules(holder: HTMLElement): void {
   holder.querySelectorAll<HTMLButtonElement>('[data-ready-remove-combo]').forEach(button => button.onclick = () => {
     const { species, index, rule } = target(button);
     if (index < 0) return;
-    rule.combos.splice(index, 1);
-    // The combos after it shift down a place, so whatever was open no longer lines up.
-    for (const key of [...openCombos]) if (key.startsWith(`${species}:`)) openCombos.delete(key);
+    dropCombo(species, rule, index);
     saveHarvestRule(species, rule);
     redraw();
   });
   holder.querySelectorAll<HTMLButtonElement>('[data-ready-toggle-combo]').forEach(button => button.onclick = () => {
-    const { species, index } = target(button);
+    const { species, index, rule } = target(button);
     const key = `${species}:${index}`;
-    if (openCombos.has(key)) openCombos.delete(key);
-    else openCombos.add(key);
+    if (!openCombos.has(key)) {
+      openCombos.add(key);
+      redraw();
+      return;
+    }
+    openCombos.delete(key);
+    // Done on a combo that only repeats another: it adds nothing, so it is not kept.
+    if (rule.combos[index] && sameAsAnother(rule, index)) {
+      dropCombo(species, rule, index);
+      saveHarvestRule(species, rule);
+      toast('Removed - the same combo is already set for this crop.');
+    }
     redraw();
   });
   holder.querySelectorAll<HTMLButtonElement>('[data-ready-mutation]').forEach(button => button.onclick = () => {
@@ -338,10 +368,8 @@ function bindReadyRules(holder: HTMLElement): void {
     // no group (unknown to this build) only ever unpicks itself.
     combo.mutations = combo.mutations.filter(other => other !== id && (!group || MUTATION_CATALOG[other]?.group !== group));
     if (!had) combo.mutations.push(id);
-    if (duplicatesCombo(rule, combo, index)) {
-      toast(DUPLICATE_COMBO, 'error');
-      return;
-    }
+    // Still open while it is being edited: a combo that becomes set here would otherwise fold away.
+    if (!dropSecondBlank(species, rule, index)) openCombos.add(`${species}:${index}`);
     saveHarvestRule(species, rule);
     redraw();
   });

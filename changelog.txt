@@ -1,3 +1,6 @@
+0.9.75
+- Crop protection: combos can be built in any order
+
 0.9.74
 - Crop protection: no duplicate combos
 

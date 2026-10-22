@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 import { config } from '../src/config.js';
 import { blockOutgoingHarvest, protectionReason } from '../src/features/crop-protection.js';
+import { comboKey, repeatsEarlierCombo } from '../src/harvest-combos.js';
 import { state } from '../src/state.js';
 import type { PlayerSlot } from '../src/types.js';
 
@@ -40,6 +41,15 @@ test('species and max size rules apply, mutations first', () => {
   assert.equal(protectionReason({ slotId: 0, species: 'Carrot', size: 100 } as never, 'Carrot'), 'max size');
   assert.equal(protectionReason({ slotId: 0, species: 'Carrot', size: 99 } as never, 'Carrot'), null);
   config.protectMaxSize = false;
+});
+
+test('a repeat is the same size and mutations in any order, and only a later one counts', () => {
+  const combos = [{ minSize: 90, mutations: ['Rainbow', 'Frozen'] }, { minSize: 90, mutations: ['Frozen', 'Rainbow'] }, { minSize: 80, mutations: ['Rainbow', 'Frozen'] }];
+  assert.equal(comboKey(combos[0]), comboKey(combos[1]));
+  assert.equal(repeatsEarlierCombo(combos, 0), false);
+  assert.equal(repeatsEarlierCombo(combos, 1), true);
+  assert.equal(repeatsEarlierCombo(combos, 2), false, 'a different size is a different combo');
+  assert.equal(comboKey(null), comboKey({}), 'a damaged entry reads as a blank');
 });
 
 test('a slot with no id is found by its place on the tile', () => {

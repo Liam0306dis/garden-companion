@@ -739,6 +739,7 @@ details.gc-card summary h3 { display:inline; }
 .gc-ready-chip { display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 4px;border:1px solid var(--gc-accent-line);border-radius:999px;background:var(--gc-accent-soft);color:var(--gc-strong);font-size:12px;font-weight:600; }
 .gc-ready-chip img { width:18px;height:18px;object-fit:contain; }
 .gc-ready-chip.gc-ready-size { padding-left:8px; }
+.gc-ready-repeat { margin-left:4px;color:#fca5a5;font-size:11px; }
 .gc-ready-chip.gc-ready-any { padding-left:8px;border-color:var(--gc-line-strong);background:none;color:var(--gc-muted);font-weight:500; }
 .gc-ready-combo .gc-value-pill:not(.on) img { opacity:.35;filter:grayscale(1); }
 .gc-ready-combo .gc-value-pill:not(.on):hover img { opacity:.8;filter:none; }

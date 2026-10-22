@@ -2,6 +2,7 @@ import type { CompanionConfig } from './types.js';
 import { notifyStateChange } from './state.js';
 import { ABILITY_CATALOG, EXCLUDED_TOOL_ALERTS, EXCLUDED_TRACKED_ABILITIES, PET_CATALOG, STORE_KEY } from './constants.js';
 import { warn } from './diagnostics.js';
+import { withoutRepeatedCombos } from './harvest-combos.js';
 
 /** Features that cannot be turned off, so their toggles never appear in the panel. */
 export const ALWAYS_ENABLED = new Set(['overview', 'petTeams', 'abilities', 'rooms', 'shopAlarms', 'interfaceShortcuts', 'abilitySilencer', 'lunarTimer']);
@@ -135,10 +136,20 @@ export function pruneStaleConfig(): void {
   const savedHarvestRules = config.harvestRules && typeof config.harvestRules === 'object' ? config.harvestRules : {};
   // A rule with no combos reads the same as no rule. Rules for unticked species are kept, so ticking
   // one again brings its combos back.
-  config.harvestRules = Object.fromEntries(Object.entries(savedHarvestRules).filter(([, rule]) => Array.isArray(rule?.combos) && rule.combos.length > 0));
+  // Repeats of a combo add nothing, and older versions let them be saved.
+  let harvestRulesChanged = false;
+  config.harvestRules = Object.fromEntries(Object.entries(savedHarvestRules)
+    .filter(([, rule]) => Array.isArray(rule?.combos) && rule.combos.length > 0)
+    .map(([species, rule]) => {
+      const combos = withoutRepeatedCombos(rule.combos);
+      if (combos.length === rule.combos.length) return [species, rule];
+      harvestRulesChanged = true;
+      return [species, { ...rule, combos }];
+    }));
   if (config.silencedAbilities.length !== savedSilencedAbilities.length
     || Object.keys(config.shopAlerts).length !== Object.keys(savedShopAlerts).length
     || Object.keys(config.petFoodChoices).length !== Object.keys(savedFoodChoices).length
     || Object.keys(config.protectedSpecies).length !== Object.keys(savedProtectedSpecies).length
-    || Object.keys(config.harvestRules).length !== Object.keys(savedHarvestRules).length) saveConfig();
+    || Object.keys(config.harvestRules).length !== Object.keys(savedHarvestRules).length
+    || harvestRulesChanged) saveConfig();
 }
