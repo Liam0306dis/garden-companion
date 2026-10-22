@@ -1,3 +1,6 @@
+0.9.77
+- Egg luck: counts can be typed in
+
 0.9.76
 - Journal logger: log new crops and pets with a click
 

@@ -314,13 +314,21 @@ function setPityCount(eggId: string, key: string, misses: number): void {
   save();
 }
 
-/** A table cell's count, or in edit mode the count between - and + buttons. */
+/** A table cell's count, or in edit mode a box to type it into, between - and + buttons. */
 function stepCell(eggId: string, species: string, field: string, count: number, editMode: boolean): string {
   if (!editMode) return count ? count.toLocaleString(NUMBER_LOCALE) : (field === 'hatched' ? '0' : '-');
-  const data = `data-egg-adjust="${escapeHtml(eggId)}" data-species="${escapeHtml(species)}" data-field="${escapeHtml(field)}"`;
+  const target = `data-species="${escapeHtml(species)}" data-field="${escapeHtml(field)}"`;
+  const data = `data-egg-adjust="${escapeHtml(eggId)}" ${target}`;
   return `<span class="gc-egg-step"><button ${data} data-delta="-1" title="Remove one">&#8722;</button>`
-    + `<b>${count.toLocaleString(NUMBER_LOCALE)}</b>`
+    + `<input type="number" min="0" step="1" value="${count}" data-egg-set="${escapeHtml(eggId)}" ${target} title="Type a count, then press Enter">`
     + `<button ${data} data-delta="1" title="Add one">+</button></span>`;
+}
+
+/** The count a typed box is measured against, so setting it can go through adjustEggLuck's rules. */
+function currentCount(eggId: string, species: string, field: string): number {
+  const record = luck[eggId];
+  if (!record) return 0;
+  return field === 'hatched' ? record.species[species] || 0 : record.speciesColours[species]?.[field] || 0;
 }
 
 function eggName(eggId: string): string {
@@ -466,6 +474,32 @@ export function bindEggLuckEvents(main: HTMLElement): void {
   main.querySelectorAll<HTMLButtonElement>('[data-egg-adjust]').forEach(button => button.onclick = () => {
     adjustEggLuck(button.dataset.eggAdjust!, button.dataset.species!, button.dataset.field!, Number(button.dataset.delta) || 0);
     panelActions.renderPanelPreservingScroll();
+  });
+  // Applied on change (Enter or leaving the box), not per keystroke: a half-typed 1 on the way to 12
+  // would trim Gold and Rainbow down to fit it. Enter redraws so linked counts update; leaving the
+  // box does not, for the same swallowed-click reason as the pity boxes below.
+  main.querySelectorAll<HTMLInputElement>('[data-egg-set]').forEach(input => {
+    input.onchange = () => {
+      const { eggSet: eggId, species, field } = input.dataset;
+      const next = Math.floor(Number(input.value));
+      if (!eggId || !species || !field) return;
+      if (input.value.trim() === '' || !Number.isFinite(next) || next < 0) {
+        input.value = String(currentCount(eggId, species, field));
+        return;
+      }
+      adjustEggLuck(eggId, species, field, next - currentCount(eggId, species, field));
+      // Gold past the hatch count raises it, and fewer hatches trim the colours, so the row's other
+      // boxes are brought up to date in place rather than by the redraw this path avoids.
+      main.querySelectorAll<HTMLInputElement>('[data-egg-set]').forEach(other => {
+        if (other === input || other.dataset.eggSet !== eggId || other.dataset.species !== species) return;
+        other.value = String(currentCount(eggId, species, other.dataset.field!));
+      });
+    };
+    input.onkeydown = event => {
+      if (event.key !== 'Enter') return;
+      input.onchange?.(new Event('change'));
+      panelActions.renderPanelPreservingScroll();
+    };
   });
   // Saved as typed but not redrawn: a redraw on blur would swap out the button being clicked (Done,
   // or a stepper), swallowing that click. Enter redraws, so the bar can be checked without leaving.

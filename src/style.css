@@ -1120,7 +1120,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 #gc-panel .gc-egg-edit[aria-pressed=true] { color:var(--gc-accent-text);border-color:var(--gc-accent); }
 .gc-egg-card[data-editing=true] .gc-egg-table th:nth-child(n+2),.gc-egg-card[data-editing=true] .gc-egg-table td:nth-child(n+2) { width:22%; }
 .gc-egg-step { display:inline-flex;align-items:center;justify-content:flex-end;gap:4px; }
-.gc-egg-step b { min-width:2ch;font-weight:600;text-align:center; }
+#gc-panel .gc-egg-step input { width:6ch;padding:2px 4px;font-size:11px;font-weight:600;text-align:center;-moz-appearance:textfield; }
+#gc-panel .gc-egg-step input::-webkit-inner-spin-button,#gc-panel .gc-egg-step input::-webkit-outer-spin-button { -webkit-appearance:none;margin:0; }
 #gc-panel .gc-egg-step button { width:20px;min-height:20px;height:20px;padding:0;font-size:12px;line-height:1; }
 .gc-egg-card[data-editing=true] .gc-egg-pity-count { flex-basis:110px; }
 #gc-panel .gc-egg-pity-count input { width:56px;padding:2px 4px;font-size:11px;text-align:right; }
