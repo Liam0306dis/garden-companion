@@ -1166,3 +1166,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-carve-preview { cursor:grab;touch-action:none; }
 .gc-carve-preview[data-dragging=true] { cursor:grabbing; }
 .gc-carve-hint { margin:4px 0 0;color:var(--gc-muted);font-size:11px;text-align:center; }
+.gc-modal-backdrop .gc-carve-link { padding:0;border:0;background:none;color:var(--gc-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline; }
+.gc-carve-modal[data-cropping=true] .gc-modal-body > :not(.gc-carve-crop), .gc-carve-modal[data-cropping=true] .gc-carve-actions { display:none; }
+.gc-carve-crop[hidden] { display:none; }
+.gc-carve-crop-view { display:block;max-width:100%;max-height:55vh;margin:0 auto;border-radius:var(--gc-radius-sm);background:var(--gc-input);cursor:crosshair;touch-action:none; }
+.gc-carve-crop-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:10px; }

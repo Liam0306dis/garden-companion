@@ -25,6 +25,7 @@ interface LiveSystems extends FarmSystems {
     worldTapRouter: GameObject | null;
     gardenInfoCard: GameObject | null;
     inventory: GameObject | null;
+    modals: GameObject | null;
     inventoryItems: GameObject[];
     inventoryReady: boolean;
     ownUserSlotIdx: number | null;
@@ -90,6 +91,7 @@ export function initPlantDragMove(): void {
         worldTapRouter: null,
         gardenInfoCard: null,
         inventory: null,
+        modals: null,
         inventoryItems: [],
         inventoryReady: false,
         ownUserSlotIdx: null,
@@ -135,7 +137,7 @@ export function initPlantDragMove(): void {
      * first new system and left the card estimates on a destroyed view.
      */
     const capturedSinceArm = new Set<string>();
-    const CAPTURED_SYSTEMS = ['tapToMove', 'tileObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory'];
+    const CAPTURED_SYSTEMS = ['tapToMove', 'tileObject', 'pet', 'worldTapRouter', 'gardenInfoCard', 'inventory', 'modals'];
     // Build 1446 renamed the tile system to gardenObject when it started drawing edge decor too.
     // Both names are taken, and counted as 'tileObject' so the release check below still lines up.
     const TILE_SYSTEM_NAMES = new Set(['tileObject', 'gardenObject']);
@@ -227,6 +229,12 @@ export function initPlantDragMove(): void {
             live.inventory = system;
             publishEngine();
             log('Native inventory connected.');
+        } else if (system?.name === 'modals' && typeof system.built?.get === 'function') {
+            // The picture carving loads its cuts into the game's own carving window, kept here.
+            if (live.modals === system) return;
+            live.modals = system;
+            publishEngine();
+            log('Native modals connected.');
         } else return;
         releaseGlobalHooksIfIdle();
     }
@@ -235,7 +243,8 @@ export function initPlantDragMove(): void {
     function publishEngine() {
         setQuinoaEngine({
             getSystem: (name: string) => name === 'gardenInfoCard' ? live.gardenInfoCard
-                : name === 'inventory' ? live.inventory : undefined,
+                : name === 'inventory' ? live.inventory
+                : name === 'modals' ? live.modals : undefined,
         });
     }
 

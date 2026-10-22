@@ -1,3 +1,10 @@
+0.9.71
+- Pumpkin carving: cleaner results from photos and busy pictures (hopefully), and holes like eyes are no longer filled in
+- Pumpkin carving: a checkered "transparent" background saved into a picture is treated as background
+- Pumpkin carving: Crop to carve part of a picture, freehand or as a rectangle
+- Pumpkin carving: stained glass can cut the lines instead of the colours
+- Pumpkin carving: Edit in game puts the picture on the pumpkin to touch up with the knife before saving
+
 0.9.70
 - Cinematic button: fixed position glitches
 - Diagnostics: tidier spacing

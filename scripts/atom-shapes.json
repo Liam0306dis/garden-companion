@@ -5,6 +5,7 @@
   "currentRoomAtom": "_(_ _)",
   "enqueuedQuinoaPredictionsAtom": "_([])",
   "hudSuppressedByOverlayAtom": "_(_=>_(_)||_(_)||_(_))",
+  "isChatWidgetPresentedAtom": "_(!1)",
   "isHoldingCameraAtom": "_(_=>{_ _=_(_);return _?.itemType===_.Tool&&_.toolId===`Camera`})",
   "isInMyGardenAtom": "_(_=>{_ _=_(_),_=_(_);return _?_.playerId===_:!1})",
   "myCurrentGardenObjectAtom": "_(_=>{_ _=_(_);return _?_(_,_):null})",

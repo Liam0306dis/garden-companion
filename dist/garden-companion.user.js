@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.70
+// @version      0.9.71
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -37,7 +37,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.70", notes: ["Cinematic button: fixed position glitches", "Diagnostics: tidier spacing", "Crop protection: uses the game's padlock"] }, { version: "0.9.69", notes: ['Plant drag move: no longer stops with "stand on a tile in your own garden first" while you are already in your garden, such as after changing room or reconnecting'] }, { version: "0.9.68", notes: ["Diagnostics: a new Diagnostics tab in the bottom bar shows what is working and what is not, with a Copy report button for sending a report when something breaks (it leaves out your player id and room) - the tab shows a red dot when something has stopped working"] }, { version: "0.9.67", notes: ["Changes to play nicer alongside AriesMod and QPM: commands no longer get stuck when AriesMod blocks one, QPM's locker and command tracking now apply to the commands Garden Companion sends, held keys are let go when you switch windows, and less slowdown from page-wide hooks"] }, { version: "0.9.66", notes: ["Pet food: the feed buttons should never feed a carved pumpkin"] }, { version: "0.9.65", notes: ["Layout planner and Lighting: a locked or previewed time of day only changes the lights and sky, not the rest of the game's screen", "Small fixes for the latest game update"] }, { version: "0.9.64", notes: ["The panel fills in again in rooms still on the previous game version"] }, { version: "0.9.63", notes: ["Update for the latest game update: the panel, shops, pet hunger, auto-store and weather alarms update again, Glow and the planner's night preview light up lamps and crop glows again"] }, { version: "0.9.62", notes: ["Egg luck: an Edit button on every egg lets you add or remove hatches, Gold and Rainbow for each pet with - and + buttons, and type in where each pity counter stands, so hatches from before you installed can be counted - press Done when finished"] }, { version: "0.9.61", notes: ["Pumpkin carving: a Select a picture button in the carving window turns any picture into a carving - choose Stained glass (colourful art, with lines left between colours), Shape (the outline) or Light and dark, drag and scroll the preview to frame the part you want, adjust it with the sliders (outlines are traced finer than the carving grid and use the whole carving limit, so they follow the picture closely), and it is cut into the pumpkin (switch it off in Features)"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.71", notes: ["Pumpkin carving: cleaner results from photos and busy pictures (hopefully), and holes like eyes are no longer filled in", 'Pumpkin carving: a checkered "transparent" background saved into a picture is treated as background', "Pumpkin carving: Crop to carve part of a picture, freehand or as a rectangle", "Pumpkin carving: stained glass can cut the lines instead of the colours", "Pumpkin carving: Edit in game puts the picture on the pumpkin to touch up with the knife before saving"] }, { version: "0.9.70", notes: ["Cinematic button: fixed position glitches", "Diagnostics: tidier spacing", "Crop protection: uses the game's padlock"] }, { version: "0.9.69", notes: ['Plant drag move: no longer stops with "stand on a tile in your own garden first" while you are already in your garden, such as after changing room or reconnecting'] }, { version: "0.9.68", notes: ["Diagnostics: a new Diagnostics tab in the bottom bar shows what is working and what is not, with a Copy report button for sending a report when something breaks (it leaves out your player id and room) - the tab shows a red dot when something has stopped working"] }, { version: "0.9.67", notes: ["Changes to play nicer alongside AriesMod and QPM: commands no longer get stuck when AriesMod blocks one, QPM's locker and command tracking now apply to the commands Garden Companion sends, held keys are let go when you switch windows, and less slowdown from page-wide hooks"] }, { version: "0.9.66", notes: ["Pet food: the feed buttons should never feed a carved pumpkin"] }, { version: "0.9.65", notes: ["Layout planner and Lighting: a locked or previewed time of day only changes the lights and sky, not the rest of the game's screen", "Small fixes for the latest game update"] }, { version: "0.9.64", notes: ["The panel fills in again in rooms still on the previous game version"] }, { version: "0.9.63", notes: ["Update for the latest game update: the panel, shops, pet hunger, auto-store and weather alarms update again, Glow and the planner's night preview light up lamps and crop glows again"] }, { version: "0.9.62", notes: ["Egg luck: an Edit button on every egg lets you add or remove hatches, Gold and Rainbow for each pet with - and + buttons, and type in where each pity counter stands, so hatches from before you installed can be counted - press Done when finished"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheave", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -9088,9 +9088,9 @@ ${eggs.map(eggCard).join("")}`;
     }
     return area;
   }
-  function traceLoops(mask, scale = 1) {
+  function traceLoops(mask, scale = 1, from = 0, to = CARVING_GRID * scale) {
     const n = CARVING_GRID * scale;
-    const cut = (x, y) => x >= 0 && y >= 0 && x < n && y < n && mask[y * n + x] === 1;
+    const cut = (x, y) => x >= from && y >= 0 && x < to && y < n && mask[y * n + x] === 1;
     const stride = n + 1;
     const key = (x, y) => y * stride + x;
     const outgoing = /* @__PURE__ */ new Map();
@@ -9101,7 +9101,7 @@ ${eggs.map(eggCard).join("")}`;
       else outgoing.set(k, [direction]);
     };
     for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
+      for (let x = from; x < to; x++) {
         if (!cut(x, y)) continue;
         if (!cut(x, y - 1)) add(x, y, 0);
         if (!cut(x + 1, y)) add(x + 1, y, 1);
@@ -9170,8 +9170,21 @@ ${eggs.map(eggCard).join("")}`;
     }
     return points.filter((_, i) => keep[i]);
   }
-  function simplifyLoop(loop, epsilon) {
+  function simplifyLoop(loop, epsilon, pinned) {
     if (loop.length <= 4 || epsilon <= 0) return loop.slice();
+    const pins = pinned ? loop.flatMap((point, i) => pinned(point) ? [i] : []) : [];
+    if (pins.length === 1) {
+      return simplifyLoop([...loop.slice(pins[0]), ...loop.slice(0, pins[0])], epsilon);
+    }
+    if (pins.length > 1) {
+      const result2 = [];
+      pins.forEach((from, k) => {
+        const to = pins[(k + 1) % pins.length];
+        const stretch = to > from ? loop.slice(from, to + 1) : [...loop.slice(from), ...loop.slice(0, to + 1)];
+        result2.push(...simplifyOpen(stretch, epsilon).slice(0, -1));
+      });
+      return result2.length >= 3 ? result2 : loop.slice(0, 3);
+    }
     let far = 0, best = -1;
     for (let i = 1; i < loop.length; i++) {
       const distance = Math.hypot(loop[i].x - loop[0].x, loop[i].y - loop[0].y);
@@ -9270,9 +9283,9 @@ ${eggs.map(eggCard).join("")}`;
     return { closed: true, points };
   }
   var MAX_SMOOTHING = 12;
-  function regionStroke(region, epsilon) {
-    let outline = simplifyLoop(region.outline, epsilon);
-    for (let e = epsilon * 1.35; outline.length > CARVING_MAX_POINTS && e <= MAX_SMOOTHING * 8; e *= 1.35) outline = simplifyLoop(region.outline, e);
+  function planRegion(region, epsilon, pinned) {
+    let outline = simplifyLoop(region.outline, epsilon, pinned);
+    for (let e = epsilon * 1.35; outline.length > CARVING_MAX_POINTS && e <= MAX_SMOOTHING * 8; e *= 1.35) outline = simplifyLoop(region.outline, e, pinned);
     if (outline.length > CARVING_MAX_POINTS) return null;
     let room = CARVING_MAX_POINTS - outline.length;
     const islands = [];
@@ -9282,27 +9295,58 @@ ${eggs.map(eggCard).join("")}`;
       islands.push(simplified);
       room -= simplified.length + 2;
     }
+    return { outline, islands };
+  }
+  var planBytes = ({ outline, islands }) => 2 + 2 * islands.reduce((total, island) => total + island.length + 2, outline.length);
+  function regionStroke({ outline, islands }) {
     const stroke = toStroke(bridge(outline, islands));
     return stroke.points.length >= 3 && stroke.points.length <= CARVING_MAX_POINTS ? stroke : null;
   }
-  function strokesAt(regions, epsilon) {
+  var plansAt = (regions, epsilon, pinned) => regions.map((region) => planRegion(region, epsilon, pinned)).filter((plan) => plan !== null);
+  function strokesAt(regions, epsilon, pinned) {
     const strokes = [];
-    for (const region of regions) {
-      const stroke = regionStroke(region, epsilon);
+    for (const plan of plansAt(regions, epsilon, pinned)) {
+      const stroke = regionStroke(plan);
       if (stroke) strokes.push(stroke);
     }
     return { strokes, failed: regions.length - strokes.length };
   }
+  var BAND_ISLAND_AREA = 8;
+  var MAX_BAND_CUTS = 40;
+  function bandCuts(loops, scale) {
+    const islands = loops.map((loop) => ({ loop, area: -doubleArea(loop) / 2 })).filter(({ area }) => area >= BAND_ISLAND_AREA * scale * scale).sort((a, b) => b.area - a.area);
+    const cuts = [];
+    for (const { loop } of islands) {
+      let min = Infinity, max = -Infinity;
+      for (const { x } of loop) {
+        if (x < min) min = x;
+        if (x > max) max = x;
+      }
+      if (cuts.some((cut2) => cut2 > min && cut2 < max)) continue;
+      const cut = Math.round((min + max) / 2 / scale) * scale;
+      if (cut <= min || cut >= max) continue;
+      cuts.push(cut);
+      if (cuts.length >= MAX_BAND_CUTS) break;
+    }
+    return cuts.sort((a, b) => a - b);
+  }
   function traceCarving(mask, options = {}) {
     const minSmoothing = Math.max(0.3, options.smoothing ?? 0.8);
     const scale = options.scale ?? 1;
-    const loops = traceLoops(mask, scale);
+    let loops = traceLoops(mask, scale);
+    const cuts = bandCuts(loops, scale);
+    if (cuts.length) {
+      const edges = [0, ...cuts, CARVING_GRID * scale];
+      loops = edges.slice(1).flatMap((to, k) => traceLoops(mask, scale, edges[k], to));
+    }
     if (scale !== 1) for (const loop of loops) for (const point of loop) {
       point.x /= scale;
       point.y /= scale;
     }
+    const seams = new Set(cuts.map((cut) => cut / scale));
+    const pinned = seams.size ? (point) => seams.has(point.x) : void 0;
     let regions = groupRegions(loops, options.minArea ?? 2, 1 / scale).sort((a, b) => b.area - a.area);
-    const fits = (epsilon2) => carvingBytes(strokesAt(regions, epsilon2).strokes) <= CARVING_MAX_BYTES;
+    const fits = (epsilon2) => plansAt(regions, epsilon2, pinned).reduce((total, plan) => total + planBytes(plan), 0) <= CARVING_MAX_BYTES;
     let dropped = 0;
     let epsilon = minSmoothing;
     if (!fits(epsilon)) {
@@ -9319,7 +9363,7 @@ ${eggs.map(eggCard).join("")}`;
       }
       epsilon = high;
     }
-    const { strokes, failed } = strokesAt(regions, epsilon);
+    const { strokes, failed } = strokesAt(regions, epsilon, pinned);
     dropped += failed;
     while (strokes.length && carvingBytes(strokes) > CARVING_MAX_BYTES) {
       strokes.pop();
@@ -9334,12 +9378,10 @@ ${eggs.map(eggCard).join("")}`;
   }
   function pictureBackground(data, width, height) {
     for (let i = 3; i < data.length; i += 4) if (data[i] < 128) return null;
-    const rs = [], gs = [], bs = [];
+    const border = [];
     const take = (x, y) => {
       const i = (y * width + x) * 4;
-      rs.push(data[i]);
-      gs.push(data[i + 1]);
-      bs.push(data[i + 2]);
+      border.push({ r: data[i], g: data[i + 1], b: data[i + 2] });
     };
     for (let x = 0; x < width; x++) {
       take(x, 0);
@@ -9350,10 +9392,29 @@ ${eggs.map(eggCard).join("")}`;
       take(width - 1, y);
     }
     const median = (values) => values.sort((a, b) => a - b)[values.length >> 1];
-    return { r: median(rs), g: median(gs), b: median(bs) };
+    const background = { r: median(border.map((c) => c.r)), g: median(border.map((c) => c.g)), b: median(border.map((c) => c.b)) };
+    return { ...background, ...checkerboard(border) };
   }
-  function pictureMask(data, background, settings, scale = 1) {
+  function checkerboard(border) {
+    const grey = border.filter(({ r, g, b }) => Math.max(r, g, b) - Math.min(r, g, b) <= 20);
+    if (grey.length < border.length * 0.85) return null;
+    const luma = ({ r, g, b }) => 0.299 * r + 0.587 * g + 0.114 * b;
+    const shades = grey.map(luma).sort((a, b) => a - b);
+    const dark = shades[Math.floor(shades.length * 0.15)], light = shades[Math.floor(shades.length * 0.85)];
+    if (light - dark < 12) return null;
+    const near = (level) => grey.filter((colour) => Math.abs(luma(colour) - level) <= 8);
+    const darks = near(dark), lights = near(light);
+    if (darks.length < grey.length * 0.2 || lights.length < grey.length * 0.2 || darks.length + lights.length < grey.length * 0.7) return null;
+    const mean = (colours) => ({
+      r: colours.reduce((t, c) => t + c.r, 0) / colours.length,
+      g: colours.reduce((t, c) => t + c.g, 0) / colours.length,
+      b: colours.reduce((t, c) => t + c.b, 0) / colours.length
+    });
+    return { ...mean(lights), alt: mean(darks) };
+  }
+  function pictureMask(picture, background, settings, scale = 1, extent) {
     const n = CARVING_GRID * scale;
+    const data = denoised(picture, n);
     const mask = new Uint8Array(n * n);
     const alpha = (i) => data[i * 4 + 3] / 255;
     if (settings.mode === "shade") {
@@ -9362,18 +9423,10 @@ ${eggs.map(eggCard).join("")}`;
         const luma = lumaOver(data, i, backdrop);
         mask[i] = (settings.invert ? luma >= settings.threshold : luma < settings.threshold) ? 1 : 0;
       }
-      clipMaskToFace(mask, scale);
-      return mask;
+      return cleaned(mask, scale);
     }
-    for (let i = 0; i < mask.length; i++) {
-      if (alpha(i) < 0.5) continue;
-      if (!background) {
-        mask[i] = 1;
-        continue;
-      }
-      const distance = Math.max(Math.abs(data[i * 4] - background.r), Math.abs(data[i * 4 + 1] - background.g), Math.abs(data[i * 4 + 2] - background.b));
-      mask[i] = distance > settings.tolerance ? 1 : 0;
-    }
+    if (background) markForeground(mask, data, background, settings.tolerance, n);
+    else for (let i = 0; i < mask.length; i++) mask[i] = alpha(i) >= 0.5 ? 1 : 0;
     if (settings.mode === "glass") {
       const difference = (i, j) => Math.max(
         Math.abs(data[i * 4] * alpha(i) - data[j * 4] * alpha(j)),
@@ -9382,13 +9435,21 @@ ${eggs.map(eggCard).join("")}`;
         Math.abs(data[i * 4 + 3] - data[j * 4 + 3])
       );
       const neighbours = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+      const { left, top, right, bottom } = extent ?? { left: 0, top: 0, right: n - 1, bottom: n - 1 };
       let line = new Uint8Array(n * n);
       for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
         const i = y * n + x;
         if (!mask[i]) continue;
         for (const [dx, dy] of neighbours) {
           const nx = x + dx, ny = y + dy;
-          if (nx < 0 || ny < 0 || nx >= n || ny >= n || !mask[ny * n + nx]) continue;
+          if (nx < 0 || ny < 0 || nx >= n || ny >= n) continue;
+          if (!mask[ny * n + nx]) {
+            if (settings.invert && nx >= left && nx <= right && ny >= top && ny <= bottom) {
+              line[i] = line[ny * n + nx] = 1;
+              break;
+            }
+            continue;
+          }
           if (difference(i, ny * n + nx) > settings.edges) {
             line[i] = 1;
             break;
@@ -9405,15 +9466,166 @@ ${eggs.map(eggCard).join("")}`;
         }
         line = wider;
       }
-      for (let i = 0; i < mask.length; i++) if (line[i]) mask[i] = 0;
+      if (settings.invert) mask.set(line);
+      else for (let i = 0; i < mask.length; i++) if (line[i]) mask[i] = 0;
     }
+    return cleaned(mask, scale);
+  }
+  var SPECK_AREA = 6;
+  var denoiseCache = /* @__PURE__ */ new WeakMap();
+  function denoised(data, n) {
+    const cached2 = denoiseCache.get(data);
+    if (cached2) return cached2;
+    const out = new Uint8ClampedArray(n * n * 4);
+    const p = new Int32Array(9);
+    const sort = (a, b) => {
+      if (p[a] > p[b]) {
+        const t = p[a];
+        p[a] = p[b];
+        p[b] = t;
+      }
+    };
+    for (let y = 0; y < n; y++) {
+      const up = Math.max(0, y - 1) * n * 4, row = y * n * 4, down = Math.min(n - 1, y + 1) * n * 4;
+      for (let x = 0; x < n; x++) {
+        const left = Math.max(0, x - 1) * 4, centre = x * 4, right = Math.min(n - 1, x + 1) * 4;
+        const i = row + centre;
+        for (let c = 0; c < 3; c++) {
+          p[0] = data[up + left + c];
+          p[1] = data[up + centre + c];
+          p[2] = data[up + right + c];
+          p[3] = data[row + left + c];
+          p[4] = data[row + centre + c];
+          p[5] = data[row + right + c];
+          p[6] = data[down + left + c];
+          p[7] = data[down + centre + c];
+          p[8] = data[down + right + c];
+          sort(1, 2);
+          sort(4, 5);
+          sort(7, 8);
+          sort(0, 1);
+          sort(3, 4);
+          sort(6, 7);
+          sort(1, 2);
+          sort(4, 5);
+          sort(7, 8);
+          sort(0, 3);
+          sort(5, 8);
+          sort(4, 7);
+          sort(3, 6);
+          sort(1, 4);
+          sort(2, 5);
+          sort(4, 7);
+          sort(4, 2);
+          sort(6, 4);
+          sort(4, 2);
+          out[i + c] = p[4];
+        }
+        out[i + 3] = data[i + 3];
+      }
+    }
+    if (typeof data === "object") denoiseCache.set(data, out);
+    return out;
+  }
+  function markForeground(mask, data, background, tolerance, n) {
+    const total = n * n;
+    const opaque = (i) => data[i * 4 + 3] >= 128;
+    const from = (i, { r, g, b }) => Math.max(Math.abs(data[i * 4] - r), Math.abs(data[i * 4 + 1] - g), Math.abs(data[i * 4 + 2] - b));
+    const { alt } = background;
+    const distance = alt ? (i) => Math.min(from(i, background), from(i, alt)) : (i) => from(i, background);
+    const like = new Uint8Array(total);
+    for (let i = 0; i < total; i++) like[i] = !opaque(i) || distance(i) <= tolerance ? 1 : 0;
+    const outside = new Uint8Array(total);
+    const stack = new Int32Array(total);
+    let top = 0;
+    const visit = (i) => {
+      if (like[i] && !outside[i]) {
+        outside[i] = 1;
+        stack[top++] = i;
+      }
+    };
+    for (let i = 0; i < total; i++) {
+      const x = i % n, y = (i - x) / n;
+      if (!opaque(i) || x === 0 || y === 0 || x === n - 1 || y === n - 1) visit(i);
+    }
+    const flood = (step) => {
+      while (top) {
+        const i = stack[--top], x = i % n;
+        if (x > 0) step(i - 1);
+        if (x < n - 1) step(i + 1);
+        if (i >= n) step(i - n);
+        if (i < total - n) step(i + n);
+      }
+    };
+    flood(visit);
+    const seen3 = new Uint8Array(total);
+    const patch = new Int32Array(total);
+    for (let start = 0; start < total; start++) {
+      if (!like[start] || outside[start] || seen3[start]) continue;
+      let count = 0, read = 0, sum = 0;
+      seen3[start] = 1;
+      patch[count++] = start;
+      const next = (j) => {
+        if (like[j] && !outside[j] && !seen3[j]) {
+          seen3[j] = 1;
+          patch[count++] = j;
+        }
+      };
+      while (read < count) {
+        const i = patch[read++], x = i % n;
+        sum += distance(i);
+        if (x > 0) next(i - 1);
+        if (x < n - 1) next(i + 1);
+        if (i >= n) next(i - n);
+        if (i < total - n) next(i + n);
+      }
+      if (sum / count <= tolerance / 2) for (let k = 0; k < count; k++) outside[patch[k]] = 1;
+    }
+    for (let i = 0; i < total; i++) mask[i] = opaque(i) && !outside[i] ? 1 : 0;
+  }
+  function cleaned(mask, scale) {
+    const n = CARVING_GRID * scale;
     clipMaskToFace(mask, scale);
+    if (scale > 1) {
+      const source2 = mask.slice();
+      for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++) {
+        const i = y * n + x;
+        const sum = source2[i - n - 1] + source2[i - n] + source2[i - n + 1] + source2[i - 1] + source2[i] + source2[i + 1] + source2[i + n - 1] + source2[i + n] + source2[i + n + 1];
+        mask[i] = sum >= 5 ? 1 : 0;
+      }
+      clipMaskToFace(mask, scale);
+    }
+    const source = mask.slice();
+    const minCells = SPECK_AREA * scale * scale;
+    const seen3 = new Uint8Array(n * n);
+    const patch = new Int32Array(n * n);
+    for (let start = 0; start < n * n; start++) {
+      if (seen3[start]) continue;
+      const value = source[start];
+      let count = 0, read = 0;
+      seen3[start] = 1;
+      patch[count++] = start;
+      while (read < count) {
+        const i = patch[read++], x = i % n;
+        const next = (j) => {
+          if (!seen3[j] && source[j] === value) {
+            seen3[j] = 1;
+            patch[count++] = j;
+          }
+        };
+        if (x > 0) next(i - 1);
+        if (x < n - 1) next(i + 1);
+        if (i >= n) next(i - n);
+        if (i < n * n - n) next(i + n);
+      }
+      if (count < minCells) for (let k = 0; k < count; k++) mask[patch[k]] = 1 - value;
+    }
     return mask;
   }
 
   // src/carving-worker.ts
   function runCarvingJob(job) {
-    return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale), { smoothing: job.smoothing, scale: job.scale });
+    return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale, job.extent), { smoothing: job.smoothing, scale: job.scale });
   }
   var scope = globalThis;
   if (typeof scope.document === "undefined" && typeof scope.postMessage === "function") {
@@ -9455,6 +9667,16 @@ ${eggs.map(eggCard).join("")}`;
     const current = store.get(modalAtom);
     if (current?.modal !== MODAL_NAME) return;
     store.set(modalAtom, { modal: null, openId: (Number(current.openId) || 0) + 1 });
+  }
+  function loadIntoGameCarving(strokes) {
+    const view = quinoaEngine()?.getSystem?.("modals")?.built?.get?.(MODAL_NAME);
+    if (!view || !view.target || !Array.isArray(view.strokes) || !Array.isArray(view.history) || typeof view.redraw !== "function") return false;
+    const copy = (list) => list.map(({ closed, points }) => ({ closed, points: points.map(({ x, y }) => ({ x, y })) }));
+    view.endCut?.();
+    view.history.push(copy(view.strokes));
+    view.strokes = copy(strokes);
+    view.redraw();
+    return true;
   }
   function placeButton() {
     const button = document.getElementById(BUTTON_ID);
@@ -9547,7 +9769,7 @@ ${eggs.map(eggCard).join("")}`;
         resolve(null);
         return;
       }
-      const url = URL.createObjectURL(new Blob(['"use strict";\n(() => {\n  // src/carving-trace.ts\n  var CARVING_GRID = 256;\n  var CARVING_MAX_BYTES = 2304;\n  var CARVING_MAX_POINTS = 255;\n  var FACE_SCALE = 540 / 256;\n  var FACE = { cx: 270 / FACE_SCALE, cy: 270 / FACE_SCALE, rx: 270 / FACE_SCALE, ry: 180 / FACE_SCALE };\n  var FACE_MARGIN = 1.5;\n  function insideFace(x, y, margin = 0) {\n    const dx = (x - FACE.cx) / (FACE.rx - margin);\n    const dy = (y - FACE.cy) / (FACE.ry - margin);\n    return dx * dx + dy * dy <= 1;\n  }\n  function clipMaskToFace(mask, scale = 1) {\n    const n = CARVING_GRID * scale;\n    for (let y = 0; y < n; y++) {\n      for (let x = 0; x < n; x++) {\n        if (!insideFace((x + 0.5) / scale, (y + 0.5) / scale, FACE_MARGIN)) mask[y * n + x] = 0;\n      }\n    }\n  }\n  function doubleArea(loop) {\n    let area = 0;\n    for (let i = 0; i < loop.length; i++) {\n      const a = loop[i], b = loop[(i + 1) % loop.length];\n      area += a.x * b.y - b.x * a.y;\n    }\n    return area;\n  }\n  function traceLoops(mask, scale = 1) {\n    const n = CARVING_GRID * scale;\n    const cut = (x, y) => x >= 0 && y >= 0 && x < n && y < n && mask[y * n + x] === 1;\n    const stride = n + 1;\n    const key = (x, y) => y * stride + x;\n    const outgoing = /* @__PURE__ */ new Map();\n    const add = (x, y, direction) => {\n      const k = key(x, y);\n      const list = outgoing.get(k);\n      if (list) list.push(direction);\n      else outgoing.set(k, [direction]);\n    };\n    for (let y = 0; y < n; y++) {\n      for (let x = 0; x < n; x++) {\n        if (!cut(x, y)) continue;\n        if (!cut(x, y - 1)) add(x, y, 0);\n        if (!cut(x + 1, y)) add(x + 1, y, 1);\n        if (!cut(x, y + 1)) add(x + 1, y + 1, 2);\n        if (!cut(x - 1, y)) add(x, y + 1, 3);\n      }\n    }\n    const step = [[1, 0], [0, 1], [-1, 0], [0, -1]];\n    const loops = [];\n    for (const [start, list] of outgoing) {\n      while (list.length) {\n        let x = start % stride, y = Math.floor(start / stride);\n        let direction = list.pop();\n        const loop = [];\n        for (; ; ) {\n          loop.push({ x, y });\n          x += step[direction][0];\n          y += step[direction][1];\n          if (key(x, y) === start) break;\n          const here = outgoing.get(key(x, y));\n          if (!here || here.length === 0) break;\n          const order = [(direction + 1) % 4, direction, (direction + 3) % 4];\n          const pick = order.find((candidate) => here.includes(candidate));\n          if (pick === void 0) break;\n          here.splice(here.indexOf(pick), 1);\n          direction = pick;\n        }\n        if (loop.length >= 4) loops.push(dropStraights(loop));\n      }\n    }\n    return loops;\n  }\n  function dropStraights(loop) {\n    const out = [];\n    for (let i = 0; i < loop.length; i++) {\n      const a = loop[(i - 1 + loop.length) % loop.length], b = loop[i], c = loop[(i + 1) % loop.length];\n      if ((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x) !== 0) out.push(b);\n    }\n    return out;\n  }\n  function segmentDistance(p, a, b) {\n    const dx = b.x - a.x, dy = b.y - a.y;\n    const length = dx * dx + dy * dy;\n    const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length));\n    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));\n  }\n  function simplifyOpen(points, epsilon) {\n    if (points.length < 3) return points.slice();\n    const keep = new Uint8Array(points.length);\n    keep[0] = keep[points.length - 1] = 1;\n    const stack = [[0, points.length - 1]];\n    while (stack.length) {\n      const [first, last] = stack.pop();\n      let worst = -1, index = -1;\n      for (let i = first + 1; i < last; i++) {\n        const distance = segmentDistance(points[i], points[first], points[last]);\n        if (distance > worst) {\n          worst = distance;\n          index = i;\n        }\n      }\n      if (worst > epsilon) {\n        keep[index] = 1;\n        stack.push([first, index], [index, last]);\n      }\n    }\n    return points.filter((_, i) => keep[i]);\n  }\n  function simplifyLoop(loop, epsilon) {\n    if (loop.length <= 4 || epsilon <= 0) return loop.slice();\n    let far = 0, best = -1;\n    for (let i = 1; i < loop.length; i++) {\n      const distance = Math.hypot(loop[i].x - loop[0].x, loop[i].y - loop[0].y);\n      if (distance > best) {\n        best = distance;\n        far = i;\n      }\n    }\n    const first = simplifyOpen(loop.slice(0, far + 1), epsilon);\n    const second = simplifyOpen([...loop.slice(far), loop[0]], epsilon);\n    const result = [...first, ...second.slice(1, -1)];\n    return result.length >= 3 ? result : loop.slice(0, 3);\n  }\n  function pointInLoop(point, loop) {\n    let inside = false;\n    for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {\n      const a = loop[i], b = loop[j];\n      if (a.y > point.y !== b.y > point.y && point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x) inside = !inside;\n    }\n    return inside;\n  }\n  var MAX_ISLANDS = 60;\n  function groupRegions(loops, minArea, cell) {\n    const outlines = [];\n    const islands = [];\n    for (const loop of loops) {\n      const area = doubleArea(loop) / 2;\n      if (Math.abs(area) < minArea) continue;\n      if (area > 0) {\n        const xs = loop.map((point) => point.x), ys = loop.map((point) => point.y);\n        outlines.push({ outline: loop, islands: [], area, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] });\n      } else islands.push({ loop, area: -area });\n    }\n    outlines.sort((a, b) => a.area - b.area);\n    islands.sort((a, b) => b.area - a.area);\n    for (const { loop: island } of islands) {\n      const a = island[0], b = island[1];\n      const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;\n      const off = cell / 2;\n      const probe = { x: (a.x + b.x) / 2 - (b.y - a.y) / length * off, y: (a.y + b.y) / 2 + (b.x - a.x) / length * off };\n      const owner = outlines.find(({ box, outline }) => probe.x >= box[0] && probe.x <= box[2] && probe.y >= box[1] && probe.y <= box[3] && pointInLoop(probe, outline));\n      if (owner && owner.islands.length < MAX_ISLANDS) owner.islands.push(island);\n    }\n    return outlines.map(({ outline, islands: own, area }) => ({ outline, islands: own, area }));\n  }\n  function segmentsCross(a, b, c, d) {\n    const side = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));\n    const shared = (p, q) => p.x === q.x && p.y === q.y;\n    if (shared(a, c) || shared(a, d) || shared(b, c) || shared(b, d)) return false;\n    return side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;\n  }\n  function bridge(outline, islands) {\n    let polygon = outline.slice();\n    const pending = islands.slice();\n    const edgesOf = (loop) => loop.map((point, i) => [point, loop[(i + 1) % loop.length]]);\n    while (pending.length) {\n      const island = pending.shift();\n      const blockers = [...edgesOf(polygon), ...pending.flatMap(edgesOf), ...edgesOf(island)];\n      const pairs = [];\n      for (let i2 = 0; i2 < polygon.length; i2++) {\n        for (let j2 = 0; j2 < island.length; j2++) {\n          pairs.push({ i: i2, j: j2, distance: Math.hypot(polygon[i2].x - island[j2].x, polygon[i2].y - island[j2].y) });\n        }\n      }\n      pairs.sort((a, b) => a.distance - b.distance);\n      const clear = pairs.slice(0, 400).find(({ i: i2, j: j2 }) => blockers.every(([c, d]) => !segmentsCross(polygon[i2], island[j2], c, d)));\n      if (!clear) continue;\n      const { i, j } = clear;\n      const rotated = [...island.slice(j), ...island.slice(0, j)];\n      polygon = [...polygon.slice(0, i + 1), ...rotated, island[j], ...polygon.slice(i)];\n    }\n    return polygon;\n  }\n  function carvingBytes(strokes) {\n    return strokes.reduce((total, stroke) => total + 2 + stroke.points.length * 2, 0);\n  }\n  function toStroke(loop) {\n    const points = [];\n    for (const point of loop) {\n      const x = Math.max(0, Math.min(255, Math.round(point.x)));\n      const y = Math.max(0, Math.min(255, Math.round(point.y)));\n      const last = points[points.length - 1];\n      if (!last || last.x !== x || last.y !== y) points.push({ x, y });\n    }\n    if (points.length > 1 && points[0].x === points[points.length - 1].x && points[0].y === points[points.length - 1].y) points.pop();\n    return { closed: true, points };\n  }\n  var MAX_SMOOTHING = 12;\n  function regionStroke(region, epsilon) {\n    let outline = simplifyLoop(region.outline, epsilon);\n    for (let e = epsilon * 1.35; outline.length > CARVING_MAX_POINTS && e <= MAX_SMOOTHING * 8; e *= 1.35) outline = simplifyLoop(region.outline, e);\n    if (outline.length > CARVING_MAX_POINTS) return null;\n    let room = CARVING_MAX_POINTS - outline.length;\n    const islands = [];\n    for (const island of region.islands) {\n      const simplified = simplifyLoop(island, epsilon);\n      if (simplified.length < 3 || simplified.length + 2 > room) continue;\n      islands.push(simplified);\n      room -= simplified.length + 2;\n    }\n    const stroke = toStroke(bridge(outline, islands));\n    return stroke.points.length >= 3 && stroke.points.length <= CARVING_MAX_POINTS ? stroke : null;\n  }\n  function strokesAt(regions, epsilon) {\n    const strokes = [];\n    for (const region of regions) {\n      const stroke = regionStroke(region, epsilon);\n      if (stroke) strokes.push(stroke);\n    }\n    return { strokes, failed: regions.length - strokes.length };\n  }\n  function traceCarving(mask, options = {}) {\n    const minSmoothing = Math.max(0.3, options.smoothing ?? 0.8);\n    const scale = options.scale ?? 1;\n    const loops = traceLoops(mask, scale);\n    if (scale !== 1) for (const loop of loops) for (const point of loop) {\n      point.x /= scale;\n      point.y /= scale;\n    }\n    let regions = groupRegions(loops, options.minArea ?? 2, 1 / scale).sort((a, b) => b.area - a.area);\n    const fits = (epsilon2) => carvingBytes(strokesAt(regions, epsilon2).strokes) <= CARVING_MAX_BYTES;\n    let dropped = 0;\n    let epsilon = minSmoothing;\n    if (!fits(epsilon)) {\n      while (regions.length > 1 && !fits(MAX_SMOOTHING)) {\n        const keep = Math.max(1, Math.floor(regions.length * 0.85));\n        dropped += regions.length - keep;\n        regions = regions.slice(0, keep);\n      }\n      let low = minSmoothing, high = MAX_SMOOTHING;\n      for (let i = 0; i < 10; i++) {\n        const middle = (low + high) / 2;\n        if (fits(middle)) high = middle;\n        else low = middle;\n      }\n      epsilon = high;\n    }\n    const { strokes, failed } = strokesAt(regions, epsilon);\n    dropped += failed;\n    while (strokes.length && carvingBytes(strokes) > CARVING_MAX_BYTES) {\n      strokes.pop();\n      dropped++;\n    }\n    return { strokes, bytes: carvingBytes(strokes), smoothing: epsilon, dropped };\n  }\n  var MIN_LINE_WIDTH = 2;\n  function lumaOver(data, pixel, backdrop) {\n    const a = data[pixel * 4 + 3] / 255;\n    return (0.299 * data[pixel * 4] + 0.587 * data[pixel * 4 + 1] + 0.114 * data[pixel * 4 + 2]) * a + backdrop * (1 - a);\n  }\n  function pictureMask(data, background, settings, scale = 1) {\n    const n = CARVING_GRID * scale;\n    const mask = new Uint8Array(n * n);\n    const alpha = (i) => data[i * 4 + 3] / 255;\n    if (settings.mode === "shade") {\n      const backdrop = settings.invert ? 0 : 255;\n      for (let i = 0; i < mask.length; i++) {\n        const luma = lumaOver(data, i, backdrop);\n        mask[i] = (settings.invert ? luma >= settings.threshold : luma < settings.threshold) ? 1 : 0;\n      }\n      clipMaskToFace(mask, scale);\n      return mask;\n    }\n    for (let i = 0; i < mask.length; i++) {\n      if (alpha(i) < 0.5) continue;\n      if (!background) {\n        mask[i] = 1;\n        continue;\n      }\n      const distance = Math.max(Math.abs(data[i * 4] - background.r), Math.abs(data[i * 4 + 1] - background.g), Math.abs(data[i * 4 + 2] - background.b));\n      mask[i] = distance > settings.tolerance ? 1 : 0;\n    }\n    if (settings.mode === "glass") {\n      const difference = (i, j) => Math.max(\n        Math.abs(data[i * 4] * alpha(i) - data[j * 4] * alpha(j)),\n        Math.abs(data[i * 4 + 1] * alpha(i) - data[j * 4 + 1] * alpha(j)),\n        Math.abs(data[i * 4 + 2] * alpha(i) - data[j * 4 + 2] * alpha(j)),\n        Math.abs(data[i * 4 + 3] - data[j * 4 + 3])\n      );\n      const neighbours = [[1, 0], [0, 1], [-1, 0], [0, -1]];\n      let line = new Uint8Array(n * n);\n      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {\n        const i = y * n + x;\n        if (!mask[i]) continue;\n        for (const [dx, dy] of neighbours) {\n          const nx = x + dx, ny = y + dy;\n          if (nx < 0 || ny < 0 || nx >= n || ny >= n || !mask[ny * n + nx]) continue;\n          if (difference(i, ny * n + nx) > settings.edges) {\n            line[i] = 1;\n            break;\n          }\n        }\n      }\n      const width = Math.max(MIN_LINE_WIDTH, settings.lineWidth);\n      const passes = Math.max(0, Math.round((width * scale - 2) / 2));\n      for (let grow = 0; grow < passes; grow++) {\n        const wider = line.slice();\n        for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++) {\n          const i = y * n + x;\n          if (line[i - 1] || line[i + 1] || line[i - n] || line[i + n]) wider[i] = 1;\n        }\n        line = wider;\n      }\n      for (let i = 0; i < mask.length; i++) if (line[i]) mask[i] = 0;\n    }\n    clipMaskToFace(mask, scale);\n    return mask;\n  }\n\n  // src/carving-worker.ts\n  function runCarvingJob(job) {\n    return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale), { smoothing: job.smoothing, scale: job.scale });\n  }\n  var scope = globalThis;\n  if (typeof scope.document === "undefined" && typeof scope.postMessage === "function") {\n    let held = null;\n    scope.onmessage = (event) => {\n      const message = event.data;\n      try {\n        if (message.data) held = { key: message.pictureKey, data: message.data };\n        if (held?.key !== message.pictureKey) throw new Error("The picture for this job was not sent.");\n        scope.postMessage({ id: message.id, result: runCarvingJob({ ...message, data: held.data }) });\n      } catch (error) {\n        scope.postMessage({ id: message.id, error: String(error) });\n      }\n    };\n    scope.postMessage({ type: "ready" });\n  }\n})();\n'], { type: "text/javascript" }));
+      const url = URL.createObjectURL(new Blob(['"use strict";\n(() => {\n  // src/carving-trace.ts\n  var CARVING_GRID = 256;\n  var CARVING_MAX_BYTES = 2304;\n  var CARVING_MAX_POINTS = 255;\n  var FACE_SCALE = 540 / 256;\n  var FACE = { cx: 270 / FACE_SCALE, cy: 270 / FACE_SCALE, rx: 270 / FACE_SCALE, ry: 180 / FACE_SCALE };\n  var FACE_MARGIN = 1.5;\n  function insideFace(x, y, margin = 0) {\n    const dx = (x - FACE.cx) / (FACE.rx - margin);\n    const dy = (y - FACE.cy) / (FACE.ry - margin);\n    return dx * dx + dy * dy <= 1;\n  }\n  function clipMaskToFace(mask, scale = 1) {\n    const n = CARVING_GRID * scale;\n    for (let y = 0; y < n; y++) {\n      for (let x = 0; x < n; x++) {\n        if (!insideFace((x + 0.5) / scale, (y + 0.5) / scale, FACE_MARGIN)) mask[y * n + x] = 0;\n      }\n    }\n  }\n  function doubleArea(loop) {\n    let area = 0;\n    for (let i = 0; i < loop.length; i++) {\n      const a = loop[i], b = loop[(i + 1) % loop.length];\n      area += a.x * b.y - b.x * a.y;\n    }\n    return area;\n  }\n  function traceLoops(mask, scale = 1, from = 0, to = CARVING_GRID * scale) {\n    const n = CARVING_GRID * scale;\n    const cut = (x, y) => x >= from && y >= 0 && x < to && y < n && mask[y * n + x] === 1;\n    const stride = n + 1;\n    const key = (x, y) => y * stride + x;\n    const outgoing = /* @__PURE__ */ new Map();\n    const add = (x, y, direction) => {\n      const k = key(x, y);\n      const list = outgoing.get(k);\n      if (list) list.push(direction);\n      else outgoing.set(k, [direction]);\n    };\n    for (let y = 0; y < n; y++) {\n      for (let x = from; x < to; x++) {\n        if (!cut(x, y)) continue;\n        if (!cut(x, y - 1)) add(x, y, 0);\n        if (!cut(x + 1, y)) add(x + 1, y, 1);\n        if (!cut(x, y + 1)) add(x + 1, y + 1, 2);\n        if (!cut(x - 1, y)) add(x, y + 1, 3);\n      }\n    }\n    const step = [[1, 0], [0, 1], [-1, 0], [0, -1]];\n    const loops = [];\n    for (const [start, list] of outgoing) {\n      while (list.length) {\n        let x = start % stride, y = Math.floor(start / stride);\n        let direction = list.pop();\n        const loop = [];\n        for (; ; ) {\n          loop.push({ x, y });\n          x += step[direction][0];\n          y += step[direction][1];\n          if (key(x, y) === start) break;\n          const here = outgoing.get(key(x, y));\n          if (!here || here.length === 0) break;\n          const order = [(direction + 1) % 4, direction, (direction + 3) % 4];\n          const pick = order.find((candidate) => here.includes(candidate));\n          if (pick === void 0) break;\n          here.splice(here.indexOf(pick), 1);\n          direction = pick;\n        }\n        if (loop.length >= 4) loops.push(dropStraights(loop));\n      }\n    }\n    return loops;\n  }\n  function dropStraights(loop) {\n    const out = [];\n    for (let i = 0; i < loop.length; i++) {\n      const a = loop[(i - 1 + loop.length) % loop.length], b = loop[i], c = loop[(i + 1) % loop.length];\n      if ((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x) !== 0) out.push(b);\n    }\n    return out;\n  }\n  function segmentDistance(p, a, b) {\n    const dx = b.x - a.x, dy = b.y - a.y;\n    const length = dx * dx + dy * dy;\n    const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length));\n    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));\n  }\n  function simplifyOpen(points, epsilon) {\n    if (points.length < 3) return points.slice();\n    const keep = new Uint8Array(points.length);\n    keep[0] = keep[points.length - 1] = 1;\n    const stack = [[0, points.length - 1]];\n    while (stack.length) {\n      const [first, last] = stack.pop();\n      let worst = -1, index = -1;\n      for (let i = first + 1; i < last; i++) {\n        const distance = segmentDistance(points[i], points[first], points[last]);\n        if (distance > worst) {\n          worst = distance;\n          index = i;\n        }\n      }\n      if (worst > epsilon) {\n        keep[index] = 1;\n        stack.push([first, index], [index, last]);\n      }\n    }\n    return points.filter((_, i) => keep[i]);\n  }\n  function simplifyLoop(loop, epsilon, pinned) {\n    if (loop.length <= 4 || epsilon <= 0) return loop.slice();\n    const pins = pinned ? loop.flatMap((point, i) => pinned(point) ? [i] : []) : [];\n    if (pins.length === 1) {\n      return simplifyLoop([...loop.slice(pins[0]), ...loop.slice(0, pins[0])], epsilon);\n    }\n    if (pins.length > 1) {\n      const result2 = [];\n      pins.forEach((from, k) => {\n        const to = pins[(k + 1) % pins.length];\n        const stretch = to > from ? loop.slice(from, to + 1) : [...loop.slice(from), ...loop.slice(0, to + 1)];\n        result2.push(...simplifyOpen(stretch, epsilon).slice(0, -1));\n      });\n      return result2.length >= 3 ? result2 : loop.slice(0, 3);\n    }\n    let far = 0, best = -1;\n    for (let i = 1; i < loop.length; i++) {\n      const distance = Math.hypot(loop[i].x - loop[0].x, loop[i].y - loop[0].y);\n      if (distance > best) {\n        best = distance;\n        far = i;\n      }\n    }\n    const first = simplifyOpen(loop.slice(0, far + 1), epsilon);\n    const second = simplifyOpen([...loop.slice(far), loop[0]], epsilon);\n    const result = [...first, ...second.slice(1, -1)];\n    return result.length >= 3 ? result : loop.slice(0, 3);\n  }\n  function pointInLoop(point, loop) {\n    let inside = false;\n    for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {\n      const a = loop[i], b = loop[j];\n      if (a.y > point.y !== b.y > point.y && point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x) inside = !inside;\n    }\n    return inside;\n  }\n  var MAX_ISLANDS = 60;\n  function groupRegions(loops, minArea, cell) {\n    const outlines = [];\n    const islands = [];\n    for (const loop of loops) {\n      const area = doubleArea(loop) / 2;\n      if (Math.abs(area) < minArea) continue;\n      if (area > 0) {\n        const xs = loop.map((point) => point.x), ys = loop.map((point) => point.y);\n        outlines.push({ outline: loop, islands: [], area, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] });\n      } else islands.push({ loop, area: -area });\n    }\n    outlines.sort((a, b) => a.area - b.area);\n    islands.sort((a, b) => b.area - a.area);\n    for (const { loop: island } of islands) {\n      const a = island[0], b = island[1];\n      const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;\n      const off = cell / 2;\n      const probe = { x: (a.x + b.x) / 2 - (b.y - a.y) / length * off, y: (a.y + b.y) / 2 + (b.x - a.x) / length * off };\n      const owner = outlines.find(({ box, outline }) => probe.x >= box[0] && probe.x <= box[2] && probe.y >= box[1] && probe.y <= box[3] && pointInLoop(probe, outline));\n      if (owner && owner.islands.length < MAX_ISLANDS) owner.islands.push(island);\n    }\n    return outlines.map(({ outline, islands: own, area }) => ({ outline, islands: own, area }));\n  }\n  function segmentsCross(a, b, c, d) {\n    const side = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));\n    const shared = (p, q) => p.x === q.x && p.y === q.y;\n    if (shared(a, c) || shared(a, d) || shared(b, c) || shared(b, d)) return false;\n    return side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;\n  }\n  function bridge(outline, islands) {\n    let polygon = outline.slice();\n    const pending = islands.slice();\n    const edgesOf = (loop) => loop.map((point, i) => [point, loop[(i + 1) % loop.length]]);\n    while (pending.length) {\n      const island = pending.shift();\n      const blockers = [...edgesOf(polygon), ...pending.flatMap(edgesOf), ...edgesOf(island)];\n      const pairs = [];\n      for (let i2 = 0; i2 < polygon.length; i2++) {\n        for (let j2 = 0; j2 < island.length; j2++) {\n          pairs.push({ i: i2, j: j2, distance: Math.hypot(polygon[i2].x - island[j2].x, polygon[i2].y - island[j2].y) });\n        }\n      }\n      pairs.sort((a, b) => a.distance - b.distance);\n      const clear = pairs.slice(0, 400).find(({ i: i2, j: j2 }) => blockers.every(([c, d]) => !segmentsCross(polygon[i2], island[j2], c, d)));\n      if (!clear) continue;\n      const { i, j } = clear;\n      const rotated = [...island.slice(j), ...island.slice(0, j)];\n      polygon = [...polygon.slice(0, i + 1), ...rotated, island[j], ...polygon.slice(i)];\n    }\n    return polygon;\n  }\n  function carvingBytes(strokes) {\n    return strokes.reduce((total, stroke) => total + 2 + stroke.points.length * 2, 0);\n  }\n  function toStroke(loop) {\n    const points = [];\n    for (const point of loop) {\n      const x = Math.max(0, Math.min(255, Math.round(point.x)));\n      const y = Math.max(0, Math.min(255, Math.round(point.y)));\n      const last = points[points.length - 1];\n      if (!last || last.x !== x || last.y !== y) points.push({ x, y });\n    }\n    if (points.length > 1 && points[0].x === points[points.length - 1].x && points[0].y === points[points.length - 1].y) points.pop();\n    return { closed: true, points };\n  }\n  var MAX_SMOOTHING = 12;\n  function planRegion(region, epsilon, pinned) {\n    let outline = simplifyLoop(region.outline, epsilon, pinned);\n    for (let e = epsilon * 1.35; outline.length > CARVING_MAX_POINTS && e <= MAX_SMOOTHING * 8; e *= 1.35) outline = simplifyLoop(region.outline, e, pinned);\n    if (outline.length > CARVING_MAX_POINTS) return null;\n    let room = CARVING_MAX_POINTS - outline.length;\n    const islands = [];\n    for (const island of region.islands) {\n      const simplified = simplifyLoop(island, epsilon);\n      if (simplified.length < 3 || simplified.length + 2 > room) continue;\n      islands.push(simplified);\n      room -= simplified.length + 2;\n    }\n    return { outline, islands };\n  }\n  var planBytes = ({ outline, islands }) => 2 + 2 * islands.reduce((total, island) => total + island.length + 2, outline.length);\n  function regionStroke({ outline, islands }) {\n    const stroke = toStroke(bridge(outline, islands));\n    return stroke.points.length >= 3 && stroke.points.length <= CARVING_MAX_POINTS ? stroke : null;\n  }\n  var plansAt = (regions, epsilon, pinned) => regions.map((region) => planRegion(region, epsilon, pinned)).filter((plan) => plan !== null);\n  function strokesAt(regions, epsilon, pinned) {\n    const strokes = [];\n    for (const plan of plansAt(regions, epsilon, pinned)) {\n      const stroke = regionStroke(plan);\n      if (stroke) strokes.push(stroke);\n    }\n    return { strokes, failed: regions.length - strokes.length };\n  }\n  var BAND_ISLAND_AREA = 8;\n  var MAX_BAND_CUTS = 40;\n  function bandCuts(loops, scale) {\n    const islands = loops.map((loop) => ({ loop, area: -doubleArea(loop) / 2 })).filter(({ area }) => area >= BAND_ISLAND_AREA * scale * scale).sort((a, b) => b.area - a.area);\n    const cuts = [];\n    for (const { loop } of islands) {\n      let min = Infinity, max = -Infinity;\n      for (const { x } of loop) {\n        if (x < min) min = x;\n        if (x > max) max = x;\n      }\n      if (cuts.some((cut2) => cut2 > min && cut2 < max)) continue;\n      const cut = Math.round((min + max) / 2 / scale) * scale;\n      if (cut <= min || cut >= max) continue;\n      cuts.push(cut);\n      if (cuts.length >= MAX_BAND_CUTS) break;\n    }\n    return cuts.sort((a, b) => a - b);\n  }\n  function traceCarving(mask, options = {}) {\n    const minSmoothing = Math.max(0.3, options.smoothing ?? 0.8);\n    const scale = options.scale ?? 1;\n    let loops = traceLoops(mask, scale);\n    const cuts = bandCuts(loops, scale);\n    if (cuts.length) {\n      const edges = [0, ...cuts, CARVING_GRID * scale];\n      loops = edges.slice(1).flatMap((to, k) => traceLoops(mask, scale, edges[k], to));\n    }\n    if (scale !== 1) for (const loop of loops) for (const point of loop) {\n      point.x /= scale;\n      point.y /= scale;\n    }\n    const seams = new Set(cuts.map((cut) => cut / scale));\n    const pinned = seams.size ? (point) => seams.has(point.x) : void 0;\n    let regions = groupRegions(loops, options.minArea ?? 2, 1 / scale).sort((a, b) => b.area - a.area);\n    const fits = (epsilon2) => plansAt(regions, epsilon2, pinned).reduce((total, plan) => total + planBytes(plan), 0) <= CARVING_MAX_BYTES;\n    let dropped = 0;\n    let epsilon = minSmoothing;\n    if (!fits(epsilon)) {\n      while (regions.length > 1 && !fits(MAX_SMOOTHING)) {\n        const keep = Math.max(1, Math.floor(regions.length * 0.85));\n        dropped += regions.length - keep;\n        regions = regions.slice(0, keep);\n      }\n      let low = minSmoothing, high = MAX_SMOOTHING;\n      for (let i = 0; i < 10; i++) {\n        const middle = (low + high) / 2;\n        if (fits(middle)) high = middle;\n        else low = middle;\n      }\n      epsilon = high;\n    }\n    const { strokes, failed } = strokesAt(regions, epsilon, pinned);\n    dropped += failed;\n    while (strokes.length && carvingBytes(strokes) > CARVING_MAX_BYTES) {\n      strokes.pop();\n      dropped++;\n    }\n    return { strokes, bytes: carvingBytes(strokes), smoothing: epsilon, dropped };\n  }\n  var MIN_LINE_WIDTH = 2;\n  function lumaOver(data, pixel, backdrop) {\n    const a = data[pixel * 4 + 3] / 255;\n    return (0.299 * data[pixel * 4] + 0.587 * data[pixel * 4 + 1] + 0.114 * data[pixel * 4 + 2]) * a + backdrop * (1 - a);\n  }\n  function pictureMask(picture, background, settings, scale = 1, extent) {\n    const n = CARVING_GRID * scale;\n    const data = denoised(picture, n);\n    const mask = new Uint8Array(n * n);\n    const alpha = (i) => data[i * 4 + 3] / 255;\n    if (settings.mode === "shade") {\n      const backdrop = settings.invert ? 0 : 255;\n      for (let i = 0; i < mask.length; i++) {\n        const luma = lumaOver(data, i, backdrop);\n        mask[i] = (settings.invert ? luma >= settings.threshold : luma < settings.threshold) ? 1 : 0;\n      }\n      return cleaned(mask, scale);\n    }\n    if (background) markForeground(mask, data, background, settings.tolerance, n);\n    else for (let i = 0; i < mask.length; i++) mask[i] = alpha(i) >= 0.5 ? 1 : 0;\n    if (settings.mode === "glass") {\n      const difference = (i, j) => Math.max(\n        Math.abs(data[i * 4] * alpha(i) - data[j * 4] * alpha(j)),\n        Math.abs(data[i * 4 + 1] * alpha(i) - data[j * 4 + 1] * alpha(j)),\n        Math.abs(data[i * 4 + 2] * alpha(i) - data[j * 4 + 2] * alpha(j)),\n        Math.abs(data[i * 4 + 3] - data[j * 4 + 3])\n      );\n      const neighbours = [[1, 0], [0, 1], [-1, 0], [0, -1]];\n      const { left, top, right, bottom } = extent ?? { left: 0, top: 0, right: n - 1, bottom: n - 1 };\n      let line = new Uint8Array(n * n);\n      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {\n        const i = y * n + x;\n        if (!mask[i]) continue;\n        for (const [dx, dy] of neighbours) {\n          const nx = x + dx, ny = y + dy;\n          if (nx < 0 || ny < 0 || nx >= n || ny >= n) continue;\n          if (!mask[ny * n + nx]) {\n            if (settings.invert && nx >= left && nx <= right && ny >= top && ny <= bottom) {\n              line[i] = line[ny * n + nx] = 1;\n              break;\n            }\n            continue;\n          }\n          if (difference(i, ny * n + nx) > settings.edges) {\n            line[i] = 1;\n            break;\n          }\n        }\n      }\n      const width = Math.max(MIN_LINE_WIDTH, settings.lineWidth);\n      const passes = Math.max(0, Math.round((width * scale - 2) / 2));\n      for (let grow = 0; grow < passes; grow++) {\n        const wider = line.slice();\n        for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++) {\n          const i = y * n + x;\n          if (line[i - 1] || line[i + 1] || line[i - n] || line[i + n]) wider[i] = 1;\n        }\n        line = wider;\n      }\n      if (settings.invert) mask.set(line);\n      else for (let i = 0; i < mask.length; i++) if (line[i]) mask[i] = 0;\n    }\n    return cleaned(mask, scale);\n  }\n  var SPECK_AREA = 6;\n  var denoiseCache = /* @__PURE__ */ new WeakMap();\n  function denoised(data, n) {\n    const cached = denoiseCache.get(data);\n    if (cached) return cached;\n    const out = new Uint8ClampedArray(n * n * 4);\n    const p = new Int32Array(9);\n    const sort = (a, b) => {\n      if (p[a] > p[b]) {\n        const t = p[a];\n        p[a] = p[b];\n        p[b] = t;\n      }\n    };\n    for (let y = 0; y < n; y++) {\n      const up = Math.max(0, y - 1) * n * 4, row = y * n * 4, down = Math.min(n - 1, y + 1) * n * 4;\n      for (let x = 0; x < n; x++) {\n        const left = Math.max(0, x - 1) * 4, centre = x * 4, right = Math.min(n - 1, x + 1) * 4;\n        const i = row + centre;\n        for (let c = 0; c < 3; c++) {\n          p[0] = data[up + left + c];\n          p[1] = data[up + centre + c];\n          p[2] = data[up + right + c];\n          p[3] = data[row + left + c];\n          p[4] = data[row + centre + c];\n          p[5] = data[row + right + c];\n          p[6] = data[down + left + c];\n          p[7] = data[down + centre + c];\n          p[8] = data[down + right + c];\n          sort(1, 2);\n          sort(4, 5);\n          sort(7, 8);\n          sort(0, 1);\n          sort(3, 4);\n          sort(6, 7);\n          sort(1, 2);\n          sort(4, 5);\n          sort(7, 8);\n          sort(0, 3);\n          sort(5, 8);\n          sort(4, 7);\n          sort(3, 6);\n          sort(1, 4);\n          sort(2, 5);\n          sort(4, 7);\n          sort(4, 2);\n          sort(6, 4);\n          sort(4, 2);\n          out[i + c] = p[4];\n        }\n        out[i + 3] = data[i + 3];\n      }\n    }\n    if (typeof data === "object") denoiseCache.set(data, out);\n    return out;\n  }\n  function markForeground(mask, data, background, tolerance, n) {\n    const total = n * n;\n    const opaque = (i) => data[i * 4 + 3] >= 128;\n    const from = (i, { r, g, b }) => Math.max(Math.abs(data[i * 4] - r), Math.abs(data[i * 4 + 1] - g), Math.abs(data[i * 4 + 2] - b));\n    const { alt } = background;\n    const distance = alt ? (i) => Math.min(from(i, background), from(i, alt)) : (i) => from(i, background);\n    const like = new Uint8Array(total);\n    for (let i = 0; i < total; i++) like[i] = !opaque(i) || distance(i) <= tolerance ? 1 : 0;\n    const outside = new Uint8Array(total);\n    const stack = new Int32Array(total);\n    let top = 0;\n    const visit = (i) => {\n      if (like[i] && !outside[i]) {\n        outside[i] = 1;\n        stack[top++] = i;\n      }\n    };\n    for (let i = 0; i < total; i++) {\n      const x = i % n, y = (i - x) / n;\n      if (!opaque(i) || x === 0 || y === 0 || x === n - 1 || y === n - 1) visit(i);\n    }\n    const flood = (step) => {\n      while (top) {\n        const i = stack[--top], x = i % n;\n        if (x > 0) step(i - 1);\n        if (x < n - 1) step(i + 1);\n        if (i >= n) step(i - n);\n        if (i < total - n) step(i + n);\n      }\n    };\n    flood(visit);\n    const seen = new Uint8Array(total);\n    const patch = new Int32Array(total);\n    for (let start = 0; start < total; start++) {\n      if (!like[start] || outside[start] || seen[start]) continue;\n      let count = 0, read = 0, sum = 0;\n      seen[start] = 1;\n      patch[count++] = start;\n      const next = (j) => {\n        if (like[j] && !outside[j] && !seen[j]) {\n          seen[j] = 1;\n          patch[count++] = j;\n        }\n      };\n      while (read < count) {\n        const i = patch[read++], x = i % n;\n        sum += distance(i);\n        if (x > 0) next(i - 1);\n        if (x < n - 1) next(i + 1);\n        if (i >= n) next(i - n);\n        if (i < total - n) next(i + n);\n      }\n      if (sum / count <= tolerance / 2) for (let k = 0; k < count; k++) outside[patch[k]] = 1;\n    }\n    for (let i = 0; i < total; i++) mask[i] = opaque(i) && !outside[i] ? 1 : 0;\n  }\n  function cleaned(mask, scale) {\n    const n = CARVING_GRID * scale;\n    clipMaskToFace(mask, scale);\n    if (scale > 1) {\n      const source2 = mask.slice();\n      for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++) {\n        const i = y * n + x;\n        const sum = source2[i - n - 1] + source2[i - n] + source2[i - n + 1] + source2[i - 1] + source2[i] + source2[i + 1] + source2[i + n - 1] + source2[i + n] + source2[i + n + 1];\n        mask[i] = sum >= 5 ? 1 : 0;\n      }\n      clipMaskToFace(mask, scale);\n    }\n    const source = mask.slice();\n    const minCells = SPECK_AREA * scale * scale;\n    const seen = new Uint8Array(n * n);\n    const patch = new Int32Array(n * n);\n    for (let start = 0; start < n * n; start++) {\n      if (seen[start]) continue;\n      const value = source[start];\n      let count = 0, read = 0;\n      seen[start] = 1;\n      patch[count++] = start;\n      while (read < count) {\n        const i = patch[read++], x = i % n;\n        const next = (j) => {\n          if (!seen[j] && source[j] === value) {\n            seen[j] = 1;\n            patch[count++] = j;\n          }\n        };\n        if (x > 0) next(i - 1);\n        if (x < n - 1) next(i + 1);\n        if (i >= n) next(i - n);\n        if (i < n * n - n) next(i + n);\n      }\n      if (count < minCells) for (let k = 0; k < count; k++) mask[patch[k]] = 1 - value;\n    }\n    return mask;\n  }\n\n  // src/carving-worker.ts\n  function runCarvingJob(job) {\n    return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale, job.extent), { smoothing: job.smoothing, scale: job.scale });\n  }\n  var scope = globalThis;\n  if (typeof scope.document === "undefined" && typeof scope.postMessage === "function") {\n    let held = null;\n    scope.onmessage = (event) => {\n      const message = event.data;\n      try {\n        if (message.data) held = { key: message.pictureKey, data: message.data };\n        if (held?.key !== message.pictureKey) throw new Error("The picture for this job was not sent.");\n        scope.postMessage({ id: message.id, result: runCarvingJob({ ...message, data: held.data }) });\n      } catch (error) {\n        scope.postMessage({ id: message.id, error: String(error) });\n      }\n    };\n    scope.postMessage({ type: "ready" });\n  }\n})();\n'], { type: "text/javascript" }));
       let worker;
       try {
         worker = new Worker(url);
@@ -9626,26 +9848,96 @@ ${eggs.map(eggCard).join("")}`;
       URL.revokeObjectURL(url);
     }
   }
+  function placement(image, zoom, offsetX = 0, offsetY = 0) {
+    const fit = Math.min(FACE.rx * 2 / image.width, FACE.ry * 2 / image.height) * zoom;
+    const width = image.width * fit, height = image.height * fit;
+    return { x: FACE.cx + offsetX - width / 2, y: FACE.cy + offsetY - height / 2, width, height };
+  }
+  function pictureExtent(image, zoom, offsetX = 0, offsetY = 0) {
+    const { x, y, width, height } = placement(image, zoom, offsetX, offsetY);
+    return {
+      left: Math.floor(x * PICTURE_DETAIL),
+      top: Math.floor(y * PICTURE_DETAIL),
+      right: Math.ceil((x + width) * PICTURE_DETAIL) - 1,
+      bottom: Math.ceil((y + height) * PICTURE_DETAIL) - 1
+    };
+  }
   function drawPicture(image, zoom, offsetX = 0, offsetY = 0) {
     const size = CARVING_GRID * PICTURE_DETAIL;
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
     const context = canvas.getContext("2d", { willReadFrequently: true });
     context.scale(PICTURE_DETAIL, PICTURE_DETAIL);
-    const fit = Math.min(FACE.rx * 2 / image.width, FACE.ry * 2 / image.height) * zoom;
-    const width = image.width * fit, height = image.height * fit;
+    const { x, y, width, height } = placement(image, zoom, offsetX, offsetY);
     context.imageSmoothingQuality = "high";
-    context.drawImage(image, FACE.cx + offsetX - width / 2, FACE.cy + offsetY - height / 2, width, height);
+    context.drawImage(image, x, y, width, height);
     return context.getImageData(0, 0, size, size).data;
   }
   function readBackground(image) {
-    const scale = Math.min(1, 128 / Math.max(image.width, image.height));
+    const data = image.getContext("2d").getImageData(0, 0, image.width, image.height).data;
+    return pictureBackground(data, image.width, image.height);
+  }
+  function autoThreshold(drawn) {
+    const inside = [];
+    const size = CARVING_GRID * PICTURE_DETAIL;
+    for (let y = 0; y < size; y += PICTURE_DETAIL) for (let x = 0; x < size; x += PICTURE_DETAIL) {
+      const dx = ((x + 0.5) / PICTURE_DETAIL - FACE.cx) / FACE.rx, dy = ((y + 0.5) / PICTURE_DETAIL - FACE.cy) / FACE.ry;
+      if (dx * dx + dy * dy > 1) continue;
+      inside.push(lumaOver(drawn, y * size + x, 255));
+    }
+    return Math.round(otsuThreshold(inside));
+  }
+  var MIN_CROP_PX = 8;
+  function cropBounds(shape) {
+    const xs = shape.map((point) => point.x), ys = shape.map((point) => point.y);
+    const x = Math.floor(Math.min(...xs)), y = Math.floor(Math.min(...ys));
+    return { x, y, width: Math.ceil(Math.max(...xs)) - x, height: Math.ceil(Math.max(...ys)) - y };
+  }
+  var usableCrop = (shape) => {
+    if (shape.length < 3) return false;
+    const { width, height } = cropBounds(shape);
+    return width >= MIN_CROP_PX && height >= MIN_CROP_PX;
+  };
+  function tracePath(context, shape, dx = 0, dy = 0) {
+    context.beginPath();
+    shape.forEach(({ x, y }, i) => i ? context.lineTo(x - dx, y - dy) : context.moveTo(x - dx, y - dy));
+    context.closePath();
+  }
+  function cropped(image, shape) {
+    const bounds = cropBounds(shape);
+    const [a, b, c, d] = shape;
+    const rectangle = shape.length === 4 && a.y === b.y && b.x === c.x && c.y === d.y && d.x === a.x;
+    const margin = rectangle ? 0 : Math.max(2, Math.round(Math.max(bounds.width, bounds.height) * 0.02));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.width * scale));
-    canvas.height = Math.max(1, Math.round(image.height * scale));
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return pictureBackground(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+    canvas.width = bounds.width + margin * 2;
+    canvas.height = bounds.height + margin * 2;
+    const context = canvas.getContext("2d");
+    context.translate(margin - bounds.x, margin - bounds.y);
+    tracePath(context, shape);
+    context.clip();
+    context.drawImage(image, 0, 0);
+    return canvas;
+  }
+  function drawCropView(canvas, image, shape, drawing = false) {
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0);
+    if (!shape || shape.length < 2) return;
+    if (!drawing) {
+      context.beginPath();
+      context.rect(0, 0, canvas.width, canvas.height);
+      shape.forEach(({ x, y }, i) => i ? context.lineTo(x, y) : context.moveTo(x, y));
+      context.closePath();
+      context.fillStyle = "rgba(0,0,0,.6)";
+      context.fill("evenodd");
+    }
+    context.lineWidth = Math.max(1, Math.round(Math.max(canvas.width, canvas.height) / 300));
+    context.lineJoin = context.lineCap = "round";
+    context.strokeStyle = "#ffd65a";
+    context.beginPath();
+    shape.forEach(({ x, y }, i) => i ? context.lineTo(x, y) : context.moveTo(x, y));
+    if (!drawing) context.closePath();
+    context.stroke();
   }
   function drawPreview(canvas, strokes) {
     const context = canvas.getContext("2d");
@@ -9686,17 +9978,12 @@ ${eggs.map(eggCard).join("")}`;
       return;
     }
     document.getElementById(DIALOG_ID)?.remove();
-    const background = readBackground(image);
+    const original = image;
+    let crop = null;
+    let background = readBackground(image);
     const settings = { mode: "glass", threshold: 128, invert: false, tolerance: 40, edges: 35, lineWidth: 2, zoom: 1, smoothing: 0.4, offsetX: 0, offsetY: 0 };
     const drawn = drawPicture(image, 1);
-    const inside = [];
-    const size = CARVING_GRID * PICTURE_DETAIL;
-    for (let y = 0; y < size; y += PICTURE_DETAIL) for (let x = 0; x < size; x += PICTURE_DETAIL) {
-      const dx = ((x + 0.5) / PICTURE_DETAIL - FACE.cx) / FACE.rx, dy = ((y + 0.5) / PICTURE_DETAIL - FACE.cy) / FACE.ry;
-      if (dx * dx + dy * dy > 1) continue;
-      inside.push(lumaOver(drawn, y * size + x, 255));
-    }
-    settings.threshold = Math.round(otsuThreshold(inside));
+    settings.threshold = autoThreshold(drawn);
     const backdrop = document.createElement("div");
     backdrop.id = DIALOG_ID;
     backdrop.className = "gc-modal-backdrop";
@@ -9704,7 +9991,13 @@ ${eggs.map(eggCard).join("")}`;
     <div class="gc-modal-head"><h3>Carve from a picture</h3><button class="gc-modal-close" data-carve-close aria-label="Close">×</button></div>
     <div class="gc-modal-body">
       <canvas class="gc-carve-preview" width="${Math.round(CARVING_GRID * PREVIEW_SCALE)}" height="${Math.round((PREVIEW_BOTTOM - PREVIEW_TOP) * PREVIEW_SCALE)}" title="Drag to move the picture, scroll to resize it, double-click to centre it"></canvas>
-      <p class="gc-carve-hint">Drag the picture to move it, scroll to resize, double-click to centre</p>
+      <p class="gc-carve-hint">Drag the picture to move it, scroll to resize, double-click to centre · <button type="button" class="gc-carve-link" data-crop-open>Crop</button></p>
+      <div class="gc-carve-crop" data-crop-panel hidden>
+        <div class="gc-carve-modes" role="radiogroup">${[["free", "Freehand"], ["box", "Rectangle"]].map(([tool, label]) => `<label><input type="radio" name="gc-crop-tool" data-crop-tool value="${tool}" ${tool === "free" ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
+        <canvas class="gc-carve-crop-view" width="${original.width}" height="${original.height}"></canvas>
+        <p class="gc-carve-hint">Draw round the part of the picture to carve</p>
+        <div class="gc-carve-crop-actions"><button type="button" data-crop-cancel>Back</button><button type="button" data-crop-all>Whole picture</button><button type="button" class="gc-carve-go" data-crop-use>Use selection</button></div>
+      </div>
       <p class="gc-carve-status" data-carve-status></p>
       <div class="gc-carve-modes" role="radiogroup">${[["glass", "Stained glass"], ["shape", "Shape"], ["shade", "Light and dark"]].map(([mode, label]) => `<label><input type="radio" name="gc-carve-mode" data-carve="mode" value="${mode}" ${mode === settings.mode ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
       <label class="gc-carve-slider" data-modes="shade"><span>Threshold</span><input type="range" min="1" max="254" data-carve="threshold" value="${settings.threshold}"></label>
@@ -9713,19 +10006,21 @@ ${eggs.map(eggCard).join("")}`;
       <label class="gc-carve-slider" data-modes="glass"><span>Line width</span><input type="range" min="${MIN_LINE_WIDTH}" max="5" data-carve="lineWidth" value="${settings.lineWidth}"></label>
       <label class="gc-carve-slider"><span>Size</span><input type="range" min="30" max="250" data-carve="zoom" value="100"></label>
       <label class="gc-carve-slider"><span>Smoothing</span><input type="range" min="3" max="60" data-carve="smoothing" value="4" title="The least the outlines are smoothed - more is used when a picture needs it to fit"></label>
-      <label class="gc-carve-check" data-modes="shade"><input type="checkbox" data-carve="invert"><span>Cut the light parts instead of the dark</span></label>
+      <label class="gc-carve-check" data-modes="shade glass"><input type="checkbox" data-carve="invert"><span data-modes="shade">Cut the light parts instead of the dark</span><span data-modes="glass">Cut the lines instead of the colours</span></label>
     </div>
-    <div class="gc-carve-actions"><button data-carve-close>Cancel</button><button class="gc-carve-go" data-carve-go>Carve pumpkin</button></div>
+    <div class="gc-carve-actions"><button data-carve-close>Cancel</button><button data-carve-edit title="Put the cuts on the game's pumpkin to change them with the knife; nothing is saved until you press Done">Edit in game</button><button class="gc-carve-go" data-carve-go>Carve pumpkin</button></div>
   </div>`;
     document.body.appendChild(backdrop);
-    const canvas = backdrop.querySelector("canvas");
+    const canvas = backdrop.querySelector(".gc-carve-preview");
     const status = backdrop.querySelector("[data-carve-status]");
     const go = backdrop.querySelector("[data-carve-go]");
+    const edit = backdrop.querySelector("[data-carve-edit]");
     let result = null;
     let carving = false;
     let frame = 0;
     const dialog = ++dialogCount;
-    const pictureKey = () => `${dialog}:${settings.zoom}:${settings.offsetX}:${settings.offsetY}`;
+    let crops = 0;
+    const pictureKey = () => `${dialog}:${crops}:${settings.zoom}:${settings.offsetX}:${settings.offsetY}`;
     let picture = { key: pictureKey(), data: drawn };
     const showModeControls = () => backdrop.querySelectorAll("[data-modes]").forEach((element) => {
       element.hidden = !element.dataset.modes.split(" ").includes(settings.mode);
@@ -9736,7 +10031,7 @@ ${eggs.map(eggCard).join("")}`;
       drawPreview(canvas, traced.strokes);
       const used = Math.round(traced.bytes / CARVING_MAX_BYTES * 100);
       status.textContent = traced.strokes.length === 0 ? "Nothing to cut - try another style or moving the sliders." : `${traced.strokes.length} cut${traced.strokes.length === 1 ? "" : "s"}, ${used}% of the carving limit` + (traced.smoothing > asked + 0.05 ? ", smoothed to fit" : "") + (traced.dropped ? `, ${traced.dropped} small piece${traced.dropped === 1 ? "" : "s"} left out` : "");
-      go.disabled = carving || traced.strokes.length === 0;
+      go.disabled = edit.disabled = carving || traced.strokes.length === 0;
     };
     let tracing = false;
     let stale = false;
@@ -9753,7 +10048,8 @@ ${eggs.map(eggCard).join("")}`;
         const { zoom: _zoom, offsetX: _x, offsetY: _y, smoothing, ...pictureSettings } = settings;
         let traced = null;
         try {
-          traced = await traceInWorker({ id: 0, pictureKey: picture.key, data: picture.data, background, settings: pictureSettings, smoothing, scale: PICTURE_DETAIL });
+          const extent = pictureExtent(image, settings.zoom, settings.offsetX, settings.offsetY);
+          traced = await traceInWorker({ id: 0, pictureKey: picture.key, data: picture.data, background, settings: pictureSettings, smoothing, scale: PICTURE_DETAIL, extent });
         } catch (error) {
           warn("Tracing the picture failed:", error);
         } finally {
@@ -9763,7 +10059,7 @@ ${eggs.map(eggCard).join("")}`;
         if (traced) show(traced, smoothing);
         else {
           status.textContent = "This picture could not be traced at these settings.";
-          go.disabled = true;
+          go.disabled = edit.disabled = true;
           result = null;
         }
         if (stale) retrace();
@@ -9813,9 +10109,104 @@ ${eggs.map(eggCard).join("")}`;
       settings.zoom = percent / 100;
       retrace();
     }, { passive: false });
+    const cropPanel = backdrop.querySelector("[data-crop-panel]");
+    const cropView = cropPanel.querySelector("canvas");
+    let selection = null;
+    let drawing = null;
+    let cropTool = "free";
+    let boxFrom = null;
+    const cropHint = cropPanel.querySelector(".gc-carve-hint");
+    cropPanel.querySelectorAll("[data-crop-tool]").forEach((input) => input.addEventListener("change", () => {
+      if (!input.checked) return;
+      cropTool = input.value;
+      cropHint.textContent = cropTool === "box" ? "Drag a box over the part of the picture to carve" : "Draw round the part of the picture to carve";
+    }));
+    const toPicture = (event) => {
+      const box = cropView.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(original.width, (event.clientX - box.left) / (box.width || 1) * original.width)),
+        y: Math.max(0, Math.min(original.height, (event.clientY - box.top) / (box.height || 1) * original.height))
+      };
+    };
+    const setCropping = (on) => {
+      cropPanel.hidden = !on;
+      backdrop.querySelector(".gc-carve-modal").dataset.cropping = String(on);
+      if (on) {
+        selection = crop;
+        drawCropView(cropView, original, selection);
+      }
+    };
+    const applyCrop = (shape) => {
+      crop = shape;
+      image = shape ? cropped(original, shape) : original;
+      crops++;
+      background = readBackground(image);
+      settings.zoom = 1;
+      settings.offsetX = settings.offsetY = 0;
+      zoomInput.value = "100";
+      picture = { key: pictureKey(), data: drawPicture(image, 1) };
+      settings.threshold = autoThreshold(picture.data);
+      backdrop.querySelector('[data-carve="threshold"]').value = String(settings.threshold);
+      setCropping(false);
+      retrace();
+    };
+    backdrop.querySelector("[data-crop-open]").addEventListener("click", () => setCropping(true));
+    cropPanel.querySelector("[data-crop-cancel]").addEventListener("click", () => setCropping(false));
+    cropPanel.querySelector("[data-crop-all]").addEventListener("click", () => applyCrop(null));
+    cropPanel.querySelector("[data-crop-use]").addEventListener("click", () => applyCrop(selection));
+    cropView.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      try {
+        cropView.setPointerCapture(event.pointerId);
+      } catch {
+      }
+      const start = toPicture(event);
+      if (cropTool === "box") {
+        boxFrom = start;
+        drawing = null;
+        return;
+      }
+      drawing = [start];
+      drawCropView(cropView, original, drawing, true);
+    });
+    cropView.addEventListener("pointermove", (event) => {
+      if (boxFrom) {
+        const to = toPicture(event);
+        const x0 = Math.round(boxFrom.x), y0 = Math.round(boxFrom.y), x1 = Math.round(to.x), y1 = Math.round(to.y);
+        drawing = [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
+        drawCropView(cropView, original, drawing);
+        return;
+      }
+      if (!drawing) return;
+      const point = toPicture(event);
+      const last = drawing[drawing.length - 1];
+      if (Math.hypot(point.x - last.x, point.y - last.y) < 2) return;
+      drawing.push(point);
+      drawCropView(cropView, original, drawing, true);
+    });
+    const endSelect = () => {
+      const wasBox = boxFrom !== null;
+      boxFrom = null;
+      if (!drawing) {
+        if (wasBox) {
+          selection = null;
+          drawCropView(cropView, original, null);
+        }
+        return;
+      }
+      selection = usableCrop(drawing) ? drawing : null;
+      drawing = null;
+      drawCropView(cropView, original, selection);
+    };
+    cropView.addEventListener("pointerup", endSelect);
+    cropView.addEventListener("pointercancel", endSelect);
     backdrop.addEventListener("keydown", (event) => {
       event.stopPropagation();
-      if (event.key === "Escape") close2();
+      if (event.key === "Escape") {
+        if (cropPanel.hidden) close2();
+        else setCropping(false);
+      }
     });
     const close2 = () => {
       cancelAnimationFrame(frame);
@@ -9858,6 +10249,20 @@ ${eggs.map(eggCard).join("")}`;
       const target = event.target;
       if (target === backdrop || target.closest("[data-carve-close]")) close2();
     });
+    edit.addEventListener("click", () => {
+      if (carving) return;
+      if (!result || !carvingOpen) {
+        toast("Open the carving window on a pumpkin first.", "error");
+        return;
+      }
+      if (!loadIntoGameCarving(result.strokes)) {
+        warn("Edit in game: the game's carving window could not be found.");
+        toast("Could not reach the game's carving window - use Carve pumpkin instead.", "error");
+        return;
+      }
+      close2();
+      toast("Edit the carving, then press Done to save it");
+    });
     go.addEventListener("click", async () => {
       const target = carvingTarget();
       if (!result || !target || !carvingOpen) {
@@ -9866,7 +10271,7 @@ ${eggs.map(eggCard).join("")}`;
       }
       if (carving) return;
       carving = true;
-      go.disabled = true;
+      go.disabled = edit.disabled = true;
       go.textContent = "Carving...";
       let answer;
       try {
@@ -9881,7 +10286,7 @@ ${eggs.map(eggCard).join("")}`;
       }
       carving = false;
       if (!answer.ok) {
-        go.disabled = result.strokes.length === 0;
+        go.disabled = edit.disabled = !result || result.strokes.length === 0;
         go.textContent = "Carve pumpkin";
         toast(answer.timedOut ? "The game did not answer - check the pumpkin before trying again." : `The game refused the carving${answer.code ? ` (${answer.code})` : ""}.`, "error");
         return;
@@ -12361,6 +12766,11 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 .gc-carve-preview { cursor:grab;touch-action:none; }
 .gc-carve-preview[data-dragging=true] { cursor:grabbing; }
 .gc-carve-hint { margin:4px 0 0;color:var(--gc-muted);font-size:11px;text-align:center; }
+.gc-modal-backdrop .gc-carve-link { padding:0;border:0;background:none;color:var(--gc-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline; }
+.gc-carve-modal[data-cropping=true] .gc-modal-body > :not(.gc-carve-crop), .gc-carve-modal[data-cropping=true] .gc-carve-actions { display:none; }
+.gc-carve-crop[hidden] { display:none; }
+.gc-carve-crop-view { display:block;max-width:100%;max-height:55vh;margin:0 auto;border-radius:var(--gc-radius-sm);background:var(--gc-input);cursor:crosshair;touch-action:none; }
+.gc-carve-crop-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:10px; }
 `;
       document.head.appendChild(style);
       mountLunarTimer(togglePanel);
@@ -13583,12 +13993,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       const body = panel3.querySelector(".go-body");
       const scrollTop = body?.scrollTop ?? 0;
       const species = knownSpecies();
-      const placement = position2 ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position2.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position2.top))}px;` : "";
+      const placement2 = position2 ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position2.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position2.top))}px;` : "";
       const configPlacement = configPosition ? `style="position:fixed;left:${Math.max(4, Math.min(innerWidth - 304, configPosition.left))}px;top:${Math.max(4, Math.min(innerHeight - 104, configPosition.top))}px"` : "";
       const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"], ["panel", "Panel"]].map(([tab2, label]) => `<button data-config-tab="${tab2}" data-active="${configMode === tab2}">${label}</button>`).join("")}</div>`;
       const configTitle = configMode === "alarms" ? "Alarm Config" : "Overview Settings";
       const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml(configTitle)}</h2><button data-config-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : "";
-      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
+      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement2}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
       const nextBody = panel3.querySelector(".go-body");
       if (nextBody) nextBody.scrollTop = scrollTop;
       panel3.querySelector("[data-close]").onclick = close2;
@@ -18614,6 +19024,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       worldTapRouter: null,
       gardenInfoCard: null,
       inventory: null,
+      modals: null,
       inventoryItems: [],
       inventoryReady: false,
       ownUserSlotIdx: null,
@@ -18649,7 +19060,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let hookReleaseTimer = 0;
     const armedSystemFields = /* @__PURE__ */ new Set();
     const capturedSinceArm = /* @__PURE__ */ new Set();
-    const CAPTURED_SYSTEMS = ["tapToMove", "tileObject", "pet", "worldTapRouter", "gardenInfoCard", "inventory"];
+    const CAPTURED_SYSTEMS = ["tapToMove", "tileObject", "pet", "worldTapRouter", "gardenInfoCard", "inventory", "modals"];
     const TILE_SYSTEM_NAMES = /* @__PURE__ */ new Set(["tileObject", "gardenObject"]);
     const isTileSystem = (system) => TILE_SYSTEM_NAMES.has(system?.name);
     function resetPrivateSystems(reason) {
@@ -18727,12 +19138,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         live.inventory = system;
         publishEngine();
         log("Native inventory connected.");
+      } else if (system?.name === "modals" && typeof system.built?.get === "function") {
+        if (live.modals === system) return;
+        live.modals = system;
+        publishEngine();
+        log("Native modals connected.");
       } else return;
       releaseGlobalHooksIfIdle();
     }
     function publishEngine() {
       setQuinoaEngine({
-        getSystem: (name) => name === "gardenInfoCard" ? live.gardenInfoCard : name === "inventory" ? live.inventory : void 0
+        getSystem: (name) => name === "gardenInfoCard" ? live.gardenInfoCard : name === "inventory" ? live.inventory : name === "modals" ? live.modals : void 0
       });
     }
     function capturePrivateSystem(target, key, value) {

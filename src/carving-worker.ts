@@ -4,7 +4,7 @@
  * from a blob url by features/pumpkin-import.ts, which traces on the page instead if a page refuses
  * workers.
  */
-import { pictureMask, traceCarving, type PictureBackground, type PictureSettings, type TraceResult } from './carving-trace.js';
+import { pictureMask, traceCarving, type PictureBackground, type PictureExtent, type PictureSettings, type TraceResult } from './carving-trace.js';
 
 export interface CarvingJob {
   id: number;
@@ -16,12 +16,14 @@ export interface CarvingJob {
   smoothing: number;
   /** Mask cells per grid unit `data` is drawn at (see CarvingMask). */
   scale: number;
+  /** The cells the picture covers (see pictureMask). */
+  extent?: PictureExtent;
 }
 /** A reply carries the trace, or an error when tracing threw, so the page can trace it itself. */
 export interface CarvingReply { id: number; result?: TraceResult; error?: string }
 
 export function runCarvingJob(job: CarvingJob): TraceResult {
-  return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale), { smoothing: job.smoothing, scale: job.scale });
+  return traceCarving(pictureMask(job.data, job.background, job.settings, job.scale, job.extent), { smoothing: job.smoothing, scale: job.scale });
 }
 
 /** What the page posts: a job, with the picture left out when the worker already holds it. */
