@@ -207,6 +207,9 @@ function checkForUpdate(): void {
     method: 'GET',
     url: `${UPDATE_URL}?check=${Date.now()}`,
     headers: { 'Cache-Control': 'no-cache' },
+    // Without a timeout a request that never answers leaves the badge on "Checking update" for good.
+    timeout: 15_000,
+    ontimeout: () => { updateStatus = 'failed'; renderUpdateStatus(); },
     onload: response => {
       const match = response.responseText.match(/^\/\/\s*@version\s+([^\s]+)\s*$/m);
       availableVersion = match?.[1] ?? '';

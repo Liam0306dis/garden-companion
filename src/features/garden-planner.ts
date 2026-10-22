@@ -6,7 +6,7 @@ import { edgeKey, nearestEdge, type Side } from './planner-edges.js';
 import { glowScale, onSkyChange, skyNeedsFrameHook, skyPhase, skySettings, skyWeather, stageAt } from './sky.js';
 import { createTicker } from '../ticker.js';
 import { guarded } from '../safe-hook.js';
-import { NUMBER_LOCALE } from '../utils.js';
+import { NUMBER_LOCALE, escapeHtml } from '../utils.js';
 import { onSpritesReady } from '../pets.js';
 
 /**
@@ -1411,7 +1411,7 @@ ${decorMode
 ${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies())}</span><button data-plan-scale-max data-active="${scaleAtMax(scaleSpecies())}">Max</button></div>`}
 <div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
 <div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
-${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select><button data-plan-delete>Delete</button></div>` : ''}</div>`;
+${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}</select><button data-plan-delete>Delete</button></div>` : ''}</div>`;
 
     const grid = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)');
     if (grid) grid.scrollTop = previousScroll;

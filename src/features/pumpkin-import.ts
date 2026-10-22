@@ -5,7 +5,7 @@ import {
 } from '../carving-trace.js';
 import { runCarvingJob, type CarvingJob, type CarvingMessage, type CarvingReply } from '../carving-worker.js';
 import { feature } from '../config.js';
-import { sendQuinoaCommandAwaitingResult } from '../game-connection.js';
+import { NOT_SENT_REASON, sendQuinoaCommandAwaitingResult, type CommandResult } from '../game-connection.js';
 import { gameStore } from '../game-store.js';
 import { pixiSurface, findVisiblePixiNodes } from '../pixi.js';
 import { quinoaEngine } from '../quinoa-engine.js';
@@ -708,19 +708,22 @@ async function openPicture(file: File): Promise<void> {
     // Edit in game too: the window it would load into is closed once the carving lands.
     go.disabled = edit.disabled = true;
     go.textContent = 'Carving...';
-    let answer;
+    let answer: CommandResult;
     try {
       answer = await sendQuinoaCommandAwaitingResult({
         type: 'CarvePumpkin', slot: target.localTileIndex, growSlotId: target.growSlotId, carving: encodeCarving(result.strokes),
       });
-    } catch (error) {
-      answer = { ok: false, code: (error as Error).message };
+    } catch {
+      // Thrown before anything left: the connection is down, so the game never saw it.
+      answer = { ok: false, code: 'not_sent' };
     }
     carving = false;
     if (!answer.ok) {
       go.disabled = edit.disabled = !result || result.strokes.length === 0;
       go.textContent = 'Carve pumpkin';
-      toast(answer.timedOut ? 'The game did not answer - check the pumpkin before trying again.' : `The game refused the carving${answer.code ? ` (${answer.code})` : ''}.`, 'error');
+      toast(answer.timedOut ? 'The game did not answer - check the pumpkin before trying again.'
+        : answer.code === 'not_sent' ? `The carving was not sent: ${NOT_SENT_REASON}.`
+        : `The game refused the carving${answer.code ? ` (${answer.code})` : ''}.`, 'error');
       return;
     }
     close();

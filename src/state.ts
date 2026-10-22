@@ -48,6 +48,14 @@ export function trimAbilityLogs(logs: AbilityLogRow[], perAbility = LOG_PER_ABIL
   });
 }
 
+/** Only well-formed rows: this runs as the script loads, so a malformed save must not throw. */
+function savedAbilityLog(): AbilityLogRow[] {
+  const saved = loadLocal<unknown>(LOG_KEY, []);
+  return Array.isArray(saved)
+    ? saved.filter((row): row is AbilityLogRow => !!row && typeof row === 'object' && typeof row.ability === 'string')
+    : [];
+}
+
 /**
  * Live view of the room, our slot, and everything derived from them. Fields are replaced as the
  * game reports new state, so the object itself is stable and safe to import anywhere.
@@ -71,7 +79,7 @@ export const state: CompanionState = {
   currentAction: null,
   lastShopSignature: '',
   initializedShops: false,
-  abilityLog: trimAbilityLogs(loadLocal<AbilityLogRow[]>(LOG_KEY, [])),
+  abilityLog: trimAbilityLogs(savedAbilityLog()),
 };
 
 /**

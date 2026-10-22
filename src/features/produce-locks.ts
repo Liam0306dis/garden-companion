@@ -62,6 +62,7 @@ let draining = false;
 async function drain(): Promise<void> {
   if (draining) return;
   draining = true;
+  let failed = 0;
   try {
     for (let next = queue.entries().next(); !next.done; next = queue.entries().next()) {
       const [itemId, lock] = next.value;
@@ -69,11 +70,18 @@ async function drain(): Promise<void> {
       // Already that way, or gone from the inventory (sold or fed while it waited): nothing to send.
       if (isLocked(itemId, favouritedIds()) === lock || !heldProduce().some(item => item.id === itemId)) continue;
       expected.set(itemId, { locked: lock, until: Date.now() + EXPECTED_MS });
-      const result = await sendQuinoaCommandAwaitingResult({ type: 'ToggleLockItem', itemId });
-      if (!result.ok) expected.delete(itemId);
+      let result;
+      try {
+        result = await sendQuinoaCommandAwaitingResult({ type: 'ToggleLockItem', itemId });
+      } finally {
+        // Cleared on a throw as well, or the item would show a state that was never sent.
+        if (!result?.ok) expected.delete(itemId);
+      }
+      if (!result.ok) failed++;
       // A lost connection would time out every remaining item in turn, so the rest are dropped.
       if (result.timedOut) throw new Error('The game stopped answering; the remaining locks were not sent.');
     }
+    if (failed) toast(`${failed} item${failed === 1 ? '' : 's'} could not be changed.`, 'error');
   } catch (error) {
     queue.clear();
     toast((error as Error).message, 'error');

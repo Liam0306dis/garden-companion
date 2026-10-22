@@ -1,3 +1,10 @@
+0.9.72
+- Layout planner: names with quotes load and delete properly
+- Plant drag move: a failed swap says your plant is in your inventory
+- Produce locks: refused locks are reported
+- Pumpkin carving: clearer message when the carving was not sent
+- Update check: no longer stuck on "Checking update"
+
 0.9.71
 - Pumpkin carving: cleaner results from photos and busy pictures (hopefully), and holes like eyes are no longer filled in
 - Pumpkin carving: a checkered "transparent" background saved into a picture is treated as background

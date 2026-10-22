@@ -68,3 +68,21 @@ export function saveLocalOrFail(key: string, value: unknown): boolean {
   try { localStorage.setItem(key, JSON.stringify(value)); return true; }
   catch { return false; }
 }
+
+/**
+ * Polls until the condition gives something truthy, or the time runs out. Resolves with that value,
+ * or null on a timeout; a throw counts as not yet.
+ */
+export function waitFor<T>(condition: () => T, timeoutMs: number, intervalMs = 100): Promise<T | null> {
+  const started = performance.now();
+  return new Promise(resolve => {
+    const poll = setInterval(() => {
+      let value: T | null = null;
+      try { value = condition(); } catch { value = null; }
+      if (value || performance.now() - started >= timeoutMs) {
+        clearInterval(poll);
+        resolve(value || null);
+      }
+    }, intervalMs);
+  });
+}

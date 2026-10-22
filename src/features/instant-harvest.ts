@@ -1,7 +1,6 @@
 import type { PlantSlot } from '../types.js';
 import { feature } from '../config.js';
 import { NOT_SENT_REASON, trySendQuinoaCommand } from '../game-connection.js';
-import { protectionReason } from './crop-protection.js';
 import { isTyping } from '../keybinds.js';
 import { serverNow } from '../server-clock.js';
 import { state } from '../state.js';
@@ -54,10 +53,8 @@ export function installInstantHarvest(): void {
     // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
     // which is exactly what this key skips, so a preserved slot is never a candidate here.
     // A slot the game has locked is skipped the same way: the lock exists to stop harvests.
-    // A crop Crop Protection guards is left to the game's own press and hold too, where the guard
-    // stops it and says why; taken here, its refusal would only come back as "not sent".
-    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && slot?.locked !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow')
-      && !protectionReason(slot, slot?.species || tile.species || '');
+    // Crop Protection needs no check here: with it on, this key does nothing at all (see above).
+    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && slot?.locked !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
     // Reset the pending set when the tile changes, and drop any slot the state now agrees is gone -
     // once it reads as not-ready the harvest has landed and it no longer needs suppressing (and a
     // future regrow can be taken again).

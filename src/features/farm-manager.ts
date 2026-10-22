@@ -7,7 +7,7 @@ import { sendQuinoaCommand } from '../game-connection.js';
 import { pauseAutoStore } from './auto-store.js';
 import { toast } from '../toast.js';
 import type { GardenTile, PlantSlot } from '../types.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, waitFor } from '../utils.js';
 import { plantActions } from './plant-drag-move.js';
 import { serverNow } from '../server-clock.js';
 import type { CelestialGoal } from '../celestial-layout.js';
@@ -358,20 +358,6 @@ function seedStacks(): SeedStack[] {
 
 function looseSeeds(species: string): number {
   return seedStacks().find(stack => stack.species === species)?.loose ?? 0;
-}
-
-function waitFor(condition: () => boolean, timeoutMs: number): Promise<boolean> {
-  const started = Date.now();
-  return new Promise(resolve => {
-    const poll = window.setInterval(() => {
-      let done = false;
-      try { done = condition(); } catch {}
-      if (done || Date.now() - started >= timeoutMs) {
-        window.clearInterval(poll);
-        resolve(done);
-      }
-    }, 100);
-  });
 }
 
 /**

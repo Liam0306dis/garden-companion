@@ -123,7 +123,6 @@ function installShortcutListener(): void {
       if (shop) openGameInterface(shop);
       return;
     }
-    if (!feature('petTeams')) return;
     if (config.interfaceKeybinds[PLANNER_KEY.id] === combo) {
       event.preventDefault(); event.stopPropagation();
       page.__gardenCompanionTogglePlanner?.();

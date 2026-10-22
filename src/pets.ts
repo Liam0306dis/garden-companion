@@ -5,7 +5,7 @@ import { catalogMutationMultiplier } from './mutation-value.js';
 import { sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
-import { escapeHtml, humanize, NUMBER_LOCALE } from './utils.js';
+import { escapeHtml, humanize, NUMBER_LOCALE, waitFor } from './utils.js';
 
 /** Everything derived from the player's pets: where they are, how they look, and how strong they are. */
 
@@ -579,11 +579,7 @@ export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots =
     itemId: toolId,
     quantity: Math.min(shortfall, stored),
   });
-  for (let attempt = 0; attempt < 40; attempt++) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    if (looseToolCount(toolId) >= wanted) return true;
-  }
-  return false;
+  return Boolean(await waitFor(() => looseToolCount(toolId) >= wanted, 4_000));
 }
 
 /**

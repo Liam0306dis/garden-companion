@@ -1,5 +1,5 @@
 import type { AlarmSoundSettings, CompanionAlarmOptions } from './types.js';
-import { config, feature } from './config.js';
+import { config } from './config.js';
 import { page } from './page.js';
 import { finishEditingAlarmPosition, placeAlarmBanner } from './alert-position.js';
 import { toast } from './toast.js';
@@ -534,12 +534,10 @@ export function showAlarmBanner(options: CompanionAlarmOptions): void {
  * arm the context. Without this the first alarm of a session would be silent.
  */
 export function installAlarms(): void {
-  // Any feature that can raise a banner has to arm the audio, or its alarm shows up silent.
-  // Read straight off the config rather than through the weather module, which imports this one.
-  const wantsAlarms = () => feature('shopAlarms') || feature('petHungerAlarm') || feature('petAbilityAlarm')
-    || Object.values(config.weatherAlerts || {}).some(Boolean);
-  page.addEventListener('pointerdown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);
-  page.addEventListener('keydown', () => { if (wantsAlarms()) armAlarmAudio(); }, true);
+  // Shop alarms cannot be turned off, so there is always a feature that may raise a banner, and the
+  // audio is always armed - otherwise that alarm shows up silent.
+  page.addEventListener('pointerdown', () => armAlarmAudio(), true);
+  page.addEventListener('keydown', () => armAlarmAudio(), true);
   page.__gardenCompanionArmAlarm = armAlarmAudio;
   page.__gardenCompanionStopAlarm = stopAlarm;
   page.__gardenCompanionShowAlarm = showAlarmBanner;

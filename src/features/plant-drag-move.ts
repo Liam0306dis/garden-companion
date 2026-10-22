@@ -9,6 +9,7 @@ import { page } from '../page.js';
 import { retryUntil } from '../retry.js';
 import { NOT_SENT_REASON, trySendQuinoaCommand } from '../game-connection.js';
 import { warn } from '../diagnostics.js';
+import { waitFor } from '../utils.js';
 
 /**
  * The engine's systems and views are untyped minified objects reached by name, so they are held as
@@ -532,20 +533,6 @@ export function initPlantDragMove(): void {
         return target?.tagName === 'CANVAS' && !target.closest?.('[data-gc-ui]');
     }
 
-    function waitFor<T>(condition: () => T, timeoutMs: number, intervalMs = 100): Promise<T | null> {
-        const started = performance.now();
-        return new Promise(resolve => {
-            const poll = setInterval(() => {
-                let value = null;
-                try { value = condition(); } catch { value = null; }
-                if (value || performance.now() - started >= timeoutMs) {
-                    clearInterval(poll);
-                    resolve(value || null);
-                }
-            }, intervalMs);
-        });
-    }
-
     function clientToGameGlobal(clientX: number, clientY: number, canvas: HTMLCanvasElement) {
         const renderer = live.worldTapRouter?.renderer ?? live.tapToMove?.renderer;
         if (!renderer) return null;
@@ -845,7 +832,14 @@ export function initPlantDragMove(): void {
             // fail, both are recoverable from the inventory rather than one stranded on a tile.
             sourcePlant = await potPlant(source);
             restoreSourcePlant(activePress);
-            if (swap) destPlant = await potPlant(destination);
+            if (swap) {
+                try {
+                    destPlant = await potPlant(destination);
+                } catch {
+                    // The moved plant is already lifted, so its tile is empty: say where it went.
+                    throw new Error(`The swap stopped: ${source.object?.species ?? 'your plant'} is safe in your inventory, but the other plant could not be picked up`);
+                }
+            }
             activePress.plantItem = sourcePlant;
             activePress.phase = 'ready';
         } finally {
