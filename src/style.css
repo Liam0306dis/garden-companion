@@ -350,6 +350,29 @@ details.gc-card summary h3 { display:inline; }
 .gc-cleanser-mutation { display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border:1px solid var(--gc-line);border-radius:999px;background:var(--gc-surface-2);color:var(--gc-text);font-size:11px;white-space:nowrap; }
 .gc-cleanser-mutation img { width:14px;height:14px;object-fit:contain;image-rendering:auto; }
 .gc-cleanser-empty { padding:28px 12px;color:var(--gc-faint);text-align:center; }
+#gc-journal-logger { position:fixed;z-index:2147483643;right:16px;top:120px;width:min(360px,calc(100vw - 24px));max-height:min(420px,calc(100vh - 24px));overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
+#gc-journal-logger[hidden] { display:none; }
+#gc-journal-logger > header { height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 6px 0 12px;cursor:move;user-select:none; }
+#gc-journal-logger[data-collapsed="false"] > header { border-bottom:1px solid var(--gc-line); }
+#gc-journal-logger > header > div { display:flex;align-items:center;gap:8px;color:var(--gc-strong);font-size:13px;font-weight:600;white-space:nowrap; }
+#gc-journal-logger > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-accent); }
+#gc-journal-logger > header > span { display:flex;align-items:center;gap:4px; }
+#gc-journal-logger > header button { height:28px;min-width:28px;padding:0 8px;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font); }
+#gc-journal-logger > header button:hover:not(:disabled) { color:var(--gc-text);background:var(--gc-surface-2); }
+#gc-journal-logger > header button:disabled { cursor:default;opacity:.45; }
+#gc-journal-logger > main { overflow:auto;padding:6px 10px 10px; }
+#gc-journal-logger > main:empty { display:none; }
+.gc-journal-logger-row { display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"sprite name log" "sprite chips log";align-items:center;column-gap:8px;row-gap:3px;padding:7px 0;border-bottom:1px solid var(--gc-line); }
+.gc-journal-logger-row:last-child { border-bottom:0; }
+.gc-journal-logger-row > .gc-shop-sprite,.gc-journal-logger-row > .gc-pet-sprite { grid-area:sprite;width:32px;height:32px;border-radius:8px; }
+.gc-journal-logger-row > .gc-pet-sprite img { width:28px;height:28px; }
+.gc-journal-logger-name { grid-area:name;min-width:0; }
+.gc-journal-logger-name b { color:var(--gc-strong);font-weight:550; }
+.gc-journal-logger-name small { margin-left:6px;color:var(--gc-muted);font-size:11px; }
+.gc-journal-logger-row > .gc-cleanser-mutations { grid-area:chips; }
+.gc-journal-logger-row > button { grid-area:log;padding:6px 10px;border:1px solid var(--gc-accent);border-radius:var(--gc-radius-sm);background:var(--gc-accent);color:#fff;cursor:pointer;font:600 11px var(--gc-font); }
+.gc-journal-logger-row > button:hover:not(:disabled) { background:var(--gc-accent-hover); }
+.gc-journal-logger-row > button:disabled { cursor:default;opacity:.45; }
 @media (max-width:560px) { .gc-cleanser-choices { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-cleanser-table-wrap th:nth-child(2),.gc-cleanser-table-wrap td:nth-child(2) { display:none; } }
 
 /* ── Farm Manager ────────────────────────────────────────────────────────────────────────────── */

@@ -27,6 +27,7 @@ export const DEFAULTS: CompanionConfig = {
   autoStoreSeeds: false,
   autoStoreDecor: false,
   autoStoreTools: false,
+  journalLogger: true,
   cropProtection: false,
   protectMaxSize: false,
   protectedMutations: [],

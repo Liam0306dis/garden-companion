@@ -1,3 +1,6 @@
+0.9.76
+- Journal logger: log new crops and pets with a click
+
 0.9.75
 - Crop protection: combos can be built in any order
 

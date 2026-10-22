@@ -22,6 +22,7 @@ import { bindSkyEvents, renderSky } from './features/sky.js';
 import { bindWeatherAlarmEvents, processWeatherAlarms, renderWeatherAlarms, weatherAlarmSignature } from './features/weather-alarms.js';
 import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCropProtection } from './features/crop-protection.js';
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
+import { refreshJournalLogger } from './features/journal-logger.js';
 import { bindEggLuckEvents, eggLuckSignature, endEggLuckEditing, renderEggLuck } from './features/egg-luck.js';
 import { processActivityLog } from './activity-log.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
@@ -809,6 +810,7 @@ export function initCompanion(): void {
       ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
       ['autoStoreDecor', 'Auto-store decor', 'Move decor into the Decor Shed when it already holds that item'],
       ['autoStoreTools', 'Auto-store tools', 'Move tools into the Tool Shack when it already holds that tool - one being used, or held, is left alone'],
+      ['journalLogger', 'Journal logger', 'A card listing ripe crops and pets (active, inventory or Pet Hutch) with something new for the journal - press Log to log one, no Camera needed'],
       ['cinematicButton', 'Cinematic mode button', 'A camera button under Daily Quests on the right-side rail that hides the game HUD and brings it back (Esc exits too), as the game had before it moved cinematic mode onto the Camera'],
       ['pumpkinImport', 'Carve pumpkins from pictures', 'A Select a picture button in the pumpkin carving window - the picture you pick is cut into the pumpkin'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
@@ -861,6 +863,7 @@ export function initCompanion(): void {
       updateCinematicButton();
       updatePumpkinImport();
       renderPetFood();
+      refreshJournalLogger();
       syncProduceLocks();
       syncCropEstimates();
     });

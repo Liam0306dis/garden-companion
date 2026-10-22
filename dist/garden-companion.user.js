@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.75
+// @version      0.9.76
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -37,7 +37,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.75", notes: ["Crop protection: combos can be built in any order"] }, { version: "0.9.74", notes: ["Crop protection: no duplicate combos"] }, { version: "0.9.73", notes: ["Crop protection: protected species can unlock themselves once ready, by size and mutation combos"] }, { version: "0.9.72", notes: ["Layout planner: names with quotes load and delete properly", "Plant drag move: a failed swap says your plant is in your inventory", "Produce locks: refused locks are reported", "Pumpkin carving: clearer message when the carving was not sent", 'Update check: no longer stuck on "Checking update"'] }, { version: "0.9.71", notes: ["Pumpkin carving: cleaner results from photos and busy pictures (hopefully), and holes like eyes are no longer filled in", 'Pumpkin carving: a checkered "transparent" background saved into a picture is treated as background', "Pumpkin carving: Crop to carve part of a picture, freehand or as a rectangle", "Pumpkin carving: stained glass can cut the lines instead of the colours", "Pumpkin carving: Edit in game puts the picture on the pumpkin to touch up with the knife before saving"] }, { version: "0.9.70", notes: ["Cinematic button: fixed position glitches", "Diagnostics: tidier spacing", "Crop protection: uses the game's padlock"] }, { version: "0.9.69", notes: ['Plant drag move: no longer stops with "stand on a tile in your own garden first" while you are already in your garden, such as after changing room or reconnecting'] }, { version: "0.9.68", notes: ["Diagnostics: a new Diagnostics tab in the bottom bar shows what is working and what is not, with a Copy report button for sending a report when something breaks (it leaves out your player id and room) - the tab shows a red dot when something has stopped working"] }, { version: "0.9.67", notes: ["Changes to play nicer alongside AriesMod and QPM: commands no longer get stuck when AriesMod blocks one, QPM's locker and command tracking now apply to the commands Garden Companion sends, held keys are let go when you switch windows, and less slowdown from page-wide hooks"] }, { version: "0.9.66", notes: ["Pet food: the feed buttons should never feed a carved pumpkin"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.76", notes: ["Journal logger: log new crops and pets with a click"] }, { version: "0.9.75", notes: ["Crop protection: combos can be built in any order"] }, { version: "0.9.74", notes: ["Crop protection: no duplicate combos"] }, { version: "0.9.73", notes: ["Crop protection: protected species can unlock themselves once ready, by size and mutation combos"] }, { version: "0.9.72", notes: ["Layout planner: names with quotes load and delete properly", "Plant drag move: a failed swap says your plant is in your inventory", "Produce locks: refused locks are reported", "Pumpkin carving: clearer message when the carving was not sent", 'Update check: no longer stuck on "Checking update"'] }, { version: "0.9.71", notes: ["Pumpkin carving: cleaner results from photos and busy pictures (hopefully), and holes like eyes are no longer filled in", 'Pumpkin carving: a checkered "transparent" background saved into a picture is treated as background', "Pumpkin carving: Crop to carve part of a picture, freehand or as a rectangle", "Pumpkin carving: stained glass can cut the lines instead of the colours", "Pumpkin carving: Edit in game puts the picture on the pumpkin to touch up with the knife before saving"] }, { version: "0.9.70", notes: ["Cinematic button: fixed position glitches", "Diagnostics: tidier spacing", "Crop protection: uses the game's padlock"] }, { version: "0.9.69", notes: ['Plant drag move: no longer stops with "stand on a tile in your own garden first" while you are already in your garden, such as after changing room or reconnecting'] }, { version: "0.9.68", notes: ["Diagnostics: a new Diagnostics tab in the bottom bar shows what is working and what is not, with a Copy report button for sending a report when something breaks (it leaves out your player id and room) - the tab shows a red dot when something has stopped working"] }, { version: "0.9.67", notes: ["Changes to play nicer alongside AriesMod and QPM: commands no longer get stuck when AriesMod blocks one, QPM's locker and command tracking now apply to the commands Garden Companion sends, held keys are let go when you switch windows, and less slowdown from page-wide hooks"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheave", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -809,9 +809,9 @@
       const reasons = [...pendingReasons];
       pendingReasons.clear();
       for (const listener of stateListeners) {
-        for (const pending of reasons) {
+        for (const pending2 of reasons) {
           try {
-            listener(pending);
+            listener(pending2);
           } catch (error) {
             warn("A state listener failed.", error);
           }
@@ -892,6 +892,7 @@
     autoStoreSeeds: false,
     autoStoreDecor: false,
     autoStoreTools: false,
+    journalLogger: true,
     cropProtection: false,
     protectMaxSize: false,
     protectedMutations: [],
@@ -1867,10 +1868,10 @@
     return () => {
       if (released) return;
       released = true;
-      const current = toolHolds.get(toolId);
-      if (!current) return;
-      const count = current.count - 1;
-      if (count > 0) toolHolds.set(toolId, { count, until: current.until });
+      const current2 = toolHolds.get(toolId);
+      if (!current2) return;
+      const count = current2.count - 1;
+      if (count > 0) toolHolds.set(toolId, { count, until: current2.until });
       else toolHolds.set(toolId, { count: 0, until: Date.now() + HOLD_GRACE_MS });
     };
   }
@@ -2651,9 +2652,9 @@ ${groups}
       const number = Math.round(Number(value));
       return value.trim() !== "" && Number.isFinite(number) ? Math.max(min, Math.min(max2, number)) : fallback;
     };
-    const current = main.querySelector("[data-xp-current]");
-    if (current) current.oninput = () => {
-      xpCustomStrength = clamp(current.value, 50, 100, xpCustomStrength);
+    const current2 = main.querySelector("[data-xp-current]");
+    if (current2) current2.oninput = () => {
+      xpCustomStrength = clamp(current2.value, 50, 100, xpCustomStrength);
       results();
     };
     const max = main.querySelector("[data-xp-max]");
@@ -4708,9 +4709,9 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
   var expected = /* @__PURE__ */ new Map();
   var EXPECTED_MS = 1e4;
   function isLocked(id, favourites) {
-    const pending = expected.get(id);
-    if (pending && (favourites.has(id) === pending.locked || Date.now() > pending.until)) expected.delete(id);
-    else if (pending) return pending.locked;
+    const pending2 = expected.get(id);
+    if (pending2 && (favourites.has(id) === pending2.locked || Date.now() > pending2.until)) expected.delete(id);
+    else if (pending2) return pending2.locked;
     return favourites.has(id);
   }
   function speciesRows() {
@@ -4788,32 +4789,32 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     }
   }
   function createPanel() {
-    const panel3 = document.createElement("div");
-    panel3.id = PANEL_ID;
-    panel3.hidden = true;
-    panel3.innerHTML = '<div class="gc-produce-locks-head" title="Right-click a crop to lock or unlock every one of that species">Produce</div><div class="gc-produce-locks-list"></div>';
-    panel3.addEventListener("contextmenu", (event) => {
+    const panel4 = document.createElement("div");
+    panel4.id = PANEL_ID;
+    panel4.hidden = true;
+    panel4.innerHTML = '<div class="gc-produce-locks-head" title="Right-click a crop to lock or unlock every one of that species">Produce</div><div class="gc-produce-locks-list"></div>';
+    panel4.addEventListener("contextmenu", (event) => {
       event.preventDefault();
       const tile = event.target.closest("[data-produce-species]");
       if (tile) toggleSpecies(tile.dataset.produceSpecies);
     });
-    for (const type of ["pointerdown", "pointerup", "wheel"]) panel3.addEventListener(type, (event) => event.stopPropagation());
-    const list = panel3.querySelector(".gc-produce-locks-list");
+    for (const type of ["pointerdown", "pointerup", "wheel"]) panel4.addEventListener(type, (event) => event.stopPropagation());
+    const list = panel4.querySelector(".gc-produce-locks-list");
     list.addEventListener("wheel", (event) => {
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
       event.preventDefault();
       list.scrollLeft += event.deltaY;
     }, { passive: false });
-    document.body.appendChild(panel3);
-    return panel3;
+    document.body.appendChild(panel4);
+    return panel4;
   }
   var signature = "";
-  function render(panel3) {
+  function render(panel4) {
     const rows = speciesRows();
     const next = JSON.stringify(rows.map((row) => [row.species, row.ids.length, row.locked, Boolean(produceSprite(row.species))]));
     if (next === signature) return;
     signature = next;
-    const list = panel3.querySelector(".gc-produce-locks-list");
+    const list = panel4.querySelector(".gc-produce-locks-list");
     list.innerHTML = rows.length ? rows.map((row) => {
       const name = humanize(row.species);
       const sprite = produceSprite(row.species);
@@ -4825,18 +4826,18 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
   }
   function position() {
     const rect = feature("produceLocks") ? inventoryRect() : null;
-    let panel3 = document.getElementById(PANEL_ID);
+    let panel4 = document.getElementById(PANEL_ID);
     if (!rect) {
-      if (panel3) panel3.hidden = true;
+      if (panel4) panel4.hidden = true;
       return;
     }
-    panel3 ||= createPanel();
-    render(panel3);
+    panel4 ||= createPanel();
+    render(panel4);
     const gap = 8;
-    panel3.style.left = `${Math.round(rect.left)}px`;
-    panel3.style.maxWidth = `${Math.round(rect.right - rect.left)}px`;
-    panel3.style.bottom = `${Math.round(innerHeight - rect.top + gap)}px`;
-    panel3.hidden = false;
+    panel4.style.left = `${Math.round(rect.left)}px`;
+    panel4.style.maxWidth = `${Math.round(rect.right - rect.left)}px`;
+    panel4.style.bottom = `${Math.round(innerHeight - rect.top + gap)}px`;
+    panel4.hidden = false;
   }
   var ticker = createTicker(position, 150);
   function syncProduceLocks() {
@@ -4927,12 +4928,12 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     }
   }
   function createPetFoodPanel() {
-    const panel3 = document.createElement("div");
-    panel3.id = "gc-petfood";
-    panel3.innerHTML = '<div class="gc-petfood-list"></div><button class="gc-petfood-options" data-food-options title="Choose preferred foods">Foods</button>';
-    document.body.appendChild(panel3);
-    panel3.querySelector("[data-food-options]").onclick = () => panelActions.openPanel("petFood");
-    panel3.querySelector(".gc-petfood-list").addEventListener("click", (event) => {
+    const panel4 = document.createElement("div");
+    panel4.id = "gc-petfood";
+    panel4.innerHTML = '<div class="gc-petfood-list"></div><button class="gc-petfood-options" data-food-options title="Choose preferred foods">Foods</button>';
+    document.body.appendChild(panel4);
+    panel4.querySelector("[data-food-options]").onclick = () => panelActions.openPanel("petFood");
+    panel4.querySelector(".gc-petfood-list").addEventListener("click", (event) => {
       const button = event.target.closest("[data-feed-pet]");
       if (!button || button.disabled) return;
       if (button.dataset.potion === "true") {
@@ -4944,7 +4945,7 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
       }
       feedPet(button.dataset.feedPet, button.dataset.cropItem);
     });
-    return panel3;
+    return panel4;
   }
   var positionTicker = createTicker(() => positionPetFood(), 250);
   function renderPetFood() {
@@ -4959,10 +4960,10 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     }
     positionTicker.start();
     const signature3 = JSON.stringify(rows.map((row) => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice))]));
-    const panel3 = existing || createPetFoodPanel();
+    const panel4 = existing || createPetFoodPanel();
     if (!existing || signature3 !== petFoodSignature) {
       petFoodSignature = signature3;
-      panel3.querySelector(".gc-petfood-list").innerHTML = rows.map((row) => {
+      panel4.querySelector(".gc-petfood-list").innerHTML = rows.map((row) => {
         const name = row.pet.name || PET_CATALOG[row.pet.petSpecies]?.name || humanize(row.pet.petSpecies);
         const sprite = produceSprite(row.choice);
         const ready = Boolean(row.choice) && row.count > 0;
@@ -4982,22 +4983,22 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     return !top.closest(".QuinoaCanvas") && !top.closest("#gc-petfood");
   }
   function positionPetFood() {
-    const panel3 = document.getElementById("gc-petfood");
-    if (!panel3) return;
-    const buttons = [...panel3.querySelectorAll("[data-food-row]")];
-    const options = panel3.querySelector(".gc-petfood-options");
+    const panel4 = document.getElementById("gc-petfood");
+    if (!panel4) return;
+    const buttons = [...panel4.querySelectorAll("[data-food-row]")];
+    const options = panel4.querySelector(".gc-petfood-options");
     const dock = findPetSlotDock();
     const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || "") ?? null : dock.rows[index] ?? null) : [];
     const anchors = paired.filter((anchor2) => Boolean(anchor2));
     if (!dock || dock.blocked || !anchors.length || petPanelCovered(anchors[0])) {
-      panel3.hidden = true;
+      panel4.hidden = true;
       return;
     }
     const dockRight = anchors.reduce((total, row) => total + row.right, 0) / anchors.length < innerWidth / 2;
     const size = Math.round(Math.max(32, Math.min(72, anchors[0].height * 0.78)));
     const iconSize = Math.round(size * 0.78);
     const gap = 8;
-    panel3.hidden = false;
+    panel4.hidden = false;
     buttons.forEach((button, index) => {
       const anchor2 = paired[index];
       if (!anchor2) {
@@ -5547,10 +5548,10 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
         const key = rule.key(item);
         if (!key || !stored.has(key) || isBusy(rule, key) || isTimedTool(item)) continue;
         if (storageFull(rule, key, stored.get(key))) continue;
-        const pending = `${rule.storageId}:${key}`;
-        if (sentAt.has(pending) || queued.has(pending)) continue;
-        queued.add(pending);
-        queue2.push({ rule, key, pending });
+        const pending2 = `${rule.storageId}:${key}`;
+        if (sentAt.has(pending2) || queued.has(pending2)) continue;
+        queued.add(pending2);
+        queue2.push({ rule, key, pending: pending2 });
         queuedAny = true;
       }
     }
@@ -5979,11 +5980,11 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     midnight: "Night",
     sunrise: "skySunrise"
   };
-  function choiceButtons(key, choices, current) {
+  function choiceButtons(key, choices, current2) {
     return choices.map(([id, text]) => {
       const sprite = page.__gardenCompanionWeatherSprites?.[CHOICE_ICONS[id] ?? ""] || "";
       const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-      return `<button data-sky-${key}="${escapeHtml(id)}" class="${id === current ? "active" : ""}">${icon}<span>${escapeHtml(text)}</span></button>`;
+      return `<button data-sky-${key}="${escapeHtml(id)}" class="${id === current2 ? "active" : ""}">${icon}<span>${escapeHtml(text)}</span></button>`;
     }).join("");
   }
   var SLIDER_UNITS = { night: "%", nightColour: "%", glow: "%", brightness: "%", contrast: "%", saturation: "%", warmth: "%", hue: "°" };
@@ -6451,6 +6452,262 @@ ${variantFilterStrip(variants, journalTab)}
     });
   }
 
+  // src/draggable.ts
+  var draggable_exports = {};
+  __export(draggable_exports, {
+    makeDraggable: () => makeDraggable
+  });
+  function makeDraggable(element, storageKey, options = {}) {
+    function place3(point) {
+      const rect = element.getBoundingClientRect();
+      const left = Math.min(Math.max(0, point.left), Math.max(0, window.innerWidth - rect.width));
+      const top = Math.min(Math.max(0, point.top), Math.max(0, window.innerHeight - rect.height));
+      element.style.left = `${Math.round(left)}px`;
+      element.style.top = `${Math.round(top)}px`;
+      element.style.right = "auto";
+      element.style.bottom = "auto";
+    }
+    const saved = loadLocal(storageKey, null);
+    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) place3(saved);
+    let dragging = false;
+    let startX = 0, startY = 0, originLeft = 0, originTop = 0;
+    element.addEventListener("pointerdown", (event) => {
+      const target = event.target;
+      if (target.closest("button, input, select, textarea, a, [data-no-drag]")) return;
+      if (options.handle && !target.closest(options.handle)) return;
+      const rect = element.getBoundingClientRect();
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      originLeft = rect.left;
+      originTop = rect.top;
+      element.dataset.dragging = "true";
+      try {
+        element.setPointerCapture(event.pointerId);
+      } catch {
+      }
+      event.preventDefault();
+    });
+    element.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      place3({ left: originLeft + event.clientX - startX, top: originTop + event.clientY - startY });
+    });
+    function stop(event) {
+      if (!dragging) return;
+      dragging = false;
+      delete element.dataset.dragging;
+      try {
+        element.releasePointerCapture(event.pointerId);
+      } catch {
+      }
+      const rect = element.getBoundingClientRect();
+      saveLocal(storageKey, { left: rect.left, top: rect.top });
+    }
+    element.addEventListener("pointerup", stop);
+    element.addEventListener("pointercancel", stop);
+    window.addEventListener("resize", () => {
+      if (!element.style.left) return;
+      const rect = element.getBoundingClientRect();
+      place3({ left: rect.left, top: rect.top });
+    });
+  }
+
+  // src/features/journal-logger.ts
+  var POSITION_KEY2 = "gardenCompanion.journalLoggerPosition.v1";
+  var COLLAPSED_KEY = "gardenCompanion.journalLoggerCollapsed.v1";
+  function journalRow(kind, species) {
+    return state.slot?.data?.journal?.[kind]?.[species];
+  }
+  function loggedVariants(row) {
+    return (row?.variantsLogged ?? []).map((entry) => entry?.variant ?? "");
+  }
+  function newVariants(mutations, atMax, logged) {
+    const list = mutations ?? [];
+    const fresh = list.filter((mutation) => !logged.includes(mutation));
+    if (!list.length && !logged.includes("Normal")) fresh.push("Normal");
+    if (atMax && !logged.includes("Max Weight")) fresh.push("Max Weight");
+    return [...new Set(fresh)];
+  }
+  function cropSubject(species, mutations, size, key, target, where) {
+    if (!species) return null;
+    const variants = newVariants(mutations, slotIsMaxSize({ size }), loggedVariants(journalRow("produce", species)));
+    if (!variants.length) return null;
+    return { key: `${key}:${variants.join(",")}`, target, name: plantName(species), where, sprite: produceSprite(species) ? `<span class="gc-shop-sprite"><img src="${escapeHtml(produceSprite(species))}" alt=""></span>` : '<span class="gc-shop-sprite"></span>', variants, abilities: [] };
+  }
+  function petSubject(pet, target, where) {
+    const row = journalRow("pets", pet.petSpecies);
+    const maxScale = PET_CATALOG[pet.petSpecies]?.maxScale;
+    const atMax = Boolean(maxScale) && Number(pet.targetScale) >= maxScale;
+    const variants = newVariants(pet.mutations, atMax, loggedVariants(row));
+    const logged = (row?.abilitiesLogged ?? []).map((entry) => entry?.ability);
+    const abilities = [...new Set((pet.abilities ?? []).filter((ability) => !logged.includes(ability)))];
+    if (!variants.length && !abilities.length) return null;
+    const species = PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
+    return {
+      key: `pet:${pet.id}:${variants.join(",")}:${abilities.join(",")}`,
+      target,
+      name: pet.name && pet.name !== species ? `${pet.name} (${species})` : species,
+      where,
+      sprite: petSprite(pet),
+      variants,
+      abilities
+    };
+  }
+  function subjects() {
+    const data = state.slot?.data;
+    if (!data) return [];
+    const found = [];
+    const push = (subject) => {
+      if (subject) found.push(subject);
+    };
+    const now = serverNow();
+    for (const [index, tile] of Object.entries(data.garden?.tileObjects ?? {})) {
+      if (tile?.objectType !== "plant") continue;
+      for (const slot of tile.slots ?? []) {
+        if (slot.endTime == null || slot.endTime > now) continue;
+        const slotsIndex = Number(slot.slotId);
+        push(cropSubject(slot.species, slot.mutations, slot.size, `slot:${index}:${slotsIndex}`, { kind: "growSlot", slot: Number(index), slotsIndex }, "Garden"));
+      }
+    }
+    const boards = [
+      ["Dirt", data.garden?.tileObjects],
+      ["Boardwalk", data.garden?.boardwalkTileObjects]
+    ];
+    for (const [tileType, tiles] of boards) {
+      for (const [index, tile] of Object.entries(tiles ?? {})) {
+        const crop = tile?.objectType === "decor" ? tile.mountedCrop : void 0;
+        if (crop) push(cropSubject(crop.species, crop.mutations, crop.size, `display:${crop.id}`, { kind: "displayedCrop", tileType, localTileIndex: Number(index), cropId: crop.id }, "On display"));
+      }
+    }
+    for (const pet of data.petSlots ?? []) push(petSubject(pet, { kind: "petSlot", petId: pet.id }, "Active"));
+    const hutch = (data.inventory?.storages ?? []).find((storage) => storage.decorId === "PetHutch");
+    const hutchPlaced = boards.some(([, tiles]) => Object.values(tiles ?? {}).some((tile) => tile?.objectType === "decor" && tile.decorId === "PetHutch"));
+    for (const pet of hutchPlaced ? hutch?.items ?? [] : []) {
+      if (pet.itemType === "Pet") push(petSubject(pet, { kind: "inventoryItem", itemId: pet.id }, "Pet Hutch"));
+    }
+    for (const item of data.inventory?.items ?? []) {
+      const target = { kind: "inventoryItem", itemId: item.id };
+      if (item.itemType === "Pet") push(petSubject(item, target, "Inventory"));
+      else if (item.itemType === "Produce") push(cropSubject(item.species, item.mutations, item.size, `item:${item.id}`, target, "Inventory"));
+    }
+    return found;
+  }
+  function variantChip2(variant) {
+    const label = variant === "Max Weight" ? "Max Size" : MUTATION_CATALOG[variant]?.name || variant;
+    const icon = mutationSprite(variant);
+    return `<span class="gc-cleanser-mutation" title="${escapeHtml(label)}">${icon ? `<img src="${escapeHtml(icon)}" alt="">` : ""}${escapeHtml(label)}</span>`;
+  }
+  function abilityChip(ability) {
+    return `<span class="gc-cleanser-mutation" title="Ability">${escapeHtml(humanize(ability))}</span>`;
+  }
+  var pending = /* @__PURE__ */ new Set();
+  var current = [];
+  var lastSignature = "";
+  var collapsed = loadLocal(COLLAPSED_KEY, false);
+  function panel() {
+    return document.getElementById("gc-journal-logger");
+  }
+  function ensurePanel() {
+    const existing = panel();
+    if (existing) return existing;
+    const root2 = document.createElement("section");
+    root2.id = "gc-journal-logger";
+    root2.hidden = true;
+    root2.innerHTML = '<header><div><i></i><span data-journal-logger-title>New for journal</span></div><span><button data-journal-logger-all title="Log every one">Log all</button><button data-journal-logger-collapse aria-label="Collapse"></button></span></header><main data-journal-logger-body></main>';
+    root2.querySelector("[data-journal-logger-collapse]").onclick = () => {
+      collapsed = !collapsed;
+      saveLocal(COLLAPSED_KEY, collapsed);
+      lastSignature = "";
+      refreshJournalLogger();
+    };
+    root2.querySelector("[data-journal-logger-all]").onclick = () => {
+      void logAll();
+    };
+    document.body.appendChild(root2);
+    makeDraggable(root2, POSITION_KEY2);
+    return root2;
+  }
+  async function logSubject(subject) {
+    pending.add(subject.key);
+    lastSignature = "";
+    refreshJournalLogger();
+    let ok = false;
+    try {
+      const result = await sendQuinoaCommandAwaitingResult({ type: "LogItem", target: subject.target });
+      ok = result.ok;
+      if (!ok) toast(result.code === "not_sent" ? `${subject.name} was not logged: ${NOT_SENT_REASON}.` : `${subject.name} could not be logged.`, "error");
+    } catch (error) {
+      toast(error.message, "error");
+    }
+    if (!ok) pending.delete(subject.key);
+    lastSignature = "";
+    refreshJournalLogger();
+    return ok;
+  }
+  var loggingAll = false;
+  async function logAll() {
+    if (loggingAll) return;
+    loggingAll = true;
+    try {
+      let logged = 0;
+      for (const subject of [...current]) {
+        if (pending.has(subject.key)) continue;
+        if (await logSubject(subject)) logged += 1;
+        else break;
+      }
+      if (logged) toast(`Logged ${logged} to the journal.`, "success");
+    } finally {
+      loggingAll = false;
+    }
+  }
+  function render2(root2) {
+    const count = current.length;
+    root2.querySelector("[data-journal-logger-title]").textContent = `New for journal (${count})`;
+    root2.dataset.collapsed = String(collapsed);
+    const collapse = root2.querySelector("[data-journal-logger-collapse]");
+    collapse.textContent = collapsed ? "+" : "−";
+    collapse.setAttribute("aria-label", collapsed ? "Expand" : "Collapse");
+    root2.querySelector("[data-journal-logger-all]").disabled = loggingAll || current.every((subject) => pending.has(subject.key));
+    const body = root2.querySelector("[data-journal-logger-body]");
+    if (collapsed) {
+      body.innerHTML = "";
+      return;
+    }
+    body.innerHTML = current.map((subject, index) => `<div class="gc-journal-logger-row">
+${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.name)}</b><small>${escapeHtml(subject.where)}</small></span>
+<span class="gc-cleanser-mutations">${subject.variants.map(variantChip2).join("")}${subject.abilities.map(abilityChip).join("")}</span>
+<button data-journal-log="${index}" ${pending.has(subject.key) ? "disabled" : ""}>${pending.has(subject.key) ? "Logging" : "Log"}</button></div>`).join("");
+    body.querySelectorAll("[data-journal-log]").forEach((button) => button.onclick = () => {
+      const subject = current[Number(button.dataset.journalLog)];
+      if (subject && !pending.has(subject.key)) void logSubject(subject);
+    });
+  }
+  function refreshJournalLogger() {
+    const enabled = feature("journalLogger");
+    current = enabled ? subjects() : [];
+    const live = new Set(current.map((subject) => subject.key));
+    for (const key of pending) if (!live.has(key)) pending.delete(key);
+    const signature3 = JSON.stringify([current.map((subject) => subject.key), [...pending], collapsed, loggingAll]);
+    if (signature3 === lastSignature) return;
+    lastSignature = signature3;
+    if (!current.length) {
+      const root3 = panel();
+      if (root3) root3.hidden = true;
+      return;
+    }
+    const root2 = ensurePanel();
+    root2.hidden = false;
+    render2(root2);
+  }
+  function initJournalLogger() {
+    onStateChange(() => refreshJournalLogger());
+    onSpritesReady(() => {
+      lastSignature = "";
+      refreshJournalLogger();
+    });
+    window.setInterval(refreshJournalLogger, 5e3);
+  }
+
   // src/features/egg-luck.ts
   var PITY_THRESHOLDS = { species: 40, Gold: 200, Rainbow: 2e3 };
   var EGG_LUCK_KEY = "gardenCompanion.eggLuck.v1";
@@ -6494,10 +6751,10 @@ ${variantFilterStrip(variants, journalTab)}
   }
   var EGG_COLLAPSED_KEY = "gardenCompanion.eggLuckCollapsed.v1";
   var savedCollapsed = loadLocal(EGG_COLLAPSED_KEY, []);
-  var collapsed = new Set(Array.isArray(savedCollapsed) ? savedCollapsed.filter((id) => typeof id === "string") : []);
+  var collapsed2 = new Set(Array.isArray(savedCollapsed) ? savedCollapsed.filter((id) => typeof id === "string") : []);
   function toggleEggCollapsed(eggId) {
-    collapsed.has(eggId) ? collapsed.delete(eggId) : collapsed.add(eggId);
-    saveLocal(EGG_COLLAPSED_KEY, [...collapsed]);
+    collapsed2.has(eggId) ? collapsed2.delete(eggId) : collapsed2.add(eggId);
+    saveLocal(EGG_COLLAPSED_KEY, [...collapsed2]);
   }
   function pitySpeciesList(eggId) {
     const declared = Object.keys(EGG_CATALOG[eggId]?.pityThresholds || {});
@@ -6653,7 +6910,7 @@ ${variantFilterStrip(variants, journalTab)}
     if (!record.hatches && !editMode) {
       return `<section class="gc-card gc-egg-card" data-empty="true"><div class="gc-row gc-egg-headrow"><h3>${title}</h3>${hatched}${editButton}</div><p>No hatches seen yet.</p></section>`;
     }
-    const open = !collapsed.has(eggId);
+    const open = !collapsed2.has(eggId);
     const due = dueCount(eggId, record);
     const head = `<div class="gc-egg-headrow"><button class="gc-egg-head" data-egg-toggle="${escapeHtml(eggId)}" aria-expanded="${open}"><h3>${title}</h3>` + (due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : "") + hatched + `</button>${editButton}<button class="gc-egg-head gc-egg-arrow" data-egg-toggle="${escapeHtml(eggId)}" aria-expanded="${open}" aria-label="${open ? "Collapse" : "Expand"}"><i>${open ? "&#9650;" : "&#9660;"}</i></button></div>`;
     const weights = EGG_CATALOG[eggId]?.spawnWeights || {};
@@ -6703,7 +6960,7 @@ ${eggs.map(eggCard).join("")}`;
     main.querySelectorAll("[data-egg-edit]").forEach((button) => button.onclick = () => {
       const eggId = button.dataset.eggEdit;
       editing2.has(eggId) ? editing2.delete(eggId) : editing2.add(eggId);
-      if (editing2.has(eggId) && collapsed.has(eggId)) toggleEggCollapsed(eggId);
+      if (editing2.has(eggId) && collapsed2.has(eggId)) toggleEggCollapsed(eggId);
       panelActions.renderPanelPreservingScroll();
     });
     main.querySelectorAll("[data-egg-adjust]").forEach((button) => button.onclick = () => {
@@ -6828,8 +7085,8 @@ ${eggs.map(eggCard).join("")}`;
       roomRows = [];
     }
     roomLoading = false;
-    const panel3 = document.getElementById("gc-panel");
-    if (panel3 && !panel3.hidden && panelActions.activeTab() === "rooms") panelActions.renderPanel();
+    const panel4 = document.getElementById("gc-panel");
+    if (panel4 && !panel4.hidden && panelActions.activeTab() === "rooms") panelActions.renderPanel();
   }
   function bindRoomEvents(main) {
     main.querySelector("[data-refresh-rooms]")?.addEventListener("click", () => void reloadRooms());
@@ -7733,8 +7990,8 @@ ${eggs.map(eggCard).join("")}`;
     const groups = [["number", letters], ["icon", icons], ["pet", pets]];
     const tabs = groups.map(([kind]) => `<button data-emblem-kind="${kind}" class="${kind === teamPickerEmblemKind ? "active" : ""}">${kind === "number" ? "Letters" : kind === "icon" ? "Icons" : "Pets"}</button>`).join("");
     const strips = groups.map(([kind, markup]) => `<div class="gc-emblem-strip" data-emblem-group="${kind}" ${kind === teamPickerEmblemKind ? "" : "hidden"}>${markup}</div>`).join("");
-    const current = teamPickerEmblem ? `Emblem: ${escapeHtml(emblemLabel(teamPickerEmblem))}` : "No emblem selected";
-    return `<div class="gc-emblem-head"><span>Team emblem</span><div class="gc-emblem-tabs">${tabs}</div><small data-emblem-current>${current}</small></div>${strips}`;
+    const current2 = teamPickerEmblem ? `Emblem: ${escapeHtml(emblemLabel(teamPickerEmblem))}` : "No emblem selected";
+    return `<div class="gc-emblem-head"><span>Team emblem</span><div class="gc-emblem-tabs">${tabs}</div><small data-emblem-current>${current2}</small></div>${strips}`;
   }
   function refreshEmblemUi(picker) {
     const teamPets = selectedTeamPets();
@@ -7762,8 +8019,8 @@ ${eggs.map(eggCard).join("")}`;
     picker.querySelectorAll("[data-emblem-group]").forEach((group) => {
       group.hidden = group.dataset.emblemGroup !== teamPickerEmblemKind;
     });
-    const current = picker.querySelector("[data-emblem-current]");
-    if (current) current.textContent = teamPickerEmblem ? `Emblem: ${emblemLabel(teamPickerEmblem)}` : "No emblem selected";
+    const current2 = picker.querySelector("[data-emblem-current]");
+    if (current2) current2.textContent = teamPickerEmblem ? `Emblem: ${emblemLabel(teamPickerEmblem)}` : "No emblem selected";
   }
   function openTeamPicker(teamId) {
     const team = teamId ? teams().find((entry) => entry.id === teamId) ?? null : null;
@@ -7922,8 +8179,8 @@ ${eggs.map(eggCard).join("")}`;
       }
     }
     pendingTeamSave = null;
-    const panel3 = document.getElementById("gc-panel");
-    if (panel3 && !panel3.hidden && panelActions.activeTab() === "teams") panelActions.renderPanel();
+    const panel4 = document.getElementById("gc-panel");
+    if (panel4 && !panel4.hidden && panelActions.activeTab() === "teams") panelActions.renderPanel();
   }
   var pendingTeamOrder = null;
   function refreshCompletedTeamMove() {
@@ -7931,25 +8188,25 @@ ${eggs.map(eggCard).join("")}`;
     const order = teams().map((team) => team.id).join(",");
     if (order === pendingTeamOrder) return;
     pendingTeamOrder = null;
-    const panel3 = document.getElementById("gc-panel");
-    if (panel3 && !panel3.hidden && panelActions.activeTab() === "teams") panelActions.renderPanelPreservingScroll();
+    const panel4 = document.getElementById("gc-panel");
+    if (panel4 && !panel4.hidden && panelActions.activeTab() === "teams") panelActions.renderPanelPreservingScroll();
   }
   function refreshCompletedTeamDelete() {
     if (!pendingTeamDeleteId || teams().some((team) => team.id === pendingTeamDeleteId)) return;
     const deletedTeamId = pendingTeamDeleteId;
     pendingTeamDeleteId = null;
-    const panel3 = document.getElementById("gc-panel");
-    if (!panel3 || panel3.hidden || panelActions.activeTab() !== "teams") return;
-    const cards = [...panel3.querySelectorAll("[data-team-card]")];
+    const panel4 = document.getElementById("gc-panel");
+    if (!panel4 || panel4.hidden || panelActions.activeTab() !== "teams") return;
+    const cards = [...panel4.querySelectorAll("[data-team-card]")];
     const deletedCard = cards.find((card) => card.dataset.teamCard === deletedTeamId);
     if (deletedCard && cards.length > 1) deletedCard.remove();
     else panelActions.renderPanelPreservingScroll();
   }
   function refreshTeamActiveMarkers() {
-    const panel3 = document.getElementById("gc-panel");
-    if (!panel3 || panel3.hidden || panelActions.activeTab() !== "teams") return;
+    const panel4 = document.getElementById("gc-panel");
+    if (!panel4 || panel4.hidden || panelActions.activeTab() !== "teams") return;
     const active = activeTeamId();
-    panel3.querySelectorAll("[data-team-card]").forEach((card) => {
+    panel4.querySelectorAll("[data-team-card]").forEach((card) => {
       const isActive = card.dataset.teamCard === active;
       const apply = card.querySelector("[data-apply-team]");
       const label = isActive ? "Activated" : "Activate";
@@ -8160,8 +8417,8 @@ ${eggs.map(eggCard).join("")}`;
     }
     const active = activeTeamIds();
     const from = lastCycledTeamId && (active.includes(lastCycledTeamId) || !active.length) ? lastCycledTeamId : active[0] ?? lastCycledTeamId;
-    const current = from ? list.findIndex((team) => team.id === from) : -1;
-    const next = list[((current < 0 ? -step : current + step) % list.length + list.length) % list.length];
+    const current2 = from ? list.findIndex((team) => team.id === from) : -1;
+    const next = list[((current2 < 0 ? -step : current2 + step) % list.length + list.length) % list.length];
     if (!next) return;
     lastCycledTeamId = next.id;
     toast(`Switching to ${next.name}.`, "success");
@@ -8357,12 +8614,12 @@ ${eggs.map(eggCard).join("")}`;
           return sum + contribution;
         }, 0);
         const amount = Number(total.toFixed(2)).toLocaleString(NUMBER_LOCALE);
-        const pending = [...pendingByWeather].map(([weather, value]) => `+${Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE)}% during ${weatherLabel(weather)}`).join(", ");
+        const pending2 = [...pendingByWeather].map(([weather, value]) => `+${Number(value.toFixed(2)).toLocaleString(NUMBER_LOCALE)}% during ${weatherLabel(weather)}`).join(", ");
         if (passiveGroup.key === "HungerBoost") effect = `Reduces hunger depletion by ${amount}% combined`;
         else if (passiveGroup.key === "WeatherMutationBoost") effect = `Weather mutation chance increase: +${amount}% combined`;
         else if (passiveGroup.key === "PetMutationBoost") effect = `Egg mutation chance increase: +${amount}% combined`;
         else effect = `Active pet ability chance: +${amount}% combined`;
-        if (pending) effect += ` (${pending})`;
+        if (pending2) effect += ` (${pending2})`;
       } else effect = abilityEffectText(ability, averageStrength, details?.trigger, details?.baseParameters);
       const names = owners.map((pet) => pet.name || PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies)).join(", ");
       const label = passiveGroup?.label ?? ABILITY_DETAILS[ability]?.name ?? humanize(ability);
@@ -8806,14 +9063,14 @@ ${eggs.map(eggCard).join("")}`;
       if (!feature("instantHarvest") || feature("cropProtection") || worldSceneActive() || event.code !== "Space" || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
       if (state.currentAction && state.currentAction !== "none" && !["harvest", "rainbowHarvest", "goldHarvest", "rarePatchHarvest"].includes(state.currentAction)) return;
       const tileObjects = state.slot?.data?.garden?.tileObjects ?? {};
-      const current = Array.isArray(state.currentCrop) ? state.currentCrop : [];
+      const current2 = Array.isArray(state.currentCrop) ? state.currentCrop : [];
       const slotKey2 = (slot2) => `${slot2?.slotId}|${slot2?.species}|${slot2?.endTime}`;
-      const currentSignature = current.map(slotKey2).join(",");
+      const currentSignature = current2.map(slotKey2).join(",");
       let dirtIndex = state.dirtTileIndex;
-      if ((dirtIndex == null || !tileObjects[String(dirtIndex)]?.slots?.length) && current.length) {
+      if ((dirtIndex == null || !tileObjects[String(dirtIndex)]?.slots?.length) && current2.length) {
         const match = Object.keys(tileObjects).find((key) => {
           const slots = tileObjects[key]?.slots;
-          return Array.isArray(slots) && slots.length === current.length && slots.map(slotKey2).join(",") === currentSignature;
+          return Array.isArray(slots) && slots.length === current2.length && slots.map(slotKey2).join(",") === currentSignature;
         });
         if (match !== void 0) dirtIndex = match;
       }
@@ -8897,66 +9154,6 @@ ${eggs.map(eggCard).join("")}`;
   }
   function onRoomConnectionInterrupted(listener) {
     listeners5.add(listener);
-  }
-
-  // src/draggable.ts
-  var draggable_exports = {};
-  __export(draggable_exports, {
-    makeDraggable: () => makeDraggable
-  });
-  function makeDraggable(element, storageKey, options = {}) {
-    function place3(point) {
-      const rect = element.getBoundingClientRect();
-      const left = Math.min(Math.max(0, point.left), Math.max(0, window.innerWidth - rect.width));
-      const top = Math.min(Math.max(0, point.top), Math.max(0, window.innerHeight - rect.height));
-      element.style.left = `${Math.round(left)}px`;
-      element.style.top = `${Math.round(top)}px`;
-      element.style.right = "auto";
-      element.style.bottom = "auto";
-    }
-    const saved = loadLocal(storageKey, null);
-    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) place3(saved);
-    let dragging = false;
-    let startX = 0, startY = 0, originLeft = 0, originTop = 0;
-    element.addEventListener("pointerdown", (event) => {
-      const target = event.target;
-      if (target.closest("button, input, select, textarea, a, [data-no-drag]")) return;
-      if (options.handle && !target.closest(options.handle)) return;
-      const rect = element.getBoundingClientRect();
-      dragging = true;
-      startX = event.clientX;
-      startY = event.clientY;
-      originLeft = rect.left;
-      originTop = rect.top;
-      element.dataset.dragging = "true";
-      try {
-        element.setPointerCapture(event.pointerId);
-      } catch {
-      }
-      event.preventDefault();
-    });
-    element.addEventListener("pointermove", (event) => {
-      if (!dragging) return;
-      place3({ left: originLeft + event.clientX - startX, top: originTop + event.clientY - startY });
-    });
-    function stop(event) {
-      if (!dragging) return;
-      dragging = false;
-      delete element.dataset.dragging;
-      try {
-        element.releasePointerCapture(event.pointerId);
-      } catch {
-      }
-      const rect = element.getBoundingClientRect();
-      saveLocal(storageKey, { left: rect.left, top: rect.top });
-    }
-    element.addEventListener("pointerup", stop);
-    element.addEventListener("pointercancel", stop);
-    window.addEventListener("resize", () => {
-      if (!element.style.left) return;
-      const rect = element.getBoundingClientRect();
-      place3({ left: rect.left, top: rect.top });
-    });
   }
 
   // src/features/lunar-timer.ts
@@ -9067,9 +9264,9 @@ ${eggs.map(eggCard).join("")}`;
   function versionParts(version) {
     return version.split(".").map((part) => Number.parseInt(part, 10) || 0);
   }
-  function isNewerVersion(candidate, current) {
+  function isNewerVersion(candidate, current2) {
     const next = versionParts(candidate);
-    const installed = versionParts(current);
+    const installed = versionParts(current2);
     const length = Math.max(next.length, installed.length);
     for (let index = 0; index < length; index++) {
       const difference = (next[index] ?? 0) - (installed[index] ?? 0);
@@ -9212,8 +9409,8 @@ ${eggs.map(eggCard).join("")}`;
     return { x: surface.toScreenX(right - side / 2), y: surface.toScreenY(bottom) };
   }
   function shown(node) {
-    for (let current = node; current; current = current.parent ?? null) {
-      if (!pixiNodeVisible(current)) return false;
+    for (let current2 = node; current2; current2 = current2.parent ?? null) {
+      if (!pixiNodeVisible(current2)) return false;
     }
     return true;
   }
@@ -9489,11 +9686,11 @@ ${eggs.map(eggCard).join("")}`;
   }
   function bridge(outline, islands) {
     let polygon = outline.slice();
-    const pending = islands.slice();
+    const pending2 = islands.slice();
     const edgesOf = (loop) => loop.map((point, i) => [point, loop[(i + 1) % loop.length]]);
-    while (pending.length) {
-      const island = pending.shift();
-      const blockers = [...edgesOf(polygon), ...pending.flatMap(edgesOf), ...edgesOf(island)];
+    while (pending2.length) {
+      const island = pending2.shift();
+      const blockers = [...edgesOf(polygon), ...pending2.flatMap(edgesOf), ...edgesOf(island)];
       const pairs = [];
       for (let i2 = 0; i2 < polygon.length; i2++) {
         for (let j2 = 0; j2 < island.length; j2++) {
@@ -9915,9 +10112,9 @@ ${eggs.map(eggCard).join("")}`;
   function closeGameCarving() {
     const store = gameStore();
     if (!store || !modalAtom) return;
-    const current = store.get(modalAtom);
-    if (current?.modal !== MODAL_NAME) return;
-    store.set(modalAtom, { modal: null, openId: (Number(current.openId) || 0) + 1 });
+    const current2 = store.get(modalAtom);
+    if (current2?.modal !== MODAL_NAME) return;
+    store.set(modalAtom, { modal: null, openId: (Number(current2.openId) || 0) + 1 });
   }
   function loadIntoGameCarving(strokes) {
     const view = quinoaEngine()?.getSystem?.("modals")?.built?.get?.(MODAL_NAME);
@@ -10041,11 +10238,11 @@ ${eggs.map(eggCard).join("")}`;
           resolve(worker);
           return;
         }
-        const pending = message.id ? workerJobs.get(message.id) : void 0;
-        if (!pending) return;
+        const pending2 = message.id ? workerJobs.get(message.id) : void 0;
+        if (!pending2) return;
         workerJobs.delete(message.id);
         if (!message.result) workerPictureKey = null;
-        pending.resolve(message.result ?? traceHere(pending.job));
+        pending2.resolve(message.result ?? traceHere(pending2.job));
       };
       worker.onerror = () => {
         window.clearTimeout(timer);
@@ -10994,8 +11191,8 @@ ${eggs.map(eggCard).join("")}`;
   }
   function track() {
     if (!running) return;
-    const panel3 = document.getElementById("gc-panel");
-    if (!panel3 || panel3.hidden) {
+    const panel4 = document.getElementById("gc-panel");
+    if (!panel4 || panel4.hidden) {
       endTour();
       return;
     }
@@ -11072,8 +11269,8 @@ ${eggs.map(eggCard).join("")}`;
     cancelAnimationFrame(frame);
     document.removeEventListener("keydown", onKey2, true);
     root2.remove();
-    const panel3 = document.getElementById("gc-panel");
-    if (panel3 && !panel3.hidden && panelActions.activeTab() !== startTab) panelActions.openPanel(startTab);
+    const panel4 = document.getElementById("gc-panel");
+    if (panel4 && !panel4.hidden && panelActions.activeTab() !== startTab) panelActions.openPanel(startTab);
   }
 
   // src/diagnostics-report.ts
@@ -11425,49 +11622,49 @@ ${eggs.map(eggCard).join("")}`;
       page.__gardenCompanionLoadSprites?.();
       page.__gardenCompanionLoadSpriteGroup?.("deferred");
       activeTab = tab2;
-      let panel3 = document.getElementById("gc-panel");
-      const created = !panel3;
-      if (!panel3) {
-        panel3 = document.createElement("div");
-        panel3.id = "gc-panel";
-        document.body.appendChild(panel3);
-        panel3.addEventListener("focusout", () => {
+      let panel4 = document.getElementById("gc-panel");
+      const created = !panel4;
+      if (!panel4) {
+        panel4 = document.createElement("div");
+        panel4.id = "gc-panel";
+        document.body.appendChild(panel4);
+        panel4.addEventListener("focusout", () => {
           if (refreshPending) setTimeout(refreshOpenPanel, 0);
         });
       }
-      panel3.hidden = false;
+      panel4.hidden = false;
       renderPanel();
-      if (created) mountPanelWindow(panel3);
+      if (created) mountPanelWindow(panel4);
     }
     const PANEL_POS_KEY = "gardenCompanion.panelPos.v1";
-    function mountPanelWindow(panel3) {
-      const rect = panel3.getBoundingClientRect();
-      panel3.style.left = `${Math.max(0, Math.round((innerWidth - rect.width) / 2))}px`;
-      panel3.style.top = `${Math.max(0, Math.round((innerHeight - rect.height) / 2))}px`;
-      makeDraggable(panel3, PANEL_POS_KEY, { handle: "[data-drag-handle]" });
+    function mountPanelWindow(panel4) {
+      const rect = panel4.getBoundingClientRect();
+      panel4.style.left = `${Math.max(0, Math.round((innerWidth - rect.width) / 2))}px`;
+      panel4.style.top = `${Math.max(0, Math.round((innerHeight - rect.height) / 2))}px`;
+      makeDraggable(panel4, PANEL_POS_KEY, { handle: "[data-drag-handle]" });
     }
     function closePanel() {
       cancelKeybindCapture?.();
       closeTeamPicker();
       endEggLuckEditing();
-      const panel3 = document.getElementById("gc-panel");
-      if (panel3) panel3.hidden = true;
+      const panel4 = document.getElementById("gc-panel");
+      if (panel4) panel4.hidden = true;
       setAbilityFilterMenuOpen(false);
       setAbilityFilterInteracting(false);
     }
     function togglePanel() {
-      const panel3 = document.getElementById("gc-panel");
-      if (panel3 && !panel3.hidden) closePanel();
+      const panel4 = document.getElementById("gc-panel");
+      if (panel4 && !panel4.hidden) closePanel();
       else openPanel();
     }
-    function panelRefreshBlocked(panel3) {
+    function panelRefreshBlocked(panel4) {
       const abilityUi = abilityLogUiState();
       const focused = document.activeElement;
-      if (abilityUi.interacting || abilityUi.menuOpen || isTyping() && focused && panel3.contains(focused)) return true;
-      if (panel3.querySelector("[data-ability-filter]")?.open) return true;
-      const abilityLog = activeTab === "abilityLog" ? panel3.querySelector(".gc-log") : null;
+      if (abilityUi.interacting || abilityUi.menuOpen || isTyping() && focused && panel4.contains(focused)) return true;
+      if (panel4.querySelector("[data-ability-filter]")?.open) return true;
+      const abilityLog = activeTab === "abilityLog" ? panel4.querySelector(".gc-log") : null;
       if (abilityLog && (abilityLog.matches(":hover") || abilityLog.scrollTop > 0)) return true;
-      const scrollable = ["abilities", "teams", "petFood", "calculators", "journal"].includes(activeTab) ? panel3.querySelector("main") : null;
+      const scrollable = ["abilities", "teams", "petFood", "calculators", "journal"].includes(activeTab) ? panel4.querySelector("main") : null;
       return Boolean(scrollable?.matches(":hover"));
     }
     const LIVE_REFRESH_TABS = ["abilities", "abilityLog", "petFood", "teams", "calculators", "journal", "eggLuck", "weatherAlarms"];
@@ -11488,9 +11685,9 @@ ${eggs.map(eggCard).join("")}`;
       return "";
     }
     function refreshOpenPanel() {
-      const panel3 = document.getElementById("gc-panel");
-      if (!panel3 || panel3.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
-      if (panelRefreshBlocked(panel3)) {
+      const panel4 = document.getElementById("gc-panel");
+      if (!panel4 || panel4.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
+      if (panelRefreshBlocked(panel4)) {
         refreshPending = true;
         return;
       }
@@ -11500,13 +11697,13 @@ ${eggs.map(eggCard).join("")}`;
       if (signature3 && signature3 === lastTabSignature) return;
       panelRefreshTimer = setTimeout(() => {
         panelRefreshTimer = null;
-        if (panel3.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
-        if (panelRefreshBlocked(panel3)) {
+        if (panel4.hidden || !LIVE_REFRESH_TABS.includes(activeTab)) return;
+        if (panelRefreshBlocked(panel4)) {
           refreshPending = true;
           return;
         }
-        const current = tabRefreshSignature();
-        if (current && current === lastTabSignature) return;
+        const current2 = tabRefreshSignature();
+        if (current2 && current2 === lastTabSignature) return;
         refreshTabContent();
       }, 1e3);
     }
@@ -11592,9 +11789,9 @@ ${eggs.map(eggCard).join("")}`;
       if (diagnosticsRedraw) return;
       diagnosticsRedraw = setTimeout(() => {
         diagnosticsRedraw = null;
-        const panel3 = document.getElementById("gc-panel");
-        if (!panel3 || panel3.hidden || activeTab !== "diagnostics" || panelRefreshBlocked(panel3)) return;
-        if (panel3.querySelector("[data-diagnostics-report]:not([hidden])")) return;
+        const panel4 = document.getElementById("gc-panel");
+        if (!panel4 || panel4.hidden || activeTab !== "diagnostics" || panelRefreshBlocked(panel4)) return;
+        if (panel4.querySelector("[data-diagnostics-report]:not([hidden])")) return;
         renderPanelPreservingScroll();
       }, 1e3);
     });
@@ -11607,19 +11804,19 @@ ${eggs.map(eggCard).join("")}`;
     }
     function renderPanel() {
       cancelKeybindCapture?.();
-      const panel3 = document.getElementById("gc-panel");
-      if (!panel3) return;
-      const navTop = panel3.querySelector("nav")?.scrollTop ?? 0;
+      const panel4 = document.getElementById("gc-panel");
+      if (!panel4) return;
+      const navTop = panel4.querySelector("nav")?.scrollTop ?? 0;
       const renderedTabHtml = renderTab();
       const description = TAB_DESCRIPTIONS[activeTab] ?? "";
-      panel3.innerHTML = `<div class="gc-shell"><header class="gc-titlebar" data-drag-handle><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><b>Garden Companion</b></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><aside class="gc-side"><nav>${navHtml()}</nav></aside><section class="gc-content"><div class="gc-page-head" data-drag-handle><small>${escapeHtml(tabGroupOf(activeTab))}</small><h2>${escapeHtml(TABS.find((tab2) => tab2[0] === activeTab)?.[1] || "")}</h2>${description ? `<p>${escapeHtml(description)}</p>` : ""}</div><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderedTabHtml}</main></section>${footerHtml()}</div>`;
-      const main = panel3.querySelector("main");
+      panel4.innerHTML = `<div class="gc-shell"><header class="gc-titlebar" data-drag-handle><div class="gc-brand"><i class="gc-brand-mark">&#x1F33F;</i><b>Garden Companion</b></div><button data-close aria-label="Close" title="Close">${CLOSE_ICON2}</button></header><aside class="gc-side"><nav>${navHtml()}</nav></aside><section class="gc-content"><div class="gc-page-head" data-drag-handle><small>${escapeHtml(tabGroupOf(activeTab))}</small><h2>${escapeHtml(TABS.find((tab2) => tab2[0] === activeTab)?.[1] || "")}</h2>${description ? `<p>${escapeHtml(description)}</p>` : ""}</div><main class="${activeTab === "abilityLog" ? "gc-ability-log-tab" : ""}">${renderedTabHtml}</main></section>${footerHtml()}</div>`;
+      const main = panel4.querySelector("main");
       main.addEventListener("pointerleave", () => {
         if (refreshPending) setTimeout(refreshOpenPanel, 0);
       });
-      panel3.querySelector("[data-close]").onclick = closePanel;
-      bindNavButtons(panel3);
-      const nav = panel3.querySelector("nav");
+      panel4.querySelector("[data-close]").onclick = closePanel;
+      bindNavButtons(panel4);
+      const nav = panel4.querySelector("nav");
       if (nav) nav.scrollTop = navTop;
       bindTabEvents(main);
       lastTabSignature = tabRefreshSignature();
@@ -11649,9 +11846,9 @@ ${eggs.map(eggCard).join("")}`;
       });
     }
     function refreshTabContent() {
-      const panel3 = document.getElementById("gc-panel");
-      const main = panel3?.querySelector("main");
-      if (!panel3 || !main) {
+      const panel4 = document.getElementById("gc-panel");
+      const main = panel4?.querySelector("main");
+      if (!panel4 || !main) {
         renderPanelPreservingScroll();
         return;
       }
@@ -11666,10 +11863,10 @@ ${eggs.map(eggCard).join("")}`;
       main.scrollTop = scrollTop;
     }
     function renderPanelPreservingScroll() {
-      const panel3 = document.getElementById("gc-panel");
-      const mainTop = panel3?.querySelector("main")?.scrollTop ?? 0;
+      const panel4 = document.getElementById("gc-panel");
+      const mainTop = panel4?.querySelector("main")?.scrollTop ?? 0;
       renderPanel();
-      const main = panel3?.querySelector("main");
+      const main = panel4?.querySelector("main");
       if (main) main.scrollTop = mainTop;
     }
     function renderTab() {
@@ -11725,6 +11922,7 @@ ${eggs.map(eggCard).join("")}`;
         ["autoStoreSeeds", "Auto-store seeds", "Move seeds into the Seed Silo when it already holds that species"],
         ["autoStoreDecor", "Auto-store decor", "Move decor into the Decor Shed when it already holds that item"],
         ["autoStoreTools", "Auto-store tools", "Move tools into the Tool Shack when it already holds that tool - one being used, or held, is left alone"],
+        ["journalLogger", "Journal logger", "A card listing ripe crops and pets (active, inventory or Pet Hutch) with something new for the journal - press Log to log one, no Camera needed"],
         ["cinematicButton", "Cinematic mode button", "A camera button under Daily Quests on the right-side rail that hides the game HUD and brings it back (Esc exits too), as the game had before it moved cinematic mode onto the Camera"],
         ["pumpkinImport", "Carve pumpkins from pictures", "A Select a picture button in the pumpkin carving window - the picture you pick is cut into the pumpkin"],
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
@@ -11773,6 +11971,7 @@ ${eggs.map(eggCard).join("")}`;
         updateCinematicButton();
         updatePumpkinImport();
         renderPetFood();
+        refreshJournalLogger();
         syncProduceLocks();
         syncCropEstimates();
       });
@@ -12201,6 +12400,29 @@ details.gc-card summary h3 { display:inline; }\r
 .gc-cleanser-mutation { display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border:1px solid var(--gc-line);border-radius:999px;background:var(--gc-surface-2);color:var(--gc-text);font-size:11px;white-space:nowrap; }\r
 .gc-cleanser-mutation img { width:14px;height:14px;object-fit:contain;image-rendering:auto; }\r
 .gc-cleanser-empty { padding:28px 12px;color:var(--gc-faint);text-align:center; }\r
+#gc-journal-logger { position:fixed;z-index:2147483643;right:16px;top:120px;width:min(360px,calc(100vw - 24px));max-height:min(420px,calc(100vh - 24px));overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }\r
+#gc-journal-logger[hidden] { display:none; }\r
+#gc-journal-logger > header { height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 6px 0 12px;cursor:move;user-select:none; }\r
+#gc-journal-logger[data-collapsed="false"] > header { border-bottom:1px solid var(--gc-line); }\r
+#gc-journal-logger > header > div { display:flex;align-items:center;gap:8px;color:var(--gc-strong);font-size:13px;font-weight:600;white-space:nowrap; }\r
+#gc-journal-logger > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-accent); }\r
+#gc-journal-logger > header > span { display:flex;align-items:center;gap:4px; }\r
+#gc-journal-logger > header button { height:28px;min-width:28px;padding:0 8px;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font); }\r
+#gc-journal-logger > header button:hover:not(:disabled) { color:var(--gc-text);background:var(--gc-surface-2); }\r
+#gc-journal-logger > header button:disabled { cursor:default;opacity:.45; }\r
+#gc-journal-logger > main { overflow:auto;padding:6px 10px 10px; }\r
+#gc-journal-logger > main:empty { display:none; }\r
+.gc-journal-logger-row { display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"sprite name log" "sprite chips log";align-items:center;column-gap:8px;row-gap:3px;padding:7px 0;border-bottom:1px solid var(--gc-line); }\r
+.gc-journal-logger-row:last-child { border-bottom:0; }\r
+.gc-journal-logger-row > .gc-shop-sprite,.gc-journal-logger-row > .gc-pet-sprite { grid-area:sprite;width:32px;height:32px;border-radius:8px; }\r
+.gc-journal-logger-row > .gc-pet-sprite img { width:28px;height:28px; }\r
+.gc-journal-logger-name { grid-area:name;min-width:0; }\r
+.gc-journal-logger-name b { color:var(--gc-strong);font-weight:550; }\r
+.gc-journal-logger-name small { margin-left:6px;color:var(--gc-muted);font-size:11px; }\r
+.gc-journal-logger-row > .gc-cleanser-mutations { grid-area:chips; }\r
+.gc-journal-logger-row > button { grid-area:log;padding:6px 10px;border:1px solid var(--gc-accent);border-radius:var(--gc-radius-sm);background:var(--gc-accent);color:#fff;cursor:pointer;font:600 11px var(--gc-font); }\r
+.gc-journal-logger-row > button:hover:not(:disabled) { background:var(--gc-accent-hover); }\r
+.gc-journal-logger-row > button:disabled { cursor:default;opacity:.45; }\r
 @media (max-width:560px) { .gc-cleanser-choices { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-cleanser-table-wrap th:nth-child(2),.gc-cleanser-table-wrap td:nth-child(2) { display:none; } }\r
 \r
 /* ── Farm Manager ────────────────────────────────────────────────────────────────────────────── */\r
@@ -13050,12 +13272,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       mountCinematicButton();
       mountPumpkinImport();
       onSpritesReady(() => {
-        const panel3 = document.getElementById("gc-panel");
-        if (panel3 && !panel3.hidden) {
+        const panel4 = document.getElementById("gc-panel");
+        if (panel4 && !panel4.hidden) {
           const focused = document.activeElement;
-          if (isTyping() && focused && panel3.contains(focused)) {
-            panel3.addEventListener("focusout", () => setTimeout(() => {
-              if (!panel3.hidden) renderPanelPreservingScroll();
+          if (isTyping() && focused && panel4.contains(focused)) {
+            panel4.addEventListener("focusout", () => setTimeout(() => {
+              if (!panel4.hidden) renderPanelPreservingScroll();
             }, 0), { once: true });
           } else renderPanelPreservingScroll();
         }
@@ -13134,9 +13356,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       const result = originalWrite.call(this, get, set, ...args);
       try {
         if (page.__gardenCompanionConfig?.()?.silenceLevelUps) {
-          const current = get(atom);
-          if (Array.isArray(current) && current.some(isLevelUpToast)) {
-            set(atom, current.filter((entry) => !isLevelUpToast(entry)));
+          const current2 = get(atom);
+          if (Array.isArray(current2) && current2.some(isLevelUpToast)) {
+            set(atom, current2.filter((entry) => !isLevelUpToast(entry)));
           }
         }
       } catch {
@@ -13552,7 +13774,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     }
   }
   var ALARM_TARGETS_KEY = "gardenCompanion.overviewAlarmTargets.v1";
-  var POSITION_KEY2 = "gardenCompanion.overviewPosition.v1";
+  var POSITION_KEY3 = "gardenCompanion.overviewPosition.v1";
   var DEFAULT_TARGETS = ["Rainbow", "Gold", "Frozen", "Thunderstruck", "Thundercharged", "Wet", "Chilled", "Dawnlit", "Dawncharged", "Ambershine", "Ambercharged"];
   var GRANTERS = {
     RainbowGranter: { mutation: "Rainbow", chance: 0.72 },
@@ -13926,7 +14148,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     let position2 = null;
     let configPosition = null;
     try {
-      position2 = JSON.parse(localStorage.getItem(POSITION_KEY2) || "null");
+      position2 = JSON.parse(localStorage.getItem(POSITION_KEY3) || "null");
     } catch {
     }
     let configMode = null;
@@ -13937,7 +14159,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     let refreshTimer = null;
     let activeDrag = false;
     let keyboardDriven = false;
-    let lastSignature2 = "";
+    let lastSignature3 = "";
     const previousMissing = /* @__PURE__ */ new Map();
     function stopCompletionAlarm() {
       page.__gardenCompanionStopAlarm?.("overview");
@@ -14009,9 +14231,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       const percent = Math.round(focus.opacity * 100);
       return focus.mode === "hide" ? `<b>Faded to <span data-opacity-value>${percent}%</span>:</b> ${escapeHtml(scopeLabel)}${rulePhrase}.` : `<b>Highlighted:</b> ${escapeHtml(scopeLabel)}${rulePhrase}.`;
     }
-    function updateCountdowns(panel3, stats) {
-      const next = panel3.querySelector("[data-live=next]");
-      const all = panel3.querySelector("[data-live=all]");
+    function updateCountdowns(panel4, stats) {
+      const next = panel4.querySelector("[data-live=next]");
+      const all = panel4.querySelector("[data-live=all]");
       if (next) next.textContent = durationUntil(stats.nextMatureAt, stats.growthRate);
       if (all) all.textContent = durationUntil(stats.allMatureAt, stats.growthRate);
     }
@@ -14021,8 +14243,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     function switchRow(attribute, key, label, hint, on) {
       return `<label class="go-config-row"><span>${escapeHtml(label)}${hint ? `<small>${escapeHtml(hint)}</small>` : ""}</span><input class="go-switch" type="checkbox" ${attribute}="${escapeHtml(key)}" ${on ? "checked" : ""}></label>`;
     }
-    function choiceRow(label, attribute, options, current) {
-      return `<div class="go-config-row"><span>${escapeHtml(label)}</span><div class="go-pill-choice">${options.map(([value, text]) => `<button class="go-pill ${current === value ? "on" : ""}" ${attribute}="${escapeHtml(value)}">${escapeHtml(text)}</button>`).join("")}</div></div>`;
+    function choiceRow(label, attribute, options, current2) {
+      return `<div class="go-config-row"><span>${escapeHtml(label)}</span><div class="go-pill-choice">${options.map(([value, text]) => `<button class="go-pill ${current2 === value ? "on" : ""}" ${attribute}="${escapeHtml(value)}">${escapeHtml(text)}</button>`).join("")}</div></div>`;
     }
     function ownedSpeciesCounts() {
       const counts = /* @__PURE__ */ new Map();
@@ -14243,27 +14465,27 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         });
       };
     }
-    function render5(force = false) {
-      const panel3 = document.getElementById(PANEL_ID2);
-      if (!panel3 || panel3.hidden && !view.alarm) return;
+    function render6(force = false) {
+      const panel4 = document.getElementById(PANEL_ID2);
+      if (!panel4 || panel4.hidden && !view.alarm) return;
       const stats = calculateStats(runtime(), getCatalog(), filter2, trackedMutations, view.ignorePreserved, mutationConfig);
       checkCompletions(stats);
-      if (panel3.hidden) return;
+      if (panel4.hidden) return;
       if (activeDrag) {
-        updateCountdowns(panel3, stats);
+        updateCountdowns(panel4, stats);
         return;
       }
-      if (!force && panel3.contains(document.activeElement)) {
-        updateCountdowns(panel3, stats);
+      if (!force && panel4.contains(document.activeElement)) {
+        updateCountdowns(panel4, stats);
         return;
       }
       const signature3 = structureSignature(stats);
-      if (!force && signature3 === lastSignature2) {
-        updateCountdowns(panel3, stats);
+      if (!force && signature3 === lastSignature3) {
+        updateCountdowns(panel4, stats);
         return;
       }
-      lastSignature2 = signature3;
-      const body = panel3.querySelector(".go-body");
+      lastSignature3 = signature3;
+      const body = panel4.querySelector(".go-body");
       const scrollTop = body?.scrollTop ?? 0;
       const species = knownSpecies();
       const placement2 = position2 ? `position:fixed;left:${Math.max(0, Math.min(innerWidth - 300, position2.left))}px;top:${Math.max(0, Math.min(innerHeight - 100, position2.top))}px;` : "";
@@ -14271,35 +14493,35 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       const configTabs = configMode === "alarms" ? "" : `<div class="go-config-tabs">${[["species", "Plants"], ["mutations", "Mutations"], ["focus", "Focus"], ["panel", "Panel"]].map(([tab2, label]) => `<button data-config-tab="${tab2}" data-active="${configMode === tab2}">${label}</button>`).join("")}</div>`;
       const configTitle = configMode === "alarms" ? "Alarm Config" : "Overview Settings";
       const configPanel = configMode ? `<div class="go-config-card" ${configPlacement}><header><h2>${escapeHtml(configTitle)}</h2><button data-config-close aria-label="Close" title="Close">${CLOSE_ICON}</button></header><div class="go-config-body">${configTabs}${configHtml(species)}</div></div>` : "";
-      panel3.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement2}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
-      const nextBody = panel3.querySelector(".go-body");
+      panel4.innerHTML = `<div class="go-stage"><div class="go-card" style="${placement2}transform:scale(${view.zoom});transform-origin:top left"><header><h2>&#x1F33F; Garden Overview</h2><div class="go-actions"><button data-open-config data-active="${configMode !== null && configMode !== "alarms"}" title="Settings">${GEAR_ICON}</button><button data-focus-toggle data-active="${focus.enabled}" title="${focus.enabled ? "Turn plant focus off" : "Turn plant focus on"}">${FOCUS_ICON}</button><button data-close aria-label="Close" title="Close">${CLOSE_ICON}</button></div></header><div class="go-body">${normalHtml(stats)}</div></div>${configPanel}</div>`;
+      const nextBody = panel4.querySelector(".go-body");
       if (nextBody) nextBody.scrollTop = scrollTop;
-      panel3.querySelector("[data-close]").onclick = close2;
-      panel3.querySelector("[data-config-close]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-close]").onclick = close2;
+      panel4.querySelector("[data-config-close]")?.addEventListener("click", () => {
         configMode = null;
-        render5(true);
+        render6(true);
       });
-      panel3.querySelector("[data-open-config]").onclick = () => {
+      panel4.querySelector("[data-open-config]").onclick = () => {
         configMode = configMode && configMode !== "alarms" ? null : lastConfigTab;
-        render5(true);
+        render6(true);
       };
-      panel3.querySelectorAll("[data-config-tab]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-config-tab]").forEach((button) => button.onclick = () => {
         configMode = button.dataset.configTab;
         if (configMode && configMode !== "alarms") lastConfigTab = configMode;
-        render5(true);
+        render6(true);
       });
-      panel3.querySelector("[data-focus-toggle]").onclick = () => {
+      panel4.querySelector("[data-focus-toggle]").onclick = () => {
         focus.enabled = !focus.enabled;
         saveFocus(focus);
         applyPlantFocus();
-        render5(true);
+        render6(true);
       };
-      const alarmConfigButton = panel3.querySelector("[data-alarm-config]");
+      const alarmConfigButton = panel4.querySelector("[data-alarm-config]");
       if (alarmConfigButton) alarmConfigButton.onclick = () => {
         configMode = configMode === "alarms" ? null : "alarms";
-        render5(true);
+        render6(true);
       };
-      const alarmButton = panel3.querySelector("[data-alarm]");
+      const alarmButton = panel4.querySelector("[data-alarm]");
       if (alarmButton) alarmButton.onclick = () => {
         view.alarm = !view.alarm;
         if (view.alarm) {
@@ -14307,35 +14529,35 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
           ensureRefreshTimer();
         } else stopCompletionAlarm();
         saveView(view);
-        render5(true);
+        render6(true);
       };
-      panel3.querySelectorAll("[data-zoom-level]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-zoom-level]").forEach((button) => button.onclick = () => {
         view.zoom = Number(button.dataset.zoomLevel);
         saveView(view);
         renderAndRefocus(`[data-zoom-level="${button.dataset.zoomLevel}"]`);
       });
-      panel3.querySelector("[data-all]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-all]")?.addEventListener("click", () => {
         filter2 = null;
         localStorage.removeItem(FILTER_KEY);
-        render5(true);
+        render6(true);
       });
-      panel3.querySelector("[data-none]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-none]")?.addEventListener("click", () => {
         filter2 = /* @__PURE__ */ new Set();
         saveFilter(filter2);
-        render5(true);
+        render6(true);
       });
-      panel3.querySelector("[data-owned]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-owned]")?.addEventListener("click", () => {
         filter2 = new Set(filter2 ?? []);
         for (const name of ownedSpeciesCounts().keys()) filter2.add(name);
         saveFilter(filter2);
-        render5(true);
+        render6(true);
       });
-      panel3.querySelectorAll("[data-species-toggle]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-species-toggle]").forEach((button) => button.onclick = () => {
         const name = button.dataset.speciesToggle ?? "";
         filter2 = new Set(filter2 ?? species);
         filter2.has(name) ? filter2.delete(name) : filter2.add(name);
         saveFilter(filter2);
-        render5(true);
+        render6(true);
       });
       const releaseUnlessTyping = (element) => {
         if (keyboardDriven) return;
@@ -14344,8 +14566,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         }, 0);
       };
       const renderAndRefocus = (selector) => {
-        render5(true);
-        if (keyboardDriven) panel3.querySelector(selector)?.focus();
+        render6(true);
+        if (keyboardDriven) panel4.querySelector(selector)?.focus();
       };
       const applyMutationKey = (key, value) => {
         mutationConfig[key] = value;
@@ -14355,27 +14577,27 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         saveMutationConfig(mutationConfig);
         saveView(view);
       };
-      panel3.querySelectorAll("[data-mutation-key]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-mutation-key]").forEach((button) => button.onclick = () => {
         const key = button.dataset.mutationKey;
         applyMutationKey(key, !mutationConfig[key]);
         renderAndRefocus(`[data-mutation-key="${key}"]`);
       });
-      panel3.querySelectorAll("[data-mutation-check]").forEach((input) => input.onchange = () => {
+      panel4.querySelectorAll("[data-mutation-check]").forEach((input) => input.onchange = () => {
         const key = input.dataset.mutationCheck;
         applyMutationKey(key, input.checked);
         renderAndRefocus(`[data-mutation-check="${key}"]`);
       });
       const syncAlarmTargetControls = () => {
-        panel3.querySelectorAll("[data-alarm-target]").forEach((button) => {
+        panel4.querySelectorAll("[data-alarm-target]").forEach((button) => {
           const selected3 = alarmTargets.has(button.dataset.alarmTarget ?? "");
           button.classList.toggle("on", selected3);
           const check = button.querySelector("i");
           if (check) check.innerHTML = selected3 ? "&#10003;" : "";
         });
-        const count = panel3.querySelector("[data-alarm-count]");
+        const count = panel4.querySelector("[data-alarm-count]");
         if (count) count.textContent = `${alarmTargets.size}/${ALARM_TARGETS.length} selected`;
       };
-      panel3.querySelectorAll("[data-alarm-target]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-alarm-target]").forEach((button) => button.onclick = () => {
         const target = button.dataset.alarmTarget ?? "";
         if (alarmTargets.has(target)) {
           alarmTargets.delete(target);
@@ -14385,12 +14607,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         saveAlarmTargets(alarmTargets);
         syncAlarmTargetControls();
       });
-      panel3.querySelector("[data-alarm-all]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-alarm-all]")?.addEventListener("click", () => {
         alarmTargets = new Set(ALARM_TARGETS);
         saveAlarmTargets(alarmTargets);
         syncAlarmTargetControls();
       });
-      panel3.querySelector("[data-alarm-none]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-alarm-none]")?.addEventListener("click", () => {
         alarmTargets = /* @__PURE__ */ new Set();
         previousMissing.clear();
         saveAlarmTargets(alarmTargets);
@@ -14400,7 +14622,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         saveFocus(focus);
         applyPlantFocus();
         selectedPreset = "";
-        const focusButton = panel3.querySelector("[data-focus-toggle]");
+        const focusButton = panel4.querySelector("[data-focus-toggle]");
         if (focusButton) focusButton.dataset.active = String(focus.enabled);
       };
       const enforceGroupExclusivity = (keep) => {
@@ -14419,14 +14641,14 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         });
       };
       const refreshFocusSummary = () => {
-        const node = panel3.querySelector(".go-focus-summary");
+        const node = panel4.querySelector(".go-focus-summary");
         if (node) {
           node.toggleAttribute("data-off", !focus.enabled);
           node.innerHTML = focusSummaryHtml();
         }
-        const select = panel3.querySelector("[data-focus-preset]");
+        const select = panel4.querySelector("[data-focus-preset]");
         if (select) select.value = selectedPreset;
-        const remove = panel3.querySelector("[data-preset-delete]");
+        const remove = panel4.querySelector("[data-preset-delete]");
         if (remove) remove.hidden = !selectedPreset;
       };
       const releaseOnCommit = (select) => {
@@ -14434,7 +14656,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
           if (event.key === "Enter" || event.key === "Escape") select.blur();
         };
       };
-      const focusEnabled = panel3.querySelector("[data-focus-enabled]");
+      const focusEnabled = panel4.querySelector("[data-focus-enabled]");
       if (focusEnabled) focusEnabled.onchange = () => {
         const loaded = selectedPreset;
         focus.enabled = focusEnabled.checked;
@@ -14443,12 +14665,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         refreshFocusSummary();
         releaseUnlessTyping(focusEnabled);
       };
-      panel3.querySelectorAll("[data-focus-mode]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-focus-mode]").forEach((button) => button.onclick = () => {
         focus.mode = button.dataset.focusMode;
         saveFocusControls();
         renderAndRefocus(`[data-focus-mode="${button.dataset.focusMode}"]`);
       });
-      const focusScope = panel3.querySelector("[data-focus-scope]");
+      const focusScope = panel4.querySelector("[data-focus-scope]");
       if (focusScope) {
         focusScope.onchange = () => {
           focus.scope = focusScope.value;
@@ -14458,7 +14680,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         };
         releaseOnCommit(focusScope);
       }
-      const presetSelect = panel3.querySelector("[data-focus-preset]");
+      const presetSelect = panel4.querySelector("[data-focus-preset]");
       if (presetSelect) {
         presetSelect.onchange = () => {
           const preset = focusPresets.find((entry) => entry.name === presetSelect.value);
@@ -14475,11 +14697,11 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         };
         releaseOnCommit(presetSelect);
       }
-      const presetName = panel3.querySelector("[data-preset-name]");
+      const presetName = panel4.querySelector("[data-preset-name]");
       if (presetName) presetName.oninput = () => {
         presetDraft = presetName.value;
       };
-      panel3.querySelector("[data-preset-save]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-preset-save]")?.addEventListener("click", () => {
         const name = (presetName?.value ?? "").trim().slice(0, PRESET_NAME_LIMIT);
         if (!name) {
           presetName?.focus();
@@ -14496,9 +14718,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         selectedPreset = name;
         presetDraft = name;
         toast(`Saved "${name}".`, "success");
-        render5(true);
+        render6(true);
       });
-      panel3.querySelector("[data-preset-delete]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-preset-delete]")?.addEventListener("click", () => {
         const removed = selectedPreset;
         if (!removed) return;
         focusPresets = focusPresets.filter((entry) => entry.name !== removed);
@@ -14506,16 +14728,16 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         selectedPreset = "";
         if (presetDraft === removed) presetDraft = "";
         toast(`Deleted "${removed}".`, "success");
-        render5(true);
+        render6(true);
       });
-      panel3.querySelectorAll("[data-focus-rule-pill]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-focus-rule-pill]").forEach((button) => button.onclick = () => {
         const rule = button.dataset.focusRulePill;
         focus.mutationRule = rule;
         enforceGroupExclusivity();
         saveFocusControls();
         renderAndRefocus(`[data-focus-rule-pill="${rule}"]`);
       });
-      panel3.querySelectorAll("[data-focus-mutation]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-focus-mutation]").forEach((button) => button.onclick = () => {
         const mutation = button.dataset.focusMutation ?? "";
         const selected3 = new Set(focus.mutations);
         const adding = !selected3.has(mutation);
@@ -14525,23 +14747,23 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         saveFocusControls();
         renderAndRefocus(`[data-focus-mutation="${mutation}"]`);
       });
-      panel3.querySelector("[data-focus-clear]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-focus-clear]")?.addEventListener("click", () => {
         focus.mutations = [];
         focus.maxSize = false;
         saveFocusControls();
         renderAndRefocus("[data-focus-clear]");
       });
-      const focusMaxSize = panel3.querySelector("[data-focus-max-size]");
+      const focusMaxSize = panel4.querySelector("[data-focus-max-size]");
       if (focusMaxSize) focusMaxSize.onclick = () => {
         focus.maxSize = !focus.maxSize;
         saveFocusControls();
         renderAndRefocus("[data-focus-max-size]");
       };
-      const focusOpacity = panel3.querySelector("[data-focus-opacity]");
+      const focusOpacity = panel4.querySelector("[data-focus-opacity]");
       if (focusOpacity) {
         focusOpacity.oninput = () => {
           focus.opacity = Number(focusOpacity.value) / 100;
-          panel3.querySelectorAll("[data-opacity-value]").forEach((label) => {
+          panel4.querySelectorAll("[data-opacity-value]").forEach((label) => {
             label.textContent = `${focusOpacity.value}%`;
           });
           saveFocusControls();
@@ -14549,54 +14771,54 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         focusOpacity.onpointerup = () => releaseUnlessTyping(focusOpacity);
         focusOpacity.onchange = () => releaseUnlessTyping(focusOpacity);
       }
-      panel3.querySelectorAll("[data-family]").forEach((row) => row.onclick = () => {
+      panel4.querySelectorAll("[data-family]").forEach((row) => row.onclick = () => {
         const key = row.dataset.family;
         if (openFamilies.has(key)) openFamilies.delete(key);
         else openFamilies.add(key);
         saveOpenFamilies();
-        render5(true);
+        render6(true);
       });
-      panel3.querySelectorAll("[data-collapse]").forEach((toggle5) => toggle5.onclick = () => {
+      panel4.querySelectorAll("[data-collapse]").forEach((toggle5) => toggle5.onclick = () => {
         const key = toggle5.dataset.collapse;
         if (key === "mutations") view.mutationsOpen = !view.mutationsOpen;
         if (key === "plants") view.plantsOpen = !view.plantsOpen;
         saveView(view);
-        render5(true);
+        render6(true);
       });
-      bindSearch(panel3.querySelector("[data-species-search]"));
-      installDrag(panel3.querySelector(".go-card"), panel3.querySelector(".go-card > header"), (left, top) => {
+      bindSearch(panel4.querySelector("[data-species-search]"));
+      installDrag(panel4.querySelector(".go-card"), panel4.querySelector(".go-card > header"), (left, top) => {
         position2 = { left, top };
-        localStorage.setItem(POSITION_KEY2, JSON.stringify(position2));
+        localStorage.setItem(POSITION_KEY3, JSON.stringify(position2));
       });
-      const configCard = panel3.querySelector(".go-config-card");
+      const configCard = panel4.querySelector(".go-config-card");
       const configHeader = configCard?.querySelector("header");
       if (configCard && configHeader) installDrag(configCard, configHeader, (left, top) => {
         configPosition = { left, top };
       });
     }
     function open() {
-      const panel3 = document.getElementById(PANEL_ID2);
-      if (!panel3) return;
-      panel3.hidden = false;
-      lastSignature2 = "";
+      const panel4 = document.getElementById(PANEL_ID2);
+      if (!panel4) return;
+      panel4.hidden = false;
+      lastSignature3 = "";
       page.__gardenCompanionLoadSpriteGroup?.("deferred");
-      render5(true);
+      render6(true);
       ensureRefreshTimer();
     }
     function close2() {
-      const panel3 = document.getElementById(PANEL_ID2);
-      if (panel3) panel3.hidden = true;
+      const panel4 = document.getElementById(PANEL_ID2);
+      if (panel4) panel4.hidden = true;
       if (!view.alarm && refreshTimer) {
         clearInterval(refreshTimer);
         refreshTimer = null;
       }
     }
     function ensureRefreshTimer() {
-      if (!refreshTimer) refreshTimer = setInterval(() => render5(false), 1e3);
+      if (!refreshTimer) refreshTimer = setInterval(() => render6(false), 1e3);
     }
     function toggle4() {
-      const panel3 = document.getElementById(PANEL_ID2);
-      if (panel3?.hidden) open();
+      const panel4 = document.getElementById(PANEL_ID2);
+      if (panel4?.hidden) open();
       else close2();
     }
     function mount() {
@@ -14607,22 +14829,22 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       button.innerHTML = "&#x1F33F;";
       button.title = "Garden Overview";
       button.onclick = toggle4;
-      const panel3 = document.createElement("div");
-      panel3.id = PANEL_ID2;
-      panel3.hidden = true;
-      panel3.addEventListener("keydown", () => {
+      const panel4 = document.createElement("div");
+      panel4.id = PANEL_ID2;
+      panel4.hidden = true;
+      panel4.addEventListener("keydown", () => {
         keyboardDriven = true;
       }, true);
-      panel3.addEventListener("pointerdown", () => {
+      panel4.addEventListener("pointerdown", () => {
         keyboardDriven = false;
       }, true);
-      document.body.append(button, panel3);
+      document.body.append(button, panel4);
       page.__gardenCompanionOnCinematicChange?.(() => {
         button.hidden = Boolean(page.__gardenCompanionCinematicFromGame?.());
       });
       if (view.alarm) ensureRefreshTimer();
       onSpritesReady(() => {
-        if (configMode === "focus") render5(true);
+        if (configMode === "focus") render6(true);
       });
       window.addEventListener("keydown", (event) => {
         if (!shortcut || event.repeat || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) return;
@@ -15267,9 +15489,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
         const existing = planner.tiles.get(localIndex);
         const host = patchCapacity(planner.species) > 0 && !fill && existing?.objectType === "plant" && existing.species && sharesPatch(existing.species, planner.species) ? existing.species : planner.species;
         const capacity = patchCapacity(host);
-        const current = host === existing?.species ? (existing?.slots ?? []).map((slot) => slot.species || host) : [];
-        const full = current.length >= capacity;
-        const grown = host === planner.species && (fill || capacity === 0) ? void 0 : full ? [...current.slice(0, capacity - 1), planner.species] : [...current, planner.species];
+        const current2 = host === existing?.species ? (existing?.slots ?? []).map((slot) => slot.species || host) : [];
+        const full = current2.length >= capacity;
+        const grown = host === planner.species && (fill || capacity === 0) ? void 0 : full ? [...current2.slice(0, capacity - 1), planner.species] : [...current2, planner.species];
         planner.tiles.set(localIndex, plannedTile(host, [...planner.mutations], grown, existing, {
           keepCrops: grown !== void 0,
           replaced: grown !== void 0 && full ? capacity - 1 : void 0
@@ -15350,8 +15572,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       } else if (edgeDecorSelected()) {
         const key = edgeAtPointer(event);
         if (key === null) return;
-        const current = planner.edges.get(key)?.[selectedEdgePart()];
-        if (current?.decorId !== planner.decorId || current.mirrored !== edgeFromRotation(decorRotation()).mirrored) {
+        const current2 = planner.edges.get(key)?.[selectedEdgePart()];
+        if (current2?.decorId !== planner.decorId || current2.mirrored !== edgeFromRotation(decorRotation()).mirrored) {
           placeEdge(key);
         }
         return;
@@ -15469,18 +15691,18 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     function scaleAtMax(species) {
       return planner.scale === null || planner.scale >= maxSizeMultiplier(PLANTS2[species]?.crop);
     }
-    function refreshScaleControl(panel3) {
+    function refreshScaleControl(panel4) {
       const species = scaleSpecies();
-      const slider2 = panel3.querySelector("[data-plan-scale]");
+      const slider2 = panel4.querySelector("[data-plan-scale]");
       if (!slider2) return;
       const max = maxSizeMultiplier(PLANTS2[species]?.crop);
       const value = scaleFor(species);
       slider2.max = max.toFixed(2);
       slider2.value = value.toFixed(2);
       slider2.disabled = max <= 1;
-      const label = panel3.querySelector("[data-plan-scale-value]");
+      const label = panel4.querySelector("[data-plan-scale-value]");
       if (label) label.textContent = sizeSummary(value, species);
-      const maxButton = panel3.querySelector("[data-plan-scale-max]");
+      const maxButton = panel4.querySelector("[data-plan-scale-max]");
       if (maxButton) maxButton.dataset.active = String(scaleAtMax(species));
     }
     const EDGE_PREFIX = "edge:";
@@ -15634,12 +15856,12 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
     }
     function renderPanel() {
       if (!planner.open) return;
-      let panel3 = document.getElementById("gc-planner");
-      if (!panel3) {
-        panel3 = document.createElement("div");
-        panel3.id = "gc-planner";
-        document.body.appendChild(panel3);
-        panel3.addEventListener("pointerdown", (event) => event.stopPropagation(), true);
+      let panel4 = document.getElementById("gc-planner");
+      if (!panel4) {
+        panel4 = document.createElement("div");
+        panel4.id = "gc-planner";
+        document.body.appendChild(panel4);
+        panel4.addEventListener("pointerdown", (event) => event.stopPropagation(), true);
       }
       const options = sortedSpecies().map((name) => {
         const sprite = page.__gardenCompanionProduceSprites?.[name] || page.__gardenCompanionShopSprites?.[name] || "";
@@ -15660,8 +15882,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       const layoutNames = Object.keys(savedLayouts()).sort();
       const scaleMax = maxSizeMultiplier(PLANTS2[scaleSpecies()]?.crop);
       const scaleValue = scaleFor(scaleSpecies());
-      const previousScroll = panel3.querySelector(".gc-planner-grid:not(.gc-planner-mount)")?.scrollTop ?? 0;
-      panel3.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size + edgeDecorCount()} planned</span><button data-plan-close>Exit</button></header>
+      const previousScroll = panel4.querySelector(".gc-planner-grid:not(.gc-planner-mount)")?.scrollTop ?? 0;
+      panel4.innerHTML = `<header><b>Layout planner</b><span data-plan-count>${planner.tiles.size + edgeDecorCount()} planned</span><button data-plan-close>Exit</button></header>
 <div class="gc-planner-body"><small data-plan-notice>${edgeDecorSelected() ? "Hangs on the side of the tile picked under Side. Left click places, right click removes. Nothing here is sent to the game." : "Left click places, right click removes. Drag to fill. Nothing here is sent to the game."}</small>
 <div class="gc-planner-modes"><button data-plan-mode="plants" class="${decorMode ? "" : "active"}">Plants</button><button data-plan-mode="decor" class="${decorMode ? "active" : ""}">Decor</button></div>
 <div class="gc-planner-row"><b>Weather</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group gc-planner-weather">${WEATHER_CHOICES.map((choice) => {
@@ -15681,75 +15903,75 @@ ${decorMode && !DECOR[planner.decorId]?.mountable ? "" : `<div class="gc-planner
 <div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
 <div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
 ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select><button data-plan-delete>Delete</button></div>` : ""}</div>`;
-      const grid = panel3.querySelector(".gc-planner-grid:not(.gc-planner-mount)");
+      const grid = panel4.querySelector(".gc-planner-grid:not(.gc-planner-mount)");
       if (grid) grid.scrollTop = previousScroll;
-      panel3.querySelector("[data-plan-close]").onclick = close2;
-      panel3.querySelectorAll("[data-plan-species]").forEach((button) => button.onclick = () => {
+      panel4.querySelector("[data-plan-close]").onclick = close2;
+      panel4.querySelectorAll("[data-plan-species]").forEach((button) => button.onclick = () => {
         planner.species = button.dataset.planSpecies;
-        panel3.querySelectorAll("[data-plan-species]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-species]").forEach((other) => {
           other.dataset.active = String(other.dataset.planSpecies === planner.species);
         });
-        refreshScaleControl(panel3);
+        refreshScaleControl(panel4);
       });
-      panel3.querySelectorAll("[data-plan-mutation]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-mutation]").forEach((button) => button.onclick = () => {
         const mutation = button.dataset.planMutation;
         const chosen = !planner.mutations.has(mutation);
         for (const [id, details] of Object.entries(MUTATIONS2)) {
           if (details.group === button.dataset.group) planner.mutations.delete(id);
         }
         if (chosen) planner.mutations.add(mutation);
-        panel3.querySelectorAll("[data-plan-mutation]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-mutation]").forEach((other) => {
           other.dataset.active = String(planner.mutations.has(other.dataset.planMutation));
         });
-        const summary = panel3.querySelector("[data-plan-mutation-summary]");
+        const summary = panel4.querySelector("[data-plan-mutation-summary]");
         if (summary) summary.textContent = mutationSummary();
       });
-      panel3.querySelector("[data-plan-clear]").onclick = () => {
+      panel4.querySelector("[data-plan-clear]").onclick = () => {
         planner.tiles.clear();
         planner.edges.clear();
         applyAllTiles();
         updateCount();
       };
-      panel3.querySelector("[data-plan-reset]").onclick = () => {
+      panel4.querySelector("[data-plan-reset]").onclick = () => {
         planner.tiles = new Map(Object.entries(liveTiles()).filter(([, tile]) => tile?.objectType === "plant" || tile?.objectType === "decor"));
         planner.edges = new Map(Object.entries(liveEdges()));
         applyAllTiles();
         updateCount();
       };
-      panel3.querySelectorAll("[data-plan-mode]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-mode]").forEach((button) => button.onclick = () => {
         planner.mode = button.dataset.planMode;
         renderPanel();
       });
-      panel3.querySelectorAll("[data-plan-weather]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-weather]").forEach((button) => button.onclick = () => {
         planner.weather = button.dataset.planWeather;
         patchWeatherDraw();
-        panel3.querySelectorAll("[data-plan-weather]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-weather]").forEach((other) => {
           other.dataset.active = String(other.dataset.planWeather === planner.weather);
         });
       });
-      panel3.querySelectorAll("[data-plan-time]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-time]").forEach((button) => button.onclick = () => {
         planner.time = button.dataset.planTime;
         patchWeatherDraw();
-        panel3.querySelectorAll("[data-plan-time]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-time]").forEach((other) => {
           other.dataset.active = String(other.dataset.planTime === planner.time);
         });
       });
-      panel3.querySelectorAll("[data-plan-decor]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-decor]").forEach((button) => button.onclick = () => {
         const previous = planner.decorId;
         planner.decorId = button.dataset.planDecor;
         if (!DECOR[planner.decorId]?.rotates && !DECOR[planner.decorId]?.edge) planner.rotation = 0;
-        panel3.querySelectorAll("[data-plan-decor]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-decor]").forEach((other) => {
           other.dataset.active = String(other.dataset.planDecor === planner.decorId);
         });
         if (Boolean(DECOR[previous]?.rotates) !== Boolean(DECOR[planner.decorId]?.rotates) || Boolean(DECOR[previous]?.mountable) !== Boolean(DECOR[planner.decorId]?.mountable) || Boolean(DECOR[previous]?.edge) !== Boolean(DECOR[planner.decorId]?.edge)) renderPanel();
       });
-      const nameInput = panel3.querySelector("[data-plan-name]");
+      const nameInput = panel4.querySelector("[data-plan-name]");
       if (nameInput) {
         for (const type of ["keydown", "keyup", "keypress"]) {
           nameInput.addEventListener(type, (event) => event.stopPropagation());
         }
       }
-      panel3.querySelector("[data-plan-save]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-plan-save]")?.addEventListener("click", () => {
         const name = nameInput?.value.trim();
         if (!name) return;
         const layouts = savedLayouts();
@@ -15770,7 +15992,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         }
         renderPanel();
       });
-      panel3.querySelector("[data-plan-load]")?.addEventListener("change", (event) => {
+      panel4.querySelector("[data-plan-load]")?.addEventListener("change", (event) => {
         event.target.blur();
         const layout = savedLayouts()[event.target.value];
         if (!layout) return;
@@ -15778,46 +16000,46 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         applyAllTiles();
         updateCount();
       });
-      panel3.querySelector("[data-plan-delete]")?.addEventListener("click", () => {
-        const name = panel3.querySelector("[data-plan-load]")?.value;
+      panel4.querySelector("[data-plan-delete]")?.addEventListener("click", () => {
+        const name = panel4.querySelector("[data-plan-load]")?.value;
         if (!name) return;
         const layouts = savedLayouts();
         delete layouts[name];
         storeLayouts(layouts);
         renderPanel();
       });
-      refreshScaleControl(panel3);
-      const scaleInput = panel3.querySelector("[data-plan-scale]");
+      refreshScaleControl(panel4);
+      const scaleInput = panel4.querySelector("[data-plan-scale]");
       if (scaleInput) scaleInput.oninput = () => {
         planner.scale = Number(scaleInput.value);
         const species = scaleSpecies();
-        const label = panel3.querySelector("[data-plan-scale-value]");
+        const label = panel4.querySelector("[data-plan-scale-value]");
         if (label) label.textContent = sizeSummary(scaleFor(species), species);
-        const maxButton = panel3.querySelector("[data-plan-scale-max]");
+        const maxButton = panel4.querySelector("[data-plan-scale-max]");
         if (maxButton) maxButton.dataset.active = String(scaleAtMax(species));
       };
       scaleInput?.addEventListener("pointerup", () => scaleInput.blur());
       scaleInput?.addEventListener("change", () => scaleInput.blur());
-      panel3.querySelector("[data-plan-scale-max]")?.addEventListener("click", () => {
+      panel4.querySelector("[data-plan-scale-max]")?.addEventListener("click", () => {
         planner.scale = null;
         renderPanel();
       });
-      panel3.querySelectorAll("[data-plan-mount]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-mount]").forEach((button) => button.onclick = () => {
         planner.mountedSpecies = button.dataset.planMount || "";
-        panel3.querySelectorAll("[data-plan-mount]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-mount]").forEach((other) => {
           other.dataset.active = String((other.dataset.planMount || "") === planner.mountedSpecies);
         });
-        refreshScaleControl(panel3);
+        refreshScaleControl(panel4);
       });
-      panel3.querySelectorAll("[data-plan-flip]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-flip]").forEach((button) => button.onclick = () => {
         planner.flipped = button.dataset.planFlip === "true";
-        panel3.querySelectorAll("[data-plan-flip]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-flip]").forEach((other) => {
           other.dataset.active = String(other.dataset.planFlip === "true" === planner.flipped);
         });
       });
-      panel3.querySelectorAll("[data-plan-rotation]").forEach((button) => button.onclick = () => {
+      panel4.querySelectorAll("[data-plan-rotation]").forEach((button) => button.onclick = () => {
         planner.rotation = Number(button.dataset.planRotation);
-        panel3.querySelectorAll("[data-plan-rotation]").forEach((other) => {
+        panel4.querySelectorAll("[data-plan-rotation]").forEach((other) => {
           other.dataset.active = String(Number(other.dataset.planRotation) === planner.rotation);
         });
       });
@@ -16196,7 +16418,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var STYLE_ID3 = "gc-fishing-style";
   var PANEL_ID3 = "gc-fishing-panel";
   var RECORD_KEY = "gardenCompanion.fishing.v1";
-  var POSITION_KEY3 = "gardenCompanion.fishingPosition.v1";
+  var POSITION_KEY4 = "gardenCompanion.fishingPosition.v1";
   var BITE_WINDOW = 1500;
   var RESULT_LOCK = 1600;
   var CAST_WINDUP = 150;
@@ -16833,7 +17055,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       graphic.poly([crateX + 16, crateY + 26, crateX + 10, crateY + 22, crateX + 10, crateY + 30], true).fill({ color: 3875859, alpha: 0.55 });
     }
     function positionPondInput() {
-      const input = panel3()?.querySelector(".gf-pond-input");
+      const input = panel4()?.querySelector(".gf-pond-input");
       if (!input) return;
       const rect = view === "game" && pondBounds ? scene.project(pondBounds) : null;
       if (!rect) {
@@ -16972,10 +17194,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function drawWater(graphic, now) {
       const { left, top, width, height } = pondBounds;
-      const current = weather();
-      const tint = current ? WEATHER_TINT[current] : void 0;
+      const current2 = weather();
+      const tint = current2 ? WEATHER_TINT[current2] : void 0;
       if (tint) graphic.roundRect(left, top, width, height, 44).fill(tint);
-      if (current === "Frost") {
+      if (current2 === "Frost") {
         graphic.roundRect(left + 7, top + 7, width - 14, height - 14, 40).stroke({ color: 15792639, width: 14, alpha: 0.38 });
       }
       for (let index = 0; index < 7; index++) {
@@ -16997,7 +17219,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     }
     function updateWorldScene(now) {
-      if (panel3()?.hidden) return;
+      if (panel4()?.hidden) return;
       const geometry = scene.sync();
       const fishGraphic = scene.layer("fish");
       const surface = scene.layer("surface");
@@ -17140,7 +17362,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     }
     function updateHud() {
-      const host = panel3();
+      const host = panel4();
       if (!host || host.hidden || view !== "game") return;
       if (renderedWeather !== weather() && phase !== "reel" && phase !== "bite") {
         renderChrome();
@@ -17193,7 +17415,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         phase: Math.random() * Math.PI * 2
       };
     }
-    function panel3() {
+    function panel4() {
       return document.getElementById(PANEL_ID3);
     }
     function weather() {
@@ -17405,10 +17627,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         swimmer.x += swimmer.speed * delta;
         if (swimmer.x < -0.15 || swimmer.x > 1.15) Object.assign(swimmer, spawnSwimmer());
       }
-      const current = weather();
-      const rain = current ? RAIN_RATE[current] ?? 0 : 0;
+      const current2 = weather();
+      const rain = current2 ? RAIN_RATE[current2] ?? 0 : 0;
       if (rain && Math.random() < rain * delta) addRipple(0.05 + Math.random() * 0.9, 0.06 + Math.random() * 0.88, 14 + Math.random() * 10, 700, 0.4);
-      if (current === "Thunderstorm" && now >= nextFlashAt) {
+      if (current2 === "Thunderstorm" && now >= nextFlashAt) {
         if (nextFlashAt) flashAt = now;
         nextFlashAt = now + 6e3 + Math.random() * 1e4;
       }
@@ -17499,10 +17721,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return `<div class="gf-body"><p class="gf-note">Pick any fish to fight it straight away, skipping the cast and its weather. Bench fights are never added to your record. Pace ${FIGHT_PACE}, start ${START_PROGRESS}, floor ${LOSE_FLOOR}, limit ${REEL_LIMIT / 1e3}s.</p>${tiers}<div class="gf-reset"><button data-view="game">Back to the pond</button></div></div>`;
     }
     function bitingHtml() {
-      const current = weather();
-      const special = FISH.filter((fish) => fish.weather && fish.weather === current);
+      const current2 = weather();
+      const special = FISH.filter((fish) => fish.weather && fish.weather === current2);
       const body = special.length ? special.map((fish) => `<span style="color:${RARITIES[fish.rarity].colour}" title="${RARITIES[fish.rarity].label}">${record.fish[fish.id] ? escapeHtml(fish.name) : "???"}</span>`).join("") : "<p>Only the regulars. Weather brings rarer fish.</p>";
-      return `<div><div class="gf-label"><span>Biting now</span><span>${weatherIcon(current)} ${escapeHtml(weatherLabel2(current))}</span></div><div class="gf-biting">${body}</div></div>`;
+      return `<div><div class="gf-label"><span>Biting now</span><span>${weatherIcon(current2)} ${escapeHtml(weatherLabel2(current2))}</span></div><div class="gf-biting">${body}</div></div>`;
     }
     function phaseLabel() {
       if (phase === "waiting") return "Line out";
@@ -17530,7 +17752,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return `<div class="gf-game">${catchCard}<div class="gf-stage"><div class="gf-stage-main"><div class="gf-status" data-phase="${phase}"><span class="gf-phase">${phaseLabel()}</span><b data-fishing-status style="color:${resultColour}">${escapeHtml(message)}</b></div><button class="gf-action" data-reel data-phase="${phase}">${button}</button>${bitingHtml()}<div><div class="gf-label"><span>Bait</span></div><div class="gf-bait">${baitCard}</div></div></div><div class="gf-meter" data-live="false"><div class="gf-meter-bars"><div class="gf-track"><i class="gf-track-zone"></i><i class="gf-track-fish"></i></div><div class="gf-meter-progress"><i></i></div></div><small>Catch</small></div></div></div><div class="gf-foot"><span>Click the pond to cast there</span><span><kbd>Space</kbd> works too</span></div>`;
     }
     function renderChrome() {
-      const host = panel3();
+      const host = panel4();
       if (!host || host.hidden) return;
       const card = host.querySelector(".gf-card");
       if (!card) return;
@@ -17628,7 +17850,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     }
     function open(targetView = "game") {
-      const host = panel3();
+      const host = panel4();
       if (!host) return;
       view = targetView;
       if (page.__gardenCompanionGardenDefenceOpen?.()) page.__gardenCompanionToggleGardenDefence?.();
@@ -17639,14 +17861,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (!draggableReady) {
         const card = host.querySelector(".gf-card");
         if (card) {
-          makeDraggable(card, POSITION_KEY3);
+          makeDraggable(card, POSITION_KEY4);
           draggableReady = true;
         }
       }
       resumeLoop();
     }
     function close2() {
-      const host = panel3();
+      const host = panel4();
       if (host) host.hidden = true;
       pauseLoop();
       scene.exit();
@@ -17710,7 +17932,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         }));
       }, { passive: false });
       window.addEventListener("pointerup", release);
-      const ownsSpace = (event) => event.code === "Space" && panel3()?.hidden === false && view === "game" && !isTyping() && !event.ctrlKey && !event.altKey && !event.metaKey;
+      const ownsSpace = (event) => event.code === "Space" && panel4()?.hidden === false && view === "game" && !isTyping() && !event.ctrlKey && !event.altKey && !event.metaKey;
       window.addEventListener("keydown", (event) => {
         if (!ownsSpace(event)) return;
         event.preventDefault();
@@ -17723,8 +17945,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         event.preventDefault();
         event.stopImmediatePropagation();
       }, true);
-      page.__gardenCompanionToggleFishing = () => panel3()?.hidden ? open() : close2();
-      page.__gardenCompanionFishingOpen = () => panel3()?.hidden === false;
+      page.__gardenCompanionToggleFishing = () => panel4()?.hidden ? open() : close2();
+      page.__gardenCompanionFishingOpen = () => panel4()?.hidden === false;
       page.__gardenCompanionFishingBench = () => {
         open("bench");
       };
@@ -18198,7 +18420,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   // src/features/garden-defence.ts
   var PANEL_ID4 = "gc-garden-defence";
   var RECORD_KEY2 = "gardenDefence.record";
-  var POSITION_KEY4 = "gardenDefence.position";
+  var POSITION_KEY5 = "gardenDefence.position";
   var MAX_LANES = 5;
   var MAX_COLUMNS = 9;
   var SEED_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
@@ -18557,7 +18779,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         graphic.moveTo(fence + u * 0.1, y + cellHeight * 0.42).lineTo(fence + u * 0.24, y + cellHeight * 0.55).stroke({ color: 9132587, width: u * 0.03, alpha: 1 });
       }
     }
-    function panel3() {
+    function panel4() {
       return document.getElementById(PANEL_ID4);
     }
     function save2() {
@@ -18943,7 +19165,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
       poofs = poofs.filter((poof) => wallClock - poof.at < 0.5);
     }
-    function render5() {
+    function render6() {
       const geometry = scene.sync();
       const entities = scene.layer("entities");
       const mounds = scene.layer("plantShadow");
@@ -18975,7 +19197,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     }
     function positionLawnInput() {
-      const input = panel3()?.querySelector(".gd-lawn-input");
+      const input = panel4()?.querySelector(".gd-lawn-input");
       if (!input) return;
       const area = lawn ? { left: lawn.left - houseStrip, top: lawn.top - 40, width: lawn.width + houseStrip, height: lawn.height + 40 } : null;
       const rect = area ? scene.project(area) : null;
@@ -18996,7 +19218,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       wallClock += delta;
       try {
         if (board && !paused) board.step(delta);
-        render5();
+        render6();
         if (now - chromeAt > 250) {
           chromeAt = now;
           renderStatus();
@@ -19031,7 +19253,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return `<div class="gd-waves"><div class="gd-waves-label"><span data-wave></span><b>Wave <span data-wave-number>${wave}</span> of ${TOTAL_WAVES}</b></div><div class="gd-track"><i data-wave-fill></i>${flags}</div></div>`;
     }
     function renderStatus() {
-      const host = panel3();
+      const host = panel4();
       if (!host || host.hidden) return;
       const wave = board?.wave ?? 0;
       const sunNode = host.querySelector("[data-sun]");
@@ -19083,7 +19305,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return "";
     }
     function renderChrome() {
-      const host = panel3();
+      const host = panel4();
       if (!host || host.hidden) return;
       const card = host.querySelector(".gd-card");
       if (!card) return;
@@ -19122,45 +19344,45 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     function bindDevButtons(card) {
       if (!dev || !board) return;
-      const current = board;
+      const current2 = board;
       for (const button of card.querySelectorAll("[data-spawn]")) {
         button.onclick = () => {
           const def = ALL_PESTS.find((pest) => pest.id === button.dataset.spawn);
           if (!def) return;
-          current.spawn(def);
+          current2.spawn(def);
           status = `Spawned a ${def.name}.`;
           renderStatus();
         };
       }
       card.querySelector("[data-spawn-lane]").onclick = () => {
-        for (let lane = 0; lane < lanes; lane++) current.spawn(ALL_PESTS[0], lane);
+        for (let lane = 0; lane < lanes; lane++) current2.spawn(ALL_PESTS[0], lane);
         status = `Spawned a worm in all ${lanes} lanes.`;
         renderStatus();
       };
       card.querySelector("[data-clear-pests]").onclick = () => {
-        current.pests = [];
-        current.queued = [];
+        current2.pests = [];
+        current2.queued = [];
         status = "Cleared every pest.";
         renderStatus();
       };
       card.querySelector("[data-clear-plants]").onclick = () => {
-        for (const plant of [...current.plants]) current.dig(plant.lane, plant.column);
+        for (const plant of [...current2.plants]) current2.dig(plant.lane, plant.column);
         status = "Cleared the board.";
         renderStatus();
       };
       card.querySelector("[data-hold]").onclick = () => {
-        current.wavesHeld = !current.wavesHeld;
-        status = current.wavesHeld ? "Waves held. Spawn pests by hand." : "Waves running again.";
+        current2.wavesHeld = !current2.wavesHeld;
+        status = current2.wavesHeld ? "Waves held. Spawn pests by hand." : "Waves running again.";
         renderChrome();
       };
-      card.querySelector("[data-next-wave]").onclick = () => current.startWave();
+      card.querySelector("[data-next-wave]").onclick = () => current2.startWave();
       card.querySelector("[data-add-sun]").onclick = () => {
-        current.sun += 500;
+        current2.sun += 500;
         renderStatus();
       };
     }
     function open() {
-      const host = panel3();
+      const host = panel4();
       if (!host) return;
       page.__gardenCompanionLoadSpriteGroup?.("deferred");
       if (page.__gardenCompanionFishingOpen?.()) page.__gardenCompanionToggleFishing?.();
@@ -19170,14 +19392,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (!draggableReady) {
         const card = host.querySelector(".gd-card");
         if (card) {
-          makeDraggable(card, POSITION_KEY4);
+          makeDraggable(card, POSITION_KEY5);
           draggableReady = true;
         }
       }
       startLoop();
     }
     function close2() {
-      const host = panel3();
+      const host = panel4();
       if (host) host.hidden = true;
       stopLoop();
       scene.exit();
@@ -19187,7 +19409,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (input) input.hidden = true;
     }
     function mount() {
-      if (panel3()) return;
+      if (panel4()) return;
       injectStyles2();
       const host = document.createElement("div");
       host.id = PANEL_ID4;
@@ -19246,7 +19468,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         }));
       }, { passive: false });
       window.addEventListener("keydown", (event) => {
-        if (panel3()?.hidden !== false || isTyping() || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
+        if (panel4()?.hidden !== false || isTyping() || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
         const key = event.key.toLowerCase();
         const seedIndex = SEED_KEYS.indexOf(key);
         if (seedIndex >= 0 && PLANTS[seedIndex]) selectSeed(PLANTS[seedIndex].id);
@@ -19259,11 +19481,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         event.preventDefault();
         event.stopImmediatePropagation();
       }, true);
-      page.__gardenCompanionToggleGardenDefence = () => panel3()?.hidden ? open() : close2();
-      page.__gardenCompanionGardenDefenceOpen = () => panel3()?.hidden === false;
+      page.__gardenCompanionToggleGardenDefence = () => panel4()?.hidden ? open() : close2();
+      page.__gardenCompanionGardenDefenceOpen = () => panel4()?.hidden === false;
       page.__gardenCompanionGardenDefenceDev = (enabled = !dev) => {
         dev = enabled;
-        if (panel3()?.hidden !== false) open();
+        if (panel4()?.hidden !== false) open();
         restart();
         return dev;
       };
@@ -20164,7 +20386,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/crop-cleanser-helper.ts
-  var POSITION_KEY5 = "gardenCompanion.cropCleanserPosition.v1";
+  var POSITION_KEY6 = "gardenCompanion.cropCleanserPosition.v1";
   var MUTATIONS = [
     "Wet",
     "Chilled",
@@ -20239,7 +20461,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     cleansedRows.clear();
     changedRows.clear();
   }
-  function panel() {
+  function panel2() {
     return document.getElementById("gc-crop-cleanser");
   }
   function updateCleanserControls(body) {
@@ -20251,7 +20473,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     });
   }
   function reconcileCleanserCount() {
-    const root2 = panel();
+    const root2 = panel2();
     if (!root2 || root2.hidden) return;
     const live = heldToolCount("CropCleanser");
     if (live === lastLiveCleanserCount && live === displayedCleanserCount) return;
@@ -20262,8 +20484,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const body = root2.querySelector("[data-cleanser-body]");
     if (body) updateCleanserControls(body);
   }
-  function render2() {
-    const root2 = panel();
+  function render3() {
+    const root2 = panel2();
     if (!root2) return;
     const body = root2.querySelector("[data-cleanser-body]");
     if (!body) return;
@@ -20283,7 +20505,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
       selectedMutation = button.dataset.cleanserMutation || "";
       refreshSnapshot();
-      render2();
+      render3();
     });
     body.querySelectorAll("[data-cleanse-row]").forEach((button) => button.onclick = async () => {
       const row = rows.find((candidate) => candidate.key === button.dataset.cleanseRow);
@@ -20322,8 +20544,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       }
     });
   }
-  function ensurePanel() {
-    const existing = panel();
+  function ensurePanel2() {
+    const existing = panel2();
     if (existing) return existing;
     const root2 = document.createElement("section");
     root2.id = "gc-crop-cleanser";
@@ -20333,22 +20555,22 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       root2.hidden = true;
     };
     document.body.appendChild(root2);
-    makeDraggable(root2, POSITION_KEY5);
+    makeDraggable(root2, POSITION_KEY6);
     return root2;
   }
   function toggle2() {
-    const root2 = ensurePanel();
+    const root2 = ensurePanel2();
     root2.hidden = !root2.hidden;
     if (!root2.hidden) {
       refreshSnapshot();
-      render2();
+      render3();
     }
   }
   function initCropCleanserHelper() {
     page.__gardenCompanionToggleCropCleanser = toggle2;
     onStateChange(reconcileCleanserCount);
     onSpritesReady(() => {
-      if (panel() && !panel().hidden) render2();
+      if (panel2() && !panel2().hidden) render3();
     });
   }
 
@@ -20572,29 +20794,29 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     let best = null;
     let bestInspection = null;
     for (let restart = 0; restart < restarts; restart++) {
-      const current = initialLayout(species, rows, columns, random, blocked, unavailable);
-      let currentInspection = inspect(current, rows, columns, goal, blocked);
+      const current2 = initialLayout(species, rows, columns, random, blocked, unavailable);
+      let currentInspection = inspect(current2, rows, columns, goal, blocked);
       for (let step = 0; step < steps && currentInspection.met !== currentInspection.required; step++) {
         if ((step & 31) === 0 && performance.now() >= deadline) break;
-        const first = Math.floor(random() * current.length);
-        let second = Math.floor(random() * current.length);
-        for (let attempt = 0; attempt < 8 && current[first].type === current[second].type; attempt++) {
-          second = Math.floor(random() * current.length);
+        const first = Math.floor(random() * current2.length);
+        let second = Math.floor(random() * current2.length);
+        for (let attempt = 0; attempt < 8 && current2[first].type === current2[second].type; attempt++) {
+          second = Math.floor(random() * current2.length);
         }
-        if (first === second || current[first].type === current[second].type) continue;
-        if (current[first].type !== "empty" && current[second].type === "empty" && unavailable[second]) continue;
-        if (current[second].type !== "empty" && current[first].type === "empty" && unavailable[first]) continue;
-        [current[first], current[second]] = [current[second], current[first]];
-        const candidate = inspect(current, rows, columns, goal, blocked);
+        if (first === second || current2[first].type === current2[second].type) continue;
+        if (current2[first].type !== "empty" && current2[second].type === "empty" && unavailable[second]) continue;
+        if (current2[second].type !== "empty" && current2[first].type === "empty" && unavailable[first]) continue;
+        [current2[first], current2[second]] = [current2[second], current2[first]];
+        const candidate = inspect(current2, rows, columns, goal, blocked);
         const temperature = Math.max(0.05, 1.1 * (1 - step / steps));
         if (candidate.score >= currentInspection.score || random() < Math.exp((candidate.score - currentInspection.score) / temperature)) {
           currentInspection = candidate;
         } else {
-          [current[first], current[second]] = [current[second], current[first]];
+          [current2[first], current2[second]] = [current2[second], current2[first]];
         }
       }
       if (!bestInspection || currentInspection.score > bestInspection.score) {
-        best = current.map((cell) => ({ ...cell }));
+        best = current2.map((cell) => ({ ...cell }));
         bestInspection = currentInspection;
       }
       if (bestInspection.met === bestInspection.required || performance.now() >= deadline) break;
@@ -20739,7 +20961,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       return goal === "amber" ? amber : goal === "dawn" ? dawn : amber && dawn;
     });
   }
-  function bestPlacement(planned, current, rows, columns, blocked, unavailable) {
+  function bestPlacement(planned, current2, rows, columns, blocked, unavailable) {
     const used = planned.flatMap((type, index) => type ? [index] : []);
     const rowsUsed = used.map((index) => Math.floor(index / columns));
     const columnsUsed = used.map((index) => index % columns);
@@ -20762,7 +20984,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
             fits = false;
             break;
           }
-          if (current[target] === planned[index]) score++;
+          if (current2[target] === planned[index]) score++;
         }
         if (fits && score > best.score) best = { score, map };
       }
@@ -20797,10 +21019,10 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     const ordered = [];
     const vacated = /* @__PURE__ */ new Set();
-    const pending = [...raw];
-    while (pending.length) {
-      const ready = pending.findIndex((move) => !byLocal.get(move.to)?.tile || vacated.has(move.to));
-      const next = pending.splice(ready === -1 ? 0 : ready, 1)[0];
+    const pending2 = [...raw];
+    while (pending2.length) {
+      const ready = pending2.findIndex((move) => !byLocal.get(move.to)?.tile || vacated.has(move.to));
+      const next = pending2.splice(ready === -1 ? 0 : ready, 1)[0];
       next.occupied = ready === -1;
       ordered.push(next);
       vacated.add(next.from);
@@ -20817,7 +21039,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
 
   // src/features/farm-manager.ts
-  var POSITION_KEY6 = "gardenCompanion.farmManagerPosition.v1";
+  var POSITION_KEY7 = "gardenCompanion.farmManagerPosition.v1";
   var MIN_CELL = 14;
   var CELL_GAP = 2;
   var MAX_CELL = 56;
@@ -20874,14 +21096,14 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var celCalcTimer = 0;
   function requestCelestialPlan(force = false) {
     celCalculating = true;
-    render3();
+    render4();
     if (celCalcTimer) clearTimeout(celCalcTimer);
     celCalcTimer = window.setTimeout(() => {
       celCalcTimer = 0;
       requestAnimationFrame(() => {
         rebuildCelestialPlan(force);
         celCalculating = false;
-        render3();
+        render4();
       });
     }, 0);
   }
@@ -20960,7 +21182,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       line.setAttribute("y1", String(from.offsetTop + from.offsetHeight / 2));
       line.setAttribute("x2", String(to.offsetLeft + to.offsetWidth / 2));
       line.setAttribute("y2", String(to.offsetTop + to.offsetHeight / 2));
-    } else render3();
+    } else render4();
     const status = element.querySelector("[data-fm-status]");
     if (status && !busyTiles.size) status.textContent = status.textContent.replace(/^Step \d+/, `Step ${index + 1}`);
   }
@@ -21125,7 +21347,7 @@ ${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.p
     requestAnimationFrame(() => {
       renderQueued = false;
       if (drag) return;
-      render3();
+      render4();
     });
   }
   var rendered = /* @__PURE__ */ new WeakMap();
@@ -21136,7 +21358,7 @@ ${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.p
     node.innerHTML = html;
     if (scroll) node.scrollTop = scroll;
   }
-  function render3() {
+  function render4() {
     const element = root();
     if (!element || element.hidden) return;
     const grid = element.querySelector("[data-fm-grid]");
@@ -21292,14 +21514,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     const status = root()?.querySelector("[data-fm-status]");
     busyTiles = /* @__PURE__ */ new Set([local]);
     if (status) status.textContent = "Potting plant...";
-    render3();
+    render4();
     try {
       await actions.pot(local);
     } catch (error) {
       toast(`Potting stopped: ${error.message}.`, "error");
     } finally {
       busyTiles = /* @__PURE__ */ new Set();
-      render3();
+      render4();
     }
   }
   async function perform(work, target) {
@@ -21330,7 +21552,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     const involved = work.from === "tile" ? [work.local, target.local] : [target.local];
     busyTiles = new Set(involved);
     if (status) status.textContent = work.from !== "tile" ? "Planting..." : target.tile ? "Swapping plants..." : "Moving plant...";
-    render3();
+    render4();
     try {
       if (work.from === "seed") await plantSeed(work.species, target.local);
       else if (work.from === "tile") {
@@ -21342,7 +21564,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     } finally {
       if (work.from === "seed") seeding = false;
       busyTiles = /* @__PURE__ */ new Set();
-      render3();
+      render4();
     }
   }
   function bindEvents(element) {
@@ -21477,14 +21699,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       if (plantNode) {
         const id = plantNode.dataset.item;
         armedPlant = armedPlant?.id === id ? null : { id, index: Number(plantNode.dataset.index) || 0 };
-        render3();
+        render4();
         return;
       }
       const seedNode = target.closest(".gc-fm-item[data-seed]");
       if (seedNode) {
         const species = seedNode.dataset.seed;
         armedSeed = armedSeed === species ? null : species;
-        render3();
+        render4();
         return;
       }
       const cellNode = target.closest(".gc-fm-cell[data-armed]");
@@ -21493,7 +21715,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       const work = armedSeed ? { from: "seed", species: armedSeed } : { from: "inventory", itemId: armedPlant.id };
       if (!cell || !dropActionFor(work, cell)) {
         toast("That tile is no longer empty.", "error");
-        render3();
+        render4();
         return;
       }
       void perform(work, cell);
@@ -21508,7 +21730,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       drag = previous;
     }
   }
-  function ensurePanel2() {
+  function ensurePanel3() {
     const existing = root();
     if (existing) return existing;
     const element = document.createElement("section");
@@ -21525,28 +21747,28 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     for (const type of ["keydown", "keyup", "keypress"]) input.addEventListener(type, (event) => event.stopPropagation());
     input.addEventListener("input", () => {
       search2 = input.value;
-      render3();
+      render4();
     });
     element.querySelectorAll("[data-fm-tab]").forEach((button) => button.onclick = () => {
       tab = button.dataset.fmTab;
       if (tab === "celestial") celPlan = null;
-      render3();
+      render4();
     });
     bindEvents(element);
     document.body.appendChild(element);
-    makeDraggable(element, POSITION_KEY6, { handle: "header" });
+    makeDraggable(element, POSITION_KEY7, { handle: "header" });
     return element;
   }
   function toggle3() {
-    const element = ensurePanel2();
+    const element = ensurePanel3();
     element.hidden = !element.hidden;
     if (element.hidden) return;
     if (tab === "celestial") celPlan = null;
     page.__gardenCompanionLoadSpriteGroup?.("deferred");
-    render3();
+    render4();
   }
   function toggleCelestial() {
-    const element = ensurePanel2();
+    const element = ensurePanel3();
     if (!element.hidden && tab === "celestial") {
       element.hidden = true;
       return;
@@ -21554,7 +21776,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     tab = "celestial";
     celPlan = null;
     if (element.hidden) toggle3();
-    else render3();
+    else render4();
   }
   function initFarmManager() {
     page.__gardenCompanionToggleFarmManager = toggle3;
@@ -21570,7 +21792,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
   var MANAGER_BATCH_CAP = 15;
   var ANCHOR_GAP = 12;
   var sending2 = false;
-  var lastSignature = "";
+  var lastSignature2 = "";
   var holdStartedAt = 0;
   var holdFrame2 = 0;
   function heldPlantItem() {
@@ -21873,7 +22095,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         managerAwaitingContinue = selectedManagerRows().length > 0;
         toast(sent ? `Preserved ${sent} before the connection dropped. The rest are kept - press to continue when it is back.` : "The connection dropped. Your ticks are kept - press to continue when it is back.", "error");
         refreshManagerModal();
-        render4();
+        render5();
         return;
       }
       if (index >= rows.length) {
@@ -21887,7 +22109,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}) and still ticked.` : "";
         toast(remaining2 > unsent ? `${done}${notSent} ${remaining2} still ticked - press to continue.` : `${done}${notSent}`, sent && !unsent ? "success" : "error");
         refreshManagerModal();
-        render4();
+        render5();
         return;
       }
       const row = rows[index++];
@@ -21906,12 +22128,12 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
           batchDone = 0;
           toast(error.message, "error");
           refreshManagerModal();
-          render4();
+          render5();
           return;
         }
       }
       refreshManagerModal();
-      render4();
+      render5();
       window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
@@ -22012,11 +22234,11 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     document.addEventListener("keydown", onManagerKey, true);
     updateManagerFooter();
   }
-  function panel2() {
+  function panel3() {
     return document.getElementById("gc-preserve-all");
   }
-  function ensurePanel3() {
-    const existing = panel2();
+  function ensurePanel4() {
+    const existing = panel3();
     if (existing) return existing;
     const root2 = document.createElement("section");
     root2.id = "gc-preserve-all";
@@ -22059,17 +22281,17 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       run2();
     };
     holdFrame2 = requestAnimationFrame(tick);
-    render4(true);
+    render5(true);
   }
   function cancelHold2() {
     if (!holdStartedAt) return;
     holdStartedAt = 0;
     cancelAnimationFrame(holdFrame2);
     paintHold(0);
-    render4(true);
+    render5(true);
   }
   function paintHold(progress) {
-    const fill = panel2()?.querySelector("[data-preserve-fill]");
+    const fill = panel3()?.querySelector("[data-preserve-fill]");
     if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
   }
   function run2() {
@@ -22098,14 +22320,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       if (index < rows.length && !gameConnectionReady()) {
         sending2 = false;
         toast(sent ? `Preserved ${sent} before the connection dropped. Try the rest once it is back.` : "The connection dropped before anything was preserved.", "error");
-        render4();
+        render5();
         return;
       }
       if (index >= rows.length) {
         sending2 = false;
         const notSent = unsent ? ` ${unsent} not sent (${NOT_SENT_REASON}).` : "";
         toast(`${sent ? `Preserving ${sent} slot${sent === 1 ? "" : "s"} of ${cropLabel(rows)}.` : unsent ? "Nothing was preserved." : "Nothing was left to preserve."}${notSent}`, sent && !unsent ? "success" : "error");
-        render4();
+        render5();
         return;
       }
       const row = rows[index++];
@@ -22117,11 +22339,11 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         } catch (error) {
           sending2 = false;
           toast(error.message, "error");
-          render4();
+          render5();
           return;
         }
       }
-      render4();
+      render5();
       window.setTimeout(step, SEND_INTERVAL2);
     };
     step();
@@ -22143,10 +22365,10 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     element.style.bottom = "";
     element.style.transform = "";
   }
-  function render4(force = false) {
-    const root2 = panel2();
+  function render5(force = false) {
+    const root2 = panel3();
     if (!state.preservationMode || page.__gardenCompanionCinematicFromGame?.()) {
-      lastSignature = "";
+      lastSignature2 = "";
       if (root2) root2.hidden = true;
       return;
     }
@@ -22156,7 +22378,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     const canManage = manageCount >= 1;
     const active = canPreserveAll || canManage;
     if (!active) {
-      lastSignature = "";
+      lastSignature2 = "";
       if (root2) root2.hidden = true;
       return;
     }
@@ -22165,13 +22387,13 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     const ready = gameConnectionReady();
     const holding = holdStartedAt > 0;
     const signature3 = `${rows.length}|${total}|${affordable}|${ready}|${sending2}|${holding}|${canPreserveAll}|${canManage}|${manageCount}|${cropLabel(rows)}`;
-    const element = ensurePanel3();
+    const element = ensurePanel4();
     element.hidden = false;
-    if (!force && signature3 === lastSignature) {
+    if (!force && signature3 === lastSignature2) {
       positionPanel(element);
       return;
     }
-    lastSignature = signature3;
+    lastSignature2 = signature3;
     const caption = element.querySelector("[data-preserve-caption]");
     const hint = element.querySelector("[data-preserve-hint]");
     const runButton = element.querySelector("[data-preserve-run]");
@@ -22191,10 +22413,10 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     element.dataset.holding = holding ? "true" : "false";
     positionPanel(element);
   }
-  var positionTicker2 = createTicker(() => render4(), 300);
+  var positionTicker2 = createTicker(() => render5(), 300);
   function syncPreserveAll() {
     positionTicker2.sync(state.preservationMode);
-    if (!state.preservationMode) render4();
+    if (!state.preservationMode) render5();
     refreshManagerModal();
   }
   function initPreserveAll() {
@@ -22352,6 +22574,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     initPlantDragMove();
     initPlanterPotSelection();
     initCropCleanserHelper();
+    initJournalLogger();
     initFarmManager();
     initGardenPlanner();
     initSky();

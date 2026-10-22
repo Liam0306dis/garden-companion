@@ -10,6 +10,7 @@ import { initPlantDragMove } from './features/plant-drag-move.js';
 import { initPlanterPotSelection } from './features/planter-pot-selection.js';
 import { initCropCleanserHelper } from './features/crop-cleanser-helper.js';
 import { initFarmManager } from './features/farm-manager.js';
+import { initJournalLogger } from './features/journal-logger.js';
 import { initPreserveAll } from './features/preserve-all.js';
 import { installPetSpriteLoader } from './pet-sprites-injector.js';
 import { feature } from './config.js';
@@ -39,6 +40,7 @@ if (isGameFrame()) {
   initPlantDragMove();
   initPlanterPotSelection();
   initCropCleanserHelper();
+  initJournalLogger();
   initFarmManager();
   initGardenPlanner();
   initSky();

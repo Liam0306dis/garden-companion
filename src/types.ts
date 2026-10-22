@@ -287,6 +287,8 @@ export interface CompanionConfig {
   autoStoreSeeds: boolean;
   autoStoreDecor: boolean;
   autoStoreTools: boolean;
+  /** A card listing crops and pets with something new for the journal, each logged with a click. */
+  journalLogger: boolean;
   cropProtection: boolean;
   protectMaxSize: boolean;
   protectedMutations: string[];
