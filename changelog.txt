@@ -1,3 +1,8 @@
+0.9.70
+- Cinematic button: fixed position glitches
+- Diagnostics: tidier spacing
+- Crop protection: uses the game's padlock
+
 0.9.69
 - Plant drag move: no longer stops with "stand on a tile in your own garden first" while you are already in your garden, such as after changing room or reconnecting
 

@@ -1,4 +1,7 @@
+import type { JotaiAtom } from '../types.js';
+import { findAtom } from '../atom-cache.js';
 import { feature } from '../config.js';
+import { gameStore } from '../game-store.js';
 import { isTyping } from '../keybinds.js';
 import { page } from '../page.js';
 import { pixiNodeVisible, pixiSurface } from '../pixi.js';
@@ -34,6 +37,25 @@ let quests: Record<string, any> | null = null;
 let lastRailSearch = 0;
 /** Where the button was last docked, kept while the rail is hidden (as it is in cinematic mode). */
 let docked: { left: number; top: number } | null = null;
+/** The pointer's last spot on the page, to tell when Daily Quests is hovered. */
+const pointer = { x: -1, y: -1 };
+/** When the pointer was last seen over Daily Quests. */
+let questsHoveredAt = 0;
+/** How long after the pointer leaves Daily Quests before it is measured again, while it shrinks back. */
+const HOVER_SETTLE_MS = 600;
+
+let chatPresentedAtom: JotaiAtom | null = null;
+
+/**
+ * Whether the game's chat window is up. It opens over the foot of the rail without hiding the rail,
+ * so it is checked on its own.
+ */
+function chatOpen(): boolean {
+  chatPresentedAtom ??= findAtom('isChatWidgetPresentedAtom');
+  const store = gameStore();
+  if (!chatPresentedAtom || !store) return false;
+  try { return Boolean(store.get(chatPresentedAtom)); } catch { return false; }
+}
 
 const alive = (node: Record<string, any> | null) => Boolean(node && !node.destroyed && node.parent);
 
@@ -72,33 +94,54 @@ function findQuests(railNode: Record<string, any>): Record<string, any> | null {
 }
 
 /**
- * The foot of the rail in CSS pixels, or null when it is not on screen to measure. Measured off
+ * The foot of the rail in CSS pixels, null when the rail is not on screen, or 'hold' to keep the
+ * last spot (while Daily Quests is hovered). Measured off
  * Daily Quests rather than the whole rail, whose bounds also take in the chat preview bubble and
  * open tooltips, either of which would shift the button about. The quests badge pokes out above and
  * to the left, so the right and bottom edges are the ones to go by.
  */
-function railFoot(): { x: number; y: number } | null {
+function railFoot(): { x: number; y: number } | 'hold' | null {
   const surface = pixiSurface();
   const node = surface && findRail(surface.stage);
-  if (!surface || !node || !pixiNodeVisible(node)) return null;
+  if (!surface || !node || !shown(node) || chatOpen()) return null;
   const button = findQuests(node);
   const target = button && pixiNodeVisible(button) ? button : node;
   const bounds = target.getBounds?.();
   if (!bounds || !(bounds.width > 0) || !(bounds.height > 0)) return null;
   const right = bounds.x + bounds.width;
+  const bottom = bounds.y + bounds.height;
+  // Daily Quests grows a little while hovered, which would nudge the button about under it, so the
+  // last spot stands while the pointer is on it and for a moment after, as it shrinks back.
+  if (target === button) {
+    const inside = pointer.x >= surface.toScreenX(bounds.x) && pointer.x <= surface.toScreenX(right)
+      && pointer.y >= surface.toScreenY(bounds.y) && pointer.y <= surface.toScreenY(bottom);
+    if (inside) questsHoveredAt = Date.now();
+    if (docked && Date.now() - questsHoveredAt < HOVER_SETTLE_MS) return 'hold';
+  }
   const side = target === button ? Math.min(bounds.width, bounds.height) : bounds.width;
-  return { x: surface.toScreenX(right - side / 2), y: surface.toScreenY(bounds.y + bounds.height) };
+  return { x: surface.toScreenX(right - side / 2), y: surface.toScreenY(bottom) };
+}
+
+/**
+ * Whether the node and every container above it are drawn. The game hides the rail by hiding a
+ * container it sits in as well as the rail itself, so the rail's own flags are not enough.
+ */
+function shown(node: Record<string, any>): boolean {
+  for (let current: Record<string, any> | null = node; current; current = current.parent ?? null) {
+    if (!pixiNodeVisible(current)) return false;
+  }
+  return true;
 }
 
 function place(button: HTMLElement): void {
   // While cinematic mode is on the rail is gone with the rest of the HUD, so the button waits in the
   // screen's top right corner (the stylesheet's spot) and goes back under the rail when it returns.
   if (button.dataset.active === 'true') {
-    button.style.left = button.style.top = button.style.right = '';
+    button.style.left = button.style.top = button.style.right = button.style.visibility = '';
     return;
   }
   const foot = railFoot();
-  if (foot) {
+  if (foot && foot !== 'hold') {
     docked = {
       left: Math.round(foot.x - button.offsetWidth / 2),
       top: Math.round(foot.y + RAIL_GAP_PX),
@@ -106,8 +149,12 @@ function place(button: HTMLElement): void {
   }
   // Until the rail has been found once, the top right corner the stylesheet gives it stands in.
   if (!docked) return;
-  // Kept on screen: as the rail fades back in the last spot stands for a moment, and the window may
-  // have been resized since.
+  // The rail hides while the inventory and other panels are open, and the button goes with it, as it
+  // does under the chat window (the window may be resized meanwhile, so it is measured afresh when
+  // the rail is back).
+  button.style.visibility = foot ? '' : 'hidden';
+  if (!foot) return;
+  // Kept on screen, in case the window was resized since the last measure.
   const left = Math.min(Math.max(0, docked.left), Math.max(0, window.innerWidth - button.offsetWidth));
   const top = Math.min(Math.max(0, docked.top), Math.max(0, window.innerHeight - button.offsetHeight));
   button.style.left = `${left}px`;
@@ -118,7 +165,7 @@ function place(button: HTMLElement): void {
 const dockTicker = createTicker(() => {
   const button = document.getElementById('gc-cinematic');
   if (button && !button.hidden) place(button);
-}, 250);
+}, 100);
 
 export function updateCinematicButton(): void {
   const button = document.getElementById('gc-cinematic');
@@ -149,6 +196,10 @@ export function mountCinematicButton(): void {
   button.id = 'gc-cinematic';
   button.addEventListener('click', toggle);
   document.body.appendChild(button);
+  window.addEventListener('pointermove', event => {
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+  }, { passive: true, capture: true });
   page.__gardenCompanionOnCinematicChange?.(updateCinematicButton);
   updateCinematicButton();
   // Taken as it bubbles up to the window, so anything that handles Esc first and stops it there (our

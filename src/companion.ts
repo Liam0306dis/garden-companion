@@ -789,11 +789,11 @@ export function initCompanion(): void {
     const row = (check: (typeof checks)[number]) => `<div class="gc-diag-row" data-status="${check.status}"><span class="gc-pill">${STATUS_LABELS[check.status]}</span><b>${escapeHtml(check.name)}</b>${check.detail ? `<small>${escapeHtml(check.detail)}</small>` : ''}</div>`;
     const issueRows = issues.map(issue => `<div class="gc-diag-row" data-status="${issue.level === 'error' ? 'failed' : 'waiting'}"><span class="gc-pill">${issue.level === 'error' ? 'Error' : 'Warning'}</span><b>${escapeHtml(issue.message)}${issue.count > 1 ? ` <small>x${issue.count}</small>` : ''}</b><small>${escapeHtml(timeAgo(issue.at))}${issue.detail ? ` - ${escapeHtml(issue.detail)}` : ''}</small></div>`).join('');
     return `<p class="gc-note">If something is not working, press Copy report and send it along with what you were doing. The report leaves out your player id and room.</p>`
-      + `<section class="gc-card gc-launch-row"><div><h3>Report</h3><p>${summary}</p></div><button class="gc-primary" data-copy-diagnostics>Copy report</button></section>`
+      + `<div class="gc-diag"><section class="gc-card gc-launch-row"><div><h3>Report</h3><p>${summary}</p></div><button class="gc-primary" data-copy-diagnostics>Copy report</button></section>`
       + `<textarea class="gc-diag-report" data-diagnostics-report readonly hidden></textarea>`
       + `<section class="gc-card"><h3>Problems</h3>${problems.length ? problems.map(row).join('') : '<p class="gc-note">None.</p>'}</section>`
       + `<section class="gc-card"><h3>Recent warnings and errors</h3>${issueRows || '<p class="gc-note">None so far.</p>'}</section>`
-      + `<details class="gc-card" data-diagnostics-working${diagnosticsWorkingOpen ? ' open' : ''}><summary><h3>Working (${working.length})</h3></summary>${working.map(row).join('')}</details>`;
+      + `<details class="gc-card" data-diagnostics-working${diagnosticsWorkingOpen ? ' open' : ''}><summary><h3>Working (${working.length})</h3></summary>${working.map(row).join('')}</details></div>`;
   }
 
   function renderFeatures() {

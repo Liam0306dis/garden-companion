@@ -397,8 +397,47 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
 /** Where the game centres its own crop lock: this far in from the card's right edge and down from its top. */
 const CORNER_INSET_X = 14;
 const CORNER_INSET_Y = 8;
-/** The game's own lock is drawn 30px tall; ours is brought up to most of that so it reads as a badge. */
+/** The game's own lock is drawn 30px tall; the emoji stand-in is brought up to most of that. */
 const CORNER_LOCK_HEIGHT = 22;
+/** The game's own tilted padlock, the one it hangs off the corner of a locked crop's card. */
+const GAME_LOCK_SPRITE = 'sprite/ui/Locked';
+const GAME_LOCK_SIZE = 30;
+/** Marks the game padlock sprite we put in a lock chip, so a second layout pass does not add another. */
+const GAME_LOCK_LABEL = 'GardenCompanionProtectionLock';
+
+/** The game's Sprite class, taken off any sprite already in the card (Sprite.from looks the art up). */
+function spriteClass(root: PixiNode): PixiNode | null {
+  const stack = [root];
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.texture && node.anchor && typeof (node.constructor as PixiNode)?.from === 'function') return node.constructor as PixiNode;
+    if (Array.isArray(node.children)) stack.push(...node.children);
+  }
+  return null;
+}
+
+/**
+ * Swaps the chip's emoji for the game's own padlock, so protection reads like the game's crop lock.
+ * The emoji is only hidden, not removed, since the chip is found again by its text. Returns false
+ * (leaving the emoji) when the game's art is not to hand.
+ */
+function useGameLock(lock: PixiNode, frame: PixiNode): boolean {
+  if (lock.getChildByLabel?.(GAME_LOCK_LABEL)) return true;
+  const Sprite = spriteClass(frame);
+  if (!Sprite) return false;
+  let sprite: PixiNode;
+  try { sprite = Sprite.from(GAME_LOCK_SPRITE); } catch { return false; }
+  const size = Math.max(Number(sprite.texture?.width), Number(sprite.texture?.height));
+  if (!(size > 1)) { sprite.destroy?.(); return false; }
+  for (const child of lock.children || []) child.visible = false;
+  sprite.label = GAME_LOCK_LABEL;
+  sprite.eventMode = 'none';
+  sprite.anchor.set(0);
+  sprite.scale.set(GAME_LOCK_SIZE / size);
+  lock.addChild(sprite);
+  return true;
+}
 
 /**
  * Hangs the padlock off the card's top right corner, where the game puts its own crop lock, rather
@@ -407,9 +446,16 @@ const CORNER_LOCK_HEIGHT = 22;
  * game right-aligns to the card) moves left of ours.
  */
 function pinLockToCorner(lock: PixiNode, card: PixiNode, frame: PixiNode, cardWidth: number, nativeLock: PixiNode | null, view: PixiNode): number {
-  const height = Number(lock.height) || 1;
-  const scale = CORNER_LOCK_HEIGHT / height;
-  lock.scale?.set?.(Number(lock.scale.x || 1) * scale, Number(lock.scale.y || 1) * scale);
+  if (useGameLock(lock, frame)) {
+    // Drawn at the game's own size, so whatever scale the chip's row had is undone.
+    lock.scale?.set?.(1, 1);
+    const sprite = lock.getChildByLabel(GAME_LOCK_LABEL);
+    sprite.position.set(0, 0);
+  } else {
+    const height = Number(lock.height) || 1;
+    const scale = CORNER_LOCK_HEIGHT / height;
+    lock.scale?.set?.(Number(lock.scale.x || 1) * scale, Number(lock.scale.y || 1) * scale);
+  }
   const width = Number(lock.width);
   const centreX = Number(card.x || 0) + cardWidth - CORNER_INSET_X - (nativeLock ? Number(nativeLock.width) + 4 : 0);
   frame.addChild(lock);
