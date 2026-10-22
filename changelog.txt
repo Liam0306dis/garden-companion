@@ -1,3 +1,6 @@
+0.9.74
+- Crop protection: no duplicate combos
+
 0.9.73
 - Crop protection: protected species can unlock themselves once ready, by size and mutation combos
 

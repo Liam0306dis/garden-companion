@@ -231,6 +231,16 @@ function comboHeader(species: string, combo: HarvestCombo, index: number): strin
   return `<div>${summary}</div><span>${toggle}<button data-ready-remove-combo>Remove</button></span>`;
 }
 
+/** Whether another combo in the rule already asks for exactly this: the same size and mutations. */
+function duplicatesCombo(rule: HarvestRule, combo: HarvestCombo, index: number): boolean {
+  if (!comboIsSet(combo)) return false;
+  const wanted = [...combo.mutations].sort().join('+');
+  return rule.combos.some((other, otherIndex) => otherIndex !== index
+    && other.minSize === combo.minSize && [...other.mutations].sort().join('+') === wanted);
+}
+
+const DUPLICATE_COMBO = 'That combo is already set for this crop.';
+
 function ruleSummary(rule: HarvestRule): string {
   return rule.combos.some(comboIsSet) ? 'Harvest allowed once ready' : 'Always locked';
 }
@@ -251,7 +261,7 @@ function renderReadyRules(): string {
     const combos = rule.combos.map((combo, index) => renderCombo(id, combo, index)).join('');
     return `<div class="gc-ready-rule" data-ready-species="${escapeHtml(id)}">
 <div class="gc-ready-head"><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small data-ready-summary>${ruleSummary(rule)}</small></span></div>
-${combos}<button data-ready-add-combo>Add combo</button></div>`;
+${combos}<button data-ready-add-combo ${rule.combos.some(combo => !comboIsSet(combo)) ? 'disabled title="Fill in the empty combo first"' : ''}>Add combo</button></div>`;
   }).join('');
 }
 
@@ -273,7 +283,13 @@ function bindReadyRules(holder: HTMLElement): void {
       if (combo) input.value = String(combo.minSize);
       return;
     }
+    const previous = combo.minSize;
     combo.minSize = clampSize(typed);
+    if (duplicatesCombo(rule, combo, index)) {
+      toast(DUPLICATE_COMBO, 'error');
+      input.value = String(previous);
+      return;
+    }
     input.value = String(combo.minSize);
     // Kept open while it is being edited, even now it counts as set.
     openCombos.add(`${species}:${index}`);
@@ -288,6 +304,8 @@ function bindReadyRules(holder: HTMLElement): void {
   });
   holder.querySelectorAll<HTMLButtonElement>('[data-ready-add-combo]').forEach(button => button.onclick = () => {
     const { species, rule } = target(button);
+    // One empty combo at a time: a second would only be the same blank again.
+    if (rule.combos.some(combo => !comboIsSet(combo))) return;
     openCombos.add(`${species}:${rule.combos.length}`);
     rule.combos.push({ minSize: BASE_SIZE, mutations: [] });
     saveHarvestRule(species, rule);
@@ -320,6 +338,10 @@ function bindReadyRules(holder: HTMLElement): void {
     // no group (unknown to this build) only ever unpicks itself.
     combo.mutations = combo.mutations.filter(other => other !== id && (!group || MUTATION_CATALOG[other]?.group !== group));
     if (!had) combo.mutations.push(id);
+    if (duplicatesCombo(rule, combo, index)) {
+      toast(DUPLICATE_COMBO, 'error');
+      return;
+    }
     saveHarvestRule(species, rule);
     redraw();
   });
