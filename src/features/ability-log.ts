@@ -37,10 +37,15 @@ export function setAbilityLogSearch(query: string): void {
 
 export function recordAbilityActivities(fresh: ActivityLogEntry[]) {
   let added = false;
+  // A proc only comes from a pet on the field, so its pet is ours at the moment it is read. One whose
+  // id we do not hold belongs to another player and has no place in this history. Skipped only once
+  // our pets have loaded, so an empty slot early on cannot reject everything.
+  const owned = new Set(allPets().map(pet => pet.id));
   for (const entry of fresh) {
     if (!ABILITY_SET.has(entry.action)) continue;
-    added = true;
     const pet = (entry.parameters?.pet || entry.parameters?.sourcePet || {}) as Record<string, unknown>;
+    if (owned.size && pet.id && !owned.has(String(pet.id))) continue;
+    added = true;
     state.abilityLog.unshift({
       at: Number(entry.timestamp),
       ability: entry.action,

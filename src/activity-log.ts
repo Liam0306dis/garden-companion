@@ -1,6 +1,7 @@
 import { feature } from './config.js';
 import { recordAbilityActivities } from './features/ability-log.js';
 import { recordEggHatches } from './features/egg-luck.js';
+import { allPets } from './pets.js';
 import { state } from './state.js';
 import type { ActivityLogEntry } from './types.js';
 import { loadLocal, saveLocal } from './utils.js';
@@ -57,6 +58,12 @@ let seen = Array.isArray(savedSeen) ? savedSeen.filter((entry): entry is string 
  */
 let longestLog = Math.ceil(seen.length / 4);
 
+/** Whether a log has been counted since load, after which a log must overlap the seen ones to count. */
+let readThisSession = false;
+
+/** The pets on the last slot whose log was counted, which another player's slot cannot share. */
+let ownPetIds = new Set<string>();
+
 /**
  * An entry's identity, from the few fields that name the thing it happened to.
  *
@@ -82,6 +89,13 @@ function signature(entry: ActivityLogEntry): string {
 }
 
 export function processActivityLog(): void {
+  // The slot can fall back to the game's cached index, which right after a room change can point at
+  // somebody else. Their log reads as entirely new, so it would flood our history with their pets
+  // and their hatches - and mark it all seen. Checking our pets cannot catch that, since they are read
+  // from the same wrong slot. So the log is only read from a slot that positively names us; one with
+  // no owner, or while our own id is unknown, waits for a frame that settles it.
+  const owner = state.slot?.userId || state.slot?.playerId;
+  if (!owner || !state.playerId || owner !== state.playerId) return;
   const entries = state.slot?.data?.activityLogs;
   if (!Array.isArray(entries)) return;
   const known = new Set(seen);
@@ -97,8 +111,28 @@ export function processActivityLog(): void {
     })
     .sort((left, right) => Number(left.timestamp) - Number(right.timestamp));
   if (!fresh.length) return;
-  if (feature('abilities')) recordAbilityActivities(fresh);
-  recordEggHatches(fresh);
+  // The id checks above trust our own id, and a reconnect can leave that wrong too - with the slot
+  // and our pets read from the same place, nothing else in the state could tell. The log itself can:
+  // ours still holds entries we have already counted, while another player's shares none of them.
+  // A log with no overlap is taken as seen without being counted, so a stray one leaves nothing
+  // behind. Only once this session has already read a log of ours, though: the first one after a
+  // load is trusted, since a log that turned over entirely while we were away shares nothing with
+  // what was saved either, and its entries are real.
+  //
+  // Overlap alone would also drop a log that is ours but moved on without us: the tab left open while
+  // the game was played on another device, then reconnecting. Our pets carry across that, and another
+  // player shares none of them, so a slot still holding a pet we last saw as ours counts too.
+  const counted = new Set(seen);
+  const pets = allPets().map(pet => pet.id);
+  const ours = !readThisSession
+    || entries.some(entry => entry && counted.has(signature(entry)))
+    || pets.some(id => ownPetIds.has(id));
+  if (ours) {
+    readThisSession = true;
+    if (pets.length) ownPetIds = new Set(pets);
+    if (feature('abilities')) recordAbilityActivities(fresh);
+    recordEggHatches(fresh);
+  }
 
   // Everything the log is currently offering is remembered, not just what was counted from it. What
   // has already left the log cannot come back, so the old entries carried alongside are only there
