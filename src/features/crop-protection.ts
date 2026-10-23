@@ -401,7 +401,7 @@ export function renderCropProtection(): string {
       const where = owned.has(id) ? 'In your garden' : '';
       return `<label class="gc-check" data-filter-text="${escapeHtml(`${plantName(id)} ${id}`.toLowerCase())}"><input type="checkbox" data-protect-species="${escapeHtml(id)}" ${species[id] === true ? 'checked' : ''}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small>${where}</small></span></label>`;
     }).join('');
-  return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Ticking Gold or Rainbow locks them rather than leaving them on the game's own press and hold, unless a combo below names them. Crop Protection and the instant harvest key cannot both be on.</p>
+  return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Ticking Gold or Rainbow locks them rather than leaving them on the game's own press and hold, unless a combo below names them. The instant harvest key skips any crop protected here, so a combo below is how to let it through.</p>
 <section class="gc-card gc-launch-row"><div><h3>Crop Locker</h3><p>Lock or unlock any crop in your garden with the games own system.</p></div><button class="gc-primary" data-open-crop-locks>Crop Locker</button></section>
 <div class="gc-list"><label class="gc-toggle"><span><b>Crop Protection</b><small>Blocks harvest commands - doesn't use the games own system</small></span><input type="checkbox" data-protect-enabled ${on ? 'checked' : ''}><i></i></label></div>
 <section class="gc-card"><div class="gc-row"><h3>Mutations and size</h3></div><p class="gc-note">A crop matching any of these stays protected even when its species is switched off below.</p><div class="gc-check-grid">${mutationRows}</div></section>
@@ -436,8 +436,6 @@ export function bindCropProtectionEvents(main: HTMLElement): void {
   const enabled = main.querySelector<HTMLInputElement>('[data-protect-enabled]');
   if (enabled) enabled.onchange = () => {
     config.cropProtection = enabled.checked;
-    // The two features want opposite things from the same crops, so only one may be on.
-    if (enabled.checked) config.instantHarvest = false;
     saveConfig();
     // The padlock row on the game's crop card follows this switch.
     notifyStateChange('config');

@@ -1,3 +1,7 @@
+0.9.78
+- Egg luck: Double Hatch count can be edited
+- Instant harvest works with Crop Protection on
+
 0.9.77
 - Egg luck: counts can be typed in
 

@@ -805,7 +805,7 @@ export function initCompanion(): void {
       ['turtleTimer', 'Growth time', 'Show the time left, adjusted for your pets, when standing on a crop or egg'],
       ['petFood', 'Pet food panel', 'Feed buttons beside your active pets - foods are chosen in the Pet Food tab'],
       ['produceLocks', 'Inventory produce locks', 'Produce sprites above the open inventory - right-click a crop to lock or unlock every one of that species'],
-      ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - off while Crop Protection is on'],
+      ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - skips crops Crop Protection is holding'],
       ['petSwapToss', 'Pokemon Mode', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
       ['autoStoreSeeds', 'Auto-store seeds', 'Move seeds into the Seed Silo when it already holds that species'],
       ['autoStoreDecor', 'Auto-store decor', 'Move decor into the Decor Shed when it already holds that item'],
@@ -849,9 +849,6 @@ export function initCompanion(): void {
     working?.addEventListener('toggle', () => { diagnosticsWorkingOpen = working.open; });
     main.querySelectorAll<HTMLInputElement>('[data-feature]').forEach(input => input.onchange = () => {
       config[input.dataset.feature!] = input.checked;
-      // Instant harvest and Crop Protection pull in opposite directions on the same crops, so
-      // turning one on stands the other down rather than letting both claim the same harvest.
-      if (input.dataset.feature === 'instantHarvest' && input.checked) config.cropProtection = false;
       saveConfig();
       // Checked while the team is already starving, the alarm should sound now rather than waiting
       // for the next state frame to notice.

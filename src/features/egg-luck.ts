@@ -314,6 +314,17 @@ function setPityCount(eggId: string, key: string, misses: number): void {
   save();
 }
 
+/**
+ * Sets how many of an egg's hatches came from Double Hatch. The hatch total is left as the species
+ * rows have it and the pulls take up the difference, since an ability pet is a hatch but not a pull.
+ */
+function setBonusCount(eggId: string, bonus: number): void {
+  const record = luck[eggId] ?? blankEgg();
+  record.pulls = record.hatches - Math.min(record.hatches, Math.max(0, Math.floor(bonus) || 0));
+  luck[eggId] = record;
+  save();
+}
+
 /** A table cell's count, or in edit mode a box to type it into, between - and + buttons. */
 function stepCell(eggId: string, species: string, field: string, count: number, editMode: boolean): string {
   if (!editMode) return count ? count.toLocaleString(NUMBER_LOCALE) : (field === 'hatched' ? '0' : '-');
@@ -432,11 +443,16 @@ function eggCard(eggId: string): string {
     ...COLOURS.map(colour => pityRow(eggId, colour, mutationSprite(colour), record, colour, editMode)),
   ].join('');
   const tailHead = editMode ? '' : '<th>Yours</th><th>Odds</th>';
+  // Hatches minus pulls is the only place Double Hatch pets show, so it gets its own box when editing.
+  const bonus = editMode
+    ? `<label class="gc-egg-bonus" title="Hatches that came from Double Hatch: counted as hatches, not as pulls">Double Hatch `
+      + `<input type="number" min="0" max="${record.hatches}" value="${record.hatches - record.pulls}" data-egg-bonus="${escapeHtml(eggId)}"></label>`
+    : '';
 
   return `<section class="gc-card gc-egg-card"${editMode ? ' data-editing="true"' : ''}>${head}
 <div class="gc-egg-body"${open ? '' : ' hidden'}>
 <table class="gc-egg-table"><thead><tr><th>Species</th><th>Hatched</th><th class="gc-egg-mut" title="Gold found">${goldHead}</th><th class="gc-egg-mut" title="Rainbow found">${rainbowHead}</th>${tailHead}</tr></thead><tbody>${rows}</tbody></table>
-<div class="gc-egg-colours">${colours}<button data-egg-reset="${escapeHtml(eggId)}" title="Clear everything recorded for this egg">Reset</button></div>
+<div class="gc-egg-colours">${colours}${bonus}<button data-egg-reset="${escapeHtml(eggId)}" title="Clear everything recorded for this egg">Reset</button></div>
 <div class="gc-egg-pities">${pity}</div></div></section>`;
 }
 
@@ -494,6 +510,13 @@ export function bindEggLuckEvents(main: HTMLElement): void {
         if (other === input || other.dataset.eggSet !== eggId || other.dataset.species !== species) return;
         other.value = String(currentCount(eggId, species, other.dataset.field!));
       });
+      // Fewer hatches than the Double Hatch figure pulls it down too, so its box follows.
+      main.querySelectorAll<HTMLInputElement>('[data-egg-bonus]').forEach(bonus => {
+        const record = luck[eggId];
+        if (bonus.dataset.eggBonus !== eggId || !record) return;
+        bonus.max = String(record.hatches);
+        bonus.value = String(record.hatches - record.pulls);
+      });
     };
     input.onkeydown = event => {
       if (event.key !== 'Enter') return;
@@ -505,6 +528,13 @@ export function bindEggLuckEvents(main: HTMLElement): void {
   // or a stepper), swallowing that click. Enter redraws, so the bar can be checked without leaving.
   main.querySelectorAll<HTMLInputElement>('[data-egg-pity]').forEach(input => {
     input.oninput = () => setPityCount(input.dataset.eggPity!, input.dataset.key!, Number(input.value));
+    input.onkeydown = event => {
+      if (event.key === 'Enter') panelActions.renderPanelPreservingScroll();
+    };
+  });
+  // Same as the pity boxes: saved as typed, redrawn only on Enter.
+  main.querySelectorAll<HTMLInputElement>('[data-egg-bonus]').forEach(input => {
+    input.oninput = () => setBonusCount(input.dataset.eggBonus!, Number(input.value));
     input.onkeydown = event => {
       if (event.key === 'Enter') panelActions.renderPanelPreservingScroll();
     };

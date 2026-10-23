@@ -1,5 +1,6 @@
 import type { PlantSlot } from '../types.js';
 import { feature } from '../config.js';
+import { protectionReason } from './crop-protection.js';
 import { NOT_SENT_REASON, trySendQuinoaCommand } from '../game-connection.js';
 import { isTyping } from '../keybinds.js';
 import { serverNow } from '../server-clock.js';
@@ -20,8 +21,7 @@ export function installInstantHarvest(): void {
   let harvested: { tile: string; ids: Set<number> } | null = null;
   window.addEventListener('keydown', event => {
     // Any minigame holding the farm owns the keyboard too, or space harvests behind the scene.
-    // Crop Protection exists to stop harvests this key exists to fire, so it wins outright.
-    if (!feature('instantHarvest') || feature('cropProtection') || worldSceneActive() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
+    if (!feature('instantHarvest') || worldSceneActive() || event.code !== 'Space' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || isTyping()) return;
     // Only a guard against harvesting while busy elsewhere - at a shop, the trough, the preserve
     // station. Which crop is eligible is decided below, so every flavour of harvest passes here.
     // rarePatchHarvest earns its place because the action describes the selected slot: once
@@ -53,8 +53,10 @@ export function installInstantHarvest(): void {
     // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
     // which is exactly what this key skips, so a preserved slot is never a candidate here.
     // A slot the game has locked is skipped the same way: the lock exists to stop harvests.
-    // Crop Protection needs no check here: with it on, this key does nothing at all (see above).
-    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && slot?.locked !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow');
+    // A crop Crop Protection holds is skipped too, so the key moves on to one that is ready rather
+    // than firing a harvest the socket hook would only drop - which is what lets the two run together.
+    const readyRareGold = (slot: PlantSlot | undefined) => slot?.preserved !== true && slot?.locked !== true && Number(slot?.endTime) <= now && (slot?.mutations || []).some(value => value === 'Gold' || value === 'Rainbow')
+      && !protectionReason(slot, slot?.species || tile.species || '');
     // Reset the pending set when the tile changes, and drop any slot the state now agrees is gone -
     // once it reads as not-ready the harvest has landed and it no longer needs suppressing (and a
     // future regrow can be taken again).
