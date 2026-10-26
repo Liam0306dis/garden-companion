@@ -1,3 +1,6 @@
+0.9.80
+- Glow works again after the game update
+
 0.9.79
 - Ability history: added guards to hopefully stop other players' pets leaking through
 

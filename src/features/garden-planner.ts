@@ -241,7 +241,7 @@ export function initGardenPlanner(): void {
    * Glow: every night light - decor lamps and lanterns, the held lamp, and crops' mutation-icon glows -
    * is one instance of the game's light class, kept in the `lighting` system's `lights` set and drawn
    * each frame by draw(nightStrength, flicker). That draw sets the alpha of the light's glow sprites,
-   * halos, ground illumination and face glow from scratch, so the class is patched once to scale
+   * halos, ground pools and face glow from scratch, so the class is patched once to scale
    * whichever of them it just showed, capped at fully opaque. The class is not reachable by name, so
    * it is met through the first light in the set.
    */
@@ -266,7 +266,10 @@ export function initGardenPlanner(): void {
         // A glow drawn by day keeps its alpha between frames, so scaling it would compound.
         for (const glow of Array.isArray(this.glows) ? this.glows : []) if (!glow?.drawnByDay) scaleGlowAlpha(glow?.sprite);
         for (const halo of Array.isArray(this.halos) ? this.halos : []) scaleGlowAlpha(halo);
-        scaleGlowAlpha(this.illumination);
+        // Coloured ground pools (since build 1740; the spill halos before it).
+        for (const pool of Array.isArray(this.coloredPools) ? this.coloredPools : []) scaleGlowAlpha(pool?.sprite);
+        // Ground illumination: `groundPool` since build 1740, `illumination` before it.
+        scaleGlowAlpha(this.groundPool ?? this.illumination);
         scaleGlowAlpha(this.faceGlow);
       }, undefined);
       return result;
