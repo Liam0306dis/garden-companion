@@ -17,11 +17,12 @@ import { escapeHtml, humanize, loadLocal, saveLocal } from '../utils.js';
  * that crop or pet has that the journal lacks. This lists every subject the camera would accept, found
  * by the same rules the game uses to pick its photo subjects (photoSubjectAtoms), and sends the same
  * command for the one clicked: ripe grow slots and displayed crops with an unlogged variant, produce
- * in the inventory, and pets - active, in the inventory or in the Pet Hutch - with an unlogged
- * variant or ability.
+ * in the inventory, and pets - active, in the inventory or in the Pet Hutch - with an unlogged variant.
  *
  * A variant is the crop's or pet's mutations, plus Normal when it has none and Max Weight when it is
- * at full size. Abilities count only for pets.
+ * at full size. The camera would also take a pet for an unlogged ability, but abilities are not part of
+ * the journal's variants, so a pet whose variants are all logged is left out rather than suggested
+ * again for every ability it rolls.
  */
 
 const POSITION_KEY = 'gardenCompanion.journalLoggerPosition.v1';
@@ -33,7 +34,7 @@ type LogTarget =
   | { kind: 'inventoryItem'; itemId: string }
   | { kind: 'displayedCrop'; tileType: string; localTileIndex: number; cropId: string };
 
-interface JournalRow { variantsLogged?: Array<{ variant?: string }>; abilitiesLogged?: Array<{ ability?: string }> }
+interface JournalRow { variantsLogged?: Array<{ variant?: string }> }
 
 interface Subject {
   /** Changes with the subject's variants, so a crop that gains a mutation is a fresh row. */
@@ -43,7 +44,6 @@ interface Subject {
   where: string;
   sprite: string;
   variants: string[];
-  abilities: string[];
 }
 
 function journalRow(kind: 'produce' | 'pets', species: string): JournalRow | undefined {
@@ -67,7 +67,7 @@ function cropSubject(species: string | undefined, mutations: string[] | undefine
   if (!species) return null;
   const variants = newVariants(mutations, slotIsMaxSize({ size }), loggedVariants(journalRow('produce', species)));
   if (!variants.length) return null;
-  return { key: `${key}:${variants.join(',')}`, target, name: plantName(species), where, sprite: produceSprite(species) ? `<span class="gc-shop-sprite"><img src="${escapeHtml(produceSprite(species))}" alt=""></span>` : '<span class="gc-shop-sprite"></span>', variants, abilities: [] };
+  return { key: `${key}:${variants.join(',')}`, target, name: plantName(species), where, sprite: produceSprite(species) ? `<span class="gc-shop-sprite"><img src="${escapeHtml(produceSprite(species))}" alt=""></span>` : '<span class="gc-shop-sprite"></span>', variants };
 }
 
 function petSubject(pet: Pet, target: LogTarget, where: string): Subject | null {
@@ -75,18 +75,15 @@ function petSubject(pet: Pet, target: LogTarget, where: string): Subject | null 
   const maxScale = PET_CATALOG[pet.petSpecies]?.maxScale;
   const atMax = Boolean(maxScale) && Number(pet.targetScale) >= maxScale;
   const variants = newVariants(pet.mutations, atMax, loggedVariants(row));
-  const logged = (row?.abilitiesLogged ?? []).map(entry => entry?.ability);
-  const abilities = [...new Set((pet.abilities ?? []).filter(ability => !logged.includes(ability)))];
-  if (!variants.length && !abilities.length) return null;
+  if (!variants.length) return null;
   const species = PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
   return {
-    key: `pet:${pet.id}:${variants.join(',')}:${abilities.join(',')}`,
+    key: `pet:${pet.id}:${variants.join(',')}`,
     target,
     name: pet.name && pet.name !== species ? `${pet.name} (${species})` : species,
     where,
     sprite: petSprite(pet),
     variants,
-    abilities,
   };
 }
 
@@ -141,10 +138,6 @@ function variantChip(variant: string): string {
   const label = variant === 'Max Weight' ? 'Max Size' : MUTATION_CATALOG[variant]?.name || variant;
   const icon = mutationSprite(variant);
   return `<span class="gc-cleanser-mutation" title="${escapeHtml(label)}">${icon ? `<img src="${escapeHtml(icon)}" alt="">` : ''}${escapeHtml(label)}</span>`;
-}
-
-function abilityChip(ability: string): string {
-  return `<span class="gc-cleanser-mutation" title="Ability">${escapeHtml(humanize(ability))}</span>`;
 }
 
 /** Keys sent and not yet answered, or answered and not yet gone from state. */
@@ -226,7 +219,7 @@ function render(root: HTMLElement): void {
   if (collapsed) { body.innerHTML = ''; return; }
   body.innerHTML = current.map((subject, index) => `<div class="gc-journal-logger-row">
 ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.name)}</b><small>${escapeHtml(subject.where)}</small></span>
-<span class="gc-cleanser-mutations">${subject.variants.map(variantChip).join('')}${subject.abilities.map(abilityChip).join('')}</span>
+<span class="gc-cleanser-mutations">${subject.variants.map(variantChip).join('')}</span>
 <button data-journal-log="${index}" ${pending.has(subject.key) ? 'disabled' : ''}>${pending.has(subject.key) ? 'Logging' : 'Log'}</button></div>`).join('');
   body.querySelectorAll<HTMLButtonElement>('[data-journal-log]').forEach(button => button.onclick = () => {
     const subject = current[Number(button.dataset.journalLog)];

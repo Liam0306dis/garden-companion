@@ -1,3 +1,6 @@
+0.9.81
+- Journal logger: pets only suggested for missing variants
+
 0.9.80
 - Glow works again after the game update
 
