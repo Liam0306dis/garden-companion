@@ -26,6 +26,11 @@ const CAMERA_OFF_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4
 const RAIL_LABEL = 'RightSideRail';
 /** Daily Quests, the rail's last button, which the game labels itself. */
 const QUESTS_LABEL = 'RightSideRailQuestsButton';
+/**
+ * What Daily Quests draws around itself while a quest can be taken: a ring that swells out from it and
+ * the badge pulsing. Both are left out of its measure, or the button would bob along with them.
+ */
+const QUESTS_DECORATION_LABELS = new Set(['QuestNoticeRing', 'RightSideRailQuestsBadge']);
 /** Space between the last rail button and ours, in CSS pixels. */
 const RAIL_GAP_PX = 8;
 
@@ -93,6 +98,20 @@ function findQuests(railNode: Record<string, any>): Record<string, any> | null {
   return null;
 }
 
+/** A node's bounds with its quest decorations hidden for the measure, then put back as they were. */
+function boundsWithoutDecorations(node: Record<string, any>): { x: number; y: number; width: number; height: number } | undefined {
+  const hidden: Array<Record<string, any>> = [];
+  const stack = [...(node.children ?? [])];
+  while (stack.length) {
+    const child = stack.pop();
+    if (QUESTS_DECORATION_LABELS.has(child?.label) && child.visible) hidden.push(child);
+    else if (Array.isArray(child?.children)) stack.push(...child.children);
+  }
+  for (const child of hidden) child.visible = false;
+  try { return node.getBounds?.(); }
+  finally { for (const child of hidden) child.visible = true; }
+}
+
 /**
  * The foot of the rail in CSS pixels, null when the rail is not on screen, or 'hold' to keep the
  * last spot (while Daily Quests is hovered). Measured off
@@ -106,7 +125,7 @@ function railFoot(): { x: number; y: number } | 'hold' | null {
   if (!surface || !node || !shown(node) || chatOpen()) return null;
   const button = findQuests(node);
   const target = button && pixiNodeVisible(button) ? button : node;
-  const bounds = target.getBounds?.();
+  const bounds = target === button ? boundsWithoutDecorations(button) : target.getBounds?.();
   if (!bounds || !(bounds.width > 0) || !(bounds.height > 0)) return null;
   const right = bounds.x + bounds.width;
   const bottom = bounds.y + bounds.height;

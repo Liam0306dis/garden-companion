@@ -1,3 +1,6 @@
+0.9.83
+- Cinematic button no longer jumps when a quest is ready
+
 0.9.82
 - Journal logger: no more repeated crops, Log all works properly
 - Egg luck: Double Hatch count can no longer be set too high or below zero
