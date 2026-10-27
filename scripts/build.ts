@@ -35,6 +35,7 @@ const header = `// ==UserScript==
 // @connect      ariedam.fr
 // @connect      raw.githubusercontent.com
 // @connect      unpkg.com
+// @connect      stats.liammg.workers.dev
 // @updateURL    https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js
 // @downloadURL  https://raw.githubusercontent.com/Liam0306dis/garden-companion/main/dist/garden-companion.user.js
 // @run-at       document-start

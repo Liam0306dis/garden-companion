@@ -48,6 +48,9 @@ export function installInstantHarvest(): void {
     }
     const tile = dirtIndex == null ? undefined : tileObjects[String(dirtIndex)];
     if (!tile?.slots?.length) return;
+    const slots = tile.slots;
+    // A slot's id, or its place on the tile when it carries none, so such a slot can still be picked.
+    const slotIdAt = (position: number) => Number(slots[position]?.slotId ?? position);
     // endTime is a server timestamp, so it is read against the server clock rather than this PC's.
     const now = serverNow();
     // Preserving a crop is permanent and the game guards harvesting one behind a press and hold,
@@ -63,18 +66,18 @@ export function installInstantHarvest(): void {
     if (!harvested || harvested.tile !== String(dirtIndex)) harvested = { tile: String(dirtIndex), ids: new Set() };
     const taken = harvested.ids;
     for (const id of [...taken]) {
-      if (!readyRareGold(tile.slots.find(slot => Number(slot.slotId) === id))) taken.delete(id);
+      if (!readyRareGold(slots.find((_, position) => slotIdAt(position) === id))) taken.delete(id);
     }
     // The ready Gold/Rainbow slots the game would still offer, minus the ones we have already taken.
-    const qualifyingIds = tile.slots.filter(slot => readyRareGold(slot) && !taken.has(Number(slot.slotId))).map(slot => Number(slot.slotId)).sort((left, right) => left - right);
+    const qualifyingIds = slots.map((_, position) => position)
+      .filter(position => readyRareGold(slots[position]) && !taken.has(slotIdAt(position)))
+      .map(slotIdAt).sort((left, right) => left - right);
     if (!qualifyingIds.length) return;
     // The game's own resolver: the slot at or after the selection, wrapping to the first.
     const selected = Number(state.selectedSlotId);
     const targetId = qualifyingIds.find(id => id >= selected) ?? qualifyingIds[0];
-    const index = tile.slots.findIndex(slot => Number(slot.slotId) === targetId);
-    if (index < 0) return;
+    if (!slots.some((_, position) => slotIdAt(position) === targetId)) return;
     event.preventDefault(); event.stopImmediatePropagation();
-    const slot = tile.slots[index];
     // Harvest is one of the commands the game sends inside the QuinoaCommand envelope, so it
     // needs the sequence too - sent raw the server rejects it and the crop simply stays put.
     // Since bundle 1116 it also carries a client-minted cropItemId: the reducer uses it as the id
@@ -82,7 +85,7 @@ export function installInstantHarvest(): void {
     // Any fresh unique UUID works - the server assigns it to the produce and we never read it back.
     let requestId: string | null = null;
     try {
-      requestId = trySendQuinoaCommand({ type: 'HarvestCrop', slot: Number(dirtIndex), slotsIndex: slot.slotId ?? index, cropItemId: crypto.randomUUID() });
+      requestId = trySendQuinoaCommand({ type: 'HarvestCrop', slot: Number(dirtIndex), slotsIndex: targetId, cropItemId: crypto.randomUUID() });
     } catch { /* a closed socket: reported below like any other harvest that did not leave */ }
     // Only a harvest that left is taken: the mark is cleared once the slot reads as harvested, which
     // a harvest that never went out would never do, so the slot could not be picked again.

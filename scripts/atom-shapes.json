@@ -19,7 +19,7 @@
   "nightGradeSettingsAtom": "_(_)",
   "playerIdAtom": "_(_.id)",
   "pumpkinCarvingTargetAtom": "_(null)",
-  "roomPublicationAtom": "_({state:{scope:`Room`,data:{dateRoomCreated:Date.now(),dateGameBegan:Date.now(),roomId:null,players:[],bots:[],timer:{name:null,totalSeconds:0,secondsRemaining:0,progress:0,rate:1,isRunning:!1},isGameStarting:!1,animationInProgress:!1,hostPlayerId:null,chat:{latestSeq:0,entries:[],playerCosmeticInfos:{},lastReadSeqByPlayerId:{},typingAnnouncedAtMsByPlayerId:{},joinedSeqByPlayerId:{}},selectedGame:`Quinoa`,gameVotes:{}},child:{scope:`Quinoa`,data:{...U},child:null}},publishedAtServerMs:0,executedCommandSequence:0,commandSessionId:0})",
+  "roomPublicationAtom": "_({state:{scope:`Room`,data:{dateRoomCreated:Date.now(),dateGameBegan:Date.now(),roomId:null,players:[],bots:[],timer:{name:null,totalSeconds:0,secondsRemaining:0,progress:0,rate:1,isRunning:!1},isGameStarting:!1,animationInProgress:!1,hostPlayerId:null,chat:{latestSeq:0,entries:[],playerCosmeticInfos:{},lastReadSeqByPlayerId:{},typingAnnouncedAtMsByPlayerId:{},joinedSeqByPlayerId:{}},selectedGame:`Quinoa`,gameVotes:{}},child:{scope:`Quinoa`,data:{...Le},child:null}},publishedAtServerMs:0,executedCommandSequence:0,commandSessionId:0})",
   "selectedActionsAtom": "_(_=>_(_)?.actions??_(_).subjectlessActions)",
   "selectedCropSlotIdAtom": "_(_=>_(_)?.slotId??null)",
   "selectedSubjectActionsAtom": "_(_=>{_{subjects:_}=_(_),_=_(_);return _.find(_=>_.key===_)??_[0]??null})",

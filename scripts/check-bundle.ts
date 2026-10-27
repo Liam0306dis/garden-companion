@@ -271,7 +271,7 @@ export async function checkSnapshot(snapshot: Snapshot, sent: SentCommands): Pro
     if (new RegExp(`\\.${id}\\]:\\{groupId:`).test(source)) result.ok.push(`weather ${id}`);
     else result.drift.push(`weather ${id} is no longer defined - weather-timer.ts and keybinds.ts key on it`);
   }
-  if (/\.Lunar\]:\{durationMinutes:/.test(source)) result.ok.push('weather group Lunar');
+  if (/groupId:[\w$.]*\.Lunar[,}]/.test(source)) result.ok.push('weather group Lunar');
   else result.warnings.push('weather group Lunar not found - weather-forecast.ts matches groupId "Lunar"');
 
   checkDayCycle(source, result);

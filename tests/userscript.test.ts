@@ -13,7 +13,7 @@ const header = built.slice(0, built.indexOf('// ==/UserScript==') + 18);
 test('the header matches the package and asks only for what it uses', () => {
   assert.match(header, new RegExp(`// @version\\s+${packageJson.version.replace(/\./g, '\\.')}\\n`));
   assert.deepEqual([...header.matchAll(/@grant\s+(\S+)/g)].map(match => match[1]).sort(), ['GM_getValue', 'GM_setValue', 'GM_xmlhttpRequest', 'unsafeWindow']);
-  assert.deepEqual([...header.matchAll(/@connect\s+(\S+)/g)].map(match => match[1]).sort(), ['ariedam.fr', 'raw.githubusercontent.com', 'unpkg.com']);
+  assert.deepEqual([...header.matchAll(/@connect\s+(\S+)/g)].map(match => match[1]).sort(), ['ariedam.fr', 'raw.githubusercontent.com', 'stats.liammg.workers.dev', 'unpkg.com']);
   assert.match(header, /@run-at\s+document-start/);
 });
 

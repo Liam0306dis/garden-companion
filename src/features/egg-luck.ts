@@ -534,7 +534,14 @@ export function bindEggLuckEvents(main: HTMLElement): void {
   });
   // Same as the pity boxes: saved as typed, redrawn only on Enter.
   main.querySelectorAll<HTMLInputElement>('[data-egg-bonus]').forEach(input => {
-    input.oninput = () => setBonusCount(input.dataset.eggBonus!, Number(input.value));
+    input.oninput = () => {
+      const eggId = input.dataset.eggBonus!;
+      setBonusCount(eggId, Number(input.value));
+      // A figure outside 0 to the hatch count is saved clamped, so the box says so too.
+      const record = luck[eggId];
+      const typed = Number(input.value);
+      if (record && input.value.trim() !== '' && (typed > record.hatches || typed < 0)) input.value = String(record.hatches - record.pulls);
+    };
     input.onkeydown = event => {
       if (event.key === 'Enter') panelActions.renderPanelPreservingScroll();
     };

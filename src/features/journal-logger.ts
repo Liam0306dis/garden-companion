@@ -39,6 +39,8 @@ interface JournalRow { variantsLogged?: Array<{ variant?: string }> }
 interface Subject {
   /** Changes with the subject's variants, so a crop that gains a mutation is a fresh row. */
   key: string;
+  journal: 'produce' | 'pets';
+  species: string;
   target: LogTarget;
   name: string;
   where: string;
@@ -67,7 +69,8 @@ function cropSubject(species: string | undefined, mutations: string[] | undefine
   if (!species) return null;
   const variants = newVariants(mutations, slotIsMaxSize({ size }), loggedVariants(journalRow('produce', species)));
   if (!variants.length) return null;
-  return { key: `${key}:${variants.join(',')}`, target, name: plantName(species), where, sprite: produceSprite(species) ? `<span class="gc-shop-sprite"><img src="${escapeHtml(produceSprite(species))}" alt=""></span>` : '<span class="gc-shop-sprite"></span>', variants };
+  const sprite = produceSprite(species);
+  return { key: `${key}:${variants.join(',')}`, journal: 'produce', species, target, name: plantName(species), where, sprite: `<span class="gc-shop-sprite">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}</span>`, variants };
 }
 
 function petSubject(pet: Pet, target: LogTarget, where: string): Subject | null {
@@ -79,6 +82,8 @@ function petSubject(pet: Pet, target: LogTarget, where: string): Subject | null 
   const species = PET_CATALOG[pet.petSpecies]?.name || humanize(pet.petSpecies);
   return {
     key: `pet:${pet.id}:${variants.join(',')}`,
+    journal: 'pets',
+    species: pet.petSpecies,
     target,
     name: pet.name && pet.name !== species ? `${pet.name} (${species})` : species,
     where,
@@ -97,9 +102,10 @@ function subjects(): Subject[] {
   // Unripe slots are not photo subjects: the camera only publishes a slot once its endTime passes.
   for (const [index, tile] of Object.entries(data.garden?.tileObjects ?? {})) {
     if (tile?.objectType !== 'plant') continue;
-    for (const slot of tile.slots ?? []) {
+    for (const [position, slot] of (tile.slots ?? []).entries()) {
       if (slot.endTime == null || slot.endTime > now) continue;
-      const slotsIndex = Number(slot.slotId);
+      // The slot's place in the list stands in for a missing slotId, as the instant harvest key does.
+      const slotsIndex = Number(slot.slotId ?? position);
       push(cropSubject(slot.species, slot.mutations, slot.size, `slot:${index}:${slotsIndex}`, { kind: 'growSlot', slot: Number(index), slotsIndex }, 'Garden'));
     }
   }
@@ -131,7 +137,19 @@ function subjects(): Subject[] {
     if (item.itemType === 'Pet') push(petSubject(item, target, 'Inventory'));
     else if (item.itemType === 'Produce') push(cropSubject(item.species, item.mutations, item.size, `item:${item.id}`, target, 'Inventory'));
   }
-  return found;
+  return withoutCovered(found);
+}
+
+/**
+ * Logging a subject logs its variants for the whole species, so one whose new variants another of
+ * the same species also offers adds nothing: twenty Gold carrots are one row, not twenty. Of two
+ * offering exactly the same, the first is kept.
+ */
+function withoutCovered(found: Subject[]): Subject[] {
+  return found.filter((subject, index) => !found.some((other, otherIndex) => otherIndex !== index
+    && other.journal === subject.journal && other.species === subject.species
+    && subject.variants.every(variant => other.variants.includes(variant))
+    && (other.variants.length > subject.variants.length || otherIndex < index)));
 }
 
 function variantChip(variant: string): string {
@@ -169,6 +187,9 @@ function ensurePanel(): HTMLElement {
   return root;
 }
 
+/** How long a log that got no answer stays disabled before it can be tried again. */
+const TIMED_OUT_HOLD_MS = 15_000;
+
 async function logSubject(subject: Subject): Promise<boolean> {
   pending.add(subject.key);
   lastSignature = '';
@@ -177,6 +198,17 @@ async function logSubject(subject: Subject): Promise<boolean> {
   try {
     const result = await sendQuinoaCommandAwaitingResult({ type: 'LogItem', target: subject.target });
     ok = result.ok;
+    // No answer is not a refusal - the log may well have landed, and the row leaves if it did. It
+    // stays disabled a while for the journal patch to catch up, so a second click is not refused.
+    if (result.timedOut) {
+      toast(`No answer for ${subject.name} yet - if it is still listed shortly, try again.`);
+      window.setTimeout(() => {
+        pending.delete(subject.key);
+        lastSignature = '';
+        refreshJournalLogger();
+      }, TIMED_OUT_HOLD_MS);
+      return false;
+    }
     if (!ok) toast(result.code === 'not_sent' ? `${subject.name} was not logged: ${NOT_SENT_REASON}.` : `${subject.name} could not be logged.`, 'error');
   } catch (error) {
     toast((error as Error).message, 'error');
@@ -190,16 +222,26 @@ async function logSubject(subject: Subject): Promise<boolean> {
 
 let loggingAll = false;
 
-/** One at a time behind each result, the way the camera's own captures resolve. */
+/**
+ * One at a time behind each result, the way the camera's own captures resolve. The list is read
+ * afresh before each send, and a subject whose variants an earlier send this run already logged is
+ * passed over: the journal patch can trail the result, and sending it anyway would only be refused.
+ */
 async function logAll(): Promise<void> {
   if (loggingAll) return;
   loggingAll = true;
   try {
     let logged = 0;
-    for (const subject of [...current]) {
-      if (pending.has(subject.key)) continue;
-      if (await logSubject(subject)) logged += 1;
-      else break;
+    const tried = new Set<string>();
+    const covered = new Set<string>();
+    const isCovered = (subject: Subject) => subject.variants.every(variant => covered.has(`${subject.journal}:${subject.species}:${variant}`));
+    for (;;) {
+      const subject = current.find(next => !pending.has(next.key) && !tried.has(next.key) && !isCovered(next));
+      if (!subject) break;
+      tried.add(subject.key);
+      if (!await logSubject(subject)) break;
+      logged += 1;
+      for (const variant of subject.variants) covered.add(`${subject.journal}:${subject.species}:${variant}`);
     }
     if (logged) toast(`Logged ${logged} to the journal.`, 'success');
   } finally {
@@ -246,8 +288,20 @@ export function refreshJournalLogger(): void {
   render(root);
 }
 
+let refreshQueued = false;
+
+/** Patches can arrive many times a second, and each refresh walks the whole garden and inventory. */
+function scheduleRefresh(): void {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  window.setTimeout(() => {
+    refreshQueued = false;
+    refreshJournalLogger();
+  }, 250);
+}
+
 export function initJournalLogger(): void {
-  onStateChange(() => refreshJournalLogger());
+  onStateChange(scheduleRefresh);
   onSpritesReady(() => { lastSignature = ''; refreshJournalLogger(); });
   // A crop ripens on the clock rather than with a patch, so the list is rechecked now and then too.
   window.setInterval(refreshJournalLogger, 5_000);

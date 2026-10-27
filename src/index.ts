@@ -16,6 +16,7 @@ import { installPetSpriteLoader } from './pet-sprites-injector.js';
 import { feature } from './config.js';
 import { exposeAddonApi } from './addon-api.js';
 import { initSky } from './features/sky.js';
+import { initUsagePing } from './usage-ping.js';
 
 /**
  * In the Discord activity the game now loads itself a second time, into a same-origin iframe marked
@@ -47,6 +48,7 @@ if (isGameFrame()) {
   initFishing();
   initGardenDefence();
   initPreserveAll();
+  initUsagePing();
 
   // Last, so an add-on userscript only ever sees a companion that has finished starting up.
   exposeAddonApi();

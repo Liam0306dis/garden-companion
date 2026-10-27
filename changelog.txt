@@ -1,3 +1,7 @@
+0.9.82
+- Journal logger: no more repeated crops, Log all works properly
+- Egg luck: Double Hatch count can no longer be set too high or below zero
+
 0.9.81
 - Journal logger: pets only suggested for missing variants
 
