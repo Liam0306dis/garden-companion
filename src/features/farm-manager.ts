@@ -368,6 +368,9 @@ function looseSeeds(species: string): number {
 async function plantSeed(species: string, local: number): Promise<void> {
   const resume = pauseAutoStore('Seed');
   try {
+    // Checked before any seed leaves the Silo as well as after, so a drop on a tile that has filled
+    // costs nothing rather than a round trip and a seed filed straight back.
+    if (state.slot?.data?.garden?.tileObjects?.[String(local)]) throw new Error('That tile is not empty');
     if (looseSeeds(species) <= 0) {
       const stored = seedStacks().find(stack => stack.species === species)?.stored ?? 0;
       if (stored <= 0) throw new Error(`No ${speciesName(species)} seeds are left`);

@@ -30,7 +30,7 @@ let teamPickerSelection: Set<string> | null = null;
 let teamPickerEmblem: PetTeamEmblem | null = null;
 let teamPickerEmblemKind: 'number' | 'icon' | 'pet' = 'number';
 let editingTeamId: string | null = null;
-let pendingTeamSave: { teamId: string | null; name: string; petIds: string[]; emblem?: PetTeamEmblem | null } | null = null;
+let pendingTeamSave: { teamId: string; name: string; petIds: string[]; emblem?: PetTeamEmblem | null } | null = null;
 let confirmDeleteTeamId: string | null = null;
 let pendingTeamDeleteId: string | null = null;
 
@@ -78,12 +78,16 @@ function setPetTeamEmblem(teamId: string, emblem: PetTeamEmblem): void {
  * Build 1029 moved this into a reducer both sides run, and it now takes `isCreate` and expects the
  * id of a new team to come from the client. Without the flag every create was read as an edit of a
  * team that did not exist yet, which the reducer answers by doing nothing at all.
+ *
+ * Returns the team's id - for a new team, the one minted here - so the save can be confirmed by id.
  */
-export function saveTeam(name: string, petIds: string[], teamId: string | null = null): void {
+export function saveTeam(name: string, petIds: string[], teamId: string | null = null): string {
   if (!name.trim() || petIds.length < 1 || petIds.length > MAX_TEAM_PETS) throw new Error(`Choose a name and one to ${MAX_TEAM_PETS} pets.`);
   if (!teamId && teams().length >= MAX_PET_TEAMS) throw new Error(`The game allows ${MAX_PET_TEAMS} pet teams.`);
   const isCreate = !teamId;
-  sendQuinoaCommand({ type: 'SavePetTeam', teamId: teamId ?? crypto.randomUUID(), isCreate, name: name.trim(), petIds });
+  const id = teamId ?? crypto.randomUUID();
+  sendQuinoaCommand({ type: 'SavePetTeam', teamId: id, isCreate, name: name.trim(), petIds });
+  return id;
 }
 
 export function closeTeamPicker(): void {
@@ -250,9 +254,9 @@ function bindTeamPickerEvents(picker: HTMLElement): void {
       const teamId = editingTeamId;
       const emblem = teamPickerEmblem;
       const team = teamId ? teams().find(entry => entry.id === teamId) ?? null : null;
-      saveTeam(name, petIds, teamId);
+      const savedId = saveTeam(name, petIds, teamId);
       if (teamId && emblem && emblemKey(emblem) !== emblemKey(team?.emblem)) setPetTeamEmblem(teamId, emblem);
-      pendingTeamSave = { teamId, name, petIds, emblem: teamId ? null : emblem };
+      pendingTeamSave = { teamId: savedId, name, petIds, emblem: teamId ? null : emblem };
       toast(teamId ? 'Team update requested.' : 'Team save requested.', 'success');
       closeTeamPicker();
       panelActions.renderPanel();
@@ -373,12 +377,16 @@ export function askDeleteConfirmation(teamId: string | null): void {
   panelActions.renderPanelPreservingScroll();
 }
 
-/** The save is only confirmed once the server reports a team matching what we asked for. */
+/**
+ * The save is only confirmed once the server reports a team matching what we asked for. Matched on
+ * the id we sent: a new team matched by name was satisfied at once by an older team with the same
+ * name and pets, which then took the new team's emblem.
+ */
 export function refreshCompletedTeamSave(): void {
   if (!pendingTeamSave) return;
   const expected = pendingTeamSave;
   const saved = teams().find(team => {
-    if (expected.teamId ? team.id !== expected.teamId : team.name !== expected.name) return false;
+    if (team.id !== expected.teamId) return false;
     const members = team.members.map(member => member.petId).sort();
     return members.length === expected.petIds.length && members.every((petId, index) => petId === expected.petIds[index]);
   });

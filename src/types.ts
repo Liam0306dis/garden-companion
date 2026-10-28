@@ -287,6 +287,8 @@ export interface CompanionConfig {
   autoStoreSeeds: boolean;
   autoStoreDecor: boolean;
   autoStoreTools: boolean;
+  /** Per item kind (Seed, Decor, Tool): ids auto-store leaves in the inventory even when on. */
+  autoStoreIgnored: Record<string, string[]>;
   /** A card listing crops and pets with something new for the journal, each logged with a click. */
   journalLogger: boolean;
   cropProtection: boolean;
@@ -316,7 +318,7 @@ export interface CompanionConfig {
   teamKeybinds: Record<string, string>;
   interfaceKeybinds: Record<string, string>;
   sky: SkySettings;
-  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string> | AlarmSoundSettings | SkySettings | Record<string, HarvestRule>;
+  [key: string]: boolean | string[] | Record<string, boolean> | Record<string, string> | Record<string, string[]> | AlarmSoundSettings | SkySettings | Record<string, HarvestRule>;
 }
 
 /** Lighting tab: a locked weather and time of day, and how the game is drawn (percentages). */

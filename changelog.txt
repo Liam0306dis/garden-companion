@@ -1,3 +1,13 @@
+0.9.84
+- Auto Storage tab: per-item ignore lists
+- Added Sprites for potions, capsules, Camera and Shovel
+- Tour scrolls the tab list to each tab
+- Pet teams: new team's emblem no longer lands on an old team
+- Hunger Potion button can't spend two at once
+- Clearer message when potions are stuck in a full inventory
+- Auto Storage tab updates live and lists every tool
+- Rooms tab shows loading on refresh
+
 0.9.83
 - Cinematic button no longer jumps when a quest is ready
 

@@ -3,6 +3,7 @@ import { BasisUniversal, TranscoderTextureFormat } from '@h00w/basis-universal-t
 import { BASIS_WASM_URL, RIVE_LOW_LEVEL_URL, RIVE_RUNTIME_URL } from './vendor-urls.js';
 import { vendorBytes, vendorText } from './vendor-assets.js';
 import { blobToDataUrl, drawFrame, frameLayout, SHEET_TTL_MS, type AtlasFrame, type CropJob, type CropResult } from './sprite-crop.js';
+import { TOOL_IDS } from './tool-ids.js';
 
 interface AtlasJson {
   frames: Record<string, AtlasFrame>;
@@ -88,9 +89,8 @@ const SHOP_SPRITE_GROUPS: Record<string, string[]> = {
   // SnowEgg and WinterEgg are both live ids for the same egg, and only WinterEgg has atlas art,
   // so both are listed and both resolve to that one frame.
   egg: ['CommonEgg', 'UncommonEgg', 'RareEgg', 'LegendaryEgg', 'HorseEgg', 'MythicalEgg', 'DawnEgg', 'SnowEgg', 'WinterEgg', 'ThunderEgg', 'AmberEgg', 'SpookyEgg'],
-  // The Shards are the Rain and Amber shops' tools, and follow the same sprite paths as the rest.
-  tool: ['PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion',
-    'RainWardShard', 'SnowWardShard', 'ThunderWardShard', 'HungerShard', 'XPShard', 'StrengthShard', 'CarvingKnife'],
+  // Shared with the Auto Storage tab, which lists the same tools.
+  tool: TOOL_IDS,
 };
 
 /**

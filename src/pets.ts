@@ -603,7 +603,7 @@ export async function ensureToolReady(toolId: string, wanted = 1, reserveSlots =
 export async function useXpPotion(petItemId: string): Promise<void> {
   const release = holdTool('XPPotion');
   try {
-    if (!await ensureToolReady('XPPotion')) throw new Error('No XP Potion is available to use.');
+    if (!await ensureToolReady('XPPotion')) throw new Error(toolUnavailableMessage('XPPotion', 'XP Potion'));
     sendQuinoaCommand({ type: 'XPPotion', petItemId });
   } finally { release(); }
 }
@@ -612,7 +612,18 @@ export async function useXpPotion(petItemId: string): Promise<void> {
 export async function useReplenishPotion(petItemId: string): Promise<void> {
   const release = holdTool('ReplenishPotion');
   try {
-    if (!await ensureToolReady('ReplenishPotion')) throw new Error('No Hunger Potion is available to use.');
+    if (!await ensureToolReady('ReplenishPotion')) throw new Error(toolUnavailableMessage('ReplenishPotion', 'Hunger Potion'));
     sendQuinoaCommand({ type: 'ReplenishPotion', petItemId });
   } finally { release(); }
+}
+
+/**
+ * Why ensureToolReady said no. It refuses for an empty Shack and for an inventory with no slot to
+ * take the tool into alike, and only the second is fixed by making room - saying "none available"
+ * for that sent players looking for potions they already had.
+ */
+function toolUnavailableMessage(toolId: string, label: string): string {
+  if (shackToolCount(toolId) > 0 && !inventoryCanTakeTool(toolId, 0)) return `Your ${label}s are in the Tool Shack and your inventory is full. Free a slot to use one.`;
+  if (shackToolCount(toolId) > 0) return `The ${label} could not be taken out of the Tool Shack.`;
+  return `No ${label} is available to use.`;
 }

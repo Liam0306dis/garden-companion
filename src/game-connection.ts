@@ -290,7 +290,10 @@ export function installCommandStamp(): void {
   if (!proto || proto.__gardenCompanionStamp || typeof proto.send !== 'function') return;
   const inner = proto.send;
   proto.send = function(this: WebSocket, data: Parameters<WebSocket['send']>[0]) {
-    const frame = parseOutgoingFrame(data);
+    // A copy, since stamping writes to it: the parsed frame is cached against this exact text, and a
+    // resend of the same text must see the number the text carries rather than the one stamped here.
+    const parsed = parseOutgoingFrame(data);
+    const frame = parsed ? { ...parsed } : null;
     const arrivedWith = frame?.commandSequence;
     if (!frame || !renumberOutgoingCommand(frame)) {
       if (bufferedAmountTracksSends || this.readyState !== WebSocket.OPEN) return inner.call(this, data);
@@ -529,17 +532,19 @@ export function sendQuinoaCommand(command: Record<string, unknown>, options: { o
 }
 
 /**
- * The same send, saying whether the command actually left: null when the connection was still
- * joining or another mod refused it. For callers that would otherwise untick, count or wait on a
- * command that never went out.
+ * The same send, saying whether the command actually left: null when the connection was closed or
+ * still joining, or another mod refused it. For callers that would otherwise untick, count or wait on
+ * a command that never went out - which is why a closed socket answers null here rather than
+ * throwing, as it does for sendQuinoaCommand: a caller checking for null would otherwise miss it.
  */
 export function trySendQuinoaCommand(command: Record<string, unknown>, options: { own?: boolean } = {}): string | null {
+  if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) return null;
   const { requestId, sent } = dispatchCommand(command, options);
   return sent ? requestId : null;
 }
 
 /** What a feature tells the player about a command that did not leave. */
-export const NOT_SENT_REASON = 'the connection is still joining, or another mod refused it';
+export const NOT_SENT_REASON = 'the connection is not ready, or another mod refused it';
 
 function dispatchCommand(command: Record<string, unknown>, options: { own?: boolean } = {}): { requestId: string; sent: boolean } {
   const requestId = crypto.randomUUID();

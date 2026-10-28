@@ -102,6 +102,9 @@ function petFoodRows(): PetFoodRow[] {
   });
 }
 
+/** Pets with a Hunger Potion on its way, whose potion button stays disabled until it has gone. */
+const potionsInFlight = new Set<string>();
+
 export function feedPet(petItemId: string, cropItemId: string): void {
   try {
     sendQuinoaCommand({ type: 'FeedPet', petItemId, cropItemId });
@@ -121,12 +124,20 @@ function createPetFoodPanel(): HTMLElement {
     if (!button || button.disabled) return;
     // A potion is spent on the pet rather than fed to it, so it takes the tool route instead.
     if (button.dataset.potion === 'true') {
-      // Held disabled for the wait, since fetching one from the Tool Shack is not instant and a
-      // second press would spend a second potion.
+      // Held for the wait, since fetching one from the Tool Shack is not instant and a second press
+      // would spend a second potion. Kept by pet rather than on the button: a redraw during the wait
+      // replaces the button with a fresh, enabled one.
+      const petId = button.dataset.feedPet!;
+      if (potionsInFlight.has(petId)) return;
+      potionsInFlight.add(petId);
       button.disabled = true;
-      void useReplenishPotion(button.dataset.feedPet!)
+      void useReplenishPotion(petId)
         .catch(error => toast((error as Error).message, 'error'))
-        .finally(() => { button.disabled = false; });
+        .finally(() => {
+          potionsInFlight.delete(petId);
+          petFoodSignature = '';
+          renderPetFood();
+        });
       return;
     }
     feedPet(button.dataset.feedPet!, button.dataset.cropItem!);
@@ -149,7 +160,7 @@ export function renderPetFood(): void {
   // The buttons track the game's pet panel as it moves, so they are repositioned on a tick - but
   // only while they exist, which is only while the feature is on and pets are out.
   positionTicker.start();
-  const signature = JSON.stringify(rows.map(row => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice))]));
+  const signature = JSON.stringify(rows.map(row => [row.pet.id, row.pet.name, row.pet.petSpecies, row.choice, row.count, row.cropItemId, Boolean(produceSprite(row.choice)), potionsInFlight.has(row.pet.id)]));
   const panel = existing || createPetFoodPanel();
   // Only when the buttons actually change: positioning reads the scene graph and forces a hit-test
   // (petPanelCovered -> elementFromPoint), which is wasteful to run on every state patch. The
@@ -159,7 +170,7 @@ export function renderPetFood(): void {
     panel.querySelector('.gc-petfood-list')!.innerHTML = rows.map(row => {
       const name = row.pet.name || PET_CATALOG[row.pet.petSpecies]?.name || humanize(row.pet.petSpecies);
       const sprite = produceSprite(row.choice);
-      const ready = Boolean(row.choice) && row.count > 0;
+      const ready = Boolean(row.choice) && row.count > 0 && !(row.potion && potionsInFlight.has(row.pet.id));
       const label = !row.choice
         ? `Pick a food for ${humanize(row.pet.petSpecies)} in the Pet Food tab`
         : row.count === 0 ? `No ${humanize(row.choice)} in your inventory`

@@ -74,7 +74,11 @@ function requestJson(url: string): Promise<unknown> {
 }
 
 export async function reloadRooms(): Promise<void> {
-  roomRows = null; roomLoading = true; roomError = ''; panelActions.refreshOpenPanel();
+  roomRows = null; roomLoading = true; roomError = '';
+  // Drawn straight away, but only from a click: the first load starts inside the tab's own render,
+  // which already shows the loading state and must not be redrawn from within itself.
+  if (roomsTabOpen() && reloadFromClick) panelActions.renderPanel();
+  reloadFromClick = false;
   try {
     const rows = await requestJson('https://ariesmod-api.ariedam.fr/rooms?limit=200');
     roomRows = Array.isArray(rows) ? rows
@@ -82,12 +86,19 @@ export async function reloadRooms(): Promise<void> {
       .sort((left, right) => Number(right.players_count) - Number(left.players_count)) : [];
   } catch (error) { roomError = (error as Error).message; roomRows = []; }
   roomLoading = false;
+  if (roomsTabOpen()) panelActions.renderPanel();
+}
+
+/** Set by the Refresh button, the one caller that runs outside a render of this tab. */
+let reloadFromClick = false;
+
+function roomsTabOpen(): boolean {
   const panel = document.getElementById('gc-panel');
-  if (panel && !panel.hidden && panelActions.activeTab() === 'rooms') panelActions.renderPanel();
+  return Boolean(panel && !panel.hidden && panelActions.activeTab() === 'rooms');
 }
 
 export function bindRoomEvents(main: HTMLElement): void {
-  main.querySelector('[data-refresh-rooms]')?.addEventListener('click', () => void reloadRooms());
+  main.querySelector('[data-refresh-rooms]')?.addEventListener('click', () => { reloadFromClick = true; void reloadRooms(); });
   main.querySelectorAll<HTMLButtonElement>('[data-join-room]').forEach(button => button.onclick = () => {
     if (/^[a-zA-Z0-9_-]{1,64}$/.test(button.dataset.joinRoom || '')) location.href = `/r/${button.dataset.joinRoom}`;
   });

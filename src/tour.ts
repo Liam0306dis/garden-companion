@@ -40,6 +40,7 @@ const STEPS: TourStep[] = [
   { tab: 'weatherAlarms', targets: [CONTENT], title: 'Weather Alarms', text: 'Get an alarm when the weather you care about arrives.' },
   { tab: 'alarmSound', targets: [CONTENT], title: 'Alert Settings', text: 'Sounds, volume and layout for every alarm the companion raises, plus pet alarms.' },
   { tab: 'silence', targets: [CONTENT], title: 'Ignore Alerts', text: 'Hide the game\'s own popups for abilities you no longer need to see.' },
+  { tab: 'autoStorage', targets: [CONTENT], title: 'Auto Storage', text: 'File seeds, tools and decor into storage automatically, and tick anything you want left in your inventory.' },
   { tab: 'calculators', targets: [CONTENT], title: 'Calculators', text: 'XP, dust and value maths for your pets and crops.' },
   { tab: 'sky', targets: [CONTENT], title: 'Lighting', text: 'Keep a weather or time of day on screen, and set how dark and bright the game looks.' },
   { tab: 'minigames', targets: [CONTENT], title: 'Minigames', text: 'Fishing and Garden Defence, played on your own farm tiles. Nothing is sent to the game.' },
@@ -179,6 +180,21 @@ function track(): void {
   running.frame = requestAnimationFrame(track);
 }
 
+/**
+ * The nav keeps its scroll across redraws, so a tab further down than the nav shows (Rooms, on a
+ * short window) would be lit somewhere out of sight. Only the nav is scrolled - scrollIntoView would
+ * also move the panel's other scroll areas. Footer tabs are not in the nav and need nothing.
+ */
+function revealNavButton(tab: string): void {
+  const button = document.querySelector<HTMLElement>(`#gc-panel nav [data-tab="${tab}"]`);
+  const nav = button?.closest<HTMLElement>('nav');
+  if (!button || !nav || !button.getClientRects().length) return;
+  const buttonRect = button.getBoundingClientRect();
+  const navRect = nav.getBoundingClientRect();
+  if (buttonRect.top < navRect.top) nav.scrollTop -= navRect.top - buttonRect.top + PAD;
+  else if (buttonRect.bottom > navRect.bottom) nav.scrollTop += buttonRect.bottom - navRect.bottom + PAD;
+}
+
 function showStep(index: number): void {
   if (!running) return;
   const { steps } = running;
@@ -186,6 +202,7 @@ function showStep(index: number): void {
   running.index = index;
   const step = steps[index];
   if (step.tab && step.tab !== panelActions.activeTab()) panelActions.openPanel(step.tab);
+  if (step.tab) revealNavButton(step.tab);
   const scrollTarget = step.scrollTo ? document.querySelector<HTMLElement>(step.scrollTo) : null;
   const main = scrollTarget?.closest<HTMLElement>('#gc-panel main');
   if (scrollTarget && main) main.scrollTop += scrollTarget.getBoundingClientRect().top - main.getBoundingClientRect().top - PAD;
