@@ -572,14 +572,9 @@ export function initPlantDragMove(): void {
         const globalIndex = x + y * map.cols;
         const dirt = map.globalTileIdxToDirtTile?.[globalIndex];
         if (!dirt) return null;
-        return {
-            x,
-            y,
-            globalIndex,
-            userSlotIdx: dirt.userSlotIdx,
-            localTileIndex: dirt.dirtTileIdx,
-            object: tileSystem.getTileDataAt({ x, y }) ?? null,
-        };
+        const tile: FarmTile = { x, y, globalIndex, userSlotIdx: dirt.userSlotIdx, localTileIndex: dirt.dirtTileIdx, object: null };
+        tile.object = tileObjectAt(tile);
+        return tile;
     }
 
     function ensureFallbackHighlight() {
@@ -861,7 +856,7 @@ export function initPlantDragMove(): void {
      */
     async function placePlant(plantObject: GameObject | null, destination: FarmTile, plantId: string, activePress: Press, doneMessage = 'Plant moved.') {
         if (activePress.cancelled) return false;
-        const currentObject = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
+        const currentObject = tileObjectAt(destination);
         if (currentObject) {
             activePress.cancelled = true;
             showToast('Move stopped: a tile became occupied. Your plants are safe in your inventory.', 'error', 5000);
@@ -877,7 +872,7 @@ export function initPlantDragMove(): void {
         }
 
         const placed = await waitFor(() => {
-            const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
+            const object = tileObjectAt(destination);
             const itemStillHeld = inventoryItems().some(item => item?.id === plantId);
             return !itemStillHeld && object?.objectType === 'plant'
                 && isSamePlant(object, plantObject ?? undefined);
@@ -890,6 +885,18 @@ export function initPlantDragMove(): void {
             showToast('Placement was not confirmed. Check your inventory before retrying.', 'error', 5000);
         }
         return placed;
+    }
+
+    /**
+     * What stands on a tile. In your own garden it is read from the garden state the server reports,
+     * which covers every tile; the tile system's copy can lag behind for tiles away from where you
+     * stand. The second half of a swap across the farm read that lagging copy, still saw the plant it
+     * had just potted on the tile, stopped as "a tile became occupied" and left the plant in the inventory.
+     */
+    function tileObjectAt(tile: FarmTile): GameObject | null {
+        const tileObjects = state.slot?.data?.garden?.tileObjects as Record<string, GameObject> | undefined;
+        if (tileObjects && tile.userSlotIdx === ownSlot()) return tileObjects[String(tile.localTileIndex)] ?? null;
+        return live.tileSystem?.getTileDataAt({ x: tile.x, y: tile.y }) ?? null;
     }
 
     /** Our own slot, wherever we stand in the room (see resolveOwnSlot). */
@@ -906,7 +913,9 @@ export function initPlantDragMove(): void {
         if (typeof globalIndex !== 'number') return null;
         const x = globalIndex % map.cols;
         const y = Math.floor(globalIndex / map.cols);
-        return { x, y, globalIndex, userSlotIdx: slot, localTileIndex: localIndex, object: tileSystem!.getTileDataAt({ x, y }) ?? null };
+        const tile: FarmTile = { x, y, globalIndex, userSlotIdx: slot, localTileIndex: localIndex, object: null };
+        tile.object = tileObjectAt(tile);
+        return tile;
     }
 
     async function exclusive<T>(run: () => Promise<T>): Promise<T> {

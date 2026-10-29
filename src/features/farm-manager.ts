@@ -58,19 +58,20 @@ let drag: Drag | null = null;
 let busyTiles = new Set<number>();
 let renderQueued = false;
 let search = '';
-let tab: 'plants' | 'seeds' | 'celestial' = 'plants';
+type Tab = 'plants' | 'seeds' | 'celestial';
+let tab: Tab = 'plants';
 /**
  * The Celestial tab: a plan for where each celestial plant should stand (see celestial-plan.ts), drawn on
- * the map with species badges, a numbered move list and an arrow for the current step. The player follows
+ * the map with species badges, step numbers on the plants that have to move and an arrow for the next one. The player follows
  * it by dragging plants as usual. The plan is only rebuilt on request (side, goal, Refresh); the moves are
  * worked out afresh on every draw, so a finished move drops off the list by itself.
  */
 let celPlan: CelestialPlan | null = null;
 let celSide: FarmSide | null = null;
 let celGoal: CelestialGoal = 'both';
-/** Step clicked in the move list, or null for the first step (whose arrow is drawn by default). */
-let celHoveredStep: number | null = null;
 let celMoves: CelestialMove[] = [];
+/** The tile of the numbered plant under the pointer, whose move the arrow shows; null for move 1. */
+let celShownFrom: number | null = null;
 /** A tile a plant was just dropped on that the plan doesn't want it on: its fix goes to the top of the list. */
 let celMisplaced: number | null = null;
 /** What was wrong with that drop, shown in the title bar until it is fixed. */
@@ -158,20 +159,20 @@ function rebuildCelestialPlan(force = false): void {
   const cells = planCells(farmCells());
   if (!celSide) celSide = likelySide(cells) ?? 'left';
   celPlan = cells.length ? buildCelestialPlan(cells, celSide, celGoal, force) : null;
-  celHoveredStep = null;
   celMoves = [];
+  celShownFrom = null;
   celMisplaced = null;
   celMovesBasis = '';
+}
+
+/** The move the arrow points at: the hovered plant's, or move 1 when none is hovered (or it is done). */
+function shownMove(): CelestialMove | null {
+  return celMoves.find(move => move.from === celShownFrom) ?? celMoves[0] ?? null;
 }
 
 function celBadge(species: keyof typeof CELESTIAL_BADGE): string {
   const badge = CELESTIAL_BADGE[species];
   return `<i class="gc-fm-chip" style="--chip:${badge.color}">${badge.short}</i>`;
-}
-
-function celTileName(local: number): string {
-  const label = celPlan?.labels.get(local);
-  return label ? `row ${label.row}, col ${label.column}` : `tile ${local}`;
 }
 
 /**
@@ -215,40 +216,32 @@ function stableMoves(plan: CelestialPlan, cells: PlanCell[], busy: boolean): Cel
   } else if (misplaced !== null && keptFix === -1) {
     celMisplaced = null;
   }
-  // Re-flag occupied targets in the final order: a tile emptied by an earlier step counts as free.
-  const vacated = new Set<number>();
-  return [...kept, ...added].map(move => {
-    const occupied = Boolean(byLocal.get(move.to)?.tile) && !vacated.has(move.to);
-    vacated.add(move.from);
-    return { ...move, occupied };
-  });
+  return [...kept, ...added];
 }
 
 /**
- * Points the arrow at another step. Clicked rather than hovered, so scrolling the list never moves it,
- * and done on the drawn board in place - redrawing the whole map per step was what made it lag.
+ * Points the arrow and the yellow outlines at another move, so hovering a plant marked 2 or later shows
+ * where it goes. Done on the drawn board in place - redrawing the whole map per hover is what lagged -
+ * and kept in celShownFrom, which the next draw follows, so a redraw mid-hover leaves the arrow where it is.
  */
-function selectCelestialStep(index: number): void {
+function showCelestialMove(fromLocal: number | null): void {
+  if (fromLocal === celShownFrom) return;
+  celShownFrom = fromLocal;
   const element = root();
-  const move = celMoves[index];
-  if (!element || !move) return;
-  celHoveredStep = index;
-  element.querySelectorAll<HTMLElement>('[data-cel-step]').forEach(row => { row.dataset.current = String(Number(row.dataset.celStep) === index); });
-  element.querySelectorAll<HTMLElement>('[data-cel-active]').forEach(node => { delete node.dataset.celActive; });
+  const move = shownMove();
+  const line = element?.querySelector<SVGLineElement>('.gc-fm-cel-arrow line');
+  if (!element || !move || !line) return;
   const cellNode = (local: number) => element.querySelector<HTMLElement>(`.gc-fm-cell[data-kind="dirt"][data-local="${local}"]`);
   const from = cellNode(move.from);
   const to = cellNode(move.to);
-  if (from) from.dataset.celActive = 'true';
-  if (to) to.dataset.celActive = 'true';
-  const line = element.querySelector<SVGLineElement>('.gc-fm-cel-arrow line');
-  if (line && from && to) {
-    line.setAttribute('x1', String(from.offsetLeft + from.offsetWidth / 2));
-    line.setAttribute('y1', String(from.offsetTop + from.offsetHeight / 2));
-    line.setAttribute('x2', String(to.offsetLeft + to.offsetWidth / 2));
-    line.setAttribute('y2', String(to.offsetTop + to.offsetHeight / 2));
-  } else render();
-  const status = element.querySelector<HTMLElement>('[data-fm-status]');
-  if (status && !busyTiles.size) status.textContent = status.textContent!.replace(/^Step \d+/, `Step ${index + 1}`);
+  if (!from || !to) return;
+  element.querySelectorAll<HTMLElement>('[data-cel-active]').forEach(node => { delete node.dataset.celActive; });
+  from.dataset.celActive = 'true';
+  to.dataset.celActive = 'true';
+  line.setAttribute('x1', String(from.offsetLeft + from.offsetWidth / 2));
+  line.setAttribute('y1', String(from.offsetTop + from.offsetHeight / 2));
+  line.setAttribute('x2', String(to.offsetLeft + to.offsetWidth / 2));
+  line.setAttribute('y2', String(to.offsetTop + to.offsetHeight / 2));
 }
 
 /** After a drag on the Celestial tab: warn when the plant landed where the plan doesn't want it. */
@@ -262,34 +255,55 @@ function checkCelestialDrop(local: number): void {
   celMisplacedText = planned
     ? `Wrong spot: that tile is for a ${CELESTIAL_LABELS[planned]}, not a ${CELESTIAL_LABELS[species]}`
     : `Wrong spot: that tile isn't in the plan for the ${CELESTIAL_LABELS[species]}`;
-  toast(`${celMisplacedText} - step 1 now moves it.`, 'error');
+  toast(`${celMisplacedText} - the plant marked 1 now moves it.`, 'error');
 }
 
-/** The move list, drawn in its own column on the left of the window while the Celestial tab is open. */
-function celestialSteps(moves: CelestialMove[]): string {
-  const steps = !celPlan || !celPlan.plan.size
-    ? `<div class="gc-fm-empty">${celPlan?.tone === 'error' ? '' : 'No celestial plants to plan.'}</div>`
-    : moves.length
-      ? moves.map((move, index) => `<div class="gc-fm-cel-step" data-cel-step="${index}" data-current="${index === (celHoveredStep ?? 0)}"><b>${index + 1}</b>${celBadge(move.species)}<span><b>${escapeHtml(CELESTIAL_LABELS[move.species])}</b><small>${escapeHtml(celTileName(move.from))} &rarr; ${escapeHtml(celTileName(move.to))}</small>${move.occupied ? '<small class="gc-fm-cel-warn">Tile is occupied - drop onto it to swap the two (2 Planter Pots)</small>' : ''}</span></div>`).join('')
-      : '<div class="gc-fm-cel-done">Every celestial is in place.</div>';
-  return `<div class="gc-fm-cel-label">Moves (${moves.length}) - click one to show its arrow</div><div class="gc-fm-cel-steps">${steps}</div>`;
-}
-
-/** The Celestial tab's side bar: choices, counts, legend and the move list. */
-function celestialPanel(cells: Cell[] | null, moves: CelestialMove[]): string {
+/** The Celestial tab's side bar: choices, counts and help. Progress is in the map's toolbar. */
+function celestialPanel(cells: Cell[] | null): string {
   const counts: Record<string, number> = {};
   for (const cell of cells ?? []) { const species = celestialOn(cell.tile); if (species) counts[species] = (counts[species] ?? 0) + 1; }
   const segment = (attr: string, value: string, label: string, active: boolean) => `<button data-${attr}="${value}" data-active="${active}">${label}</button>`;
-  const placed = celPlan ? planCells(cells).filter(cell => celPlan!.plan.has(cell.local) && placedRight(celPlan!, cell)).length : 0;
+  const total = celPlan?.plan.size ?? 0;
   return `<div class="gc-fm-cel">
+${celCalculating ? '<p class="gc-fm-cel-msg">Calculating layout...</p>' : celPlan?.message ? `<p class="gc-fm-cel-msg" data-tone="${celPlan.tone}">${escapeHtml(celPlan.message)}</p>` : ''}
+${cells && !total && !celCalculating && celPlan?.tone !== 'error' ? '<div class="gc-fm-empty">No celestial plants on your farm to plan yet.</div>' : ''}
+<section class="gc-fm-card"><h4>Layout</h4>
 <div class="gc-fm-cel-label">Farm side</div><div class="gc-fm-cel-seg">${segment('cel-side', 'left', 'Left', celSide === 'left')}${segment('cel-side', 'right', 'Right', celSide === 'right')}</div>
 <div class="gc-fm-cel-label">Every plant needs</div><div class="gc-fm-cel-seg">${segment('cel-goal', 'amber', 'Amber', celGoal === 'amber')}${segment('cel-goal', 'dawn', 'Dawn', celGoal === 'dawn')}${segment('cel-goal', 'both', 'Both', celGoal === 'both')}</div>
-<button class="gc-fm-cel-refresh" data-cel-refresh title="Search again from scratch - can find a different layout">Recalculate</button>
-<div class="gc-fm-cel-counts">${[...CELESTIAL_SPECIES].map(species => `<span>${celBadge(species)}<em>${CELESTIAL_LABELS[species]}</em><b>${counts[species] ?? 0}</b></span>`).join('')}</div>
-${celCalculating ? '<p class="gc-fm-cel-msg">Calculating layout...</p>' : celPlan?.message ? `<p class="gc-fm-cel-msg" data-tone="${celPlan.tone}">${escapeHtml(celPlan.message)}</p>` : ''}
-${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.plan.size} in place</div>` : ''}
-<small class="gc-fm-cel-help">Moonbinder (Mb) gives Amberbound and Dawnbinder (Db) gives Dawnbound to the 8 tiles around it. Hover a binder on the map to see which plants it reaches.</small>
+<button class="gc-fm-cel-refresh" data-cel-refresh title="Search again from scratch - can find a different layout">${ICONS.refresh}Recalculate</button>
+</section>
+<section class="gc-fm-card"><h4>On your farm</h4><div class="gc-fm-cel-counts">${[...CELESTIAL_SPECIES].map(species => `<span>${celBadge(species)}<em>${CELESTIAL_LABELS[species]}</em><b>${counts[species] ?? 0}</b></span>`).join('')}</div></section>
+<small class="gc-fm-cel-help">Moonbinder (Mb) gives Amberbound and Dawnbinder (Db) gives Dawnbound to the 8 tiles around it. Hover a binder on the map to see which plants it reaches, or a numbered plant to see where it goes.</small>
 </div>`;
+}
+
+/** Line icons for the window's chrome, drawn in the text colour. */
+const icon = (paths: string) => `<svg class="gc-fm-ico" viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
+const ICONS = {
+  farm: icon('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'),
+  plants: icon('<path d="M12 21v-9"/><path d="M12 12c0-4.5 3-7.5 7.5-7.5 0 4.5-3 7.5-7.5 7.5z"/><path d="M12 14.5c0-3.5-2.5-6-6.5-6 0 3.5 2.5 6 6.5 6z"/><path d="M7 21h10"/>'),
+  seeds: icon('<path d="M12 3c4.5 3.5 6.5 7.5 6.5 10.5a6.5 6.5 0 0 1-13 0C5.5 10.5 7.5 6.5 12 3z"/><path d="M12 10v8"/>'),
+  celestial: icon('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/><path d="M17 3v4M15 5h4"/>'),
+  search: icon('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'),
+  close: icon('<path d="M6 6l12 12M18 6 6 18"/>'),
+  refresh: icon('<path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v3.5h3.5"/><path d="M4 13a8 8 0 0 0 14.6 4.5M20 20v-3.5h-3.5"/>'),
+};
+
+const TAB_SUBTITLES: Record<Tab, string> = {
+  plants: 'Move, swap and pot the plants on your farm',
+  seeds: 'Plant seeds from your inventory or Seed Silo',
+  celestial: 'Plans the best placement so every celestial gets full Moonbinder and Dawnbinder coverage',
+};
+
+const TAB_HINTS: Record<Tab, Array<[string, string]>> = {
+  plants: [['Drag', 'move'], ['Right click', 'pot'], ['Click card', 'pick']],
+  seeds: [['Click card', 'pick'], ['Click tile', 'plant'], ['Drag', 'plant once']],
+  celestial: [['Drag', 'move'], ['Drop on plant', 'swap'], ['Hover number', 'its target']],
+};
+
+/** One card in the side bar's grid: a sprite, an optional count and the name underneath. */
+function listCard(attrs: string, sprite: string, name: string, extra = ''): string {
+  return `<div class="gc-fm-item"${attrs}><span class="gc-fm-art">${sprite}${extra}</span><b>${escapeHtml(name)}</b></div>`;
 }
 
 /** One decor on a tile edge: string lights fill the `line` part, a lantern or windchime the `hanging` one. */
@@ -482,7 +496,7 @@ function setHtml(node: HTMLElement, html: string): void {
   if (rendered.get(node) === html) return;
   rendered.set(node, html);
   // Replacing the contents empties the node for a moment, which snaps a scrolled list (the side bar's
-  // move list) back to the top; its position is put back once the new contents are in.
+  // celestial panel) back to the top; its position is put back once the new contents are in.
   const scroll = node.scrollTop;
   node.innerHTML = html;
   if (scroll) node.scrollTop = scroll;
@@ -512,18 +526,33 @@ function render(): void {
   placing.hidden = !armedSpecies;
   if (armedSpecies) {
     const sprite = (armedSeed ? page.__gardenCompanionShopSprites?.[armedSpecies] : '') || produceSprite(armedSpecies);
-    setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}Placing ${escapeHtml(speciesName(armedSpecies))}`);
+    setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ''}Placing ${escapeHtml(speciesName(armedSpecies))}<button data-fm-disarm title="Stop placing" aria-label="Stop placing">${ICONS.close}</button>`);
   }
 
   const cells = farmCells();
   if (tab === 'celestial' && !celPlan && cells && !celCalculating) { requestCelestialPlan(); return; }
   const warn = element.querySelector<HTMLElement>('[data-fm-warn]')!;
   celMoves = tab === 'celestial' && celPlan ? stableMoves(celPlan, planCells(cells), busy) : [];
-  if (celHoveredStep !== null && celHoveredStep >= celMoves.length) celHoveredStep = null;
-  // A plant dropped on the wrong tile is called out in the title bar as well as the toast, until fixed.
-  const warning = tab === 'celestial' && celMisplaced !== null ? `${celMisplacedText} - see step 1` : '';
+  // A plant dropped on the wrong tile is called out in the toolbar as well as the toast, until fixed.
+  // A narrow map cuts the pill short, so the full text is on its tooltip too.
+  const warning = tab === 'celestial' && celMisplaced !== null ? `${celMisplacedText} - move the plant marked 1` : '';
   warn.hidden = !warning;
-  if (warn.textContent !== warning) warn.textContent = warning;
+  if (warn.textContent !== warning) { warn.textContent = warning; warn.title = warning; }
+  // The toolbar's label doubles as the Celestial tab's progress: plants in place and moves still to make.
+  // It stays up beside a wrong-spot warning, since that is when the counts matter most.
+  const where = element.querySelector<HTMLElement>('[data-fm-where]')!;
+  where.hidden = Boolean(armedSpecies);
+  let whereText = 'Your garden';
+  if (tab === 'celestial' && celPlan?.plan.size) {
+    const plan = celPlan;
+    const placed = planCells(cells).filter(cell => plan.plan.has(cell.local) && placedRight(plan, cell)).length;
+    whereText = celMoves.length
+      ? `${placed} / ${plan.plan.size} in place · ${celMoves.length} move${celMoves.length === 1 ? '' : 's'} left`
+      : 'Every celestial is in place';
+  }
+  if (where.textContent !== whereText) where.textContent = whereText;
+  const legend = element.querySelector<HTMLElement>('[data-fm-legend]')!;
+  legend.hidden = tab !== 'celestial';
   if (!cells) {
     setHtml(grid, '<div class="gc-fm-empty">Waiting for your farm to load. Walk into your garden once if this does not clear.</div>');
   } else {
@@ -531,14 +560,14 @@ function render(): void {
     const minY = Math.min(...cells.map(cell => cell.y));
     const columns = Math.max(...cells.map(cell => cell.x)) - minX + 1;
     const rows = Math.max(...cells.map(cell => cell.y)) - minY + 1;
-    // Gaps and the grid's own padding come out first, so the whole farm fits across without scrolling.
-    const width = Math.max(120, grid.clientWidth - 24 - (columns - 1) * CELL_GAP);
+    // Gaps, the grid's own padding and the plot's frame come out first, so the whole farm fits across without scrolling.
+    const width = Math.max(120, grid.clientWidth - 32 - 20 - (columns - 1) * CELL_GAP);
     const size = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(width / columns)));
     const celestial = tab === 'celestial' && celPlan ? celPlan : null;
     const plan = celestial ? planCells(cells) : [];
     const planByLocal = new Map(plan.map(cell => [cell.local, cell]));
     const stepOf = new Map(celMoves.map((move, index) => [move.from, index + 1]));
-    const activeMove = celMoves[celHoveredStep ?? 0] ?? null;
+    const activeMove = shownMove();
     const annotate = (cell: Cell): { attrs: string; inner: string } => {
       if (!celestial || cell.kind !== 'dirt') return { attrs: '', inner: '' };
       const planned = celestial.plan.get(cell.local) ?? null;
@@ -567,55 +596,77 @@ function render(): void {
     const a = celestial && activeMove ? centre(activeMove.from) : null;
     const b = celestial && activeMove ? centre(activeMove.to) : null;
     const arrow = a && b ? `<svg class="gc-fm-cel-arrow"><defs><marker id="gc-fm-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fde68a"/></marker></defs><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" marker-end="url(#gc-fm-head)"/></svg>` : '';
-    setHtml(grid, `<div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map(cell => {
+    setHtml(grid, `<div class="gc-fm-plot"><div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map(cell => {
       const movable = cell.kind === 'dirt' && cell.tile?.objectType === 'plant' && !busyTiles.has(cell.local) && !busy;
       const plantable = armedSpecies && cell.kind === 'dirt' && !cell.tile && !busyTiles.has(cell.local);
       const extra = annotate(cell);
       const position = `grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}`;
       const style = extra.attrs.includes('style="') ? `${position}"` : ` style="${position}"`;
       return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || 'empty')}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ''}${plantable ? ' data-drop="place" data-armed="true"' : ''}${extra.attrs}${style} title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ''}>${cellContent(cell)}${extra.inner}</div>`;
-    }).join('')}${edgeMarkers(size)}${arrow}</div>`);
-  }
-
-  element.querySelectorAll<HTMLButtonElement>('[data-fm-tab]').forEach(button => {
-    button.dataset.active = String(button.dataset.fmTab === tab);
-  });
-  const capacity = element.querySelector<HTMLElement>('[data-fm-capacity]')!;
-  capacity.hidden = tab !== 'plants';
-  element.querySelector<HTMLInputElement>('[data-fm-search]')!.hidden = tab === 'celestial';
-  const used = INVENTORY_SLOTS - freeInventorySlots();
-  capacity.dataset.full = String(used >= INVENTORY_SLOTS);
-  setHtml(capacity, `<span>Inventory</span><b>${used}/${INVENTORY_SLOTS}</b>`);
-  // The window widens by the move column on the Celestial tab, so the map keeps its size.
-  if (element.dataset.tab !== tab) element.dataset.tab = tab;
-  element.querySelector<HTMLElement>('[data-fm-subtitle]')!.hidden = tab !== 'celestial';
-  const movesColumn = element.querySelector<HTMLElement>('[data-fm-moves]')!;
-  movesColumn.hidden = tab !== 'celestial';
-  if (tab === 'celestial') setHtml(movesColumn, celestialSteps(celMoves));
-  if (tab === 'celestial') {
-    setHtml(list, celestialPanel(cells, celMoves));
-  } else if (tab === 'seeds') {
-    const seeds = stacks.filter(stack => matches(stack.species));
-    setHtml(list, seeds.length
-      ? seeds.map(stack => `<div class="gc-fm-item" data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ''}${busy ? '' : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one${stack.stored ? `\n${stack.stored} in the Seed Silo` : ''}">${spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species)}<span><b>${escapeHtml(speciesName(stack.species))}</b><small>x${stack.loose + stack.stored}${stack.stored ? ' · Silo' : ''}</small></span></div>`).join('')
-      : `<div class="gc-fm-empty">${query ? 'No seeds match.' : 'No seeds in your inventory or Seed Silo.'}</div>`);
-  } else {
-    setHtml(list, potted.length
-      ? potted.map((item, index) => `<div class="gc-fm-item" data-item="${escapeHtml(item.id)}" data-index="${index}"${item.id === armedPlant?.id ? ' data-active="true"' : ''}${busy ? '' : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one">${spriteImage(produceSprite(item.species), item.species)}<span><b>${escapeHtml(speciesName(item.species))}</b></span></div>`).join('')
-      : `<div class="gc-fm-empty">${query ? 'No potted plants match.' : 'No potted plants in your inventory.'}</div>`);
+    }).join('')}${edgeMarkers(size)}${arrow}</div></div>`);
   }
 
   const count = cells?.filter(cell => cell.kind === 'dirt' && cell.tile?.objectType === 'plant').length ?? 0;
   const free = cells?.filter(cell => cell.kind === 'dirt' && !cell.tile).length ?? 0;
+  const celestials = cells?.filter(cell => cell.kind === 'dirt' && celestialOn(cell.tile)).length ?? 0;
+  const pots = planterPots();
+  const used = INVENTORY_SLOTS - freeInventorySlots();
+  const stat = (label: string, value: string | number, bad = false) => `<span${bad ? ' data-tone="bad"' : ''}><small>${label}</small><b>${value}</b></span>`;
+  setHtml(element.querySelector<HTMLElement>('[data-fm-stats]')!, [
+    stat('Plants', count), stat('Empty', free), stat('Pots', pots, pots === 0), stat('Inventory', `${used}/${INVENTORY_SLOTS}`, used >= INVENTORY_SLOTS),
+  ].join(''));
+
+  const tabCounts: Record<Tab, number> = { plants: allPotted.length, seeds: stacks.length, celestial: celestials };
+  element.querySelectorAll<HTMLButtonElement>('[data-fm-tab]').forEach(button => {
+    const name = button.dataset.fmTab as Tab;
+    button.dataset.active = String(name === tab);
+    const badge = button.querySelector('em')!;
+    const text = tabCounts[name] ? String(tabCounts[name]) : '';
+    if (badge.textContent !== text) badge.textContent = text;
+  });
+  element.querySelector<HTMLElement>('[data-fm-search-wrap]')!.hidden = tab === 'celestial';
+  const subtitle = element.querySelector<HTMLElement>('[data-fm-subtitle]')!;
+  if (subtitle.textContent !== TAB_SUBTITLES[tab]) subtitle.textContent = TAB_SUBTITLES[tab];
+  setHtml(element.querySelector<HTMLElement>('[data-fm-hints]')!, TAB_HINTS[tab].map(([key, what]) => `<span><kbd>${key}</kbd>${what}</span>`).join(''));
+  const head = element.querySelector<HTMLElement>('[data-fm-list-head]')!;
+  if (tab === 'celestial') {
+    setHtml(head, '<b>Celestial planner</b>');
+    setHtml(list, celestialPanel(cells));
+  } else if (tab === 'seeds') {
+    const seeds = stacks.filter(stack => matches(stack.species));
+    setHtml(head, `<b>Seeds</b><small>${seeds.length} kind${seeds.length === 1 ? '' : 's'}</small>`);
+    setHtml(list, seeds.length
+      ? seeds.map(stack => listCard(
+        ` data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ''}${busy ? '' : ' draggable="true"'} title="${escapeHtml(speciesName(stack.species))}\nClick to place on empty tiles, or drag onto one${stack.stored ? `\n${stack.stored} in the Seed Silo` : ''}"`,
+        spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species),
+        speciesName(stack.species),
+        `<em class="gc-fm-qty">${stack.loose + stack.stored}</em>${stack.stored ? '<i class="gc-fm-silo">Silo</i>' : ''}`,
+      )).join('')
+      : `<div class="gc-fm-empty">${query ? 'No seeds match.' : 'No seeds in your inventory or Seed Silo.'}</div>`);
+  } else {
+    setHtml(head, `<b>Potted plants</b><small>${potted.length}${query ? ` of ${allPotted.length}` : ''}</small>`);
+    setHtml(list, potted.length
+      ? potted.map((item, index) => listCard(
+        ` data-item="${escapeHtml(item.id)}" data-index="${index}"${item.id === armedPlant?.id ? ' data-active="true"' : ''}${busy ? '' : ' draggable="true"'} title="${escapeHtml(speciesName(item.species))}\nClick to place on empty tiles, or drag onto one"`,
+        spriteImage(produceSprite(item.species), item.species),
+        speciesName(item.species),
+      )).join('')
+      : `<div class="gc-fm-empty">${query ? 'No potted plants match.' : 'No potted plants in your inventory. Drag a plant here or right click it on the map to pot it.'}</div>`);
+  }
+
+  const footer = element.querySelector<HTMLElement>('footer')!;
+  footer.dataset.busy = String(busy || busyTiles.size > 0);
   if (!busy && tab === 'celestial') {
     const text = celMoves.length
-      ? `Step ${(celHoveredStep ?? 0) + 1}: drag the plant with the red number to the tile the arrow points at - drop onto a plant to swap them. A move uses a Planter Pot, a swap two (${planterPots()} left).`
-      : celPlan?.plan.size ? 'Celestial layout complete.' : 'Plant some celestials to plan a layout.';
+      ? `Drag the plant marked 1 to the tile the arrow points at - drop onto a plant to swap them. A move uses a Planter Pot, a swap two (${pots} left).`
+      : celPlan?.plan.size ? 'Every celestial is in place.' : 'Plant some celestials to plan a layout.';
     if (status.textContent !== text) status.textContent = text;
   } else if (!busy) {
     const text = armedSpecies
       ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName(armedSpecies)}; click it in the list again to stop.`
-      : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it, or right click it to pot it; each uses a Planter Pot.`;
+      : tab === 'seeds'
+        ? 'Pick a seed, then click empty tiles to plant it, or drag a seed onto a tile.'
+        : 'Drag a plant onto an empty tile to move it, or right click it to pot it. Each uses a Planter Pot.';
     if (status.textContent !== text) status.textContent = text;
   }
 }
@@ -804,6 +855,9 @@ function bindEvents(element: HTMLElement): void {
     const target = event.target as HTMLElement;
     const node = target.closest<HTMLElement>('.gc-fm-cell[data-kind="dirt"]');
     element.querySelectorAll<HTMLElement>('[data-cel-lit],[data-cel-source]').forEach(other => { delete other.dataset.celLit; delete other.dataset.celSource; });
+    // A numbered plant under the pointer gets the arrow; anywhere else it goes back to move 1.
+    const local = node ? Number(node.dataset.local) : null;
+    showCelestialMove(celMoves.some(move => move.from === local) ? local : null);
     if (!node) return;
     const cells = planCells(farmCells());
     const cell = cells.find(item => item.local === Number(node.dataset.local));
@@ -818,6 +872,7 @@ function bindEvents(element: HTMLElement): void {
   });
   element.addEventListener('mouseleave', () => {
     element.querySelectorAll<HTMLElement>('[data-cel-lit],[data-cel-source]').forEach(other => { delete other.dataset.celLit; delete other.dataset.celSource; });
+    if (tab === 'celestial') showCelestialMove(null);
   });
   // Right click pots a plant straight into the inventory, the same as dragging it to the side bar.
   element.addEventListener('contextmenu', event => {
@@ -839,6 +894,12 @@ function bindEvents(element: HTMLElement): void {
   });
   element.addEventListener('click', event => {
     const target = event.target as HTMLElement;
+    if (target.closest('[data-fm-disarm]')) {
+      armedSeed = null;
+      armedPlant = null;
+      render();
+      return;
+    }
     const side = target.closest<HTMLElement>('[data-cel-side]')?.dataset.celSide;
     if (side === 'left' || side === 'right') {
       celSide = side;
@@ -849,11 +910,6 @@ function bindEvents(element: HTMLElement): void {
     if (goal) {
       celGoal = goal as CelestialGoal;
       requestCelestialPlan();
-      return;
-    }
-    const step = target.closest<HTMLElement>('[data-cel-step]');
-    if (step) {
-      selectCelestialStep(Number(step.dataset.celStep));
       return;
     }
     if (target.closest('[data-cel-refresh]')) {
@@ -901,16 +957,19 @@ function ensurePanel(): HTMLElement {
   element.id = 'gc-farm-manager';
   element.hidden = true;
   element.dataset.gcUi = '';
-  element.innerHTML = `<header><div><i></i><span>Farm Manager</span><small class="gc-fm-subtitle" data-fm-subtitle hidden>Plans the best placement so every celestial gets full Moonbinder and Dawnbinder coverage</small><b class="gc-fm-placing" data-fm-placing hidden></b><b class="gc-fm-warn" data-fm-warn hidden></b></div><button data-fm-close aria-label="Close">×</button></header>
-<main><div class="gc-fm-moves" data-fm-moves data-no-drag hidden></div><div class="gc-fm-grid" data-fm-grid data-no-drag></div><aside data-no-drag><div class="gc-fm-tabs"><button data-fm-tab="plants">Plants</button><button data-fm-tab="seeds">Seeds</button><button data-fm-tab="celestial">Celestials</button></div><div class="gc-fm-capacity" data-fm-capacity hidden></div><input data-fm-search placeholder="Search" spellcheck="false"><div class="gc-fm-list" data-fm-inventory></div></aside></main>
-<footer data-fm-status></footer>`;
+  const tabButton = (name: Tab, label: string) => `<button data-fm-tab="${name}">${ICONS[name]}<span>${label}</span><em></em></button>`;
+  element.innerHTML = `<header><div class="gc-fm-title"><span class="gc-fm-logo">${ICONS.farm}</span><div><b>Farm Manager</b><small data-fm-subtitle></small></div></div>
+<nav class="gc-fm-tabs">${tabButton('plants', 'Plants')}${tabButton('seeds', 'Seeds')}${tabButton('celestial', 'Celestials')}</nav>
+<div class="gc-fm-head-end"><div class="gc-fm-stats" data-fm-stats></div><button class="gc-fm-close" data-fm-close aria-label="Close">${ICONS.close}</button></div></header>
+<main><div class="gc-fm-stage"><div class="gc-fm-toolbar" data-no-drag><span><b class="gc-fm-where" data-fm-where>Your garden</b><b class="gc-fm-placing" data-fm-placing hidden></b><b class="gc-fm-warn" data-fm-warn hidden></b></span><span class="gc-fm-legend" data-fm-legend hidden><span><i class="gc-fm-legend-mix" style="--g:linear-gradient(135deg,${Object.values(CELESTIAL_BADGE).map(badge => badge.color).join(',')})"></i>Planned spot</span><span><i style="--c:#fb7185"></i>Must move</span><span><i style="--c:#4ade80"></i>In place</span><span><i style="--c:#fde68a"></i>Current step</span></span></div><div class="gc-fm-grid" data-fm-grid data-no-drag></div></div><aside data-no-drag><div class="gc-fm-list-head" data-fm-list-head></div><label class="gc-fm-search" data-fm-search-wrap>${ICONS.search}<input data-fm-search placeholder="Search" spellcheck="false"></label><div class="gc-fm-list" data-fm-inventory></div></aside></main>
+<footer><i class="gc-fm-dot"></i><span class="gc-fm-status" data-fm-status></span><span class="gc-fm-hints" data-fm-hints></span></footer>`;
   element.querySelector<HTMLButtonElement>('[data-fm-close]')!.onclick = () => { element.hidden = true; };
   // The game reads movement and hotkeys from window, so typing a search must not reach it.
   const input = element.querySelector<HTMLInputElement>('[data-fm-search]')!;
   for (const type of ['keydown', 'keyup', 'keypress'] as const) input.addEventListener(type, event => event.stopPropagation());
   input.addEventListener('input', () => { search = input.value; render(); });
   element.querySelectorAll<HTMLButtonElement>('[data-fm-tab]').forEach(button => button.onclick = () => {
-    tab = button.dataset.fmTab as typeof tab;
+    tab = button.dataset.fmTab as Tab;
     // Each visit to the Celestial tab plans from the garden as it is now.
     if (tab === 'celestial') celPlan = null;
     render();
@@ -931,19 +990,8 @@ function toggle(): void {
   render();
 }
 
-/** Opens Farm Manager on the Celestial tab (the celestial layout keybind and Features button), or closes it if already there. */
-function toggleCelestial(): void {
-  const element = ensurePanel();
-  if (!element.hidden && tab === 'celestial') { element.hidden = true; return; }
-  tab = 'celestial';
-  celPlan = null;
-  if (element.hidden) toggle();
-  else render();
-}
-
 export function initFarmManager(): void {
   page.__gardenCompanionToggleFarmManager = toggle;
-  page.__gardenCompanionToggleCelestialLayout = toggleCelestial;
   onStateChange(scheduleRender);
   onSpritesReady(scheduleRender);
   window.addEventListener('resize', scheduleRender);

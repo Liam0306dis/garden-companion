@@ -1,3 +1,9 @@
+0.9.85
+- Farm Manager slight redesign
+- Celestial planner: move list removed, hover a numbered plant to see its target
+- Celestial planner button removed from Features (open it in Farm Manager)
+- Plant swaps across the farm should no longer leave a plant in your inventory
+
 0.9.84
 - Auto Storage tab: per-item ignore lists
 - Added Sprites for potions, capsules, Camera and Shovel

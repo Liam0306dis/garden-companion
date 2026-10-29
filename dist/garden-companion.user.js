@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.84
+// @version      0.9.85
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -38,7 +38,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.84", notes: ["Auto Storage tab: per-item ignore lists", "Added Sprites for potions, capsules, Camera and Shovel", "Tour scrolls the tab list to each tab", "Pet teams: new team's emblem no longer lands on an old team", "Hunger Potion button can't spend two at once", "Clearer message when potions are stuck in a full inventory", "Auto Storage tab updates live and lists every tool", "Rooms tab shows loading on refresh"] }, { version: "0.9.83", notes: ["Cinematic button no longer jumps when a quest is ready"] }, { version: "0.9.82", notes: ["Journal logger: no more repeated crops, Log all works properly", "Egg luck: Double Hatch count can no longer be set too high or below zero"] }, { version: "0.9.81", notes: ["Journal logger: pets only suggested for missing variants"] }, { version: "0.9.80", notes: ["Glow works again after the game update"] }, { version: "0.9.79", notes: ["Ability history: added guards to hopefully stop other players' pets leaking through"] }, { version: "0.9.78", notes: ["Egg luck: Double Hatch count can be edited", "Instant harvest works with Crop Protection on"] }, { version: "0.9.77", notes: ["Egg luck: counts can be typed in"] }, { version: "0.9.76", notes: ["Journal logger: log new crops and pets with a click"] }, { version: "0.9.75", notes: ["Crop protection: combos can be built in any order"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.85", notes: ["Farm Manager slight redesign", "Celestial planner: move list removed, hover a numbered plant to see its target", "Celestial planner button removed from Features (open it in Farm Manager)", "Plant swaps across the farm should no longer leave a plant in your inventory"] }, { version: "0.9.84", notes: ["Auto Storage tab: per-item ignore lists", "Added Sprites for potions, capsules, Camera and Shovel", "Tour scrolls the tab list to each tab", "Pet teams: new team's emblem no longer lands on an old team", "Hunger Potion button can't spend two at once", "Clearer message when potions are stuck in a full inventory", "Auto Storage tab updates live and lists every tool", "Rooms tab shows loading on refresh"] }, { version: "0.9.83", notes: ["Cinematic button no longer jumps when a quest is ready"] }, { version: "0.9.82", notes: ["Journal logger: no more repeated crops, Log all works properly", "Egg luck: Double Hatch count can no longer be set too high or below zero"] }, { version: "0.9.81", notes: ["Journal logger: pets only suggested for missing variants"] }, { version: "0.9.80", notes: ["Glow works again after the game update"] }, { version: "0.9.79", notes: ["Ability history: added guards to hopefully stop other players' pets leaking through"] }, { version: "0.9.78", notes: ["Egg luck: Double Hatch count can be edited", "Instant harvest works with Crop Protection on"] }, { version: "0.9.77", notes: ["Egg luck: counts can be typed in"] }, { version: "0.9.76", notes: ["Journal logger: log new crops and pets with a click"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheave", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -1568,9 +1568,9 @@
   }
   function mutationFace(mutation, labelled = false) {
     const name = MUTATION_CATALOG[mutation]?.name || humanize(mutation);
-    const icon = mutationSprite(mutation);
-    if (labelled) return `${icon ? `<img src="${escapeHtml(icon)}" alt="">` : ""}${escapeHtml(name)}`;
-    return icon ? `<img src="${escapeHtml(icon)}" alt="${escapeHtml(name)}">` : `<span>${escapeHtml(name)}</span>`;
+    const icon2 = mutationSprite(mutation);
+    if (labelled) return `${icon2 ? `<img src="${escapeHtml(icon2)}" alt="">` : ""}${escapeHtml(name)}`;
+    return icon2 ? `<img src="${escapeHtml(icon2)}" alt="${escapeHtml(name)}">` : `<span>${escapeHtml(name)}</span>`;
   }
   var spriteReadyListeners = /* @__PURE__ */ new Set();
   function onSpritesReady(listener) {
@@ -3558,14 +3558,14 @@ ${groups}
     }
     return groups.map((group) => {
       const sprite = produceSprite(group.species);
-      const icon = sprite ? `<img class="gc-pm-icon" src="${escapeHtml(sprite)}" alt="">` : `<span class="gc-pm-icon gc-pm-icon-text">${escapeHtml(group.name.slice(0, 1))}</span>`;
+      const icon2 = sprite ? `<img class="gc-pm-icon" src="${escapeHtml(sprite)}" alt="">` : `<span class="gc-pm-icon gc-pm-icon-text">${escapeHtml(group.name.slice(0, 1))}</span>`;
       const lockedCount = group.rows.filter((row) => row.locked).length;
       const mark = groupState(group);
       const rows = group.rows.map((row) => {
         const active = selected.has(row.key);
         return `<div class="gc-pm-slot" role="button" tabindex="0" data-lock-row="${row.key}" data-active="${active}"><i class="gc-pm-check">${active ? "&#10003;" : ""}</i><span class="gc-pm-size">${row.sizePercent}%</span><span class="gc-pm-muts">${mutationChips(row.mutations)}${row.growing ? '<span class="gc-cl-growing">Growing</span>' : ""}</span><span class="gc-cl-state" data-locked="${row.locked}" title="${row.locked ? "Locked" : "Unlocked"}">${row.locked ? PADLOCK : PADLOCK_OPEN}</span></div>`;
       }).join("");
-      return `<section class="gc-pm-plant"><div class="gc-pm-plant-head" role="button" tabindex="0" data-lock-group="${escapeHtml(group.species)}" data-state="${mark.state}">${icon}<b>${escapeHtml(group.name)}</b><small>${lockedCount}/${group.rows.length} locked</small><i class="gc-pm-check">${mark.mark}</i></div><div class="gc-pm-slots">${rows}</div></section>`;
+      return `<section class="gc-pm-plant"><div class="gc-pm-plant-head" role="button" tabindex="0" data-lock-group="${escapeHtml(group.species)}" data-state="${mark.state}">${icon2}<b>${escapeHtml(group.name)}</b><small>${lockedCount}/${group.rows.length} locked</small><i class="gc-pm-check">${mark.mark}</i></div><div class="gc-pm-slots">${rows}</div></section>`;
     }).join("");
   }
   function modalMarkup() {
@@ -4013,10 +4013,10 @@ ${filter}
     return species.map((id) => {
       const rule = harvestRule(id);
       const sprite = produceSprite(id);
-      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+      const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
       const combos = rule.combos.map((_, index) => renderCombo(id, rule, index)).join("");
       return `<div class="gc-ready-rule" data-ready-species="${escapeHtml(id)}">
-<div class="gc-ready-head"><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small data-ready-summary>${ruleSummary(rule)}</small></span></div>
+<div class="gc-ready-head"><span class="gc-shop-sprite">${icon2}</span><span><b>${escapeHtml(plantName(id))}</b><small data-ready-summary>${ruleSummary(rule)}</small></span></div>
 ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(combo)) ? 'disabled title="Fill in the empty combo first"' : ""}>Add combo</button></div>`;
     }).join("");
   }
@@ -4109,8 +4109,8 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     const mutationRows = protectableMutations().map((id) => {
       const sprite = mutationSprite(id);
       const name = MUTATION_CATALOG[id]?.name || humanize(id);
-      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-      return `<label class="gc-check"><input type="checkbox" data-protect-mutation="${escapeHtml(id)}" ${mutations.has(id) ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(name)}</b></span></label>`;
+      const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+      return `<label class="gc-check"><input type="checkbox" data-protect-mutation="${escapeHtml(id)}" ${mutations.has(id) ? "checked" : ""}><span class="gc-shop-sprite">${icon2}</span><span><b>${escapeHtml(name)}</b></span></label>`;
     }).concat(
       // Max size has no sprite of its own, so it borrows the MAX chip the Journal already uses for
       // the same idea rather than leaving an empty tile beside the mutation icons.
@@ -4119,9 +4119,9 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     const owned = ownedSpecies();
     const speciesRows2 = Object.keys(PLANT_CATALOG).filter((id) => Number(PLANT_CATALOG[id]?.crop?.baseSellPrice) > 0).sort((left, right) => Number(owned.has(right)) - Number(owned.has(left)) || plantName(left).localeCompare(plantName(right))).map((id) => {
       const sprite = produceSprite(id);
-      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+      const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
       const where = owned.has(id) ? "In your garden" : "";
-      return `<label class="gc-check" data-filter-text="${escapeHtml(`${plantName(id)} ${id}`.toLowerCase())}"><input type="checkbox" data-protect-species="${escapeHtml(id)}" ${species[id] === true ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(plantName(id))}</b><small>${where}</small></span></label>`;
+      return `<label class="gc-check" data-filter-text="${escapeHtml(`${plantName(id)} ${id}`.toLowerCase())}"><input type="checkbox" data-protect-species="${escapeHtml(id)}" ${species[id] === true ? "checked" : ""}><span class="gc-shop-sprite">${icon2}</span><span><b>${escapeHtml(plantName(id))}</b><small>${where}</small></span></label>`;
     }).join("");
     return `<p class="gc-note">Blocks a harvest before it is sent when the crop is protected. Ticking Gold or Rainbow locks them rather than leaving them on the game's own press and hold, unless a combo below names them. The instant harvest key skips any crop protected here, so a combo below is how to let it through.</p>
 <section class="gc-card gc-launch-row"><div><h3>Crop Locker</h3><p>Lock or unlock any crop in your garden with the games own system.</p></div><button class="gc-primary" data-open-crop-locks>Crop Locker</button></section>
@@ -4828,8 +4828,8 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
       const sprite = produceSprite(row.species);
       const lockState = row.locked === 0 ? "none" : row.locked === row.ids.length ? "all" : "some";
       const title = `${name} - ${row.ids.length} held, ${row.locked} locked. Right-click to ${lockState === "all" ? "unlock" : "lock"} all.`;
-      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<i>${escapeHtml(name.slice(0, 1))}</i>`;
-      return `<div class="gc-produce-lock" data-produce-species="${escapeHtml(row.species)}" data-locked="${lockState}" title="${escapeHtml(title)}">${icon}<span class="gc-produce-lock-count">${row.ids.length}</span><b class="gc-produce-lock-pad" aria-hidden="true"></b></div>`;
+      const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : `<i>${escapeHtml(name.slice(0, 1))}</i>`;
+      return `<div class="gc-produce-lock" data-produce-species="${escapeHtml(row.species)}" data-locked="${lockState}" title="${escapeHtml(title)}">${icon2}<span class="gc-produce-lock-count">${row.ids.length}</span><b class="gc-produce-lock-pad" aria-hidden="true"></b></div>`;
     }).join("") : "<p>No produce</p>";
   }
   function position() {
@@ -4982,8 +4982,8 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
         const sprite = produceSprite(row.choice);
         const ready = Boolean(row.choice) && row.count > 0 && !(row.potion && potionsInFlight.has(row.pet.id));
         const label = !row.choice ? `Pick a food for ${humanize(row.pet.petSpecies)} in the Pet Food tab` : row.count === 0 ? `No ${humanize(row.choice)} in your inventory` : row.potion ? `Fill ${name}'s hunger with a ${humanize(row.choice)}` : `Feed ${humanize(row.choice)} to ${name}`;
-        const icon = row.choice ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>` : "<i>?</i>";
-        return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" data-potion="${row.potion}" title="${escapeHtml(label)}" ${ready ? "" : "disabled"}>${icon}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
+        const icon2 = row.choice ? sprite ? `<img src="${escapeHtml(sprite)}" alt="${escapeHtml(row.choice)}">` : `<i>${escapeHtml(humanize(row.choice).slice(0, 1))}</i>` : "<i>?</i>";
+        return `<button data-food-row data-feed-pet="${escapeHtml(row.pet.id)}" data-crop-item="${escapeHtml(row.cropItemId)}" data-potion="${row.potion}" title="${escapeHtml(label)}" ${ready ? "" : "disabled"}>${icon2}${row.choice ? `<span class="gc-petfood-count">${row.count}</span>` : ""}</button>`;
       }).join("");
       positionPetFood();
     }
@@ -5024,10 +5024,10 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
       button.style.height = `${size}px`;
       button.style.left = `${Math.round(dockRight ? anchor2.right + gap : anchor2.left - gap - size)}px`;
       button.style.top = `${Math.round(anchor2.centerY - size / 2)}px`;
-      const icon = button.querySelector("img");
-      if (icon) {
-        icon.style.width = `${iconSize}px`;
-        icon.style.height = `${iconSize}px`;
+      const icon2 = button.querySelector("img");
+      if (icon2) {
+        icon2.style.width = `${iconSize}px`;
+        icon2.style.height = `${iconSize}px`;
       }
     });
     const last = anchors.reduce((lowest, row) => row.centerY > lowest.centerY ? row : lowest, anchors[0]);
@@ -6117,8 +6117,8 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
   function choiceButtons(key, choices, current2) {
     return choices.map(([id, text]) => {
       const sprite = page.__gardenCompanionWeatherSprites?.[CHOICE_ICONS[id] ?? ""] || "";
-      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-      return `<button data-sky-${key}="${escapeHtml(id)}" class="${id === current2 ? "active" : ""}">${icon}<span>${escapeHtml(text)}</span></button>`;
+      const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+      return `<button data-sky-${key}="${escapeHtml(id)}" class="${id === current2 ? "active" : ""}">${icon2}<span>${escapeHtml(text)}</span></button>`;
     }).join("");
   }
   var SLIDER_UNITS = { night: "%", nightColour: "%", glow: "%", brightness: "%", contrast: "%", saturation: "%", warmth: "%", hue: "°" };
@@ -6342,9 +6342,9 @@ ${slider("hue", "Hue", -180, 180, sky.hue)}
     const running2 = currentWeather();
     const rows = WEATHER_TYPES.map((weather) => {
       const sprite = page.__gardenCompanionWeatherSprites?.[weather] || "";
-      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+      const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
       const note = running2 === weather ? weather === "Rain" ? rainRemainingText() : weatherRemainingText() : "Not running";
-      return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? "checked" : ""}><span class="gc-shop-sprite">${icon}</span><span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>` + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + "</label>";
+      return `<label class="gc-check"><input type="checkbox" data-weather-alert="${escapeHtml(weather)}" ${chosen[weather] ? "checked" : ""}><span class="gc-shop-sprite">${icon2}</span><span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>` + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + "</label>";
     }).join("");
     const nightSprite = page.__gardenCompanionWeatherSprites?.[NIGHT] || "";
     const nightIcon = nightSprite ? `<img src="${escapeHtml(nightSprite)}" alt="">` : "";
@@ -6731,8 +6731,8 @@ ${variantFilterStrip(variants, journalTab)}
   }
   function variantChip2(variant) {
     const label = variant === "Max Weight" ? "Max Size" : MUTATION_CATALOG[variant]?.name || variant;
-    const icon = mutationSprite(variant);
-    return `<span class="gc-cleanser-mutation" title="${escapeHtml(label)}">${icon ? `<img src="${escapeHtml(icon)}" alt="">` : ""}${escapeHtml(label)}</span>`;
+    const icon2 = mutationSprite(variant);
+    return `<span class="gc-cleanser-mutation" title="${escapeHtml(label)}">${icon2 ? `<img src="${escapeHtml(icon2)}" alt="">` : ""}${escapeHtml(label)}</span>`;
   }
   var pending = /* @__PURE__ */ new Set();
   var current = [];
@@ -7064,16 +7064,16 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
   function pityRow(eggId, label, sprite, record, key, editMode = false) {
     const threshold = pityThreshold(eggId, key);
     const { misses, synced } = record.counters[key] ?? emptyCounter();
-    const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+    const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
     const count = editMode ? `<input type="number" min="0" value="${misses}" data-egg-pity="${escapeHtml(eggId)}" data-key="${escapeHtml(key)}" title="Pulls since ${escapeHtml(label)} last landed"> / ${threshold.toLocaleString(NUMBER_LOCALE)}` : `${synced ? "" : "&#8805;"}${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}`;
     const title = synced ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.` : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
-    return `<div class="gc-egg-pity" data-due="${misses >= threshold}" title="${escapeHtml(title)}"><span class="gc-shop-sprite">${icon}</span><span class="gc-egg-pity-label">${escapeHtml(label)}</span><span class="gc-egg-bar"><i style="width:${Math.min(100, misses / threshold * 100).toFixed(1)}%"></i></span><span class="gc-egg-pity-count">${count}</span></div>`;
+    return `<div class="gc-egg-pity" data-due="${misses >= threshold}" title="${escapeHtml(title)}"><span class="gc-shop-sprite">${icon2}</span><span class="gc-egg-pity-label">${escapeHtml(label)}</span><span class="gc-egg-bar"><i style="width:${Math.min(100, misses / threshold * 100).toFixed(1)}%"></i></span><span class="gc-egg-pity-count">${count}</span></div>`;
   }
   function eggCard(eggId) {
     const record = luck[eggId] ?? blankEgg();
     const sprite = page.__gardenCompanionShopSprites?.[eggId] || "";
-    const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
-    const title = `<span class="gc-shop-sprite">${icon}</span>${escapeHtml(eggName(eggId))}`;
+    const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+    const title = `<span class="gc-shop-sprite">${icon2}</span>${escapeHtml(eggName(eggId))}`;
     const pullNote = record.pulls === record.hatches ? "" : ` (${record.pulls.toLocaleString(NUMBER_LOCALE)} pulls)`;
     const hatched = `<span class="gc-pill">${record.hatches.toLocaleString(NUMBER_LOCALE)} hatched${pullNote}</span>`;
     const editMode = editing2.has(eggId);
@@ -8102,7 +8102,7 @@ ${eggs.map(eggCard).join("")}`;
     weatherDawn: "Dawn",
     weatherAmberMoon: "Amber Moon"
   };
-  var iconLabel = (icon) => EMBLEM_ICON_LABELS[icon] ?? humanize(icon).replace(/\b\w/g, (letter) => letter.toUpperCase());
+  var iconLabel = (icon2) => EMBLEM_ICON_LABELS[icon2] ?? humanize(icon2).replace(/\b\w/g, (letter) => letter.toUpperCase());
   var EMBLEM_LETTERS = Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index));
   var teamPickerSelection = null;
   var teamPickerEmblem = null;
@@ -8174,9 +8174,9 @@ ${eggs.map(eggCard).join("")}`;
     const save2 = picker.querySelector("[data-save-team]");
     if (save2) save2.disabled = count < 1 || count > MAX_TEAM_PETS;
   }
-  function emblemIconMarkup(icon) {
-    const sprite = page.__gardenCompanionEmblemSprites?.[icon];
-    return sprite ? `<img src="${escapeHtml(sprite)}" alt=""><small>${escapeHtml(iconLabel(icon))}</small>` : `<i data-emblem-icon="${escapeHtml(icon)}"></i><small>${escapeHtml(iconLabel(icon))}</small>`;
+  function emblemIconMarkup(icon2) {
+    const sprite = page.__gardenCompanionEmblemSprites?.[icon2];
+    return sprite ? `<img src="${escapeHtml(sprite)}" alt=""><small>${escapeHtml(iconLabel(icon2))}</small>` : `<i data-emblem-icon="${escapeHtml(icon2)}"></i><small>${escapeHtml(iconLabel(icon2))}</small>`;
   }
   function emblemChip(emblem) {
     if (emblem.type === "icon") {
@@ -8213,7 +8213,7 @@ ${eggs.map(eggCard).join("")}`;
       taken.has(index + 1) ? `${letter} is used by another team` : `Letter ${letter}`,
       taken.has(index + 1)
     )).join("");
-    const icons = EMBLEM_ICONS.map((icon) => option(`icon:${icon}`, emblemIconMarkup(icon), iconLabel(icon))).join("");
+    const icons = EMBLEM_ICONS.map((icon2) => option(`icon:${icon2}`, emblemIconMarkup(icon2), iconLabel(icon2))).join("");
     const teamPets = selectedTeamPets();
     const pets = teamPets.length ? teamPets.map((pet) => {
       const { key, inner, label } = petEmblemOption(pet);
@@ -11352,7 +11352,7 @@ ${eggs.map(eggCard).join("")}`;
     { tab: "rooms", targets: [CONTENT], title: "Rooms", text: "Public rooms with space for you, ready to join." },
     { tab: "keybinds", targets: [CONTENT], title: "Keybinds", text: "Every shortcut lives here: teams, tools and companion windows. Click one and press the keys you want." },
     { tab: "features", targets: [CONTENT], title: "Features", text: "Optional tools you can switch on or off, such as plant drag move, crop estimates and background mode." },
-    { tab: "features", targets: [CONTENT], scrollTo: "#gc-panel main .gc-launch-row", title: "Extra windows", text: "The Garden Overview, Farm Manager, Crop Cleanser, Layout planner and Celestial layout all open from here." },
+    { tab: "features", targets: [CONTENT], scrollTo: "#gc-panel main .gc-launch-row", title: "Extra windows", text: "The Garden Overview, Farm Manager, Crop Cleanser and Layout planner all open from here." },
     { targets: ["#gc-overview-button"], optional: true, title: "Garden Overview button", text: "The quickest way into the Garden Overview: growth, value, mutation progress and completion estimates for your whole garden." },
     { targets: ["#gc-lunar:not([hidden])", "#gc-lunar-mini:not([hidden])"], optional: true, title: "Lunar timer", text: "Counts down to the next lunar event, or the next weather with the swap button. The gear opens this panel and the dot shows whether you are connected." },
     { tab: "diagnostics", targets: [CONTENT], title: "Diagnostics", text: "What is working and what is not. If something breaks, copy the report from here and send it over." },
@@ -12190,7 +12190,7 @@ ${eggs.map(eggCard).join("")}`;
         ["backgroundMode", "Run in background", "Keep the game active when its tab is not visible"],
         ["autoRefreshGameUpdates", "Refresh for game updates", "Reload five seconds after the game reports an expired version"]
       ];
-      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Farm Manager</h3><p>A map of your garden. Drag plants to move or swap them, and plant potted plants or seeds onto empty tiles.</p></div><button class="gc-primary" data-open-farm-manager>Open manager</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><section class="gc-card gc-launch-row"><div><h3>Celestial layout</h3><p>Plan a buff layout for your celestial plants in Farm Manager, then drag them into place step by step.</p></div><button class="gc-primary" data-open-celestial-layout>Open layout</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
+      return `<p class="gc-note">Optional tools can be changed here. Plant drag, Planter Pot selection, estimates, and harvest settings apply immediately. Background mode applies after a reload.</p><div class="gc-list">${rows.map(([key, title, text]) => `<label class="gc-toggle"><span><b>${title}</b><small>${text}</small></span><input type="checkbox" data-feature="${key}" ${feature(key) ? "checked" : ""}><i></i></label>`).join("")}</div><section class="gc-card gc-launch-row"><div><h3>Garden overview</h3><p>Growth, value, mutation progress, and completion estimates for your garden.</p></div><button class="gc-primary" data-open-overview>Open overview</button></section><section class="gc-card gc-launch-row"><div><h3>Farm Manager</h3><p>A map of your garden. Drag plants to move or swap them, and plant potted plants or seeds onto empty tiles.</p></div><button class="gc-primary" data-open-farm-manager>Open manager</button></section><section class="gc-card gc-launch-row"><div><h3>Crop Cleanser helper</h3><p>Find mature crops by mutation and manually cleanse individual slots.</p></div><button class="gc-primary" data-open-crop-cleanser>Open helper</button></section><section class="gc-card gc-launch-row"><div><h3>Layout planner</h3><p>Plan plants and decor on your own tiles. Nothing is sent to the game.</p></div><button class="gc-primary" data-open-planner>Open planner</button></section><p class="gc-note">Every keybind now lives on the Keybinds tab.</p>`;
     }
     function renderMinigames() {
       return `<section class="gc-card gc-launch-row"><div><h3>Fishing</h3><p>Fishing minigame.</p></div><button class="gc-primary" data-open-fishing>Play</button></section><section class="gc-card gc-launch-row"><div><h3>Garden Defence</h3><p>Plants vs. Pests: hold the lawn for 20 waves. No brains required.</p></div><button class="gc-primary" data-open-garden-defence>Play</button></section>`;
@@ -12239,10 +12239,6 @@ ${eggs.map(eggCard).join("")}`;
       main.querySelector("[data-open-planner]")?.addEventListener("click", () => {
         closePanel();
         page.__gardenCompanionTogglePlanner?.();
-      });
-      main.querySelector("[data-open-celestial-layout]")?.addEventListener("click", () => {
-        closePanel();
-        page.__gardenCompanionToggleCelestialLayout?.();
       });
       main.querySelector("[data-open-farm-manager]")?.addEventListener("click", () => {
         closePanel();
@@ -12310,1227 +12306,1265 @@ ${eggs.map(eggCard).join("")}`;
     }
     function mount() {
       const style = document.createElement("style");
-      style.textContent = `/* Design tokens. One neutral graphite ramp and one accent: surfaces step up in lightness as they\r
-   sit higher (page < shell < card < control), so depth reads without borders doing all the work.\r
-   The accent is kept as an RGB triplet as well, since tints are written as rgba(var(...),alpha). */\r
-:root {\r
-  --gc-bg: #141417;\r
-  --gc-side: #101012;\r
-  --gc-surface: #1a1a1e;\r
-  --gc-surface-2: #222227;\r
-  --gc-surface-3: #2a2a30;\r
-  --gc-input: #0e0e10;\r
-  --gc-raised: #1a1a1e;\r
-  --gc-soft: rgba(255,255,255,.03);\r
-  --gc-line: rgba(255,255,255,.07);\r
-  --gc-line-strong: rgba(255,255,255,.12);\r
-  --gc-text: #ececef;\r
-  --gc-strong: #fafafa;\r
-  --gc-muted: #a1a1aa;\r
-  --gc-faint: #83838d;\r
-  --gc-accent-rgb: 124,108,242;\r
-  --gc-accent: #7c6cf2;\r
-  --gc-accent-hover: #8d7ff5;\r
-  --gc-accent-text: #b3a9ff;\r
-  --gc-accent-soft: rgba(124,108,242,.14);\r
-  --gc-accent-line: rgba(124,108,242,.45);\r
-  --gc-green: #3ecf8e;\r
-  --gc-gold: #f5c04a;\r
-  --gc-danger: #f07171;\r
-  --gc-radius: 12px;\r
-  --gc-radius-md: 9px;\r
-  --gc-radius-sm: 7px;\r
-  --gc-shadow: 0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);\r
-  --gc-font: "Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;\r
-  --gc-mono: ui-monospace,"Cascadia Mono",SFMono-Regular,Consolas,monospace;\r
-}\r
-#gc-panel img,#gc-alarm img,#gc-turtle img,#gc-overview-panel img { image-rendering:auto!important; }\r
-\r
-/* ── Lunar timer ─────────────────────────────────────────────────────────────────────────────── */\r
-#gc-lunar { position:fixed;right:16px;bottom:16px;cursor:move;z-index:99990;width:232px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);box-shadow:var(--gc-shadow);font:13px/1.2 var(--gc-font);user-select:none; }\r
-#gc-lunar::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14) 50%,transparent); }\r
-.gc-lunar-head { display:flex;align-items:center;justify-content:space-between;padding:10px 10px 2px 12px; }\r
-.gc-lunar-title { min-width:0;display:flex;align-items:center;gap:8px;color:var(--gc-muted);font-size:11px;font-weight:600; }\r
-.gc-lunar-title span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-lunar-mark { position:relative;width:16px;height:16px;flex:0 0 auto;border-radius:50%;background:var(--gc-accent-text); }\r
-.gc-lunar-mark::after { content:'';position:absolute;top:1px;left:5px;width:13px;height:13px;border-radius:50%;background:var(--gc-bg); }\r
-/* Showing a weather instead, the dial is only a frame for it - the crescent underneath would\r
-   otherwise read through the sprite's transparent corners. */\r
-.gc-lunar-mark[data-weather] { background:none;box-shadow:none; }\r
-.gc-lunar-mark[data-weather]::after { content:none; }\r
-.gc-lunar-mark img { position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:auto; }\r
-/* One rule for every control in the header. Naming each button meant a new one arrived with no\r
-   size, no border and an unstroked icon - present, and invisible. */\r
-#gc-lunar-head-actions button { width:26px;height:26px;display:grid;place-items:center;padding:0;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent;cursor:pointer;transition:background .12s,color .12s; }\r
-#gc-lunar-head-actions button svg { width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }\r
-#gc-lunar-head-actions button:hover { color:var(--gc-text);background:var(--gc-surface-2); }\r
-/* The swap control is the one that changes what the panel is showing, so it reads as active when\r
-   the panel is on the borrowed forecast rather than the lunar countdown. */\r
-#gc-lunar-head-actions button[data-swap][data-mode="weather"] { color:var(--gc-accent-text);background:var(--gc-accent-soft); }\r
-#gc-lunar-head-actions { display:flex;align-items:center;gap:2px;flex:0 0 auto; }\r
-/* Sits beside the Garden Overview button, which is 32px at left:10px, so this clears it by 8px. */\r
-#gc-lunar-mini { position:fixed;left:50px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-md);background:var(--gc-bg);color:var(--gc-text);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45); }\r
-#gc-lunar-mini:hover { background:var(--gc-surface-2); }\r
-/* Docked under the right-side rail by script; this top right corner is where it waits while cinematic mode is on. */\r
-#gc-cinematic { position:fixed;top:12px;right:12px;z-index:99988;width:36px;height:36px;padding:0;box-sizing:border-box;display:grid;place-items:center;border:0;background:transparent;color:#fff;cursor:pointer;transition:opacity .15s,transform .1s;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); }\r
-#gc-cinematic[hidden] { display:none; }\r
-#gc-cinematic:hover { transform:scale(1.08); }\r
-#gc-cinematic img { width:36px;height:36px;object-fit:contain;pointer-events:none; }\r
-#gc-cinematic svg { width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none; }\r
-/* Faded while cinematic mode is on, so it keeps out of the shot but is still there to click. */\r
-#gc-cinematic[data-active="true"] { opacity:.35; }\r
-#gc-cinematic[data-active="true"]:hover { opacity:1; }\r
-#gc-lunar-mini .gc-lunar-mark { width:16px;height:16px; }\r
-#gc-lunar-mini .gc-lunar-mark::after { top:1px;left:5px;width:13px;height:13px;background:var(--gc-bg); }\r
-#gc-lunar-mini:hover .gc-lunar-mark::after { background:var(--gc-surface-2); }\r
-.gc-lunar-countdown { display:flex;align-items:center;justify-content:center;padding:6px 12px 14px; }\r
-/* A word where the digits go: the countdown face is sized for four monospaced characters, and\r
-   Unavailable at that size runs off the panel. */\r
-.gc-lunar-countdown[data-message="true"] strong { font-size:15px;letter-spacing:0;color:var(--gc-muted); }\r
-.gc-lunar-countdown strong { color:var(--gc-strong);font:650 31px/1 var(--gc-mono);letter-spacing:-.03em;text-align:center;font-variant-numeric:tabular-nums; }\r
-#gc-lunar .gc-health { min-height:32px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:6px 8px 6px 12px;border-top:1px solid var(--gc-line); }\r
-#gc-ws-health { min-width:0;display:flex;align-items:center;gap:6px;color:var(--gc-muted);font-size:11px;font-weight:500; }\r
-#gc-ws-health i { width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:#f59e0b; }\r
-#gc-ws-health[data-status=connected] i { background:var(--gc-green); }\r
-#gc-ws-health[data-status=disconnected] i { background:var(--gc-danger); }\r
-#gc-update-health { margin-left:auto;padding:4px 8px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-muted);background:transparent;cursor:pointer;font:500 11px/1.2 var(--gc-font); }\r
-#gc-update-health:hover { color:var(--gc-text);background:var(--gc-surface-2); }\r
-#gc-update-health[data-status=available] { color:#fecaca;border-color:rgba(248,113,113,.72);background:rgba(248,113,113,.08); }\r
-#gc-update-health[data-status=failed] { color:var(--gc-danger); }\r
-\r
-/* ── Main window ─────────────────────────────────────────────────────────────────────────────── */\r
-/* A movable window, dragged by its title bar or page heading. */\r
-#gc-panel { position:fixed;left:0;top:0;z-index:999995;width:min(800px,96vw);height:min(630px,94vh);max-width:100vw;max-height:100vh;overflow:clip;background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:12px;box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.45 var(--gc-font);-webkit-font-smoothing:antialiased; }\r
-#gc-panel[hidden] { display:none; }\r
-#gc-panel[data-dragging=true] { opacity:.94;user-select:none; }\r
-#gc-panel *,#gc-panel *::before,#gc-panel *::after { box-sizing:border-box; }\r
-.gc-shell { width:100%;height:100%;overflow:clip;display:grid;grid-template-columns:168px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto; }\r
-/* Title bar across the whole window: brand on the left, window buttons on the right. */\r
-.gc-titlebar { grid-column:1 / -1;height:38px;display:flex;align-items:center;gap:2px;padding:0 4px 0 10px;background:var(--gc-side);border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }\r
-.gc-brand { flex:1;min-width:0;display:flex;align-items:center;gap:8px; }\r
-.gc-brand-mark { width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;border:1px solid var(--gc-line);border-radius:6px;background:var(--gc-surface-2);font-size:12px;font-style:normal;line-height:1; }\r
-.gc-brand b { overflow:hidden;color:var(--gc-strong);font-size:13px;font-weight:650;line-height:1.2;white-space:nowrap;text-overflow:ellipsis; }\r
-#gc-panel .gc-titlebar [data-close] { width:30px;height:30px;min-height:0;display:grid;place-items:center;padding:0;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent; }\r
-#gc-panel .gc-titlebar [data-close]:hover:not(:disabled) { color:#fca5a5;background:rgba(240,113,113,.12); }\r
-.gc-titlebar [data-close] svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round; }\r
-/* Sidebar: grouped tabs. */\r
-.gc-side { min-height:0;display:flex;flex-direction:column;background:var(--gc-side);border-right:1px solid var(--gc-line); }\r
-.gc-side nav { min-height:0;flex:1;overflow:auto;padding:8px 6px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent; }\r
-.gc-nav-group + .gc-nav-group { margin-top:6px; }\r
-/* Scoped under #gc-panel so these outrank both the game's button styles and the panel-wide button\r
-   rule, which would otherwise give headings and tabs a border and fill. */\r
-#gc-panel nav .gc-nav-head { width:100%;height:22px;min-height:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 8px;margin:0 0 2px;border:0;border-radius:6px;background:transparent;color:var(--gc-faint);cursor:pointer;font:600 11px var(--gc-font);letter-spacing:.02em; }\r
-#gc-panel nav .gc-nav-head:hover { color:var(--gc-text);background:transparent; }\r
-#gc-panel nav .gc-nav-head svg { width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s; }\r
-#gc-panel nav .gc-nav-head[aria-expanded=false] svg { transform:rotate(-90deg); }\r
-/* Collapsed but holding the tab you are on - marked so the nav still tells you where you are. */\r
-#gc-panel nav .gc-nav-head[data-holds-active=true] { color:var(--gc-accent-text);background:var(--gc-accent-soft);box-shadow:inset 2px 0 var(--gc-accent); }\r
-.gc-nav-items { display:flex;flex-direction:column;gap:1px; }\r
-#gc-panel nav .gc-nav-items button { position:relative;width:100%;height:28px;min-height:0;display:flex;align-items:center;gap:9px;padding:0 9px;margin:0;border:0;border-radius:var(--gc-radius-sm);text-align:left;color:var(--gc-muted);background:transparent;cursor:pointer;font:500 13px var(--gc-font);transition:background .12s,color .12s; }\r
-#gc-panel nav .gc-nav-items button svg { width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85; }\r
-#gc-panel nav .gc-nav-items button span { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }\r
-#gc-panel nav .gc-nav-items button:hover { color:var(--gc-text);background:var(--gc-soft); }\r
-#gc-panel nav .gc-nav-items button.active { color:var(--gc-strong);background:var(--gc-surface-2); }\r
-#gc-panel nav .gc-nav-items button.active::before { content:'';position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--gc-accent); }\r
-#gc-panel nav .gc-nav-items button.active svg { color:var(--gc-accent-text);opacity:1; }\r
-/* Content column: page heading over the scrolling tab body. */\r
-.gc-content { min-width:0;min-height:0;display:flex;flex-direction:column; }\r
-.gc-page-head { padding:10px 16px 9px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }\r
-.gc-page-head small { display:block;color:var(--gc-accent-text);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }\r
-.gc-page-head h2 { margin:1px 0 0;color:var(--gc-strong);font-size:15px;font-weight:650;line-height:1.25;letter-spacing:-.01em; }\r
-.gc-page-head p { margin:2px 0 0;color:var(--gc-muted);font-size:12px;line-height:1.45; }\r
-/* Footer bar under both columns: Keybinds, Features and support on the left, the version on the right. */\r
-.gc-footer { grid-column:1 / -1;min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px 0 6px;background:var(--gc-side);border-top:1px solid var(--gc-line); }\r
-.gc-footer > div { display:flex;align-items:center;gap:2px;min-width:0; }\r
-#gc-panel .gc-footer button { height:30px;min-height:0;display:flex;align-items:center;gap:8px;padding:0 10px;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent;font:500 13px var(--gc-font); }\r
-#gc-panel .gc-footer button:hover:not(:disabled) { color:var(--gc-text);background:var(--gc-soft); }\r
-#gc-panel .gc-footer button.active { color:var(--gc-strong);background:var(--gc-surface-2); }\r
-.gc-footer button svg { width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85; }\r
-#gc-panel .gc-footer button.active svg { color:var(--gc-accent-text);opacity:1; }\r
-#gc-panel .gc-footer .gc-version { position:relative;flex:0 0 auto;height:26px;padding:0 8px;color:var(--gc-faint);font:500 12px var(--gc-font);font-variant-numeric:tabular-nums; }\r
-#gc-panel .gc-footer .gc-version[data-unseen="true"] { color:var(--gc-accent-text); }\r
-#gc-panel .gc-footer button[data-alert] { position:relative; }\r
-#gc-panel .gc-footer button[data-alert]::after { content:'';position:absolute;top:4px;left:21px;width:7px;height:7px;border-radius:50%;background:var(--gc-danger);box-shadow:0 0 0 2px var(--gc-side); }\r
-.gc-diag-row { display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:2px;align-items:baseline;padding:7px 0;border-top:1px solid var(--gc-line); }\r
-.gc-card h3 + .gc-diag-row, .gc-card summary + .gc-diag-row { border-top:0; }\r
-.gc-diag-row b { min-width:0;overflow-wrap:anywhere;font-weight:500; }\r
-.gc-diag-row small { grid-column:2;color:var(--gc-faint);overflow-wrap:anywhere; }\r
-.gc-diag-row[data-status="failed"] .gc-pill { color:var(--gc-danger);border-color:var(--gc-danger); }\r
-.gc-diag-row[data-status="waiting"] .gc-pill { color:var(--gc-gold);border-color:var(--gc-gold); }\r
-.gc-diag-row[data-status="ok"] .gc-pill { color:var(--gc-green);border-color:var(--gc-green); }\r
-details.gc-card summary { cursor:pointer;list-style:none; }\r
-details.gc-card summary h3 { display:inline; }\r
-/* Spaced by the column's gap, so the hidden report box between the cards leaves no odd gaps. */\r
-.gc-diag { display:flex;flex-direction:column;gap:10px; }\r
-.gc-diag > .gc-card, .gc-diag > .gc-card + .gc-card { margin:0; }\r
-.gc-diag .gc-card > .gc-note { margin:0; }\r
-.gc-diag-report { width:100%;min-height:180px;margin:0;padding:8px;box-sizing:border-box;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);font:12px var(--gc-mono);resize:vertical; }\r
-.gc-diag-report[hidden] { display:none; }\r
-#gc-panel .gc-footer .gc-version[data-unseen="true"]::after { content:'';position:absolute;top:3px;right:1px;width:7px;height:7px;border-radius:50%;background:var(--gc-accent);box-shadow:0 0 0 2px var(--gc-side); }\r
-#gc-panel .gc-footer .gc-footer-end { display:flex;align-items:center;gap:4px; }\r
-/* Guided tour: a catcher over the page so clicks cannot wander off mid-step, a dimming path with a\r
-   hole cut for each spotlight, a ring around each hole, and the caption card beside them. */\r
-#gc-tour { position:fixed;inset:0;z-index:2147483640;font:13px/1.5 var(--gc-font);color:var(--gc-text); }\r
-#gc-tour .gc-tour-catch { position:absolute;inset:0; }\r
-#gc-tour .gc-tour-dim { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }\r
-#gc-tour .gc-tour-dim path { fill:rgba(0,0,0,.6); }\r
-#gc-tour .gc-tour-rings > div { position:fixed;box-sizing:border-box;pointer-events:none;border:2px solid var(--gc-accent);border-radius:9px; }\r
-#gc-tour .gc-tour-card { position:fixed;width:min(300px,calc(100vw - 24px));box-sizing:border-box;padding:14px 16px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);transition:left .2s,top .2s; }\r
-#gc-tour .gc-tour-card small { color:var(--gc-accent-text);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }\r
-#gc-tour .gc-tour-card h3 { margin:2px 0 4px;color:var(--gc-strong);font-size:15px;font-weight:650; }\r
-#gc-tour .gc-tour-card p { margin:0 0 12px;color:var(--gc-muted);font-size:12.5px; }\r
-#gc-tour .gc-tour-card footer { display:flex;align-items:center;justify-content:space-between;gap:8px; }\r
-#gc-tour .gc-tour-card footer span { display:flex;gap:6px; }\r
-#gc-tour .gc-tour-card button { height:28px;padding:0 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);color:var(--gc-text);cursor:pointer;font:500 12px var(--gc-font); }\r
-#gc-tour .gc-tour-card button:hover { background:var(--gc-surface-3); }\r
-#gc-tour .gc-tour-card [data-tour-skip] { border-color:transparent;background:transparent;color:var(--gc-faint); }\r
-#gc-tour .gc-tour-card [data-tour-skip]:hover { color:var(--gc-text);background:var(--gc-soft); }\r
-#gc-tour .gc-tour-card .gc-tour-next { border-color:var(--gc-accent);background:var(--gc-accent);color:#fff;font-weight:600; }\r
-#gc-tour .gc-tour-card .gc-tour-next:hover { background:var(--gc-accent-hover); }\r
-#gc-whats-new { position:fixed;z-index:2147483646;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));max-height:min(520px,calc(100vh - 32px));display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.5 var(--gc-font); }\r
-#gc-whats-new > header { flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;border-bottom:1px solid var(--gc-line);color:var(--gc-strong);font-size:14px; }\r
-#gc-whats-new > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }\r
-#gc-whats-new > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }\r
-#gc-whats-new > main { overflow:auto;padding:6px 16px 14px;scrollbar-width:thin; }\r
-#gc-whats-new section + section { border-top:1px solid var(--gc-line); }\r
-#gc-whats-new h4 { display:flex;align-items:center;gap:8px;margin:12px 0 6px;color:var(--gc-strong);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums; }\r
-#gc-whats-new h4 span { padding:1px 7px;border-radius:999px;background:var(--gc-accent-soft);color:var(--gc-accent-text);font-size:10px;font-weight:600; }\r
-#gc-whats-new ul { margin:0 0 10px;padding-left:18px;color:var(--gc-text); }\r
-#gc-whats-new li + li { margin-top:4px; }\r
-.gc-content main { min-height:0;flex:1;overflow:auto;scrollbar-gutter:stable;padding:12px 16px 16px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent; }\r
-\r
-/* ── Shared building blocks ──────────────────────────────────────────────────────────────────── */\r
-.gc-note { margin:0 0 10px;color:var(--gc-muted);font-size:12px;line-height:1.5; }\r
-.gc-content main > * + .gc-note { margin-top:10px; }\r
-.gc-stack { display:flex;flex-direction:column;gap:8px; }\r
-/* Settings read as one grouped list: rows share a frame and are split by hairlines. */\r
-.gc-list { display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }\r
-.gc-list + .gc-list,.gc-list + .gc-card,.gc-card + .gc-list { margin-top:12px; }\r
-.gc-toggle,.gc-check { position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface);cursor:pointer;transition:background .12s,border-color .12s; }\r
-.gc-list > .gc-toggle { border:0;border-radius:0;background:transparent; }\r
-.gc-list > .gc-toggle + .gc-toggle { border-top:1px solid var(--gc-line); }\r
-.gc-list > .gc-toggle:hover { background:var(--gc-soft); }\r
-/* Sits under the ability hint, so it needs clearing from it. */\r
-.gc-granter-crystal { margin-top:10px; }\r
-/* What one proc is worth, under the strength slider it follows. */\r
-.gc-granter-effect { margin:8px 0 0;font-size:12px;color:var(--gc-muted); }\r
-/* The XP calculator fills the pane rather than sitting in a strip at the top of it. */\r
-.gc-content main:has(> .gc-xp) { display:flex;flex-direction:column; }\r
-.gc-xp { flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(220px,1fr);gap:20px;padding:20px; }\r
-.gc-xp-inputs { min-width:0;display:flex;flex-direction:column;gap:18px; }\r
-.gc-xp-field { display:flex;flex-direction:column;gap:6px; }\r
-.gc-xp-field .gc-calc-select { height:40px;font-size:14px; }\r
-.gc-xp .gc-granter-list { gap:10px; }\r
-.gc-xp .gc-granter-row { padding:12px 14px 12px 10px; }\r
-.gc-xp .gc-granter-head .gc-pet-sprite { width:40px;height:40px; }\r
-.gc-xp .gc-granter-head .gc-pet-sprite img { width:34px;height:34px; }\r
-.gc-xp .gc-granter-head b { font-size:14px; }\r
-.gc-xp .gc-granter-head small { font-size:12px; }\r
-.gc-xp-field > span { color:var(--gc-muted);font-size:11px;font-weight:550;text-transform:uppercase;letter-spacing:.04em; }\r
-.gc-xp-field .gc-granter-list { margin-top:0; }\r
-.gc-xp-custom { display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;gap:6px; }\r
-.gc-xp-custom select,.gc-xp-custom input { width:100%;height:32px;padding:0 8px;box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:13px var(--gc-font); }\r
-.gc-xp-custom input:focus { border-color:var(--gc-accent-line); }\r
-.gc-xp .gc-granter-row { grid-template-columns:minmax(0,1fr) minmax(100px,140px); }\r
-.gc-xp .gc-granter-head small { white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }\r
-.gc-xp-custom label { display:flex;flex-direction:column;gap:2px; }\r
-.gc-xp-custom label span { color:var(--gc-muted);font-size:10px; }\r
-.gc-xp-custom select { align-self:end; }\r
-.gc-xp-result { display:flex;flex-direction:column;gap:20px;padding:22px 24px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }\r
-.gc-xp-answer { display:flex;flex-direction:column;align-items:center;text-align:center; }\r
-.gc-xp-answer b { color:var(--gc-strong);font-size:64px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums; }\r
-.gc-xp-answer span { color:var(--gc-muted);font-size:14px; }\r
-/* A duration is several times wider than an event count, so it is set smaller and kept on one line. */\r
-.gc-xp-answer[data-time] b { font-size:36px;white-space:nowrap; }\r
-.gc-xp-stats { display:flex;flex-direction:column;gap:12px;padding-top:18px;border-top:1px solid var(--gc-line); }\r
-.gc-xp-stats div { display:flex;justify-content:space-between;gap:8px;font-size:14px; }\r
-.gc-xp-stats span { color:var(--gc-muted); }\r
-.gc-xp-stats b { color:var(--gc-strong);font-weight:600;font-variant-numeric:tabular-nums; }\r
-.gc-xp-foot { margin-top:auto;color:var(--gc-muted);font-size:12px;line-height:1.45; }\r
-@media(max-width:650px) { .gc-xp { grid-template-columns:1fr; } }\r
-.gc-toggle:hover,.gc-check:hover { border-color:var(--gc-line-strong); }\r
-.gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }\r
-.gc-toggle b,.gc-check b { color:var(--gc-text);font-size:13px;font-weight:550; }\r
-.gc-toggle small,.gc-check small { margin-top:2px;color:var(--gc-muted);font-size:12px;line-height:1.4; }\r
-.gc-toggle input { position:absolute;opacity:0;pointer-events:none; }\r
-.gc-toggle i { width:34px;height:20px;flex:0 0 auto;border-radius:999px;background:var(--gc-surface-3);box-shadow:inset 0 0 0 1px var(--gc-line);transition:background .18s; }\r
-.gc-toggle i::after { content:'';display:block;width:16px;height:16px;margin:2px;border-radius:50%;background:#d4d4d8;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .18s,background .18s; }\r
-.gc-toggle input:checked + i { background:var(--gc-accent);box-shadow:none; }\r
-.gc-toggle input:checked + i::after { transform:translateX(14px);background:#fff; }\r
-.gc-toggle input:focus-visible + i { outline:2px solid var(--gc-accent-line);outline-offset:2px; }\r
-.gc-card { padding:11px 13px;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }\r
-.gc-card + .gc-card { margin-top:10px; }\r
-.gc-stack > .gc-card + .gc-card,.gc-active-pets > .gc-card + .gc-card { margin-top:0; }\r
-.gc-card h3 { margin:0 0 3px;color:var(--gc-strong);font-size:14px;font-weight:600;line-height:1.3; }\r
-.gc-card p { margin:0;color:var(--gc-muted);font-size:12px;line-height:1.45; }\r
-.gc-shortcuts,.gc-tracking { margin-top:12px; }\r
-.gc-launch-row { display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:8px; }\r
-.gc-launch-row > div { min-width:0; }\r
-.gc-launch-row h3 { margin-bottom:2px; }\r
-/* Fixed width so the launch buttons line up down the tab rather than tracking their label lengths. */\r
-#gc-panel .gc-launch-row button { width:132px;flex:0 0 auto;padding:8px 14px;white-space:nowrap;text-align:center; }\r
-.gc-section-label { margin:16px 2px 6px;color:var(--gc-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }\r
-.gc-empty { padding:28px 16px;color:var(--gc-faint);font-size:12px;text-align:center; }\r
-.gc-row { display:flex;align-items:center;justify-content:space-between;gap:10px; }\r
-.gc-row + .gc-row { margin-top:12px;padding-top:12px;border-top:1px solid var(--gc-line); }\r
-.gc-row > .gc-note { margin:0; }\r
-.gc-row + .gc-stack,.gc-row + .gc-check-grid,.gc-row + .gc-search { margin-top:12px; }\r
-.gc-filter-list [hidden] { display:none; }\r
-\r
-/* Buttons. The game styles bare buttons, so the panel rule carries the id to outrank it. */\r
-#gc-panel button { min-height:30px;padding:6px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px/1.2 var(--gc-font);white-space:nowrap;transition:background .12s,border-color .12s,color .12s; }\r
-#gc-panel button:hover:not(:disabled) { color:var(--gc-strong);border-color:rgba(255,255,255,.18);background:var(--gc-surface-3); }\r
-#gc-panel button:focus-visible { outline:2px solid var(--gc-accent-line);outline-offset:1px; }\r
-#gc-panel button:disabled { opacity:.45;cursor:default; }\r
-#gc-panel .gc-primary { width:100%;color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }\r
-#gc-panel .gc-primary:hover:not(:disabled) { color:#fff;border-color:var(--gc-accent-hover);background:var(--gc-accent-hover); }\r
-#gc-panel .gc-danger { color:var(--gc-danger); }\r
-#gc-panel .gc-danger:hover:not(:disabled) { color:#fca5a5;border-color:rgba(240,113,113,.4);background:rgba(240,113,113,.1); }\r
-.gc-pill { padding:3px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-muted);background:var(--gc-surface-2);font-size:11px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums; }\r
-.gc-chips { display:flex;flex-wrap:wrap;gap:4px;margin-top:8px; }\r
-.gc-chips span { padding:3px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-text);background:var(--gc-surface-2);font-size:11px; }\r
-.gc-chips span[data-active=false] { opacity:.4;text-decoration:line-through; }\r
-\r
-/* Segmented controls: one frame, the chosen segment lifted out of it. */\r
-.gc-shop-tabs,.gc-calc-tabs { display:flex;flex-wrap:wrap;gap:2px;margin-bottom:12px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }\r
-#gc-panel .gc-shop-tabs button,#gc-panel .gc-calc-tabs button,#gc-panel .gc-emblem-tabs button { min-height:28px;border-color:transparent;color:var(--gc-muted);background:transparent; }\r
-#gc-panel .gc-shop-tabs button:hover:not(:disabled),#gc-panel .gc-calc-tabs button:hover:not(:disabled),#gc-panel .gc-emblem-tabs button:hover:not(:disabled) { color:var(--gc-text);border-color:transparent;background:var(--gc-soft); }\r
-.gc-shop-tabs button { flex:1 1 72px; }\r
-.gc-calc-tabs button { flex:1 1 90px; }\r
-#gc-panel .gc-shop-tabs button.active,#gc-panel .gc-calc-tabs button.active,#gc-panel .gc-emblem-tabs button.active { color:var(--gc-strong)!important;border-color:var(--gc-line-strong)!important;background:var(--gc-surface-3)!important;box-shadow:0 1px 2px rgba(0,0,0,.35); }\r
-\r
-/* Inputs */\r
-.gc-card input[type=text],.gc-card > input,.gc-key input,.gc-search,.gc-card select,.gc-calc-select,.gc-value-head select,.gc-value-foot select,.gc-food-slot select,.gc-dust-boost-slot input,.gc-team-picker-controls input,.gc-shortcut-row input { box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:13px var(--gc-font);transition:border-color .12s,box-shadow .12s; }\r
-.gc-card input[type=text],.gc-card > input,.gc-key input,.gc-search { width:100%;height:34px;padding:0 11px; }\r
-.gc-card select { width:100%;height:34px;padding:0 30px 0 11px;cursor:pointer; }\r
-.gc-search { margin:0 0 12px; }\r
-.gc-card input[type=text]:focus,.gc-card > input:focus,.gc-key input:focus,.gc-search:focus,.gc-card select:focus,.gc-calc-select:focus,.gc-value-head select:focus,.gc-food-slot select:focus,.gc-dust-boost-slot input:focus,.gc-team-picker-controls input:focus,.gc-shortcut-row input:focus,.gc-card input:focus { border-color:var(--gc-accent-line);box-shadow:0 0 0 3px rgba(var(--gc-accent-rgb),.16); }\r
-#gc-panel input::placeholder,#gc-team-picker input::placeholder { color:rgba(255,255,255,.5);opacity:1; }\r
-.gc-card > input { margin:8px 0 10px; }\r
-.gc-key { min-width:0;flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;color:var(--gc-muted);font-size:12px; }\r
-.gc-key input { height:30px;cursor:pointer; }\r
-.gc-key small { grid-column:2;margin-top:-4px;color:var(--gc-muted);font-size:11px; }\r
-/* Checkboxes drawn to match the toggles rather than left to each browser. */\r
-#gc-panel input[type=checkbox]:not(.gc-toggle input),#gc-team-picker input[type=checkbox] { appearance:none;-webkit-appearance:none;width:16px;height:16px;flex:0 0 auto;margin:0;border:1px solid rgba(255,255,255,.22);border-radius:5px;background:var(--gc-input) center/11px 11px no-repeat;cursor:pointer;transition:background-color .12s,border-color .12s; }\r
-#gc-panel input[type=checkbox]:not(.gc-toggle input):checked,#gc-team-picker input[type=checkbox]:checked { border-color:var(--gc-accent);background-color:var(--gc-accent);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5'/%3E%3C/svg%3E"); }\r
-#gc-panel input[type=checkbox]:disabled { opacity:.4;cursor:not-allowed; }\r
-#gc-panel input[type=range] { accent-color:var(--gc-accent); }\r
-\r
-/* Check grids: pick-many lists of items. */\r
-.gc-check-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:0; }\r
-.gc-check { justify-content:flex-start;gap:10px;padding:7px 10px; }\r
-.gc-card .gc-check,.gc-card .gc-pet-grid label { background:var(--gc-input); }\r
-.gc-check:has(input:checked) { border-color:var(--gc-accent-line);background:rgba(var(--gc-accent-rgb),.08); }\r
-/* Speaker toggle pinned to the far right of an alert row: mutes just that alert's sound. */\r
-#gc-panel .gc-alert-mute { min-height:0;margin-left:auto;flex:0 0 auto;padding:3px 6px;border:0;border-radius:6px;background:transparent;font-size:14px;line-height:1;cursor:pointer; }\r
-#gc-panel .gc-alert-mute:hover { background:var(--gc-surface-3); }\r
-.gc-alert-mute[data-muted="true"] { opacity:.45;filter:grayscale(1); }\r
-\r
-/* ── Crop Cleanser helper ────────────────────────────────────────────────────────────────────── */\r
-#gc-crop-cleanser { position:fixed;z-index:2147483644;left:24px;top:90px;width:min(620px,calc(100vw - 24px));max-height:min(620px,calc(100vh - 24px));overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }\r
-#gc-crop-cleanser[hidden] { display:none; }\r
-#gc-crop-cleanser > header { height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }\r
-#gc-crop-cleanser > header > div { display:flex;align-items:center;gap:9px;color:var(--gc-strong);font-size:14px;font-weight:600; }\r
-#gc-crop-cleanser > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-accent); }\r
-#gc-crop-cleanser > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }\r
-#gc-crop-cleanser > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }\r
-#gc-crop-cleanser > main { max-height:calc(min(620px,calc(100vh - 24px)) - 48px);overflow:auto;padding:14px 16px 16px; }\r
-.gc-cleanser-summary { display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface); }\r
-.gc-cleanser-summary span { color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-cleanser-summary b { color:var(--gc-strong);font-size:15px;font-variant-numeric:tabular-nums; }\r
-#gc-crop-cleanser main > p { margin:12px 0 8px;color:var(--gc-muted); }\r
-.gc-cleanser-choices { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px; }\r
-.gc-cleanser-choice { min-width:0;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;padding:5px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-text);cursor:pointer;font:500 12px var(--gc-font); }\r
-.gc-cleanser-choice:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }\r
-.gc-cleanser-choice.on { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);color:var(--gc-strong); }\r
-.gc-cleanser-choice img { width:18px;height:18px;object-fit:contain;image-rendering:auto; }\r
-#gc-crop-cleanser .gc-cleanser-note { margin-top:12px;padding:8px 10px;border:1px solid rgba(245,192,74,.22);border-radius:var(--gc-radius-sm);background:rgba(245,192,74,.06);color:#fde68a; }\r
-.gc-cleanser-table-wrap { max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md); }\r
-.gc-cleanser-table-wrap table { width:100%;border-collapse:collapse; }\r
-.gc-cleanser-table-wrap th { position:sticky;top:0;z-index:1;padding:8px 10px;border-bottom:1px solid var(--gc-line);background:var(--gc-surface);color:var(--gc-faint);text-align:left;font-size:11px;font-weight:600; }\r
-.gc-cleanser-table-wrap td { padding:9px 10px;border-bottom:1px solid var(--gc-line);vertical-align:middle; }\r
-.gc-cleanser-table-wrap tr:last-child td { border-bottom:0; }\r
-.gc-cleanser-table-wrap td:first-child { min-width:118px; }\r
-.gc-cleanser-table-wrap td:first-child b,.gc-cleanser-table-wrap td:first-child small { display:block; }\r
-.gc-cleanser-table-wrap td:first-child b { color:var(--gc-strong);font-size:12px;font-weight:550; }\r
-.gc-cleanser-table-wrap td:first-child small { margin-top:2px;color:var(--gc-muted);font-size:11px; }\r
-.gc-cleanser-table-wrap td:last-child { width:80px;text-align:right; }\r
-.gc-cleanser-table-wrap button { padding:6px 10px;border:1px solid var(--gc-accent);border-radius:var(--gc-radius-sm);background:var(--gc-accent);color:#fff;cursor:pointer;font:600 11px var(--gc-font); }\r
-.gc-cleanser-table-wrap button:hover:not(:disabled) { background:var(--gc-accent-hover); }\r
-.gc-cleanser-table-wrap button:disabled { cursor:default;opacity:.45; }\r
-.gc-cleanser-mutations { display:flex;flex-wrap:wrap;gap:4px; }\r
-.gc-cleanser-mutation { display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border:1px solid var(--gc-line);border-radius:999px;background:var(--gc-surface-2);color:var(--gc-text);font-size:11px;white-space:nowrap; }\r
-.gc-cleanser-mutation img { width:14px;height:14px;object-fit:contain;image-rendering:auto; }\r
-.gc-cleanser-empty { padding:28px 12px;color:var(--gc-faint);text-align:center; }\r
-#gc-journal-logger { position:fixed;z-index:2147483643;right:16px;top:120px;width:min(360px,calc(100vw - 24px));max-height:min(420px,calc(100vh - 24px));overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }\r
-#gc-journal-logger[hidden] { display:none; }\r
-#gc-journal-logger > header { height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 6px 0 12px;cursor:move;user-select:none; }\r
-#gc-journal-logger[data-collapsed="false"] > header { border-bottom:1px solid var(--gc-line); }\r
-#gc-journal-logger > header > div { display:flex;align-items:center;gap:8px;color:var(--gc-strong);font-size:13px;font-weight:600;white-space:nowrap; }\r
-#gc-journal-logger > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-accent); }\r
-#gc-journal-logger > header > span { display:flex;align-items:center;gap:4px; }\r
-#gc-journal-logger > header button { height:28px;min-width:28px;padding:0 8px;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font); }\r
-#gc-journal-logger > header button:hover:not(:disabled) { color:var(--gc-text);background:var(--gc-surface-2); }\r
-#gc-journal-logger > header button:disabled { cursor:default;opacity:.45; }\r
-#gc-journal-logger > main { overflow:auto;padding:6px 10px 10px; }\r
-#gc-journal-logger > main:empty { display:none; }\r
-.gc-journal-logger-row { display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"sprite name log" "sprite chips log";align-items:center;column-gap:8px;row-gap:3px;padding:7px 0;border-bottom:1px solid var(--gc-line); }\r
-.gc-journal-logger-row:last-child { border-bottom:0; }\r
-.gc-journal-logger-row > .gc-shop-sprite,.gc-journal-logger-row > .gc-pet-sprite { grid-area:sprite;width:32px;height:32px;border-radius:8px; }\r
-.gc-journal-logger-row > .gc-pet-sprite img { width:28px;height:28px; }\r
-.gc-journal-logger-name { grid-area:name;min-width:0; }\r
-.gc-journal-logger-name b { color:var(--gc-strong);font-weight:550; }\r
-.gc-journal-logger-name small { margin-left:6px;color:var(--gc-muted);font-size:11px; }\r
-.gc-journal-logger-row > .gc-cleanser-mutations { grid-area:chips; }\r
-.gc-journal-logger-row > button { grid-area:log;padding:6px 10px;border:1px solid var(--gc-accent);border-radius:var(--gc-radius-sm);background:var(--gc-accent);color:#fff;cursor:pointer;font:600 11px var(--gc-font); }\r
-.gc-journal-logger-row > button:hover:not(:disabled) { background:var(--gc-accent-hover); }\r
-.gc-journal-logger-row > button:disabled { cursor:default;opacity:.45; }\r
-@media (max-width:560px) { .gc-cleanser-choices { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-cleanser-table-wrap th:nth-child(2),.gc-cleanser-table-wrap td:nth-child(2) { display:none; } }\r
-\r
-/* ── Farm Manager ────────────────────────────────────────────────────────────────────────────── */\r
-#gc-farm-manager { position:fixed;z-index:2147483644;left:24px;top:70px;width:min(1080px,calc(100vw - 24px));max-height:calc(100vh - 24px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }\r
-#gc-farm-manager[hidden] { display:none; }\r
-#gc-farm-manager[data-tab="celestial"] { width:min(1310px,calc(100vw - 24px)); }\r
-#gc-farm-manager > header { flex:none;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }\r
-#gc-farm-manager > header > div { display:flex;align-items:center;gap:9px;color:var(--gc-strong);font-size:14px;font-weight:600; }\r
-#gc-farm-manager > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-green); }\r
-#gc-farm-manager > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }\r
-#gc-farm-manager > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }\r
-#gc-farm-manager > main { flex:1;min-height:360px;display:flex; }\r
-#gc-farm-manager > footer { flex:none;padding:9px 16px;border-top:1px solid var(--gc-line);color:var(--gc-muted); }\r
-.gc-fm-grid { flex:1;min-width:0;overflow-x:hidden;overflow-y:auto;padding:12px; }\r
-.gc-fm-board { position:relative;display:grid;gap:2px;width:max-content;margin:auto; }\r
-.gc-fm-edges { position:absolute;inset:0;pointer-events:none;z-index:1; }\r
-.gc-fm-edges i { position:absolute;display:block; }\r
-.gc-fm-edge-line { border-radius:2px;background:repeating-linear-gradient(90deg,#ffd76a 0 3px,#ff9f43 3px 6px);box-shadow:0 0 4px rgba(255,215,106,.7);opacity:.9; }\r
-.gc-fm-edge-line[style*="width:4px"] { background:repeating-linear-gradient(180deg,#ffd76a 0 3px,#ff9f43 3px 6px); }\r
-.gc-fm-edge-hang { display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7)); }\r
-.gc-fm-edge-hang img { width:100%;height:100%;object-fit:contain; }\r
-.gc-fm-cell { position:relative;container-type:size;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#4a3423;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);user-select:none; }\r
-.gc-fm-cell[data-kind="board"] { background:#2b2620;opacity:.6; }\r
-.gc-fm-cell[data-type="empty"][data-kind="dirt"] { background:#3a2a1d; }\r
-.gc-fm-cell[draggable="true"] { cursor:grab; }\r
-.gc-fm-cell[draggable="true"]:hover { box-shadow:inset 0 0 0 2px rgba(255,255,255,.35); }\r
-.gc-fm-cell img { width:82%;height:82%;object-fit:contain;pointer-events:none;image-rendering:auto; }\r
-.gc-fm-cell[data-type="decor"] img,.gc-fm-cell[data-type="egg"] img { opacity:.55; }\r
-.gc-fm-cell > i,.gc-fm-item > i { color:var(--gc-faint);font:600 10px var(--gc-font);font-style:normal; }\r
-.gc-fm-cell small { position:absolute;right:2px;bottom:1px;padding:0 3px;border-radius:3px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;line-height:12px;pointer-events:none; }\r
-.gc-fm-cell[data-pending="true"] { animation:gc-fm-pulse 1s ease-in-out infinite; }\r
-@keyframes gc-fm-pulse { 50% { opacity:.4; } }\r
-.gc-fm-dragging .gc-fm-cell[data-kind="dirt"]:not([data-drop]) { opacity:.45; }\r
-.gc-fm-cell[data-drop] { box-shadow:inset 0 0 0 2px rgba(62,207,142,.6); }\r
-.gc-fm-cell[data-drop="swap"] { box-shadow:inset 0 0 0 2px rgba(253,230,138,.75); }\r
-.gc-fm-cell[data-armed] { cursor:pointer; }\r
-.gc-fm-cell[data-armed]:hover { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }\r
-.gc-fm-placing { display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:3px 10px;border:1px solid rgba(62,207,142,.45);border-radius:999px;background:rgba(62,207,142,.12);color:var(--gc-green);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase; }\r
-.gc-fm-placing[hidden] { display:none; }\r
-.gc-fm-subtitle { color:var(--gc-muted);font-size:12px;font-weight:400; }\r
-.gc-fm-subtitle[hidden] { display:none; }\r
-.gc-fm-warn { display:inline-flex;align-items:center;margin-left:6px;padding:3px 10px;border:1px solid rgba(253,230,138,.6);border-radius:999px;background:rgba(253,230,138,.14);color:#fde68a;font-size:11px;font-weight:700;animation:gc-fm-pulse 1.4s ease-in-out infinite; }\r
-.gc-fm-warn[hidden] { display:none; }\r
-.gc-fm-placing img { width:16px;height:16px;object-fit:contain; }\r
-.gc-fm-item { cursor:pointer; }\r
-.gc-fm-item[data-active="true"] { border-color:rgba(62,207,142,.6);background:rgba(62,207,142,.12); }\r
-.gc-fm-cell[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }\r
-#gc-farm-manager .gc-fm-moves { flex:none;width:230px;min-height:0;display:flex;flex-direction:column;gap:6px;padding:12px;overflow-x:hidden;overflow-y:auto;contain:size;border-right:1px solid var(--gc-line);background:var(--gc-side); }\r
-#gc-farm-manager .gc-fm-moves[hidden] { display:none; }\r
-#gc-farm-manager aside { position:relative;contain:size;flex:none;width:230px;display:flex;flex-direction:column;gap:8px;padding:12px;border-left:1px solid var(--gc-line);background:var(--gc-side); }\r
-#gc-farm-manager[data-potting="full"] aside { box-shadow:inset 0 0 0 2px rgba(240,113,113,.4); }\r
-#gc-farm-manager[data-potting="true"] aside { box-shadow:inset 0 0 0 2px rgba(62,207,142,.35); }\r
-#gc-farm-manager[data-potting="true"] aside[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:rgba(62,207,142,.08); }\r
-#gc-farm-manager[data-potting] aside::after { content:'Drop here to pot';position:absolute;left:12px;right:12px;bottom:12px;padding:10px;border-radius:var(--gc-radius-sm);background:rgba(20,40,28,.95);color:var(--gc-green);font-weight:600;text-align:center;pointer-events:none; }\r
-#gc-farm-manager[data-potting="full"] aside::after { content:'Inventory full - cannot pot';color:var(--gc-danger);background:rgba(48,20,20,.95); }\r
-.gc-fm-capacity { display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-muted); }\r
-.gc-fm-capacity[hidden] { display:none; }\r
-.gc-fm-capacity b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }\r
-.gc-fm-capacity[data-full="true"] { border-color:rgba(240,113,113,.45);background:rgba(240,113,113,.08); }\r
-.gc-fm-capacity[data-full="true"] b { color:var(--gc-danger); }\r
-.gc-fm-tabs { display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px; }\r
-.gc-fm-tabs button { height:30px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font); }\r
-.gc-fm-tabs button[data-active="true"] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);color:var(--gc-strong); }\r
-#gc-farm-manager aside input { height:30px;padding:0 9px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-input);color:var(--gc-text);font:12px var(--gc-font);outline:none; }\r
-#gc-farm-manager aside input:focus { border-color:var(--gc-accent-line); }\r
-.gc-fm-list { flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;display:flex;flex-direction:column;gap:4px; }\r
-.gc-fm-item { display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);user-select:none; }\r
-.gc-fm-item[draggable="true"] { cursor:grab; }\r
-.gc-fm-item[draggable="true"]:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }\r
-.gc-fm-item[data-active="true"]:hover { border-color:rgba(62,207,142,.85);background:rgba(62,207,142,.18); }\r
-.gc-fm-item img { width:28px;height:28px;object-fit:contain;pointer-events:none;image-rendering:auto; }\r
-.gc-fm-item span { min-width:0;display:flex;flex-direction:column; }\r
-.gc-fm-item b { overflow:hidden;color:var(--gc-strong);font-weight:550;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-fm-item small { color:var(--gc-muted);font-size:11px; }\r
-.gc-fm-empty { padding:24px 10px;color:var(--gc-faint);text-align:center; }\r
-@media (max-width:640px) { #gc-farm-manager aside { width:150px; } }\r
-\r
-/* ── Keybinds ────────────────────────────────────────────────────────────────────────────────── */\r
-.gc-shortcuts > p { margin-bottom:10px; }\r
-.gc-shortcut-grid { overflow:hidden;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }\r
-.gc-shortcut-row { display:grid;grid-template-columns:minmax(145px,1fr) 210px;align-items:center;gap:14px;padding:9px 14px; }\r
-.gc-shortcut-row + .gc-shortcut-row { border-top:1px solid var(--gc-line); }\r
-.gc-shortcut-row b { color:var(--gc-text);font-size:13px;font-weight:500; }\r
-.gc-shortcut-row input { width:100%;height:32px;padding:0 11px;cursor:pointer;font:500 12px var(--gc-mono);text-align:center; }\r
-.gc-shortcut-row input::placeholder { font-family:var(--gc-font); }\r
-\r
-/* ── Pets ────────────────────────────────────────────────────────────────────────────────────── */\r
-.gc-team-delete-confirm { display:flex;align-items:center;gap:6px;white-space:nowrap; }\r
-.gc-team-delete-confirm b { color:var(--gc-danger);font-size:12px;font-weight:550; }\r
-.gc-pet-grid { max-height:250px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px; }\r
-.gc-pet-grid label { min-width:0;display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface);cursor:pointer;transition:border-color .12s,background .12s; }\r
-.gc-pet-grid label:hover { border-color:var(--gc-line-strong); }\r
-.gc-pet-grid label:has(input:checked) { border-color:var(--gc-accent-line);background:rgba(var(--gc-accent-rgb),.08); }\r
-.gc-pet-grid span:not(.gc-pet-sprite) { min-width:0;display:flex;flex:1;flex-direction:column; }\r
-.gc-pet-grid b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:550; }\r
-.gc-pet-grid small { color:var(--gc-muted);font-size:11px; }\r
-.gc-log { max-height:280px;overflow:auto;margin-top:8px; }\r
-.gc-content main.gc-ability-log-tab { min-height:0;display:flex;overflow:hidden;flex-direction:column; }\r
-.gc-ability-log-card { min-height:0;flex:1;display:flex;flex-direction:column; }\r
-.gc-ability-log-tab .gc-log { min-height:0;max-height:none;flex:1; }\r
-.gc-ability-log-toolbar { position:relative;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px; }\r
-.gc-ability-log-toolbar h3 { margin:0;white-space:nowrap; }\r
-.gc-ability-log-toolbar > div:first-child > small { display:block;margin-top:2px;color:var(--gc-muted);font-size:11px; }\r
-.gc-ability-log-actions { display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0; }\r
-.gc-ability-log-actions .gc-log-search { width:170px;min-width:90px;height:34px;margin:0;font-size:12px; }\r
-.gc-ability-log-columns,.gc-ability-log-row { display:grid;grid-template-columns:94px 42px minmax(125px,.9fr) minmax(140px,1.25fr);align-items:center;gap:10px; }\r
-.gc-ability-log-columns { padding:8px 10px;border-bottom:1px solid var(--gc-line);color:var(--gc-faint);font-size:11px;font-weight:600; }\r
-.gc-ability-log-row { min-height:54px;padding:8px 10px;border-bottom:1px solid var(--gc-line); }\r
-.gc-ability-log-row:hover { background:var(--gc-soft); }\r
-.gc-ability-log-row time { display:flex;flex-direction:column;color:var(--gc-muted);font:11px var(--gc-mono);font-variant-numeric:tabular-nums; }\r
-.gc-ability-log-row time b { color:var(--gc-strong);font-size:12px;font-weight:600; }\r
-.gc-ability-log-row time span { margin-top:3px; }\r
-.gc-ability-log-pet { min-width:0;display:flex;align-items:center; }\r
-.gc-ability-log-pet .gc-pet-sprite { width:36px;height:36px; }\r
-.gc-ability-log-pet .gc-pet-sprite img { width:32px;height:32px; }\r
-.gc-ability-log-pet .gc-pet-sprite i { font-size:15px; }\r
-.gc-ability-log-name { min-width:0;color:var(--gc-strong);font-size:13px; }\r
-.gc-ability-log-name b { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:550; }\r
-.gc-ability-log-payload { min-width:0;color:#f4f4f5;font:600 12px/1.4 var(--gc-mono);overflow-wrap:anywhere; }\r
-.gc-ability-log-payload[data-detail] { cursor:help;text-decoration:underline dotted rgba(255,255,255,.4);text-underline-offset:3px; }\r
-.gc-log > p { padding:10px 2px;color:var(--gc-muted);font-size:12px; }\r
-.gc-room { display:flex;flex-direction:column;gap:12px;padding:14px 16px;transition:border-color .12s,background .12s; }\r
-.gc-room:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }\r
-.gc-room > header { display:flex;align-items:center;gap:14px;min-width:0; }\r
-.gc-room-title { flex:1 1 auto;min-width:0; }\r
-.gc-room h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-room h3.gc-room-named { font-family:var(--gc-mono);letter-spacing:.02em; }\r
-.gc-room code { display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gc-faint);font:11px var(--gc-mono); }\r
-.gc-room-seats { flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px; }\r
-.gc-room-dots { display:flex;gap:3px; }\r
-.gc-room-dots i { width:8px;height:8px;border-radius:50%;background:rgba(62,207,142,.18);box-shadow:inset 0 0 0 1px rgba(62,207,142,.55); }\r
-.gc-room-dots i.on { background:var(--gc-surface-3);box-shadow:inset 0 0 0 1px var(--gc-line-strong); }\r
-.gc-room-seats b { color:var(--gc-green);font-size:11px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums; }\r
-#gc-panel .gc-room .gc-primary { width:auto;flex:0 0 auto;padding:7px 18px; }\r
-.gc-room-players { display:flex;flex-wrap:wrap;gap:6px;padding-top:12px;border-top:1px solid var(--gc-line); }\r
-.gc-room-player { display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:3px 10px 3px 3px;border:1px solid var(--gc-line);border-radius:999px;background:var(--gc-surface-2);color:var(--gc-text);font-size:12px;line-height:1; }\r
-.gc-room-player > span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-room-face { width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:var(--gc-surface-3);color:var(--gc-text);font:600 10px var(--gc-font);font-style:normal; }\r
-.gc-room-face img { width:100%;height:100%;object-fit:cover; }\r
-.gc-room-none { color:var(--gc-faint);font-size:12px; }\r
-.gc-row > .gc-note b { color:var(--gc-text);font-weight:600; }\r
-.gc-sprite-text { color:var(--gc-muted);font:700 10px/1 var(--gc-font);letter-spacing:.04em; }\r
-.gc-pet-sprite { position:relative;width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-surface-2); }\r
-.gc-pet-sprite img { width:40px;height:40px;object-fit:contain;image-rendering:auto; }\r
-.gc-pet-sprite i { color:rgba(255,255,255,.5);font:600 20px var(--gc-font);font-style:normal; }\r
-.gc-pet-head { display:grid;grid-template-columns:auto minmax(0,1fr) minmax(130px,180px);align-items:center;gap:12px; }\r
-.gc-pet-head h3 { margin:0; }\r
-.gc-pet-head p { font-size:12px; }\r
-.gc-pet-head .gc-ability-chips { margin-top:6px; }\r
-.gc-hunger { min-width:110px; }\r
-.gc-hunger > div { display:flex;justify-content:space-between;color:var(--gc-muted);font-size:11px; }\r
-.gc-hunger > div b { color:var(--gc-text);font-weight:600;font-variant-numeric:tabular-nums; }\r
-.gc-hunger > i { display:block;height:6px;margin-top:5px;overflow:hidden;border-radius:999px;background:var(--gc-surface-3); }\r
-.gc-hunger > i u { display:block;height:100%;border-radius:999px;background:var(--gc-green);text-decoration:none; }\r
-.gc-hunger > i u[data-tone=medium] { background:var(--gc-gold); }\r
-.gc-hunger > i u[data-tone=low] { background:var(--gc-danger); }\r
-.gc-hunger-eta { display:block;margin-top:4px;font-size:11px;font-weight:550; }\r
-.gc-hunger-eta[data-tone=good] { color:var(--gc-green); }\r
-.gc-hunger-eta[data-tone=medium] { color:var(--gc-gold); }\r
-.gc-hunger-eta[data-tone=low] { color:var(--gc-danger); }\r
-.gc-team-abilities { display:block;margin-top:5px;color:var(--gc-accent-text);font-size:11px;line-height:1.4; }\r
-.gc-pet-grid span.gc-ability-chips { flex:0 0 auto;flex-direction:row;flex-wrap:nowrap;margin-top:5px; }\r
-.gc-pet-str { flex:0 0 auto;align-self:center;padding:4px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-text);background:var(--gc-surface-2);font-size:12px;font-weight:600;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums; }\r
-.gc-pet-str i { color:var(--gc-muted);font-size:11px;font-style:normal;font-weight:500; }\r
-.gc-team-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;color:var(--gc-muted);font-size:12px; }\r
-.gc-team-summary b { color:var(--gc-strong);font-weight:600; }\r
-.gc-active-pets { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px; }\r
-.gc-active-pets .gc-pet-head { grid-template-columns:auto minmax(0,1fr); }\r
-.gc-active-pets .gc-hunger { grid-column:1/-1;min-width:0; }\r
-.gc-pet-strength { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--gc-line);color:var(--gc-muted);font-size:12px; }\r
-.gc-pet-strength b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }\r
-.gc-pet-strength strong { color:var(--gc-green);font-size:11px;font-weight:550;text-align:right; }\r
-.gc-ability-summary { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px; }\r
-.gc-ability-summary > div:first-child > small { display:block;margin-top:5px;color:var(--gc-gold);font-size:12px; }\r
-.gc-ability-rate { display:flex;min-width:92px;flex-direction:column;text-align:right; }\r
-.gc-ability-rate b { color:var(--gc-strong);font:600 15px var(--gc-mono);font-variant-numeric:tabular-nums; }\r
-.gc-ability-rate small { color:var(--gc-muted);font:11px var(--gc-mono); }\r
-.gc-proc-list { margin-top:10px;border-top:1px solid var(--gc-line); }\r
-.gc-pet-potions { margin-top:8px;padding:6px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);color:#c4b5fd;background:var(--gc-surface-2);text-align:center;font-size:11px;font-weight:550; }\r
-.gc-proc-row { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:8px 0;border-bottom:1px solid var(--gc-line); }\r
-.gc-proc-row div { min-width:0;display:flex;flex-direction:column; }\r
-.gc-proc-row small,.gc-proc-row > span { color:var(--gc-muted);font-size:11px; }\r
-.gc-proc-row p { grid-column:1/-1;margin:0;color:rgba(255,255,255,.75);font:11px/1.4 var(--gc-mono); }\r
-.gc-ability-filter { height:34px;box-sizing:border-box;width:126px;flex:0 0 auto;padding:8px 10px;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);cursor:pointer;font-size:12px;font-weight:500;text-align:left;text-overflow:ellipsis;white-space:nowrap; }\r
-\r
-/* ── Dialogs ─────────────────────────────────────────────────────────────────────────────────── */\r
-.gc-modal-backdrop { position:fixed;inset:0;z-index:999995;display:grid;place-items:center;padding:20px;box-sizing:border-box;background:rgba(0,0,0,.55); }\r
-.gc-modal-backdrop button { min-height:30px;padding:6px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }\r
-.gc-modal-backdrop button:hover { border-color:rgba(255,255,255,.18);background:var(--gc-surface-3); }\r
-.gc-ability-modal { width:360px;max-width:calc(100vw - 40px);max-height:min(80vh,640px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }\r
-.gc-modal-head { display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 16px;border-bottom:1px solid var(--gc-line); }\r
-.gc-modal-head h3 { margin:0;color:var(--gc-strong);font-size:14px;font-weight:600; }\r
-.gc-modal-close { width:30px;height:30px;padding:0!important;border:0!important;background:transparent!important;color:var(--gc-muted)!important;font-size:18px;line-height:1; }\r
-.gc-modal-close:hover { color:var(--gc-text)!important;background:var(--gc-surface-2)!important; }\r
-.gc-modal-tools { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;border-bottom:1px solid var(--gc-line); }\r
-.gc-modal-tools .gc-modal-summary { color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-modal-tools div { display:flex;gap:6px; }\r
-.gc-modal-body { padding:10px 12px;overflow:auto; }\r
-.gc-ability-group { margin:4px 0;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);overflow:hidden;background:var(--gc-surface); }\r
-.gc-ability-group-head { display:flex;align-items:stretch; }\r
-.gc-ability-expand { width:32px;flex:0 0 auto;padding:0!important;border:none!important;border-radius:0!important;background:transparent!important;color:var(--gc-muted)!important;cursor:pointer; }\r
-.gc-ability-group-toggle { flex:1;display:flex;align-items:center;gap:8px;border:none!important;border-radius:0!important;background:transparent!important;padding:9px 10px!important;text-align:left!important;font-weight:600!important; }\r
-.gc-ability-group-toggle small { margin-left:auto;color:var(--gc-muted);font-weight:500; }\r
-.gc-ability-group-toggle i { color:var(--gc-accent-text);font-style:normal;width:12px;text-align:center; }\r
-.gc-ability-group-toggle[data-state=all],.gc-ability-group-toggle[data-state=some] { color:var(--gc-accent-text)!important; }\r
-.gc-ability-group-items { display:grid;gap:3px;padding:6px;border-top:1px solid var(--gc-line);background:var(--gc-input); }\r
-.gc-ability-group-items button,.gc-ability-standalone button { width:100%;display:flex;align-items:center;justify-content:space-between;padding:7px 10px!important;text-align:left!important;font-size:12px; }\r
-.gc-ability-group-items button[data-active=true],.gc-ability-standalone button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-accent-line)!important;background:var(--gc-accent-soft)!important; }\r
-.gc-ability-group-items button i,.gc-ability-standalone button i { color:var(--gc-accent-text);font-style:normal; }\r
-.gc-ability-standalone { margin:4px 0; }\r
-.gc-shop-sprite { width:32px;height:32px;flex:0 0 auto;display:grid!important;place-items:center;overflow:hidden;border-radius:8px;background:var(--gc-surface-2); }\r
-.gc-shop-sprite img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }\r
-\r
-/* ── Alarm banner, crop hover label ──────────────────────────────────────────────────────────── */\r
-#gc-alarm { position:fixed;top:22px;left:50%;z-index:999999;transform:translateX(-50%) scale(var(--gc-alarm-scale,1));transform-origin:top center;width:430px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;font:13px var(--gc-font); }\r
-#gc-alarm .gc-alarm-card { box-sizing:border-box;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:12px 12px 12px 14px;color:var(--gc-text);background:var(--gc-bg);border:1px solid rgba(251,146,60,.7);border-radius:var(--gc-radius);box-shadow:0 0 0 4px rgba(251,146,60,.14),var(--gc-shadow);animation:gc-alarm-pulse .8s ease-in-out infinite alternate; }\r
-#gc-alarm .gc-alarm-icon { width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#f97316;color:#fff;font:800 20px/1 var(--gc-font);font-style:normal; }\r
-#gc-alarm .gc-alarm-icon[data-sprite] { background:rgba(249,115,22,.18);box-shadow:inset 0 0 0 1px rgba(249,115,22,.55); }\r
-#gc-alarm .gc-alarm-icon img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }\r
-#gc-alarm .gc-alarm-card > div { display:flex;flex-direction:column; }\r
-#gc-alarm small { color:#fdba74;font-size:11px;font-weight:600; }\r
-#gc-alarm strong { margin:1px 0;color:var(--gc-strong);font-size:16px;font-weight:650; }\r
-#gc-alarm span { color:var(--gc-muted);font-size:12px; }\r
-#gc-alarm button { min-height:32px;padding:7px 12px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:600 12px var(--gc-font); }\r
-#gc-alarm button:hover { background:var(--gc-surface-3); }\r
-#gc-alarm[data-sample] .gc-alarm-card { animation:none;border-color:var(--gc-accent-line);box-shadow:var(--gc-shadow); }\r
-#gc-alarm[data-editing] { cursor:grab;user-select:none;touch-action:none;outline:2px dashed var(--gc-accent-line);outline-offset:4px;border-radius:var(--gc-radius); }\r
-#gc-alarm[data-editing] .gc-alarm-card:first-child { grid-template-columns:auto minmax(0,1fr);grid-auto-flow:column;grid-auto-columns:auto; }\r
-#gc-alarm[data-editing][data-dragging] { cursor:grabbing; }\r
-#gc-alarm button[data-alarm-resize] { position:absolute;right:-11px;bottom:-11px;width:18px;height:18px;min-height:0;padding:0;border:2px solid var(--gc-bg);border-radius:50%;background:var(--gc-accent,#60a5fa);cursor:nwse-resize;touch-action:none; }\r
-#gc-alarm button[data-alarm-resize]:hover { background:var(--gc-accent,#60a5fa);filter:brightness(1.15); }\r
-#gc-alarm-guide { position:fixed;left:50%;top:0;bottom:0;z-index:999998;width:0;border-left:1px dashed var(--gc-accent-line);opacity:0;pointer-events:none;transition:opacity .12s; }\r
-#gc-alarm-guide.is-visible { opacity:1; }\r
-#gc-alarm button[data-buy] { color:#1c1208;background:#fb923c;border-color:#fb923c; }\r
-#gc-alarm button[data-buy]:hover { background:#fdba74; }\r
-#gc-alarm [data-alarm-queue] { margin-top:2px;color:var(--gc-gold);font-size:11px;font-style:normal;font-weight:600; }\r
-/* One line each: a name long enough to wrap would make the banner taller and move its buttons. */\r
-#gc-alarm small,#gc-alarm strong,#gc-alarm span,#gc-alarm [data-alarm-queue] { overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }\r
-#gc-alarm button[data-buy] { min-width:88px; }\r
-@keyframes gc-alarm-pulse { from { box-shadow:0 0 0 3px rgba(251,146,60,.12),var(--gc-shadow); } to { box-shadow:0 0 0 6px rgba(251,146,60,.24),var(--gc-shadow); } }\r
-#gc-turtle { position:fixed;z-index:99989;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 10px;color:var(--gc-strong);background:rgba(20,20,23,.95);border:1px solid var(--gc-line-strong);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.45);pointer-events:none;white-space:nowrap;text-align:center;font:600 12px/1.45 var(--gc-font);font-variant-numeric:tabular-nums; }\r
-\r
-/* ── Team picker ─────────────────────────────────────────────────────────────────────────────── */\r
-#gc-team-picker { position:fixed;inset:0;z-index:999996;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:rgba(0,0,0,.55);color:var(--gc-text);font:13px/1.45 var(--gc-font); }\r
-#gc-team-picker * { box-sizing:border-box; }\r
-#gc-team-picker img { image-rendering:auto!important; }\r
-.gc-team-picker-shell { width:min(1080px,96vw);height:min(760px,92vh);display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;overflow:hidden;background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:14px;box-shadow:var(--gc-shadow); }\r
-.gc-team-picker-shell > header { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 14px 14px 20px;border-bottom:1px solid var(--gc-line); }\r
-.gc-team-picker-shell > header small { color:var(--gc-faint);font-size:11px;font-weight:500; }\r
-.gc-team-picker-shell > header h2 { margin:1px 0 0;color:var(--gc-strong);font-size:17px;font-weight:650; }\r
-.gc-team-picker-shell > header button { width:32px;height:32px;padding:0;color:var(--gc-muted);border:0;border-radius:var(--gc-radius-sm);background:transparent;cursor:pointer; }\r
-.gc-team-picker-shell > header button svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round; }\r
-.gc-team-picker-shell > header button { display:grid;place-items:center; }\r
-.gc-team-picker-shell > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }\r
-.gc-team-picker-controls { display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr) auto;align-items:center;gap:10px;padding:14px 20px; }\r
-.gc-team-picker-controls .gc-search { margin:0; }\r
-.gc-team-picker-controls input { height:34px;padding:0 11px; }\r
-.gc-team-picker-count { color:var(--gc-muted);font-size:12px;font-weight:550;white-space:nowrap;font-variant-numeric:tabular-nums; }\r
-.gc-team-picker-count[data-tone=good] { color:var(--gc-green); }\r
-.gc-team-picker-count[data-tone=error] { color:var(--gc-danger); }\r
-.gc-emblem-picker { padding:0 20px 12px; }\r
-.gc-emblem-head { display:flex;align-items:center;gap:10px;margin-bottom:8px; }\r
-.gc-emblem-head > span { color:var(--gc-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }\r
-.gc-emblem-head > small { margin-left:auto;color:var(--gc-muted);font-size:11px; }\r
-.gc-emblem-tabs { display:flex;gap:2px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }\r
-.gc-emblem-tabs button { min-height:26px;padding:4px 10px;border:1px solid transparent;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent;cursor:pointer;font:500 12px var(--gc-font); }\r
-.gc-emblem-tabs button.active { color:var(--gc-strong)!important;border-color:var(--gc-line-strong)!important;background:var(--gc-surface-3)!important; }\r
-.gc-emblem-strip { max-height:100px;display:flex;flex-wrap:wrap;gap:5px;overflow:auto;padding:2px; }\r
-.gc-emblem-strip[hidden] { display:none; }\r
-.gc-emblem-strip button { width:44px;height:44px;flex:0 0 auto;display:grid;place-items:center;gap:1px;padding:2px!important;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface);cursor:pointer;color:var(--gc-text); }\r
-.gc-emblem-strip button:hover:not(:disabled) { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }\r
-.gc-emblem-strip button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-accent)!important;background:var(--gc-accent-soft)!important; }\r
-.gc-emblem-strip button:disabled { opacity:.3;cursor:not-allowed; }\r
-.gc-emblem-strip button b { font-size:15px; }\r
-.gc-emblem-hint { margin:0;padding:6px 2px;color:var(--gc-muted);font-size:12px; }\r
-.gc-emblem-strip button small { max-width:100%;overflow:hidden;color:var(--gc-muted);text-overflow:ellipsis;white-space:nowrap;font-size:9px; }\r
-.gc-emblem-strip button img { width:30px;height:30px;object-fit:contain; }\r
-.gc-emblem-strip button:has(small) img { width:22px;height:22px; }\r
-.gc-emblem-strip button i { width:15px;height:15px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#67e8f9); }\r
-.gc-emblem-strip button i[data-emblem-icon=gold] { background:linear-gradient(135deg,#fbbf24,#f59e0b); }\r
-.gc-emblem-strip button i[data-emblem-icon=rainbow] { background:linear-gradient(135deg,#f87171,#fbbf24 35%,#34d399 65%,#60a5fa); }\r
-.gc-emblem-strip button i[data-emblem-icon=thunder] { background:linear-gradient(135deg,#fde047,#a855f7); }\r
-.gc-emblem-strip button i[data-emblem-icon=dawn] { background:linear-gradient(135deg,#fda4af,#fcd34d); }\r
-.gc-emblem-strip button i[data-emblem-icon=amber] { background:linear-gradient(135deg,#f59e0b,#b45309); }\r
-.gc-emblem-strip button i[data-emblem-icon=wet] { background:linear-gradient(135deg,#38bdf8,#0ea5e9); }\r
-.gc-emblem-strip button i[data-emblem-icon=chilled] { background:linear-gradient(135deg,#a5f3fc,#22d3ee); }\r
-.gc-emblem-strip button i[data-emblem-icon=frozen] { background:linear-gradient(135deg,#e0f2fe,#7dd3fc); }\r
-.gc-emblem-strip button i[data-emblem-icon=coin] { background:linear-gradient(135deg,#fde68a,#d97706); }\r
-.gc-emblem-strip button i[data-emblem-icon=egg] { background:linear-gradient(135deg,#fff7ed,#fed7aa); }\r
-.gc-emblem-strip button i[data-emblem-icon=thunderstruck],.gc-emblem-strip button i[data-emblem-icon=weatherThunderstorm] { background:linear-gradient(135deg,#facc15,#7c3aed); }\r
-.gc-emblem-strip button i[data-emblem-icon=dawnbound],.gc-emblem-strip button i[data-emblem-icon=weatherDawn] { background:linear-gradient(135deg,#fb7185,#f59e0b); }\r
-.gc-emblem-strip button i[data-emblem-icon=amberbound],.gc-emblem-strip button i[data-emblem-icon=weatherAmberMoon] { background:linear-gradient(135deg,#d97706,#78350f); }\r
-.gc-emblem-strip button i[data-emblem-icon=weatherRain] { background:linear-gradient(135deg,#7dd3fc,#2563eb); }\r
-.gc-emblem-strip button i[data-emblem-icon=weatherSnow] { background:linear-gradient(135deg,#f0f9ff,#bae6fd); }\r
-\r
-/* ── Calculators ─────────────────────────────────────────────────────────────────────────────── */\r
-.gc-calc-total { color:var(--gc-gold);font-size:15px;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums; }\r
-.gc-calc-select { width:100%;height:34px;padding:0 10px; }\r
-.gc-calc-hint { margin:8px 0 0;color:var(--gc-muted);font-size:12px; }\r
-.gc-calc-table { width:100%;border-collapse:collapse;margin-top:10px;font-size:12px; }\r
-.gc-calc-table th { padding:0 0 6px;color:var(--gc-faint);text-align:left;font-size:11px;font-weight:600; }\r
-.gc-calc-table td { padding:7px 6px 7px 0;border-top:1px solid var(--gc-line);vertical-align:middle;font-variant-numeric:tabular-nums; }\r
-.gc-calc-table td:first-child { display:flex;align-items:center;gap:9px; }\r
-.gc-calc-table td small { display:block;color:var(--gc-muted);font-size:11px; }\r
-.gc-calc-table .gc-shop-sprite { width:28px;height:28px; }\r
-.gc-calc-table .gc-shop-sprite img { width:24px;height:24px; }\r
-.gc-calc-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px; }\r
-.gc-calc-grid > div { padding:10px 12px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }\r
-.gc-calc-grid small { display:block;margin-bottom:3px;color:var(--gc-muted);font-size:11px; }\r
-.gc-calc-grid b { color:var(--gc-strong);font-size:16px;font-weight:650;font-variant-numeric:tabular-nums; }\r
-.gc-value-card { display:flex;flex-direction:column;gap:16px; }\r
-.gc-value-head { display:flex;align-items:center;gap:10px; }\r
-.gc-value-head .gc-shop-sprite { width:40px;height:40px; }\r
-.gc-value-head .gc-shop-sprite img { width:34px;height:34px; }\r
-.gc-value-head select { flex:1;min-width:0;height:36px;padding:0 10px;font-size:13px;cursor:pointer; }\r
-.gc-value-size { display:block; }\r
-/* Lighting tab: a status strip, then the scene choices as labelled rows of icon buttons, then the\r
-   lighting sliders two to a row. */\r
-.gc-sky-status { display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:4px 6px 4px 12px; }\r
-#gc-panel .gc-sky-status button { min-height:24px;padding:2px 10px;font-size:11px; }\r
-.gc-sky-status b { color:var(--gc-strong);font-size:13px; }\r
-.gc-sky-status span { flex:1;min-width:0;color:var(--gc-muted);font-size:12px; }\r
-.gc-sky-status[data-locked=true] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }\r
-.gc-sky-card h3 { margin-bottom:10px; }\r
-.gc-sky-card .gc-note { margin:10px 0 0; }\r
-.gc-sky-card-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }\r
-.gc-sky-card-head h3 { margin:0; }\r
-.gc-sky-row { display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;gap:10px; }\r
-.gc-sky-row + .gc-sky-row { margin-top:8px; }\r
-.gc-sky-row > span { color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-sky-choices { display:grid;grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:4px; }\r
-#gc-panel .gc-sky-choices button { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:48px;padding:5px 4px;color:var(--gc-muted);font-size:11px; }\r
-#gc-panel .gc-sky-choices button img { width:22px;height:22px;object-fit:contain; }\r
-#gc-panel .gc-sky-choices button.active { color:var(--gc-strong);border-color:var(--gc-accent);background:var(--gc-accent-soft);box-shadow:inset 0 0 0 1px var(--gc-accent); }\r
-.gc-sky-sliders { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px; }\r
-.gc-sky-slider { display:flex;flex-direction:column;gap:6px; }\r
-.gc-sky-slider-head { display:flex;align-items:baseline;justify-content:space-between;gap:8px; }\r
-.gc-sky-slider-head b { color:var(--gc-text);font-size:12px;font-weight:600; }\r
-.gc-sky-slider-head em { color:var(--gc-strong);font-size:12px;font-style:normal;font-variant-numeric:tabular-nums; }\r
-.gc-sky-slider input { width:100%;accent-color:var(--gc-accent); }\r
-.gc-sky-sliders-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }\r
-.gc-sky-slider[data-disabled=true],.gc-sky-colours:has(input:disabled) { opacity:.45; }\r
-.gc-sky-colours { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px; }\r
-.gc-sky-colour { display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer; }\r
-.gc-sky-colour input { flex:0 0 auto;width:30px;height:24px;padding:0;border:1px solid var(--gc-line-strong);border-radius:6px;background:none;cursor:pointer; }\r
-.gc-sky-colour span { display:flex;flex-direction:column;min-width:0;color:var(--gc-text);font-size:12px;font-weight:600; }\r
-.gc-sky-colour small { color:var(--gc-muted);font-size:10px;font-weight:400; }\r
-@media(max-width:650px) { .gc-sky-sliders,.gc-sky-sliders-3,.gc-sky-colours{grid-template-columns:1fr}.gc-sky-row{grid-template-columns:1fr;gap:5px} }\r
-.gc-value-size > span { display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-value-size b { color:var(--gc-text);font-size:13px;font-variant-numeric:tabular-nums; }\r
-.gc-value-size i { margin-left:-4px;color:var(--gc-muted);font-size:11px;font-style:normal; }\r
-.gc-value-size em { padding:1px 7px;border-radius:999px;background:rgba(62,207,142,.14);color:var(--gc-green);font-size:11px;font-style:normal;font-weight:600; }\r
-.gc-value-size input[type=range] { width:100%;accent-color:var(--gc-accent); }\r
-.gc-alarm-sound > * + * { margin-top:14px; }\r
-.gc-alarm-sound h3 + * { margin-top:10px; }\r
-/* Two buttons where a launch row expects one, so they size to their labels and the row gives them room first. */\r
-.gc-launch-row > .gc-alarm-file-actions { display:flex;flex:0 0 auto;gap:8px; }\r
-#gc-panel .gc-alarm-file-actions button { width:auto;min-width:84px; }\r
-.gc-value-readout { display:flex;align-items:baseline;gap:7px;margin-top:-4px; }\r
-.gc-value-readout b { color:var(--gc-text);font:650 14px/1 var(--gc-font);font-variant-numeric:tabular-nums; }\r
-.gc-value-readout span { color:var(--gc-muted);font-size:11px;font-weight:500; }\r
-.gc-value-breakdown { margin:6px 0 0;color:var(--gc-muted);font-size:12px;text-align:center; }\r
-.gc-value-group { display:flex;align-items:center;gap:10px; }\r
-.gc-value-group > b { width:60px;flex:0 0 auto;color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-value-group > div { display:flex;flex-wrap:wrap;gap:4px; }\r
-.gc-value-pill { display:inline-flex;align-items:center;gap:5px;padding:4px 8px; }\r
-.gc-value-pill img { width:20px;height:20px;object-fit:contain;image-rendering:auto; }\r
-.gc-value-pill span { font-size:12px; }\r
-.gc-value-pill small { color:var(--gc-muted);font-size:11px;font-weight:500; }\r
-.gc-value-pill.on { color:var(--gc-strong)!important;border-color:var(--gc-accent-line)!important;background:var(--gc-accent-soft)!important; }\r
-.gc-value-pill.on small { color:var(--gc-accent-text); }\r
-.gc-ready-rule { display:flex;flex-direction:column;gap:8px;padding:10px 0;border-top:1px solid var(--gc-line); }\r
-.gc-ready-rule:first-child { border-top:0;padding-top:0; }\r
-.gc-ready-rule > button { align-self:flex-start; }\r
-.gc-ready-head { display:flex;align-items:center;gap:8px; }\r
-.gc-ready-head > span:nth-child(2) { display:flex;flex-direction:column;flex:1 1 auto;min-width:0; }\r
-.gc-ready-head small { color:var(--gc-muted);font-size:11px; }\r
-.gc-ready-size-input { display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gc-muted); }\r
-/* Same label width and gap as the mutation group rows, so the box lines up with the pills below. */\r
-.gc-ready-size-input > span { width:60px;flex:0 0 auto;margin-right:4px; }\r
-#gc-panel .gc-ready-size-input input { width:48px;min-width:0;height:24px;padding:0 6px;box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-input);color:var(--gc-text);font:12px var(--gc-font);text-align:right;outline:none; }\r
-.gc-ready-combo { display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--gc-line);border-radius:8px; }\r
-.gc-ready-picked { display:flex;align-items:flex-start;justify-content:space-between;gap:8px; }\r
-.gc-ready-picked > div { display:flex;flex-wrap:wrap;align-items:center;gap:4px; }\r
-.gc-ready-picked > span { display:flex;gap:4px;flex:0 0 auto; }\r
-.gc-ready-picked i { color:var(--gc-muted);font-style:normal;font-size:12px; }\r
-.gc-ready-chip { display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 4px;border:1px solid var(--gc-accent-line);border-radius:999px;background:var(--gc-accent-soft);color:var(--gc-strong);font-size:12px;font-weight:600; }\r
-.gc-ready-chip img { width:18px;height:18px;object-fit:contain; }\r
-.gc-ready-chip.gc-ready-size { padding-left:8px; }\r
-.gc-ready-repeat { margin-left:4px;color:#fca5a5;font-size:11px; }\r
-.gc-ready-chip.gc-ready-any { padding-left:8px;border-color:var(--gc-line-strong);background:none;color:var(--gc-muted);font-weight:500; }\r
-.gc-ready-combo .gc-value-pill:not(.on) img { opacity:.35;filter:grayscale(1); }\r
-.gc-ready-combo .gc-value-pill:not(.on):hover img { opacity:.8;filter:none; }\r
-.gc-value-foot { display:flex;align-items:center;justify-content:space-between;gap:10px; }\r
-.gc-value-foot label { display:flex;align-items:center;gap:9px; }\r
-.gc-value-foot span { color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-value-foot select { height:32px;padding:0 8px;font-size:12px;cursor:pointer; }\r
-.gc-value-result { display:flex;align-items:baseline;justify-content:center;gap:8px;padding-top:14px;border-top:1px solid var(--gc-line); }\r
-.gc-value-result b { color:var(--gc-gold);font:700 30px/1 var(--gc-font);letter-spacing:-.02em;font-variant-numeric:tabular-nums; }\r
-.gc-value-result small { color:var(--gc-muted);font-size:12px; }\r
-.gc-dust-list { max-height:340px;overflow:auto;display:flex;flex-direction:column;gap:5px;margin-top:10px; }\r
-.gc-dust-row { display:flex;align-items:center;gap:10px;padding:6px 10px 6px 6px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input);cursor:pointer; }\r
-.gc-dust-row:has(input:checked) { border-color:var(--gc-accent-line);background:rgba(var(--gc-accent-rgb),.08); }\r
-.gc-dust-row .gc-pet-sprite { width:34px;height:34px;border-radius:8px; }\r
-.gc-dust-row .gc-pet-sprite img { width:30px;height:30px; }\r
-.gc-dust-row > span { min-width:0;flex:1;display:flex;flex-direction:column; }\r
-.gc-dust-row b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550; }\r
-.gc-dust-row small { color:var(--gc-muted);font-size:11px; }\r
-.gc-dust-value { flex:0 0 auto;color:var(--gc-gold);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums; }\r
-.gc-granter-list { display:flex;flex-direction:column;gap:6px;margin-top:10px; }\r
-.gc-granter-row { display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,180px);align-items:center;gap:10px;padding:7px 10px 7px 7px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }\r
-.gc-granter-row[data-active=false] { opacity:.45; }\r
-.gc-granter-row[data-owned=false] .gc-pet-sprite { border-style:dashed; }\r
-.gc-granter-row[data-owned=false] .gc-granter-head small { color:var(--gc-gold); }\r
-.gc-granter-head { min-width:0;display:flex;align-items:center;gap:9px;cursor:pointer; }\r
-.gc-granter-head .gc-pet-sprite { width:32px;height:32px;border-radius:8px; }\r
-.gc-granter-head .gc-pet-sprite img { width:28px;height:28px; }\r
-.gc-granter-head > span { min-width:0;display:flex;flex-direction:column; }\r
-.gc-granter-head b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550; }\r
-.gc-granter-head small { color:var(--gc-muted);font-size:11px; }\r
-.gc-granter-slider { display:flex;align-items:center;gap:8px; }\r
-.gc-granter-slider input { flex:1;min-width:0;accent-color:var(--gc-accent); }\r
-.gc-granter-slider b { min-width:24px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums; }\r
-.gc-food-slots { display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px; }\r
-.gc-food-slot { display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }\r
-.gc-food-slot select { height:32px;padding:0 8px;font-size:12px; }\r
-.gc-food-slot small { color:var(--gc-muted);font-size:11px; }\r
-.gc-dust-boost-slots { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 12px; }\r
-.gc-dust-boost-slot { display:flex;flex-direction:column;gap:5px; }\r
-.gc-dust-boost-slot span { color:var(--gc-muted);font-size:12px; }\r
-.gc-dust-boost-slot input { height:32px;padding:0 9px;font-size:13px; }\r
-.gc-dust-boosted { display:block;margin-top:2px;color:var(--gc-muted);font-size:11px;font-weight:500;white-space:normal; }\r
-\r
-/* ── Pet teams ───────────────────────────────────────────────────────────────────────────────── */\r
-.gc-team-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:10px 12px 10px 16px;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }\r
-#gc-panel .gc-team-bar .gc-primary { width:auto;flex:0 0 auto;padding:7px 16px; }\r
-.gc-team-summary-line { min-width:0;color:var(--gc-muted);font-size:12px; }\r
-.gc-team-summary-line b { color:var(--gc-strong);font-size:13px;font-weight:600; }\r
-.gc-team-card { position:relative;display:flex;flex-direction:column;gap:12px;padding:14px 16px; }\r
-.gc-team-card[data-active=true] { border-color:rgba(62,207,142,.35);background:linear-gradient(180deg,rgba(62,207,142,.05),transparent 60%),var(--gc-surface); }\r
-.gc-team-card[data-active=true]::before { content:'';position:absolute;top:14px;bottom:14px;left:-1px;width:3px;border-radius:0 3px 3px 0;background:var(--gc-green); }\r
-.gc-team-head { display:flex;align-items:center;gap:10px; }\r
-.gc-team-head .gc-team-emblem { flex:0 0 auto;margin-left:0;min-width:28px;height:28px; }\r
-.gc-team-title { min-width:0;flex:1;display:flex;flex-direction:column;gap:1px; }\r
-.gc-team-title h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }\r
-.gc-team-title small { color:var(--gc-muted);font-size:12px; }\r
-.gc-team-actions { flex:0 0 auto;display:flex;align-items:center;gap:6px; }\r
-.gc-team-order { display:flex;flex-direction:column;gap:2px; }\r
-/* #gc-panel button sets its own padding and font, so this has to match that specificity to win. */\r
-#gc-panel .gc-team-order button { width:24px;height:15px;min-height:0;box-sizing:border-box;padding:0;display:grid;place-items:center;border-radius:4px;font:600 7px/1 var(--gc-font); }\r
-#gc-panel .gc-team-order button:disabled { opacity:.28;cursor:default;border-color:var(--gc-line);background:var(--gc-surface-2);color:var(--gc-text); }\r
-.gc-team-active { padding:3px 8px;border-radius:999px;color:var(--gc-green);background:rgba(62,207,142,.13);font-size:11px;font-weight:600; }\r
-.gc-team-size { flex:0 0 auto;padding:3px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-muted);font-size:11px;font-weight:500;font-variant-numeric:tabular-nums; }\r
-.gc-team-pets { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px; }\r
-.gc-team-pet { min-width:0;display:flex;align-items:center;gap:10px;padding:7px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }\r
-.gc-team-pet.is-missing { border-style:dashed;border-color:rgba(240,113,113,.4); }\r
-.gc-team-pet.is-empty { justify-content:flex-start;border-style:dashed;opacity:.5; }\r
-.gc-team-pet.is-empty > i { width:36px;height:36px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;background:var(--gc-surface-2);color:var(--gc-muted);font-style:normal;font-size:17px; }\r
-.gc-team-pet .gc-pet-sprite { width:36px;height:36px;border-radius:8px; }\r
-.gc-team-pet .gc-pet-sprite img { width:32px;height:32px; }\r
-.gc-team-pet > span { min-width:0;display:flex;flex-direction:column;gap:1px; }\r
-.gc-team-pet b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550; }\r
-.gc-team-pet small { color:var(--gc-muted);font-size:11px; }\r
-.gc-ability-chips { display:flex;flex-wrap:wrap;gap:3px;margin-top:2px; }\r
-.gc-ability-chip { width:10px;height:10px;flex:0 0 auto;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);cursor:help;transition:transform .1s; }\r
-.gc-ability-chip:hover { transform:scale(1.25); }\r
-.gc-team-foot { display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--gc-line); }\r
-.gc-team-emblem { display:inline-grid;place-items:center;vertical-align:middle;margin-left:7px;padding:1px 6px;border:1px solid var(--gc-line-strong);border-radius:8px;color:var(--gc-text);background:var(--gc-surface-2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em; }\r
-.gc-team-emblem:has(img) { padding:2px; }\r
-.gc-team-emblem img { width:18px;height:18px;object-fit:contain; }\r
-.gc-team-emblem.is-empty { color:var(--gc-muted);border-style:dashed;background:transparent; }\r
-.gc-pet-grid label.gc-pet-locked { opacity:.42; }\r
-.gc-pet-grid label.gc-pet-locked input { cursor:not-allowed; }\r
-.gc-team-picker-grid { max-height:none;height:100%;margin:0;padding:0 20px 14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;align-content:start; }\r
-.gc-team-picker-grid label { padding:9px 10px; }\r
-.gc-team-picker-shell > footer { display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--gc-line); }\r
-/* Footer only: a shell-wide button rule ties with the emblem tab and tile rules and, coming later,\r
-   would override them. */\r
-.gc-team-picker-shell > footer button { min-height:30px;padding:8px 18px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }\r
-.gc-team-picker-shell > footer button:hover:not(:disabled) { background:var(--gc-surface-3); }\r
-.gc-team-picker-shell > footer .gc-primary { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }\r
-.gc-team-picker-shell > footer .gc-primary:hover:not(:disabled) { background:var(--gc-accent-hover); }\r
-\r
-/* ── Docked pet food buttons ─────────────────────────────────────────────────────────────────── */\r
-#gc-petfood { position:fixed;left:0;top:0;z-index:99991;width:0;height:0;pointer-events:none;font:12px/1.3 var(--gc-font);user-select:none; }\r
-#gc-petfood[hidden] { display:none; }\r
-#gc-petfood img { image-rendering:auto!important; }\r
-#gc-petfood [data-food-row] { position:fixed;box-sizing:border-box;display:grid;place-items:center;padding:2px;overflow:hidden;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:10px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;transition:border-color .12s,background .12s; }\r
-#gc-petfood [data-food-row]:hover:not(:disabled) { border-color:var(--gc-accent-line);background:rgba(42,42,48,.96); }\r
-#gc-petfood [data-food-row]:disabled { opacity:.45;cursor:not-allowed; }\r
-#gc-petfood [data-food-row] img { flex:0 0 auto;object-fit:contain; }\r
-#gc-petfood [data-food-row] i { color:rgba(255,255,255,.7);font:600 17px var(--gc-font);font-style:normal; }\r
-.gc-petfood-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;color:#141417;background:var(--gc-gold);border-radius:999px;text-align:center;font:700 11px/16px var(--gc-font);font-variant-numeric:tabular-nums; }\r
-.gc-petfood-options { position:fixed;padding:3px 8px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:999px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.45);pointer-events:auto;cursor:pointer;font:500 11px var(--gc-font); }\r
-.gc-petfood-options:hover { color:var(--gc-strong);border-color:var(--gc-accent-line); }\r
-.gc-food-card .gc-food-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }\r
-.gc-food-card .gc-food-head span { color:var(--gc-faint);font-size:11px;font-weight:500; }\r
-/* Every food for a species on one row, however many it has - five used to wrap onto a second line. */\r
-.gc-food-options { display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;margin-top:10px; }\r
-.gc-food-options button { display:flex!important;align-items:center;gap:8px;padding:5px 8px!important;text-align:left!important; }\r
-.gc-food-options button > span:last-child { min-width:0;display:flex;flex-direction:column; }\r
-.gc-food-options button b,.gc-food-options button small { overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }\r
-.gc-food-options button b { font-weight:550; }\r
-.gc-food-options button small { color:var(--gc-muted);font-size:11px; }\r
-.gc-food-options .gc-shop-sprite { width:28px;height:28px; }\r
-.gc-food-options .gc-shop-sprite img { width:24px;height:24px; }\r
-.gc-food-options button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-accent-line)!important;background:var(--gc-accent-soft)!important; }\r
-\r
-/* ── Toast ───────────────────────────────────────────────────────────────────────────────────── */\r
-#gc-toast { position:fixed;left:50%;top:20px;z-index:1000000;transform:translate(-50%,-12px);display:flex;align-items:center;gap:9px;padding:9px 14px 9px 12px;color:var(--gc-text);background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:10px;box-shadow:var(--gc-shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;font:500 13px var(--gc-font); }\r
-#gc-toast::before { content:'';width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--gc-green); }\r
-#gc-toast.is-visible { opacity:1;transform:translate(-50%,0); }\r
-#gc-toast[data-tone=error]::before { background:var(--gc-danger); }\r
-#gc-toast[data-tone=error] { border-color:rgba(240,113,113,.4); }\r
-@media(max-width:650px) { #gc-panel{left:6px!important;top:6px!important;width:calc(100vw - 12px)!important;height:calc(100vh - 12px)!important;border-radius:10px}.gc-shell{grid-template-columns:140px minmax(0,1fr)}.gc-content main{padding:12px}.gc-page-head{padding:12px 14px 10px}.gc-page-head p{display:none}.gc-check-grid,.gc-pet-grid,.gc-active-pets{grid-template-columns:1fr}.gc-shortcut-row{grid-template-columns:1fr;gap:5px}#gc-alarm{min-width:0;width:calc(100vw - 24px)} }\r
-\r
-/* ── Floating tool windows (planner, celestial layout) ───────────────────────────────────────── */\r
-#gc-planner { position:fixed;right:16px;top:16px;z-index:99992;width:340px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font);user-select:none; }\r
-#gc-planner * { box-sizing:border-box; }\r
-#gc-planner img { image-rendering:auto!important; }\r
-#gc-planner header { display:flex;align-items:center;gap:9px;padding:11px 12px 11px 14px;border-bottom:1px solid var(--gc-line); }\r
-#gc-planner header b { flex:1;color:var(--gc-strong);font-size:13px;font-weight:600; }\r
-#gc-planner header span { color:var(--gc-muted);font-size:11px; }\r
-#gc-planner header button { padding:5px 10px;color:#fecaca;border:1px solid rgba(240,113,113,.35);border-radius:var(--gc-radius-sm);background:rgba(240,113,113,.1);cursor:pointer;font:500 11px var(--gc-font); }\r
-#gc-planner header button:hover { color:#fff;border-color:rgba(240,113,113,.55);background:rgba(240,113,113,.18); }\r
-.gc-planner-body { padding:12px 14px 14px; }\r
-.gc-planner-body > small { display:block;margin-bottom:10px;color:var(--gc-muted);font-size:11px; }\r
-.gc-planner-modes { display:flex;gap:2px;margin-bottom:10px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }\r
-.gc-planner-modes button { flex:1;padding:6px 10px;color:var(--gc-muted);border:1px solid transparent;border-radius:var(--gc-radius-sm);background:transparent;cursor:pointer;font:500 12px var(--gc-font); }\r
-.gc-planner-modes button:hover { color:var(--gc-text); }\r
-.gc-planner-modes button.active { color:var(--gc-strong);border-color:var(--gc-line-strong);background:var(--gc-surface-3); }\r
-.gc-planner-mount { max-height:136px!important;margin-top:6px; }\r
-.gc-planner-grid { max-height:238px;display:grid;grid-template-columns:repeat(auto-fill,minmax(43px,1fr));gap:5px;overflow:auto;padding:2px; }\r
-.gc-planner-grid button { position:relative;aspect-ratio:1;display:grid;place-items:center;padding:4px;box-sizing:border-box;overflow:hidden;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);cursor:pointer; }\r
-.gc-planner-grid button:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }\r
-.gc-planner-grid button[data-active=true] { border-color:var(--gc-accent);background:var(--gc-accent-soft); }\r
-.gc-planner-grid button[data-rarity=Uncommon] { box-shadow:inset 0 -2px rgba(52,211,153,.6); }\r
-.gc-planner-grid button[data-rarity=Rare] { box-shadow:inset 0 -2px rgba(96,165,250,.7); }\r
-.gc-planner-grid button[data-rarity=Legendary] { box-shadow:inset 0 -2px rgba(251,191,36,.75); }\r
-.gc-planner-grid button[data-rarity=Mythic] { box-shadow:inset 0 -2px rgba(232,121,249,.75); }\r
-.gc-planner-grid button[data-rarity=Celestial] { box-shadow:inset 0 -2px rgba(103,232,249,.8); }\r
-.gc-planner-grid button[data-rarity=Divine] { box-shadow:inset 0 -2px rgba(248,113,113,.8); }\r
-.gc-planner-grid img { position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);object-fit:contain; }\r
-.gc-planner-grid i { color:var(--gc-muted);font-style:normal;font-size:12px; }\r
-.gc-planner-row { display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap; }\r
-.gc-planner-row > b { color:var(--gc-muted);font-size:11px;font-weight:500; }\r
-.gc-planner-mutations { display:flex;flex-direction:column;gap:4px;flex:1;min-width:0; }\r
-.gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }\r
-.gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }\r
-.gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }\r
-.gc-planner-weather { flex-wrap:nowrap;gap:3px; }\r
-.gc-planner-weather button { min-width:0;padding:3px 5px!important;display:grid;place-items:center; }\r
-.gc-planner-weather button img { display:block;width:22px;height:22px;object-fit:contain; }\r
-.gc-planner-mutation b { font-size:9px; }\r
-.gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }\r
-.gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:12px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums; }\r
-.gc-planner-row button,.gc-planner-mutations button { padding:5px 10px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:500 11px var(--gc-font); }\r
-.gc-planner-row button:hover,.gc-planner-mutations button:hover { background:var(--gc-surface-3); }\r
-.gc-planner-mutations button[data-active=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }\r
-/* Mutation icons are small and colourful, so a tinted background alone was hard to tell apart: the\r
-   unchosen ones are dimmed and the chosen ones get a solid ring (inset, so the panel's edge cannot\r
-   clip it). */\r
-.gc-planner-mutations button.gc-planner-mutation[data-active=false] > * { opacity:.4;filter:grayscale(.6); }\r
-.gc-planner-mutations button.gc-planner-mutation[data-active=false]:hover > * { opacity:.75;filter:none; }\r
-.gc-planner-mutations button.gc-planner-mutation[data-active=true] { border-color:var(--gc-accent);box-shadow:inset 0 0 0 1px var(--gc-accent);background:var(--gc-accent-soft); }\r
-.gc-planner-mutation-summary { color:var(--gc-muted);font-size:11px;line-height:1.3; }\r
-.gc-planner-row input,.gc-planner-row select { flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:inherit;font-size:12px; }\r
-.gc-planner-row input:focus,.gc-planner-row select:focus { border-color:var(--gc-accent-line); }\r
-body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }\r
-\r
-\r
-/* ── Journal ─────────────────────────────────────────────────────────────────────────────────── */\r
-.gc-journal-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }\r
-.gc-journal-summary b { color:var(--gc-strong);font-size:15px;font-weight:650;font-variant-numeric:tabular-nums; }\r
-.gc-journal-list { display:flex;flex-direction:column;gap:5px;margin-top:10px; }\r
-.gc-journal-list[data-incomplete-only=true] .gc-journal-row[data-complete=true] { display:none; }\r
-.gc-journal-row { display:grid;grid-template-columns:minmax(120px,1.1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface); }\r
-.gc-journal-row[data-complete=true] { border-color:rgba(62,207,142,.3);background:linear-gradient(90deg,rgba(62,207,142,.07),transparent 70%),var(--gc-surface); }\r
-.gc-journal-head { display:flex;min-width:0;align-items:center;gap:8px; }\r
-.gc-journal-head b { display:block;overflow:hidden;color:var(--gc-strong);font-size:13px;font-weight:550;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-journal-head small { color:var(--gc-muted);font-size:11px;font-variant-numeric:tabular-nums; }\r
-.gc-journal-chips { display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px; }\r
-.gc-journal-chip { position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--gc-line);border-radius:6px;background:var(--gc-input); }\r
-.gc-journal-chip img { max-width:18px;max-height:18px;object-fit:contain; }\r
-.gc-journal-chip b { color:var(--gc-text);font-size:8px;font-weight:700; }\r
-.gc-journal-chip[data-logged=false] { opacity:.24;filter:grayscale(1); }\r
-.gc-journal-chip[data-logged=true] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }\r
-.gc-journal-abilities { grid-column:1 / -1;display:flex;align-items:center;gap:6px; }\r
-.gc-journal-abilities small { color:var(--gc-muted);font-size:11px; }\r
-#gc-panel .gc-row [data-journal-incomplete][data-active=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }\r
-.gc-journal-group { display:flex;flex-direction:column;gap:5px; }\r
-.gc-journal-group + .gc-journal-group { margin-top:14px; }\r
-.gc-journal-group[hidden] { display:none; }\r
-.gc-journal-group-head { display:flex;align-items:center;gap:7px;margin:0 0 2px;color:var(--gc-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }\r
-.gc-journal-group-head .gc-shop-sprite { width:22px;height:22px; }\r
-.gc-journal-group-head .gc-shop-sprite img { max-width:16px;max-height:16px; }\r
-.gc-journal-search { margin-bottom:10px; }\r
-.gc-journal-search .gc-search { margin:0; }\r
-#gc-panel .gc-journal-search button { height:34px; }\r
-.gc-journal-filter { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px; }\r
-.gc-journal-filter small { color:var(--gc-muted);font-size:11px; }\r
-#gc-panel .gc-journal-filter button.gc-journal-chip { min-height:0;padding:0;border-radius:6px;background:var(--gc-input); }\r
-#gc-panel .gc-journal-filter button.gc-journal-chip[data-active=true] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);box-shadow:0 0 0 2px rgba(var(--gc-accent-rgb),.25); }\r
-.gc-journal-list[data-incomplete-only=true] .gc-journal-group:not(:has(.gc-journal-row[data-complete=false])) { display:none; }\r
-\r
-/* ── Preserve all ────────────────────────────────────────────────────────────────────────────── */\r
-/* Deliberately matched to the game's own action button: the same pill, weight and green, so the\r
-   two read as one control rather than a companion panel parked next to it. */\r
-#gc-preserve-all { position:fixed;left:50%;transform:translateX(-50%);bottom:230px;z-index:99989;display:flex;flex-direction:column;align-items:center;gap:3px;box-sizing:border-box;pointer-events:none;font:14px/1.2 system-ui,sans-serif;user-select:none; }\r
-#gc-preserve-all[hidden] { display:none; }\r
-#gc-preserve-all small { color:#fff;font-size:11px;font-weight:800;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.55),0 0 6px rgba(0,0,0,.5);white-space:nowrap; }\r
-#gc-preserve-all [data-preserve-caption] { font-size:10px;opacity:.82; }\r
-#gc-preserve-all button { pointer-events:auto;position:relative;overflow:hidden;isolation:isolate;padding:11px 20px;border:0;border-radius:15px;color:#fff;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d);box-shadow:0 5px 0 #0d7466,0 12px 24px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28);cursor:pointer;font:800 17px/1 system-ui,sans-serif;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.35);white-space:nowrap; }\r
-#gc-preserve-all button:hover:not(:disabled) { filter:brightness(1.06); }\r
-#gc-preserve-all button:disabled { cursor:not-allowed;background:linear-gradient(180deg,#8a9490,#6b7570);box-shadow:0 5px 0 #4a524e,0 12px 24px rgba(0,0,0,.4); }\r
-#gc-preserve-all[data-holding=true] [data-preserve-run] { transform:translateY(2px);box-shadow:0 3px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28); }\r
-#gc-preserve-all [data-preserve-fill] { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399);box-shadow:0 0 14px rgba(167,243,208,.5); }\r
-#gc-preserve-all [data-preserve-label] { position:relative; }\r
-/* The secondary button opens the per-slot manager: smaller and quieter than the green pill so it\r
-   reads as the "or pick them yourself" option beneath the one-press action. */\r
-#gc-preserve-all [data-preserve-manage] { margin-top:2px;padding:6px 14px;border-radius:11px;background:linear-gradient(180deg,#3a3a42,#27272d);box-shadow:0 3px 0 #16161a,0 6px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);color:#ececef;font:800 12px/1 system-ui,sans-serif; }\r
-#gc-preserve-all [data-preserve-manage][hidden] { display:none; }\r
-\r
-/* Preservation manager: every ready slot across the inventory, ticked one by one. */\r
-/* The game page is not border-box, so full-width rows with padding would overflow and clip their\r
-   right edge (the cost and the header tick); scope a reset to the manager. */\r
-.gc-preserve-manager, .gc-preserve-manager * { box-sizing:border-box; }\r
-.gc-preserve-manager { width:480px;max-width:calc(100vw - 40px);max-height:min(82vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }\r
-.gc-preserve-manager .gc-modal-body { display:flex;flex-direction:column;gap:8px; }\r
-/* The body is a fixed-height flex column; without this its children shrink to fit instead of\r
-   scrolling, so a long inventory collapses every plant to a thin line. */\r
-.gc-preserve-manager .gc-modal-body>* { flex:0 0 auto; }\r
-.gc-preserve-manager .gc-modal-tools { gap:10px; }\r
-.gc-preserve-manager .gc-modal-tools button { white-space:nowrap!important; }\r
-.gc-pm-search { flex:1 1 auto;min-width:0;height:32px;padding:0 11px!important;border:1px solid var(--gc-line-strong)!important;border-radius:var(--gc-radius-sm)!important;color:var(--gc-text)!important;background:var(--gc-input)!important;font:500 12px var(--gc-font)!important; }\r
-.gc-pm-search::placeholder { color:var(--gc-muted); }\r
-.gc-pm-search:focus { outline:none;border-color:rgba(62,207,142,.55)!important; }\r
-.gc-pm-summary-row { padding:7px 16px;border-bottom:1px solid var(--gc-line); }\r
-.gc-pm-summary-row .gc-modal-summary { color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-pm-empty { margin:14px 4px;color:var(--gc-faint);text-align:center; }\r
-.gc-pm-plant { border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);overflow:hidden;background:var(--gc-surface); }\r
-.gc-pm-plant-head { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:9px!important;width:100%;padding:8px 12px!important;border:0!important;border-bottom:1px solid var(--gc-line)!important;border-radius:0!important;background:transparent!important;color:var(--gc-strong)!important;text-align:left;font:600 13px var(--gc-font)!important; }\r
-.gc-pm-plant-head:hover { background:var(--gc-soft)!important; }\r
-.gc-pm-plant-head b { flex:1 1 auto;font-weight:600; }\r
-.gc-pm-plant-head small { color:var(--gc-muted);font-weight:500; }\r
-.gc-pm-icon { width:22px;height:22px;object-fit:contain; }\r
-.gc-pm-icon-text { display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--gc-surface-3);font-weight:700; }\r
-.gc-pm-check { flex:0 0 auto;display:grid;place-items:center;width:18px;height:18px;border:1px solid rgba(255,255,255,.22);border-radius:5px;color:#fff;font-style:normal;font-weight:700;font-size:11px; }\r
-.gc-pm-plant-head[data-state=all] .gc-pm-check,.gc-pm-plant-head[data-state=some] .gc-pm-check { border-color:var(--gc-green);background:rgba(62,207,142,.85);color:#08140e; }\r
-.gc-pm-slots { display:flex;flex-direction:column; }\r
-.gc-pm-slot { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:9px!important;width:100%;padding:7px 12px 7px 16px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--gc-text)!important;text-align:left;font:500 12px var(--gc-font)!important;cursor:pointer; }\r
-.gc-pm-slot+.gc-pm-slot { border-top:1px solid var(--gc-line)!important; }\r
-.gc-pm-slot:hover { background:var(--gc-soft)!important; }\r
-.gc-pm-slot[data-active=true] .gc-pm-check { border-color:var(--gc-green);background:rgba(62,207,142,.85);color:#08140e; }\r
-.gc-pm-size { flex:0 0 auto!important;min-width:40px;color:var(--gc-muted);font-weight:600;white-space:nowrap!important;font-variant-numeric:tabular-nums; }\r
-.gc-pm-crop { flex:0 0 auto!important;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap!important;color:var(--gc-text);font-weight:600; }\r
-/* The game styles button descendants, so the mutation column's flex and its chips' wrapping are\r
-   both pinned - without this the column is squeezed to a character wide and each letter stacks. */\r
-.gc-pm-muts { flex:1 1 auto!important;display:flex!important;flex-flow:row wrap!important;align-items:center;gap:3px;min-width:0!important; }\r
-.gc-pm-mut { flex:0 0 auto!important;width:15px;height:15px;object-fit:contain; }\r
-.gc-pm-mut-text { flex:0 0 auto!important;padding:1px 6px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-muted);font-size:10px;font-weight:600;white-space:nowrap!important; }\r
-.gc-pm-cost { flex:0 0 auto!important;color:var(--gc-gold);font-weight:650;white-space:nowrap!important;font-variant-numeric:tabular-nums; }\r
-.gc-pm-foot { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid var(--gc-line); }\r
-.gc-pm-foot-info { display:flex;flex-direction:column;gap:2px;min-width:0; }\r
-.gc-pm-total { color:var(--gc-strong);font-weight:650;font-variant-numeric:tabular-nums; }\r
-.gc-pm-total[data-short=true] { color:var(--gc-danger);font-weight:600; }\r
-.gc-pm-hint { color:var(--gc-muted);font-size:11px;font-weight:500; }\r
-.gc-preserve-manager[data-awaiting=true] .gc-pm-hint { color:var(--gc-green); }\r
-.gc-preserve-manager[data-offline=true] .gc-pm-hint { color:var(--gc-danger); }\r
-.gc-pm-run { display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;position:relative;overflow:hidden;isolation:isolate;padding:10px 20px!important;border:0!important;border-radius:12px!important;color:#062018!important;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d)!important;box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45)!important;cursor:pointer;font:800 14px/1 system-ui,sans-serif!important;white-space:nowrap; }\r
-.gc-pm-run:hover:not(:disabled) { filter:brightness(1.06); }\r
-.gc-pm-run:disabled { cursor:not-allowed;background:linear-gradient(180deg,#5a635f,#454d49)!important;box-shadow:0 4px 0 #333a37,0 8px 18px rgba(0,0,0,.4)!important;color:rgba(255,255,255,.7)!important; }\r
-/* After a capped run the button pulses to say "press again for the rest". */\r
-.gc-preserve-manager[data-awaiting=true] .gc-pm-run:not(:disabled) { animation:gc-pm-pulse 1.4s ease-in-out infinite; }\r
-@keyframes gc-pm-pulse { 0%,100% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 0 rgba(52,211,153,.5); } 50% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 6px rgba(52,211,153,0); } }\r
-.gc-preserve-manager[data-holding=true] .gc-pm-run { transform:translateY(2px); }\r
-.gc-pm-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399); }\r
-.gc-pm-run [data-pm-label],.gc-pm-run span { position:relative; }\r
-/* Crop locks: the Preservation manager's dialog, with a filter strip and a lock state per row. */\r
-/* A fixed height, not one that follows the list: filtering shrinks the list, and a centred dialog\r
-   that shrinks moves every control out from under the pointer mid-click. */\r
-.gc-crop-locks { height:min(82vh,680px); }\r
-.gc-crop-locks .gc-modal-body { flex:1 1 auto; }\r
-.gc-cl-filters { display:flex;align-items:center;gap:4px;padding:8px 16px;border-bottom:1px solid var(--gc-line); }\r
-.gc-cl-filters button { min-height:26px!important;padding:4px 10px!important;border-color:transparent!important;background:transparent!important;color:var(--gc-muted)!important; }\r
-.gc-cl-filters button:hover { color:var(--gc-text)!important;background:var(--gc-soft)!important; }\r
-.gc-cl-filters button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-line-strong)!important;background:var(--gc-surface-3)!important; }\r
-.gc-cl-filters .gc-modal-summary { margin-left:auto;color:var(--gc-muted);font-size:12px;font-weight:500; }\r
-.gc-cl-growing { flex:0 0 auto;padding:1px 6px;border-radius:999px;background:var(--gc-soft);color:var(--gc-faint);font-size:10px;font-weight:600; }\r
-.gc-cl-state { flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;border-radius:6px;color:var(--gc-faint); }\r
-.gc-cl-state svg { width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }\r
-.gc-cl-state[data-locked=true] { color:var(--gc-gold);background:rgba(245,196,81,.12); }\r
-.gc-cl-actions { display:flex;gap:8px; }\r
-.gc-cl-actions button { position:relative;overflow:hidden;isolation:isolate;min-width:104px;min-height:34px!important;font-weight:600!important; }\r
-.gc-cl-actions button span { position:relative; }\r
-.gc-cl-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:rgba(255,255,255,.28); }\r
-.gc-crop-locks .gc-cl-lock:not(:disabled) { color:#1a1405!important;border-color:var(--gc-gold)!important;background:var(--gc-gold)!important; }\r
-.gc-crop-locks .gc-cl-lock:not(:disabled):hover { filter:brightness(1.08); }\r
-.gc-cl-actions button:disabled { opacity:.45;cursor:default; }\r
-#gc-crop-locks[data-offline=true] .gc-pm-hint { color:var(--gc-danger); }\r
-#gc-lunar[data-dragging=true] { opacity:.9; }\r
-#gc-lunar button { cursor:pointer; }\r
-#gc-panel button.gc-pet-potions { width:100%;white-space:normal;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left;color:#c4b5fd;font-size:11px; }\r
-button.gc-pet-potions i { flex:0 0 auto;padding:2px 8px;border-radius:999px;color:#fff;background:var(--gc-accent);font-size:11px;font-weight:600;font-style:normal; }\r
-#gc-panel button.gc-pet-potions:hover:not(:disabled) { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }\r
-button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
-\r
-/* ── Egg Luck: one card per egg, its hatch table, and a bar per guarantee ────────────────────── */\r
-.gc-egg-summary { margin-bottom:12px;display:flex;align-items:center;justify-content:space-between; }\r
-.gc-egg-card + .gc-egg-card { margin-top:10px; }\r
-.gc-egg-card[data-empty=true] { opacity:.55; }\r
-.gc-egg-card h3 { display:flex;align-items:center;gap:8px;margin:0; }\r
-#gc-panel .gc-egg-head { width:100%;min-height:0;display:flex;align-items:center;gap:8px;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font:inherit; }\r
-#gc-panel .gc-egg-head:hover { background:transparent; }\r
-.gc-egg-head h3 { flex:1 1 auto;min-width:0;font-size:14px; }\r
-.gc-egg-head i { flex:0 0 auto;color:var(--gc-muted);font-size:10px;font-style:normal; }\r
-.gc-egg-head:hover h3 { color:var(--gc-accent-text); }\r
-.gc-egg-due { border-color:rgba(62,207,142,.35)!important;color:#86efac!important;background:rgba(62,207,142,.1)!important; }\r
-.gc-egg-table { width:100%;table-layout:fixed;margin:10px 0 0;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums; }\r
-.gc-egg-table th:nth-child(1),.gc-egg-table td:nth-child(1) { width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-egg-table th:nth-child(n+2),.gc-egg-table td:nth-child(n+2) { width:13.2%; }\r
-.gc-egg-table th { padding:4px 6px;color:var(--gc-faint);font-size:11px;font-weight:600;text-align:right; }\r
-.gc-egg-table th:first-child,.gc-egg-table td:first-child { text-align:left; }\r
-.gc-egg-table td { padding:5px 6px;text-align:right;border-top:1px solid var(--gc-line); }\r
-.gc-egg-table tr.gc-egg-none { opacity:.45; }\r
-.gc-egg-table th,.gc-egg-table td { vertical-align:middle; }\r
-.gc-egg-table td:first-child .gc-shop-sprite { display:inline-block;width:18px;height:18px;margin-right:7px;vertical-align:middle;background:transparent; }\r
-.gc-egg-table td:first-child .gc-shop-sprite img { width:18px;height:18px;object-fit:contain;vertical-align:middle; }\r
-.gc-egg-table th.gc-egg-mut img { display:inline-block;width:14px;height:14px;object-fit:contain;vertical-align:middle; }\r
-.gc-egg-colours { margin-top:10px;display:flex;align-items:center;gap:6px; }\r
-#gc-panel .gc-egg-colours button { margin-left:auto;min-height:26px;padding:3px 10px;font-size:11px;color:var(--gc-muted);background:transparent; }\r
-#gc-panel .gc-egg-colours button:hover { border-color:rgba(240,113,113,.45);color:#fca5a5;background:rgba(240,113,113,.08); }\r
-.gc-egg-pities { margin-top:10px;padding-top:10px;display:grid;gap:7px;border-top:1px solid var(--gc-line); }\r
-.gc-egg-pity { display:flex;align-items:center;gap:10px;font-size:12px; }\r
-.gc-egg-pity-label { flex:0 0 96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-egg-bar { flex:1 1 auto;height:6px;overflow:hidden;border-radius:999px;background:var(--gc-surface-3); }\r
-.gc-egg-bar i { display:block;height:100%;border-radius:999px;background:var(--gc-accent); }\r
-.gc-egg-pity-count { flex:0 0 84px;color:var(--gc-muted);font-size:11px;text-align:right;font-variant-numeric:tabular-nums; }\r
-.gc-egg-pity[data-due=true] .gc-egg-bar i { background:var(--gc-green); }\r
-.gc-egg-pity[data-due=true] .gc-egg-pity-count { color:#86efac; }\r
-.gc-egg-headrow { display:flex;align-items:center;gap:8px; }\r
-.gc-egg-headrow h3 { flex:1 1 auto;min-width:0; }\r
-#gc-panel .gc-egg-head.gc-egg-arrow { width:auto;flex:0 0 auto;padding:0 2px; }\r
-#gc-panel .gc-egg-edit { flex:0 0 auto;min-height:24px;padding:2px 10px;font-size:11px;color:var(--gc-muted);background:transparent; }\r
-#gc-panel .gc-egg-edit[aria-pressed=true] { color:var(--gc-accent-text);border-color:var(--gc-accent); }\r
-.gc-egg-card[data-editing=true] .gc-egg-table th:nth-child(n+2),.gc-egg-card[data-editing=true] .gc-egg-table td:nth-child(n+2) { width:22%; }\r
-.gc-egg-step { display:inline-flex;align-items:center;justify-content:flex-end;gap:4px; }\r
-#gc-panel .gc-egg-step input { width:6ch;padding:2px 4px;font-size:11px;font-weight:600;text-align:center;-moz-appearance:textfield; }\r
-#gc-panel .gc-egg-step input::-webkit-inner-spin-button,#gc-panel .gc-egg-step input::-webkit-outer-spin-button { -webkit-appearance:none;margin:0; }\r
-#gc-panel .gc-egg-step button { width:20px;min-height:20px;height:20px;padding:0;font-size:12px;line-height:1; }\r
-.gc-egg-card[data-editing=true] .gc-egg-pity-count { flex-basis:110px; }\r
-#gc-panel .gc-egg-pity-count input { width:56px;padding:2px 4px;font-size:11px;text-align:right; }\r
-.gc-egg-bonus { display:inline-flex;align-items:center;gap:4px;color:var(--gc-muted);font-size:11px; }\r
-#gc-panel .gc-egg-bonus input { width:56px;padding:2px 4px;font-size:11px;text-align:right; }\r
-\r
-/* The Ko-fi link is an anchor, not a button, so it borrows the primary button's look. */\r
-#gc-panel a.gc-kofi { width:132px;flex:0 0 auto;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:var(--gc-radius-sm);text-decoration:none;white-space:nowrap;font-size:12px;font-weight:600; }\r
-#gc-panel a.gc-kofi:hover { background:var(--gc-accent-hover); }\r
-#gc-produce-locks { position:fixed;z-index:99991;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:6px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:12px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.5);font:12px/1.3 var(--gc-font);user-select:none; }\r
-#gc-produce-locks[hidden] { display:none; }\r
-.gc-produce-locks-head { flex:0 0 auto;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;color:rgba(255,255,255,.7);font:600 11px var(--gc-font);cursor:help; }\r
-.gc-produce-locks-list { display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none; }\r
-.gc-produce-locks-list p { margin:0;padding:0 6px;color:rgba(255,255,255,.5);font-size:11px; }\r
-.gc-produce-lock { position:relative;flex:0 0 auto;display:grid;place-items:center;width:62px;height:62px;border:1px solid var(--gc-line-strong);border-radius:10px;background:rgba(42,42,48,.6);cursor:context-menu;transition:border-color .12s,background .12s; }\r
-.gc-produce-lock:hover { border-color:var(--gc-accent-line);background:rgba(42,42,48,.96); }\r
-.gc-produce-lock img { width:46px;height:46px;object-fit:contain;image-rendering:auto!important; }\r
-.gc-produce-lock i { color:rgba(255,255,255,.7);font:600 17px var(--gc-font);font-style:normal; }\r
-.gc-produce-lock-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;color:#141417;background:var(--gc-gold);border-radius:999px;text-align:center;font:700 11px/16px var(--gc-font);font-variant-numeric:tabular-nums; }\r
-.gc-produce-lock-pad { position:absolute;top:3px;right:3px;width:14px;height:14px;display:none;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5c542'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h6V7a3 3 0 0 0-6 0v3Z'/%3E%3C/svg%3E"); }\r
-.gc-produce-lock[data-locked="all"] { border-color:rgba(245,197,66,.7); }\r
-.gc-produce-lock[data-locked="all"] .gc-produce-lock-pad { display:block; }\r
-.gc-produce-lock[data-locked="some"] .gc-produce-lock-pad { display:block;opacity:.45; }\r
-\r
-/* Farm Manager - Celestial tab. Badge sizes use container units (cqmin) so they scale with the tile. */\r
-.gc-fm-cel { display:flex;flex-direction:column;gap:6px;min-width:0;overflow-wrap:anywhere; }\r
-.gc-fm-cel-label { margin-top:4px;color:var(--gc-faint);font-size:11px;font-weight:600; }\r
-.gc-fm-cel-seg { display:flex;gap:2px;padding:3px;border:1px solid var(--gc-line);border-radius:9px;background:var(--gc-input); }\r
-.gc-fm-cel-seg button { flex:1;height:26px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--gc-muted);cursor:pointer;font:600 11px var(--gc-font); }\r
-.gc-fm-cel-seg button[data-active="true"] { border-color:var(--gc-line-strong);background:var(--gc-surface-3);color:var(--gc-strong); }\r
-.gc-fm-cel-counts { display:grid;grid-template-columns:1fr 1fr;gap:4px; }\r
-.gc-fm-cel-counts span { display:flex;align-items:center;gap:5px;min-width:0;padding:4px 6px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface); }\r
-.gc-fm-cel-counts em { flex:1;min-width:0;overflow:hidden;color:var(--gc-muted);font-size:11px;font-style:normal;text-overflow:ellipsis;white-space:nowrap; }\r
-.gc-fm-cel-counts b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }\r
-.gc-fm-chip { display:inline-grid;place-items:center;min-width:22px;height:18px;padding:0 4px;border-radius:5px;color:#111;background:var(--chip);font:700 10px/1 var(--gc-font);font-style:normal; }\r
-.gc-fm-cel-msg { margin:0;padding:6px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);font-size:11px; }\r
-.gc-fm-cel-msg[data-tone="error"] { color:#fecaca;border-color:rgba(240,113,113,.35);background:rgba(240,113,113,.08); }\r
-.gc-fm-cel-progress { color:var(--gc-strong);font-weight:600;text-align:center; }\r
-.gc-fm-cel-steps { display:flex;flex-direction:column;gap:4px; }\r
-.gc-fm-cel-step { display:flex;align-items:center;gap:7px;padding:5px 7px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);cursor:pointer; }\r
-.gc-fm-cel-step:hover { border-color:var(--gc-line-strong); }\r
-.gc-fm-cel-step[data-current="true"] { border-color:#fde68a;background:rgba(253,230,138,.08); }\r
-.gc-fm-cel-step > b { min-width:14px;color:var(--gc-strong);font-variant-numeric:tabular-nums; }\r
-.gc-fm-cel-step span { display:flex;flex-direction:column;min-width:0; }\r
-.gc-fm-cel-step span b { color:var(--gc-strong);font-weight:600; }\r
-.gc-fm-cel-step small { color:var(--gc-muted);font-size:11px; }\r
-.gc-fm-cel-step small.gc-fm-cel-warn { color:#fca5a5; }\r
-.gc-fm-cel-done { padding:10px;color:#bbf7d0;border:1px dashed rgba(74,222,128,.4);border-radius:var(--gc-radius-sm);text-align:center; }\r
-.gc-fm-cel-refresh { height:28px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);color:var(--gc-text);cursor:pointer;font:600 12px var(--gc-font); }\r
-.gc-fm-cel-refresh:hover { background:var(--gc-surface-3);color:var(--gc-strong); }\r
-.gc-fm-cel-help { color:var(--gc-faint);font-size:11px;line-height:1.35; }\r
-.gc-fm-cell[data-cel-area="false"] { opacity:.55; }\r
-.gc-fm-cell[data-cel="planned"] { box-shadow:inset 0 0 0 2px var(--chip);background:color-mix(in srgb,var(--chip) 18%,#3a2a1d); }\r
-.gc-fm-cell[data-cel="planned"] img { opacity:.35; }\r
-.gc-fm-cell[data-cel="ok"] { box-shadow:inset 0 0 0 1px rgba(74,222,128,.45); }\r
-.gc-fm-cell[data-cel="move"] { box-shadow:inset 0 0 0 3px #fb7185;background:#5a2a2e; }\r
-.gc-fm-cell[data-cel-active="true"] { outline:3px solid #fde68a;outline-offset:1px;z-index:2; }\r
-.gc-fm-cell[data-cel-source] { outline:3px solid var(--chip);outline-offset:1px;z-index:2; }\r
-.gc-fm-cell[data-cel-lit="moon"] { box-shadow:inset 0 0 0 3px #fb923c,0 0 10px rgba(251,146,60,.7); }\r
-.gc-fm-cell[data-cel-lit="dawn"] { box-shadow:inset 0 0 0 3px #38bdf8,0 0 10px rgba(56,189,248,.7); }\r
-.gc-fm-cell > i.gc-fm-cel-badge,.gc-fm-cell > i.gc-fm-cel-tick,.gc-fm-cell > i.gc-fm-cel-num { position:absolute;display:grid;place-items:center;box-sizing:border-box;font-style:normal;line-height:1;white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.6); }\r
-.gc-fm-cel-badge { left:3cqmin;top:3cqmin;min-width:46cqmin;height:34cqmin;padding:0 4cqmin;border-radius:6cqmin;color:#111 !important;background:var(--chip);font:800 22cqmin var(--gc-font) !important; }\r
-.gc-fm-cel-tick { right:3cqmin;top:3cqmin;width:34cqmin;height:34cqmin;border-radius:50%;color:#052e16 !important;background:#4ade80;font:900 24cqmin var(--gc-font) !important; }\r
-.gc-fm-cel-num { right:3cqmin;bottom:3cqmin;width:46cqmin;height:46cqmin;border-radius:50%;color:#fff !important;background:#e11d48;border:2px solid #fff;font:900 28cqmin var(--gc-font) !important;font-variant-numeric:tabular-nums; }\r
-.gc-fm-cell > i.gc-fm-cel-oops { position:absolute;left:3cqmin;bottom:3cqmin;display:grid;place-items:center;width:34cqmin;height:34cqmin;border-radius:50%;color:#111;background:#fde68a;font:900 26cqmin var(--gc-font);font-style:normal;line-height:1;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.6);animation:gc-fm-pulse 1s ease-in-out infinite; }\r
-.gc-fm-cel-arrow { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3; }\r
-.gc-fm-cel-arrow line { stroke:#fde68a;stroke-width:3;stroke-linecap:round;stroke-dasharray:6 4;filter:drop-shadow(0 1px 1px #000); }\r
-\r
-\r
-/* ── Pumpkin carving from a picture ───────────────────────────────────────────────────────────── */\r
-#gc-carve-import { position:fixed;z-index:99988;padding:7px 14px;border:1px solid rgba(255,255,255,.25);border-radius:999px;color:#fff;background:rgba(20,20,23,.82);cursor:pointer;font:600 12px var(--gc-font);box-shadow:0 2px 8px rgba(0,0,0,.4); }\r
-#gc-carve-import[hidden] { display:none; }\r
-#gc-carve-import:hover { background:var(--gc-accent); }\r
-.gc-carve-modal { width:440px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }\r
-.gc-carve-preview { display:block;width:100%;height:auto;border-radius:var(--gc-radius-sm);background:var(--gc-input); }\r
-.gc-carve-status { margin:8px 0 6px;color:var(--gc-muted);font-size:12px; }\r
-.gc-carve-slider { display:grid;grid-template-columns:84px 1fr;align-items:center;gap:8px;margin:4px 0; }\r
-.gc-carve-slider input { width:100%;accent-color:var(--gc-accent); }\r
-.gc-carve-check { display:flex;align-items:center;gap:8px;margin:8px 0 2px; }\r
-.gc-carve-check input { accent-color:var(--gc-accent); }\r
-.gc-carve-actions { display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--gc-line); }\r
-.gc-modal-backdrop .gc-carve-go { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }\r
-.gc-modal-backdrop .gc-carve-go:disabled { opacity:.5;cursor:default; }\r
-.gc-carve-modes { display:flex;gap:4px;margin:2px 0 8px;padding:3px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-input); }\r
-.gc-carve-modes label { flex:1; }\r
-.gc-carve-modes input { position:absolute;opacity:0;pointer-events:none; }\r
-.gc-carve-modes span { display:block;padding:5px 6px;border-radius:var(--gc-radius-sm);text-align:center;color:var(--gc-muted);font-weight:600;font-size:12px;cursor:pointer; }\r
-.gc-carve-modes input:checked + span { color:#fff;background:var(--gc-accent); }\r
-.gc-carve-modal [data-modes][hidden] { display:none; }\r
-.gc-carve-preview { cursor:grab;touch-action:none; }\r
-.gc-carve-preview[data-dragging=true] { cursor:grabbing; }\r
-.gc-carve-hint { margin:4px 0 0;color:var(--gc-muted);font-size:11px;text-align:center; }\r
-.gc-modal-backdrop .gc-carve-link { padding:0;border:0;background:none;color:var(--gc-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline; }\r
-.gc-carve-modal[data-cropping=true] .gc-modal-body > :not(.gc-carve-crop), .gc-carve-modal[data-cropping=true] .gc-carve-actions { display:none; }\r
-.gc-carve-crop[hidden] { display:none; }\r
-.gc-carve-crop-view { display:block;max-width:100%;max-height:55vh;margin:0 auto;border-radius:var(--gc-radius-sm);background:var(--gc-input);cursor:crosshair;touch-action:none; }\r
-.gc-carve-crop-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:10px; }\r
+      style.textContent = `/* Design tokens. One neutral graphite ramp and one accent: surfaces step up in lightness as they
+   sit higher (page < shell < card < control), so depth reads without borders doing all the work.
+   The accent is kept as an RGB triplet as well, since tints are written as rgba(var(...),alpha). */
+:root {
+  --gc-bg: #141417;
+  --gc-side: #101012;
+  --gc-surface: #1a1a1e;
+  --gc-surface-2: #222227;
+  --gc-surface-3: #2a2a30;
+  --gc-input: #0e0e10;
+  --gc-raised: #1a1a1e;
+  --gc-soft: rgba(255,255,255,.03);
+  --gc-line: rgba(255,255,255,.07);
+  --gc-line-strong: rgba(255,255,255,.12);
+  --gc-text: #ececef;
+  --gc-strong: #fafafa;
+  --gc-muted: #a1a1aa;
+  --gc-faint: #83838d;
+  --gc-accent-rgb: 124,108,242;
+  --gc-accent: #7c6cf2;
+  --gc-accent-hover: #8d7ff5;
+  --gc-accent-text: #b3a9ff;
+  --gc-accent-soft: rgba(124,108,242,.14);
+  --gc-accent-line: rgba(124,108,242,.45);
+  --gc-green: #3ecf8e;
+  --gc-gold: #f5c04a;
+  --gc-danger: #f07171;
+  --gc-radius: 12px;
+  --gc-radius-md: 9px;
+  --gc-radius-sm: 7px;
+  --gc-shadow: 0 24px 64px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.35);
+  --gc-font: "Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --gc-mono: ui-monospace,"Cascadia Mono",SFMono-Regular,Consolas,monospace;
+}
+#gc-panel img,#gc-alarm img,#gc-turtle img,#gc-overview-panel img { image-rendering:auto!important; }
+
+/* ── Lunar timer ─────────────────────────────────────────────────────────────────────────────── */
+#gc-lunar { position:fixed;right:16px;bottom:16px;cursor:move;z-index:99990;width:232px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);box-shadow:var(--gc-shadow);font:13px/1.2 var(--gc-font);user-select:none; }
+#gc-lunar::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14) 50%,transparent); }
+.gc-lunar-head { display:flex;align-items:center;justify-content:space-between;padding:10px 10px 2px 12px; }
+.gc-lunar-title { min-width:0;display:flex;align-items:center;gap:8px;color:var(--gc-muted);font-size:11px;font-weight:600; }
+.gc-lunar-title span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-lunar-mark { position:relative;width:16px;height:16px;flex:0 0 auto;border-radius:50%;background:var(--gc-accent-text); }
+.gc-lunar-mark::after { content:'';position:absolute;top:1px;left:5px;width:13px;height:13px;border-radius:50%;background:var(--gc-bg); }
+/* Showing a weather instead, the dial is only a frame for it - the crescent underneath would
+   otherwise read through the sprite's transparent corners. */
+.gc-lunar-mark[data-weather] { background:none;box-shadow:none; }
+.gc-lunar-mark[data-weather]::after { content:none; }
+.gc-lunar-mark img { position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:auto; }
+/* One rule for every control in the header. Naming each button meant a new one arrived with no
+   size, no border and an unstroked icon - present, and invisible. */
+#gc-lunar-head-actions button { width:26px;height:26px;display:grid;place-items:center;padding:0;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent;cursor:pointer;transition:background .12s,color .12s; }
+#gc-lunar-head-actions button svg { width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+#gc-lunar-head-actions button:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+/* The swap control is the one that changes what the panel is showing, so it reads as active when
+   the panel is on the borrowed forecast rather than the lunar countdown. */
+#gc-lunar-head-actions button[data-swap][data-mode="weather"] { color:var(--gc-accent-text);background:var(--gc-accent-soft); }
+#gc-lunar-head-actions { display:flex;align-items:center;gap:2px;flex:0 0 auto; }
+/* Sits beside the Garden Overview button, which is 32px at left:10px, so this clears it by 8px. */
+#gc-lunar-mini { position:fixed;left:50px;bottom:10px;z-index:99988;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-md);background:var(--gc-bg);color:var(--gc-text);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45); }
+#gc-lunar-mini:hover { background:var(--gc-surface-2); }
+/* Docked under the right-side rail by script; this top right corner is where it waits while cinematic mode is on. */
+#gc-cinematic { position:fixed;top:12px;right:12px;z-index:99988;width:36px;height:36px;padding:0;box-sizing:border-box;display:grid;place-items:center;border:0;background:transparent;color:#fff;cursor:pointer;transition:opacity .15s,transform .1s;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+#gc-cinematic[hidden] { display:none; }
+#gc-cinematic:hover { transform:scale(1.08); }
+#gc-cinematic img { width:36px;height:36px;object-fit:contain;pointer-events:none; }
+#gc-cinematic svg { width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none; }
+/* Faded while cinematic mode is on, so it keeps out of the shot but is still there to click. */
+#gc-cinematic[data-active="true"] { opacity:.35; }
+#gc-cinematic[data-active="true"]:hover { opacity:1; }
+#gc-lunar-mini .gc-lunar-mark { width:16px;height:16px; }
+#gc-lunar-mini .gc-lunar-mark::after { top:1px;left:5px;width:13px;height:13px;background:var(--gc-bg); }
+#gc-lunar-mini:hover .gc-lunar-mark::after { background:var(--gc-surface-2); }
+.gc-lunar-countdown { display:flex;align-items:center;justify-content:center;padding:6px 12px 14px; }
+/* A word where the digits go: the countdown face is sized for four monospaced characters, and
+   Unavailable at that size runs off the panel. */
+.gc-lunar-countdown[data-message="true"] strong { font-size:15px;letter-spacing:0;color:var(--gc-muted); }
+.gc-lunar-countdown strong { color:var(--gc-strong);font:650 31px/1 var(--gc-mono);letter-spacing:-.03em;text-align:center;font-variant-numeric:tabular-nums; }
+#gc-lunar .gc-health { min-height:32px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:6px 8px 6px 12px;border-top:1px solid var(--gc-line); }
+#gc-ws-health { min-width:0;display:flex;align-items:center;gap:6px;color:var(--gc-muted);font-size:11px;font-weight:500; }
+#gc-ws-health i { width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:#f59e0b; }
+#gc-ws-health[data-status=connected] i { background:var(--gc-green); }
+#gc-ws-health[data-status=disconnected] i { background:var(--gc-danger); }
+#gc-update-health { margin-left:auto;padding:4px 8px;border:1px solid var(--gc-line);border-radius:6px;color:var(--gc-muted);background:transparent;cursor:pointer;font:500 11px/1.2 var(--gc-font); }
+#gc-update-health:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+#gc-update-health[data-status=available] { color:#fecaca;border-color:rgba(248,113,113,.72);background:rgba(248,113,113,.08); }
+#gc-update-health[data-status=failed] { color:var(--gc-danger); }
+
+/* ── Main window ─────────────────────────────────────────────────────────────────────────────── */
+/* A movable window, dragged by its title bar or page heading. */
+#gc-panel { position:fixed;left:0;top:0;z-index:999995;width:min(800px,96vw);height:min(630px,94vh);max-width:100vw;max-height:100vh;overflow:clip;background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:12px;box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.45 var(--gc-font);-webkit-font-smoothing:antialiased; }
+#gc-panel[hidden] { display:none; }
+#gc-panel[data-dragging=true] { opacity:.94;user-select:none; }
+#gc-panel *,#gc-panel *::before,#gc-panel *::after { box-sizing:border-box; }
+.gc-shell { width:100%;height:100%;overflow:clip;display:grid;grid-template-columns:168px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto; }
+/* Title bar across the whole window: brand on the left, window buttons on the right. */
+.gc-titlebar { grid-column:1 / -1;height:38px;display:flex;align-items:center;gap:2px;padding:0 4px 0 10px;background:var(--gc-side);border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }
+.gc-brand { flex:1;min-width:0;display:flex;align-items:center;gap:8px; }
+.gc-brand-mark { width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;border:1px solid var(--gc-line);border-radius:6px;background:var(--gc-surface-2);font-size:12px;font-style:normal;line-height:1; }
+.gc-brand b { overflow:hidden;color:var(--gc-strong);font-size:13px;font-weight:650;line-height:1.2;white-space:nowrap;text-overflow:ellipsis; }
+#gc-panel .gc-titlebar [data-close] { width:30px;height:30px;min-height:0;display:grid;place-items:center;padding:0;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent; }
+#gc-panel .gc-titlebar [data-close]:hover:not(:disabled) { color:#fca5a5;background:rgba(240,113,113,.12); }
+.gc-titlebar [data-close] svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round; }
+/* Sidebar: grouped tabs. */
+.gc-side { min-height:0;display:flex;flex-direction:column;background:var(--gc-side);border-right:1px solid var(--gc-line); }
+.gc-side nav { min-height:0;flex:1;overflow:auto;padding:8px 6px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent; }
+.gc-nav-group + .gc-nav-group { margin-top:6px; }
+/* Scoped under #gc-panel so these outrank both the game's button styles and the panel-wide button
+   rule, which would otherwise give headings and tabs a border and fill. */
+#gc-panel nav .gc-nav-head { width:100%;height:22px;min-height:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 8px;margin:0 0 2px;border:0;border-radius:6px;background:transparent;color:var(--gc-faint);cursor:pointer;font:600 11px var(--gc-font);letter-spacing:.02em; }
+#gc-panel nav .gc-nav-head:hover { color:var(--gc-text);background:transparent; }
+#gc-panel nav .gc-nav-head svg { width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s; }
+#gc-panel nav .gc-nav-head[aria-expanded=false] svg { transform:rotate(-90deg); }
+/* Collapsed but holding the tab you are on - marked so the nav still tells you where you are. */
+#gc-panel nav .gc-nav-head[data-holds-active=true] { color:var(--gc-accent-text);background:var(--gc-accent-soft);box-shadow:inset 2px 0 var(--gc-accent); }
+.gc-nav-items { display:flex;flex-direction:column;gap:1px; }
+#gc-panel nav .gc-nav-items button { position:relative;width:100%;height:28px;min-height:0;display:flex;align-items:center;gap:9px;padding:0 9px;margin:0;border:0;border-radius:var(--gc-radius-sm);text-align:left;color:var(--gc-muted);background:transparent;cursor:pointer;font:500 13px var(--gc-font);transition:background .12s,color .12s; }
+#gc-panel nav .gc-nav-items button svg { width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85; }
+#gc-panel nav .gc-nav-items button span { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+#gc-panel nav .gc-nav-items button:hover { color:var(--gc-text);background:var(--gc-soft); }
+#gc-panel nav .gc-nav-items button.active { color:var(--gc-strong);background:var(--gc-surface-2); }
+#gc-panel nav .gc-nav-items button.active::before { content:'';position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--gc-accent); }
+#gc-panel nav .gc-nav-items button.active svg { color:var(--gc-accent-text);opacity:1; }
+/* Content column: page heading over the scrolling tab body. */
+.gc-content { min-width:0;min-height:0;display:flex;flex-direction:column; }
+.gc-page-head { padding:10px 16px 9px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }
+.gc-page-head small { display:block;color:var(--gc-accent-text);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
+.gc-page-head h2 { margin:1px 0 0;color:var(--gc-strong);font-size:15px;font-weight:650;line-height:1.25;letter-spacing:-.01em; }
+.gc-page-head p { margin:2px 0 0;color:var(--gc-muted);font-size:12px;line-height:1.45; }
+/* Footer bar under both columns: Keybinds, Features and support on the left, the version on the right. */
+.gc-footer { grid-column:1 / -1;min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px 0 6px;background:var(--gc-side);border-top:1px solid var(--gc-line); }
+.gc-footer > div { display:flex;align-items:center;gap:2px;min-width:0; }
+#gc-panel .gc-footer button { height:30px;min-height:0;display:flex;align-items:center;gap:8px;padding:0 10px;border:0;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent;font:500 13px var(--gc-font); }
+#gc-panel .gc-footer button:hover:not(:disabled) { color:var(--gc-text);background:var(--gc-soft); }
+#gc-panel .gc-footer button.active { color:var(--gc-strong);background:var(--gc-surface-2); }
+.gc-footer button svg { width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85; }
+#gc-panel .gc-footer button.active svg { color:var(--gc-accent-text);opacity:1; }
+#gc-panel .gc-footer .gc-version { position:relative;flex:0 0 auto;height:26px;padding:0 8px;color:var(--gc-faint);font:500 12px var(--gc-font);font-variant-numeric:tabular-nums; }
+#gc-panel .gc-footer .gc-version[data-unseen="true"] { color:var(--gc-accent-text); }
+#gc-panel .gc-footer button[data-alert] { position:relative; }
+#gc-panel .gc-footer button[data-alert]::after { content:'';position:absolute;top:4px;left:21px;width:7px;height:7px;border-radius:50%;background:var(--gc-danger);box-shadow:0 0 0 2px var(--gc-side); }
+.gc-diag-row { display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:2px;align-items:baseline;padding:7px 0;border-top:1px solid var(--gc-line); }
+.gc-card h3 + .gc-diag-row, .gc-card summary + .gc-diag-row { border-top:0; }
+.gc-diag-row b { min-width:0;overflow-wrap:anywhere;font-weight:500; }
+.gc-diag-row small { grid-column:2;color:var(--gc-faint);overflow-wrap:anywhere; }
+.gc-diag-row[data-status="failed"] .gc-pill { color:var(--gc-danger);border-color:var(--gc-danger); }
+.gc-diag-row[data-status="waiting"] .gc-pill { color:var(--gc-gold);border-color:var(--gc-gold); }
+.gc-diag-row[data-status="ok"] .gc-pill { color:var(--gc-green);border-color:var(--gc-green); }
+details.gc-card summary { cursor:pointer;list-style:none; }
+details.gc-card summary h3 { display:inline; }
+/* Spaced by the column's gap, so the hidden report box between the cards leaves no odd gaps. */
+.gc-diag { display:flex;flex-direction:column;gap:10px; }
+.gc-diag > .gc-card, .gc-diag > .gc-card + .gc-card { margin:0; }
+.gc-diag .gc-card > .gc-note { margin:0; }
+.gc-diag-report { width:100%;min-height:180px;margin:0;padding:8px;box-sizing:border-box;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);font:12px var(--gc-mono);resize:vertical; }
+.gc-diag-report[hidden] { display:none; }
+#gc-panel .gc-footer .gc-version[data-unseen="true"]::after { content:'';position:absolute;top:3px;right:1px;width:7px;height:7px;border-radius:50%;background:var(--gc-accent);box-shadow:0 0 0 2px var(--gc-side); }
+#gc-panel .gc-footer .gc-footer-end { display:flex;align-items:center;gap:4px; }
+/* Guided tour: a catcher over the page so clicks cannot wander off mid-step, a dimming path with a
+   hole cut for each spotlight, a ring around each hole, and the caption card beside them. */
+#gc-tour { position:fixed;inset:0;z-index:2147483640;font:13px/1.5 var(--gc-font);color:var(--gc-text); }
+#gc-tour .gc-tour-catch { position:absolute;inset:0; }
+#gc-tour .gc-tour-dim { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
+#gc-tour .gc-tour-dim path { fill:rgba(0,0,0,.6); }
+#gc-tour .gc-tour-rings > div { position:fixed;box-sizing:border-box;pointer-events:none;border:2px solid var(--gc-accent);border-radius:9px; }
+#gc-tour .gc-tour-card { position:fixed;width:min(300px,calc(100vw - 24px));box-sizing:border-box;padding:14px 16px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);transition:left .2s,top .2s; }
+#gc-tour .gc-tour-card small { color:var(--gc-accent-text);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
+#gc-tour .gc-tour-card h3 { margin:2px 0 4px;color:var(--gc-strong);font-size:15px;font-weight:650; }
+#gc-tour .gc-tour-card p { margin:0 0 12px;color:var(--gc-muted);font-size:12.5px; }
+#gc-tour .gc-tour-card footer { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+#gc-tour .gc-tour-card footer span { display:flex;gap:6px; }
+#gc-tour .gc-tour-card button { height:28px;padding:0 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);color:var(--gc-text);cursor:pointer;font:500 12px var(--gc-font); }
+#gc-tour .gc-tour-card button:hover { background:var(--gc-surface-3); }
+#gc-tour .gc-tour-card [data-tour-skip] { border-color:transparent;background:transparent;color:var(--gc-faint); }
+#gc-tour .gc-tour-card [data-tour-skip]:hover { color:var(--gc-text);background:var(--gc-soft); }
+#gc-tour .gc-tour-card .gc-tour-next { border-color:var(--gc-accent);background:var(--gc-accent);color:#fff;font-weight:600; }
+#gc-tour .gc-tour-card .gc-tour-next:hover { background:var(--gc-accent-hover); }
+#gc-whats-new { position:fixed;z-index:2147483646;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));max-height:min(520px,calc(100vh - 32px));display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.5 var(--gc-font); }
+#gc-whats-new > header { flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;border-bottom:1px solid var(--gc-line);color:var(--gc-strong);font-size:14px; }
+#gc-whats-new > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }
+#gc-whats-new > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+#gc-whats-new > main { overflow:auto;padding:6px 16px 14px;scrollbar-width:thin; }
+#gc-whats-new section + section { border-top:1px solid var(--gc-line); }
+#gc-whats-new h4 { display:flex;align-items:center;gap:8px;margin:12px 0 6px;color:var(--gc-strong);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums; }
+#gc-whats-new h4 span { padding:1px 7px;border-radius:999px;background:var(--gc-accent-soft);color:var(--gc-accent-text);font-size:10px;font-weight:600; }
+#gc-whats-new ul { margin:0 0 10px;padding-left:18px;color:var(--gc-text); }
+#gc-whats-new li + li { margin-top:4px; }
+.gc-content main { min-height:0;flex:1;overflow:auto;scrollbar-gutter:stable;padding:12px 16px 16px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent; }
+
+/* ── Shared building blocks ──────────────────────────────────────────────────────────────────── */
+.gc-note { margin:0 0 10px;color:var(--gc-muted);font-size:12px;line-height:1.5; }
+.gc-content main > * + .gc-note { margin-top:10px; }
+.gc-stack { display:flex;flex-direction:column;gap:8px; }
+/* Settings read as one grouped list: rows share a frame and are split by hairlines. */
+.gc-list { display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }
+.gc-list + .gc-list,.gc-list + .gc-card,.gc-card + .gc-list { margin-top:12px; }
+.gc-toggle,.gc-check { position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface);cursor:pointer;transition:background .12s,border-color .12s; }
+.gc-list > .gc-toggle { border:0;border-radius:0;background:transparent; }
+.gc-list > .gc-toggle + .gc-toggle { border-top:1px solid var(--gc-line); }
+.gc-list > .gc-toggle:hover { background:var(--gc-soft); }
+/* Sits under the ability hint, so it needs clearing from it. */
+.gc-granter-crystal { margin-top:10px; }
+/* What one proc is worth, under the strength slider it follows. */
+.gc-granter-effect { margin:8px 0 0;font-size:12px;color:var(--gc-muted); }
+/* The XP calculator fills the pane rather than sitting in a strip at the top of it. */
+.gc-content main:has(> .gc-xp) { display:flex;flex-direction:column; }
+.gc-xp { flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(220px,1fr);gap:20px;padding:20px; }
+.gc-xp-inputs { min-width:0;display:flex;flex-direction:column;gap:18px; }
+.gc-xp-field { display:flex;flex-direction:column;gap:6px; }
+.gc-xp-field .gc-calc-select { height:40px;font-size:14px; }
+.gc-xp .gc-granter-list { gap:10px; }
+.gc-xp .gc-granter-row { padding:12px 14px 12px 10px; }
+.gc-xp .gc-granter-head .gc-pet-sprite { width:40px;height:40px; }
+.gc-xp .gc-granter-head .gc-pet-sprite img { width:34px;height:34px; }
+.gc-xp .gc-granter-head b { font-size:14px; }
+.gc-xp .gc-granter-head small { font-size:12px; }
+.gc-xp-field > span { color:var(--gc-muted);font-size:11px;font-weight:550;text-transform:uppercase;letter-spacing:.04em; }
+.gc-xp-field .gc-granter-list { margin-top:0; }
+.gc-xp-custom { display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;gap:6px; }
+.gc-xp-custom select,.gc-xp-custom input { width:100%;height:32px;padding:0 8px;box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:13px var(--gc-font); }
+.gc-xp-custom input:focus { border-color:var(--gc-accent-line); }
+.gc-xp .gc-granter-row { grid-template-columns:minmax(0,1fr) minmax(100px,140px); }
+.gc-xp .gc-granter-head small { white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.gc-xp-custom label { display:flex;flex-direction:column;gap:2px; }
+.gc-xp-custom label span { color:var(--gc-muted);font-size:10px; }
+.gc-xp-custom select { align-self:end; }
+.gc-xp-result { display:flex;flex-direction:column;gap:20px;padding:22px 24px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }
+.gc-xp-answer { display:flex;flex-direction:column;align-items:center;text-align:center; }
+.gc-xp-answer b { color:var(--gc-strong);font-size:64px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums; }
+.gc-xp-answer span { color:var(--gc-muted);font-size:14px; }
+/* A duration is several times wider than an event count, so it is set smaller and kept on one line. */
+.gc-xp-answer[data-time] b { font-size:36px;white-space:nowrap; }
+.gc-xp-stats { display:flex;flex-direction:column;gap:12px;padding-top:18px;border-top:1px solid var(--gc-line); }
+.gc-xp-stats div { display:flex;justify-content:space-between;gap:8px;font-size:14px; }
+.gc-xp-stats span { color:var(--gc-muted); }
+.gc-xp-stats b { color:var(--gc-strong);font-weight:600;font-variant-numeric:tabular-nums; }
+.gc-xp-foot { margin-top:auto;color:var(--gc-muted);font-size:12px;line-height:1.45; }
+@media(max-width:650px) { .gc-xp { grid-template-columns:1fr; } }
+.gc-toggle:hover,.gc-check:hover { border-color:var(--gc-line-strong); }
+.gc-toggle span,.gc-check span { display:flex;min-width:0;flex-direction:column; }
+.gc-toggle b,.gc-check b { color:var(--gc-text);font-size:13px;font-weight:550; }
+.gc-toggle small,.gc-check small { margin-top:2px;color:var(--gc-muted);font-size:12px;line-height:1.4; }
+.gc-toggle input { position:absolute;opacity:0;pointer-events:none; }
+.gc-toggle i { width:34px;height:20px;flex:0 0 auto;border-radius:999px;background:var(--gc-surface-3);box-shadow:inset 0 0 0 1px var(--gc-line);transition:background .18s; }
+.gc-toggle i::after { content:'';display:block;width:16px;height:16px;margin:2px;border-radius:50%;background:#d4d4d8;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .18s,background .18s; }
+.gc-toggle input:checked + i { background:var(--gc-accent);box-shadow:none; }
+.gc-toggle input:checked + i::after { transform:translateX(14px);background:#fff; }
+.gc-toggle input:focus-visible + i { outline:2px solid var(--gc-accent-line);outline-offset:2px; }
+.gc-card { padding:11px 13px;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }
+.gc-card + .gc-card { margin-top:10px; }
+.gc-stack > .gc-card + .gc-card,.gc-active-pets > .gc-card + .gc-card { margin-top:0; }
+.gc-card h3 { margin:0 0 3px;color:var(--gc-strong);font-size:14px;font-weight:600;line-height:1.3; }
+.gc-card p { margin:0;color:var(--gc-muted);font-size:12px;line-height:1.45; }
+.gc-shortcuts,.gc-tracking { margin-top:12px; }
+.gc-launch-row { display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:8px; }
+.gc-launch-row > div { min-width:0; }
+.gc-launch-row h3 { margin-bottom:2px; }
+/* Fixed width so the launch buttons line up down the tab rather than tracking their label lengths. */
+#gc-panel .gc-launch-row button { width:132px;flex:0 0 auto;padding:8px 14px;white-space:nowrap;text-align:center; }
+.gc-section-label { margin:16px 2px 6px;color:var(--gc-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
+.gc-empty { padding:28px 16px;color:var(--gc-faint);font-size:12px;text-align:center; }
+.gc-row { display:flex;align-items:center;justify-content:space-between;gap:10px; }
+.gc-row + .gc-row { margin-top:12px;padding-top:12px;border-top:1px solid var(--gc-line); }
+.gc-row > .gc-note { margin:0; }
+.gc-row + .gc-stack,.gc-row + .gc-check-grid,.gc-row + .gc-search { margin-top:12px; }
+.gc-filter-list [hidden] { display:none; }
+
+/* Buttons. The game styles bare buttons, so the panel rule carries the id to outrank it. */
+#gc-panel button { min-height:30px;padding:6px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px/1.2 var(--gc-font);white-space:nowrap;transition:background .12s,border-color .12s,color .12s; }
+#gc-panel button:hover:not(:disabled) { color:var(--gc-strong);border-color:rgba(255,255,255,.18);background:var(--gc-surface-3); }
+#gc-panel button:focus-visible { outline:2px solid var(--gc-accent-line);outline-offset:1px; }
+#gc-panel button:disabled { opacity:.45;cursor:default; }
+#gc-panel .gc-primary { width:100%;color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }
+#gc-panel .gc-primary:hover:not(:disabled) { color:#fff;border-color:var(--gc-accent-hover);background:var(--gc-accent-hover); }
+#gc-panel .gc-danger { color:var(--gc-danger); }
+#gc-panel .gc-danger:hover:not(:disabled) { color:#fca5a5;border-color:rgba(240,113,113,.4);background:rgba(240,113,113,.1); }
+.gc-pill { padding:3px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-muted);background:var(--gc-surface-2);font-size:11px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums; }
+.gc-chips { display:flex;flex-wrap:wrap;gap:4px;margin-top:8px; }
+.gc-chips span { padding:3px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-text);background:var(--gc-surface-2);font-size:11px; }
+.gc-chips span[data-active=false] { opacity:.4;text-decoration:line-through; }
+
+/* Segmented controls: one frame, the chosen segment lifted out of it. */
+.gc-shop-tabs,.gc-calc-tabs { display:flex;flex-wrap:wrap;gap:2px;margin-bottom:12px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }
+#gc-panel .gc-shop-tabs button,#gc-panel .gc-calc-tabs button,#gc-panel .gc-emblem-tabs button { min-height:28px;border-color:transparent;color:var(--gc-muted);background:transparent; }
+#gc-panel .gc-shop-tabs button:hover:not(:disabled),#gc-panel .gc-calc-tabs button:hover:not(:disabled),#gc-panel .gc-emblem-tabs button:hover:not(:disabled) { color:var(--gc-text);border-color:transparent;background:var(--gc-soft); }
+.gc-shop-tabs button { flex:1 1 72px; }
+.gc-calc-tabs button { flex:1 1 90px; }
+#gc-panel .gc-shop-tabs button.active,#gc-panel .gc-calc-tabs button.active,#gc-panel .gc-emblem-tabs button.active { color:var(--gc-strong)!important;border-color:var(--gc-line-strong)!important;background:var(--gc-surface-3)!important;box-shadow:0 1px 2px rgba(0,0,0,.35); }
+
+/* Inputs */
+.gc-card input[type=text],.gc-card > input,.gc-key input,.gc-search,.gc-card select,.gc-calc-select,.gc-value-head select,.gc-value-foot select,.gc-food-slot select,.gc-dust-boost-slot input,.gc-team-picker-controls input,.gc-shortcut-row input { box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:13px var(--gc-font);transition:border-color .12s,box-shadow .12s; }
+.gc-card input[type=text],.gc-card > input,.gc-key input,.gc-search { width:100%;height:34px;padding:0 11px; }
+.gc-card select { width:100%;height:34px;padding:0 30px 0 11px;cursor:pointer; }
+.gc-search { margin:0 0 12px; }
+.gc-card input[type=text]:focus,.gc-card > input:focus,.gc-key input:focus,.gc-search:focus,.gc-card select:focus,.gc-calc-select:focus,.gc-value-head select:focus,.gc-food-slot select:focus,.gc-dust-boost-slot input:focus,.gc-team-picker-controls input:focus,.gc-shortcut-row input:focus,.gc-card input:focus { border-color:var(--gc-accent-line);box-shadow:0 0 0 3px rgba(var(--gc-accent-rgb),.16); }
+#gc-panel input::placeholder,#gc-team-picker input::placeholder { color:rgba(255,255,255,.5);opacity:1; }
+.gc-card > input { margin:8px 0 10px; }
+.gc-key { min-width:0;flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;color:var(--gc-muted);font-size:12px; }
+.gc-key input { height:30px;cursor:pointer; }
+.gc-key small { grid-column:2;margin-top:-4px;color:var(--gc-muted);font-size:11px; }
+/* Checkboxes drawn to match the toggles rather than left to each browser. */
+#gc-panel input[type=checkbox]:not(.gc-toggle input),#gc-team-picker input[type=checkbox] { appearance:none;-webkit-appearance:none;width:16px;height:16px;flex:0 0 auto;margin:0;border:1px solid rgba(255,255,255,.22);border-radius:5px;background:var(--gc-input) center/11px 11px no-repeat;cursor:pointer;transition:background-color .12s,border-color .12s; }
+#gc-panel input[type=checkbox]:not(.gc-toggle input):checked,#gc-team-picker input[type=checkbox]:checked { border-color:var(--gc-accent);background-color:var(--gc-accent);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5'/%3E%3C/svg%3E"); }
+#gc-panel input[type=checkbox]:disabled { opacity:.4;cursor:not-allowed; }
+#gc-panel input[type=range] { accent-color:var(--gc-accent); }
+
+/* Check grids: pick-many lists of items. */
+.gc-check-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:0; }
+.gc-check { justify-content:flex-start;gap:10px;padding:7px 10px; }
+.gc-card .gc-check,.gc-card .gc-pet-grid label { background:var(--gc-input); }
+.gc-check:has(input:checked) { border-color:var(--gc-accent-line);background:rgba(var(--gc-accent-rgb),.08); }
+/* Speaker toggle pinned to the far right of an alert row: mutes just that alert's sound. */
+#gc-panel .gc-alert-mute { min-height:0;margin-left:auto;flex:0 0 auto;padding:3px 6px;border:0;border-radius:6px;background:transparent;font-size:14px;line-height:1;cursor:pointer; }
+#gc-panel .gc-alert-mute:hover { background:var(--gc-surface-3); }
+.gc-alert-mute[data-muted="true"] { opacity:.45;filter:grayscale(1); }
+
+/* ── Crop Cleanser helper ────────────────────────────────────────────────────────────────────── */
+#gc-crop-cleanser { position:fixed;z-index:2147483644;left:24px;top:90px;width:min(620px,calc(100vw - 24px));max-height:min(620px,calc(100vh - 24px));overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
+#gc-crop-cleanser[hidden] { display:none; }
+#gc-crop-cleanser > header { height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }
+#gc-crop-cleanser > header > div { display:flex;align-items:center;gap:9px;color:var(--gc-strong);font-size:14px;font-weight:600; }
+#gc-crop-cleanser > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-accent); }
+#gc-crop-cleanser > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }
+#gc-crop-cleanser > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+#gc-crop-cleanser > main { max-height:calc(min(620px,calc(100vh - 24px)) - 48px);overflow:auto;padding:14px 16px 16px; }
+.gc-cleanser-summary { display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface); }
+.gc-cleanser-summary span { color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-cleanser-summary b { color:var(--gc-strong);font-size:15px;font-variant-numeric:tabular-nums; }
+#gc-crop-cleanser main > p { margin:12px 0 8px;color:var(--gc-muted); }
+.gc-cleanser-choices { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px; }
+.gc-cleanser-choice { min-width:0;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;padding:5px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-text);cursor:pointer;font:500 12px var(--gc-font); }
+.gc-cleanser-choice:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
+.gc-cleanser-choice.on { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);color:var(--gc-strong); }
+.gc-cleanser-choice img { width:18px;height:18px;object-fit:contain;image-rendering:auto; }
+#gc-crop-cleanser .gc-cleanser-note { margin-top:12px;padding:8px 10px;border:1px solid rgba(245,192,74,.22);border-radius:var(--gc-radius-sm);background:rgba(245,192,74,.06);color:#fde68a; }
+.gc-cleanser-table-wrap { max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md); }
+.gc-cleanser-table-wrap table { width:100%;border-collapse:collapse; }
+.gc-cleanser-table-wrap th { position:sticky;top:0;z-index:1;padding:8px 10px;border-bottom:1px solid var(--gc-line);background:var(--gc-surface);color:var(--gc-faint);text-align:left;font-size:11px;font-weight:600; }
+.gc-cleanser-table-wrap td { padding:9px 10px;border-bottom:1px solid var(--gc-line);vertical-align:middle; }
+.gc-cleanser-table-wrap tr:last-child td { border-bottom:0; }
+.gc-cleanser-table-wrap td:first-child { min-width:118px; }
+.gc-cleanser-table-wrap td:first-child b,.gc-cleanser-table-wrap td:first-child small { display:block; }
+.gc-cleanser-table-wrap td:first-child b { color:var(--gc-strong);font-size:12px;font-weight:550; }
+.gc-cleanser-table-wrap td:first-child small { margin-top:2px;color:var(--gc-muted);font-size:11px; }
+.gc-cleanser-table-wrap td:last-child { width:80px;text-align:right; }
+.gc-cleanser-table-wrap button { padding:6px 10px;border:1px solid var(--gc-accent);border-radius:var(--gc-radius-sm);background:var(--gc-accent);color:#fff;cursor:pointer;font:600 11px var(--gc-font); }
+.gc-cleanser-table-wrap button:hover:not(:disabled) { background:var(--gc-accent-hover); }
+.gc-cleanser-table-wrap button:disabled { cursor:default;opacity:.45; }
+.gc-cleanser-mutations { display:flex;flex-wrap:wrap;gap:4px; }
+.gc-cleanser-mutation { display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border:1px solid var(--gc-line);border-radius:999px;background:var(--gc-surface-2);color:var(--gc-text);font-size:11px;white-space:nowrap; }
+.gc-cleanser-mutation img { width:14px;height:14px;object-fit:contain;image-rendering:auto; }
+.gc-cleanser-empty { padding:28px 12px;color:var(--gc-faint);text-align:center; }
+#gc-journal-logger { position:fixed;z-index:2147483643;right:16px;top:120px;width:min(360px,calc(100vw - 24px));max-height:min(420px,calc(100vh - 24px));overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
+#gc-journal-logger[hidden] { display:none; }
+#gc-journal-logger > header { height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 6px 0 12px;cursor:move;user-select:none; }
+#gc-journal-logger[data-collapsed="false"] > header { border-bottom:1px solid var(--gc-line); }
+#gc-journal-logger > header > div { display:flex;align-items:center;gap:8px;color:var(--gc-strong);font-size:13px;font-weight:600;white-space:nowrap; }
+#gc-journal-logger > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-accent); }
+#gc-journal-logger > header > span { display:flex;align-items:center;gap:4px; }
+#gc-journal-logger > header button { height:28px;min-width:28px;padding:0 8px;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font); }
+#gc-journal-logger > header button:hover:not(:disabled) { color:var(--gc-text);background:var(--gc-surface-2); }
+#gc-journal-logger > header button:disabled { cursor:default;opacity:.45; }
+#gc-journal-logger > main { overflow:auto;padding:6px 10px 10px; }
+#gc-journal-logger > main:empty { display:none; }
+.gc-journal-logger-row { display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"sprite name log" "sprite chips log";align-items:center;column-gap:8px;row-gap:3px;padding:7px 0;border-bottom:1px solid var(--gc-line); }
+.gc-journal-logger-row:last-child { border-bottom:0; }
+.gc-journal-logger-row > .gc-shop-sprite,.gc-journal-logger-row > .gc-pet-sprite { grid-area:sprite;width:32px;height:32px;border-radius:8px; }
+.gc-journal-logger-row > .gc-pet-sprite img { width:28px;height:28px; }
+.gc-journal-logger-name { grid-area:name;min-width:0; }
+.gc-journal-logger-name b { color:var(--gc-strong);font-weight:550; }
+.gc-journal-logger-name small { margin-left:6px;color:var(--gc-muted);font-size:11px; }
+.gc-journal-logger-row > .gc-cleanser-mutations { grid-area:chips; }
+.gc-journal-logger-row > button { grid-area:log;padding:6px 10px;border:1px solid var(--gc-accent);border-radius:var(--gc-radius-sm);background:var(--gc-accent);color:#fff;cursor:pointer;font:600 11px var(--gc-font); }
+.gc-journal-logger-row > button:hover:not(:disabled) { background:var(--gc-accent-hover); }
+.gc-journal-logger-row > button:disabled { cursor:default;opacity:.45; }
+@media (max-width:560px) { .gc-cleanser-choices { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-cleanser-table-wrap th:nth-child(2),.gc-cleanser-table-wrap td:nth-child(2) { display:none; } }
+
+/* ── Farm Manager ────────────────────────────────────────────────────────────────────────────── */
+#gc-farm-manager { position:fixed;z-index:2147483644;left:24px;top:70px;width:min(1120px,calc(100vw - 24px));max-height:calc(100vh - 24px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:14px;background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
+#gc-farm-manager[hidden] { display:none; }
+#gc-farm-manager [hidden] { display:none !important; }
+.gc-fm-ico { width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+
+/* Header: title on the left, the three tabs as one segmented control, live farm stats on the right. */
+#gc-farm-manager > header { flex:none;display:flex;align-items:center;gap:14px;height:58px;padding:0 10px 0 14px;border-bottom:1px solid var(--gc-line);background:linear-gradient(180deg,rgba(255,255,255,.03),transparent);cursor:move;user-select:none; }
+.gc-fm-title { flex:1 1 0;display:flex;align-items:center;gap:10px;min-width:0; }
+.gc-fm-logo { display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:9px;color:var(--gc-green);background:rgba(62,207,142,.12);box-shadow:inset 0 0 0 1px rgba(62,207,142,.28); }
+.gc-fm-logo .gc-fm-ico { width:17px;height:17px; }
+.gc-fm-title > div { display:flex;flex-direction:column;min-width:0; }
+.gc-fm-title b { color:var(--gc-strong);font-size:14px;font-weight:650;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-fm-title small { overflow:hidden;color:var(--gc-faint);font-size:11px;text-overflow:ellipsis;white-space:nowrap; }
+.gc-fm-tabs { flex:none;display:flex;gap:2px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }
+.gc-fm-tabs button { display:flex;align-items:center;gap:7px;height:30px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--gc-muted);cursor:pointer;font:600 12px var(--gc-font);transition:color .12s,background-color .12s; }
+.gc-fm-tabs button:hover { color:var(--gc-text);background:rgba(255,255,255,.04); }
+.gc-fm-tabs button[data-active="true"] { color:var(--gc-strong);background:var(--gc-surface-3);box-shadow:0 1px 2px rgba(0,0,0,.4),inset 0 0 0 1px var(--gc-line-strong); }
+.gc-fm-tabs button[data-active="true"] .gc-fm-ico { color:var(--gc-accent-text); }
+.gc-fm-tabs em { min-width:18px;padding:0 5px;border-radius:999px;background:var(--gc-surface-2);color:var(--gc-muted);font:650 10px/16px var(--gc-font);font-style:normal;text-align:center;font-variant-numeric:tabular-nums; }
+.gc-fm-tabs em:empty { display:none; }
+.gc-fm-tabs button[data-active="true"] em { background:var(--gc-accent-soft);color:var(--gc-accent-text); }
+.gc-fm-head-end { flex:1 1 0;display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:max-content; }
+.gc-fm-stats { display:flex;gap:4px;min-width:0; }
+.gc-fm-stats span { display:flex;flex-direction:column;align-items:flex-end;padding:3px 9px;border-radius:8px;background:var(--gc-surface);box-shadow:inset 0 0 0 1px var(--gc-line);line-height:1.2; }
+.gc-fm-stats small { color:var(--gc-faint);font-size:10px;font-weight:500; }
+.gc-fm-stats b { color:var(--gc-strong);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums; }
+.gc-fm-stats span[data-tone="bad"] { background:rgba(240,113,113,.08);box-shadow:inset 0 0 0 1px rgba(240,113,113,.4); }
+.gc-fm-stats span[data-tone="bad"] b { color:var(--gc-danger); }
+.gc-fm-close { display:grid;place-items:center;width:30px;height:30px;flex:none;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer; }
+.gc-fm-close:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+.gc-fm-close .gc-fm-ico { width:16px;height:16px; }
+
+/* Map: a framed plot on a faint green glow, with a toolbar for the current mode and the celestial legend. */
+#gc-farm-manager > main { flex:1;min-height:380px;display:flex; }
+.gc-fm-stage { flex:1;min-width:0;display:flex;flex-direction:column;container-type:inline-size;background:radial-gradient(ellipse at 50% 0,rgba(62,207,142,.06),transparent 65%); }
+.gc-fm-toolbar { flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:28px;padding:10px 16px 0; }
+.gc-fm-toolbar > span { display:flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto; }
+.gc-fm-where { flex:none;white-space:nowrap;color:var(--gc-faint);font-size:10px;font-weight:650;letter-spacing:.08em;text-transform:uppercase; }
+.gc-fm-toolbar > .gc-fm-legend { flex:none;gap:12px;color:var(--gc-muted);font-size:11px; }
+/* The toolbar stays one line so the map never shifts: a narrow map drops the legend rather than wrap it. */
+@container (max-width:720px) { .gc-fm-toolbar > .gc-fm-legend { display:none; } }
+.gc-fm-legend span { display:flex;align-items:center;gap:5px;white-space:nowrap; }
+.gc-fm-legend i { width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 2px var(--c); }
+.gc-fm-legend i.gc-fm-legend-mix { box-sizing:border-box;border:2px solid;border-image:var(--g) 1;box-shadow:none; }
+.gc-fm-grid { flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;padding:12px 16px 16px; }
+.gc-fm-plot { width:max-content;margin:auto;padding:10px;border-radius:12px;background:#1c1510;box-shadow:inset 0 0 0 1px rgba(255,220,180,.07),0 12px 32px rgba(0,0,0,.4); }
+.gc-fm-board { position:relative;display:grid;gap:2px; }
+.gc-fm-edges { position:absolute;inset:0;pointer-events:none;z-index:1; }
+.gc-fm-edges i { position:absolute;display:block; }
+.gc-fm-edge-line { border-radius:2px;background:repeating-linear-gradient(90deg,#ffd76a 0 3px,#ff9f43 3px 6px);box-shadow:0 0 4px rgba(255,215,106,.7);opacity:.9; }
+.gc-fm-edge-line[style*="width:4px"] { background:repeating-linear-gradient(180deg,#ffd76a 0 3px,#ff9f43 3px 6px); }
+.gc-fm-edge-hang { display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7)); }
+.gc-fm-edge-hang img { width:100%;height:100%;object-fit:contain; }
+.gc-fm-cell { position:relative;container-type:size;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#563c28;background-image:linear-gradient(160deg,rgba(255,255,255,.05),rgba(0,0,0,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -2px 0 rgba(0,0,0,.2);user-select:none; }
+.gc-fm-cell[data-kind="board"] { background:repeating-linear-gradient(90deg,#3a3128 0 5px,#2f2720 5px 6px);opacity:.5;box-shadow:none; }
+/* Kept at the base cell's specificity, so drop, armed, planned and binder-reach outlines all still win over it. */
+.gc-fm-cell:where([data-type="empty"][data-kind="dirt"]) { background:#33251a;box-shadow:inset 0 2px 4px rgba(0,0,0,.4); }
+.gc-fm-cell[draggable="true"] { cursor:grab; }
+.gc-fm-cell[draggable="true"]:hover { box-shadow:inset 0 0 0 2px rgba(255,255,255,.4); }
+.gc-fm-cell img { width:84%;height:84%;object-fit:contain;pointer-events:none;image-rendering:auto;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+.gc-fm-cell[data-type="decor"] img,.gc-fm-cell[data-type="egg"] img { opacity:.55; }
+.gc-fm-cell > i,.gc-fm-art > i { color:var(--gc-faint);font:600 10px var(--gc-font);font-style:normal; }
+.gc-fm-cell small { position:absolute;right:2px;bottom:1px;padding:0 3px;border-radius:3px;background:rgba(0,0,0,.65);color:#fff;font-size:9px;line-height:12px;pointer-events:none; }
+.gc-fm-cell[data-pending="true"] { animation:gc-fm-pulse 1s ease-in-out infinite; }
+@keyframes gc-fm-pulse { 50% { opacity:.4; } }
+.gc-fm-dragging .gc-fm-cell[data-kind="dirt"]:not([data-drop]) { opacity:.4; }
+.gc-fm-cell[data-drop] { box-shadow:inset 0 0 0 2px rgba(62,207,142,.65); }
+.gc-fm-cell[data-drop="swap"] { box-shadow:inset 0 0 0 2px rgba(253,230,138,.8); }
+.gc-fm-cell[data-armed] { cursor:pointer;box-shadow:inset 0 0 0 1px rgba(62,207,142,.3),inset 0 2px 4px rgba(0,0,0,.4); }
+.gc-fm-cell[data-armed]:hover,.gc-fm-cell[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }
+.gc-fm-placing,.gc-fm-warn { display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 4px 0 10px;border-radius:999px;font-size:11px;font-weight:700; }
+.gc-fm-placing { border:1px solid rgba(62,207,142,.45);background:rgba(62,207,142,.12);color:var(--gc-green);letter-spacing:.04em;text-transform:uppercase; }
+.gc-fm-placing img { width:16px;height:16px;object-fit:contain; }
+.gc-fm-placing button { display:grid;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:50%;background:rgba(62,207,142,.18);color:var(--gc-green);cursor:pointer; }
+.gc-fm-placing button:hover { background:var(--gc-green);color:#062a1a; }
+.gc-fm-placing button .gc-fm-ico { width:11px;height:11px;stroke-width:2.4; }
+.gc-fm-warn { display:block;min-width:0;padding-right:10px;overflow:hidden;border:1px solid rgba(253,230,138,.6);background:rgba(253,230,138,.12);color:#fde68a;line-height:22px;text-overflow:ellipsis;white-space:nowrap;animation:gc-fm-pulse 1.4s ease-in-out infinite; }
+
+/* Side bar: list heading, search and a grid of cards; dragging a plant over it pots the plant. */
+#gc-farm-manager aside { position:relative;contain:size;flex:none;width:268px;display:flex;flex-direction:column;gap:10px;padding:14px 12px 12px;border-left:1px solid var(--gc-line);background:var(--gc-side); }
+#gc-farm-manager[data-potting="full"] aside { box-shadow:inset 0 0 0 2px rgba(240,113,113,.4); }
+#gc-farm-manager[data-potting="true"] aside { box-shadow:inset 0 0 0 2px rgba(62,207,142,.35); }
+#gc-farm-manager[data-potting="true"] aside[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:rgba(62,207,142,.08); }
+#gc-farm-manager[data-potting] aside::after { content:'Drop here to pot';position:absolute;left:12px;right:12px;bottom:12px;padding:12px;border:1px dashed rgba(62,207,142,.5);border-radius:10px;background:rgba(20,40,28,.96);color:var(--gc-green);font-weight:600;text-align:center;pointer-events:none; }
+#gc-farm-manager[data-potting="full"] aside::after { content:'Inventory full - cannot pot';border-color:rgba(240,113,113,.5);color:var(--gc-danger);background:rgba(48,20,20,.96); }
+.gc-fm-list-head { display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 2px; }
+.gc-fm-list-head b { color:var(--gc-strong);font-size:13px;font-weight:650; }
+.gc-fm-list-head small { color:var(--gc-faint);font-size:11px;font-variant-numeric:tabular-nums; }
+.gc-fm-search { position:relative;display:block; }
+.gc-fm-search .gc-fm-ico { position:absolute;left:10px;top:50%;width:14px;height:14px;color:var(--gc-faint);transform:translateY(-50%);pointer-events:none; }
+#gc-farm-manager aside input { width:100%;box-sizing:border-box;height:32px;padding:0 10px 0 31px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input);color:var(--gc-text);font:12px var(--gc-font);outline:none; }
+#gc-farm-manager aside input:focus { border-color:var(--gc-accent-line);box-shadow:0 0 0 3px var(--gc-accent-soft); }
+.gc-fm-list { flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:6px;padding:2px; }
+.gc-fm-list > .gc-fm-empty,.gc-fm-list > .gc-fm-cel { grid-column:1/-1; }
+.gc-fm-item { position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:9px 4px 7px;border-radius:10px;background:var(--gc-surface);box-shadow:inset 0 0 0 1px var(--gc-line);cursor:pointer;user-select:none;transition:background-color .12s,box-shadow .12s; }
+.gc-fm-item:hover { background:var(--gc-surface-2);box-shadow:inset 0 0 0 1px var(--gc-line-strong); }
+.gc-fm-item[draggable="true"] { cursor:grab; }
+.gc-fm-item[data-active="true"] { background:rgba(62,207,142,.12);box-shadow:inset 0 0 0 2px rgba(62,207,142,.7); }
+.gc-fm-item[data-active="true"]:hover { background:rgba(62,207,142,.18);box-shadow:inset 0 0 0 2px rgba(62,207,142,.9); }
+.gc-fm-item[data-active="true"]::after { content:'';position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--gc-green);box-shadow:0 0 6px var(--gc-green); }
+.gc-fm-art { position:relative;display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:radial-gradient(circle,rgba(255,255,255,.07),transparent 70%); }
+.gc-fm-art img { width:38px;height:38px;object-fit:contain;pointer-events:none;image-rendering:auto;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+.gc-fm-item > b { max-width:100%;overflow:hidden;color:var(--gc-text);font-size:11px;font-weight:550;text-align:center;text-overflow:ellipsis;white-space:nowrap; }
+.gc-fm-qty { position:absolute;right:-8px;bottom:-4px;min-width:12px;padding:0 4px;border-radius:999px;background:var(--gc-surface-3);color:var(--gc-strong);font:700 10px/15px var(--gc-font);font-style:normal;text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--gc-surface); }
+.gc-fm-art > i.gc-fm-silo { position:absolute;left:-8px;top:-5px;padding:0 4px;border-radius:999px;background:rgba(56,189,248,.18);color:#7dd3fc;font:700 8px/13px var(--gc-font);letter-spacing:.04em;text-transform:uppercase; }
+.gc-fm-empty { padding:28px 12px;color:var(--gc-faint);text-align:center;line-height:1.5; }
+
+/* Footer: a status dot (amber while a move runs), the status line and the tab's controls. */
+#gc-farm-manager > footer { flex:none;display:flex;align-items:center;gap:10px;min-height:38px;padding:7px 14px;border-top:1px solid var(--gc-line);background:var(--gc-side);color:var(--gc-muted); }
+.gc-fm-dot { width:7px;height:7px;flex:none;border-radius:50%;background:var(--gc-green);box-shadow:0 0 0 3px rgba(62,207,142,.15); }
+#gc-farm-manager > footer[data-busy="true"] .gc-fm-dot { background:var(--gc-gold);box-shadow:0 0 0 3px rgba(245,192,74,.2);animation:gc-fm-pulse 1s ease-in-out infinite; }
+.gc-fm-status { flex:1;min-width:0; }
+.gc-fm-hints { flex:none;display:flex;gap:10px; }
+.gc-fm-hints span { display:flex;align-items:center;gap:5px;color:var(--gc-faint);font-size:11px;white-space:nowrap; }
+.gc-fm-hints kbd { padding:0 6px;border-radius:5px;background:var(--gc-surface-2);box-shadow:inset 0 -1px 0 rgba(0,0,0,.45),inset 0 0 0 1px var(--gc-line-strong);color:var(--gc-text);font:600 10px/17px var(--gc-font); }
+
+@media (max-width:1180px) { .gc-fm-hints,.gc-fm-title small { display:none; } }
+@media (max-width:980px) { .gc-fm-stats small { display:none; }.gc-fm-tabs button span { display:none; } }
+@media (max-width:640px) { #gc-farm-manager aside { width:170px; }.gc-fm-list { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-fm-stats { display:none; } }
+
+/* ── Keybinds ────────────────────────────────────────────────────────────────────────────────── */
+.gc-shortcuts > p { margin-bottom:10px; }
+.gc-shortcut-grid { overflow:hidden;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }
+.gc-shortcut-row { display:grid;grid-template-columns:minmax(145px,1fr) 210px;align-items:center;gap:14px;padding:9px 14px; }
+.gc-shortcut-row + .gc-shortcut-row { border-top:1px solid var(--gc-line); }
+.gc-shortcut-row b { color:var(--gc-text);font-size:13px;font-weight:500; }
+.gc-shortcut-row input { width:100%;height:32px;padding:0 11px;cursor:pointer;font:500 12px var(--gc-mono);text-align:center; }
+.gc-shortcut-row input::placeholder { font-family:var(--gc-font); }
+
+/* ── Pets ────────────────────────────────────────────────────────────────────────────────────── */
+.gc-team-delete-confirm { display:flex;align-items:center;gap:6px;white-space:nowrap; }
+.gc-team-delete-confirm b { color:var(--gc-danger);font-size:12px;font-weight:550; }
+.gc-pet-grid { max-height:250px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px; }
+.gc-pet-grid label { min-width:0;display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface);cursor:pointer;transition:border-color .12s,background .12s; }
+.gc-pet-grid label:hover { border-color:var(--gc-line-strong); }
+.gc-pet-grid label:has(input:checked) { border-color:var(--gc-accent-line);background:rgba(var(--gc-accent-rgb),.08); }
+.gc-pet-grid span:not(.gc-pet-sprite) { min-width:0;display:flex;flex:1;flex-direction:column; }
+.gc-pet-grid b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:550; }
+.gc-pet-grid small { color:var(--gc-muted);font-size:11px; }
+.gc-log { max-height:280px;overflow:auto;margin-top:8px; }
+.gc-content main.gc-ability-log-tab { min-height:0;display:flex;overflow:hidden;flex-direction:column; }
+.gc-ability-log-card { min-height:0;flex:1;display:flex;flex-direction:column; }
+.gc-ability-log-tab .gc-log { min-height:0;max-height:none;flex:1; }
+.gc-ability-log-toolbar { position:relative;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px; }
+.gc-ability-log-toolbar h3 { margin:0;white-space:nowrap; }
+.gc-ability-log-toolbar > div:first-child > small { display:block;margin-top:2px;color:var(--gc-muted);font-size:11px; }
+.gc-ability-log-actions { display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0; }
+.gc-ability-log-actions .gc-log-search { width:170px;min-width:90px;height:34px;margin:0;font-size:12px; }
+.gc-ability-log-columns,.gc-ability-log-row { display:grid;grid-template-columns:94px 42px minmax(125px,.9fr) minmax(140px,1.25fr);align-items:center;gap:10px; }
+.gc-ability-log-columns { padding:8px 10px;border-bottom:1px solid var(--gc-line);color:var(--gc-faint);font-size:11px;font-weight:600; }
+.gc-ability-log-row { min-height:54px;padding:8px 10px;border-bottom:1px solid var(--gc-line); }
+.gc-ability-log-row:hover { background:var(--gc-soft); }
+.gc-ability-log-row time { display:flex;flex-direction:column;color:var(--gc-muted);font:11px var(--gc-mono);font-variant-numeric:tabular-nums; }
+.gc-ability-log-row time b { color:var(--gc-strong);font-size:12px;font-weight:600; }
+.gc-ability-log-row time span { margin-top:3px; }
+.gc-ability-log-pet { min-width:0;display:flex;align-items:center; }
+.gc-ability-log-pet .gc-pet-sprite { width:36px;height:36px; }
+.gc-ability-log-pet .gc-pet-sprite img { width:32px;height:32px; }
+.gc-ability-log-pet .gc-pet-sprite i { font-size:15px; }
+.gc-ability-log-name { min-width:0;color:var(--gc-strong);font-size:13px; }
+.gc-ability-log-name b { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:550; }
+.gc-ability-log-payload { min-width:0;color:#f4f4f5;font:600 12px/1.4 var(--gc-mono);overflow-wrap:anywhere; }
+.gc-ability-log-payload[data-detail] { cursor:help;text-decoration:underline dotted rgba(255,255,255,.4);text-underline-offset:3px; }
+.gc-log > p { padding:10px 2px;color:var(--gc-muted);font-size:12px; }
+.gc-room { display:flex;flex-direction:column;gap:12px;padding:14px 16px;transition:border-color .12s,background .12s; }
+.gc-room:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
+.gc-room > header { display:flex;align-items:center;gap:14px;min-width:0; }
+.gc-room-title { flex:1 1 auto;min-width:0; }
+.gc-room h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-room h3.gc-room-named { font-family:var(--gc-mono);letter-spacing:.02em; }
+.gc-room code { display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gc-faint);font:11px var(--gc-mono); }
+.gc-room-seats { flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px; }
+.gc-room-dots { display:flex;gap:3px; }
+.gc-room-dots i { width:8px;height:8px;border-radius:50%;background:rgba(62,207,142,.18);box-shadow:inset 0 0 0 1px rgba(62,207,142,.55); }
+.gc-room-dots i.on { background:var(--gc-surface-3);box-shadow:inset 0 0 0 1px var(--gc-line-strong); }
+.gc-room-seats b { color:var(--gc-green);font-size:11px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums; }
+#gc-panel .gc-room .gc-primary { width:auto;flex:0 0 auto;padding:7px 18px; }
+.gc-room-players { display:flex;flex-wrap:wrap;gap:6px;padding-top:12px;border-top:1px solid var(--gc-line); }
+.gc-room-player { display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:3px 10px 3px 3px;border:1px solid var(--gc-line);border-radius:999px;background:var(--gc-surface-2);color:var(--gc-text);font-size:12px;line-height:1; }
+.gc-room-player > span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-room-face { width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:var(--gc-surface-3);color:var(--gc-text);font:600 10px var(--gc-font);font-style:normal; }
+.gc-room-face img { width:100%;height:100%;object-fit:cover; }
+.gc-room-none { color:var(--gc-faint);font-size:12px; }
+.gc-row > .gc-note b { color:var(--gc-text);font-weight:600; }
+.gc-sprite-text { color:var(--gc-muted);font:700 10px/1 var(--gc-font);letter-spacing:.04em; }
+.gc-pet-sprite { position:relative;width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-surface-2); }
+.gc-pet-sprite img { width:40px;height:40px;object-fit:contain;image-rendering:auto; }
+.gc-pet-sprite i { color:rgba(255,255,255,.5);font:600 20px var(--gc-font);font-style:normal; }
+.gc-pet-head { display:grid;grid-template-columns:auto minmax(0,1fr) minmax(130px,180px);align-items:center;gap:12px; }
+.gc-pet-head h3 { margin:0; }
+.gc-pet-head p { font-size:12px; }
+.gc-pet-head .gc-ability-chips { margin-top:6px; }
+.gc-hunger { min-width:110px; }
+.gc-hunger > div { display:flex;justify-content:space-between;color:var(--gc-muted);font-size:11px; }
+.gc-hunger > div b { color:var(--gc-text);font-weight:600;font-variant-numeric:tabular-nums; }
+.gc-hunger > i { display:block;height:6px;margin-top:5px;overflow:hidden;border-radius:999px;background:var(--gc-surface-3); }
+.gc-hunger > i u { display:block;height:100%;border-radius:999px;background:var(--gc-green);text-decoration:none; }
+.gc-hunger > i u[data-tone=medium] { background:var(--gc-gold); }
+.gc-hunger > i u[data-tone=low] { background:var(--gc-danger); }
+.gc-hunger-eta { display:block;margin-top:4px;font-size:11px;font-weight:550; }
+.gc-hunger-eta[data-tone=good] { color:var(--gc-green); }
+.gc-hunger-eta[data-tone=medium] { color:var(--gc-gold); }
+.gc-hunger-eta[data-tone=low] { color:var(--gc-danger); }
+.gc-team-abilities { display:block;margin-top:5px;color:var(--gc-accent-text);font-size:11px;line-height:1.4; }
+.gc-pet-grid span.gc-ability-chips { flex:0 0 auto;flex-direction:row;flex-wrap:nowrap;margin-top:5px; }
+.gc-pet-str { flex:0 0 auto;align-self:center;padding:4px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-text);background:var(--gc-surface-2);font-size:12px;font-weight:600;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums; }
+.gc-pet-str i { color:var(--gc-muted);font-size:11px;font-style:normal;font-weight:500; }
+.gc-team-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;color:var(--gc-muted);font-size:12px; }
+.gc-team-summary b { color:var(--gc-strong);font-weight:600; }
+.gc-active-pets { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px; }
+.gc-active-pets .gc-pet-head { grid-template-columns:auto minmax(0,1fr); }
+.gc-active-pets .gc-hunger { grid-column:1/-1;min-width:0; }
+.gc-pet-strength { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--gc-line);color:var(--gc-muted);font-size:12px; }
+.gc-pet-strength b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }
+.gc-pet-strength strong { color:var(--gc-green);font-size:11px;font-weight:550;text-align:right; }
+.gc-ability-summary { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px; }
+.gc-ability-summary > div:first-child > small { display:block;margin-top:5px;color:var(--gc-gold);font-size:12px; }
+.gc-ability-rate { display:flex;min-width:92px;flex-direction:column;text-align:right; }
+.gc-ability-rate b { color:var(--gc-strong);font:600 15px var(--gc-mono);font-variant-numeric:tabular-nums; }
+.gc-ability-rate small { color:var(--gc-muted);font:11px var(--gc-mono); }
+.gc-proc-list { margin-top:10px;border-top:1px solid var(--gc-line); }
+.gc-pet-potions { margin-top:8px;padding:6px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);color:#c4b5fd;background:var(--gc-surface-2);text-align:center;font-size:11px;font-weight:550; }
+.gc-proc-row { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:8px 0;border-bottom:1px solid var(--gc-line); }
+.gc-proc-row div { min-width:0;display:flex;flex-direction:column; }
+.gc-proc-row small,.gc-proc-row > span { color:var(--gc-muted);font-size:11px; }
+.gc-proc-row p { grid-column:1/-1;margin:0;color:rgba(255,255,255,.75);font:11px/1.4 var(--gc-mono); }
+.gc-ability-filter { height:34px;box-sizing:border-box;width:126px;flex:0 0 auto;padding:8px 10px;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);cursor:pointer;font-size:12px;font-weight:500;text-align:left;text-overflow:ellipsis;white-space:nowrap; }
+
+/* ── Dialogs ─────────────────────────────────────────────────────────────────────────────────── */
+.gc-modal-backdrop { position:fixed;inset:0;z-index:999995;display:grid;place-items:center;padding:20px;box-sizing:border-box;background:rgba(0,0,0,.55); }
+.gc-modal-backdrop button { min-height:30px;padding:6px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }
+.gc-modal-backdrop button:hover { border-color:rgba(255,255,255,.18);background:var(--gc-surface-3); }
+.gc-ability-modal { width:360px;max-width:calc(100vw - 40px);max-height:min(80vh,640px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }
+.gc-modal-head { display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 16px;border-bottom:1px solid var(--gc-line); }
+.gc-modal-head h3 { margin:0;color:var(--gc-strong);font-size:14px;font-weight:600; }
+.gc-modal-close { width:30px;height:30px;padding:0!important;border:0!important;background:transparent!important;color:var(--gc-muted)!important;font-size:18px;line-height:1; }
+.gc-modal-close:hover { color:var(--gc-text)!important;background:var(--gc-surface-2)!important; }
+.gc-modal-tools { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;border-bottom:1px solid var(--gc-line); }
+.gc-modal-tools .gc-modal-summary { color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-modal-tools div { display:flex;gap:6px; }
+.gc-modal-body { padding:10px 12px;overflow:auto; }
+.gc-ability-group { margin:4px 0;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);overflow:hidden;background:var(--gc-surface); }
+.gc-ability-group-head { display:flex;align-items:stretch; }
+.gc-ability-expand { width:32px;flex:0 0 auto;padding:0!important;border:none!important;border-radius:0!important;background:transparent!important;color:var(--gc-muted)!important;cursor:pointer; }
+.gc-ability-group-toggle { flex:1;display:flex;align-items:center;gap:8px;border:none!important;border-radius:0!important;background:transparent!important;padding:9px 10px!important;text-align:left!important;font-weight:600!important; }
+.gc-ability-group-toggle small { margin-left:auto;color:var(--gc-muted);font-weight:500; }
+.gc-ability-group-toggle i { color:var(--gc-accent-text);font-style:normal;width:12px;text-align:center; }
+.gc-ability-group-toggle[data-state=all],.gc-ability-group-toggle[data-state=some] { color:var(--gc-accent-text)!important; }
+.gc-ability-group-items { display:grid;gap:3px;padding:6px;border-top:1px solid var(--gc-line);background:var(--gc-input); }
+.gc-ability-group-items button,.gc-ability-standalone button { width:100%;display:flex;align-items:center;justify-content:space-between;padding:7px 10px!important;text-align:left!important;font-size:12px; }
+.gc-ability-group-items button[data-active=true],.gc-ability-standalone button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-accent-line)!important;background:var(--gc-accent-soft)!important; }
+.gc-ability-group-items button i,.gc-ability-standalone button i { color:var(--gc-accent-text);font-style:normal; }
+.gc-ability-standalone { margin:4px 0; }
+.gc-shop-sprite { width:32px;height:32px;flex:0 0 auto;display:grid!important;place-items:center;overflow:hidden;border-radius:8px;background:var(--gc-surface-2); }
+.gc-shop-sprite img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }
+
+/* ── Alarm banner, crop hover label ──────────────────────────────────────────────────────────── */
+#gc-alarm { position:fixed;top:22px;left:50%;z-index:999999;transform:translateX(-50%) scale(var(--gc-alarm-scale,1));transform-origin:top center;width:430px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;font:13px var(--gc-font); }
+#gc-alarm .gc-alarm-card { box-sizing:border-box;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:12px 12px 12px 14px;color:var(--gc-text);background:var(--gc-bg);border:1px solid rgba(251,146,60,.7);border-radius:var(--gc-radius);box-shadow:0 0 0 4px rgba(251,146,60,.14),var(--gc-shadow);animation:gc-alarm-pulse .8s ease-in-out infinite alternate; }
+#gc-alarm .gc-alarm-icon { width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#f97316;color:#fff;font:800 20px/1 var(--gc-font);font-style:normal; }
+#gc-alarm .gc-alarm-icon[data-sprite] { background:rgba(249,115,22,.18);box-shadow:inset 0 0 0 1px rgba(249,115,22,.55); }
+#gc-alarm .gc-alarm-icon img { width:28px;height:28px;object-fit:contain;image-rendering:auto; }
+#gc-alarm .gc-alarm-card > div { display:flex;flex-direction:column; }
+#gc-alarm small { color:#fdba74;font-size:11px;font-weight:600; }
+#gc-alarm strong { margin:1px 0;color:var(--gc-strong);font-size:16px;font-weight:650; }
+#gc-alarm span { color:var(--gc-muted);font-size:12px; }
+#gc-alarm button { min-height:32px;padding:7px 12px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:600 12px var(--gc-font); }
+#gc-alarm button:hover { background:var(--gc-surface-3); }
+#gc-alarm[data-sample] .gc-alarm-card { animation:none;border-color:var(--gc-accent-line);box-shadow:var(--gc-shadow); }
+#gc-alarm[data-editing] { cursor:grab;user-select:none;touch-action:none;outline:2px dashed var(--gc-accent-line);outline-offset:4px;border-radius:var(--gc-radius); }
+#gc-alarm[data-editing] .gc-alarm-card:first-child { grid-template-columns:auto minmax(0,1fr);grid-auto-flow:column;grid-auto-columns:auto; }
+#gc-alarm[data-editing][data-dragging] { cursor:grabbing; }
+#gc-alarm button[data-alarm-resize] { position:absolute;right:-11px;bottom:-11px;width:18px;height:18px;min-height:0;padding:0;border:2px solid var(--gc-bg);border-radius:50%;background:var(--gc-accent,#60a5fa);cursor:nwse-resize;touch-action:none; }
+#gc-alarm button[data-alarm-resize]:hover { background:var(--gc-accent,#60a5fa);filter:brightness(1.15); }
+#gc-alarm-guide { position:fixed;left:50%;top:0;bottom:0;z-index:999998;width:0;border-left:1px dashed var(--gc-accent-line);opacity:0;pointer-events:none;transition:opacity .12s; }
+#gc-alarm-guide.is-visible { opacity:1; }
+#gc-alarm button[data-buy] { color:#1c1208;background:#fb923c;border-color:#fb923c; }
+#gc-alarm button[data-buy]:hover { background:#fdba74; }
+#gc-alarm [data-alarm-queue] { margin-top:2px;color:var(--gc-gold);font-size:11px;font-style:normal;font-weight:600; }
+/* One line each: a name long enough to wrap would make the banner taller and move its buttons. */
+#gc-alarm small,#gc-alarm strong,#gc-alarm span,#gc-alarm [data-alarm-queue] { overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }
+#gc-alarm button[data-buy] { min-width:88px; }
+@keyframes gc-alarm-pulse { from { box-shadow:0 0 0 3px rgba(251,146,60,.12),var(--gc-shadow); } to { box-shadow:0 0 0 6px rgba(251,146,60,.24),var(--gc-shadow); } }
+#gc-turtle { position:fixed;z-index:99989;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 10px;color:var(--gc-strong);background:rgba(20,20,23,.95);border:1px solid var(--gc-line-strong);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.45);pointer-events:none;white-space:nowrap;text-align:center;font:600 12px/1.45 var(--gc-font);font-variant-numeric:tabular-nums; }
+
+/* ── Team picker ─────────────────────────────────────────────────────────────────────────────── */
+#gc-team-picker { position:fixed;inset:0;z-index:999996;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:rgba(0,0,0,.55);color:var(--gc-text);font:13px/1.45 var(--gc-font); }
+#gc-team-picker * { box-sizing:border-box; }
+#gc-team-picker img { image-rendering:auto!important; }
+.gc-team-picker-shell { width:min(1080px,96vw);height:min(760px,92vh);display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;overflow:hidden;background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:14px;box-shadow:var(--gc-shadow); }
+.gc-team-picker-shell > header { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 14px 14px 20px;border-bottom:1px solid var(--gc-line); }
+.gc-team-picker-shell > header small { color:var(--gc-faint);font-size:11px;font-weight:500; }
+.gc-team-picker-shell > header h2 { margin:1px 0 0;color:var(--gc-strong);font-size:17px;font-weight:650; }
+.gc-team-picker-shell > header button { width:32px;height:32px;padding:0;color:var(--gc-muted);border:0;border-radius:var(--gc-radius-sm);background:transparent;cursor:pointer; }
+.gc-team-picker-shell > header button svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round; }
+.gc-team-picker-shell > header button { display:grid;place-items:center; }
+.gc-team-picker-shell > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }
+.gc-team-picker-controls { display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr) auto;align-items:center;gap:10px;padding:14px 20px; }
+.gc-team-picker-controls .gc-search { margin:0; }
+.gc-team-picker-controls input { height:34px;padding:0 11px; }
+.gc-team-picker-count { color:var(--gc-muted);font-size:12px;font-weight:550;white-space:nowrap;font-variant-numeric:tabular-nums; }
+.gc-team-picker-count[data-tone=good] { color:var(--gc-green); }
+.gc-team-picker-count[data-tone=error] { color:var(--gc-danger); }
+.gc-emblem-picker { padding:0 20px 12px; }
+.gc-emblem-head { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+.gc-emblem-head > span { color:var(--gc-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
+.gc-emblem-head > small { margin-left:auto;color:var(--gc-muted);font-size:11px; }
+.gc-emblem-tabs { display:flex;gap:2px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }
+.gc-emblem-tabs button { min-height:26px;padding:4px 10px;border:1px solid transparent;border-radius:var(--gc-radius-sm);color:var(--gc-muted);background:transparent;cursor:pointer;font:500 12px var(--gc-font); }
+.gc-emblem-tabs button.active { color:var(--gc-strong)!important;border-color:var(--gc-line-strong)!important;background:var(--gc-surface-3)!important; }
+.gc-emblem-strip { max-height:100px;display:flex;flex-wrap:wrap;gap:5px;overflow:auto;padding:2px; }
+.gc-emblem-strip[hidden] { display:none; }
+.gc-emblem-strip button { width:44px;height:44px;flex:0 0 auto;display:grid;place-items:center;gap:1px;padding:2px!important;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface);cursor:pointer;color:var(--gc-text); }
+.gc-emblem-strip button:hover:not(:disabled) { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
+.gc-emblem-strip button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-accent)!important;background:var(--gc-accent-soft)!important; }
+.gc-emblem-strip button:disabled { opacity:.3;cursor:not-allowed; }
+.gc-emblem-strip button b { font-size:15px; }
+.gc-emblem-hint { margin:0;padding:6px 2px;color:var(--gc-muted);font-size:12px; }
+.gc-emblem-strip button small { max-width:100%;overflow:hidden;color:var(--gc-muted);text-overflow:ellipsis;white-space:nowrap;font-size:9px; }
+.gc-emblem-strip button img { width:30px;height:30px;object-fit:contain; }
+.gc-emblem-strip button:has(small) img { width:22px;height:22px; }
+.gc-emblem-strip button i { width:15px;height:15px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#67e8f9); }
+.gc-emblem-strip button i[data-emblem-icon=gold] { background:linear-gradient(135deg,#fbbf24,#f59e0b); }
+.gc-emblem-strip button i[data-emblem-icon=rainbow] { background:linear-gradient(135deg,#f87171,#fbbf24 35%,#34d399 65%,#60a5fa); }
+.gc-emblem-strip button i[data-emblem-icon=thunder] { background:linear-gradient(135deg,#fde047,#a855f7); }
+.gc-emblem-strip button i[data-emblem-icon=dawn] { background:linear-gradient(135deg,#fda4af,#fcd34d); }
+.gc-emblem-strip button i[data-emblem-icon=amber] { background:linear-gradient(135deg,#f59e0b,#b45309); }
+.gc-emblem-strip button i[data-emblem-icon=wet] { background:linear-gradient(135deg,#38bdf8,#0ea5e9); }
+.gc-emblem-strip button i[data-emblem-icon=chilled] { background:linear-gradient(135deg,#a5f3fc,#22d3ee); }
+.gc-emblem-strip button i[data-emblem-icon=frozen] { background:linear-gradient(135deg,#e0f2fe,#7dd3fc); }
+.gc-emblem-strip button i[data-emblem-icon=coin] { background:linear-gradient(135deg,#fde68a,#d97706); }
+.gc-emblem-strip button i[data-emblem-icon=egg] { background:linear-gradient(135deg,#fff7ed,#fed7aa); }
+.gc-emblem-strip button i[data-emblem-icon=thunderstruck],.gc-emblem-strip button i[data-emblem-icon=weatherThunderstorm] { background:linear-gradient(135deg,#facc15,#7c3aed); }
+.gc-emblem-strip button i[data-emblem-icon=dawnbound],.gc-emblem-strip button i[data-emblem-icon=weatherDawn] { background:linear-gradient(135deg,#fb7185,#f59e0b); }
+.gc-emblem-strip button i[data-emblem-icon=amberbound],.gc-emblem-strip button i[data-emblem-icon=weatherAmberMoon] { background:linear-gradient(135deg,#d97706,#78350f); }
+.gc-emblem-strip button i[data-emblem-icon=weatherRain] { background:linear-gradient(135deg,#7dd3fc,#2563eb); }
+.gc-emblem-strip button i[data-emblem-icon=weatherSnow] { background:linear-gradient(135deg,#f0f9ff,#bae6fd); }
+
+/* ── Calculators ─────────────────────────────────────────────────────────────────────────────── */
+.gc-calc-total { color:var(--gc-gold);font-size:15px;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums; }
+.gc-calc-select { width:100%;height:34px;padding:0 10px; }
+.gc-calc-hint { margin:8px 0 0;color:var(--gc-muted);font-size:12px; }
+.gc-calc-table { width:100%;border-collapse:collapse;margin-top:10px;font-size:12px; }
+.gc-calc-table th { padding:0 0 6px;color:var(--gc-faint);text-align:left;font-size:11px;font-weight:600; }
+.gc-calc-table td { padding:7px 6px 7px 0;border-top:1px solid var(--gc-line);vertical-align:middle;font-variant-numeric:tabular-nums; }
+.gc-calc-table td:first-child { display:flex;align-items:center;gap:9px; }
+.gc-calc-table td small { display:block;color:var(--gc-muted);font-size:11px; }
+.gc-calc-table .gc-shop-sprite { width:28px;height:28px; }
+.gc-calc-table .gc-shop-sprite img { width:24px;height:24px; }
+.gc-calc-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px; }
+.gc-calc-grid > div { padding:10px 12px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }
+.gc-calc-grid small { display:block;margin-bottom:3px;color:var(--gc-muted);font-size:11px; }
+.gc-calc-grid b { color:var(--gc-strong);font-size:16px;font-weight:650;font-variant-numeric:tabular-nums; }
+.gc-value-card { display:flex;flex-direction:column;gap:16px; }
+.gc-value-head { display:flex;align-items:center;gap:10px; }
+.gc-value-head .gc-shop-sprite { width:40px;height:40px; }
+.gc-value-head .gc-shop-sprite img { width:34px;height:34px; }
+.gc-value-head select { flex:1;min-width:0;height:36px;padding:0 10px;font-size:13px;cursor:pointer; }
+.gc-value-size { display:block; }
+/* Lighting tab: a status strip, then the scene choices as labelled rows of icon buttons, then the
+   lighting sliders two to a row. */
+.gc-sky-status { display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:4px 6px 4px 12px; }
+#gc-panel .gc-sky-status button { min-height:24px;padding:2px 10px;font-size:11px; }
+.gc-sky-status b { color:var(--gc-strong);font-size:13px; }
+.gc-sky-status span { flex:1;min-width:0;color:var(--gc-muted);font-size:12px; }
+.gc-sky-status[data-locked=true] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
+.gc-sky-card h3 { margin-bottom:10px; }
+.gc-sky-card .gc-note { margin:10px 0 0; }
+.gc-sky-card-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
+.gc-sky-card-head h3 { margin:0; }
+.gc-sky-row { display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;gap:10px; }
+.gc-sky-row + .gc-sky-row { margin-top:8px; }
+.gc-sky-row > span { color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-sky-choices { display:grid;grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:4px; }
+#gc-panel .gc-sky-choices button { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:48px;padding:5px 4px;color:var(--gc-muted);font-size:11px; }
+#gc-panel .gc-sky-choices button img { width:22px;height:22px;object-fit:contain; }
+#gc-panel .gc-sky-choices button.active { color:var(--gc-strong);border-color:var(--gc-accent);background:var(--gc-accent-soft);box-shadow:inset 0 0 0 1px var(--gc-accent); }
+.gc-sky-sliders { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px; }
+.gc-sky-slider { display:flex;flex-direction:column;gap:6px; }
+.gc-sky-slider-head { display:flex;align-items:baseline;justify-content:space-between;gap:8px; }
+.gc-sky-slider-head b { color:var(--gc-text);font-size:12px;font-weight:600; }
+.gc-sky-slider-head em { color:var(--gc-strong);font-size:12px;font-style:normal;font-variant-numeric:tabular-nums; }
+.gc-sky-slider input { width:100%;accent-color:var(--gc-accent); }
+.gc-sky-sliders-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.gc-sky-slider[data-disabled=true],.gc-sky-colours:has(input:disabled) { opacity:.45; }
+.gc-sky-colours { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px; }
+.gc-sky-colour { display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer; }
+.gc-sky-colour input { flex:0 0 auto;width:30px;height:24px;padding:0;border:1px solid var(--gc-line-strong);border-radius:6px;background:none;cursor:pointer; }
+.gc-sky-colour span { display:flex;flex-direction:column;min-width:0;color:var(--gc-text);font-size:12px;font-weight:600; }
+.gc-sky-colour small { color:var(--gc-muted);font-size:10px;font-weight:400; }
+@media(max-width:650px) { .gc-sky-sliders,.gc-sky-sliders-3,.gc-sky-colours{grid-template-columns:1fr}.gc-sky-row{grid-template-columns:1fr;gap:5px} }
+.gc-value-size > span { display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-value-size b { color:var(--gc-text);font-size:13px;font-variant-numeric:tabular-nums; }
+.gc-value-size i { margin-left:-4px;color:var(--gc-muted);font-size:11px;font-style:normal; }
+.gc-value-size em { padding:1px 7px;border-radius:999px;background:rgba(62,207,142,.14);color:var(--gc-green);font-size:11px;font-style:normal;font-weight:600; }
+.gc-value-size input[type=range] { width:100%;accent-color:var(--gc-accent); }
+.gc-alarm-sound > * + * { margin-top:14px; }
+.gc-alarm-sound h3 + * { margin-top:10px; }
+/* Two buttons where a launch row expects one, so they size to their labels and the row gives them room first. */
+.gc-launch-row > .gc-alarm-file-actions { display:flex;flex:0 0 auto;gap:8px; }
+#gc-panel .gc-alarm-file-actions button { width:auto;min-width:84px; }
+.gc-value-readout { display:flex;align-items:baseline;gap:7px;margin-top:-4px; }
+.gc-value-readout b { color:var(--gc-text);font:650 14px/1 var(--gc-font);font-variant-numeric:tabular-nums; }
+.gc-value-readout span { color:var(--gc-muted);font-size:11px;font-weight:500; }
+.gc-value-breakdown { margin:6px 0 0;color:var(--gc-muted);font-size:12px;text-align:center; }
+.gc-value-group { display:flex;align-items:center;gap:10px; }
+.gc-value-group > b { width:60px;flex:0 0 auto;color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-value-group > div { display:flex;flex-wrap:wrap;gap:4px; }
+.gc-value-pill { display:inline-flex;align-items:center;gap:5px;padding:4px 8px; }
+.gc-value-pill img { width:20px;height:20px;object-fit:contain;image-rendering:auto; }
+.gc-value-pill span { font-size:12px; }
+.gc-value-pill small { color:var(--gc-muted);font-size:11px;font-weight:500; }
+.gc-value-pill.on { color:var(--gc-strong)!important;border-color:var(--gc-accent-line)!important;background:var(--gc-accent-soft)!important; }
+.gc-value-pill.on small { color:var(--gc-accent-text); }
+.gc-ready-rule { display:flex;flex-direction:column;gap:8px;padding:10px 0;border-top:1px solid var(--gc-line); }
+.gc-ready-rule:first-child { border-top:0;padding-top:0; }
+.gc-ready-rule > button { align-self:flex-start; }
+.gc-ready-head { display:flex;align-items:center;gap:8px; }
+.gc-ready-head > span:nth-child(2) { display:flex;flex-direction:column;flex:1 1 auto;min-width:0; }
+.gc-ready-head small { color:var(--gc-muted);font-size:11px; }
+.gc-ready-size-input { display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gc-muted); }
+/* Same label width and gap as the mutation group rows, so the box lines up with the pills below. */
+.gc-ready-size-input > span { width:60px;flex:0 0 auto;margin-right:4px; }
+#gc-panel .gc-ready-size-input input { width:48px;min-width:0;height:24px;padding:0 6px;box-sizing:border-box;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-input);color:var(--gc-text);font:12px var(--gc-font);text-align:right;outline:none; }
+.gc-ready-combo { display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--gc-line);border-radius:8px; }
+.gc-ready-picked { display:flex;align-items:flex-start;justify-content:space-between;gap:8px; }
+.gc-ready-picked > div { display:flex;flex-wrap:wrap;align-items:center;gap:4px; }
+.gc-ready-picked > span { display:flex;gap:4px;flex:0 0 auto; }
+.gc-ready-picked i { color:var(--gc-muted);font-style:normal;font-size:12px; }
+.gc-ready-chip { display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 4px;border:1px solid var(--gc-accent-line);border-radius:999px;background:var(--gc-accent-soft);color:var(--gc-strong);font-size:12px;font-weight:600; }
+.gc-ready-chip img { width:18px;height:18px;object-fit:contain; }
+.gc-ready-chip.gc-ready-size { padding-left:8px; }
+.gc-ready-repeat { margin-left:4px;color:#fca5a5;font-size:11px; }
+.gc-ready-chip.gc-ready-any { padding-left:8px;border-color:var(--gc-line-strong);background:none;color:var(--gc-muted);font-weight:500; }
+.gc-ready-combo .gc-value-pill:not(.on) img { opacity:.35;filter:grayscale(1); }
+.gc-ready-combo .gc-value-pill:not(.on):hover img { opacity:.8;filter:none; }
+.gc-value-foot { display:flex;align-items:center;justify-content:space-between;gap:10px; }
+.gc-value-foot label { display:flex;align-items:center;gap:9px; }
+.gc-value-foot span { color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-value-foot select { height:32px;padding:0 8px;font-size:12px;cursor:pointer; }
+.gc-value-result { display:flex;align-items:baseline;justify-content:center;gap:8px;padding-top:14px;border-top:1px solid var(--gc-line); }
+.gc-value-result b { color:var(--gc-gold);font:700 30px/1 var(--gc-font);letter-spacing:-.02em;font-variant-numeric:tabular-nums; }
+.gc-value-result small { color:var(--gc-muted);font-size:12px; }
+.gc-dust-list { max-height:340px;overflow:auto;display:flex;flex-direction:column;gap:5px;margin-top:10px; }
+.gc-dust-row { display:flex;align-items:center;gap:10px;padding:6px 10px 6px 6px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input);cursor:pointer; }
+.gc-dust-row:has(input:checked) { border-color:var(--gc-accent-line);background:rgba(var(--gc-accent-rgb),.08); }
+.gc-dust-row .gc-pet-sprite { width:34px;height:34px;border-radius:8px; }
+.gc-dust-row .gc-pet-sprite img { width:30px;height:30px; }
+.gc-dust-row > span { min-width:0;flex:1;display:flex;flex-direction:column; }
+.gc-dust-row b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550; }
+.gc-dust-row small { color:var(--gc-muted);font-size:11px; }
+.gc-dust-value { flex:0 0 auto;color:var(--gc-gold);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums; }
+.gc-granter-list { display:flex;flex-direction:column;gap:6px;margin-top:10px; }
+.gc-granter-row { display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,180px);align-items:center;gap:10px;padding:7px 10px 7px 7px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }
+.gc-granter-row[data-active=false] { opacity:.45; }
+.gc-granter-row[data-owned=false] .gc-pet-sprite { border-style:dashed; }
+.gc-granter-row[data-owned=false] .gc-granter-head small { color:var(--gc-gold); }
+.gc-granter-head { min-width:0;display:flex;align-items:center;gap:9px;cursor:pointer; }
+.gc-granter-head .gc-pet-sprite { width:32px;height:32px;border-radius:8px; }
+.gc-granter-head .gc-pet-sprite img { width:28px;height:28px; }
+.gc-granter-head > span { min-width:0;display:flex;flex-direction:column; }
+.gc-granter-head b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550; }
+.gc-granter-head small { color:var(--gc-muted);font-size:11px; }
+.gc-granter-slider { display:flex;align-items:center;gap:8px; }
+.gc-granter-slider input { flex:1;min-width:0;accent-color:var(--gc-accent); }
+.gc-granter-slider b { min-width:24px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums; }
+.gc-food-slots { display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px; }
+.gc-food-slot { display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }
+.gc-food-slot select { height:32px;padding:0 8px;font-size:12px; }
+.gc-food-slot small { color:var(--gc-muted);font-size:11px; }
+.gc-dust-boost-slots { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 12px; }
+.gc-dust-boost-slot { display:flex;flex-direction:column;gap:5px; }
+.gc-dust-boost-slot span { color:var(--gc-muted);font-size:12px; }
+.gc-dust-boost-slot input { height:32px;padding:0 9px;font-size:13px; }
+.gc-dust-boosted { display:block;margin-top:2px;color:var(--gc-muted);font-size:11px;font-weight:500;white-space:normal; }
+
+/* ── Pet teams ───────────────────────────────────────────────────────────────────────────────── */
+.gc-team-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:10px 12px 10px 16px;border:1px solid var(--gc-line);border-radius:var(--gc-radius);background:var(--gc-surface); }
+#gc-panel .gc-team-bar .gc-primary { width:auto;flex:0 0 auto;padding:7px 16px; }
+.gc-team-summary-line { min-width:0;color:var(--gc-muted);font-size:12px; }
+.gc-team-summary-line b { color:var(--gc-strong);font-size:13px;font-weight:600; }
+.gc-team-card { position:relative;display:flex;flex-direction:column;gap:12px;padding:14px 16px; }
+.gc-team-card[data-active=true] { border-color:rgba(62,207,142,.35);background:linear-gradient(180deg,rgba(62,207,142,.05),transparent 60%),var(--gc-surface); }
+.gc-team-card[data-active=true]::before { content:'';position:absolute;top:14px;bottom:14px;left:-1px;width:3px;border-radius:0 3px 3px 0;background:var(--gc-green); }
+.gc-team-head { display:flex;align-items:center;gap:10px; }
+.gc-team-head .gc-team-emblem { flex:0 0 auto;margin-left:0;min-width:28px;height:28px; }
+.gc-team-title { min-width:0;flex:1;display:flex;flex-direction:column;gap:1px; }
+.gc-team-title h3 { margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }
+.gc-team-title small { color:var(--gc-muted);font-size:12px; }
+.gc-team-actions { flex:0 0 auto;display:flex;align-items:center;gap:6px; }
+.gc-team-order { display:flex;flex-direction:column;gap:2px; }
+/* #gc-panel button sets its own padding and font, so this has to match that specificity to win. */
+#gc-panel .gc-team-order button { width:24px;height:15px;min-height:0;box-sizing:border-box;padding:0;display:grid;place-items:center;border-radius:4px;font:600 7px/1 var(--gc-font); }
+#gc-panel .gc-team-order button:disabled { opacity:.28;cursor:default;border-color:var(--gc-line);background:var(--gc-surface-2);color:var(--gc-text); }
+.gc-team-active { padding:3px 8px;border-radius:999px;color:var(--gc-green);background:rgba(62,207,142,.13);font-size:11px;font-weight:600; }
+.gc-team-size { flex:0 0 auto;padding:3px 8px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-muted);font-size:11px;font-weight:500;font-variant-numeric:tabular-nums; }
+.gc-team-pets { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px; }
+.gc-team-pet { min-width:0;display:flex;align-items:center;gap:10px;padding:7px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-input); }
+.gc-team-pet.is-missing { border-style:dashed;border-color:rgba(240,113,113,.4); }
+.gc-team-pet.is-empty { justify-content:flex-start;border-style:dashed;opacity:.5; }
+.gc-team-pet.is-empty > i { width:36px;height:36px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;background:var(--gc-surface-2);color:var(--gc-muted);font-style:normal;font-size:17px; }
+.gc-team-pet .gc-pet-sprite { width:36px;height:36px;border-radius:8px; }
+.gc-team-pet .gc-pet-sprite img { width:32px;height:32px; }
+.gc-team-pet > span { min-width:0;display:flex;flex-direction:column;gap:1px; }
+.gc-team-pet b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:550; }
+.gc-team-pet small { color:var(--gc-muted);font-size:11px; }
+.gc-ability-chips { display:flex;flex-wrap:wrap;gap:3px;margin-top:2px; }
+.gc-ability-chip { width:10px;height:10px;flex:0 0 auto;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);cursor:help;transition:transform .1s; }
+.gc-ability-chip:hover { transform:scale(1.25); }
+.gc-team-foot { display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--gc-line); }
+.gc-team-emblem { display:inline-grid;place-items:center;vertical-align:middle;margin-left:7px;padding:1px 6px;border:1px solid var(--gc-line-strong);border-radius:8px;color:var(--gc-text);background:var(--gc-surface-2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em; }
+.gc-team-emblem:has(img) { padding:2px; }
+.gc-team-emblem img { width:18px;height:18px;object-fit:contain; }
+.gc-team-emblem.is-empty { color:var(--gc-muted);border-style:dashed;background:transparent; }
+.gc-pet-grid label.gc-pet-locked { opacity:.42; }
+.gc-pet-grid label.gc-pet-locked input { cursor:not-allowed; }
+.gc-team-picker-grid { max-height:none;height:100%;margin:0;padding:0 20px 14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;align-content:start; }
+.gc-team-picker-grid label { padding:9px 10px; }
+.gc-team-picker-shell > footer { display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--gc-line); }
+/* Footer only: a shell-wide button rule ties with the emblem tab and tile rules and, coming later,
+   would override them. */
+.gc-team-picker-shell > footer button { min-height:30px;padding:8px 18px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }
+.gc-team-picker-shell > footer button:hover:not(:disabled) { background:var(--gc-surface-3); }
+.gc-team-picker-shell > footer .gc-primary { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }
+.gc-team-picker-shell > footer .gc-primary:hover:not(:disabled) { background:var(--gc-accent-hover); }
+
+/* ── Docked pet food buttons ─────────────────────────────────────────────────────────────────── */
+#gc-petfood { position:fixed;left:0;top:0;z-index:99991;width:0;height:0;pointer-events:none;font:12px/1.3 var(--gc-font);user-select:none; }
+#gc-petfood[hidden] { display:none; }
+#gc-petfood img { image-rendering:auto!important; }
+#gc-petfood [data-food-row] { position:fixed;box-sizing:border-box;display:grid;place-items:center;padding:2px;overflow:hidden;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:10px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;transition:border-color .12s,background .12s; }
+#gc-petfood [data-food-row]:hover:not(:disabled) { border-color:var(--gc-accent-line);background:rgba(42,42,48,.96); }
+#gc-petfood [data-food-row]:disabled { opacity:.45;cursor:not-allowed; }
+#gc-petfood [data-food-row] img { flex:0 0 auto;object-fit:contain; }
+#gc-petfood [data-food-row] i { color:rgba(255,255,255,.7);font:600 17px var(--gc-font);font-style:normal; }
+.gc-petfood-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;color:#141417;background:var(--gc-gold);border-radius:999px;text-align:center;font:700 11px/16px var(--gc-font);font-variant-numeric:tabular-nums; }
+.gc-petfood-options { position:fixed;padding:3px 8px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:999px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.45);pointer-events:auto;cursor:pointer;font:500 11px var(--gc-font); }
+.gc-petfood-options:hover { color:var(--gc-strong);border-color:var(--gc-accent-line); }
+.gc-food-card .gc-food-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+.gc-food-card .gc-food-head span { color:var(--gc-faint);font-size:11px;font-weight:500; }
+/* Every food for a species on one row, however many it has - five used to wrap onto a second line. */
+.gc-food-options { display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;margin-top:10px; }
+.gc-food-options button { display:flex!important;align-items:center;gap:8px;padding:5px 8px!important;text-align:left!important; }
+.gc-food-options button > span:last-child { min-width:0;display:flex;flex-direction:column; }
+.gc-food-options button b,.gc-food-options button small { overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }
+.gc-food-options button b { font-weight:550; }
+.gc-food-options button small { color:var(--gc-muted);font-size:11px; }
+.gc-food-options .gc-shop-sprite { width:28px;height:28px; }
+.gc-food-options .gc-shop-sprite img { width:24px;height:24px; }
+.gc-food-options button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-accent-line)!important;background:var(--gc-accent-soft)!important; }
+
+/* ── Toast ───────────────────────────────────────────────────────────────────────────────────── */
+#gc-toast { position:fixed;left:50%;top:20px;z-index:1000000;transform:translate(-50%,-12px);display:flex;align-items:center;gap:9px;padding:9px 14px 9px 12px;color:var(--gc-text);background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:10px;box-shadow:var(--gc-shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;font:500 13px var(--gc-font); }
+#gc-toast::before { content:'';width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--gc-green); }
+#gc-toast.is-visible { opacity:1;transform:translate(-50%,0); }
+#gc-toast[data-tone=error]::before { background:var(--gc-danger); }
+#gc-toast[data-tone=error] { border-color:rgba(240,113,113,.4); }
+@media(max-width:650px) { #gc-panel{left:6px!important;top:6px!important;width:calc(100vw - 12px)!important;height:calc(100vh - 12px)!important;border-radius:10px}.gc-shell{grid-template-columns:140px minmax(0,1fr)}.gc-content main{padding:12px}.gc-page-head{padding:12px 14px 10px}.gc-page-head p{display:none}.gc-check-grid,.gc-pet-grid,.gc-active-pets{grid-template-columns:1fr}.gc-shortcut-row{grid-template-columns:1fr;gap:5px}#gc-alarm{min-width:0;width:calc(100vw - 24px)} }
+
+/* ── Floating tool windows (planner, celestial planner) ───────────────────────────────────────── */
+#gc-planner { position:fixed;right:16px;top:16px;z-index:99992;width:340px;box-sizing:border-box;overflow:hidden;color:var(--gc-text);background:var(--gc-bg);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font);user-select:none; }
+#gc-planner * { box-sizing:border-box; }
+#gc-planner img { image-rendering:auto!important; }
+#gc-planner header { display:flex;align-items:center;gap:9px;padding:11px 12px 11px 14px;border-bottom:1px solid var(--gc-line); }
+#gc-planner header b { flex:1;color:var(--gc-strong);font-size:13px;font-weight:600; }
+#gc-planner header span { color:var(--gc-muted);font-size:11px; }
+#gc-planner header button { padding:5px 10px;color:#fecaca;border:1px solid rgba(240,113,113,.35);border-radius:var(--gc-radius-sm);background:rgba(240,113,113,.1);cursor:pointer;font:500 11px var(--gc-font); }
+#gc-planner header button:hover { color:#fff;border-color:rgba(240,113,113,.55);background:rgba(240,113,113,.18); }
+.gc-planner-body { padding:12px 14px 14px; }
+.gc-planner-body > small { display:block;margin-bottom:10px;color:var(--gc-muted);font-size:11px; }
+.gc-planner-modes { display:flex;gap:2px;margin-bottom:10px;padding:3px;border:1px solid var(--gc-line);border-radius:10px;background:var(--gc-input); }
+.gc-planner-modes button { flex:1;padding:6px 10px;color:var(--gc-muted);border:1px solid transparent;border-radius:var(--gc-radius-sm);background:transparent;cursor:pointer;font:500 12px var(--gc-font); }
+.gc-planner-modes button:hover { color:var(--gc-text); }
+.gc-planner-modes button.active { color:var(--gc-strong);border-color:var(--gc-line-strong);background:var(--gc-surface-3); }
+.gc-planner-mount { max-height:136px!important;margin-top:6px; }
+.gc-planner-grid { max-height:238px;display:grid;grid-template-columns:repeat(auto-fill,minmax(43px,1fr));gap:5px;overflow:auto;padding:2px; }
+.gc-planner-grid button { position:relative;aspect-ratio:1;display:grid;place-items:center;padding:4px;box-sizing:border-box;overflow:hidden;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);cursor:pointer; }
+.gc-planner-grid button:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
+.gc-planner-grid button[data-active=true] { border-color:var(--gc-accent);background:var(--gc-accent-soft); }
+.gc-planner-grid button[data-rarity=Uncommon] { box-shadow:inset 0 -2px rgba(52,211,153,.6); }
+.gc-planner-grid button[data-rarity=Rare] { box-shadow:inset 0 -2px rgba(96,165,250,.7); }
+.gc-planner-grid button[data-rarity=Legendary] { box-shadow:inset 0 -2px rgba(251,191,36,.75); }
+.gc-planner-grid button[data-rarity=Mythic] { box-shadow:inset 0 -2px rgba(232,121,249,.75); }
+.gc-planner-grid button[data-rarity=Celestial] { box-shadow:inset 0 -2px rgba(103,232,249,.8); }
+.gc-planner-grid button[data-rarity=Divine] { box-shadow:inset 0 -2px rgba(248,113,113,.8); }
+.gc-planner-grid img { position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);object-fit:contain; }
+.gc-planner-grid i { color:var(--gc-muted);font-style:normal;font-size:12px; }
+.gc-planner-row { display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap; }
+.gc-planner-row > b { color:var(--gc-muted);font-size:11px;font-weight:500; }
+.gc-planner-mutations { display:flex;flex-direction:column;gap:4px;flex:1;min-width:0; }
+.gc-planner-mutation-group { display:flex;flex-wrap:wrap;gap:4px; }
+.gc-planner-mutations button.gc-planner-mutation { width:34px;height:34px;display:grid;place-items:center;padding:2px!important;overflow:hidden; }
+.gc-planner-mutation img { width:25px;height:25px;object-fit:contain; }
+.gc-planner-weather { flex-wrap:nowrap;gap:3px; }
+.gc-planner-weather button { min-width:0;padding:3px 5px!important;display:grid;place-items:center; }
+.gc-planner-weather button img { display:block;width:22px;height:22px;object-fit:contain; }
+.gc-planner-mutation b { font-size:9px; }
+.gc-planner-scale { flex:1;min-width:60px;accent-color:var(--gc-accent); }
+.gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:12px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums; }
+.gc-planner-row button,.gc-planner-mutations button { padding:5px 10px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:500 11px var(--gc-font); }
+.gc-planner-row button:hover,.gc-planner-mutations button:hover { background:var(--gc-surface-3); }
+.gc-planner-mutations button[data-active=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
+/* Mutation icons are small and colourful, so a tinted background alone was hard to tell apart: the
+   unchosen ones are dimmed and the chosen ones get a solid ring (inset, so the panel's edge cannot
+   clip it). */
+.gc-planner-mutations button.gc-planner-mutation[data-active=false] > * { opacity:.4;filter:grayscale(.6); }
+.gc-planner-mutations button.gc-planner-mutation[data-active=false]:hover > * { opacity:.75;filter:none; }
+.gc-planner-mutations button.gc-planner-mutation[data-active=true] { border-color:var(--gc-accent);box-shadow:inset 0 0 0 1px var(--gc-accent);background:var(--gc-accent-soft); }
+.gc-planner-mutation-summary { color:var(--gc-muted);font-size:11px;line-height:1.3; }
+.gc-planner-row input,.gc-planner-row select { flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-input);outline:none;font:inherit;font-size:12px; }
+.gc-planner-row input:focus,.gc-planner-row select:focus { border-color:var(--gc-accent-line); }
+body.gc-planning .QuinoaCanvas canvas { cursor:crosshair; }
+
+
+/* ── Journal ─────────────────────────────────────────────────────────────────────────────────── */
+.gc-journal-summary { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
+.gc-journal-summary b { color:var(--gc-strong);font-size:15px;font-weight:650;font-variant-numeric:tabular-nums; }
+.gc-journal-list { display:flex;flex-direction:column;gap:5px;margin-top:10px; }
+.gc-journal-list[data-incomplete-only=true] .gc-journal-row[data-complete=true] { display:none; }
+.gc-journal-row { display:grid;grid-template-columns:minmax(120px,1.1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface); }
+.gc-journal-row[data-complete=true] { border-color:rgba(62,207,142,.3);background:linear-gradient(90deg,rgba(62,207,142,.07),transparent 70%),var(--gc-surface); }
+.gc-journal-head { display:flex;min-width:0;align-items:center;gap:8px; }
+.gc-journal-head b { display:block;overflow:hidden;color:var(--gc-strong);font-size:13px;font-weight:550;text-overflow:ellipsis;white-space:nowrap; }
+.gc-journal-head small { color:var(--gc-muted);font-size:11px;font-variant-numeric:tabular-nums; }
+.gc-journal-chips { display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px; }
+.gc-journal-chip { position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--gc-line);border-radius:6px;background:var(--gc-input); }
+.gc-journal-chip img { max-width:18px;max-height:18px;object-fit:contain; }
+.gc-journal-chip b { color:var(--gc-text);font-size:8px;font-weight:700; }
+.gc-journal-chip[data-logged=false] { opacity:.24;filter:grayscale(1); }
+.gc-journal-chip[data-logged=true] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
+.gc-journal-abilities { grid-column:1 / -1;display:flex;align-items:center;gap:6px; }
+.gc-journal-abilities small { color:var(--gc-muted);font-size:11px; }
+#gc-panel .gc-row [data-journal-incomplete][data-active=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
+.gc-journal-group { display:flex;flex-direction:column;gap:5px; }
+.gc-journal-group + .gc-journal-group { margin-top:14px; }
+.gc-journal-group[hidden] { display:none; }
+.gc-journal-group-head { display:flex;align-items:center;gap:7px;margin:0 0 2px;color:var(--gc-faint);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
+.gc-journal-group-head .gc-shop-sprite { width:22px;height:22px; }
+.gc-journal-group-head .gc-shop-sprite img { max-width:16px;max-height:16px; }
+.gc-journal-search { margin-bottom:10px; }
+.gc-journal-search .gc-search { margin:0; }
+#gc-panel .gc-journal-search button { height:34px; }
+.gc-journal-filter { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px; }
+.gc-journal-filter small { color:var(--gc-muted);font-size:11px; }
+#gc-panel .gc-journal-filter button.gc-journal-chip { min-height:0;padding:0;border-radius:6px;background:var(--gc-input); }
+#gc-panel .gc-journal-filter button.gc-journal-chip[data-active=true] { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);box-shadow:0 0 0 2px rgba(var(--gc-accent-rgb),.25); }
+.gc-journal-list[data-incomplete-only=true] .gc-journal-group:not(:has(.gc-journal-row[data-complete=false])) { display:none; }
+
+/* ── Preserve all ────────────────────────────────────────────────────────────────────────────── */
+/* Deliberately matched to the game's own action button: the same pill, weight and green, so the
+   two read as one control rather than a companion panel parked next to it. */
+#gc-preserve-all { position:fixed;left:50%;transform:translateX(-50%);bottom:230px;z-index:99989;display:flex;flex-direction:column;align-items:center;gap:3px;box-sizing:border-box;pointer-events:none;font:14px/1.2 system-ui,sans-serif;user-select:none; }
+#gc-preserve-all[hidden] { display:none; }
+#gc-preserve-all small { color:#fff;font-size:11px;font-weight:800;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.55),0 0 6px rgba(0,0,0,.5);white-space:nowrap; }
+#gc-preserve-all [data-preserve-caption] { font-size:10px;opacity:.82; }
+#gc-preserve-all button { pointer-events:auto;position:relative;overflow:hidden;isolation:isolate;padding:11px 20px;border:0;border-radius:15px;color:#fff;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d);box-shadow:0 5px 0 #0d7466,0 12px 24px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28);cursor:pointer;font:800 17px/1 system-ui,sans-serif;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,0,0,.35);white-space:nowrap; }
+#gc-preserve-all button:hover:not(:disabled) { filter:brightness(1.06); }
+#gc-preserve-all button:disabled { cursor:not-allowed;background:linear-gradient(180deg,#8a9490,#6b7570);box-shadow:0 5px 0 #4a524e,0 12px 24px rgba(0,0,0,.4); }
+#gc-preserve-all[data-holding=true] [data-preserve-run] { transform:translateY(2px);box-shadow:0 3px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.28); }
+#gc-preserve-all [data-preserve-fill] { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399);box-shadow:0 0 14px rgba(167,243,208,.5); }
+#gc-preserve-all [data-preserve-label] { position:relative; }
+/* The secondary button opens the per-slot manager: smaller and quieter than the green pill so it
+   reads as the "or pick them yourself" option beneath the one-press action. */
+#gc-preserve-all [data-preserve-manage] { margin-top:2px;padding:6px 14px;border-radius:11px;background:linear-gradient(180deg,#3a3a42,#27272d);box-shadow:0 3px 0 #16161a,0 6px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);color:#ececef;font:800 12px/1 system-ui,sans-serif; }
+#gc-preserve-all [data-preserve-manage][hidden] { display:none; }
+
+/* Preservation manager: every ready slot across the inventory, ticked one by one. */
+/* The game page is not border-box, so full-width rows with padding would overflow and clip their
+   right edge (the cost and the header tick); scope a reset to the manager. */
+.gc-preserve-manager, .gc-preserve-manager * { box-sizing:border-box; }
+.gc-preserve-manager { width:480px;max-width:calc(100vw - 40px);max-height:min(82vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }
+.gc-preserve-manager .gc-modal-body { display:flex;flex-direction:column;gap:8px; }
+/* The body is a fixed-height flex column; without this its children shrink to fit instead of
+   scrolling, so a long inventory collapses every plant to a thin line. */
+.gc-preserve-manager .gc-modal-body>* { flex:0 0 auto; }
+.gc-preserve-manager .gc-modal-tools { gap:10px; }
+.gc-preserve-manager .gc-modal-tools button { white-space:nowrap!important; }
+.gc-pm-search { flex:1 1 auto;min-width:0;height:32px;padding:0 11px!important;border:1px solid var(--gc-line-strong)!important;border-radius:var(--gc-radius-sm)!important;color:var(--gc-text)!important;background:var(--gc-input)!important;font:500 12px var(--gc-font)!important; }
+.gc-pm-search::placeholder { color:var(--gc-muted); }
+.gc-pm-search:focus { outline:none;border-color:rgba(62,207,142,.55)!important; }
+.gc-pm-summary-row { padding:7px 16px;border-bottom:1px solid var(--gc-line); }
+.gc-pm-summary-row .gc-modal-summary { color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-pm-empty { margin:14px 4px;color:var(--gc-faint);text-align:center; }
+.gc-pm-plant { border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);overflow:hidden;background:var(--gc-surface); }
+.gc-pm-plant-head { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:9px!important;width:100%;padding:8px 12px!important;border:0!important;border-bottom:1px solid var(--gc-line)!important;border-radius:0!important;background:transparent!important;color:var(--gc-strong)!important;text-align:left;font:600 13px var(--gc-font)!important; }
+.gc-pm-plant-head:hover { background:var(--gc-soft)!important; }
+.gc-pm-plant-head b { flex:1 1 auto;font-weight:600; }
+.gc-pm-plant-head small { color:var(--gc-muted);font-weight:500; }
+.gc-pm-icon { width:22px;height:22px;object-fit:contain; }
+.gc-pm-icon-text { display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--gc-surface-3);font-weight:700; }
+.gc-pm-check { flex:0 0 auto;display:grid;place-items:center;width:18px;height:18px;border:1px solid rgba(255,255,255,.22);border-radius:5px;color:#fff;font-style:normal;font-weight:700;font-size:11px; }
+.gc-pm-plant-head[data-state=all] .gc-pm-check,.gc-pm-plant-head[data-state=some] .gc-pm-check { border-color:var(--gc-green);background:rgba(62,207,142,.85);color:#08140e; }
+.gc-pm-slots { display:flex;flex-direction:column; }
+.gc-pm-slot { display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:9px!important;width:100%;padding:7px 12px 7px 16px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--gc-text)!important;text-align:left;font:500 12px var(--gc-font)!important;cursor:pointer; }
+.gc-pm-slot+.gc-pm-slot { border-top:1px solid var(--gc-line)!important; }
+.gc-pm-slot:hover { background:var(--gc-soft)!important; }
+.gc-pm-slot[data-active=true] .gc-pm-check { border-color:var(--gc-green);background:rgba(62,207,142,.85);color:#08140e; }
+.gc-pm-size { flex:0 0 auto!important;min-width:40px;color:var(--gc-muted);font-weight:600;white-space:nowrap!important;font-variant-numeric:tabular-nums; }
+.gc-pm-crop { flex:0 0 auto!important;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap!important;color:var(--gc-text);font-weight:600; }
+/* The game styles button descendants, so the mutation column's flex and its chips' wrapping are
+   both pinned - without this the column is squeezed to a character wide and each letter stacks. */
+.gc-pm-muts { flex:1 1 auto!important;display:flex!important;flex-flow:row wrap!important;align-items:center;gap:3px;min-width:0!important; }
+.gc-pm-mut { flex:0 0 auto!important;width:15px;height:15px;object-fit:contain; }
+.gc-pm-mut-text { flex:0 0 auto!important;padding:1px 6px;border:1px solid var(--gc-line);border-radius:999px;color:var(--gc-muted);font-size:10px;font-weight:600;white-space:nowrap!important; }
+.gc-pm-cost { flex:0 0 auto!important;color:var(--gc-gold);font-weight:650;white-space:nowrap!important;font-variant-numeric:tabular-nums; }
+.gc-pm-foot { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid var(--gc-line); }
+.gc-pm-foot-info { display:flex;flex-direction:column;gap:2px;min-width:0; }
+.gc-pm-total { color:var(--gc-strong);font-weight:650;font-variant-numeric:tabular-nums; }
+.gc-pm-total[data-short=true] { color:var(--gc-danger);font-weight:600; }
+.gc-pm-hint { color:var(--gc-muted);font-size:11px;font-weight:500; }
+.gc-preserve-manager[data-awaiting=true] .gc-pm-hint { color:var(--gc-green); }
+.gc-preserve-manager[data-offline=true] .gc-pm-hint { color:var(--gc-danger); }
+.gc-pm-run { display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;position:relative;overflow:hidden;isolation:isolate;padding:10px 20px!important;border:0!important;border-radius:12px!important;color:#062018!important;background:linear-gradient(180deg,#4fd6c4,#22b8a2 55%,#17a08d)!important;box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45)!important;cursor:pointer;font:800 14px/1 system-ui,sans-serif!important;white-space:nowrap; }
+.gc-pm-run:hover:not(:disabled) { filter:brightness(1.06); }
+.gc-pm-run:disabled { cursor:not-allowed;background:linear-gradient(180deg,#5a635f,#454d49)!important;box-shadow:0 4px 0 #333a37,0 8px 18px rgba(0,0,0,.4)!important;color:rgba(255,255,255,.7)!important; }
+/* After a capped run the button pulses to say "press again for the rest". */
+.gc-preserve-manager[data-awaiting=true] .gc-pm-run:not(:disabled) { animation:gc-pm-pulse 1.4s ease-in-out infinite; }
+@keyframes gc-pm-pulse { 0%,100% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 0 rgba(52,211,153,.5); } 50% { box-shadow:0 4px 0 #0d7466,0 8px 18px rgba(0,0,0,.45),0 0 0 6px rgba(52,211,153,0); } }
+.gc-preserve-manager[data-holding=true] .gc-pm-run { transform:translateY(2px); }
+.gc-pm-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:linear-gradient(180deg,#a7f3d0,#6ee7b7 60%,#34d399); }
+.gc-pm-run [data-pm-label],.gc-pm-run span { position:relative; }
+/* Crop locks: the Preservation manager's dialog, with a filter strip and a lock state per row. */
+/* A fixed height, not one that follows the list: filtering shrinks the list, and a centred dialog
+   that shrinks moves every control out from under the pointer mid-click. */
+.gc-crop-locks { height:min(82vh,680px); }
+.gc-crop-locks .gc-modal-body { flex:1 1 auto; }
+.gc-cl-filters { display:flex;align-items:center;gap:4px;padding:8px 16px;border-bottom:1px solid var(--gc-line); }
+.gc-cl-filters button { min-height:26px!important;padding:4px 10px!important;border-color:transparent!important;background:transparent!important;color:var(--gc-muted)!important; }
+.gc-cl-filters button:hover { color:var(--gc-text)!important;background:var(--gc-soft)!important; }
+.gc-cl-filters button[data-active=true] { color:var(--gc-strong)!important;border-color:var(--gc-line-strong)!important;background:var(--gc-surface-3)!important; }
+.gc-cl-filters .gc-modal-summary { margin-left:auto;color:var(--gc-muted);font-size:12px;font-weight:500; }
+.gc-cl-growing { flex:0 0 auto;padding:1px 6px;border-radius:999px;background:var(--gc-soft);color:var(--gc-faint);font-size:10px;font-weight:600; }
+.gc-cl-state { flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;border-radius:6px;color:var(--gc-faint); }
+.gc-cl-state svg { width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }
+.gc-cl-state[data-locked=true] { color:var(--gc-gold);background:rgba(245,196,81,.12); }
+.gc-cl-actions { display:flex;gap:8px; }
+.gc-cl-actions button { position:relative;overflow:hidden;isolation:isolate;min-width:104px;min-height:34px!important;font-weight:600!important; }
+.gc-cl-actions button span { position:relative; }
+.gc-cl-fill { position:absolute;left:0;top:0;bottom:0;z-index:-1;width:0;background:rgba(255,255,255,.28); }
+.gc-crop-locks .gc-cl-lock:not(:disabled) { color:#1a1405!important;border-color:var(--gc-gold)!important;background:var(--gc-gold)!important; }
+.gc-crop-locks .gc-cl-lock:not(:disabled):hover { filter:brightness(1.08); }
+.gc-cl-actions button:disabled { opacity:.45;cursor:default; }
+#gc-crop-locks[data-offline=true] .gc-pm-hint { color:var(--gc-danger); }
+#gc-lunar[data-dragging=true] { opacity:.9; }
+#gc-lunar button { cursor:pointer; }
+#gc-panel button.gc-pet-potions { width:100%;white-space:normal;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left;color:#c4b5fd;font-size:11px; }
+button.gc-pet-potions i { flex:0 0 auto;padding:2px 8px;border-radius:999px;color:#fff;background:var(--gc-accent);font-size:11px;font-weight:600;font-style:normal; }
+#gc-panel button.gc-pet-potions:hover:not(:disabled) { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
+button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
+
+/* ── Egg Luck: one card per egg, its hatch table, and a bar per guarantee ────────────────────── */
+.gc-egg-summary { margin-bottom:12px;display:flex;align-items:center;justify-content:space-between; }
+.gc-egg-card + .gc-egg-card { margin-top:10px; }
+.gc-egg-card[data-empty=true] { opacity:.55; }
+.gc-egg-card h3 { display:flex;align-items:center;gap:8px;margin:0; }
+#gc-panel .gc-egg-head { width:100%;min-height:0;display:flex;align-items:center;gap:8px;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font:inherit; }
+#gc-panel .gc-egg-head:hover { background:transparent; }
+.gc-egg-head h3 { flex:1 1 auto;min-width:0;font-size:14px; }
+.gc-egg-head i { flex:0 0 auto;color:var(--gc-muted);font-size:10px;font-style:normal; }
+.gc-egg-head:hover h3 { color:var(--gc-accent-text); }
+.gc-egg-due { border-color:rgba(62,207,142,.35)!important;color:#86efac!important;background:rgba(62,207,142,.1)!important; }
+.gc-egg-table { width:100%;table-layout:fixed;margin:10px 0 0;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums; }
+.gc-egg-table th:nth-child(1),.gc-egg-table td:nth-child(1) { width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-egg-table th:nth-child(n+2),.gc-egg-table td:nth-child(n+2) { width:13.2%; }
+.gc-egg-table th { padding:4px 6px;color:var(--gc-faint);font-size:11px;font-weight:600;text-align:right; }
+.gc-egg-table th:first-child,.gc-egg-table td:first-child { text-align:left; }
+.gc-egg-table td { padding:5px 6px;text-align:right;border-top:1px solid var(--gc-line); }
+.gc-egg-table tr.gc-egg-none { opacity:.45; }
+.gc-egg-table th,.gc-egg-table td { vertical-align:middle; }
+.gc-egg-table td:first-child .gc-shop-sprite { display:inline-block;width:18px;height:18px;margin-right:7px;vertical-align:middle;background:transparent; }
+.gc-egg-table td:first-child .gc-shop-sprite img { width:18px;height:18px;object-fit:contain;vertical-align:middle; }
+.gc-egg-table th.gc-egg-mut img { display:inline-block;width:14px;height:14px;object-fit:contain;vertical-align:middle; }
+.gc-egg-colours { margin-top:10px;display:flex;align-items:center;gap:6px; }
+#gc-panel .gc-egg-colours button { margin-left:auto;min-height:26px;padding:3px 10px;font-size:11px;color:var(--gc-muted);background:transparent; }
+#gc-panel .gc-egg-colours button:hover { border-color:rgba(240,113,113,.45);color:#fca5a5;background:rgba(240,113,113,.08); }
+.gc-egg-pities { margin-top:10px;padding-top:10px;display:grid;gap:7px;border-top:1px solid var(--gc-line); }
+.gc-egg-pity { display:flex;align-items:center;gap:10px;font-size:12px; }
+.gc-egg-pity-label { flex:0 0 96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.gc-egg-bar { flex:1 1 auto;height:6px;overflow:hidden;border-radius:999px;background:var(--gc-surface-3); }
+.gc-egg-bar i { display:block;height:100%;border-radius:999px;background:var(--gc-accent); }
+.gc-egg-pity-count { flex:0 0 84px;color:var(--gc-muted);font-size:11px;text-align:right;font-variant-numeric:tabular-nums; }
+.gc-egg-pity[data-due=true] .gc-egg-bar i { background:var(--gc-green); }
+.gc-egg-pity[data-due=true] .gc-egg-pity-count { color:#86efac; }
+.gc-egg-headrow { display:flex;align-items:center;gap:8px; }
+.gc-egg-headrow h3 { flex:1 1 auto;min-width:0; }
+#gc-panel .gc-egg-head.gc-egg-arrow { width:auto;flex:0 0 auto;padding:0 2px; }
+#gc-panel .gc-egg-edit { flex:0 0 auto;min-height:24px;padding:2px 10px;font-size:11px;color:var(--gc-muted);background:transparent; }
+#gc-panel .gc-egg-edit[aria-pressed=true] { color:var(--gc-accent-text);border-color:var(--gc-accent); }
+.gc-egg-card[data-editing=true] .gc-egg-table th:nth-child(n+2),.gc-egg-card[data-editing=true] .gc-egg-table td:nth-child(n+2) { width:22%; }
+.gc-egg-step { display:inline-flex;align-items:center;justify-content:flex-end;gap:4px; }
+#gc-panel .gc-egg-step input { width:6ch;padding:2px 4px;font-size:11px;font-weight:600;text-align:center;-moz-appearance:textfield; }
+#gc-panel .gc-egg-step input::-webkit-inner-spin-button,#gc-panel .gc-egg-step input::-webkit-outer-spin-button { -webkit-appearance:none;margin:0; }
+#gc-panel .gc-egg-step button { width:20px;min-height:20px;height:20px;padding:0;font-size:12px;line-height:1; }
+.gc-egg-card[data-editing=true] .gc-egg-pity-count { flex-basis:110px; }
+#gc-panel .gc-egg-pity-count input { width:56px;padding:2px 4px;font-size:11px;text-align:right; }
+.gc-egg-bonus { display:inline-flex;align-items:center;gap:4px;color:var(--gc-muted);font-size:11px; }
+#gc-panel .gc-egg-bonus input { width:56px;padding:2px 4px;font-size:11px;text-align:right; }
+
+/* The Ko-fi link is an anchor, not a button, so it borrows the primary button's look. */
+#gc-panel a.gc-kofi { width:132px;flex:0 0 auto;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:var(--gc-radius-sm);text-decoration:none;white-space:nowrap;font-size:12px;font-weight:600; }
+#gc-panel a.gc-kofi:hover { background:var(--gc-accent-hover); }
+#gc-produce-locks { position:fixed;z-index:99991;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:6px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:12px;background:rgba(20,20,23,.94);box-shadow:0 6px 18px rgba(0,0,0,.5);font:12px/1.3 var(--gc-font);user-select:none; }
+#gc-produce-locks[hidden] { display:none; }
+.gc-produce-locks-head { flex:0 0 auto;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;color:rgba(255,255,255,.7);font:600 11px var(--gc-font);cursor:help; }
+.gc-produce-locks-list { display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none; }
+.gc-produce-locks-list p { margin:0;padding:0 6px;color:rgba(255,255,255,.5);font-size:11px; }
+.gc-produce-lock { position:relative;flex:0 0 auto;display:grid;place-items:center;width:62px;height:62px;border:1px solid var(--gc-line-strong);border-radius:10px;background:rgba(42,42,48,.6);cursor:context-menu;transition:border-color .12s,background .12s; }
+.gc-produce-lock:hover { border-color:var(--gc-accent-line);background:rgba(42,42,48,.96); }
+.gc-produce-lock img { width:46px;height:46px;object-fit:contain;image-rendering:auto!important; }
+.gc-produce-lock i { color:rgba(255,255,255,.7);font:600 17px var(--gc-font);font-style:normal; }
+.gc-produce-lock-count { position:absolute;right:2px;bottom:2px;min-width:16px;padding:0 4px;color:#141417;background:var(--gc-gold);border-radius:999px;text-align:center;font:700 11px/16px var(--gc-font);font-variant-numeric:tabular-nums; }
+.gc-produce-lock-pad { position:absolute;top:3px;right:3px;width:14px;height:14px;display:none;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5c542'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h6V7a3 3 0 0 0-6 0v3Z'/%3E%3C/svg%3E"); }
+.gc-produce-lock[data-locked="all"] { border-color:rgba(245,197,66,.7); }
+.gc-produce-lock[data-locked="all"] .gc-produce-lock-pad { display:block; }
+.gc-produce-lock[data-locked="some"] .gc-produce-lock-pad { display:block;opacity:.45; }
+
+/* Farm Manager - Celestial tab. Badge sizes use container units (cqmin) so they scale with the tile. */
+.gc-fm-cel { display:flex;flex-direction:column;gap:10px;min-width:0;overflow-wrap:anywhere; }
+.gc-fm-card { display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:10px;background:var(--gc-surface);box-shadow:inset 0 0 0 1px var(--gc-line); }
+.gc-fm-card h4 { margin:0;color:var(--gc-faint);font-size:10px;font-weight:650;letter-spacing:.08em;text-transform:uppercase; }
+.gc-fm-cel-label { margin-top:2px;color:var(--gc-muted);font-size:11px;font-weight:550; }
+.gc-fm-cel-seg { display:flex;gap:2px;padding:3px;border:1px solid var(--gc-line);border-radius:9px;background:var(--gc-input); }
+.gc-fm-cel-seg button { flex:1;height:26px;border:0;border-radius:6px;background:transparent;color:var(--gc-muted);cursor:pointer;font:600 11px var(--gc-font); }
+.gc-fm-cel-seg button:hover { color:var(--gc-text); }
+.gc-fm-cel-seg button[data-active="true"] { background:var(--gc-surface-3);color:var(--gc-strong);box-shadow:0 1px 2px rgba(0,0,0,.4),inset 0 0 0 1px var(--gc-line-strong); }
+.gc-fm-cel-refresh { display:flex;align-items:center;justify-content:center;gap:7px;height:30px;margin-top:4px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);color:var(--gc-text);cursor:pointer;font:600 12px var(--gc-font); }
+.gc-fm-cel-refresh:hover { background:var(--gc-surface-3);color:var(--gc-strong); }
+.gc-fm-cel-refresh .gc-fm-ico { width:13px;height:13px; }
+.gc-fm-cel-counts { display:grid;grid-template-columns:1fr 1fr;gap:4px; }
+.gc-fm-cel-counts span { display:flex;align-items:center;gap:5px;min-width:0;padding:4px 6px;border-radius:var(--gc-radius-sm);background:var(--gc-surface-2); }
+.gc-fm-cel-counts em { flex:1;min-width:0;overflow:hidden;color:var(--gc-muted);font-size:11px;font-style:normal;text-overflow:ellipsis;white-space:nowrap; }
+.gc-fm-cel-counts b { color:var(--gc-strong);font-variant-numeric:tabular-nums; }
+.gc-fm-chip { display:inline-grid;place-items:center;flex:none;min-width:22px;height:18px;padding:0 4px;border-radius:5px;color:#111;background:var(--chip);font:700 10px/1 var(--gc-font);font-style:normal; }
+.gc-fm-cel-msg { margin:0;padding:8px 10px;border-radius:var(--gc-radius-sm);background:var(--gc-surface);box-shadow:inset 0 0 0 1px var(--gc-line);font-size:11px; }
+.gc-fm-cel-msg[data-tone="error"] { color:#fecaca;background:rgba(240,113,113,.08);box-shadow:inset 0 0 0 1px rgba(240,113,113,.35); }
+.gc-fm-cel-help { padding:0 2px;color:var(--gc-faint);font-size:11px;line-height:1.45; }
+.gc-fm-cell[data-cel-area="false"] { opacity:.55; }
+.gc-fm-cell[data-cel="planned"] { box-shadow:inset 0 0 0 2px var(--chip);background:color-mix(in srgb,var(--chip) 18%,#33251a); }
+.gc-fm-cell[data-cel="planned"] img { opacity:.35; }
+.gc-fm-cell[data-cel="ok"] { box-shadow:inset 0 0 0 1px rgba(74,222,128,.5); }
+.gc-fm-cell[data-cel="move"] { box-shadow:inset 0 0 0 3px #fb7185;background:#5a2a2e; }
+.gc-fm-cell[data-cel-active="true"] { outline:3px solid #fde68a;outline-offset:1px;z-index:2; }
+.gc-fm-cell[data-cel-source] { outline:3px solid var(--chip);outline-offset:1px;z-index:2; }
+.gc-fm-cell[data-cel-lit="moon"] { box-shadow:inset 0 0 0 3px #fb923c,0 0 10px rgba(251,146,60,.7); }
+.gc-fm-cell[data-cel-lit="dawn"] { box-shadow:inset 0 0 0 3px #38bdf8,0 0 10px rgba(56,189,248,.7); }
+.gc-fm-cell > i.gc-fm-cel-badge,.gc-fm-cell > i.gc-fm-cel-num { position:absolute;display:grid;place-items:center;box-sizing:border-box;font-style:normal;line-height:1;white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.6); }
+.gc-fm-cel-badge { left:3cqmin;top:3cqmin;min-width:46cqmin;height:34cqmin;padding:0 4cqmin;border-radius:6cqmin;color:#111 !important;background:var(--chip);font:800 22cqmin var(--gc-font) !important; }
+.gc-fm-cel-num { right:3cqmin;bottom:3cqmin;width:46cqmin;height:46cqmin;border-radius:50%;color:#fff !important;background:#e11d48;border:2px solid #fff;font:900 28cqmin var(--gc-font) !important;font-variant-numeric:tabular-nums; }
+.gc-fm-cell > i.gc-fm-cel-oops { position:absolute;left:3cqmin;bottom:3cqmin;display:grid;place-items:center;width:34cqmin;height:34cqmin;border-radius:50%;color:#111;background:#fde68a;font:900 26cqmin var(--gc-font);font-style:normal;line-height:1;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.6);animation:gc-fm-pulse 1s ease-in-out infinite; }
+.gc-fm-cel-arrow { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3; }
+.gc-fm-cel-arrow line { stroke:#fde68a;stroke-width:3;stroke-linecap:round;stroke-dasharray:6 4;filter:drop-shadow(0 1px 1px #000); }
+
+
+/* ── Pumpkin carving from a picture ───────────────────────────────────────────────────────────── */
+#gc-carve-import { position:fixed;z-index:99988;padding:7px 14px;border:1px solid rgba(255,255,255,.25);border-radius:999px;color:#fff;background:rgba(20,20,23,.82);cursor:pointer;font:600 12px var(--gc-font);box-shadow:0 2px 8px rgba(0,0,0,.4); }
+#gc-carve-import[hidden] { display:none; }
+#gc-carve-import:hover { background:var(--gc-accent); }
+.gc-carve-modal { width:440px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }
+.gc-carve-preview { display:block;width:100%;height:auto;border-radius:var(--gc-radius-sm);background:var(--gc-input); }
+.gc-carve-status { margin:8px 0 6px;color:var(--gc-muted);font-size:12px; }
+.gc-carve-slider { display:grid;grid-template-columns:84px 1fr;align-items:center;gap:8px;margin:4px 0; }
+.gc-carve-slider input { width:100%;accent-color:var(--gc-accent); }
+.gc-carve-check { display:flex;align-items:center;gap:8px;margin:8px 0 2px; }
+.gc-carve-check input { accent-color:var(--gc-accent); }
+.gc-carve-actions { display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--gc-line); }
+.gc-modal-backdrop .gc-carve-go { color:#fff;border-color:var(--gc-accent);background:var(--gc-accent);font-weight:600; }
+.gc-modal-backdrop .gc-carve-go:disabled { opacity:.5;cursor:default; }
+.gc-carve-modes { display:flex;gap:4px;margin:2px 0 8px;padding:3px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-input); }
+.gc-carve-modes label { flex:1; }
+.gc-carve-modes input { position:absolute;opacity:0;pointer-events:none; }
+.gc-carve-modes span { display:block;padding:5px 6px;border-radius:var(--gc-radius-sm);text-align:center;color:var(--gc-muted);font-weight:600;font-size:12px;cursor:pointer; }
+.gc-carve-modes input:checked + span { color:#fff;background:var(--gc-accent); }
+.gc-carve-modal [data-modes][hidden] { display:none; }
+.gc-carve-preview { cursor:grab;touch-action:none; }
+.gc-carve-preview[data-dragging=true] { cursor:grabbing; }
+.gc-carve-hint { margin:4px 0 0;color:var(--gc-muted);font-size:11px;text-align:center; }
+.gc-modal-backdrop .gc-carve-link { padding:0;border:0;background:none;color:var(--gc-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline; }
+.gc-carve-modal[data-cropping=true] .gc-modal-body > :not(.gc-carve-crop), .gc-carve-modal[data-cropping=true] .gc-carve-actions { display:none; }
+.gc-carve-crop[hidden] { display:none; }
+.gc-carve-crop-view { display:block;max-width:100%;max-height:55vh;margin:0 auto;border-radius:var(--gc-radius-sm);background:var(--gc-input);cursor:crosshair;touch-action:none; }
+.gc-carve-crop-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:10px; }
 `;
       document.head.appendChild(style);
       mountLunarTimer(togglePanel);
@@ -14667,9 +14701,9 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }\r
       const plantList = plantRowList(stats.species);
       const plantRows2 = plantList.map((row) => {
         const sprite = produceSprite(row.species);
-        const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '<i class="go-plant-blank"></i>';
+        const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '<i class="go-plant-blank"></i>';
         const chevron = row.child ? "" : `<u>${row.family ? row.open ? CHEVRON_UP : CHEVRON_DOWN : ""}</u>`;
-        const name = `<span>${chevron}${icon}${escapeHtml(row.label)}</span>`;
+        const name = `<span>${chevron}${icon2}${escapeHtml(row.label)}</span>`;
         const cells = `<b>${row.tiles ? count(row.tiles) : ""}</b><b>${count(row.crops)}</b>`;
         return row.family ? `<div class="go-plant-row go-plant-family" data-family="${escapeHtml(row.family)}" title="Show the crops in this patch">${name}${cells}</div>` : `<div class="go-plant-row"${row.child ? ' data-child="true"' : ""}>${name}${cells}</div>`;
       }).join("");
@@ -19505,8 +19539,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     function seedsHtml() {
       return PLANTS.map((plant, index) => {
         const sprite = cropSpriteSource(plant) || plantSpriteSource(plant);
-        const icon = sprite ? `<img src="${sprite}" alt="">` : `<em>${escapeHtml(plant.name.slice(0, 1))}</em>`;
-        return `<button class="gd-seed" data-seed="${plant.id}" title="${escapeHtml(`${plant.name} (${plant.cost} sun): ${plant.detail} Recharge ${plant.recharge}s.`)}"><kbd>${SEED_KEYS[index] ?? ""}</kbd>${plant.kind === "mine" || plant.kind === "bomb" ? '<i class="gd-once" title="One use">1&times;</i>' : ""}${icon}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
+        const icon2 = sprite ? `<img src="${sprite}" alt="">` : `<em>${escapeHtml(plant.name.slice(0, 1))}</em>`;
+        return `<button class="gd-seed" data-seed="${plant.id}" title="${escapeHtml(`${plant.name} (${plant.cost} sun): ${plant.detail} Recharge ${plant.recharge}s.`)}"><kbd>${SEED_KEYS[index] ?? ""}</kbd>${plant.kind === "mine" || plant.kind === "bomb" ? '<i class="gd-once" title="One use">1&times;</i>' : ""}${icon2}<b>${escapeHtml(plant.name)}</b><small>${dev ? "free" : plant.cost}</small></button>`;
       }).join("");
     }
     function wavesHtml() {
@@ -20177,14 +20211,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       const globalIndex = x + y * map.cols;
       const dirt = map.globalTileIdxToDirtTile?.[globalIndex];
       if (!dirt) return null;
-      return {
-        x,
-        y,
-        globalIndex,
-        userSlotIdx: dirt.userSlotIdx,
-        localTileIndex: dirt.dirtTileIdx,
-        object: tileSystem.getTileDataAt({ x, y }) ?? null
-      };
+      const tile = { x, y, globalIndex, userSlotIdx: dirt.userSlotIdx, localTileIndex: dirt.dirtTileIdx, object: null };
+      tile.object = tileObjectAt(tile);
+      return tile;
     }
     function ensureFallbackHighlight() {
       if (live.fallbackHighlight) return live.fallbackHighlight;
@@ -20366,7 +20395,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     }
     async function placePlant(plantObject, destination, plantId, activePress, doneMessage = "Plant moved.") {
       if (activePress.cancelled) return false;
-      const currentObject = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
+      const currentObject = tileObjectAt(destination);
       if (currentObject) {
         activePress.cancelled = true;
         showToast("Move stopped: a tile became occupied. Your plants are safe in your inventory.", "error", 5e3);
@@ -20379,7 +20408,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         return false;
       }
       const placed = await waitFor(() => {
-        const object = live.tileSystem?.getTileDataAt({ x: destination.x, y: destination.y });
+        const object = tileObjectAt(destination);
         const itemStillHeld = inventoryItems2().some((item) => item?.id === plantId);
         return !itemStillHeld && object?.objectType === "plant" && isSamePlant(object, plantObject ?? void 0);
       }, PLACE_TIMEOUT_MS2, 150);
@@ -20390,6 +20419,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         showToast("Placement was not confirmed. Check your inventory before retrying.", "error", 5e3);
       }
       return placed;
+    }
+    function tileObjectAt(tile) {
+      const tileObjects = state.slot?.data?.garden?.tileObjects;
+      if (tileObjects && tile.userSlotIdx === ownSlot2()) return tileObjects[String(tile.localTileIndex)] ?? null;
+      return live.tileSystem?.getTileDataAt({ x: tile.x, y: tile.y }) ?? null;
     }
     function ownSlot2() {
       return resolveOwnSlot(state.userSlotIndex, live.ownUserSlotIdx, state.slotIndex);
@@ -20403,7 +20437,9 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (typeof globalIndex !== "number") return null;
       const x = globalIndex % map.cols;
       const y = Math.floor(globalIndex / map.cols);
-      return { x, y, globalIndex, userSlotIdx: slot, localTileIndex: localIndex, object: tileSystem.getTileDataAt({ x, y }) ?? null };
+      const tile = { x, y, globalIndex, userSlotIdx: slot, localTileIndex: localIndex, object: null };
+      tile.object = tileObjectAt(tile);
+      return tile;
     }
     async function exclusive(run3) {
       if (moveBusy) throw new Error("Finish the current plant move first");
@@ -21320,8 +21356,8 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var celPlan = null;
   var celSide = null;
   var celGoal = "both";
-  var celHoveredStep = null;
   var celMoves = [];
+  var celShownFrom = null;
   var celMisplaced = null;
   var celMisplacedText = "";
   var armedSeed = null;
@@ -21377,18 +21413,17 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const cells = planCells(farmCells());
     if (!celSide) celSide = likelySide(cells) ?? "left";
     celPlan = cells.length ? buildCelestialPlan(cells, celSide, celGoal, force) : null;
-    celHoveredStep = null;
     celMoves = [];
+    celShownFrom = null;
     celMisplaced = null;
     celMovesBasis = "";
+  }
+  function shownMove() {
+    return celMoves.find((move) => move.from === celShownFrom) ?? celMoves[0] ?? null;
   }
   function celBadge(species) {
     const badge = CELESTIAL_BADGE[species];
     return `<i class="gc-fm-chip" style="--chip:${badge.color}">${badge.short}</i>`;
-  }
-  function celTileName(local) {
-    const label = celPlan?.labels.get(local);
-    return label ? `row ${label.row}, col ${label.column}` : `tile ${local}`;
   }
   var celMovesBasis = "";
   var celMovesPlan = null;
@@ -21419,38 +21454,28 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     } else if (misplaced !== null && keptFix === -1) {
       celMisplaced = null;
     }
-    const vacated = /* @__PURE__ */ new Set();
-    return [...kept, ...added].map((move) => {
-      const occupied = Boolean(byLocal.get(move.to)?.tile) && !vacated.has(move.to);
-      vacated.add(move.from);
-      return { ...move, occupied };
-    });
+    return [...kept, ...added];
   }
-  function selectCelestialStep(index) {
+  function showCelestialMove(fromLocal) {
+    if (fromLocal === celShownFrom) return;
+    celShownFrom = fromLocal;
     const element = root();
-    const move = celMoves[index];
-    if (!element || !move) return;
-    celHoveredStep = index;
-    element.querySelectorAll("[data-cel-step]").forEach((row) => {
-      row.dataset.current = String(Number(row.dataset.celStep) === index);
-    });
-    element.querySelectorAll("[data-cel-active]").forEach((node) => {
-      delete node.dataset.celActive;
-    });
+    const move = shownMove();
+    const line = element?.querySelector(".gc-fm-cel-arrow line");
+    if (!element || !move || !line) return;
     const cellNode = (local) => element.querySelector(`.gc-fm-cell[data-kind="dirt"][data-local="${local}"]`);
     const from = cellNode(move.from);
     const to = cellNode(move.to);
-    if (from) from.dataset.celActive = "true";
-    if (to) to.dataset.celActive = "true";
-    const line = element.querySelector(".gc-fm-cel-arrow line");
-    if (line && from && to) {
-      line.setAttribute("x1", String(from.offsetLeft + from.offsetWidth / 2));
-      line.setAttribute("y1", String(from.offsetTop + from.offsetHeight / 2));
-      line.setAttribute("x2", String(to.offsetLeft + to.offsetWidth / 2));
-      line.setAttribute("y2", String(to.offsetTop + to.offsetHeight / 2));
-    } else render4();
-    const status = element.querySelector("[data-fm-status]");
-    if (status && !busyTiles.size) status.textContent = status.textContent.replace(/^Step \d+/, `Step ${index + 1}`);
+    if (!from || !to) return;
+    element.querySelectorAll("[data-cel-active]").forEach((node) => {
+      delete node.dataset.celActive;
+    });
+    from.dataset.celActive = "true";
+    to.dataset.celActive = "true";
+    line.setAttribute("x1", String(from.offsetLeft + from.offsetWidth / 2));
+    line.setAttribute("y1", String(from.offsetTop + from.offsetHeight / 2));
+    line.setAttribute("x2", String(to.offsetLeft + to.offsetWidth / 2));
+    line.setAttribute("y2", String(to.offsetTop + to.offsetHeight / 2));
   }
   function checkCelestialDrop(local) {
     if (!celPlan) return;
@@ -21460,29 +21485,50 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     celMisplaced = local;
     const planned = celPlan.plan.get(local);
     celMisplacedText = planned ? `Wrong spot: that tile is for a ${CELESTIAL_LABELS[planned]}, not a ${CELESTIAL_LABELS[species]}` : `Wrong spot: that tile isn't in the plan for the ${CELESTIAL_LABELS[species]}`;
-    toast(`${celMisplacedText} - step 1 now moves it.`, "error");
+    toast(`${celMisplacedText} - the plant marked 1 now moves it.`, "error");
   }
-  function celestialSteps(moves) {
-    const steps = !celPlan || !celPlan.plan.size ? `<div class="gc-fm-empty">${celPlan?.tone === "error" ? "" : "No celestial plants to plan."}</div>` : moves.length ? moves.map((move, index) => `<div class="gc-fm-cel-step" data-cel-step="${index}" data-current="${index === (celHoveredStep ?? 0)}"><b>${index + 1}</b>${celBadge(move.species)}<span><b>${escapeHtml(CELESTIAL_LABELS[move.species])}</b><small>${escapeHtml(celTileName(move.from))} &rarr; ${escapeHtml(celTileName(move.to))}</small>${move.occupied ? '<small class="gc-fm-cel-warn">Tile is occupied - drop onto it to swap the two (2 Planter Pots)</small>' : ""}</span></div>`).join("") : '<div class="gc-fm-cel-done">Every celestial is in place.</div>';
-    return `<div class="gc-fm-cel-label">Moves (${moves.length}) - click one to show its arrow</div><div class="gc-fm-cel-steps">${steps}</div>`;
-  }
-  function celestialPanel(cells, moves) {
+  function celestialPanel(cells) {
     const counts = {};
     for (const cell of cells ?? []) {
       const species = celestialOn(cell.tile);
       if (species) counts[species] = (counts[species] ?? 0) + 1;
     }
     const segment = (attr, value, label, active) => `<button data-${attr}="${value}" data-active="${active}">${label}</button>`;
-    const placed = celPlan ? planCells(cells).filter((cell) => celPlan.plan.has(cell.local) && placedRight(celPlan, cell)).length : 0;
+    const total = celPlan?.plan.size ?? 0;
     return `<div class="gc-fm-cel">
+${celCalculating ? '<p class="gc-fm-cel-msg">Calculating layout...</p>' : celPlan?.message ? `<p class="gc-fm-cel-msg" data-tone="${celPlan.tone}">${escapeHtml(celPlan.message)}</p>` : ""}
+${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class="gc-fm-empty">No celestial plants on your farm to plan yet.</div>' : ""}
+<section class="gc-fm-card"><h4>Layout</h4>
 <div class="gc-fm-cel-label">Farm side</div><div class="gc-fm-cel-seg">${segment("cel-side", "left", "Left", celSide === "left")}${segment("cel-side", "right", "Right", celSide === "right")}</div>
 <div class="gc-fm-cel-label">Every plant needs</div><div class="gc-fm-cel-seg">${segment("cel-goal", "amber", "Amber", celGoal === "amber")}${segment("cel-goal", "dawn", "Dawn", celGoal === "dawn")}${segment("cel-goal", "both", "Both", celGoal === "both")}</div>
-<button class="gc-fm-cel-refresh" data-cel-refresh title="Search again from scratch - can find a different layout">Recalculate</button>
-<div class="gc-fm-cel-counts">${[...CELESTIAL_SPECIES].map((species) => `<span>${celBadge(species)}<em>${CELESTIAL_LABELS[species]}</em><b>${counts[species] ?? 0}</b></span>`).join("")}</div>
-${celCalculating ? '<p class="gc-fm-cel-msg">Calculating layout...</p>' : celPlan?.message ? `<p class="gc-fm-cel-msg" data-tone="${celPlan.tone}">${escapeHtml(celPlan.message)}</p>` : ""}
-${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.plan.size} in place</div>` : ""}
-<small class="gc-fm-cel-help">Moonbinder (Mb) gives Amberbound and Dawnbinder (Db) gives Dawnbound to the 8 tiles around it. Hover a binder on the map to see which plants it reaches.</small>
+<button class="gc-fm-cel-refresh" data-cel-refresh title="Search again from scratch - can find a different layout">${ICONS.refresh}Recalculate</button>
+</section>
+<section class="gc-fm-card"><h4>On your farm</h4><div class="gc-fm-cel-counts">${[...CELESTIAL_SPECIES].map((species) => `<span>${celBadge(species)}<em>${CELESTIAL_LABELS[species]}</em><b>${counts[species] ?? 0}</b></span>`).join("")}</div></section>
+<small class="gc-fm-cel-help">Moonbinder (Mb) gives Amberbound and Dawnbinder (Db) gives Dawnbound to the 8 tiles around it. Hover a binder on the map to see which plants it reaches, or a numbered plant to see where it goes.</small>
 </div>`;
+  }
+  var icon = (paths) => `<svg class="gc-fm-ico" viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
+  var ICONS = {
+    farm: icon('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'),
+    plants: icon('<path d="M12 21v-9"/><path d="M12 12c0-4.5 3-7.5 7.5-7.5 0 4.5-3 7.5-7.5 7.5z"/><path d="M12 14.5c0-3.5-2.5-6-6.5-6 0 3.5 2.5 6 6.5 6z"/><path d="M7 21h10"/>'),
+    seeds: icon('<path d="M12 3c4.5 3.5 6.5 7.5 6.5 10.5a6.5 6.5 0 0 1-13 0C5.5 10.5 7.5 6.5 12 3z"/><path d="M12 10v8"/>'),
+    celestial: icon('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/><path d="M17 3v4M15 5h4"/>'),
+    search: icon('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'),
+    close: icon('<path d="M6 6l12 12M18 6 6 18"/>'),
+    refresh: icon('<path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v3.5h3.5"/><path d="M4 13a8 8 0 0 0 14.6 4.5M20 20v-3.5h-3.5"/>')
+  };
+  var TAB_SUBTITLES = {
+    plants: "Move, swap and pot the plants on your farm",
+    seeds: "Plant seeds from your inventory or Seed Silo",
+    celestial: "Plans the best placement so every celestial gets full Moonbinder and Dawnbinder coverage"
+  };
+  var TAB_HINTS = {
+    plants: [["Drag", "move"], ["Right click", "pot"], ["Click card", "pick"]],
+    seeds: [["Click card", "pick"], ["Click tile", "plant"], ["Drag", "plant once"]],
+    celestial: [["Drag", "move"], ["Drop on plant", "swap"], ["Hover number", "its target"]]
+  };
+  function listCard(attrs, sprite, name, extra = "") {
+    return `<div class="gc-fm-item"${attrs}><span class="gc-fm-art">${sprite}${extra}</span><b>${escapeHtml(name)}</b></div>`;
   }
   function edgeMarkers(size) {
     const edges = state.slot?.data?.garden?.edgeObjects;
@@ -21500,12 +21546,12 @@ ${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.p
         markers.push(`<i class="gc-fm-edge-line" style="${box}"></i>`);
       }
       if (parts.hanging?.decorId) {
-        const icon = Math.round(size * 0.55);
+        const icon2 = Math.round(size * 0.55);
         const centreX = horizontal ? x + size / 2 : x;
         const centreY = horizontal ? y : y + size / 2;
         const sprite = page.__gardenCompanionShopSprites?.[parts.hanging.decorId] || "";
         const flip = parts.hanging.mirrored ? "transform:scaleX(-1);" : "";
-        markers.push(`<i class="gc-fm-edge-hang" style="left:${Math.round(centreX - icon / 2)}px;top:${Math.round(centreY - icon / 2)}px;width:${icon}px;height:${icon}px;${flip}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="" draggable="false">` : ""}</i>`);
+        markers.push(`<i class="gc-fm-edge-hang" style="left:${Math.round(centreX - icon2 / 2)}px;top:${Math.round(centreY - icon2 / 2)}px;width:${icon2}px;height:${icon2}px;${flip}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="" draggable="false">` : ""}</i>`);
       }
     }
     return markers.length ? `<div class="gc-fm-edges" aria-hidden="true">${markers.join("")}</div>` : "";
@@ -21648,7 +21694,7 @@ ${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.p
     placing.hidden = !armedSpecies;
     if (armedSpecies) {
       const sprite = (armedSeed ? page.__gardenCompanionShopSprites?.[armedSpecies] : "") || produceSprite(armedSpecies);
-      setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}Placing ${escapeHtml(speciesName2(armedSpecies))}`);
+      setHtml(placing, `${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}Placing ${escapeHtml(speciesName2(armedSpecies))}<button data-fm-disarm title="Stop placing" aria-label="Stop placing">${ICONS.close}</button>`);
     }
     const cells = farmCells();
     if (tab === "celestial" && !celPlan && cells && !celCalculating) {
@@ -21657,10 +21703,23 @@ ${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.p
     }
     const warn2 = element.querySelector("[data-fm-warn]");
     celMoves = tab === "celestial" && celPlan ? stableMoves(celPlan, planCells(cells), busy) : [];
-    if (celHoveredStep !== null && celHoveredStep >= celMoves.length) celHoveredStep = null;
-    const warning = tab === "celestial" && celMisplaced !== null ? `${celMisplacedText} - see step 1` : "";
+    const warning = tab === "celestial" && celMisplaced !== null ? `${celMisplacedText} - move the plant marked 1` : "";
     warn2.hidden = !warning;
-    if (warn2.textContent !== warning) warn2.textContent = warning;
+    if (warn2.textContent !== warning) {
+      warn2.textContent = warning;
+      warn2.title = warning;
+    }
+    const where = element.querySelector("[data-fm-where]");
+    where.hidden = Boolean(armedSpecies);
+    let whereText = "Your garden";
+    if (tab === "celestial" && celPlan?.plan.size) {
+      const plan = celPlan;
+      const placed = planCells(cells).filter((cell) => plan.plan.has(cell.local) && placedRight(plan, cell)).length;
+      whereText = celMoves.length ? `${placed} / ${plan.plan.size} in place · ${celMoves.length} move${celMoves.length === 1 ? "" : "s"} left` : "Every celestial is in place";
+    }
+    if (where.textContent !== whereText) where.textContent = whereText;
+    const legend = element.querySelector("[data-fm-legend]");
+    legend.hidden = tab !== "celestial";
     if (!cells) {
       setHtml(grid, '<div class="gc-fm-empty">Waiting for your farm to load. Walk into your garden once if this does not clear.</div>');
     } else {
@@ -21668,13 +21727,13 @@ ${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.p
       const minY = Math.min(...cells.map((cell) => cell.y));
       const columns = Math.max(...cells.map((cell) => cell.x)) - minX + 1;
       const rows = Math.max(...cells.map((cell) => cell.y)) - minY + 1;
-      const width = Math.max(120, grid.clientWidth - 24 - (columns - 1) * CELL_GAP);
+      const width = Math.max(120, grid.clientWidth - 32 - 20 - (columns - 1) * CELL_GAP);
       const size = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(width / columns)));
       const celestial = tab === "celestial" && celPlan ? celPlan : null;
       const plan = celestial ? planCells(cells) : [];
       const planByLocal = new Map(plan.map((cell) => [cell.local, cell]));
       const stepOf = new Map(celMoves.map((move, index) => [move.from, index + 1]));
-      const activeMove = celMoves[celHoveredStep ?? 0] ?? null;
+      const activeMove = shownMove();
       const annotate = (cell) => {
         if (!celestial || cell.kind !== "dirt") return { attrs: "", inner: "" };
         const planned = celestial.plan.get(cell.local) ?? null;
@@ -21699,45 +21758,70 @@ ${celPlan?.plan.size ? `<div class="gc-fm-cel-progress">${placed} of ${celPlan.p
       const a = celestial && activeMove ? centre(activeMove.from) : null;
       const b = celestial && activeMove ? centre(activeMove.to) : null;
       const arrow = a && b ? `<svg class="gc-fm-cel-arrow"><defs><marker id="gc-fm-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fde68a"/></marker></defs><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" marker-end="url(#gc-fm-head)"/></svg>` : "";
-      setHtml(grid, `<div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map((cell) => {
+      setHtml(grid, `<div class="gc-fm-plot"><div class="gc-fm-board" style="--gc-fm-cell:${size}px;grid-template-columns:repeat(${columns},${size}px);grid-template-rows:repeat(${rows},${size}px)">${cells.map((cell) => {
         const movable = cell.kind === "dirt" && cell.tile?.objectType === "plant" && !busyTiles.has(cell.local) && !busy;
         const plantable = armedSpecies && cell.kind === "dirt" && !cell.tile && !busyTiles.has(cell.local);
         const extra = annotate(cell);
         const position2 = `grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}`;
         const style = extra.attrs.includes('style="') ? `${position2}"` : ` style="${position2}"`;
         return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || "empty")}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ""}${plantable ? ' data-drop="place" data-armed="true"' : ""}${extra.attrs}${style} title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ""}>${cellContent(cell)}${extra.inner}</div>`;
-      }).join("")}${edgeMarkers(size)}${arrow}</div>`);
-    }
-    element.querySelectorAll("[data-fm-tab]").forEach((button) => {
-      button.dataset.active = String(button.dataset.fmTab === tab);
-    });
-    const capacity = element.querySelector("[data-fm-capacity]");
-    capacity.hidden = tab !== "plants";
-    element.querySelector("[data-fm-search]").hidden = tab === "celestial";
-    const used = INVENTORY_SLOTS2 - freeInventorySlots();
-    capacity.dataset.full = String(used >= INVENTORY_SLOTS2);
-    setHtml(capacity, `<span>Inventory</span><b>${used}/${INVENTORY_SLOTS2}</b>`);
-    if (element.dataset.tab !== tab) element.dataset.tab = tab;
-    element.querySelector("[data-fm-subtitle]").hidden = tab !== "celestial";
-    const movesColumn = element.querySelector("[data-fm-moves]");
-    movesColumn.hidden = tab !== "celestial";
-    if (tab === "celestial") setHtml(movesColumn, celestialSteps(celMoves));
-    if (tab === "celestial") {
-      setHtml(list, celestialPanel(cells, celMoves));
-    } else if (tab === "seeds") {
-      const seeds = stacks.filter((stack) => matches2(stack.species));
-      setHtml(list, seeds.length ? seeds.map((stack) => `<div class="gc-fm-item" data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one${stack.stored ? `
-${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species)}<span><b>${escapeHtml(speciesName2(stack.species))}</b><small>x${stack.loose + stack.stored}${stack.stored ? " · Silo" : ""}</small></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No seeds match." : "No seeds in your inventory or Seed Silo."}</div>`);
-    } else {
-      setHtml(list, potted.length ? potted.map((item, index) => `<div class="gc-fm-item" data-item="${escapeHtml(item.id)}" data-index="${index}"${item.id === armedPlant?.id ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="Click to place on empty tiles, or drag onto one">${spriteImage(produceSprite(item.species), item.species)}<span><b>${escapeHtml(speciesName2(item.species))}</b></span></div>`).join("") : `<div class="gc-fm-empty">${query ? "No potted plants match." : "No potted plants in your inventory."}</div>`);
+      }).join("")}${edgeMarkers(size)}${arrow}</div></div>`);
     }
     const count = cells?.filter((cell) => cell.kind === "dirt" && cell.tile?.objectType === "plant").length ?? 0;
     const free = cells?.filter((cell) => cell.kind === "dirt" && !cell.tile).length ?? 0;
+    const celestials = cells?.filter((cell) => cell.kind === "dirt" && celestialOn(cell.tile)).length ?? 0;
+    const pots = planterPots();
+    const used = INVENTORY_SLOTS2 - freeInventorySlots();
+    const stat = (label, value, bad = false) => `<span${bad ? ' data-tone="bad"' : ""}><small>${label}</small><b>${value}</b></span>`;
+    setHtml(element.querySelector("[data-fm-stats]"), [
+      stat("Plants", count),
+      stat("Empty", free),
+      stat("Pots", pots, pots === 0),
+      stat("Inventory", `${used}/${INVENTORY_SLOTS2}`, used >= INVENTORY_SLOTS2)
+    ].join(""));
+    const tabCounts = { plants: allPotted.length, seeds: stacks.length, celestial: celestials };
+    element.querySelectorAll("[data-fm-tab]").forEach((button) => {
+      const name = button.dataset.fmTab;
+      button.dataset.active = String(name === tab);
+      const badge = button.querySelector("em");
+      const text = tabCounts[name] ? String(tabCounts[name]) : "";
+      if (badge.textContent !== text) badge.textContent = text;
+    });
+    element.querySelector("[data-fm-search-wrap]").hidden = tab === "celestial";
+    const subtitle = element.querySelector("[data-fm-subtitle]");
+    if (subtitle.textContent !== TAB_SUBTITLES[tab]) subtitle.textContent = TAB_SUBTITLES[tab];
+    setHtml(element.querySelector("[data-fm-hints]"), TAB_HINTS[tab].map(([key, what]) => `<span><kbd>${key}</kbd>${what}</span>`).join(""));
+    const head = element.querySelector("[data-fm-list-head]");
+    if (tab === "celestial") {
+      setHtml(head, "<b>Celestial planner</b>");
+      setHtml(list, celestialPanel(cells));
+    } else if (tab === "seeds") {
+      const seeds = stacks.filter((stack) => matches2(stack.species));
+      setHtml(head, `<b>Seeds</b><small>${seeds.length} kind${seeds.length === 1 ? "" : "s"}</small>`);
+      setHtml(list, seeds.length ? seeds.map((stack) => listCard(
+        ` data-seed="${escapeHtml(stack.species)}"${stack.species === armedSeed ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="${escapeHtml(speciesName2(stack.species))}
+Click to place on empty tiles, or drag onto one${stack.stored ? `
+${stack.stored} in the Seed Silo` : ""}"`,
+        spriteImage(page.__gardenCompanionShopSprites?.[stack.species] || produceSprite(stack.species), stack.species),
+        speciesName2(stack.species),
+        `<em class="gc-fm-qty">${stack.loose + stack.stored}</em>${stack.stored ? '<i class="gc-fm-silo">Silo</i>' : ""}`
+      )).join("") : `<div class="gc-fm-empty">${query ? "No seeds match." : "No seeds in your inventory or Seed Silo."}</div>`);
+    } else {
+      setHtml(head, `<b>Potted plants</b><small>${potted.length}${query ? ` of ${allPotted.length}` : ""}</small>`);
+      setHtml(list, potted.length ? potted.map((item, index) => listCard(
+        ` data-item="${escapeHtml(item.id)}" data-index="${index}"${item.id === armedPlant?.id ? ' data-active="true"' : ""}${busy ? "" : ' draggable="true"'} title="${escapeHtml(speciesName2(item.species))}
+Click to place on empty tiles, or drag onto one"`,
+        spriteImage(produceSprite(item.species), item.species),
+        speciesName2(item.species)
+      )).join("") : `<div class="gc-fm-empty">${query ? "No potted plants match." : "No potted plants in your inventory. Drag a plant here or right click it on the map to pot it."}</div>`);
+    }
+    const footer = element.querySelector("footer");
+    footer.dataset.busy = String(busy || busyTiles.size > 0);
     if (!busy && tab === "celestial") {
-      const text = celMoves.length ? `Step ${(celHoveredStep ?? 0) + 1}: drag the plant with the red number to the tile the arrow points at - drop onto a plant to swap them. A move uses a Planter Pot, a swap two (${planterPots()} left).` : celPlan?.plan.size ? "Celestial layout complete." : "Plant some celestials to plan a layout.";
+      const text = celMoves.length ? `Drag the plant marked 1 to the tile the arrow points at - drop onto a plant to swap them. A move uses a Planter Pot, a swap two (${pots} left).` : celPlan?.plan.size ? "Every celestial is in place." : "Plant some celestials to plan a layout.";
       if (status.textContent !== text) status.textContent = text;
     } else if (!busy) {
-      const text = armedSpecies ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName2(armedSpecies)}; click it in the list again to stop.` : `${count} plants, ${free} empty tiles, ${planterPots()} Planter Pots. Drag a plant onto an empty tile to move it, or right click it to pot it; each uses a Planter Pot.`;
+      const text = armedSpecies ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName2(armedSpecies)}; click it in the list again to stop.` : tab === "seeds" ? "Pick a seed, then click empty tiles to plant it, or drag a seed onto a tile." : "Drag a plant onto an empty tile to move it, or right click it to pot it. Each uses a Planter Pot.";
       if (status.textContent !== text) status.textContent = text;
     }
   }
@@ -21907,6 +21991,8 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         delete other.dataset.celLit;
         delete other.dataset.celSource;
       });
+      const local = node ? Number(node.dataset.local) : null;
+      showCelestialMove(celMoves.some((move) => move.from === local) ? local : null);
       if (!node) return;
       const cells = planCells(farmCells());
       const cell = cells.find((item) => item.local === Number(node.dataset.local));
@@ -21924,6 +22010,7 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
         delete other.dataset.celLit;
         delete other.dataset.celSource;
       });
+      if (tab === "celestial") showCelestialMove(null);
     });
     element.addEventListener("contextmenu", (event) => {
       const target = event.target;
@@ -21941,6 +22028,12 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     });
     element.addEventListener("click", (event) => {
       const target = event.target;
+      if (target.closest("[data-fm-disarm]")) {
+        armedSeed = null;
+        armedPlant = null;
+        render4();
+        return;
+      }
       const side = target.closest("[data-cel-side]")?.dataset.celSide;
       if (side === "left" || side === "right") {
         celSide = side;
@@ -21951,11 +22044,6 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
       if (goal) {
         celGoal = goal;
         requestCelestialPlan();
-        return;
-      }
-      const step = target.closest("[data-cel-step]");
-      if (step) {
-        selectCelestialStep(Number(step.dataset.celStep));
         return;
       }
       if (target.closest("[data-cel-refresh]")) {
@@ -22004,9 +22092,12 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     element.id = "gc-farm-manager";
     element.hidden = true;
     element.dataset.gcUi = "";
-    element.innerHTML = `<header><div><i></i><span>Farm Manager</span><small class="gc-fm-subtitle" data-fm-subtitle hidden>Plans the best placement so every celestial gets full Moonbinder and Dawnbinder coverage</small><b class="gc-fm-placing" data-fm-placing hidden></b><b class="gc-fm-warn" data-fm-warn hidden></b></div><button data-fm-close aria-label="Close">×</button></header>
-<main><div class="gc-fm-moves" data-fm-moves data-no-drag hidden></div><div class="gc-fm-grid" data-fm-grid data-no-drag></div><aside data-no-drag><div class="gc-fm-tabs"><button data-fm-tab="plants">Plants</button><button data-fm-tab="seeds">Seeds</button><button data-fm-tab="celestial">Celestials</button></div><div class="gc-fm-capacity" data-fm-capacity hidden></div><input data-fm-search placeholder="Search" spellcheck="false"><div class="gc-fm-list" data-fm-inventory></div></aside></main>
-<footer data-fm-status></footer>`;
+    const tabButton = (name, label) => `<button data-fm-tab="${name}">${ICONS[name]}<span>${label}</span><em></em></button>`;
+    element.innerHTML = `<header><div class="gc-fm-title"><span class="gc-fm-logo">${ICONS.farm}</span><div><b>Farm Manager</b><small data-fm-subtitle></small></div></div>
+<nav class="gc-fm-tabs">${tabButton("plants", "Plants")}${tabButton("seeds", "Seeds")}${tabButton("celestial", "Celestials")}</nav>
+<div class="gc-fm-head-end"><div class="gc-fm-stats" data-fm-stats></div><button class="gc-fm-close" data-fm-close aria-label="Close">${ICONS.close}</button></div></header>
+<main><div class="gc-fm-stage"><div class="gc-fm-toolbar" data-no-drag><span><b class="gc-fm-where" data-fm-where>Your garden</b><b class="gc-fm-placing" data-fm-placing hidden></b><b class="gc-fm-warn" data-fm-warn hidden></b></span><span class="gc-fm-legend" data-fm-legend hidden><span><i class="gc-fm-legend-mix" style="--g:linear-gradient(135deg,${Object.values(CELESTIAL_BADGE).map((badge) => badge.color).join(",")})"></i>Planned spot</span><span><i style="--c:#fb7185"></i>Must move</span><span><i style="--c:#4ade80"></i>In place</span><span><i style="--c:#fde68a"></i>Current step</span></span></div><div class="gc-fm-grid" data-fm-grid data-no-drag></div></div><aside data-no-drag><div class="gc-fm-list-head" data-fm-list-head></div><label class="gc-fm-search" data-fm-search-wrap>${ICONS.search}<input data-fm-search placeholder="Search" spellcheck="false"></label><div class="gc-fm-list" data-fm-inventory></div></aside></main>
+<footer><i class="gc-fm-dot"></i><span class="gc-fm-status" data-fm-status></span><span class="gc-fm-hints" data-fm-hints></span></footer>`;
     element.querySelector("[data-fm-close]").onclick = () => {
       element.hidden = true;
     };
@@ -22034,20 +22125,8 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     page.__gardenCompanionLoadSpriteGroup?.("deferred");
     render4();
   }
-  function toggleCelestial() {
-    const element = ensurePanel3();
-    if (!element.hidden && tab === "celestial") {
-      element.hidden = true;
-      return;
-    }
-    tab = "celestial";
-    celPlan = null;
-    if (element.hidden) toggle3();
-    else render4();
-  }
   function initFarmManager() {
     page.__gardenCompanionToggleFarmManager = toggle3;
-    page.__gardenCompanionToggleCelestialLayout = toggleCelestial;
     onStateChange(scheduleRender);
     onSpritesReady(scheduleRender);
     window.addEventListener("resize", scheduleRender);
@@ -22198,14 +22277,14 @@ ${stack.stored} in the Seed Silo` : ""}">${spriteImage(page.__gardenCompanionSho
     }
     return plants.map((plant) => {
       const sprite = produceSprite(plant.species);
-      const icon = sprite ? `<img class="gc-pm-icon" src="${escapeHtml(sprite)}" alt="">` : `<span class="gc-pm-icon gc-pm-icon-text">${escapeHtml(plant.name.slice(0, 1))}</span>`;
+      const icon2 = sprite ? `<img class="gc-pm-icon" src="${escapeHtml(sprite)}" alt="">` : `<span class="gc-pm-icon gc-pm-icon-text">${escapeHtml(plant.name.slice(0, 1))}</span>`;
       const { on, mark } = plantMark(plant);
       const slots = plant.rows.map((row) => {
         const active = selected2.has(row.key);
         const crop = row.species ? `<span class="gc-pm-crop">${escapeHtml(plantName(row.species))}</span>` : "";
         return `<div class="gc-pm-slot" role="button" tabindex="0" data-pm-slot="${escapeHtml(row.key)}" data-active="${active}"><i class="gc-pm-check">${active ? "&#10003;" : ""}</i><span class="gc-pm-size">${row.sizePercent}%</span>` + crop + `<span class="gc-pm-muts">${mutationChips2(row.mutations)}</span><span class="gc-pm-cost">&#129689; ${row.cost.toLocaleString(NUMBER_LOCALE)}</span></div>`;
       }).join("");
-      return `<section class="gc-pm-plant"><div class="gc-pm-plant-head" role="button" tabindex="0" data-pm-plant="${escapeHtml(plant.itemId)}" data-state="${on === 0 ? "none" : on === plant.rows.length ? "all" : "some"}">${icon}<b>${escapeHtml(plant.name)}</b><small>${on}/${plant.rows.length}</small><i class="gc-pm-check">${mark}</i></div><div class="gc-pm-slots">${slots}</div></section>`;
+      return `<section class="gc-pm-plant"><div class="gc-pm-plant-head" role="button" tabindex="0" data-pm-plant="${escapeHtml(plant.itemId)}" data-state="${on === 0 ? "none" : on === plant.rows.length ? "all" : "some"}">${icon2}<b>${escapeHtml(plant.name)}</b><small>${on}/${plant.rows.length}</small><i class="gc-pm-check">${mark}</i></div><div class="gc-pm-slots">${slots}</div></section>`;
     }).join("");
   }
   function managerModalMarkup() {

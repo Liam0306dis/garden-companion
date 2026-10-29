@@ -47,7 +47,7 @@ const STEPS: TourStep[] = [
   { tab: 'rooms', targets: [CONTENT], title: 'Rooms', text: 'Public rooms with space for you, ready to join.' },
   { tab: 'keybinds', targets: [CONTENT], title: 'Keybinds', text: 'Every shortcut lives here: teams, tools and companion windows. Click one and press the keys you want.' },
   { tab: 'features', targets: [CONTENT], title: 'Features', text: 'Optional tools you can switch on or off, such as plant drag move, crop estimates and background mode.' },
-  { tab: 'features', targets: [CONTENT], scrollTo: '#gc-panel main .gc-launch-row', title: 'Extra windows', text: 'The Garden Overview, Farm Manager, Crop Cleanser, Layout planner and Celestial layout all open from here.' },
+  { tab: 'features', targets: [CONTENT], scrollTo: '#gc-panel main .gc-launch-row', title: 'Extra windows', text: 'The Garden Overview, Farm Manager, Crop Cleanser and Layout planner all open from here.' },
   { targets: ['#gc-overview-button'], optional: true, title: 'Garden Overview button', text: 'The quickest way into the Garden Overview: growth, value, mutation progress and completion estimates for your whole garden.' },
   { targets: ['#gc-lunar:not([hidden])', '#gc-lunar-mini:not([hidden])'], optional: true, title: 'Lunar timer', text: 'Counts down to the next lunar event, or the next weather with the swap button. The gear opens this panel and the dot shows whether you are connected.' },
   { tab: 'diagnostics', targets: [CONTENT], title: 'Diagnostics', text: 'What is working and what is not. If something breaks, copy the report from here and send it over.' },
