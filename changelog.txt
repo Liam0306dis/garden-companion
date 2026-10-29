@@ -1,3 +1,6 @@
+0.9.87
+- Crop card text size with AriesMod fixed
+
 0.9.86
 - Crop and egg card text size fixed
 - Planner places multi-slot plants fully

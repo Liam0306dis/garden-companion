@@ -241,10 +241,22 @@ function packChips(chips: PixiNode[], gap: number): number {
 function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   if (!signature) return;
   const card: PixiNode | null = view.container?.getChildByLabel?.('GardenInfoObjectCard', true);
+  if (!card || !Array.isArray(card.children)) return;
+  const background = card.children.find((child: PixiNode) => 'fillSprite' in child);
   // Build 1804 made the card's hit area a wrapper that also lets the tilted mini card take taps; the
-  // card's own rectangle is its `box`. Older builds hand the rectangle over directly.
-  const cardArea = card?.hitArea?.box ?? card?.hitArea;
-  if (!card || !cardArea || !Array.isArray(card.children)) return;
+  // card's own rectangle is its `box`. Older builds hand the rectangle over directly. AriesMod's crop
+  // price wraps the hit area again to cover its badge, hiding both, and bailing here left our chips in
+  // the game's band, shrunk to fit. The background's own bounds are drawn at the card's size, so they
+  // stand in, and the card gets a hit area of its own over the old one so the wider card takes taps.
+  const hitArea = card.hitArea;
+  const ownArea = hitArea?.box ?? (Number(hitArea?.width) > 0 ? hitArea : null);
+  const cardArea = ownArea ?? background?.hitArea;
+  if (!cardArea) return;
+  if (!ownArea && typeof hitArea?.contains === 'function' && typeof cardArea.clone === 'function') {
+    const box = cardArea.clone();
+    card.hitArea = { box, contains: (x: number, y: number) => box.contains(x, y) || hitArea.contains(x, y) };
+    return relayoutNativeEstimates(view, signature);
+  }
   const lines = signature.split('\n');
   const chipsByLine = findEstimateChips(card, lines);
   if (!chipsByLine.size) return;
@@ -254,7 +266,6 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   // The game's own responsive sizes: its card is 220 wide at the md breakpoint and 210 or less below it.
   const md = oldWidth >= 220;
   const edgePad = md ? 14 : 10, verticalPad = md ? 14 : 8, rowGap = md ? 8 : 4, lineGap = md ? 5 : 2;
-  const background = card.children.find((child: PixiNode) => 'fillSprite' in child);
   const mount = card.children.find((child: PixiNode) => child.label === 'GardenInfoMiniCardMount');
   const dots = card.children.find((child: PixiNode) => child.label === 'GardenInfoCropPageDots');
   if (!background || !mount) return;
