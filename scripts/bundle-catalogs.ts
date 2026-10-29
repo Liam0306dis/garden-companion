@@ -17,7 +17,7 @@ export interface BundleCatalogs {
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
   pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string ; abilities: string[] }>;
-  plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean; cropsPerSeed?: [min: number, max: number] }>;
+  plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight?: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean; cropsPerSeed?: [min: number, max: number] }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds: Record<string, number> }>;
   abilityColours: Record<string, string>;
   mutations: Record<string, { name: string; group: string; coinMultiplier: number; sprite: string }>;
@@ -71,8 +71,9 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
         // A crop's `maxSizeMultiplier` is optionally preceded by `baseTileScale`. Some crops (Clover,
         // Milkcap, the seasonals) carry maxSizeMultiplier with no baseTileScale, so that field is
         // optional or those crops drop out of the catalog entirely. match[8] is the optional
-        // baseTileScale, match[9] the maxSizeMultiplier.
-        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{(?:name:`[^`]*`,)?seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+),baseWeight:([0-9.e+-]+).*?(?:baseTileScale:([0-9.e+-]+),)?maxSizeMultiplier:([0-9.e+-]+)/g)];
+        // baseTileScale, match[9] the maxSizeMultiplier. Build 1804 dropped `baseWeight` from every
+        // crop, so match[7] is optional and the weight readouts hide themselves without it.
+        const plantMatches = [...bundle.matchAll(/([A-Za-z][A-Za-z0-9_]+):\{(?:name:`[^`]*`,)?seed:\{(.*?)\},plant:\{(.*?)\},crop:\{sprite:[A-Za-z_$]+\.[A-Za-z]+\.([A-Za-z][A-Za-z0-9_]*),name:`([^`]+)`,baseSellPrice:([0-9.e+-]+)(?:,baseWeight:([0-9.e+-]+))?.*?(?:baseTileScale:([0-9.e+-]+),)?maxSizeMultiplier:([0-9.e+-]+)/g)];
         if (!plantMatches.length) continue;
         // The pity block follows the weights closely, and is captured with a tight bound rather
         // than a lazy run so a missing one cannot reach forward into the next egg's. Optional: an
@@ -88,22 +89,37 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
           diet: [...match[8].matchAll(/`([^`]+)`/g)].map(entry => entry[1]),
           abilities: petAbilityWeights.get(match[1]) ?? [],
         }]));
+        // Build 1778 moved where each crop hangs on a plant out of the plant catalog into a layout
+        // table of its own (`Apple:{randomRotation:!0,slots:[{x,y,rotation},...]}`), keyed by species.
+        const slotLayouts = new Map([...bundle.matchAll(
+          /([A-Za-z][A-Za-z0-9_]*):\{randomRotation:![01],slots:\[\{x:(-?[0-9.e+-]+),y:(-?[0-9.e+-]+)/g)]
+          .map(match => [match[1], { x: Number(match[2]), y: Number(match[3]) }]));
         const plantRows = plantMatches.map(match => {
           const plantBlock = match[3];
           // Patch plants (clover, snowdrop, daisies, cattail) hold slotCapacity plants on one tile.
           const capacity = Number(plantBlock.match(/slotCapacity:([0-9]+)/)?.[1] || 0);
+          // Since build 1778 a plant's slots are built by a helper, `growSlots:P(7)`, or a spread of
+          // them when some slots differ (`[...P(4,{speciesOverride:...}),...P(12)]`), in place of a
+          // literal list of offsets. Each call is expanded in order so slot ids still line up.
+          const growSlots = [...(plantBlock.match(/growSlots:(\[[^\]]*\]|[A-Za-z_$][\w$]*\([^)]*\))/)?.[1] || '')
+            .matchAll(/[A-Za-z_$][\w$]*\(([0-9]+)(?:,\{([^{}]*)\})?\)/g)]
+            .flatMap(call => Array<string>(Number(call[1])).fill(call[2]?.match(/speciesOverride:`([A-Za-z0-9_]+)`/)?.[1] || ''));
+          // Before 1778 the offsets were listed literally, one `{x:...}` per slot.
+          const offsetSlots = [...plantBlock.matchAll(/\{x:[^{}]*?\}/g)]
+            .map(offset => offset[0].match(/speciesOverride:`([A-Za-z0-9_]+)`/)?.[1] || '');
+          const slotList = growSlots.length ? growSlots : offsetSlots;
           return {
             species: match[1],
             seedSprite: match[2].match(/sprite:[A-Za-z_$]+\.Seed\.([A-Za-z0-9_]+)/)?.[1] || '',
             capacity,
             // A slot can override its species (Thunderspire grows stormcaps in four of its slots).
-            slotSpecies: [...plantBlock.matchAll(/\{x:[^{}]*?\}/g)]
-              .map(offset => offset[0].match(/speciesOverride:`([A-Za-z0-9_]+)`/)?.[1] || ''),
+            slotSpecies: slotList,
             entry: {
               // The crop's own display name, which is often not its species id: DawnCelestial is
               // a Dawnbinder Bulb and ThunderCelestialShroomPlant is a Stormcap.
               crop: {
-                name: match[5], baseSellPrice: Number(match[6]), baseWeight: Number(match[7]), sprite: match[4],
+                name: match[5], baseSellPrice: Number(match[6]), sprite: match[4],
+                ...(match[7] ? { baseWeight: Number(match[7]) } : {}),
                 ...(match[8] ? { baseTileScale: Number(match[8]) } : {}),
                 maxSizeMultiplier: Number(match[9]),
               },
@@ -117,9 +133,9 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
               // its centre. Anything drawing a plant with its fruit needs the real mount point.
               slotOffset: (() => {
                 const first = plantBlock.match(/slotOffsets:\[\{x:(-?[0-9.e+-]+),y:(-?[0-9.e+-]+)/);
-                return first ? { x: Number(first[1]), y: Number(first[2]) } : undefined;
+                return first ? { x: Number(first[1]), y: Number(first[2]) } : slotLayouts.get(match[1]);
               })(),
-              slots: Math.max(1, capacity || (plantBlock.match(/\{x:/g) || []).length),
+              slots: Math.max(1, capacity || slotList.length),
               // How many crops one seed adds to a patch (a Foxfire Spore plants 5 to 7), which is not
               // the patch's capacity: food planning counts seeds by this.
               ...(capacity ? { cropsPerSeed: [

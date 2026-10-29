@@ -241,12 +241,15 @@ function packChips(chips: PixiNode[], gap: number): number {
 function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   if (!signature) return;
   const card: PixiNode | null = view.container?.getChildByLabel?.('GardenInfoObjectCard', true);
-  if (!card?.hitArea || !Array.isArray(card.children)) return;
+  // Build 1804 made the card's hit area a wrapper that also lets the tilted mini card take taps; the
+  // card's own rectangle is its `box`. Older builds hand the rectangle over directly.
+  const cardArea = card?.hitArea?.box ?? card?.hitArea;
+  if (!card || !cardArea || !Array.isArray(card.children)) return;
   const lines = signature.split('\n');
   const chipsByLine = findEstimateChips(card, lines);
   if (!chipsByLine.size) return;
 
-  const oldWidth = Number(card.hitArea.width);
+  const oldWidth = Number(cardArea.width);
   if (!(oldWidth > 0)) return;
   // The game's own responsive sizes: its card is 220 wide at the md breakpoint and 210 or less below it.
   const md = oldWidth >= 220;
@@ -258,7 +261,7 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   // The height the game built, read from where it centred the crop picture rather than from the hit
   // area: another mod may already have made the card taller, and starting from that size added our
   // lines on top of its growth and left a band of empty card underneath.
-  const drawnHeight = Number(card.hitArea.height);
+  const drawnHeight = Number(cardArea.height);
   const oldHeight = Number(mount.y) > 0 ? Number(mount.y) * 2 : drawnHeight;
   if (!(oldHeight > 0)) return;
   // The mini card sits one inset in from the left and the column starts one gap after it; the game
@@ -367,7 +370,7 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
     const bake = 1 / (Number(sprite.scale?.y) || 1);
     sprite.setSize(newWidth * bake, newHeight * bake);
   }
-  for (const area of [background.hitArea, card.hitArea]) if (area) { area.width = newWidth; area.height = newHeight; }
+  for (const area of [background.hitArea, cardArea]) if (area) { area.width = newWidth; area.height = newHeight; }
   for (const overlay of overlays) overlay.scale.set(Number(overlay.scale.x) * newWidth / Number(overlay.width), Number(overlay.scale.y) * newHeight / Number(overlay.height));
   mount.y = newHeight / 2;
   if (dots) { dots.x += extraWidth / 2; dots.y += extraHeight; }

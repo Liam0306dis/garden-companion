@@ -294,6 +294,12 @@ export async function checkSnapshot(snapshot: Snapshot, sent: SentCommands): Pro
   try {
     const catalogs = await catalogsFromSnapshots([snapshot.dir]);
     result.ok.push(`catalogs (${catalogs.abilities.length} abilities, ${Object.keys(catalogs.pets).length} pets, ${Object.keys(catalogs.plants).length} plants)`);
+    // Build 1778 moved slots out of the plant catalog and every tree quietly scraped as one slot with
+    // no mount point, which the catalog check above still passed. A regrowing plant always has both.
+    const regrowing = Object.entries(catalogs.plants).filter(([, plant]) => plant.regrows);
+    const unplaced = regrowing.filter(([, plant]) => !plant.slotOffset).map(([species]) => species);
+    if (!regrowing.some(([, plant]) => plant.slots > 1)) result.drift.push('no regrowing plant scraped with more than one slot - the planner will place every plant with one crop');
+    if (unplaced.length) result.drift.push(`regrowing plants scraped without a crop mount point: ${unplaced.join(', ')}`);
   } catch (error) {
     result.drift.push(`the build cannot scrape its catalogs from this bundle: ${(error as Error).message}`);
   }

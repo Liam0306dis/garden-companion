@@ -1,3 +1,8 @@
+0.9.86
+- Crop and egg card text size fixed
+- Planner places multi-slot plants fully
+- Game update fixes
+
 0.9.85
 - Farm Manager slight redesign
 - Celestial planner: move list removed, hover a numbered plant to see its target

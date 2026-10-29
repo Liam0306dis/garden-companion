@@ -70,7 +70,8 @@ function absorb(candidate: Row, keys: string[]): string | null {
       const crop = row.crop as Row;
       const plant = isObject(row.plant) ? row.plant as Row : {};
       const seed = isObject(row.seed) ? row.seed as Row : {};
-      const offsets = Array.isArray(plant.slotOffsets) ? plant.slotOffsets.length : 0;
+      // growSlots since build 1778, slotOffsets before it.
+      const offsets = Array.isArray(plant.growSlots) ? plant.growSlots.length : Array.isArray(plant.slotOffsets) ? plant.slotOffsets.length : 0;
       return {
         crop: {
           name: String(crop.name || ''), baseSellPrice: Number(crop.baseSellPrice) || 0, baseWeight: Number(crop.baseWeight) || 0,
