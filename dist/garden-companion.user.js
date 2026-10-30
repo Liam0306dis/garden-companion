@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      0.9.87
+// @version      0.9.88
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -35,10 +35,10 @@
   var define_ABILITY_COLOURS_default = { MoonKisser: "#FAA623", DawnKisser: "#A25CF2", Thunderbloom: "#70F6CB", ProduceScaleBoost: "#228B22", ProduceScaleBoostII: "#228B22", ProduceScaleBoostIII: "#228B22", SnowyCropSizeBoost: "#228B22", PlantGrowthBoost: "#008080", PlantGrowthBoostII: "#008080", PlantGrowthBoostIII: "#008080", SnowyPlantGrowthBoost: "#008080", DawnPlantGrowthBoost: "#008080", AmberPlantGrowthBoost: "#008080", ThunderPlantGrowthBoost: "#008080", EggGrowthBoost: "#B45AF0", EggGrowthBoostII_NEW: "#B45AF0", EggGrowthBoostII: "#B45AF0", SnowyEggGrowthBoost: "#B45AF0", ThunderEggGrowthBoost: "#B45AF0", AmberEggGrowthBoost: "#B45AF0", PetAgeBoost: "#9370DB", PetAgeBoostII: "#9370DB", PetAgeBoostIII: "#9370DB", PetHatchSizeBoost: "#800080", PetHatchSizeBoostII: "#800080", PetHatchSizeBoostIII: "#800080", PetXpBoost: "#1E90FF", PetXpBoostII: "#1E90FF", PetXpBoostIII: "#1E90FF", SnowyPetXpBoost: "#1E90FF", DawnXpBoost: "#1E90FF", ThunderXpBoost: "#1E90FF", AmberXpBoost: "#1E90FF", HungerBoost: "#FF1493", HungerBoostII: "#FF1493", HungerBoostIII: "#FF1493", SnowyHungerBoost: "#FF1493", SellBoostI: "#DC143C", SellBoostII: "#DC143C", SellBoostIII: "#DC143C", SellBoostIV: "#DC143C", CoinFinderI: "#B49600", CoinFinderII: "#B49600", CoinFinderIII: "#B49600", CoinFinderIV: "#B49600", SnowyCoinFinder: "#B49600", DawnCoinFinder: "#B49600", ThunderCoinFinder: "#B49600", DustBoost: "#D8A72D", ProduceMutationBoost: "#8C0F46", ProduceMutationBoostII: "#8C0F46", SnowyCropMutationBoost: "#8C0F46", DawnBoost: "#8C0F46", AmberMoonBoost: "#8C0F46", ThunderBoost: "#8C0F46", DoubleHarvest: "#0078B4", DoubleHatch: "#3C5AB4", DoubleHatchII: "#3C5AB4", ProduceEater: "#FF4500", ProduceRefund: "#FF6347", PetMutationBoost: "#A03264", PetMutationBoostII: "#A03264", PetMutationBoostIII: "#A03264", HungerRestore: "#FF69B4", HungerRestoreII: "#FF69B4", HungerRestoreIII: "#FF69B4", SnowyHungerRestore: "#FF69B4", Rebirth: "#FF69B4", PetRefund: "#005078", PetRefundII: "#005078", Copycat: "#FF8C00", GoldGranter: "linear-gradient(135deg, #DCC846 0%, #D2AF05 40%, #D2B937 70%, #C8AF1E 100%)", RainbowGranter: "linear-gradient(135deg, #C80000 0%, #C87800 14.29%, #A0AA1E 28.57%, #3CAA3C 42.86%, #32AAAA 57.14%, #2896B4 71.43%, #145AB4 85.71%, #461E96 100%)", RainDance: "#4CCCCC", SnowGranter: "#90B8CC", FrostGranter: "#94A0CC", DawnlitGranter: "#C47CB4", DawnCapture: "#B25A9E", AmberCapture: "#D9822B", DawnbinderBoost: "#B468A0", AmberlitGranter: "#CC9060", ThunderstruckGranter: "#C2B83C", Thundercharger: "#1FA382", SeedFinderI: "#A86626", SeedFinderII: "#A86626", SeedFinderIII: "#A86626", SeedFinderIV: "#A86626" };
 
   // <define:__ABILITY_DETAILS__>
-  var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
+  var define_ABILITY_DETAILS_default = { CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snowy Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "0.9.87", notes: ["Crop card text size with AriesMod fixed"] }, { version: "0.9.86", notes: ["Crop and egg card text size fixed", "Planner places multi-slot plants fully", "Game update fixes"] }, { version: "0.9.85", notes: ["Farm Manager slight redesign", "Celestial planner: move list removed, hover a numbered plant to see its target", "Celestial planner button removed from Features (open it in Farm Manager)", "Plant swaps across the farm should no longer leave a plant in your inventory"] }, { version: "0.9.84", notes: ["Auto Storage tab: per-item ignore lists", "Added Sprites for potions, capsules, Camera and Shovel", "Tour scrolls the tab list to each tab", "Pet teams: new team's emblem no longer lands on an old team", "Hunger Potion button can't spend two at once", "Clearer message when potions are stuck in a full inventory", "Auto Storage tab updates live and lists every tool", "Rooms tab shows loading on refresh"] }, { version: "0.9.83", notes: ["Cinematic button no longer jumps when a quest is ready"] }, { version: "0.9.82", notes: ["Journal logger: no more repeated crops, Log all works properly", "Egg luck: Double Hatch count can no longer be set too high or below zero"] }, { version: "0.9.81", notes: ["Journal logger: pets only suggested for missing variants"] }, { version: "0.9.80", notes: ["Glow works again after the game update"] }, { version: "0.9.79", notes: ["Ability history: added guards to hopefully stop other players' pets leaking through"] }, { version: "0.9.78", notes: ["Egg luck: Double Hatch count can be edited", "Instant harvest works with Crop Protection on"] }];
+  var define_CHANGELOG_default = [{ version: "0.9.88", notes: ["Pet food buttons hide while game menu is open", "Crop Cleanser: allow selection of multiple mutations", "Cinematic button no longer covers your profile"] }, { version: "0.9.87", notes: ["Crop card text size with AriesMod fixed"] }, { version: "0.9.86", notes: ["Crop and egg card text size fixed", "Planner places multi-slot plants fully", "Game update fixes"] }, { version: "0.9.85", notes: ["Farm Manager slight redesign", "Celestial planner: move list removed, hover a numbered plant to see its target", "Celestial planner button removed from Features (open it in Farm Manager)", "Plant swaps across the farm should no longer leave a plant in your inventory"] }, { version: "0.9.84", notes: ["Auto Storage tab: per-item ignore lists", "Added Sprites for potions, capsules, Camera and Shovel", "Tour scrolls the tab list to each tab", "Pet teams: new team's emblem no longer lands on an old team", "Hunger Potion button can't spend two at once", "Clearer message when potions are stuck in a full inventory", "Auto Storage tab updates live and lists every tool", "Rooms tab shows loading on refresh"] }, { version: "0.9.83", notes: ["Cinematic button no longer jumps when a quest is ready"] }, { version: "0.9.82", notes: ["Journal logger: no more repeated crops, Log all works properly", "Egg luck: Double Hatch count can no longer be set too high or below zero"] }, { version: "0.9.81", notes: ["Journal logger: pets only suggested for missing variants"] }, { version: "0.9.80", notes: ["Glow works again after the game update"] }, { version: "0.9.79", notes: ["Ability history: added guards to hopefully stop other players' pets leaking through"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheave", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -4189,7 +4189,7 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     const capture = page.__GARDEN_COMPANION_PIXI__;
     const app = capture?.app;
     const renderer = capture?.renderer || app?.renderer;
-    const stage = app?.stage || renderer?.lastObjectRendered;
+    const stage = app?.stage && !app.stage.destroyed ? app.stage : renderer?.lastObjectRendered || app?.stage;
     const canvas = document.querySelector(".QuinoaCanvas canvas") || renderer?.canvas || renderer?.view;
     if (!stage || !renderer || !(canvas instanceof HTMLCanvasElement)) return null;
     const rect = canvas.getBoundingClientRect();
@@ -5005,6 +5005,23 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     if (!top) return false;
     return !top.closest(".QuinoaCanvas") && !top.closest("#gc-petfood");
   }
+  var SYSTEM_MENU_SEARCH_BACKOFF_MS = 3e3;
+  var systemMenuAtom = null;
+  var lastSystemMenuSearch = 0;
+  function systemMenuOpen() {
+    const now = Date.now();
+    if (!systemMenuAtom && now - lastSystemMenuSearch >= SYSTEM_MENU_SEARCH_BACKOFF_MS) {
+      lastSystemMenuSearch = now;
+      systemMenuAtom = findAtom("systemMenuActiveAtom");
+    }
+    const store = gameStore();
+    if (!systemMenuAtom || !store) return false;
+    try {
+      return store.get(systemMenuAtom) != null;
+    } catch {
+      return false;
+    }
+  }
   function positionPetFood() {
     const panel4 = document.getElementById("gc-petfood");
     if (!panel4) return;
@@ -5013,7 +5030,7 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     const dock = findPetSlotDock();
     const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || "") ?? null : dock.rows[index] ?? null) : [];
     const anchors = paired.filter((anchor2) => Boolean(anchor2));
-    if (!dock || dock.blocked || !anchors.length || petPanelCovered(anchors[0])) {
+    if (!dock || dock.blocked || !anchors.length || systemMenuOpen() || petPanelCovered(anchors[0])) {
       panel4.hidden = true;
       return;
     }
@@ -9683,9 +9700,8 @@ ${eggs.map(eggCard).join("")}`;
         top: Math.round(foot.y + RAIL_GAP_PX)
       };
     }
-    if (!docked) return;
-    button.style.visibility = foot ? "" : "hidden";
-    if (!foot) return;
+    button.style.visibility = foot && docked ? "" : "hidden";
+    if (!foot || !docked) return;
     const left = Math.min(Math.max(0, docked.left), Math.max(0, window.innerWidth - button.offsetWidth));
     const top = Math.min(Math.max(0, docked.top), Math.max(0, window.innerHeight - button.offsetHeight));
     button.style.left = `${left}px`;
@@ -12632,25 +12648,24 @@ details.gc-card summary h3 { display:inline; }
 .gc-alert-mute[data-muted="true"] { opacity:.45;filter:grayscale(1); }
 
 /* ── Crop Cleanser helper ────────────────────────────────────────────────────────────────────── */
-#gc-crop-cleanser { position:fixed;z-index:2147483644;left:24px;top:90px;width:min(620px,calc(100vw - 24px));max-height:min(620px,calc(100vh - 24px));overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
+#gc-crop-cleanser { position:fixed;z-index:2147483644;left:24px;top:90px;display:flex;flex-direction:column;width:min(720px,calc(100vw - 24px));max-height:min(860px,calc(100vh - 24px));overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
 #gc-crop-cleanser[hidden] { display:none; }
-#gc-crop-cleanser > header { height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }
+#gc-crop-cleanser > header { flex:none;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid var(--gc-line);cursor:move;user-select:none; }
 #gc-crop-cleanser > header > div { display:flex;align-items:center;gap:9px;color:var(--gc-strong);font-size:14px;font-weight:600; }
 #gc-crop-cleanser > header i { width:8px;height:8px;border-radius:50%;background:var(--gc-accent); }
 #gc-crop-cleanser > header button { width:30px;height:30px;padding:0;border:0;border-radius:var(--gc-radius-sm);background:transparent;color:var(--gc-muted);cursor:pointer;font-size:19px;line-height:1; }
 #gc-crop-cleanser > header button:hover { color:var(--gc-text);background:var(--gc-surface-2); }
-#gc-crop-cleanser > main { max-height:calc(min(620px,calc(100vh - 24px)) - 48px);overflow:auto;padding:14px 16px 16px; }
-.gc-cleanser-summary { display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md);background:var(--gc-surface); }
-.gc-cleanser-summary span { color:var(--gc-muted);font-size:12px;font-weight:500; }
-.gc-cleanser-summary b { color:var(--gc-strong);font-size:15px;font-variant-numeric:tabular-nums; }
+#gc-crop-cleanser > header small { color:var(--gc-muted);font-size:12px;font-weight:500;font-variant-numeric:tabular-nums; }
+#gc-crop-cleanser > main { flex:0 1 auto;min-height:0;display:flex;flex-direction:column;overflow:auto;padding:14px 16px 16px; }
 #gc-crop-cleanser main > p { margin:12px 0 8px;color:var(--gc-muted); }
-.gc-cleanser-choices { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px; }
+#gc-crop-cleanser main > p:first-child { margin-top:0; }
+.gc-cleanser-choices { display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px; }
 .gc-cleanser-choice { min-width:0;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;padding:5px 8px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-sm);background:var(--gc-surface);color:var(--gc-text);cursor:pointer;font:500 12px var(--gc-font); }
 .gc-cleanser-choice:hover { border-color:var(--gc-line-strong);background:var(--gc-surface-2); }
 .gc-cleanser-choice.on { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);color:var(--gc-strong); }
 .gc-cleanser-choice img { width:18px;height:18px;object-fit:contain;image-rendering:auto; }
-#gc-crop-cleanser .gc-cleanser-note { margin-top:12px;padding:8px 10px;border:1px solid rgba(245,192,74,.22);border-radius:var(--gc-radius-sm);background:rgba(245,192,74,.06);color:#fde68a; }
-.gc-cleanser-table-wrap { max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md); }
+#gc-crop-cleanser .gc-cleanser-note { margin:12px 0 0;padding:8px 10px;border:1px solid rgba(245,192,74,.22);border-radius:var(--gc-radius-sm);background:rgba(245,192,74,.06);color:#fde68a; }
+.gc-cleanser-table-wrap { flex:0 1 auto;min-height:0;overflow:auto;margin-top:10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md); }
 .gc-cleanser-table-wrap table { width:100%;border-collapse:collapse; }
 .gc-cleanser-table-wrap th { position:sticky;top:0;z-index:1;padding:8px 10px;border-bottom:1px solid var(--gc-line);background:var(--gc-surface);color:var(--gc-faint);text-align:left;font-size:11px;font-weight:600; }
 .gc-cleanser-table-wrap td { padding:9px 10px;border-bottom:1px solid var(--gc-line);vertical-align:middle; }
@@ -12690,7 +12705,7 @@ details.gc-card summary h3 { display:inline; }
 .gc-journal-logger-row > button { grid-area:log;padding:6px 10px;border:1px solid var(--gc-accent);border-radius:var(--gc-radius-sm);background:var(--gc-accent);color:#fff;cursor:pointer;font:600 11px var(--gc-font); }
 .gc-journal-logger-row > button:hover:not(:disabled) { background:var(--gc-accent-hover); }
 .gc-journal-logger-row > button:disabled { cursor:default;opacity:.45; }
-@media (max-width:560px) { .gc-cleanser-choices { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-cleanser-table-wrap th:nth-child(2),.gc-cleanser-table-wrap td:nth-child(2) { display:none; } }
+@media (max-width:560px) { .gc-cleanser-choices { grid-template-columns:repeat(2,minmax(0,1fr)); }.gc-cleanser-table-wrap { min-height:120px; }.gc-cleanser-table-wrap th:nth-child(2),.gc-cleanser-table-wrap td:nth-child(2) { display:none; } }
 
 /* ── Farm Manager ────────────────────────────────────────────────────────────────────────────── */
 #gc-farm-manager { position:fixed;z-index:2147483644;left:24px;top:70px;width:min(1120px,calc(100vw - 24px));max-height:calc(100vh - 24px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:14px;background:var(--gc-bg);color:var(--gc-text);box-shadow:var(--gc-shadow);font:12px/1.4 var(--gc-font); }
@@ -20710,13 +20725,19 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     "Dawncharged"
   ];
   var CLEANSEABLE = new Set(MUTATIONS);
-  var selectedMutation = "";
+  var CLEANSE_ECHO_WAIT_MS = 2e3;
+  var SCREEN_MARGIN_PX = 12;
+  var MIN_ROOM_PX = 360;
+  var selectedMutations2 = /* @__PURE__ */ new Set();
   var rowSnapshot = [];
   var displayedCleanserCount = 0;
   var lastLiveCleanserCount = 0;
   var optimisticCountUntil = 0;
-  var cleansedRows = /* @__PURE__ */ new Set();
+  var cleansedRows = /* @__PURE__ */ new Map();
+  var settledRows = /* @__PURE__ */ new Set();
   var changedRows = /* @__PURE__ */ new Set();
+  var cleanseQueue = Promise.resolve();
+  var unsentCleanses = 0;
   function mutationLabel2(id) {
     return MUTATION_CATALOG[id]?.name || humanize(id);
   }
@@ -20729,8 +20750,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const number = Number(value);
     return Number.isInteger(number) && String(number) === value ? number : value;
   }
-  function matchingRows() {
-    if (!selectedMutation) return [];
+  function cropRows() {
     const rows = [];
     for (const [tileIndex, tile] of Object.entries(state.slot?.data?.garden?.tileObjects || {})) {
       const plant = PLANT_CATALOG[tile.species || ""];
@@ -20738,7 +20758,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
       if (plant?.regrows !== false && (!Number.isFinite(maturedAt) || maturedAt > serverNow())) continue;
       for (const [slotIndex, slot] of (tile.slots || []).entries()) {
         const mutations = Array.isArray(slot.mutations) ? slot.mutations : [];
-        if (!mutations.includes(selectedMutation) || slot.preserved === true) continue;
+        if (slot.preserved === true) continue;
         const growSlotIdx = slot.slotId ?? slotIndex;
         rows.push({
           key: `${tileIndex}:${String(growSlotIdx)}`,
@@ -20750,7 +20770,11 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
         });
       }
     }
-    return rows.sort((left, right) => {
+    return rows;
+  }
+  function matchingRows() {
+    if (!selectedMutations2.size) return [];
+    return cropRows().filter((row) => row.mutations.some((mutation) => selectedMutations2.has(mutation))).sort((left, right) => {
       const leftName = plantName(left.species);
       const rightName = plantName(right.species);
       return leftName.localeCompare(rightName) || String(left.key).localeCompare(String(right.key), void 0, { numeric: true });
@@ -20759,28 +20783,53 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   function cleanseableSignature(mutations) {
     return mutations.filter((mutation) => CLEANSEABLE.has(mutation)).sort().join("|");
   }
+  function rowFingerprint(row) {
+    return `${row.species}|${String(row.startTime)}|${cleanseableSignature(row.mutations)}`;
+  }
   function liveRowMatches(snapshot) {
-    const live = matchingRows().find((row) => row.key === snapshot.key);
-    if (!live || live.species !== snapshot.species || live.startTime !== snapshot.startTime) return null;
-    return cleanseableSignature(live.mutations) === cleanseableSignature(snapshot.mutations) ? live : null;
+    const live = cropRows().find((row) => row.key === snapshot.key);
+    return live && rowFingerprint(live) === rowFingerprint(snapshot) ? live : null;
+  }
+  function isCleansed(row) {
+    return cleansedRows.get(row.key) === rowFingerprint(row);
+  }
+  function refreshRows() {
+    for (const key of settledRows) cleansedRows.delete(key);
+    settledRows.clear();
+    rowSnapshot = matchingRows();
+    changedRows.clear();
   }
   function refreshSnapshot() {
-    rowSnapshot = matchingRows();
+    refreshRows();
     displayedCleanserCount = heldToolCount("CropCleanser");
     lastLiveCleanserCount = displayedCleanserCount;
     optimisticCountUntil = 0;
-    cleansedRows.clear();
-    changedRows.clear();
   }
   function panel2() {
     return document.getElementById("gc-crop-cleanser");
   }
+  function showCleanserCount() {
+    const count = panel2()?.querySelector("[data-cleanser-count]");
+    if (count) count.textContent = `${displayedCleanserCount.toLocaleString(NUMBER_LOCALE)} owned`;
+  }
+  function fitToScreen(root2) {
+    const room = window.innerHeight - root2.getBoundingClientRect().top - SCREEN_MARGIN_PX;
+    root2.style.maxHeight = `min(860px, calc(100vh - 24px), ${Math.round(Math.max(room, MIN_ROOM_PX))}px)`;
+    const rect = root2.getBoundingClientRect();
+    const overflow = rect.bottom - window.innerHeight;
+    if (overflow > 0) root2.style.top = `${Math.round(Math.max(0, rect.top - overflow))}px`;
+  }
+  function cleansersFree() {
+    return displayedCleanserCount - unsentCleanses;
+  }
   function updateCleanserControls(body) {
-    const count = body.querySelector(".gc-cleanser-summary b");
-    if (count) count.textContent = displayedCleanserCount.toLocaleString(NUMBER_LOCALE);
+    showCleanserCount();
     body.querySelectorAll("[data-cleanse-row]").forEach((button) => {
       const key = button.dataset.cleanseRow || "";
-      button.disabled = displayedCleanserCount <= 0 || cleansedRows.has(key) || changedRows.has(key);
+      const row = rowSnapshot.find((candidate) => candidate.key === key);
+      const cleansed = Boolean(row && isCleansed(row));
+      button.disabled = cleansersFree() <= 0 || cleansed || changedRows.has(key);
+      button.textContent = cleansed ? "Cleansed" : changedRows.has(key) ? "Changed" : "Cleanse";
     });
   }
   function reconcileCleanserCount() {
@@ -20795,64 +20844,89 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const body = root2.querySelector("[data-cleanser-body]");
     if (body) updateCleanserControls(body);
   }
+  function markChanged(row) {
+    changedRows.add(row.key);
+    toast("That crop changed after this list was opened. Reopen the helper and check it again.", "error");
+  }
+  async function cleanse(row, body) {
+    let sent = false;
+    let release = () => {
+    };
+    try {
+      const held = heldToolCount("CropCleanser");
+      release = holdTool("CropCleanser");
+      if (!await ensureToolReady("CropCleanser")) {
+        toast(heldToolCount("CropCleanser") > 0 ? "No Crop Cleanser could be taken from the Tool Shack. Make room in your inventory." : "No Crop Cleansers are available.", "error");
+        return;
+      }
+      const live = liveRowMatches(row);
+      if (!live) {
+        markChanged(row);
+        return;
+      }
+      sendQuinoaCommand({ type: "CropCleanser", tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
+      sent = true;
+      unsentCleanses -= 1;
+      displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
+      optimisticCountUntil = Date.now() + CLEANSE_ECHO_WAIT_MS;
+      updateCleanserControls(body);
+      toast(`Crop Cleanser requested for ${plantName(live.species)}.`, "success");
+      await waitFor(() => heldToolCount("CropCleanser") < held, CLEANSE_ECHO_WAIT_MS);
+      settledRows.add(row.key);
+    } catch (error) {
+      toast(error.message, "error");
+    } finally {
+      if (!sent) {
+        unsentCleanses -= 1;
+        cleansedRows.delete(row.key);
+        settledRows.delete(row.key);
+      }
+      release();
+      updateCleanserControls(body);
+    }
+  }
   function render3() {
     const root2 = panel2();
     if (!root2) return;
     const body = root2.querySelector("[data-cleanser-body]");
     if (!body) return;
-    const cleaners = displayedCleanserCount;
     const rows = rowSnapshot;
     const choices = MUTATIONS.map((id) => {
       const sprite = mutationSprite(id);
-      return `<button class="gc-cleanser-choice${selectedMutation === id ? " on" : ""}" data-cleanser-mutation="${id}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}<span>${escapeHtml(mutationLabel2(id))}</span></button>`;
+      return `<button class="gc-cleanser-choice${selectedMutations2.has(id) ? " on" : ""}" data-cleanser-mutation="${id}">${sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : ""}<span>${escapeHtml(mutationLabel2(id))}</span></button>`;
     }).join("");
     const tableRows = rows.map((row) => {
       const mutations = row.mutations.filter((id) => CLEANSEABLE.has(id));
-      const cleansed = cleansedRows.has(row.key);
-      const disabled = cleaners <= 0 || cleansed;
-      return `<tr><td><b>${escapeHtml(plantName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join("")}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}" ${disabled ? "disabled" : ""}>${cleansed ? "Cleansed" : "Cleanse"}</button></td></tr>`;
+      return `<tr><td><b>${escapeHtml(plantName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join("")}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}"></button></td></tr>`;
     }).join("");
-    body.innerHTML = `<div class="gc-cleanser-summary"><span>Crop Cleansers</span><b>${cleaners.toLocaleString(NUMBER_LOCALE)}</b></div><p>Choose a mutation to find matching crops.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutation ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(mutationLabel2(selectedMutation))}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select a mutation above.</div>'}`;
+    const selectedLabels = MUTATIONS.filter((id) => selectedMutations2.has(id)).map(mutationLabel2).join(" or ");
+    body.innerHTML = `<p>Choose one or more mutations to find crops with any of them.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutations2.size ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(selectedLabels)}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select at least one mutation above.</div>'}`;
+    updateCleanserControls(body);
+    fitToScreen(root2);
     body.querySelectorAll("[data-cleanser-mutation]").forEach((button) => button.onclick = () => {
-      selectedMutation = button.dataset.cleanserMutation || "";
-      refreshSnapshot();
+      const id = button.dataset.cleanserMutation || "";
+      if (!selectedMutations2.delete(id)) selectedMutations2.add(id);
+      refreshRows();
       render3();
     });
-    body.querySelectorAll("[data-cleanse-row]").forEach((button) => button.onclick = async () => {
+    body.querySelectorAll("[data-cleanse-row]").forEach((button) => button.onclick = () => {
       const row = rows.find((candidate) => candidate.key === button.dataset.cleanseRow);
       if (!row) return;
-      const live = liveRowMatches(row);
-      if (!live) {
-        changedRows.add(row.key);
-        button.textContent = "Changed";
+      if (!liveRowMatches(row)) {
+        markChanged(row);
         updateCleanserControls(body);
-        toast("That crop changed after this list was opened. Reopen the helper and check it again.", "error");
         return;
       }
-      if (displayedCleanserCount <= 0 || heldToolCount("CropCleanser") <= 0) {
+      if (cleansersFree() <= 0 || heldToolCount("CropCleanser") <= 0) {
         toast("No Crop Cleansers are available.", "error");
         return;
       }
-      button.disabled = true;
-      const release = holdTool("CropCleanser");
-      try {
-        if (!await ensureToolReady("CropCleanser")) {
-          toast("No Crop Cleanser could be taken from the Tool Shack. Make room in your inventory.", "error");
-          return;
-        }
-        sendQuinoaCommand({ type: "CropCleanser", tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
-        cleansedRows.add(row.key);
-        displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
-        optimisticCountUntil = Date.now() + 2e3;
-        button.textContent = "Cleansed";
-        updateCleanserControls(body);
-        toast(`Crop Cleanser requested for ${plantName(live.species)}.`, "success");
-      } catch (error) {
-        toast(error.message, "error");
-      } finally {
-        release();
-        updateCleanserControls(body);
-      }
+      cleansedRows.set(row.key, rowFingerprint(row));
+      settledRows.delete(row.key);
+      unsentCleanses += 1;
+      updateCleanserControls(body);
+      const run3 = () => cleanse(row, body);
+      cleanseQueue = cleanseQueue.then(run3, run3);
     });
   }
   function ensurePanel2() {
@@ -20861,12 +20935,16 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const root2 = document.createElement("section");
     root2.id = "gc-crop-cleanser";
     root2.hidden = true;
-    root2.innerHTML = '<header><div><i></i><span>Crop Cleanser Helper</span></div><button data-cleanser-close aria-label="Close">×</button></header><main data-cleanser-body></main>';
+    root2.innerHTML = '<header><div><i></i><span>Crop Cleanser Helper</span><small data-cleanser-count></small></div><button data-cleanser-close aria-label="Close">×</button></header><main data-cleanser-body></main>';
     root2.querySelector("[data-cleanser-close]").onclick = () => {
       root2.hidden = true;
     };
     document.body.appendChild(root2);
     makeDraggable(root2, POSITION_KEY6);
+    root2.addEventListener("pointerup", () => fitToScreen(root2));
+    window.addEventListener("resize", () => {
+      if (!root2.hidden) fitToScreen(root2);
+    });
     return root2;
   }
   function toggle2() {

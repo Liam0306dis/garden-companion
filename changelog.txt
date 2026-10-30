@@ -1,3 +1,8 @@
+0.9.88
+- Pet food buttons hide while game menu is open
+- Crop Cleanser: allow selection of multiple mutations
+- Cinematic button no longer covers your profile
+
 0.9.87
 - Crop card text size with AriesMod fixed
 

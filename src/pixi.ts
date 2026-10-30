@@ -26,7 +26,9 @@ export function pixiSurface(): PixiSurface | null {
   const capture = page.__GARDEN_COMPANION_PIXI__;
   const app = capture?.app as { stage?: Record<string, any>; renderer?: Record<string, any> } | undefined;
   const renderer = capture?.renderer as Record<string, any> | undefined || app?.renderer;
-  const stage = app?.stage || renderer?.lastObjectRendered;
+  // The game can rebuild its scene without the init hooks firing again, which leaves the captured
+  // app holding a destroyed stage, while the renderer still knows what it last drew.
+  const stage = app?.stage && !app.stage.destroyed ? app.stage : renderer?.lastObjectRendered || app?.stage;
   const canvas = document.querySelector('.QuinoaCanvas canvas') || renderer?.canvas || renderer?.view;
   if (!stage || !renderer || !(canvas instanceof HTMLCanvasElement)) return null;
   const rect = canvas.getBoundingClientRect();

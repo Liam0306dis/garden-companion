@@ -1,5 +1,7 @@
 import { createTicker } from '../ticker.js';
-import type { Pet, ProduceItem } from '../types.js';
+import type { JotaiAtom, Pet, ProduceItem } from '../types.js';
+import { findAtom } from '../atom-cache.js';
+import { gameStore } from '../game-store.js';
 import { config, saveConfig, feature } from '../config.js';
 import { PET_CATALOG } from '../constants.js';
 import { sendQuinoaCommand } from '../game-connection.js';
@@ -200,6 +202,26 @@ function petPanelCovered(anchor: PetDockRow): boolean {
   return !top.closest('.QuinoaCanvas') && !top.closest('#gc-petfood');
 }
 
+/** This runs on the 250ms ticker, and a label the game has dropped would walk every atom each time. */
+const SYSTEM_MENU_SEARCH_BACKOFF_MS = 3000;
+let systemMenuAtom: JotaiAtom | null = null;
+let lastSystemMenuSearch = 0;
+
+/**
+ * The game's system menu (settings, account, about) can sit over the pet panel, and it is drawn on
+ * the canvas, so the overlay check above cannot see it.
+ */
+function systemMenuOpen(): boolean {
+  const now = Date.now();
+  if (!systemMenuAtom && now - lastSystemMenuSearch >= SYSTEM_MENU_SEARCH_BACKOFF_MS) {
+    lastSystemMenuSearch = now;
+    systemMenuAtom = findAtom('systemMenuActiveAtom');
+  }
+  const store = gameStore();
+  if (!systemMenuAtom || !store) return false;
+  try { return store.get(systemMenuAtom) != null; } catch { return false; }
+}
+
 export function positionPetFood(): void {
   const panel = document.getElementById('gc-petfood');
   if (!panel) return;
@@ -208,7 +230,7 @@ export function positionPetFood(): void {
   const dock = findPetSlotDock();
   const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || '') ?? null : dock.rows[index] ?? null) : [];
   const anchors = paired.filter((anchor): anchor is PetDockRow => Boolean(anchor));
-  if (!dock || dock.blocked || !anchors.length || petPanelCovered(anchors[0])) {
+  if (!dock || dock.blocked || !anchors.length || systemMenuOpen() || petPanelCovered(anchors[0])) {
     panel.hidden = true;
     return;
   }

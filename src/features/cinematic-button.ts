@@ -40,7 +40,7 @@ const RAIL_SEARCH_BACKOFF_MS = 3000;
 let rail: Record<string, any> | null = null;
 let quests: Record<string, any> | null = null;
 let lastRailSearch = 0;
-/** Where the button was last docked, kept while the rail is hidden (as it is in cinematic mode). */
+/** Where the button was last docked, null until the rail has been measured once. */
 let docked: { left: number; top: number } | null = null;
 /** The pointer's last spot on the page, to tell when Daily Quests is hovered. */
 const pointer = { x: -1, y: -1 };
@@ -166,13 +166,12 @@ function place(button: HTMLElement): void {
       top: Math.round(foot.y + RAIL_GAP_PX),
     };
   }
-  // Until the rail has been found once, the top right corner the stylesheet gives it stands in.
-  if (!docked) return;
   // The rail hides while the inventory and other panels are open, and the button goes with it, as it
   // does under the chat window (the window may be resized meanwhile, so it is measured afresh when
-  // the rail is back).
-  button.style.visibility = foot ? '' : 'hidden';
-  if (!foot) return;
+  // the rail is back). The same goes until the rail has been found once: with the HUD up, the top
+  // right corner the stylesheet gives it is over the player's profile.
+  button.style.visibility = foot && docked ? '' : 'hidden';
+  if (!foot || !docked) return;
   // Kept on screen, in case the window was resized since the last measure.
   const left = Math.min(Math.max(0, docked.left), Math.max(0, window.innerWidth - button.offsetWidth));
   const top = Math.min(Math.max(0, docked.top), Math.max(0, window.innerHeight - button.offsetHeight));

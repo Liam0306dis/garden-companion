@@ -4,7 +4,7 @@
   "activeModalStateAtom": "_({modal:null,openId:0})",
   "currentRoomAtom": "_(_ _)",
   "enqueuedQuinoaPredictionsAtom": "_([])",
-  "hudSuppressedByOverlayAtom": "_(_=>_(_)||_(_)||_(_))",
+  "hudSuppressedByOverlayAtom": "_(_=>_(_)||_(_))",
   "isChatWidgetPresentedAtom": "_(!1)",
   "isHoldingCameraAtom": "_(_=>{_ _=_(_);return _?.itemType===_.Tool&&_.toolId===`Camera`})",
   "isInMyGardenAtom": "_(_=>{_ _=_(_),_=_(_);return _?_.playerId===_:!1})",
@@ -24,6 +24,7 @@
   "selectedCropSlotIdAtom": "_(_=>_(_)?.slotId??null)",
   "selectedSubjectActionsAtom": "_(_=>{_{subjects:_}=_(_),_=_(_);return _.find(_=>_.key===_)??_[0]??null})",
   "stateAtom": "_(_=>_(_).state,(_,_,_)=>{_(_,{...e(_),state:_})})",
+  "systemMenuActiveAtom": "_(_=>_(_)===null?null:`systemMenu`)",
   "toggleDataAtom": "_(_=>{_ _=_(_)?.key,_=_(_);return _(_.subjects).flatMap(_=>{_[_]=_;_(!_||_.some(({key:_})=>_===_))return[];_ _=_(_,_.subject,_.key),_=_.actions.find(_=>_(_.subject,_.subject));return _?[{...a,moreCount:_.length-1,boundAction:_}]:[]})})",
   "trackedQuinoaPredictionFencesAtom": "_([])"
 }
