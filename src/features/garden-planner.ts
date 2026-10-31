@@ -194,8 +194,8 @@ export function initGardenPlanner(): void {
 
   // Time of day works the same way, through the frame context's `dayNightPhase01` (0-1 around the
   // day, starting at sunrise), and stacks with the weather - Amber at sunset is both at once. Each
-  // choice is the middle of its stage in the day cycle (AsyncEpoch chunk
-  // `{day:570,sunset:10,midnight:10,sunrise:10}`). A game without a day/night cycle has no such field,
+  // choice is the middle of its stage in the day cycle (dayNight chunk
+  // `{day:210,sunset:10,midnight:10,sunrise:10}`). A game without a day/night cycle has no such field,
   // and then the Time row is not shown.
   const TIME_CHOICES: ReadonlyArray<{ id: string; label: string }> = [
     { id: 'live', label: 'Live' },
@@ -204,7 +204,7 @@ export function initGardenPlanner(): void {
     { id: 'midnight', label: 'Midnight' },
     { id: 'sunrise', label: 'Sunrise' },
   ];
-  const DAY_CYCLE: ReadonlyArray<[string, number]> = [['sunrise', 10], ['day', 570], ['sunset', 10], ['midnight', 10]];
+  const DAY_CYCLE: ReadonlyArray<[string, number]> = [['sunrise', 10], ['day', 210], ['sunset', 10], ['midnight', 10]];
   const TIME_PHASE: Record<string, number> = (() => {
     const total = DAY_CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0);
     const phases: Record<string, number> = {};
@@ -447,8 +447,8 @@ export function initGardenPlanner(): void {
 
   /**
    * The edge counterpart of patchTileUpdates. The game redraws our own edges from its predicted
-   * garden through updateAllEdgeObjectsInSlot, which calls this for every edge it holds or shows,
-   * so substituting the planned edge here covers additions and removals alike.
+   * garden through its slot presenter, which calls this for every edge it holds or shows, so
+   * substituting the planned edge here covers additions and removals alike.
    */
   function patchEdgeUpdates(): void {
     const system = tileSystem();
@@ -721,17 +721,21 @@ export function initGardenPlanner(): void {
   }
 
   /**
-   * Pushes every edge at once: the game's slot-wide update also removes edges it is showing that
-   * the data no longer holds. Edge views compare data before rebuilding, so re-pushing an unchanged
-   * edge costs nothing.
+   * Pushes every edge at once, and removes edges it is showing that the data no longer holds, as
+   * the game's slot presenter does (game 1847 dropped its own slot-wide update). Edge views compare
+   * data before rebuilding, so re-pushing an unchanged edge costs nothing.
    */
   function applyAllEdges(): void {
     const system = tileSystem();
     const slot = ownSlotIndex();
     if (!system || slot === null || !edgeSupported()) return;
-    const data = planner.open ? Object.fromEntries(planner.edges) : liveEdges();
+    const data: Record<string, unknown> = planner.open ? Object.fromEntries(planner.edges) : liveEdges();
+    const shown = [...(system.edgeViewsBySlot?.get?.(slot)?.keys?.() ?? [])] as string[];
     applyingOwn = true;
-    try { system.updateAllEdgeObjectsInSlot(slot, data); } catch {} finally { applyingOwn = false; }
+    try {
+      for (const key of shown) if (!(key in data)) system.updateEdgeObjectData(slot, key, undefined);
+      for (const [key, edge] of Object.entries(data)) system.updateEdgeObjectData(slot, key, edge);
+    } catch {} finally { applyingOwn = false; }
   }
 
   function applyEdge(key: string): void {

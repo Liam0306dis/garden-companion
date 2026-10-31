@@ -1,3 +1,7 @@
+0.9.89
+- Night alarm and time of day follow the new 4 hour night cycle
+- Planner clears and redraws edge decor again
+
 0.9.88
 - Pet food buttons hide while game menu is open
 - Crop Cleanser: allow selection of multiple mutations

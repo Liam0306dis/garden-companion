@@ -25,14 +25,14 @@ const OWNER = 'weather';
 
 // --- Night ---
 // The Haunt event adds a day/night cycle. Nothing in state says it is night - the client works it out
-// from the clock, so this does the same (AsyncEpoch chunk: `{day:570,sunset:10,midnight:10,sunrise:10}`,
+// from the clock, so this does the same (dayNight chunk: `{day:210,sunset:10,midnight:10,sunrise:10}`,
 // phase = (serverTime % cycle) / cycle, starting at sunrise; its upcoming-nights list runs from sunset
 // start to sunrise end).
 const NIGHT = 'Night';
 const NIGHT_OWNER = 'night';
 const MINUTE_MS = 60_000;
 /** Minutes of each phase, in the order the cycle runs from the server epoch. */
-const DAY_CYCLE: Array<[NightPhase, number]> = [['sunrise', 10], ['day', 570], ['sunset', 10], ['midnight', 10]];
+const DAY_CYCLE: Array<[NightPhase, number]> = [['sunrise', 10], ['day', 210], ['sunset', 10], ['midnight', 10]];
 const CYCLE_MS = DAY_CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0) * MINUTE_MS;
 type NightPhase = 'sunrise' | 'day' | 'sunset' | 'midnight';
 

@@ -85,10 +85,10 @@ export function skyWeather(real: unknown): unknown {
   return weather === 'clear' ? null : weather;
 }
 
-// The day cycle (AsyncEpoch chunk `{day:570,sunset:10,midnight:10,sunrise:10}`, starting at sunrise).
+// The day cycle (dayNight chunk `{day:210,sunset:10,midnight:10,sunrise:10}`, starting at sunrise).
 // Kept in step with garden-planner.ts and weather-alarms.ts, which copy the same cycle.
 // check-bundle compares DAY_CYCLE against the live bundle.
-const DAY_CYCLE: ReadonlyArray<[stage: string, minutes: number]> = [['sunrise', 10], ['day', 570], ['sunset', 10], ['midnight', 10]];
+const DAY_CYCLE: ReadonlyArray<[stage: string, minutes: number]> = [['sunrise', 10], ['day', 210], ['sunset', 10], ['midnight', 10]];
 const CYCLE = DAY_CYCLE;
 const TOTAL = CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0);
 const stageEnd = (stage: string) => {
