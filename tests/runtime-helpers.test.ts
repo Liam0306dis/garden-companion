@@ -55,6 +55,31 @@ test('retrying never gives up, it only slows down', () => {
   mock.timers.reset();
 });
 
+test('retrying survives the console throwing at the two minute note', () => {
+  mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 0 });
+  const advance = (ms: number) => { for (let elapsed = 0; elapsed < ms; elapsed += 500) mock.timers.tick(500); };
+  const info = mock.method(console, 'info', () => { throw new Error('wrapped console'); });
+  let attempts = 0;
+  let ready = false;
+  retryUntil(() => { attempts++; return ready; }, 'a throwing console hook');
+  // The throw leaves the timer callback the way it would in the page, so it is caught at the tick.
+  let thrown = 0;
+  for (let elapsed = 0; elapsed < 120_500; elapsed += 500) {
+    try { mock.timers.tick(500); } catch { thrown++; }
+  }
+  assert.equal(thrown, 1, 'the note threw once');
+  const before = attempts;
+  advance(10_000);
+  assert.ok(attempts > before, 'still trying after the throw');
+  ready = true;
+  advance(5_000);
+  const settled = attempts;
+  advance(10_000);
+  assert.equal(attempts, settled, 'stops once it succeeds');
+  info.mock.restore();
+  mock.timers.reset();
+});
+
 test('the ability history keeps a set number per ability', () => {
   const rows = [...Array.from({ length: 5 }, (_, at) => ({ at, ability: 'A', pet: 'p', data: {} })), { at: 9, ability: 'B', pet: 'p', data: {} }];
   assert.deepEqual(trimAbilityLogs(rows, 2).map(row => row.ability), ['A', 'A', 'B']);

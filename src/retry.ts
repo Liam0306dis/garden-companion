@@ -20,16 +20,21 @@ export function retryUntil(attempt: () => boolean, label: string): void {
   setCheck(label, 'waiting');
   const run = () => {
     let done = false;
-    try { done = attempt(); }
-    catch (error) { warn(`${label} failed while hooking into the game.`, error); }
-    if (done) { setCheck(label, 'ok'); return; }
     const waited = Date.now() - started;
-    if (waited >= FAST_PHASE_MS && !warned) {
-      warned = true;
-      console.info(`[Garden Companion] Still waiting for the game before ${label} can start; checking every few seconds.`);
-      setCheck(label, 'waiting', 'still waiting for the game after two minutes');
+    // The next attempt is booked in a finally: the console is the game's to wrap, and a throw from
+    // anything here must not end the retrying with the check left on waiting for good.
+    try {
+      try { done = attempt(); }
+      catch (error) { warn(`${label} failed while hooking into the game.`, error); }
+      if (done) { setCheck(label, 'ok'); return; }
+      if (waited >= FAST_PHASE_MS && !warned) {
+        warned = true;
+        setCheck(label, 'waiting', 'still waiting for the game after two minutes');
+        console.info(`[Garden Companion] Still waiting for the game before ${label} can start; checking every few seconds.`);
+      }
+    } finally {
+      if (!done) setTimeout(run, waited < FAST_PHASE_MS ? FAST_INTERVAL_MS : SLOW_INTERVAL_MS);
     }
-    setTimeout(run, waited < FAST_PHASE_MS ? FAST_INTERVAL_MS : SLOW_INTERVAL_MS);
   };
   run();
 }
