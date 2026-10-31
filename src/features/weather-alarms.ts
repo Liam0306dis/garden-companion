@@ -37,14 +37,11 @@ const CYCLE_MS = DAY_CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0) * MINU
 type NightPhase = 'sunrise' | 'day' | 'sunset' | 'midnight';
 
 /**
- * The game has a night at all: the Haunt event is on - its `ghostCatches` is in the game state (which the
- * server may leave out until the first catch) or the player has today's `spookyQuest`. Otherwise the Night
- * row stays hidden instead of alarming for a night the game does not have.
+ * Night can be worked out once the game state has loaded. It no longer depends on the Haunt event: game 1847's
+ * notes say night stays after the event ends, when `ghostCatches` and `spookyQuest` may be gone.
  */
 function hasNightCycle(): boolean {
-  if (!state.game) return false;
-  const quest = (state.slot?.data as unknown as { spookyQuest?: unknown } | undefined)?.spookyQuest;
-  return 'ghostCatches' in (state.game as object) || (!!quest && typeof quest === 'object');
+  return Boolean(state.game);
 }
 
 /** The phase the client shows right now and how long until it ends. */
@@ -203,7 +200,7 @@ export function renderWeatherAlarms(): string {
       + `<span><b>${escapeHtml(weatherLabel(weather))}</b><small>${escapeHtml(note)}</small></span>`
       + alertMuteButton(`data-weather-mute="${escapeHtml(weather)}"`, Boolean(mutedNow[weather])) + '</label>';
   }).join('');
-  // Night: only on a build that has one (see hasNightCycle).
+  // Night: once the game state has loaded (see hasNightCycle).
   const nightSprite = page.__gardenCompanionWeatherSprites?.[NIGHT] || '';
   const nightIcon = nightSprite ? `<img src="${escapeHtml(nightSprite)}" alt="">` : '';
   const nightRow = hasNightCycle()

@@ -42,11 +42,11 @@ let quests: Record<string, any> | null = null;
 let lastRailSearch = 0;
 /** Where the button was last docked, null until the rail has been measured once. */
 let docked: { left: number; top: number } | null = null;
-/** The pointer's last spot on the page, to tell when Daily Quests is hovered. */
+/** The pointer's last spot on the page, to tell when the rail's foot button is hovered. */
 const pointer = { x: -1, y: -1 };
-/** When the pointer was last seen over Daily Quests. */
-let questsHoveredAt = 0;
-/** How long after the pointer leaves Daily Quests before it is measured again, while it shrinks back. */
+/** When the pointer was last seen over the rail's foot button. */
+let footHoveredAt = 0;
+/** How long after the pointer leaves the foot button before it is measured again, while it shrinks back. */
 const HOVER_SETTLE_MS = 600;
 
 let chatPresentedAtom: JotaiAtom | null = null;
@@ -98,6 +98,30 @@ function findQuests(railNode: Record<string, any>): Record<string, any> | null {
   return null;
 }
 
+/** The rail's buttons that are up, in the order the game lays them out. */
+const visibleButtons = (railNode: Record<string, any>): Array<Record<string, any>> =>
+  (railNode.children ?? []).filter((child: Record<string, any>) => pixiNodeVisible(child));
+
+/** The button at the foot of the rail: Daily Quests, or whichever is last while it is not offered. */
+function footButton(railNode: Record<string, any>): Record<string, any> | null {
+  const button = findQuests(railNode);
+  if (button && pixiNodeVisible(button)) return button;
+  return visibleButtons(railNode).at(-1) ?? null;
+}
+
+/**
+ * The rail's button size, as the shortest side of any of its buttons: Chat's bounds also take in its
+ * preview bubble and unread badge, but the buttons are all one size and most have neither.
+ */
+function buttonSide(railNode: Record<string, any>, fallback: number): number {
+  let side = fallback;
+  for (const child of visibleButtons(railNode)) {
+    const bounds = child.getBounds?.();
+    if (bounds?.width > 0 && bounds?.height > 0) side = Math.min(side, bounds.width, bounds.height);
+  }
+  return side;
+}
+
 /** A node's bounds with its quest decorations hidden for the measure, then put back as they were. */
 function boundsWithoutDecorations(node: Record<string, any>): { x: number; y: number; width: number; height: number } | undefined {
   const hidden: Array<Record<string, any>> = [];
@@ -114,30 +138,29 @@ function boundsWithoutDecorations(node: Record<string, any>): { x: number; y: nu
 
 /**
  * The foot of the rail in CSS pixels, null when the rail is not on screen, or 'hold' to keep the
- * last spot (while Daily Quests is hovered). Measured off
- * Daily Quests rather than the whole rail, whose bounds also take in the chat preview bubble and
- * open tooltips, either of which would shift the button about. The quests badge pokes out above and
- * to the left, so the right and bottom edges are the ones to go by.
+ * last spot (while the foot button is hovered). Measured off that button rather than the whole rail,
+ * whose bounds also take in the chat preview bubble and open tooltips, either of which would shift
+ * the button about. Badges and the preview poke out above and to the left, so the right and bottom
+ * edges are the ones to go by.
  */
 function railFoot(): { x: number; y: number } | 'hold' | null {
   const surface = pixiSurface();
   const node = surface && findRail(surface.stage);
   if (!surface || !node || !shown(node) || chatOpen()) return null;
-  const button = findQuests(node);
-  const target = button && pixiNodeVisible(button) ? button : node;
-  const bounds = target === button ? boundsWithoutDecorations(button) : target.getBounds?.();
+  const button = footButton(node);
+  const bounds = button ? boundsWithoutDecorations(button) : node.getBounds?.();
   if (!bounds || !(bounds.width > 0) || !(bounds.height > 0)) return null;
   const right = bounds.x + bounds.width;
   const bottom = bounds.y + bounds.height;
-  // Daily Quests grows a little while hovered, which would nudge the button about under it, so the
-  // last spot stands while the pointer is on it and for a moment after, as it shrinks back.
-  if (target === button) {
+  // The button grows a little while hovered, which would nudge ours about under it, so the last spot
+  // stands while the pointer is on it and for a moment after, as it shrinks back.
+  if (button) {
     const inside = pointer.x >= surface.toScreenX(bounds.x) && pointer.x <= surface.toScreenX(right)
       && pointer.y >= surface.toScreenY(bounds.y) && pointer.y <= surface.toScreenY(bottom);
-    if (inside) questsHoveredAt = Date.now();
-    if (docked && Date.now() - questsHoveredAt < HOVER_SETTLE_MS) return 'hold';
+    if (inside) footHoveredAt = Date.now();
+    if (docked && Date.now() - footHoveredAt < HOVER_SETTLE_MS) return 'hold';
   }
-  const side = target === button ? Math.min(bounds.width, bounds.height) : bounds.width;
+  const side = button ? buttonSide(node, Math.min(bounds.width, bounds.height)) : bounds.width;
   return { x: surface.toScreenX(right - side / 2), y: surface.toScreenY(bottom) };
 }
 

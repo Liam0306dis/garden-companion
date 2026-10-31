@@ -1,3 +1,7 @@
+0.9.91
+- Night alarm keeps working after the Haunt event ends
+- Cinematic button stays docked with unread chat
+
 0.9.90
 - Stuck scene guard check fixed
 
