@@ -4932,14 +4932,42 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     return quinoaEngine()?.getSystem?.("inventory")?.modalView ?? null;
   }
   function toolPouchOpen() {
+    let ring;
     try {
-      const ring = quinoaEngine()?.getSystem?.("toolRing")?.toolRing?.ring;
+      ring = quinoaEngine()?.getSystem?.("toolRing")?.toolRing?.ring;
       if (ring && (ring.isOpen || ring.isFanActive?.())) return true;
     } catch {
     }
-    const surface = pixiSurface();
-    const layer2 = surface && findVisiblePixiNodes(surface, ["ToolRingBubbles"]).get("ToolRingBubbles");
-    return Boolean(layer2?.children?.some((child) => pixiNodeVisible(child)));
+    const layer2 = ring?.bubbleLayer ?? bubbleLayer();
+    return Boolean(layer2 && shownOnScreen(layer2) && layer2.children?.some((child) => pixiNodeVisible(child)));
+  }
+  var cachedBubbleLayer = null;
+  var bubbleSearchAfter = 0;
+  var BUBBLE_SEARCH_RETRY_MS = 3e3;
+  function bubbleLayer() {
+    if (cachedBubbleLayer && !cachedBubbleLayer.destroyed && cachedBubbleLayer.parent) return cachedBubbleLayer;
+    cachedBubbleLayer = null;
+    if (Date.now() < bubbleSearchAfter) return null;
+    bubbleSearchAfter = Date.now() + BUBBLE_SEARCH_RETRY_MS;
+    const stage = pixiSurface()?.stage;
+    const stack = stage ? [stage] : [];
+    const seen3 = /* @__PURE__ */ new WeakSet();
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node || typeof node !== "object" || seen3.has(node)) continue;
+      seen3.add(node);
+      if (node.label === "ToolRingBubbles") return cachedBubbleLayer = node;
+      if (Array.isArray(node.children)) stack.push(...node.children);
+    }
+    return null;
+  }
+  function shownOnScreen(node) {
+    const stage = pixiSurface()?.stage;
+    for (let current2 = node; current2; current2 = current2.parent ?? null) {
+      if (!pixiNodeVisible(current2)) return false;
+      if (current2 === stage) return true;
+    }
+    return false;
   }
   function inventoryRect() {
     const view = inventoryView();

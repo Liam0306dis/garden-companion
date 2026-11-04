@@ -2,7 +2,7 @@ import { createTicker } from '../ticker.js';
 import { feature } from '../config.js';
 import { sendQuinoaCommandAwaitingResult } from '../game-connection.js';
 import { favouritedIds, heldProduce, produceSprite } from '../pets.js';
-import { findVisiblePixiNodes, pixiNodeVisible, pixiSurface } from '../pixi.js';
+import { pixiNodeVisible, pixiSurface } from '../pixi.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize } from '../utils.js';
@@ -117,15 +117,55 @@ function inventoryView(): Record<string, any> | null {
  * Its fan opens over the inventory's top-left edge, where this panel sits, so the panel steps aside.
  */
 function toolPouchOpen(): boolean {
+  let ring: Record<string, any> | undefined;
   try {
-    const ring = quinoaEngine()?.getSystem?.('toolRing')?.toolRing?.ring;
+    ring = quinoaEngine()?.getSystem?.('toolRing')?.toolRing?.ring;
     // isFanActive also covers the fan while it springs open or shut and its caption.
     if (ring && (ring.isOpen || ring.isFanActive?.())) return true;
-  } catch { /* fall through to the scene graph */ }
-  // Fallback when the system is not reachable: any fan bubble drawn on screen.
-  const surface = pixiSurface();
-  const layer = surface && findVisiblePixiNodes(surface, ['ToolRingBubbles']).get('ToolRingBubbles');
-  return Boolean(layer?.children?.some((child: Record<string, any>) => pixiNodeVisible(child)));
+  } catch { /* judged by its bubbles below */ }
+  // Also judged by the fan's bubbles on screen, in case the ring's own state reads closed while they show.
+  const layer = ring?.bubbleLayer ?? bubbleLayer();
+  return Boolean(layer && shownOnScreen(layer) && layer.children?.some((child: Record<string, any>) => pixiNodeVisible(child)));
+}
+
+/**
+ * The fan's bubble layer, found in the scene once and kept, since walking the whole stage on every
+ * tick the inventory is open costs too much. A miss waits before the stage is searched again.
+ */
+let cachedBubbleLayer: Record<string, any> | null = null;
+let bubbleSearchAfter = 0;
+const BUBBLE_SEARCH_RETRY_MS = 3000;
+
+function bubbleLayer(): Record<string, any> | null {
+  if (cachedBubbleLayer && !cachedBubbleLayer.destroyed && cachedBubbleLayer.parent) return cachedBubbleLayer;
+  cachedBubbleLayer = null;
+  if (Date.now() < bubbleSearchAfter) return null;
+  bubbleSearchAfter = Date.now() + BUBBLE_SEARCH_RETRY_MS;
+  const stage = pixiSurface()?.stage;
+  // Hidden branches are searched too: the layer sits under nodes that are hidden while the fan is shut.
+  const stack = stage ? [stage] : [];
+  const seen = new WeakSet<object>();
+  while (stack.length) {
+    const node = stack.pop()!;
+    if (!node || typeof node !== 'object' || seen.has(node)) continue;
+    seen.add(node);
+    if (node.label === 'ToolRingBubbles') return cachedBubbleLayer = node;
+    if (Array.isArray(node.children)) stack.push(...node.children);
+  }
+  return null;
+}
+
+/**
+ * The node and every parent up to the stage are shown, which worldVisible alone does not say in
+ * every PIXI version. A branch cut off from the stage is not drawn at all.
+ */
+function shownOnScreen(node: Record<string, any>): boolean {
+  const stage = pixiSurface()?.stage;
+  for (let current: Record<string, any> | null = node; current; current = current.parent ?? null) {
+    if (!pixiNodeVisible(current)) return false;
+    if (current === stage) return true;
+  }
+  return false;
 }
 
 /** The expanded inventory's on-screen rectangle, or null while it is closed or only the hotbar shows. */
