@@ -1,3 +1,6 @@
+0.9.94
+- Produce bar hides while the Tool Pouch is open
+
 0.9.93
 - XP estimates count XP Boost procs the way the game rolls them, every second - Amber XP Boost was undercounted about 4x
 - Nocturnal pets count their night strength bonus in XP estimates (+15 sunset, +20 midnight, +10 sunrise)

@@ -2,7 +2,7 @@ import { createTicker } from '../ticker.js';
 import { feature } from '../config.js';
 import { sendQuinoaCommandAwaitingResult } from '../game-connection.js';
 import { favouritedIds, heldProduce, produceSprite } from '../pets.js';
-import { pixiNodeVisible, pixiSurface } from '../pixi.js';
+import { findVisiblePixiNodes, pixiNodeVisible, pixiSurface } from '../pixi.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize } from '../utils.js';
@@ -112,6 +112,22 @@ function inventoryView(): Record<string, any> | null {
   return quinoaEngine()?.getSystem?.('inventory')?.modalView ?? null;
 }
 
+/**
+ * Whether the Tool Pouch is fanned open (build 1887 toolRing system -> `xfe.ring` -> `bfe.isOpen`).
+ * Its fan opens over the inventory's top-left edge, where this panel sits, so the panel steps aside.
+ */
+function toolPouchOpen(): boolean {
+  try {
+    const ring = quinoaEngine()?.getSystem?.('toolRing')?.toolRing?.ring;
+    // isFanActive also covers the fan while it springs open or shut and its caption.
+    if (ring && (ring.isOpen || ring.isFanActive?.())) return true;
+  } catch { /* fall through to the scene graph */ }
+  // Fallback when the system is not reachable: any fan bubble drawn on screen.
+  const surface = pixiSurface();
+  const layer = surface && findVisiblePixiNodes(surface, ['ToolRingBubbles']).get('ToolRingBubbles');
+  return Boolean(layer?.children?.some((child: Record<string, any>) => pixiNodeVisible(child)));
+}
+
 /** The expanded inventory's on-screen rectangle, or null while it is closed or only the hotbar shows. */
 function inventoryRect(): { left: number; top: number; right: number; bottom: number } | null {
   const view = inventoryView();
@@ -176,7 +192,8 @@ function render(panel: HTMLElement): void {
 }
 
 function position(): void {
-  const rect = feature('produceLocks') ? inventoryRect() : null;
+  const inventory = feature('produceLocks') ? inventoryRect() : null;
+  const rect = inventory && !toolPouchOpen() ? inventory : null;
   let panel = document.getElementById(PANEL_ID);
   if (!rect) {
     if (panel) panel.hidden = true;
