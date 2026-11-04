@@ -1,6 +1,7 @@
 import type { Pet } from '../types.js';
 import { config } from '../config.js';
-import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MAX_TEAM_PETS, MUTATION_CATALOG, MUTATION_GROUP_LABELS, MUTATION_GROUPS, mutationsInGroup, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { CYCLE_MINUTES, DAY_STAGES, LUNAR_SHARE, LUNAR_STAGE, NIGHT_STRENGTH_BONUS, stageMinutes, type DayStage } from '../day-stage.js';
+import { ABILITY_DETAILS, EGG_CATALOG, EXCLUDED_TRACKED_ABILITIES, UNREACHABLE_ABILITIES, HUNGER_MINUTES, MAX_TEAM_PETS, MUTATION_CATALOG, MUTATION_GROUP_LABELS, MUTATION_GROUPS, mutationsInGroup, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { abilityEffectText } from '../ability-effect.js';
 import { maxSizeMultiplier, sizeFromScale } from '../crop-size.js';
 import { bindListSearch } from '../list-search.js';
@@ -544,16 +545,30 @@ function granterHint(): string {
   if (!ability) return 'No chance-based abilities found.';
   const owned = granterPets(granterAbility).length;
   const source = owned ? `${owned} owned pet${owned === 1 ? '' : 's'} filled in` : 'You own no pet with this ability, so the sliders are yours to set';
-  return `${ability.probability}% per minute at STR 100, rolled every second - ${source}`;
+  return `${ability.probability}% per minute at STR 100, rolled every second - ${source}. A nocturnal pet's night strength is averaged in.`;
+}
+
+/**
+ * The pets' combined chance a second, averaged over when the ability can roll. A nocturnal pet
+ * spends each stage at that stage's night strength; a lunar ability (Dawn, Amber Moon) only rolls in
+ * those events, which fill sunrise. Each pet's chance per minute is capped at 99%, as the game's is.
+ */
+function granterCombinedPerSecond(probability: number, pets: Pet[]): number {
+  const enabled = [0, 1, 2].filter(index => granterEnabled[index]);
+  const inStage = (stage: DayStage) => 1 - enabled.reduce((miss, index) => {
+    const strength = granterStrengthFor(index, pets) + (rollerNocturnal(granterAbility, pets[index]) ? NIGHT_STRENGTH_BONUS[stage] : 0);
+    const perMinute = Math.min(.99, probability * strength / 100 / 100);
+    return miss * Math.pow(1 - perMinute, 1 / 60);
+  }, 1);
+  const weather = PASSIVE_REQUIRED_WEATHER.get(granterAbility);
+  if (weather && weather in LUNAR_SHARE) return inStage(LUNAR_STAGE);
+  return DAY_STAGES.reduce((sum, stage) => sum + inStage(stage) * stageMinutes(stage), 0) / CYCLE_MINUTES;
 }
 
 function granterResults(): string {
   const ability = granterOptions().find(option => option.id === granterAbility);
   const pets = granterPets(granterAbility);
-  const perSecond = [0, 1, 2]
-    .filter(index => granterEnabled[index])
-    .map(index => 1 - Math.pow(1 - (ability ? ability.probability * granterStrengthFor(index, pets) / 100 : 0) / 100, 1 / 60));
-  const combined = 1 - perSecond.reduce((total, chance) => total * (1 - chance), 1);
+  const combined = ability ? granterCombinedPerSecond(ability.probability, pets) : 0;
   if (!(combined > 0)) return '<p class="gc-empty">Enable at least one pet to see proc estimates.</p>';
   const perMinute = (1 - Math.pow(1 - combined, 60)) * 100;
   return `<div class="gc-calc-grid"><div><small>Chance per minute</small><b>${perMinute.toFixed(2)}%</b></div><div><small>Average wait</small><b>${formatDuration(1000 / combined)}</b></div><div><small>95% within</small><b>${formatDuration(-Math.log(1 - .95) / combined * 1000)}</b></div><div><small>99% within</small><b>${formatDuration(-Math.log(1 - .99) / combined * 1000)}</b></div></div>`;
@@ -699,16 +714,44 @@ function xpBoosterStrength(index: number, pets: Pet[]): number {
   return xpBoosterStrengths[index] ?? petMetrics(pets[index])?.strength ?? 100;
 }
 
-/** Average XP one booster adds to each active pet over one event, or one hour for a non-weather booster. */
-function xpBoosterPerWindow(strength: number): number {
+/**
+ * Whether the pet rolling an ability gains strength at night. Its species is the owned pet's, or
+ * with none owned, every species that can roll the ability (Amber XP Boost is only the Red Fox's,
+ * a nocturnal pet).
+ */
+function rollerNocturnal(ability: string, pet: Pet | undefined): boolean {
+  const species = pet?.petSpecies ? [pet.petSpecies] : Object.keys(PET_CATALOG).filter(id => PET_CATALOG[id]?.abilities?.includes(ability));
+  return species.length > 0 && species.every(id => PET_CATALOG[id]?.nocturnal);
+}
+
+function xpBoosterNocturnal(index: number, pets: Pet[]): boolean {
+  return rollerNocturnal(xpAbility(), pets[index]);
+}
+
+/**
+ * Average XP one booster adds to each active pet over one event, or one hour for a non-weather
+ * booster. A lunar event fills sunrise, so a nocturnal booster always rolls it with sunrise's
+ * strength; a nocturnal booster that ignores weather spends each stage at that stage's strength.
+ */
+function xpBoosterPerWindow(index: number, pets: Pet[]): number {
   const details = ABILITY_DETAILS[xpAbility()];
   const chance = Number(details?.baseProbability || 0);
   const bonus = Number(details?.baseParameters?.bonusXp || 0);
-  return abilityXpPerHour(strength, chance, bonus) * xpWindowSeconds() / 3600;
+  const strength = xpBoosterStrength(index, pets);
+  const nocturnal = xpBoosterNocturnal(index, pets);
+  const at = (stage: DayStage) => abilityXpPerHour(strength + (nocturnal ? NIGHT_STRENGTH_BONUS[stage] : 0), chance, bonus);
+  const weather = xpOption().weather;
+  // A Hydro booster's weather comes at any stage, so it is counted at its own strength.
+  const perHour = weather
+    ? weather in LUNAR_SHARE ? at(LUNAR_STAGE) : at('day')
+    : DAY_STAGES.reduce((sum, stage) => sum + at(stage) * stageMinutes(stage), 0) / CYCLE_MINUTES;
+  return perHour * xpWindowSeconds() / 3600;
 }
 
-function xpBoosterEffect(strength: number): string {
-  return `~${Math.round(xpBoosterPerWindow(strength)).toLocaleString(NUMBER_LOCALE)} XP/${xpOption().weather ? 'event' : 'hour'}`;
+function xpBoosterEffect(index: number, pets: Pet[]): string {
+  const weather = xpOption().weather;
+  const night = !xpBoosterNocturnal(index, pets) ? '' : !weather ? ', nights counted' : weather in LUNAR_SHARE ? ' at sunrise' : '';
+  return `~${Math.round(xpBoosterPerWindow(index, pets)).toLocaleString(NUMBER_LOCALE)} XP/${xpOption().weather ? 'event' : 'hour'}${night}`;
 }
 
 /** The answer column: the event count or play time large, with what it is made of underneath. */
@@ -719,7 +762,7 @@ function xpResults(): string {
   const pets = xpBoosterPets();
   const boost = Array.from({ length: XP_BOOSTERS }, (_, index) => index)
     .filter(index => xpBoosterEnabled[index])
-    .reduce((sum, index) => sum + xpBoosterPerWindow(xpBoosterStrength(index, pets)), 0);
+    .reduce((sum, index) => sum + xpBoosterPerWindow(index, pets), 0);
   const window = xpWindowSeconds();
   const perWindow = window + boost;
   const format = (value: number) => Math.round(value).toLocaleString(NUMBER_LOCALE);
@@ -744,7 +787,7 @@ function xpBoosterRows(): string {
     const strength = xpBoosterStrength(index, pets);
     const name = pet ? petLabel(pet) : `Booster ${index + 1}`;
     const sprite = pet ? petSprite(pet) : '<span class="gc-pet-sprite"><i>?</i></span>';
-    return `<div class="gc-granter-row" data-active="${xpBoosterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-xp-on="${index}" ${xpBoosterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${pet ? '' : 'Not owned &middot; '}<span data-xp-effect="${index}">${xpBoosterEffect(strength)}</span></small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-xp-str="${index}"><b data-xp-value="${index}">${strength}</b></div></div>`;
+    return `<div class="gc-granter-row" data-active="${xpBoosterEnabled[index]}" data-owned="${Boolean(pet)}"><label class="gc-granter-head"><input type="checkbox" data-xp-on="${index}" ${xpBoosterEnabled[index] ? 'checked' : ''}>${sprite}<span><b>${escapeHtml(name)}</b><small>${pet ? '' : 'Not owned &middot; '}<span data-xp-effect="${index}">${xpBoosterEffect(index, pets)}</span></small></span></label><div class="gc-granter-slider"><input type="range" min="50" max="100" step="1" value="${strength}" data-xp-str="${index}"><b data-xp-value="${index}">${strength}</b></div></div>`;
   }).join('');
 }
 
@@ -765,7 +808,7 @@ function renderXpCalculator(): string {
 <label class="gc-xp-field"><span>Booster ability</span><select class="gc-calc-select" data-xp-booster>${boosters}</select></label>
 <label class="gc-xp-field"><span>Pet to level</span><select class="gc-calc-select" data-xp-target>${targets}</select></label>${custom}
 <div class="gc-xp-field"><span>Boosters</span><div class="gc-granter-list">${xpBoosterRows()}</div></div>
-<small class="gc-xp-foot">Amber XP Boost (Red Fox) and Dawn XP Boost (Ostrich) only roll in their weather, so they are counted in events. XP Boost rolls any time, so it is counted in hours.</small>
+<small class="gc-xp-foot">Amber XP Boost (Red Fox) and Dawn XP Boost (Ostrich) only roll in their weather, so they are counted in events. Lunar events fill sunrise, so a nocturnal booster rolls them +${NIGHT_STRENGTH_BONUS[LUNAR_STAGE]} Strength. XP Boost rolls any time, so it is counted in hours.</small>
 </div><div class="gc-xp-result" data-xp-results>${xpResults()}</div></section>`;
 }
 
@@ -802,7 +845,7 @@ function bindXpCalculator(main: HTMLElement): void {
     const index = Number(input.dataset.xpStr);
     xpBoosterStrengths[index] = Number(input.value);
     main.querySelector(`[data-xp-value="${index}"]`)!.textContent = input.value;
-    main.querySelector(`[data-xp-effect="${index}"]`)!.textContent = xpBoosterEffect(Number(input.value));
+    main.querySelector(`[data-xp-effect="${index}"]`)!.textContent = xpBoosterEffect(index, xpBoosterPets());
     results();
   });
 }

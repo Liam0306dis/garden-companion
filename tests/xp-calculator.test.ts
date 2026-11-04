@@ -9,8 +9,9 @@ test('the XP calculator counts Amber Moon events with a Red Fox booster', () => 
   host.innerHTML = renderCalculators();
 
   // No pets owned, so the pet is set by hand from 70 to 100 and the one booster sits at STR 100:
-  // 600 XP from the pet plus 600s x 1.5%/s x 1400 = 12,600 from the fox, per event.
-  assert.equal(host.querySelectorAll('.gc-xp-stats b')[2].textContent, '13,200');
+  // 600 XP from the pet plus the fox's. Amber Moon fills sunrise, so the nocturnal fox rolls at
+  // 110: 99% a minute (the cap), rolled every second (7.39%/s), so 600s x 7.39% x 1540 = ~68,266.
+  assert.equal(host.querySelectorAll('.gc-xp-stats b')[2].textContent, '68,866');
   assert.match(host.querySelector('[data-xp-booster]')!.textContent!, /Amber XP Boost - Amber Moon only/);
 });
 

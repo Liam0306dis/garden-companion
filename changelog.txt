@@ -1,3 +1,11 @@
+0.9.93
+- XP estimates count XP Boost procs the way the game rolls them, every second - Amber XP Boost was undercounted about 4x
+- Nocturnal pets count their night strength bonus in XP estimates (+15 sunset, +20 midnight, +10 sunrise)
+- XP calculator: a nocturnal booster rolls Amber Moon and Dawn at sunrise strength (+10), since lunar events fill sunrise, and a nocturnal XP Boost pet (Moth) counts its night strength
+- Time until max STR uses the XP rate averaged over the day, so it no longer jumps during an Amber Moon or Dawn
+- Weather coin finders, plant growth boosts and Snowy Crop Size Boost only count in their weather (combined abilities and crop estimates counted them all the time)
+- Ability calculator averages a nocturnal pet's night strength over the day and caps each pet at 99% a minute like the game; Dawn and Amber Moon abilities are worked out at sunrise
+
 0.9.92
 - Items pinned in the Tool Pouch no longer count as taking an inventory slot
 - Auto Storage leaves items pinned in the Tool Pouch in your bag

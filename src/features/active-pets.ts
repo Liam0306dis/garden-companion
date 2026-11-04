@@ -4,7 +4,7 @@ import { abilityEffectText } from '../ability-effect.js';
 import { showAlarmBanner, stopAlarm } from '../alarms.js';
 import { feature } from '../config.js';
 import { ABILITY_DETAILS, GRANTER_CHANCES, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PROC_RULES, STACKED_PASSIVE_BY_ABILITY, XP_PER_POTION } from '../constants.js';
-import { abilityActiveInWeather, activePets, allActivePetsStarving, formatEstimate, heldToolCount, hungerDisplay, petMetrics, petSprite, petSpriteSource, teamXpPerHour } from '../pets.js';
+import { abilityActiveInWeather, activePets, allActivePetsStarving, formatEstimate, heldToolCount, hungerDisplay, petMetrics, petSprite, petSpriteSource, teamXpPerHour, teamXpPerHourAveraged } from '../pets.js';
 import { state } from '../state.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 import { weatherLabel } from './weather-timer.js';
@@ -193,9 +193,11 @@ export function renderAbilities(): string {
   const active = state.slot?.data?.petSlots || [];
   const held = heldToolCount('XPPotion');
   const xpRate = teamXpPerHour(active);
+  // The rate this minute swings with the weather; how long levelling takes wants the day's average.
+  const levelRate = teamXpPerHourAveraged(active);
   const activeCards = active.map(pet => {
     const metrics = petMetrics(pet);
-    const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / xpRate * 3600)} until max STR` : 'Max STR reached' : 'Strength estimate unavailable';
+    const maxText = metrics ? metrics.xpToMax > 0 ? `${formatEstimate(metrics.xpToMax / levelRate * 3600)} until max STR` : 'Max STR reached' : 'Strength estimate unavailable';
     const potionsToMax = metrics?.xpToMax ? Math.ceil(metrics.xpToMax / XP_PER_POTION) : 0;
     const potionText = potionsToMax > 0 ? `${potionsToMax.toLocaleString(NUMBER_LOCALE)} XP potion${potionsToMax === 1 ? '' : 's'} to max` : '';
     // The button only appears when a potion is actually held, so it can never send a doomed request.

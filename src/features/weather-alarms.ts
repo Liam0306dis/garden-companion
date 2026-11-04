@@ -1,5 +1,6 @@
 import { alertMuteButton, armAlarmAudio, setAlarmSilenced, showAlarmBanner, stopAlarm, updateAlarmDetail } from '../alarms.js';
 import { config, saveConfig } from '../config.js';
+import { dayStageAt, type DayStage } from '../day-stage.js';
 import { page } from '../page.js';
 import { serverNow, shopSecondsLeft } from '../server-clock.js';
 import { state } from '../state.js';
@@ -25,16 +26,12 @@ const OWNER = 'weather';
 
 // --- Night ---
 // The Haunt event adds a day/night cycle. Nothing in state says it is night - the client works it out
-// from the clock, so this does the same (dayNight chunk: `{day:210,sunset:10,midnight:10,sunrise:10}`,
-// phase = (serverTime % cycle) / cycle, starting at sunrise; its upcoming-nights list runs from sunset
-// start to sunrise end).
+// from the clock, and day-stage.ts does the same; the client's upcoming-nights list runs from sunset
+// start to sunrise end.
 const NIGHT = 'Night';
 const NIGHT_OWNER = 'night';
 const MINUTE_MS = 60_000;
-/** Minutes of each phase, in the order the cycle runs from the server epoch. */
-const DAY_CYCLE: Array<[NightPhase, number]> = [['sunrise', 10], ['day', 210], ['sunset', 10], ['midnight', 10]];
-const CYCLE_MS = DAY_CYCLE.reduce((sum, [, minutes]) => sum + minutes, 0) * MINUTE_MS;
-type NightPhase = 'sunrise' | 'day' | 'sunset' | 'midnight';
+type NightPhase = DayStage;
 
 /**
  * Night can be worked out once the game state has loaded. It no longer depends on the Haunt event: game 1847's
@@ -46,13 +43,8 @@ function hasNightCycle(): boolean {
 
 /** The phase the client shows right now and how long until it ends. */
 function nightPhase(now = serverNow()): { phase: NightPhase; msLeft: number } {
-  let into = ((now % CYCLE_MS) + CYCLE_MS) % CYCLE_MS;
-  for (const [phase, minutes] of DAY_CYCLE) {
-    const length = minutes * MINUTE_MS;
-    if (into < length) return { phase, msLeft: length - into };
-    into -= length;
-  }
-  return { phase: 'day', msLeft: 0 };
+  const { stage, msLeft } = dayStageAt(now);
+  return { phase: stage, msLeft };
 }
 
 /** Night runs from sunset to the end of sunrise, as the client's upcoming-nights list does. */

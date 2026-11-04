@@ -187,7 +187,7 @@ export function typeLiteralPresent(source: string, type: string): boolean {
 export interface CheckResult { drift: string[]; warnings: string[]; ok: string[] }
 
 /** Files that copy the game's day/night cycle as `DAY_CYCLE` (minutes per stage). */
-const DAY_CYCLE_FILES = ['src/features/weather-alarms.ts', 'src/features/garden-planner.ts', 'src/features/sky.ts'];
+const DAY_CYCLE_FILES = ['src/day-stage.ts', 'src/features/garden-planner.ts', 'src/features/sky.ts'];
 
 /**
  * The game's day/night cycle, `X={day:N,sunset:N,midnight:N,sunrise:N},Y=Object.values(X)...` (the

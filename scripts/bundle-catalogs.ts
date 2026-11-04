@@ -16,7 +16,7 @@ export interface BundleCatalogs {
   source: string;
   abilities: string[];
   abilityDetails: Record<string, { name: string; trigger: string; baseProbability?: number; baseParameters?: Record<string, number> }>;
-  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string ; abilities: string[] }>;
+  pets: Record<string, { name: string; maxHunger: number; maxScale: number; hoursToMature: number; diet: string[]; rarity: string ; abilities: string[]; nocturnal: boolean }>;
   plants: Record<string, { crop: { name: string; baseSellPrice: number; baseWeight?: number; maxSizeMultiplier?: number; baseTileScale?: number; sprite: string }; plantLabel?: string; plantSprite?: string; slotOffset?: { x: number; y: number }; slots: number; regrows: boolean; rarity: string; slotSpecies?: string[]; component?: boolean; cropsPerSeed?: [min: number, max: number] }>;
   eggs: Record<string, { name: string; spawnWeights: Record<string, number>; pityThresholds: Record<string, number> }>;
   abilityColours: Record<string, string>;
@@ -67,6 +67,11 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
         const petAbilityWeights = new Map([...bundle.matchAll(
           /([A-Za-z][A-Za-z0-9_]+):\{(?:sprite:[A-Za-z_$]+\.Pet\.[A-Za-z][A-Za-z0-9_]+,)?name:`[^`]+`,coinsToFullyReplenishHunger:[0-9.e+-]+,innateAbilityWeights:\{([^}]*)\}/g)]
           .map(match => [match[1], [...match[2].matchAll(/([A-Za-z][A-Za-z0-9_]*):/g)].map(entry => entry[1])]));
+        // Nocturnal pets (`isNocturnal:!0`, build 1847) gain strength at night. Captured on its own, like
+        // the weights: the flag sits between the weights and the end of the entry, which holds no braces.
+        const nocturnalPets = new Set([...bundle.matchAll(
+          /([A-Za-z][A-Za-z0-9_]+):\{(?:sprite:[A-Za-z_$]+\.Pet\.[A-Za-z][A-Za-z0-9_]+,)?name:`[^`]+`,coinsToFullyReplenishHunger:[0-9.e+-]+,innateAbilityWeights:\{[^}]*\}[^{}]*?isNocturnal:!0/g)]
+          .map(match => match[1]));
         // Build 1291 put a `name` field ahead of `seed`, so it is matched optionally.
         // A crop's `maxSizeMultiplier` is optionally preceded by `baseTileScale`. Some crops (Clover,
         // Milkcap, the seasonals) carry maxSizeMultiplier with no baseTileScale, so that field is
@@ -88,6 +93,7 @@ export async function catalogsFromSnapshots(dirs: string[]): Promise<BundleCatal
           rarity: match[7],
           diet: [...match[8].matchAll(/`([^`]+)`/g)].map(entry => entry[1]),
           abilities: petAbilityWeights.get(match[1]) ?? [],
+          nocturnal: nocturnalPets.has(match[1]),
         }]));
         // Build 1778 moved where each crop hangs on a plant out of the plant catalog into a layout
         // table of its own (`Apple:{randomRotation:!0,slots:[{x,y,rotation},...]}`), keyed by species.

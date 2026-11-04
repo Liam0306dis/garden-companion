@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mock, test } from 'node:test';
 import { noteGameSocket } from '../src/game-connection.js';
 import {
-  allActivePetsStarving, ensureToolReady, formatEstimate, freeInventorySlots, heldToolCount, holdTool, hungerSecondsRemaining, petIsStarving,
-  petMetrics, teamXpPerHour, toolIsHeld,
+  abilityXpPerHour, allActivePetsStarving, ensureToolReady, formatEstimate, freeInventorySlots, heldToolCount, holdTool, hungerSecondsRemaining, nightStrengthBonus, petIsStarving,
+  petMetrics, teamXpPerHour, teamXpPerHourAveraged, toolIsHeld,
 } from '../src/pets.js';
 import { state } from '../src/state.js';
 import type { Pet, PlayerSlot } from '../src/types.js';
@@ -112,4 +112,32 @@ test('items pinned in the Tool Pouch take no loose slot', () => {
     { itemType: 'Tool', id: 'Camera' }, { itemType: 'Egg', id: 'CommonEgg' }, { itemType: 'Tool', id: 'WateringCan' }, { itemType: 'Seed', id: 'Carrot' },
   ]);
   assert.equal(freeInventorySlots(), 2);
+});
+
+test('an XP ability rolls every second, not once a minute', () => {
+  // Amber XP Boost at 110 strength: 99% a minute (the cap) is ~44 procs in a 10-minute Amber Moon,
+  // each worth 1400 x 1.1 - the ~40 procs a moon players see.
+  const perMoon = abilityXpPerHour(110, 90, 1400) / 6;
+  assert.ok(Math.abs(perMoon - 44.3 * 1540) < 1500, String(perMoon));
+});
+
+test('a nocturnal pet gains the strength of the night stage', () => {
+  const minute = 60_000;
+  // The cycle runs sunrise 10, day 210, sunset 10, midnight 10 from the epoch.
+  assert.equal(nightStrengthBonus(pet({ petSpecies: 'Toad' }), 5 * minute), 10);
+  assert.equal(nightStrengthBonus(pet({ petSpecies: 'Toad' }), 60 * minute), 0);
+  assert.equal(nightStrengthBonus(pet({ petSpecies: 'Toad' }), 225 * minute), 15);
+  assert.equal(nightStrengthBonus(pet({ petSpecies: 'Toad' }), 235 * minute), 20);
+  assert.equal(nightStrengthBonus(pet({ petSpecies: 'Turtle' }), 235 * minute), 0);
+});
+
+test('the levelling rate averages weather and night over the day', () => {
+  state.slot = { data: { garden: { tileObjects: {} } } } as unknown as PlayerSlot;
+  state.game = { weather: 'AmberMoon' } as never;
+  const fox = pet({ petSpecies: 'RedFox', targetScale: catalogs.pets.RedFox.maxScale, xp: 1e9, abilities: ['AmberXpBoost'] });
+  // A third of the cycles' ten-minute sunrise is Amber Moon: 1/72 of the time, at 110 Strength.
+  const expected = 3600 + abilityXpPerHour(110, 90, 1400) / 72;
+  assert.ok(Math.abs(teamXpPerHourAveraged([fox]) - expected) < 1);
+  assert.ok(teamXpPerHourAveraged([fox]) < teamXpPerHour([fox]));
+  state.game = null;
 });

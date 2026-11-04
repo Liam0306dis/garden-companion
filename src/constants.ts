@@ -126,6 +126,11 @@ export const PASSIVE_REQUIRED_WEATHER = new Map<string, string>([
   // The XP and egg growth variants gate on weather exactly as the older passives do.
   ['SnowyPetXpBoost', 'Frost'], ['DawnXpBoost', 'Dawn'], ['ThunderXpBoost', 'Thunderstorm'],
   ['SnowyEggGrowthBoost', 'Frost'], ['ThunderEggGrowthBoost', 'Thunderstorm'],
+  // The weather coin finders, plant growth boosts and Snowy Crop Size Boost gate the same way; mgr's
+  // check-bundle checks this list covers every ability the catalog gives a requiredWeather.
+  ['SnowyCoinFinder', 'Frost'], ['DawnCoinFinder', 'Dawn'], ['ThunderCoinFinder', 'Thunderstorm'],
+  ['SnowyPlantGrowthBoost', 'Frost'], ['DawnPlantGrowthBoost', 'Dawn'], ['AmberPlantGrowthBoost', 'AmberMoon'],
+  ['ThunderPlantGrowthBoost', 'Thunderstorm'], ['SnowyCropSizeBoost', 'Frost'],
 ]);
 
 export const SHOP_NAMES: Record<string, string> = { seed: 'Seed', egg: 'Egg', decor: 'Decor', tool: 'Tool', dawn: 'Dawn', snow: 'Snow', thunder: 'Thunder', rain: 'Rain', amber: 'Amber', spooky: 'Spooky' };

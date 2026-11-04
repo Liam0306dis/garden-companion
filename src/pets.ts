@@ -1,6 +1,7 @@
 import type { Pet, ProduceItem } from './types.js';
 import { ABILITY_DETAILS, HUNGER_MINUTES, MUTATION_CATALOG, PASSIVE_REQUIRED_WEATHER, PET_CATALOG, PLANT_CATALOG, STACKED_PASSIVE_BY_ABILITY } from './constants.js';
 import { slotScale } from './crop-size.js';
+import { CYCLE_MINUTES, DAY_STAGES, dayStageAt, LUNAR_SHARE, LUNAR_STAGE, NIGHT_STRENGTH_BONUS, stageMinutes, type DayStage } from './day-stage.js';
 import { catalogMutationMultiplier } from './mutation-value.js';
 import { sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
@@ -430,23 +431,62 @@ function xpAbilityRate(ability: string): { baseChance: number; baseXp: number } 
   return { baseChance, baseXp };
 }
 
+/**
+ * Expected XP an hour from one XP ability, to each active pet. Its chance per minute is the base
+ * chance scaled by strength and capped at 99%, as the game's ability tooltip shows it - but it is
+ * rolled every second, at the rate that makes that the chance of at least one proc in the minute, so
+ * 99% is about 4.4 procs a minute rather than one. Each proc is the bonus XP scaled by strength too.
+ */
 export function abilityXpPerHour(strength: number, baseChance: number, baseXp: number): number {
-  const multiplier = Math.max(.25, strength / 100);
-  const chancePerSecond = Math.min(.95 / 60, baseChance / 60 / 100 * multiplier);
+  const multiplier = strength / 100;
+  const chancePerMinute = Math.min(.99, Math.max(0, baseChance / 100 * multiplier));
+  const chancePerSecond = 1 - (1 - chancePerMinute) ** (1 / 60);
   return 3600 * chancePerSecond * baseXp * multiplier;
+}
+
+/** Strength a nocturnal pet has on top of its own right now - the game scales its abilities by it. */
+export function nightStrengthBonus(pet: Pet, now?: number): number {
+  return PET_CATALOG[pet.petSpecies]?.nocturnal ? NIGHT_STRENGTH_BONUS[dayStageAt(now).stage] : 0;
 }
 
 export function teamXpPerHour(pets: Pet[]): number {
   let total = 3600;
   for (const pet of pets) {
     if (pet.hunger <= 0) continue;
-    const strength = petMetrics(pet)?.strength ?? 100;
+    const strength = (petMetrics(pet)?.strength ?? 100) + nightStrengthBonus(pet);
     for (const ability of pet.abilities ?? []) {
       // The weather variants only earn while their weather is running, the same test the passive
       // summary uses - counting them the rest of the time would overstate the rate most of the day.
       if (!abilityActiveInWeather(ability)) continue;
       const xpAbility = xpAbilityRate(ability);
       if (xpAbility) total += abilityXpPerHour(strength, xpAbility.baseChance, xpAbility.baseXp);
+    }
+  }
+  return total * crystalXpRateMultiplier();
+}
+
+/**
+ * XP an hour each active pet earns on average over whole day cycles, for how long levelling takes.
+ * teamXpPerHour is the rate this minute, which a ten-minute Amber Moon multiplies several times over
+ * and any other weather drops back to the base. Here an XP boost that ignores weather counts across
+ * every stage, a nocturnal one at each stage's night strength, and a lunar one (Dawn, Amber Moon) for
+ * its share of the sunrise those events fill, with sunrise's strength. Hydro weather (Rain, Frost,
+ * Thunderstorm) comes when the server says, with no schedule to average over, so its boosts are left
+ * out and the estimate errs long.
+ */
+export function teamXpPerHourAveraged(pets: Pet[]): number {
+  let total = 3600;
+  for (const pet of pets) {
+    if (pet.hunger <= 0) continue;
+    const strength = petMetrics(pet)?.strength ?? 100;
+    const nocturnal = Boolean(PET_CATALOG[pet.petSpecies]?.nocturnal);
+    for (const ability of pet.abilities ?? []) {
+      const xpAbility = xpAbilityRate(ability);
+      if (!xpAbility) continue;
+      const rate = (stage: DayStage) => abilityXpPerHour(strength + (nocturnal ? NIGHT_STRENGTH_BONUS[stage] : 0), xpAbility.baseChance, xpAbility.baseXp);
+      const weather = PASSIVE_REQUIRED_WEATHER.get(ability);
+      if (!weather) total += DAY_STAGES.reduce((sum, stage) => sum + rate(stage) * stageMinutes(stage), 0) / CYCLE_MINUTES;
+      else if (LUNAR_SHARE[weather]) total += rate(LUNAR_STAGE) * LUNAR_SHARE[weather] * stageMinutes(LUNAR_STAGE) / CYCLE_MINUTES;
     }
   }
   return total * crystalXpRateMultiplier();
