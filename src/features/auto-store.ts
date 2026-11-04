@@ -4,7 +4,7 @@ import { sendQuinoaCommand } from '../game-connection.js';
 import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { produceSprite, toolIsHeld } from '../pets.js';
+import { produceSprite, toolIsHeld, toolPouchKeys } from '../pets.js';
 import { state } from '../state.js';
 import { TOOL_IDS } from '../tool-ids.js';
 import { escapeHtml, humanize } from '../utils.js';
@@ -66,6 +66,11 @@ function isBusy(rule: StoreRule, key: string): boolean {
   if ((pauses.get(rule.itemType) ?? 0) > 0) return true;
   if (rule.itemType !== 'Tool') return false;
   return toolIsHeld(key) || state.selectedItemId === key;
+}
+
+/** Pinned in the Tool Pouch: the player put it there to keep it to hand, so it stays in the bag. */
+function isPinned(rule: StoreRule, key: string): boolean {
+  return toolPouchKeys().has(`${rule.itemType}:${key}`);
 }
 
 /**
@@ -190,7 +195,9 @@ function flushSignature(): string {
     .join(',');
   // An id taken off an ignore list has to be looked at again even though nothing in the game moved.
   const ignored = RULES.map(rule => [...ignoredKeys(rule)].join(',')).join('/');
-  return `${inventory}#${storages}#${paused}#${busyTools}#${ignored}`;
+  // Unpinning something has to let it be filed even though the inventory itself has not moved.
+  const pinned = [...toolPouchKeys()].join(',');
+  return `${inventory}#${storages}#${paused}#${busyTools}#${ignored}#${pinned}`;
 }
 
 function flush(): void {
@@ -207,7 +214,7 @@ function flush(): void {
     for (const item of inventoryItems()) {
       if (item.itemType !== rule.itemType) continue;
       const key = rule.key(item);
-      if (!key || !stored.has(key) || ignored.has(key) || isBusy(rule, key) || isTimedTool(item)) continue;
+      if (!key || !stored.has(key) || ignored.has(key) || isBusy(rule, key) || isPinned(rule, key) || isTimedTool(item)) continue;
       if (storageFull(rule, key, stored.get(key)!)) continue;
       const pending = `${rule.storageId}:${key}`;
       if (sentAt.has(pending) || queued.has(pending)) continue;
@@ -231,7 +238,7 @@ function drain(): void {
   queued.delete(next.pending);
   // Rechecked here as well as at queue time: a drag can start while a move for the same tool is
   // still sitting in the queue behind everything else.
-  if (next.rule.enabled() && !ignoredKeys(next.rule).has(next.key) && !isBusy(next.rule, next.key) && !toolHasTimer(next.key) && !storageFullNow(next.rule, next.key)) {
+  if (next.rule.enabled() && !ignoredKeys(next.rule).has(next.key) && !isBusy(next.rule, next.key) && !isPinned(next.rule, next.key) && !toolHasTimer(next.key) && !storageFullNow(next.rule, next.key)) {
     // Marked only once it is away, so the grace covers waiting for the echo rather than the wait
     // in the queue behind everything else.
     try {
@@ -256,9 +263,9 @@ let storageSearch = '';
 
 // [tab label, storage name, what the toggle does]
 const TAB_LABELS: Record<string, [string, string, string]> = {
-  Seed: ['Seeds', 'Seed Silo', 'Move seeds into the Seed Silo when it already holds that species'],
-  Decor: ['Decor', 'Decor Shed', 'Move decor into the Decor Shed when it already holds that item'],
-  Tool: ['Tools', 'Tool Shack', 'Move tools into the Tool Shack when it already holds that tool - one being used, or held, is left alone'],
+  Seed: ['Seeds', 'Seed Silo', 'Move seeds into the Seed Silo when it already holds that species - one pinned in the Tool Pouch is left alone'],
+  Decor: ['Decor', 'Decor Shed', 'Move decor into the Decor Shed when it already holds that item - one pinned in the Tool Pouch is left alone'],
+  Tool: ['Tools', 'Tool Shack', 'Move tools into the Tool Shack when it already holds that tool - one being used, held or pinned in the Tool Pouch is left alone'],
 };
 
 function itemLabel(rule: StoreRule, id: string): string {

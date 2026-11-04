@@ -5,6 +5,7 @@ import { catalogMutationMultiplier } from './mutation-value.js';
 import { sendQuinoaCommand } from './game-connection.js';
 import { page } from './page.js';
 import { state } from './state.js';
+import { TOOL_IDS } from './tool-ids.js';
 import { escapeHtml, humanize, NUMBER_LOCALE, waitFor } from './utils.js';
 
 /** Everything derived from the player's pets: where they are, how they look, and how strong they are. */
@@ -472,11 +473,55 @@ export function formatEstimate(seconds: number): string {
 const TOOL_SHACK = 'ToolShack';
 /** The game refuses an item at this many loose slots unless it can stack onto one already there. */
 const INVENTORY_SLOTS = 100;
+/** Most items the Tool Pouch pins (build 1884 `Xt`); a later pin is ignored. */
+const TOOL_POUCH_SLOTS = 5;
 
 type ToolRow = { itemType?: string; toolId?: string; quantity?: number };
+type InventoryRow = ToolRow & { id?: string; species?: string; eggId?: string; decorId?: string };
 
 function looseItems(): ToolRow[] {
   return (state.slot?.data?.inventory?.items || []) as unknown as ToolRow[];
+}
+
+/** An item's key as the game's `B` makes it: the instance id for one-offs, else the stack id. */
+function inventoryKey(item: InventoryRow): string | null {
+  const id = (() => {
+    switch (item?.itemType) {
+      case 'Produce': case 'Plant': case 'Pet': return item.id;
+      case 'Seed': return item.species;
+      case 'Tool': return 'id' in item ? item.id : item.toolId;
+      case 'Egg': return item.eggId;
+      case 'Decor': return item.decorId;
+      default: return undefined;
+    }
+  })();
+  return id ? `${item.itemType}:${id}` : null;
+}
+
+/**
+ * Keys of the items pinned in the Tool Pouch, by the game's own rule (build 1884 inventory `I`):
+ * `toolRing` in order, each key once, kept when it names a catalog stack - a seed, egg, decor or a
+ * tool in TOOL_IDS stays pinned even at none - or a one-off still in the bag, and only the first
+ * five. A running shard is a one-off, so its pin drops out once the shard is gone.
+ */
+export function toolPouchKeys(): Set<string> {
+  const items = looseItems() as InventoryRow[];
+  const keys = new Set<string>();
+  for (const pin of state.slot?.data?.inventory?.toolRing || []) {
+    if (keys.size === TOOL_POUCH_SLOTS) break;
+    if (!pin?.itemType || !pin.id) continue;
+    const key = `${pin.itemType}:${pin.id}`;
+    const stackable = ['Seed', 'Egg', 'Decor'].includes(pin.itemType) || (pin.itemType === 'Tool' && TOOL_IDS.includes(pin.id));
+    const held = items.some(item => inventoryKey(item) === key && ('id' in item || Number(item.quantity || 0) > 0));
+    if (stackable || held) keys.add(key);
+  }
+  return keys;
+}
+
+/** Loose slots in use. Whatever is pinned in the Tool Pouch sits there instead and takes none. */
+function usedInventorySlots(): number {
+  const pinned = toolPouchKeys();
+  return (looseItems() as InventoryRow[]).filter(item => !pinned.has(inventoryKey(item) ?? '')).length;
 }
 
 function shackItems(): ToolRow[] {
@@ -507,21 +552,23 @@ export function heldToolCount(toolId: string): number {
 
 /** Loose slots still open. Nothing stackable needs one, so this is a floor rather than a budget. */
 export function freeInventorySlots(): number {
-  return Math.max(0, INVENTORY_SLOTS - looseItems().length);
+  return Math.max(0, INVENTORY_SLOTS - usedInventorySlots());
 }
 
 /**
- * Whether a retrieval would be accepted, by the game's own rule: full at a hundred loose slots,
- * except that a tool with a stack already out merges into it and needs no slot of its own.
+ * Whether a retrieval would be accepted, by the game's own rule: full at a hundred loose slots
+ * (Tool Pouch pins not counted), except that a tool with a stack already out merges into it, and a
+ * tool pinned in the Tool Pouch goes back to its pin, so neither needs a slot of its own.
  *
  * `reserveSlots` is for a caller that is about to be handed something else as well - potting a plant
  * gives back a Plant item, and a Plant does not stack, so it needs a slot of its very own on top of
  * whatever the pot costs.
  */
 function inventoryCanTakeTool(toolId: string, reserveSlots: number): boolean {
-  const items = looseItems();
-  const stacks = items.some(item => item?.itemType === 'Tool' && item.toolId === toolId);
-  return items.length + (stacks ? 0 : 1) + reserveSlots <= INVENTORY_SLOTS;
+  const stacks = looseItems().some(item => item?.itemType === 'Tool' && item.toolId === toolId);
+  // A tool pinned in the Tool Pouch comes back into its pin, not a slot.
+  const needsSlot = !stacks && !toolPouchKeys().has(`Tool:${toolId}`);
+  return usedInventorySlots() + (needsSlot ? 1 : 0) + reserveSlots <= INVENTORY_SLOTS;
 }
 
 /**

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mock, test } from 'node:test';
 import { noteGameSocket } from '../src/game-connection.js';
 import {
-  allActivePetsStarving, ensureToolReady, formatEstimate, heldToolCount, holdTool, hungerSecondsRemaining, petIsStarving,
+  allActivePetsStarving, ensureToolReady, formatEstimate, freeInventorySlots, heldToolCount, holdTool, hungerSecondsRemaining, petIsStarving,
   petMetrics, teamXpPerHour, toolIsHeld,
 } from '../src/pets.js';
 import { state } from '../src/state.js';
@@ -94,4 +94,22 @@ test('a tool is fetched from the Tool Shack when none is loose', async () => {
   state.slot = { data: { inventory: { items: [{ itemType: 'Tool', toolId: 'XPPotion', quantity: 1 }], storages: [shack] } } } as unknown as PlayerSlot;
   assert.equal(await ready, true);
   assert.deepEqual(socket.commands()[0], { type: 'MoveItem', from: 'ToolShack', to: 'inventory', itemId: 'XPPotion', quantity: 1 });
+});
+
+test('items pinned in the Tool Pouch take no loose slot', () => {
+  const items = [
+    { itemType: 'Tool', toolId: 'Shovel', quantity: 1 },
+    { itemType: 'Pet', id: 'p1', petSpecies: 'Bee' },
+    { itemType: 'Seed', species: 'Carrot', quantity: 4 },
+    ...Array.from({ length: 97 }, (_, i) => ({ itemType: 'Produce', id: `c${i}`, species: 'Carrot' })),
+  ];
+  const slot = (toolRing: unknown[]) => ({ data: { inventory: { items, storages: [], toolRing } } }) as unknown as PlayerSlot;
+  state.slot = slot([]);
+  assert.equal(freeInventorySlots(), 0);
+  // Duplicates count once, a gone shard or pet is skipped, and only the first five pins hold.
+  state.slot = slot([
+    { itemType: 'Tool', id: 'Shovel' }, { itemType: 'Tool', id: 'Shovel' }, { itemType: 'Tool', id: 'shard-gone' }, { itemType: 'Pet', id: 'gone' }, { itemType: 'Pet', id: 'p1' },
+    { itemType: 'Tool', id: 'Camera' }, { itemType: 'Egg', id: 'CommonEgg' }, { itemType: 'Tool', id: 'WateringCan' }, { itemType: 'Seed', id: 'Carrot' },
+  ]);
+  assert.equal(freeInventorySlots(), 2);
 });

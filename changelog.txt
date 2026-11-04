@@ -1,3 +1,7 @@
+0.9.92
+- Items pinned in the Tool Pouch no longer count as taking an inventory slot
+- Auto Storage leaves items pinned in the Tool Pouch in your bag
+
 0.9.91
 - Night alarm keeps working after the Haunt event ends
 - Cinematic button stays docked with unread chat

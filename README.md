@@ -21,7 +21,7 @@ actions. It does not perform unattended gameplay.
 - Crop Protection tab that blocks harvests on protected crops, chosen by mutation, maximum size, or species, with a padlock shown on the game's own crop card
 - Preserve All button at the preservation station that preserves every ready slot on the held plant, showing the total coin cost before you commit
 - Crop Cleanser helper for finding mature crops by mutation and cleansing individual slots
-- Optional auto-store moving seeds into the Seed Silo and decor into the Decor Shed, only where the storage already holds a matching stack
+- Optional auto-store moving seeds into the Seed Silo and decor into the Decor Shed, only where the storage already holds a matching stack; anything pinned in the Tool Pouch stays in your bag
 - Layout planner for arranging plants and decor on your own tiles, with mutations, crop sizes, and saved layouts
 - Celestial layout guide for arranging Moonbinder, Dawnbinder, Dawnbreaker, and Starweaver plants on either farm side, with game-rendered plant overlays, Amberbound, Dawnbound, or combined coverage, and live red or green placement feedback
 - Farm Manager window with a top-down map of your garden for moving plants by drag and drop, potting them into your inventory, and planting potted plants or seeds from your inventory or Seed Silo

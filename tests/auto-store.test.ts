@@ -64,6 +64,26 @@ test('a tool in use, or a running crystal, stays out', () => {
   config.autoStoreSeeds = false;
 });
 
+test('whatever is pinned in the Tool Pouch stays in the bag until unpinned', () => {
+  socket.sent.length = 0;
+  config.autoStoreTools = true;
+  config.autoStoreSeeds = true;
+  const items = [{ itemType: 'Tool', toolId: 'Shovel', quantity: 1 }, { itemType: 'Tool', toolId: 'CropCleanser', quantity: 3 }, { itemType: 'Seed', species: 'Carrot', quantity: 2 }];
+  const storages = [
+    { decorId: 'ToolShack', items: [{ itemType: 'Tool', toolId: 'Shovel' }, { itemType: 'Tool', toolId: 'CropCleanser' }] },
+    { decorId: 'SeedSilo', items: [{ itemType: 'Seed', species: 'Carrot' }] },
+  ];
+  const pinned = (toolRing: unknown[]) => { state.slot = { data: { inventory: { items, storages, toolRing } } } as unknown as PlayerSlot; };
+  pinned([{ itemType: 'Tool', id: 'Shovel' }, { itemType: 'Seed', id: 'Carrot' }]);
+  run();
+  assert.deepEqual(stores().map(command => command.itemId), ['CropCleanser']);
+  pinned([{ itemType: 'Seed', id: 'Carrot' }]);
+  run();
+  assert.deepEqual(stores().map(command => command.itemId), ['CropCleanser', 'Shovel']);
+  config.autoStoreTools = false;
+  config.autoStoreSeeds = false;
+});
+
 test('a pause holds a kind back until every pause on it is released', async () => {
   const { pauseAutoStore } = await import('../src/features/auto-store.js');
   socket.sent.length = 0;

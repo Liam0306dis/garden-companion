@@ -125,7 +125,8 @@ export interface PlayerData {
     produce?: Record<string, { variantsLogged?: Array<{ variant?: string; createdAt?: number }> }>;
     pets?: Record<string, { variantsLogged?: Array<{ variant?: string; createdAt?: number }>; abilitiesLogged?: Array<{ ability?: string; createdAt?: number }> }>;
   };
-  inventory?: { items?: Pet[]; storages?: InventoryStorage[] };
+  /** `toolRing` is the Tool Pouch (build 1884): up to five pinned `{ itemType, id }`, which take no loose slot. */
+  inventory?: { items?: Pet[]; storages?: InventoryStorage[]; toolRing?: Array<{ itemType?: string; id?: string }> };
   garden?: { tileObjects?: Record<string, GardenTile>; boardwalkTileObjects?: Record<string, GardenTile> };
 }
 
