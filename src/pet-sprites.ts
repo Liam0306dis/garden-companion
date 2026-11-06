@@ -152,6 +152,9 @@ const EMBLEM_ICON_SPRITES: Record<string, string> = {
   thunderstruck: 'MutationThunderstruck', dawnbound: 'MutationDawncharged', amberbound: 'MutationAmbercharged',
   weatherRain: 'RainIcon', weatherSnow: 'FrostIcon', weatherThunderstorm: 'ThunderstormIcon',
   weatherDawn: 'DawnIcon', weatherAmberMoon: 'AmberMoonIcon',
+  moneyBag: 'MoneyBag', seed: 'SeedIconColor', plant: 'PlantIconColor', crop: 'CropIconColor',
+  planter: 'PlanterIconColor', decor: 'DecorIconColor', singleEgg: 'EggIconColor', pet: 'PetIconColor',
+  strength: 'StrengthStar', sunny: 'SunnyIcon', sunset: 'SunsetIcon', midnight: 'MidnightIcon', sunrise: 'SunriseIcon',
   // The one emblem the game draws from its item atlas rather than its interface one.
   magicDust: 'sprite/item/MagicDust',
 };

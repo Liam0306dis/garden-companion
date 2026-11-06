@@ -1,3 +1,7 @@
+0.9.95
+- Crop values and timers on the crop card no longer slide behind the Harvest button (game update 1940)
+- Pet team emblems: added the 13 new icons from game update 1940 (money bag, seed, plant, crop, planter, decor, single egg, pet, strength, sunny, sunset, midnight, sunrise)
+
 0.9.94
 - Produce bar hides while the Tool Pouch is open
 

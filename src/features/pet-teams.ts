@@ -19,7 +19,8 @@ import { escapeHtml, humanize } from '../utils.js';
  */
 export function teams() { return state.slot?.data?.petTeams || []; }
 
-const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'thunderstruck', 'dawn', 'dawnbound', 'amber', 'amberbound', 'wet', 'chilled', 'frozen', 'coin', 'magicDust', 'egg', 'size', 'weatherRain', 'weatherSnow', 'weatherThunderstorm', 'weatherDawn', 'weatherAmberMoon'];
+// Same order as the game's emblem icon enum (bundle 1940 added moneyBag, seed..strength, sunny and the night stages).
+const EMBLEM_ICONS = ['rainbow', 'gold', 'thunder', 'thunderstruck', 'dawn', 'dawnbound', 'amber', 'amberbound', 'wet', 'chilled', 'frozen', 'coin', 'moneyBag', 'magicDust', 'seed', 'plant', 'crop', 'size', 'planter', 'decor', 'egg', 'singleEgg', 'pet', 'strength', 'sunny', 'weatherRain', 'weatherSnow', 'weatherThunderstorm', 'weatherDawn', 'weatherAmberMoon', 'sunset', 'midnight', 'sunrise'];
 const EMBLEM_ICON_LABELS: Record<string, string> = {
   weatherRain: 'Rain', weatherSnow: 'Snow', weatherThunderstorm: 'Thunderstorm', weatherDawn: 'Dawn', weatherAmberMoon: 'Amber Moon',
 };

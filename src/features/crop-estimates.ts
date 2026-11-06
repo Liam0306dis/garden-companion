@@ -192,6 +192,21 @@ function decorateGardenCardState(nextState: GardenCardState, signature = nativeE
 
 type PixiNode = Record<string, any>;
 
+/**
+ * The card view's sections in stacking order. Bundle 1940 split the old `sections` array into
+ * context / orient / subject groups behind `allSections()`; older builds still expose `sections`.
+ * Missing this left the card's stored height stale, so it grew down behind the Harvest button.
+ */
+function cardSections(view: PixiNode): PixiNode[] {
+  if (typeof view.allSections === 'function') return view.allSections() || [];
+  return Array.isArray(view.sections) ? view.sections : [];
+}
+
+/** The card the game pops on a page turn: `pageTurnPopTarget` now, `cropPopTarget` in older builds. */
+function cardPopTarget(view: PixiNode): PixiNode | null {
+  return view.pageTurnPopTarget ?? view.cropPopTarget ?? null;
+}
+
 function nativeEstimateChip(node: PixiNode): PixiNode | null {
   let chip = node;
   while (chip.parent && !['GardenInfoAttributeRow', 'GardenInfoAttributeBand'].includes(chip.parent.label)) chip = chip.parent;
@@ -388,7 +403,7 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
 
   const badge = frame?.getChildByLabel?.('GardenInfoPreservedBadge');
   if (badge) badge.x += extraWidth;
-  const section = (view.sections || []).find((candidate: PixiNode) => candidate.container === frame || candidate.container === frame?.parent);
+  const section = cardSections(view).find((candidate: PixiNode) => candidate.container === frame || candidate.container === frame?.parent);
   if (!section) return;
   // The crop picture overhangs the bottom of a short card; a taller card swallows some of that.
   const overhang = Math.max(0, Number(section.height) - Number(card.y) - oldHeight);
@@ -404,9 +419,10 @@ function relayoutNativeEstimates(view: PixiNode, signature: string): void {
   const left = section.container.getChildByLabel?.('GardenInfoBrowseButton:left');
   if (right) right.x += extraWidth;
   for (const button of [left, right]) if (button) button.y += extraHeight;
-  if (view.cropPopTarget?.container === frame) {
-    view.cropPopTarget.width += extraWidth;
-    view.cropPopTarget.height += heightChange;
+  const popTarget = cardPopTarget(view);
+  if (popTarget && popTarget.container === frame) {
+    popTarget.width += extraWidth;
+    popTarget.height += heightChange;
   }
 }
 
@@ -480,7 +496,7 @@ function pinLockToCorner(lock: PixiNode, card: PixiNode, frame: PixiNode, cardWi
   const badge = frame.getChildByLabel?.('GardenInfoPreservedBadge');
   if (badge && Number(badge.x) + Number(badge.width) > left - 2) badge.x = left - 2 - Number(badge.width);
   // The section above may lean into this one's top edge; keep it clear of the padlock's overhang.
-  const section = (view.sections || []).find((candidate: PixiNode) => candidate.container === frame || candidate.container === frame.parent);
+  const section = cardSections(view).find((candidate: PixiNode) => candidate.container === frame || candidate.container === frame.parent);
   if (section?.topOverhang && section.topOverhang.openToXPx > left - 4) section.topOverhang.openToXPx = left - 4;
   return left;
 }
@@ -492,7 +508,7 @@ function pinLockToCorner(lock: PixiNode, card: PixiNode, frame: PixiNode, cardWi
 function fitCardSectionHeight(view: PixiNode): boolean {
   const row = view.container?.getChildByLabel?.('GardenInfoCardRow', true);
   if (!row || typeof row.getLocalBounds !== 'function') return false;
-  const section = (view.sections || []).find((candidate: PixiNode) => candidate.container === row);
+  const section = cardSections(view).find((candidate: PixiNode) => candidate.container === row);
   if (!section) return false;
   const bounds = row.getLocalBounds();
   const drawn = Math.ceil(Number(bounds.y) + Number(bounds.height));
