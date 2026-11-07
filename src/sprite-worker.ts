@@ -5,10 +5,10 @@
  * a single blocking call, and encoding a few hundred PNGs adds up to more; here neither can hold a
  * frame of the game.
  *
- * Current pets are not in any atlas - they exist only in the game's Rive file - so they are drawn
- * here too, with Rive's low-level runtime. Starting that runtime and parsing the pet file were the
+ * Current pets are not in any atlas - they exist only in the game's Rive files - so they are drawn
+ * here too, with Rive's low-level runtime. Starting that runtime and parsing the pet files were the
  * last long stalls left on the main thread. Each pet needs one still frame, so there is no render
- * loop: the file is parsed once and every pet is posed and drawn a single time.
+ * loop: each file is parsed once and its pets are posed and drawn a single time.
  *
  * Built on its own and started from a blob url by the sprite loader, which falls back to doing the
  * same work itself if a page refuses workers. Both libraries arrive as messages, and only when there
@@ -37,7 +37,12 @@ interface RiveLow {
   Alignment: { center: unknown };
   resolveAnimationFrame(): void;
 }
-interface RiveFile { artboardByName(name: string): RiveArtboard | null; delete(): void }
+interface RiveFile {
+  artboardByName(name: string): RiveArtboard | null;
+  artboardCount?(): number;
+  artboardByIndex?(index: number): RiveArtboard | null;
+  delete(): void;
+}
 interface RiveArtboard {
   bounds: unknown;
   stateMachineByName(name: string): unknown;
@@ -58,7 +63,7 @@ type Request =
   | { type: 'init' }
   | { type: 'basis'; wasm: ArrayBuffer }
   | { type: 'decode'; id: number; sheetUrl: string; jobs: CropJob[] }
-  | { type: 'rive'; id: number; source: string; file: ArrayBuffer; pets: Array<[species: string, artboard: string]> };
+  | { type: 'rive'; id: number; source: string; files: Array<{ file: ArrayBuffer; pets: Array<[species: string, artboard: string]> }> };
 
 declare function importScripts(...urls: string[]): void;
 
@@ -73,7 +78,7 @@ scope.onmessage = event => {
   if (request.type === 'init') init();
   else if (request.type === 'basis') loadBasis(request.wasm);
   else if (request.type === 'decode') queue = queue.then(() => decode(request.id, request.sheetUrl, request.jobs));
-  else if (request.type === 'rive') queue = queue.then(() => renderPets(request.id, request.source, request.file, request.pets));
+  else if (request.type === 'rive') queue = queue.then(() => renderPets(request.id, request.source, request.files));
 };
 
 function init(): void {
@@ -261,10 +266,38 @@ function trimToContent(source: OffscreenCanvas): OffscreenCanvas | null {
   return output;
 }
 
-async function renderPets(id: number, source: string, fileBytes: ArrayBuffer, pets: Array<[string, string]>): Promise<void> {
+async function renderPets(id: number, source: string, files: Array<{ file: ArrayBuffer; pets: Array<[string, string]> }>): Promise<void> {
+  let runtime: RiveLow;
+  try { runtime = await riveRuntime(source); }
+  catch (error) {
+    scope.postMessage({ id, pets: null, error: String(error) });
+    return;
+  }
+  const results: Array<[string, string]> = [];
+  // Reported back by index, so the page can draw just those files itself rather than lose their pets.
+  const failed: number[] = [];
+  for (const [index, { file: fileBytes, pets }] of files.entries()) {
+    try { results.push(...await renderFile(runtime, fileBytes, pets)); } catch { failed.push(index); }
+  }
+  scope.postMessage({ id, pets: results, failed });
+}
+
+/**
+ * The artboard to draw a pet from. A file holding a single artboard is that pet's own, so a name that
+ * stops matching its species id still finds it rather than leaving the pet blank.
+ */
+function petArtboard(file: RiveFile, name: string): RiveArtboard | null {
+  // Some runtime versions throw for a name they do not have rather than returning null.
+  try {
+    const named = file.artboardByName(name);
+    if (named) return named;
+  } catch {}
+  try { return file.artboardCount?.() === 1 ? file.artboardByIndex?.(0) ?? null : null; } catch { return null; }
+}
+
+async function renderFile(runtime: RiveLow, fileBytes: ArrayBuffer, pets: Array<[string, string]>): Promise<Array<[string, string]>> {
   let file: RiveFile | null = null;
   try {
-    const runtime = await riveRuntime(source);
     file = await runtime.load(new Uint8Array(fileBytes));
     await imagesReady();
     const results: Array<[string, string]> = [];
@@ -274,7 +307,7 @@ async function renderPets(id: number, source: string, fileBytes: ArrayBuffer, pe
       let machine: { advance(seconds: number): void; delete(): void } | null = null;
       let renderer: RiveRenderer | null = null;
       try {
-        artboard = file.artboardByName(artboardName);
+        artboard = petArtboard(file, artboardName);
         if (!artboard) continue;
         // The state machine sets the pet's resting pose; advancing by zero applies it without
         // moving time on, which is the still frame an icon wants.
@@ -302,9 +335,7 @@ async function renderPets(id: number, source: string, fileBytes: ArrayBuffer, pe
         try { renderer?.delete(); } catch {}
       }
     }
-    scope.postMessage({ id, pets: results });
-  } catch (error) {
-    scope.postMessage({ id, pets: null, error: String(error) });
+    return results;
   } finally {
     try { file?.delete(); } catch {}
   }

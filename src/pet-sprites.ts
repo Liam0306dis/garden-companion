@@ -203,33 +203,50 @@ async function detectAssetBases(): Promise<string[]> {
 }
 
 /**
- * Every Rive file of pets, `rive/pets` first. Build 1598 put the Haunt event's pets (Moth, Snake, Toad)
+ * A Rive file of pets. `species` is set for a file that holds one pet, drawn from an artboard named
+ * after it; a file without it holds many, each found by its artboard name.
+ */
+interface PetRiveFile { url: string; species: string | null }
+
+interface AssetSources { atlasPaths: string[]; petRive: PetRiveFile[] }
+
+/**
+ * Files holding many pets, `rive/pets` first. Build 1598 put the Haunt event's pets (Moth, Snake, Toad)
  * in a file of their own, `rive/halloween-pets`, so only reading `rive/pets` left them without art.
  */
 const PET_RIVE_ALIAS = /^rive\/(?:[\w-]+-)?pets(?:\.riv)?$/;
 
-async function assetSources(assetsBase: string): Promise<{ atlasPaths: string[]; petRiveUrls: string[] }> {
+/**
+ * Build 1940 split them up: one file per pet, `rive/pets/<species>`, whose single artboard is named
+ * after the species id itself - the game asks for `rive/pets/${species}` with that artboard. Reading
+ * only the combined file's alias found nothing at all, and every current pet went without art.
+ */
+const SINGLE_PET_RIVE_ALIAS = /^rive\/pets\/(\w+?)(?:\.riv)?$/;
+
+async function assetSources(assetsBase: string): Promise<AssetSources> {
   try {
     const response = await fetch(`${assetsBase}manifest.json`);
-    if (!response.ok) return { atlasPaths: [], petRiveUrls: [] };
+    if (!response.ok) return { atlasPaths: [], petRive: [] };
     const manifest = await response.json() as AssetManifest;
     const paths = new Set<string>();
-    const petRiveUrls: string[] = [];
+    const petRive: PetRiveFile[] = [];
     for (const bundle of manifest.bundles ?? []) {
       for (const asset of bundle.assets ?? []) {
         const source = bestSource(asset.src ?? []);
         if (!source) continue;
         if (source.startsWith('atlases/') && source.endsWith('.json')) paths.add(source);
-        if (asset.alias?.some(alias => PET_RIVE_ALIAS.test(alias))) {
-          const url = new URL(source, assetsBase).href;
-          if (asset.alias.some(alias => alias.startsWith('rive/pets'))) petRiveUrls.unshift(url);
-          else petRiveUrls.push(url);
+        const single = asset.alias?.map(alias => alias.match(SINGLE_PET_RIVE_ALIAS)?.[1]).find(Boolean);
+        if (single) petRive.push({ url: new URL(source, assetsBase).href, species: single });
+        else if (asset.alias?.some(alias => PET_RIVE_ALIAS.test(alias))) {
+          const file = { url: new URL(source, assetsBase).href, species: null };
+          if (asset.alias.some(alias => alias.startsWith('rive/pets'))) petRive.unshift(file);
+          else petRive.push(file);
         }
       }
     }
-    return { atlasPaths: [...paths], petRiveUrls };
+    return { atlasPaths: [...paths], petRive };
   } catch {
-    return { atlasPaths: [], petRiveUrls: [] };
+    return { atlasPaths: [], petRive: [] };
   }
 }
 
@@ -318,15 +335,26 @@ function canvasToDataUrl(canvas: HTMLCanvasElement): Promise<string> {
 }
 
 /**
- * Pets whose Rive artboard is not named after the species. The game keeps the same table - a single
- * entry, `{RedFox: 'Red Fox'}` - so this follows it rather than guessing at a spacing rule.
+ * Pets whose artboard in a combined Rive file is not named after the species. The game kept the same
+ * table - a single entry, `{RedFox: 'Red Fox'}` - so this follows it rather than guessing at a spacing
+ * rule. A file of one pet names its artboard after the species id, Red Fox included.
  */
 const PET_ARTBOARD_NAMES: Record<string, string> = { RedFox: 'Red Fox' };
+
+/** The pets to draw from one Rive file, by species and the artboard each is drawn from. */
+type PetArtboards = Array<[species: string, artboard: string]>;
+
+/**
+ * One Rive file to draw from. `own` marks a file that is a single pet's own, so drawing nothing from
+ * it means the file failed; a combined file is asked for every pet still missing, and holding none of
+ * them is an answer, not a failure.
+ */
+interface PetFileJob { url: string; pets: PetArtboards; own: boolean }
 
 /** Where a pet is drawn from: the file parsed once, or the raw bytes on runtimes without RiveFile. */
 type RiveSource = { riveFile: unknown } | { buffer: ArrayBuffer };
 
-async function renderRivePet(runtime: RiveRuntime, source: RiveSource, canvas: HTMLCanvasElement, species: string): Promise<string | null> {
+async function renderRivePet(runtime: RiveRuntime, source: RiveSource, canvas: HTMLCanvasElement, artboard: string): Promise<string | null> {
   const trimmed = await new Promise<HTMLCanvasElement | null>(resolve => {
     let settled = false;
     let instance: InstanceType<RiveRuntime['Rive']> | null = null;
@@ -345,7 +373,7 @@ async function renderRivePet(runtime: RiveRuntime, source: RiveSource, canvas: H
       instance = new runtime.Rive({
         ...('buffer' in source ? { buffer: source.buffer.slice(0) } : source),
         canvas,
-        artboard: PET_ARTBOARD_NAMES[species] ?? species,
+        artboard,
         stateMachines: 'Pet State Machine',
         // Not played: an icon needs one still frame, and a playing pet re-renders every frame while
         // we wait for it. Paused, resizing the surface draws that frame on the spot.
@@ -368,37 +396,86 @@ async function renderRivePet(runtime: RiveRuntime, source: RiveSource, canvas: H
   return trimmed ? canvasToDataUrl(trimmed) : null;
 }
 
+async function riveBytes(url: string): Promise<ArrayBuffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${url} answered ${response.status}.`);
+  return response.arrayBuffer();
+}
+
+/**
+ * The pet files, a few at a time. This runs while the game is still downloading its own assets, and
+ * a file per pet is a few dozen requests to put in front of those all at once.
+ */
+async function fetchRiveFiles(urls: string[], limit = 6): Promise<Array<ArrayBuffer | null>> {
+  const results: Array<ArrayBuffer | null> = new Array(urls.length).fill(null);
+  let next = 0;
+  let failed = 0;
+  let firstError: unknown;
+  const lane = async () => {
+    while (next < urls.length) {
+      const index = next++;
+      try { results[index] = await riveBytes(urls[index]); }
+      catch (error) { failed++; firstError ??= error; }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, urls.length) }, lane));
+  if (failed) warn(`${failed} pet animation file${failed === 1 ? '' : 's'} could not be downloaded.`, firstError);
+  return results;
+}
+
 /**
  * Current pets, drawn in the sprite worker where it will run - none of Rive's work then touches the
  * game's thread - and on the main thread otherwise.
+ *
+ * Every file is handed to the worker in one request. Since build 1940 that is a file per pet, and one
+ * request per file would have sent the worker Rive's runtime source each time. A file the worker
+ * could not parse is drawn here instead, as the whole request used to be. `complete` is false when
+ * any file failed outright, so a load with pets missing is not cached.
  */
-async function petFrames(url: string, species: string[]): Promise<Map<string, string>> {
+async function petFrames(files: PetFileJob[]): Promise<{ frames: Map<string, string>; complete: boolean }> {
+  const frames = new Map<string, string>();
+  const fetched = await fetchRiveFiles(files.map(file => file.url));
+  let complete = fetched.every(Boolean);
+  let loaded = fetched.flatMap((bytes, index) => (bytes ? [{ bytes, pets: files[index].pets, own: files[index].own }] : []));
+  if (!loaded.length) return { frames, complete };
   const worker = await spriteWorker();
   if (worker) {
     try {
-      const [source, response] = await Promise.all([vendorText(RIVE_LOW_LEVEL_URL), fetch(url)]);
-      if (!response.ok) throw new Error('Pet animation file could not be loaded.');
-      const pets = await worker.rive(source, await response.arrayBuffer(), species.map(name => [name, PET_ARTBOARD_NAMES[name] ?? name]));
-      if (pets) return new Map(pets.map(([name, image]) => [normaliseKey(`sprite/pet/${name}`), image]));
+      // Copies go over, so the bytes are still here for the fallback if the worker fails.
+      const drawn = await worker.rive(await vendorText(RIVE_LOW_LEVEL_URL), loaded.map(({ bytes, pets }) => ({ file: bytes.slice(0), pets })));
+      if (drawn) {
+        for (const [name, image] of drawn.pets) frames.set(normaliseKey(`sprite/pet/${name}`), image);
+        loaded = loaded.filter((_, index) => drawn.failed.includes(index));
+      }
     } catch (error) {
       warn('Pets could not be drawn in the worker; drawing them here instead.', error);
     }
   }
-  return loadRivePetFrames(url, species);
+  for (const { bytes, pets, own } of loaded) {
+    try {
+      const drawn = await loadRivePetFrames(bytes, pets);
+      // Rive reports an unreadable file one pet at a time, as pets that never load, so a pet's own
+      // file that gave nothing is the file failing - not a load worth caching.
+      if (own && !drawn.size) throw new Error('No pet could be drawn from a pet animation file.');
+      for (const [key, image] of drawn) frames.set(key, image);
+    } catch (error) {
+      complete = false;
+      warn('Current pet animations could not be rendered.', error);
+    }
+  }
+  return { frames, complete };
 }
 
 /**
- * Every current pet is drawn through Rive, which runs on the main thread - so this is the part of
- * sprite loading the worker cannot take. What it can do is not repeat itself: the animation file
- * holds every pet with its images embedded, and handing each pet the raw bytes made Rive parse the
- * whole file, images and all, once per pet. Parsed once and shared, that cost is paid a single time.
- * One hidden canvas serves every pet, and the thread is handed back between pets so the game gets a
- * frame in between each one.
+ * The pets in one Rive file, drawn on the main thread - the fallback for a page that refuses the
+ * worker, or a file the worker could not parse. The file is parsed once and shared by its pets:
+ * handing each pet the raw bytes made Rive parse the whole file, images and all, once per pet, which
+ * mattered when one file held every pet and still saves a parse per pet in a combined file. One
+ * hidden canvas serves every pet, and the thread is handed back between pets so the game gets a frame
+ * in between each one.
  */
-async function loadRivePetFrames(url: string, species: string[]): Promise<Map<string, string>> {
-  const [runtime, response] = await Promise.all([riveRuntime(), fetch(url)]);
-  if (!response.ok) throw new Error('Pet animation file could not be loaded.');
-  const buffer = await response.arrayBuffer();
+async function loadRivePetFrames(buffer: ArrayBuffer, pets: PetArtboards): Promise<Map<string, string>> {
+  const runtime = await riveRuntime();
   let riveFile: { init(): Promise<void>; getInstance(): unknown; cleanup(): void } | null = null;
   if (runtime.RiveFile) {
     try {
@@ -419,8 +496,8 @@ async function loadRivePetFrames(url: string, species: string[]): Promise<Map<st
   (document.body || document.documentElement).appendChild(canvas);
   const frames = new Map<string, string>();
   try {
-    for (const name of species) {
-      const image = await renderRivePet(runtime, source, canvas, name);
+    for (const [name, artboard] of pets) {
+      const image = await renderRivePet(runtime, source, canvas, artboard);
       if (image) frames.set(normaliseKey(`sprite/pet/${name}`), image);
       await yieldToBrowser();
     }
@@ -570,8 +647,11 @@ function wasmBytes(): Promise<ArrayBuffer> {
 interface SpriteWorker {
   /** The sheet's sprites, or null when the sheet itself could not be fetched or decoded. */
   decode(sheetUrl: string, jobs: CropJob[]): Promise<CropResult[] | null>;
-  /** Each pet drawn from the Rive file, or null when the runtime or the file failed outright. */
-  rive(source: string, file: ArrayBuffer, pets: Array<[species: string, artboard: string]>): Promise<Array<[string, string]> | null>;
+  /**
+   * Each pet drawn from the Rive files, and the index of every file that could not be parsed; null
+   * when the runtime itself failed.
+   */
+  rive(source: string, files: Array<{ file: ArrayBuffer; pets: PetArtboards }>): Promise<{ pets: Array<[string, string]>; failed: number[] } | null>;
 }
 
 let workerStart: Promise<SpriteWorker | null> | null = null;
@@ -586,14 +666,14 @@ async function startSpriteWorker(): Promise<SpriteWorker | null> {
   let worker: Worker;
   const url = URL.createObjectURL(new Blob([__SPRITE_WORKER__], { type: 'text/javascript' }));
   try { worker = new Worker(url); } catch { URL.revokeObjectURL(url); return null; }
-  const pending = new Map<number, (message: { results?: CropResult[] | null; pets?: Array<[string, string]> | null }) => void>();
+  const pending = new Map<number, (message: { results?: CropResult[] | null; pets?: Array<[string, string]> | null; failed?: number[] }) => void>();
   let nextId = 0;
   // A strict content policy can refuse the worker without throwing, which surfaces only as an error
   // event - or as nothing at all - so readiness is a reply from the worker, with a deadline.
   const ready = await new Promise<boolean>(resolve => {
     const timer = window.setTimeout(() => resolve(false), 10_000);
     worker.onmessage = event => {
-      const message = event.data as { type?: string; id?: number; results?: CropResult[] | null; pets?: Array<[string, string]> | null };
+      const message = event.data as { type?: string; id?: number; results?: CropResult[] | null; pets?: Array<[string, string]> | null; failed?: number[] };
       if (message.type === 'ready' || message.type === 'unsupported') { window.clearTimeout(timer); resolve(message.type === 'ready'); return; }
       if (typeof message.id !== 'number') return;
       pending.get(message.id)?.(message);
@@ -612,7 +692,7 @@ async function startSpriteWorker(): Promise<SpriteWorker | null> {
     worker.terminate();
   };
   const request = (message: Record<string, unknown>, transfer: Transferable[] = []) =>
-    new Promise<{ results?: CropResult[] | null; pets?: Array<[string, string]> | null }>(resolve => {
+    new Promise<{ results?: CropResult[] | null; pets?: Array<[string, string]> | null; failed?: number[] }>(resolve => {
       const id = ++nextId;
       pending.set(id, resolve);
       worker.postMessage({ ...message, id }, transfer);
@@ -630,7 +710,10 @@ async function startSpriteWorker(): Promise<SpriteWorker | null> {
       if (!await sendBasis()) return null;
       return (await request({ type: 'decode', sheetUrl, jobs })).results ?? null;
     },
-    rive: async (source, file, pets) => (await request({ type: 'rive', source, file, pets }, [file])).pets ?? null,
+    rive: async (source, files) => {
+      const reply = await request({ type: 'rive', source, files }, files.map(({ file }) => file));
+      return reply.pets ? { pets: reply.pets, failed: reply.failed ?? [] } : null;
+    },
   };
 }
 
@@ -796,10 +879,10 @@ export async function initPetSprites(): Promise<void> {
   // rather than every sprite on the page.
   const bases = await detectAssetBases();
   let assetsBase: string | null = null;
-  let sources: { atlasPaths: string[]; petRiveUrls: string[] } | null = null;
+  let sources: AssetSources | null = null;
   for (const base of bases) {
     const found = await assetSources(base);
-    if (found.atlasPaths.length || found.petRiveUrls.length) { assetsBase = base; sources = found; break; }
+    if (found.atlasPaths.length || found.petRive.length) { assetsBase = base; sources = found; break; }
   }
   if (!assetsBase) return;
   const version = assetsBase.match(/\/version\/([^/]+)\//)?.[1] ?? 'unknown';
@@ -839,7 +922,7 @@ export async function initPetSprites(): Promise<void> {
     page.__gardenCompanionPetSpritesReady?.();
   }
 
-  async function loadSources(): Promise<{ atlasPaths: string[]; petRiveUrls: string[] }> {
+  async function loadSources(): Promise<AssetSources> {
     return sources ??= await assetSources(assetsBase!);
   }
 
@@ -851,12 +934,12 @@ export async function initPetSprites(): Promise<void> {
   let fingerprint: Promise<{ key: string; identified: boolean }> | null = null;
   function loadFingerprint(): Promise<{ key: string; identified: boolean }> {
     return fingerprint ??= (async () => {
-      const key = await withTimeout(
-        (async () => atlasFingerprint(assetsBase!, (await loadSources()).atlasPaths, version))(),
-        version,
-        2_000,
-      );
-      return { key, identified: key !== version };
+      const { atlasPaths, petRive } = await loadSources();
+      const atlases = await withTimeout(atlasFingerprint(assetsBase!, atlasPaths, version), version, 2_000);
+      // The pet files' names carry a hash of their contents, so new pet art - or pets moving between
+      // files, which is what left every pet missing on build 1940 - is a new key without a request.
+      const pets = petRive.length ? `-r${hashText(petRive.map(file => file.url).sort().join('\n'))}` : '';
+      return { key: `${atlases}${pets}`, identified: atlases !== version };
     })();
   }
 
@@ -885,7 +968,7 @@ export async function initPetSprites(): Promise<void> {
   }
 
   async function decodeEssential(): Promise<StageResult> {
-    const { atlasPaths, petRiveUrls } = await loadSources();
+    const { atlasPaths, petRive } = await loadSources();
     const { wanted, trimmedWanted } = essentialRequest();
     const { frames, trimmed, complete: atlasComplete, usedWorker } = atlasPaths.length
       ? await loadPetFrames(assetsBase!, atlasPaths, wanted, trimmedWanted)
@@ -895,18 +978,24 @@ export async function initPetSprites(): Promise<void> {
     // worker is doing the cutting; on the main thread it would put that work back on startup.
     if (usedWorker) void runStage('deferred');
     let riveComplete = true;
-    // Each later file is only asked for the pets the earlier ones did not draw.
-    for (const url of petRiveUrls) {
-      const missing = species.filter(name => !frames.has(normaliseKey(`sprite/pet/${name}`)));
-      if (!missing.length) break;
-      try {
-        for (const [key, image] of await petFrames(url, missing)) frames.set(key, image);
-      } catch (error) {
-        // The whole animation file failed, not one pet timing out, so anything atlas-less is now
-        // missing - not a bundle worth persisting.
-        riveComplete = false;
-        warn('Current pet animations could not be rendered.', error);
-      }
+    const missing = () => species.filter(name => !frames.has(normaliseKey(`sprite/pet/${name}`)));
+    const draw = async (files: PetFileJob[]) => {
+      if (!files.length) return;
+      const drawn = await petFrames(files);
+      for (const [key, image] of drawn.frames) frames.set(key, image);
+      // A file that failed outright, not one pet timing out, leaves its pets missing - not a bundle
+      // worth persisting.
+      if (!drawn.complete) riveComplete = false;
+    };
+    // A file of one pet is only fetched for a pet the atlas did not already have.
+    const atlasLess = new Set(missing());
+    await draw(petRive.flatMap(file => (file.species && atlasLess.has(file.species) ? [{ url: file.url, pets: [[file.species, file.species]] as PetArtboards, own: true }] : [])));
+    // Each combined file is only asked for the pets nothing before it drew.
+    for (const file of petRive) {
+      if (file.species) continue;
+      const left = missing();
+      if (!left.length) break;
+      await draw([{ url: file.url, pets: left.map(name => [name, PET_ARTBOARD_NAMES[name] ?? name]), own: false }]);
     }
     return {
       complete: atlasComplete && riveComplete,
@@ -975,8 +1064,10 @@ export async function initPetSprites(): Promise<void> {
         // missing pet sprite. `s3` retires bundles cropped from the half-size sheet, which decoded
         // cleanly and so were cached with every lower-half frame (the plants) blank. `s4` retires bundles
         // from before the Halloween pets' Rive file was read, cached complete with those pets missing.
-        // The tag rides on the fingerprint so eviction still matches by prefix.
-        const fingerprintKey = `s4-${rawFingerprint}`;
+        // `s5` retires bundles from build 1940 on, cached complete with every current pet missing after
+        // the pets moved to a file each. The tag rides on the fingerprint so eviction still matches by
+        // prefix.
+        const fingerprintKey = `s5-${rawFingerprint}`;
         const request = requests[stage]();
         const key = `${fingerprintKey}:${stage}:${requestSignature(request.wanted, request.trimmedWanted)}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.

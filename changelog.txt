@@ -1,3 +1,6 @@
+0.9.97
+- Pet icons load again
+
 0.9.96
 - Saved data kept in script storage, per account
 
