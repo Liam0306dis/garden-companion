@@ -3,6 +3,7 @@ import { slotIsMaxSize } from '../crop-size.js';
 import { createTicker } from '../ticker.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 import type { OverviewRuntimeState } from './garden-overview.js';
+import { freeName, sharedValue } from '../storage.js';
 
 /**
  * Plant focus for the Garden Overview: fading the plants and crops that do not match the chosen
@@ -26,10 +27,12 @@ export function focusDefaults(): FocusConfig {
   return { enabled: false, scope: 'tracked', mutations: [], mutationRule: 'all', maxSize: false, mode: 'highlight', opacity: .2 };
 }
 
+const focusStore = sharedValue<Record<string, any>>(FOCUS_KEY, {});
+
 export function loadFocus(): FocusConfig {
   try {
     // `invert` was the old name for hide mode; migrate it so existing setups keep behaving the same.
-    const stored = JSON.parse(localStorage.getItem(FOCUS_KEY) || '{}');
+    const stored = focusStore.load();
     const migrating = stored.mode === undefined && Boolean(stored.invert);
     const config = { ...focusDefaults(), ...stored, mode: stored.mode ?? (stored.invert ? 'hide' : 'highlight') } as FocusConfig & { invert?: boolean };
     // An inverted setup with nothing selected used to mean "fade the unmutated crops". Under the
@@ -43,7 +46,7 @@ export function loadFocus(): FocusConfig {
 }
 
 export function saveFocus(config: FocusConfig): void {
-  try { localStorage.setItem(FOCUS_KEY, JSON.stringify(config)); } catch {}
+  focusStore.save(config);
 }
 
 /** Everything but `enabled`: loading a preset changes what focus looks for, not whether it is on. */
@@ -59,13 +62,45 @@ export function presetConfigOf(config: FocusConfig): FocusPresetConfig {
   return { ...rest, mutations: [...rest.mutations] };
 }
 
+/** A stored preset's name as the loader reads it, or '' for an entry that has none. */
+function presetName(entry: unknown): string {
+  const name = (entry as { name?: unknown } | null)?.name;
+  return typeof name === 'string' ? name.trim().slice(0, PRESET_NAME_LIMIT) : '';
+}
+
+/**
+ * Presets made on two sites are all kept. One whose name is already taken by a different setup is
+ * kept under a numbered name rather than dropped; the same setup under the same name is kept once.
+ */
+function mergePresets(saved: unknown[], incoming: unknown[]): unknown[] {
+  if (!Array.isArray(saved)) return incoming;
+  if (!Array.isArray(incoming)) return saved;
+  const merged = [...saved];
+  const named = (name: string) => merged.find(entry => presetName(entry) === name);
+  for (const entry of incoming) {
+    const name = presetName(entry);
+    if (!name) continue;
+    const existing = named(name);
+    if (!existing) merged.push(entry);
+    else if (JSON.stringify((existing as { config?: unknown }).config) !== JSON.stringify((entry as { config?: unknown }).config)) {
+      merged.push({ ...(entry as object), name: freeName(name, candidate => Boolean(named(candidate)), PRESET_NAME_LIMIT) });
+    }
+  }
+  return merged;
+}
+
+const presetsStore = sharedValue<unknown[]>(FOCUS_PRESETS_KEY, [], { merge: mergePresets });
+
 /**
  * Rebuilt field by field rather than trusted wholesale: these come back from storage, where a half
  * written entry or an older shape would otherwise flow straight into the matcher.
+ *
+ * Not cut to PRESET_LIMIT: that is enforced when one is saved, and presets merged in from two sites
+ * can pass it, which should stop new ones being added rather than lose some of these.
  */
 export function loadFocusPresets(): FocusPreset[] {
   try {
-    const stored = JSON.parse(localStorage.getItem(FOCUS_PRESETS_KEY) || '[]');
+    const stored = presetsStore.load();
     if (!Array.isArray(stored)) return [];
     const seen = new Set<string>();
     return stored.flatMap((entry: unknown) => {
@@ -74,12 +109,12 @@ export function loadFocusPresets(): FocusPreset[] {
       if (!name || seen.has(name)) return [];
       seen.add(name);
       return [{ name, config: presetConfigOf({ ...focusDefaults(), ...(row?.config ?? {}) }) }];
-    }).slice(0, PRESET_LIMIT);
+    });
   } catch { return []; }
 }
 
 export function saveFocusPresets(presets: readonly FocusPreset[]): void {
-  try { localStorage.setItem(FOCUS_PRESETS_KEY, JSON.stringify(presets)); } catch {}
+  presetsStore.save([...presets]);
 }
 
 export function installPlantFocus(

@@ -2,7 +2,8 @@ import { page } from '../page.js';
 import { state } from '../state.js';
 import { makeDraggable } from '../draggable.js';
 import { createWorldScene, TILE_SIZE, type WorldBounds, type WorldGeometry } from '../world-scene.js';
-import { escapeHtml, loadLocal, NUMBER_LOCALE, saveLocal } from '../utils.js';
+import { escapeHtml, NUMBER_LOCALE } from '../utils.js';
+import { accountValue, onStorageAccountChange } from '../storage.js';
 import { isTyping } from '../keybinds.js';
 import {
   createFight, FIGHT_PACE, FIGHT_STYLES, FISH, FISH_BY_ID, fishTravelSpeed, LOSE_FLOOR, PERFECT_BONUS, RARITIES, RARITY_ORDER,
@@ -100,8 +101,7 @@ const EMPTY_RECORD: FishingRecord = {
   baits: {}, bait: '',
 };
 
-function loadRecord(): FishingRecord {
-  const stored = loadLocal<Partial<FishingRecord>>(RECORD_KEY, {});
+function normaliseRecord(stored: Partial<FishingRecord>): FishingRecord {
   const finite = (value: unknown): number => {
     const number = Number(value);
     return Number.isFinite(number) && number >= 0 ? number : 0;
@@ -136,6 +136,54 @@ function loadRecord(): FishingRecord {
     baits,
     bait: typeof stored.bait === 'string' && baits[stored.bait] > 0 ? stored.bait : '',
   };
+}
+
+/**
+ * One account's record from two sites. Each site only saw its own casts, so the tallies, coins, xp
+ * and bait add up; gear is owned or not, and a catch keeps its heaviest and earliest. What is
+ * equipped and baited comes from whichever site was fished more.
+ */
+function mergeRecords(savedRaw: Partial<FishingRecord>, incomingRaw: Partial<FishingRecord>): FishingRecord {
+  const saved = normaliseRecord(savedRaw);
+  const incoming = normaliseRecord(incomingRaw);
+  const busier = incoming.casts > saved.casts ? incoming : saved;
+  const fish: Record<string, CatchRecord> = { ...saved.fish };
+  for (const [id, caught] of Object.entries(incoming.fish)) {
+    const existing = fish[id];
+    if (!existing) { fish[id] = caught; continue; }
+    // Either side can be a hand-edited or half-written entry, so each field is read defensively.
+    const field = (entry: unknown, name: keyof CatchRecord) => Number((entry as Partial<CatchRecord> | null)?.[name]) || 0;
+    const firsts = [field(existing, 'first'), field(caught, 'first')].filter(time => time > 0);
+    fish[id] = {
+      count: field(existing, 'count') + field(caught, 'count'),
+      best: Math.max(field(existing, 'best'), field(caught, 'best')),
+      first: firsts.length ? Math.min(...firsts) : 0,
+    };
+  }
+  const equipment = { ...saved.equipment };
+  for (const [id, count] of Object.entries(incoming.equipment)) equipment[id] = Math.max(equipment[id] || 0, count);
+  const baits = { ...saved.baits };
+  for (const [id, count] of Object.entries(incoming.baits)) baits[id] = (baits[id] || 0) + count;
+  return {
+    casts: saved.casts + incoming.casts,
+    caught: saved.caught + incoming.caught,
+    escaped: saved.escaped + incoming.escaped,
+    perfects: saved.perfects + incoming.perfects,
+    fish,
+    coins: saved.coins + incoming.coins,
+    xp: saved.xp + incoming.xp,
+    equipment,
+    equipped: { ...busier.equipped },
+    baits,
+    bait: busier.bait,
+  };
+}
+
+/** Kept per account, like the game's own progress. Empty until the account is known. */
+const recordStore = accountValue<Partial<FishingRecord>>(RECORD_KEY, {}, { merge: mergeRecords });
+
+function loadRecord(): FishingRecord {
+  return normaliseRecord(recordStore.load());
 }
 
 function isTrophy(fish: FishDef, weight: number): boolean {
@@ -310,6 +358,7 @@ type Phase = 'idle' | 'waiting' | 'bite' | 'reel' | 'result';
 
 export function initFishing(): void {
   let record = loadRecord();
+  onStorageAccountChange(() => { record = loadRecord(); });
   let view: 'game' | 'collection' | 'equipment' | 'bench' = 'game';
   let phase: Phase = 'idle';
   let message = 'Click the pond to put a line in.';
@@ -1181,7 +1230,7 @@ export function initFishing(): void {
     return typeof value === 'string' && value ? value : null;
   }
 
-  function save(): void { saveLocal(RECORD_KEY, record); }
+  function save(): void { recordStore.save(record); }
 
   function setPhase(next: Phase, text: string, colour = 'rgba(255,255,255,.72)'): void {
     phase = next;

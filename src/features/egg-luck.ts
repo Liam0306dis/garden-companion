@@ -3,7 +3,8 @@ import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
 import { mutationSprite } from '../pets.js';
 import type { ActivityLogEntry, Pet } from '../types.js';
-import { escapeHtml, humanize, loadLocal, NUMBER_LOCALE, saveLocal } from '../utils.js';
+import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
+import { accountValue, mergeLists, onStorageAccountChange, sharedValue } from '../storage.js';
 
 /**
  * What each egg has actually given you, and how close each guaranteed outcome is.
@@ -102,25 +103,69 @@ function normaliseEgg(value: unknown, eggId = ''): EggRecord {
   };
 }
 
-let luck: Record<string, EggRecord> = Object.fromEntries(
-  Object.entries(loadLocal<Record<string, unknown>>(EGG_LUCK_KEY, {}))
-    .map(([eggId, record]) => [eggId, normaliseEgg(record, eggId)]),
-);
+function addCounts(saved: Record<string, number>, incoming: Record<string, number>): Record<string, number> {
+  const sum = { ...saved };
+  for (const [key, count] of Object.entries(incoming)) sum[key] = (sum[key] || 0) + count;
+  return sum;
+}
+
+/**
+ * One egg's record from two sites, for the same account. Each site only saw the hatches made while
+ * it was open, so the tallies add up. The counters cannot: a counter is hatches since the outcome last
+ * landed, and which site's hatches came last is not recorded. The higher one is kept, and marked as
+ * a floor rather than the game's real figure, so the bar never claims a guarantee is nearer than either
+ * site saw it - the next hit puts it right.
+ */
+function addEggs(saved: EggRecord, incoming: EggRecord): EggRecord {
+  const speciesColours = { ...saved.speciesColours };
+  for (const [species, colours] of Object.entries(incoming.speciesColours)) speciesColours[species] = addCounts(speciesColours[species] ?? {}, colours);
+  const counters = { ...saved.counters };
+  for (const [key, counter] of Object.entries(incoming.counters)) {
+    const existing = counters[key];
+    counters[key] = existing ? { misses: Math.max(existing.misses, counter.misses), synced: false } : counter;
+  }
+  return {
+    hatches: saved.hatches + incoming.hatches,
+    pulls: saved.pulls + incoming.pulls,
+    species: addCounts(saved.species, incoming.species),
+    colours: addCounts(saved.colours, incoming.colours),
+    speciesColours,
+    counters,
+  };
+}
+
+function mergeEggLuck(saved: Record<string, unknown>, incoming: Record<string, unknown>): Record<string, unknown> {
+  const merged = { ...saved };
+  for (const [eggId, record] of Object.entries(incoming ?? {})) {
+    merged[eggId] = eggId in merged ? addEggs(normaliseEgg(merged[eggId], eggId), normaliseEgg(record, eggId)) : record;
+  }
+  return merged;
+}
+
+/** Kept per account, since the counters are the account's. Empty until the account is known. */
+const luckStore = accountValue<Record<string, unknown>>(EGG_LUCK_KEY, {}, { merge: mergeEggLuck });
+
+function savedLuck(): Record<string, EggRecord> {
+  return Object.fromEntries(Object.entries(luckStore.load()).map(([eggId, record]) => [eggId, normaliseEgg(record, eggId)]));
+}
+
+let luck: Record<string, EggRecord> = {};
 
 function save(): void {
-  saveLocal(EGG_LUCK_KEY, luck);
+  luckStore.save(luck);
 }
 
 const EGG_COLLAPSED_KEY = 'gardenCompanion.eggLuckCollapsed.v1';
 
 // Ten eggs of tables and bars is a long scroll when you only care about one, so each card folds
 // away and remembers it. Kept apart from the tally: clearing one must not disturb the other.
-const savedCollapsed = loadLocal<unknown>(EGG_COLLAPSED_KEY, []);
+const collapsedStore = sharedValue<unknown>(EGG_COLLAPSED_KEY, []);
+const savedCollapsed = collapsedStore.load();
 const collapsed = new Set(Array.isArray(savedCollapsed) ? savedCollapsed.filter((id): id is string => typeof id === 'string') : []);
 
 function toggleEggCollapsed(eggId: string): void {
   collapsed.has(eggId) ? collapsed.delete(eggId) : collapsed.add(eggId);
-  saveLocal(EGG_COLLAPSED_KEY, [...collapsed]);
+  collapsedStore.save([...collapsed]);
 }
 
 /**
@@ -168,14 +213,28 @@ const BONUS_PETS_KEY = 'gardenCompanion.eggLuckBonusPets.v1';
  * because being wrong about that would corrupt a counter silently and permanently - a bonus pet
  * taken for a pull would zero a counter that should still be climbing, and mark it synced.
  */
-const savedBonus = loadLocal<unknown>(BONUS_PETS_KEY, []);
-let bonusPets = Array.isArray(savedBonus) ? savedBonus.filter((id): id is string => typeof id === 'string') : [];
+const BONUS_PET_LIMIT = 50;
+const bonusStore = accountValue<unknown>(BONUS_PETS_KEY, [], {
+  merge: (saved, incoming) => mergeLists(saved as string[], incoming as string[]).slice(-BONUS_PET_LIMIT),
+});
+
+function savedBonusPets(): string[] {
+  const saved = bonusStore.load();
+  return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string') : [];
+}
+
+let bonusPets: string[] = [];
 
 function noteBonusPet(id: string): void {
   if (!id || bonusPets.includes(id)) return;
-  bonusPets = [...bonusPets.slice(-49), id];
-  saveLocal(BONUS_PETS_KEY, bonusPets);
+  bonusPets = [...bonusPets.slice(-(BONUS_PET_LIMIT - 1)), id];
+  bonusStore.save(bonusPets);
 }
+
+onStorageAccountChange(() => {
+  luck = savedLuck();
+  bonusPets = savedBonusPets();
+});
 
 function petOf(value: unknown): Pet | null {
   const pet = (value && typeof value === 'object' ? value : null) as Pet | null;

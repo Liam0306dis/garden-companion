@@ -2,7 +2,7 @@ import { feature } from '../config.js';
 import { page } from '../page.js';
 import { state } from '../state.js';
 import { pixiSurface, type PixiSurface } from '../pixi.js';
-import { loadLocal, saveLocal } from '../utils.js';
+import { sharedValue } from '../storage.js';
 import { quinoaEngine } from '../quinoa-engine.js';
 
 /**
@@ -65,12 +65,13 @@ const TOSS_EGGS = [
   'HorseEgg', 'DawnEgg', 'SnowEgg', 'ThunderEgg',
 ];
 
-let tossStyle: string = loadLocal<string>(STYLE_KEY, 'ball') === 'egg' ? 'egg' : 'ball';
+const styleStore = sharedValue<string>(STYLE_KEY, 'ball');
+let tossStyle: string = styleStore.load() === 'egg' ? 'egg' : 'ball';
 
 page.__gardenCompanionTossStyle = (style?: string) => {
   if (style === 'egg' || style === 'ball') {
     tossStyle = style;
-    saveLocal(STYLE_KEY, style);
+    styleStore.save(style);
     // Egg art is decoded in the deferred sprite stage, so asking for eggs before that has run would
     // silently keep throwing balls. Nudging the loader makes the flag take effect on its own.
     if (style === 'egg' && !randomEggSprite()) page.__gardenCompanionLoadSpriteGroup?.();

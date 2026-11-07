@@ -3,7 +3,8 @@ import { makeDraggable } from '../draggable.js';
 import { isTyping } from '../keybinds.js';
 import { createWorldScene, readyImage, type WorldBounds, type WorldGeometry } from '../world-scene.js';
 import { PLANT_CATALOG } from '../constants.js';
-import { escapeHtml, loadLocal, NUMBER_LOCALE, saveLocal } from '../utils.js';
+import { escapeHtml, NUMBER_LOCALE } from '../utils.js';
+import { accountValue, onStorageAccountChange } from '../storage.js';
 import {
   ALL_PESTS, BOSS, createBoard, HUGE_EVERY, PLANT_BY_ID, PLANTS, SUN_LIFETIME, TOTAL_WAVES,
   type Board, type Pest, type PestDef, type Plant, type PlantDef,
@@ -38,13 +39,26 @@ interface Record_ { best: number; runs: number; sun: number; wins: number }
 interface Poof { x: number; y: number; at: number; colour: number; size: number }
 interface PlantArt { sprite: Record<string, any> | null; fruits: Record<string, any>[] | null; baseScale: { x: number; y: number } | null }
 
-function loadRecord(): Record_ {
-  const stored = loadLocal<Partial<Record_>>(RECORD_KEY, {});
+function normaliseRecord(stored: Partial<Record_>): Record_ {
   const positive = (value: unknown) => {
     const number = Number(value);
     return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
   };
   return { best: positive(stored.best), runs: positive(stored.runs), sun: positive(stored.sun), wins: positive(stored.wins) };
+}
+
+/** One account's record from two sites: runs, wins and sun add up, and the best wave is the better one. */
+function mergeRecords(savedRaw: Partial<Record_>, incomingRaw: Partial<Record_>): Record_ {
+  const saved = normaliseRecord(savedRaw);
+  const incoming = normaliseRecord(incomingRaw);
+  return { best: Math.max(saved.best, incoming.best), runs: saved.runs + incoming.runs, sun: saved.sun + incoming.sun, wins: saved.wins + incoming.wins };
+}
+
+/** Kept per account. Empty until the account is known. */
+const recordStore = accountValue<Partial<Record_>>(RECORD_KEY, {}, { merge: mergeRecords });
+
+function loadRecord(): Record_ {
+  return normaliseRecord(recordStore.load());
 }
 
 /** The harvested crop: what a seed packet shows, and what hangs on a regrowing plant. */
@@ -151,6 +165,7 @@ function injectStyles(): void {
 
 export function initGardenDefence(): void {
   let record = loadRecord();
+  onStorageAccountChange(() => { record = loadRecord(); });
   let board: Board | null = null;
   /** Set by a restart before the lawn has been measured; the board is built once it has. */
   let pendingRun = true;
@@ -465,7 +480,7 @@ export function initGardenDefence(): void {
 
   function panel(): HTMLElement | null { return document.getElementById(PANEL_ID); }
 
-  function save(): void { saveLocal(RECORD_KEY, record); }
+  function save(): void { recordStore.save(record); }
 
   function restart(): void {
     paused = false;

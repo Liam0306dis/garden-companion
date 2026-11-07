@@ -1,7 +1,7 @@
-import { loadLocal, saveLocal } from './utils.js';
+import { sharedValue } from './storage.js';
 
-const POSITION_KEY = 'gc-alarm-position';
-const SCALE_KEY = 'gc-alarm-scale';
+const positionStore = sharedValue<AlertPosition | null>('gc-alarm-position', null);
+const scaleStore = sharedValue<number>('gc-alarm-scale', 1);
 const MIN_SCALE = .6;
 const MAX_SCALE = 1.6;
 /** How close to the middle a drag has to come before it snaps there. */
@@ -17,7 +17,7 @@ interface AlertPosition { x: number; y: number }
 let editing: { finish: () => void } | null = null;
 
 function savedPosition(): AlertPosition | null {
-  const saved = loadLocal<AlertPosition | null>(POSITION_KEY, null);
+  const saved = positionStore.load();
   return saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) ? saved : null;
 }
 
@@ -36,7 +36,7 @@ function applyPosition(element: HTMLElement, position: AlertPosition | null): vo
 }
 
 function savedScale(): number {
-  const saved = Number(loadLocal<number>(SCALE_KEY, 1));
+  const saved = Number(scaleStore.load());
   return Number.isFinite(saved) ? Math.min(MAX_SCALE, Math.max(MIN_SCALE, saved)) : 1;
 }
 
@@ -125,7 +125,7 @@ export function editAlarmPosition(onFinish?: () => void): void {
     delete element.dataset.dragging;
     guide.classList.remove('is-visible');
     const rect = element.getBoundingClientRect();
-    saveLocal(POSITION_KEY, { x: (rect.left + rect.width / 2) / window.innerWidth, y: rect.top / window.innerHeight });
+    positionStore.save({ x: (rect.left + rect.width / 2) / window.innerWidth, y: rect.top / window.innerHeight });
   };
   /**
    * The banner grows from its top centre, so the scale is how far the pointer sits from that centre
@@ -146,7 +146,7 @@ export function editAlarmPosition(onFinish?: () => void): void {
     if (!sizing) return;
     const ratio = Math.abs(event.clientX - sizing.centre) / sizing.startHalf;
     const scale = Math.round(Math.min(MAX_SCALE, Math.max(MIN_SCALE, sizing.startScale * ratio)) * 100) / 100;
-    saveLocal(SCALE_KEY, scale);
+    scaleStore.save(scale);
     placeAlarmBanner(element);
   };
   const onResizeUp = () => {
@@ -198,7 +198,7 @@ export function finishEditingAlarmPosition(): void {
 
 /** Puts alarm banners back at the top centre, at their normal size. */
 export function resetAlarmPosition(): void {
-  saveLocal(POSITION_KEY, null);
-  saveLocal(SCALE_KEY, 1);
+  positionStore.save(null);
+  scaleStore.save(1);
   placeCurrentBanner();
 }

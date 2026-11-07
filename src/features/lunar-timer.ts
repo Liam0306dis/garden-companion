@@ -3,7 +3,8 @@ import { LUNAR_MINIMISED_KEY, LUNAR_POSITION_KEY, UPDATE_URL } from '../constant
 import { makeDraggable } from '../draggable.js';
 import { page } from '../page.js';
 import { serverNow } from '../server-clock.js';
-import { escapeHtml, formatDuration, loadLocal, saveLocal, scriptVersion } from '../utils.js';
+import { escapeHtml, formatDuration, scriptVersion } from '../utils.js';
+import { sharedValue } from '../storage.js';
 import { forecastStatus, nextWeather } from '../weather-forecast.js';
 import { weatherLabel } from './weather-timer.js';
 import { warn } from '../diagnostics.js';
@@ -28,14 +29,16 @@ function nextLunarAt(now = serverNow()) {
  * Minimised, the timer becomes an icon parked beside the Garden Overview button. The countdown
  * still ticks into its tooltip, so the panel is worth collapsing rather than turning off.
  */
-let lunarMinimised = loadLocal<boolean>(LUNAR_MINIMISED_KEY, false);
+const minimisedStore = sharedValue<boolean>(LUNAR_MINIMISED_KEY, false);
+let lunarMinimised = minimisedStore.load();
 /**
  * Which timer is showing. Lunar events are on fixed slots and the weather between them is not, so
  * the two answer different questions - and the panel only has room to answer one.
  */
 const LUNAR_MODE_KEY = 'gardenCompanion.lunarMode.v1';
 type LunarMode = 'lunar' | 'weather';
-let lunarMode: LunarMode = loadLocal<LunarMode>(LUNAR_MODE_KEY, 'weather') === 'lunar' ? 'lunar' : 'weather';
+const modeStore = sharedValue<LunarMode>(LUNAR_MODE_KEY, 'weather');
+let lunarMode: LunarMode = modeStore.load() === 'lunar' ? 'lunar' : 'weather';
 /**
  * The countdown only ticks while it is on screen; the minimised icon refreshes its tooltip on hover.
  * Each tick lands just after a whole server second, as the game's own forecast redraws, so the two
@@ -63,13 +66,13 @@ function countdownText(ms: number): string {
 
 function setLunarMode(mode: LunarMode): void {
   lunarMode = mode;
-  saveLocal(LUNAR_MODE_KEY, mode);
+  modeStore.save(mode);
   updateLunarTimer();
 }
 
 function setLunarMinimised(minimised: boolean): void {
   lunarMinimised = minimised;
-  saveLocal(LUNAR_MINIMISED_KEY, minimised);
+  minimisedStore.save(minimised);
   updateLunarTimer();
 }
 

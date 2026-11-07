@@ -1,5 +1,5 @@
 import { armAlarmAudio } from '../alarms.js';
-import { loadLocal, saveLocal } from '../utils.js';
+import { sharedValue } from '../storage.js';
 
 /**
  * Sound for the fishing minigame, synthesized rather than loaded: a userscript has nowhere to host
@@ -7,11 +7,11 @@ import { loadLocal, saveLocal } from '../utils.js';
  * ratchet of short clicks. The alarm context is shared so the page never holds two of them.
  */
 
-const MUTE_KEY = 'gardenCompanion.fishingMuted.v1';
+const muteStore = sharedValue<boolean>('gardenCompanion.fishingMuted.v1', false);
 /** A reel is a stream of clicks; this is the fastest they may arrive. */
 const CLICK_INTERVAL = 62;
 
-let muted = loadLocal<boolean>(MUTE_KEY, false);
+let muted = muteStore.load();
 let noiseBuffer: AudioBuffer | null = null;
 let noiseContext: AudioContext | null = null;
 let lastClickAt = 0;
@@ -20,7 +20,7 @@ export function fishingMuted(): boolean { return muted; }
 
 export function setFishingMuted(value: boolean): void {
   muted = value;
-  saveLocal(MUTE_KEY, value);
+  muteStore.save(value);
 }
 
 function audio(): AudioContext | null {

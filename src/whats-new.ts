@@ -1,4 +1,5 @@
 import { escapeHtml, scriptVersion } from './utils.js';
+import { sharedValue } from './storage.js';
 
 /**
  * The "What's new" popover behind the version number in the companion's footer. Only the latest few
@@ -6,14 +7,14 @@ import { escapeHtml, scriptVersion } from './utils.js';
  * repository's changelog.txt.
  */
 
-const SEEN_KEY = 'gardenCompanion.whatsNewSeen.v1';
+const seenStore = sharedValue<string | null>('gardenCompanion.whatsNewSeen.v1', null, { raw: true });
 
 function seenVersion(): string | null {
-  try { return localStorage.getItem(SEEN_KEY); } catch { return null; }
+  return seenStore.load();
 }
 
 function markSeen(): void {
-  try { localStorage.setItem(SEEN_KEY, scriptVersion()); } catch {}
+  seenStore.save(scriptVersion());
 }
 
 /**

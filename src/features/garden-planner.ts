@@ -7,6 +7,7 @@ import { glowScale, onSkyChange, skyNeedsFrameHook, skyPhase, skySettings, skyWe
 import { createTicker } from '../ticker.js';
 import { guarded } from '../safe-hook.js';
 import { NUMBER_LOCALE, escapeHtml } from '../utils.js';
+import { freeName, sharedValue } from '../storage.js';
 import { onSpritesReady } from '../pets.js';
 
 /**
@@ -1329,21 +1330,31 @@ export function initGardenPlanner(): void {
     return { tiles, edges };
   }
 
+  /**
+   * Layouts saved on two sites are all kept. One whose name is already taken by a different layout is
+   * kept under a numbered name; the same layout under the same name is kept once. That can leave more
+   * than MAX_LAYOUTS, which only stops new ones being added until some are deleted.
+   */
+  function mergeLayouts(saved: Record<string, Record<string, TileRecipe>>, incoming: Record<string, Record<string, TileRecipe>>): Record<string, Record<string, TileRecipe>> {
+    if (!incoming || typeof incoming !== 'object') return saved;
+    const merged = { ...saved };
+    for (const [name, layout] of Object.entries(incoming)) {
+      if (!(name in merged)) merged[name] = layout;
+      else if (JSON.stringify(merged[name]) !== JSON.stringify(layout)) merged[freeName(name, candidate => candidate in merged)] = layout;
+    }
+    return merged;
+  }
+
+  const layoutStore = sharedValue<Record<string, Record<string, TileRecipe>>>(LAYOUT_KEY, {}, { merge: mergeLayouts });
+
   function savedLayouts(): Record<string, Record<string, TileRecipe>> {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch { return {}; }
+    const saved = layoutStore.load();
+    return saved && typeof saved === 'object' ? saved : {};
   }
 
   /** Returns a problem to show the user, or an empty string when the layout was stored. */
   function storeLayouts(layouts: Record<string, Record<string, TileRecipe>>): string {
-    try {
-      localStorage.setItem(LAYOUT_KEY, JSON.stringify(layouts));
-      return '';
-    } catch {
-      return 'Layout could not be saved: browser storage is full.';
-    }
+    return layoutStore.save(layouts) ? '' : 'Layout could not be saved.';
   }
 
   function showPlannerNotice(message: string): void {

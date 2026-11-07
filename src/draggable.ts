@@ -1,4 +1,4 @@
-import { loadLocal, saveLocal } from './utils.js';
+import { sharedValue } from './storage.js';
 
 interface Point { left: number; top: number }
 
@@ -19,7 +19,8 @@ export function makeDraggable(element: HTMLElement, storageKey: string, options:
     element.style.bottom = 'auto';
   }
 
-  const saved = loadLocal<Point | null>(storageKey, null);
+  const store = sharedValue<Point | null>(storageKey, null);
+  const saved = store.load();
   if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) place(saved);
 
   let dragging = false;
@@ -52,7 +53,7 @@ export function makeDraggable(element: HTMLElement, storageKey: string, options:
     delete element.dataset.dragging;
     try { element.releasePointerCapture(event.pointerId); } catch {}
     const rect = element.getBoundingClientRect();
-    saveLocal(storageKey, { left: rect.left, top: rect.top });
+    store.save({ left: rect.left, top: rect.top });
   }
 
   element.addEventListener('pointerup', stop);

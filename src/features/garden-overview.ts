@@ -1,6 +1,7 @@
 import { installPlantFocus, loadFocus, loadFocusPresets, presetConfigOf, PRESET_LIMIT, PRESET_NAME_LIMIT, saveFocus, saveFocusPresets, type FocusConfig } from './overview-focus.js';
 import { BUTTON_ID, injectOverviewStyles, PANEL_ID } from './overview-styles.js';
 import { escapeHtml } from '../utils.js';
+import { sharedValue } from '../storage.js';
 import { page } from '../page.js';
 import { comboFromEvent, overviewShortcut } from '../key-combo.js';
 import { catalogMutationMultiplier } from '../mutation-value.js';
@@ -68,13 +69,14 @@ const VIEW_KEY = 'gardenCompanion.overviewView.v1';
 const OPEN_FAMILIES_KEY = 'gardenCompanion.overviewOpenFamilies.v1';
 
 /** Which patch rows are expanded to show the species inside them. Remembered between sessions. */
+const openFamiliesStore = sharedValue<unknown>(OPEN_FAMILIES_KEY, []);
 const openFamilies = new Set<string>((() => {
-  try { return JSON.parse(localStorage.getItem(OPEN_FAMILIES_KEY) || '[]') as string[]; }
-  catch { return []; }
+  const saved = openFamiliesStore.load();
+  return Array.isArray(saved) ? saved.filter((family): family is string => typeof family === 'string') : [];
 })());
 
 function saveOpenFamilies(): void {
-  try { localStorage.setItem(OPEN_FAMILIES_KEY, JSON.stringify([...openFamilies])); } catch {}
+  openFamiliesStore.save([...openFamilies]);
 }
 const ALARM_TARGETS_KEY = 'gardenCompanion.overviewAlarmTargets.v1';
 const POSITION_KEY = 'gardenCompanion.overviewPosition.v1';
@@ -128,36 +130,35 @@ function mergesFrozenThunder(config: MutationConfig): boolean {
   return config.combineFrozenThunderstruck && [config.frozen, config.thunderstruck, config.thundercharged].filter(Boolean).length >= 2;
 }
 
+const mutationStore = sharedValue<unknown>(MUTATION_KEY, null);
+
 function loadMutationConfig(): MutationConfig {
-  try {
-    const stored = JSON.parse(localStorage.getItem(MUTATION_KEY) || 'null');
-    if (Array.isArray(stored)) {
-      const selected = new Set(stored);
-      return { ...MUTATION_DEFAULTS, ...Object.fromEntries(Object.entries(MUTATION_IDS).map(([key, id]) => [key, selected.has(id)])) };
-    }
-    return { ...MUTATION_DEFAULTS, ...(stored && typeof stored === 'object' ? stored : {}) };
-  } catch { return { ...MUTATION_DEFAULTS }; }
+  const stored = mutationStore.load();
+  if (Array.isArray(stored)) {
+    const selected = new Set(stored);
+    return { ...MUTATION_DEFAULTS, ...Object.fromEntries(Object.entries(MUTATION_IDS).map(([key, id]) => [key, selected.has(id)])) };
+  }
+  return { ...MUTATION_DEFAULTS, ...(stored && typeof stored === 'object' ? stored : {}) };
 }
 
 function saveMutationConfig(config: MutationConfig): void {
-  try { localStorage.setItem(MUTATION_KEY, JSON.stringify(config)); } catch {}
+  mutationStore.save(config);
 }
 
 function selectedMutations(config: MutationConfig): Set<string> {
   return new Set(Object.entries(MUTATION_IDS).filter(([key]) => config[key as keyof MutationConfig]).map(([, id]) => id));
 }
 
+const alarmTargetsStore = sharedValue<unknown>(ALARM_TARGETS_KEY, null);
+
 function loadAlarmTargets(defaults: Set<string>): Set<string> {
-  try {
-    const stored = localStorage.getItem(ALARM_TARGETS_KEY);
-    if (stored === null) return new Set([...defaults].filter(target => ALARM_TARGETS.includes(target)));
-    const parsed = JSON.parse(stored) as unknown;
-    return new Set(Array.isArray(parsed) ? parsed.filter((target): target is string => typeof target === 'string' && ALARM_TARGETS.includes(target)) : []);
-  } catch { return new Set([...defaults].filter(target => ALARM_TARGETS.includes(target))); }
+  const stored = alarmTargetsStore.load();
+  if (stored === null) return new Set([...defaults].filter(target => ALARM_TARGETS.includes(target)));
+  return new Set(Array.isArray(stored) ? stored.filter((target): target is string => typeof target === 'string' && ALARM_TARGETS.includes(target)) : []);
 }
 
 function saveAlarmTargets(targets: Set<string>): void {
-  try { localStorage.setItem(ALARM_TARGETS_KEY, JSON.stringify([...targets])); } catch {}
+  alarmTargetsStore.save([...targets]);
 }
 
 // A crop only ever carries one mutation from each catalog group. The focus picker reuses that to stop people asking for combinations no
@@ -173,29 +174,30 @@ function mutationLabel(mutation: string): string {
   return MUTATION_CATALOG[mutation]?.name || displayName(mutation);
 }
 
+/** No saved filter means every species. */
+const filterStore = sharedValue<unknown>(FILTER_KEY, null);
+
 function loadFilter(): Set<string> | null {
-  try {
-    const raw = localStorage.getItem(FILTER_KEY);
-    if (!raw) return null;
-    const values = JSON.parse(raw) as unknown;
-    return Array.isArray(values) ? new Set(values.filter(value => typeof value === 'string')) : null;
-  } catch {
-    return null;
-  }
+  const values = filterStore.load();
+  return Array.isArray(values) ? new Set(values.filter(value => typeof value === 'string')) : null;
 }
 
-function saveFilter(filter: Set<string>): void {
-  try { localStorage.setItem(FILTER_KEY, JSON.stringify([...filter].sort())); } catch {}
+function saveFilter(filter: Set<string> | null): void {
+  filterStore.save(filter ? [...filter].sort() : null);
 }
+
+const viewStore = sharedValue<Record<string, unknown>>(VIEW_KEY, {});
 
 function loadView(): { ignorePreserved: boolean; mutationsOpen: boolean; plantsOpen: boolean; zoom: number; alarm: boolean } {
-  try { return { ignorePreserved: true, mutationsOpen: true, plantsOpen: true, zoom: 1, alarm: false, ...JSON.parse(localStorage.getItem(VIEW_KEY) || '{}') }; }
-  catch { return { ignorePreserved: true, mutationsOpen: true, plantsOpen: true, zoom: 1, alarm: false }; }
+  const saved = viewStore.load();
+  return { ignorePreserved: true, mutationsOpen: true, plantsOpen: true, zoom: 1, alarm: false, ...(saved && typeof saved === 'object' ? saved : {}) };
 }
 
 function saveView(view: { ignorePreserved: boolean; mutationsOpen: boolean; plantsOpen: boolean; zoom: number; alarm: boolean }): void {
-  try { localStorage.setItem(VIEW_KEY, JSON.stringify(view)); } catch {}
+  viewStore.save(view);
 }
+
+const positionStore = sharedValue<{ left: number; top: number } | null>(POSITION_KEY, null);
 
 /**
  * Crops defer to the shared name, which knows the game calls DawnCelestial a Dawnbinder and drops
@@ -542,7 +544,7 @@ export function initGardenOverview(): void {
   page.__gardenCompanionOverviewShortcutChanged = nextShortcut => { shortcut = nextShortcut; };
   let position: { left: number; top: number } | null = null;
   let configPosition: { left: number; top: number } | null = null;
-  try { position = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null'); } catch {}
+  position = positionStore.load();
   let configMode: 'species' | 'mutations' | 'focus' | 'panel' | 'alarms' | null = null;
   let lastConfigTab: 'species' | 'mutations' | 'focus' | 'panel' = 'species';
   let focusPresets = loadFocusPresets();
@@ -978,7 +980,7 @@ export function initGardenOverview(): void {
       saveView(view);
       renderAndRefocus(`[data-zoom-level="${button.dataset.zoomLevel}"]`);
     });
-    panel.querySelector<HTMLButtonElement>('[data-all]')?.addEventListener('click', () => { filter = null; localStorage.removeItem(FILTER_KEY); render(true); });
+    panel.querySelector<HTMLButtonElement>('[data-all]')?.addEventListener('click', () => { filter = null; saveFilter(null); render(true); });
     panel.querySelector<HTMLButtonElement>('[data-none]')?.addEventListener('click', () => { filter = new Set(); saveFilter(filter); render(true); });
     panel.querySelector<HTMLButtonElement>('[data-owned]')?.addEventListener('click', () => {
       filter = new Set(filter ?? []);
@@ -1196,7 +1198,7 @@ export function initGardenOverview(): void {
     bindSearch(panel.querySelector('[data-species-search]'));
     installDrag(panel.querySelector('.go-card')!, panel.querySelector('.go-card > header')!, (left, top) => {
       position = { left, top };
-      localStorage.setItem(POSITION_KEY, JSON.stringify(position));
+      positionStore.save(position);
     });
     const configCard = panel.querySelector<HTMLElement>('.go-config-card');
     const configHeader = configCard?.querySelector<HTMLElement>('header');

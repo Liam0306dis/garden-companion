@@ -4,7 +4,7 @@ import { recordEggHatches } from './features/egg-luck.js';
 import { allPets } from './pets.js';
 import { state } from './state.js';
 import type { ActivityLogEntry } from './types.js';
-import { loadLocal, saveLocal } from './utils.js';
+import { accountValue, mergeLists, onStorageAccountChange } from './storage.js';
 
 /**
  * One pass over the game's activity log, shared by everything that reads it.
@@ -45,8 +45,15 @@ function seenLimit(logLength: number): number {
  * rare species left its bad luck counter climbing through a reset that had really happened, on past
  * the threshold the game guarantees it by.
  */
-const savedSeen = loadLocal<unknown>(SEEN_KEY, []);
-let seen = Array.isArray(savedSeen) ? savedSeen.filter((entry): entry is string => typeof entry === 'string') : [];
+const seenStore = accountValue<string[]>(SEEN_KEY, [], { merge: mergeLists });
+
+function savedSeen(): string[] {
+  const saved: unknown = seenStore.load();
+  return Array.isArray(saved) ? saved.filter((entry): entry is string => typeof entry === 'string') : [];
+}
+
+/** Kept per account: the log is the account's, so what has been counted from it is too. Loaded once the account is known. */
+let seen: string[] = [];
 
 /**
  * The longest log seen this session, which is what the window is sized from.
@@ -56,13 +63,21 @@ let seen = Array.isArray(savedSeen) ? savedSeen.filter((entry): entry is string 
  * new and was counted a second time. The longest log is the most the window ever has to cover.
  * Seeded from the saved window, so a short first log after a reload cannot trim that either.
  */
-let longestLog = Math.ceil(seen.length / 4);
+let longestLog = 0;
 
 /** Whether a log has been counted since load, after which a log must overlap the seen ones to count. */
 let readThisSession = false;
 
 /** The pets on the last slot whose log was counted, which another player's slot cannot share. */
 let ownPetIds = new Set<string>();
+
+// Everything above is about one account's log, so another account starts over from its own window.
+onStorageAccountChange(() => {
+  seen = savedSeen();
+  longestLog = Math.ceil(seen.length / 4);
+  readThisSession = false;
+  ownPetIds = new Set();
+});
 
 /**
  * An entry's identity, from the few fields that name the thing it happened to.
@@ -144,5 +159,5 @@ export function processActivityLog(): void {
   // reader that runs after this one on the same frame.
   longestLog = Math.max(longestLog, entries.length);
   seen = [...new Set([...seen, ...entries.filter(Boolean).map(signature)])].slice(-seenLimit(longestLog));
-  saveLocal(SEEN_KEY, seen);
+  seenStore.save(seen);
 }

@@ -58,6 +58,7 @@ import { toast } from './toast.js';
 import { notifyStateChange, state } from './state.js';
 import { escapeHtml, humanize, scriptVersion } from './utils.js';
 import { makeDraggable } from './draggable.js';
+import { setStorageAccount, sharedValue } from './storage.js';
 import { toggleWhatsNew, whatsNewUnseen } from './whats-new.js';
 import { startTour } from './tour.js';
 import { diagnosticsAlert, diagnosticsIssues, installErrorCapture, onDiagnosticsChange, warn } from './diagnostics.js';
@@ -361,6 +362,8 @@ export function initCompanion(): void {
     state.room = fullState?.data || null;
     state.game = fullState?.child?.data || null;
     state.playerId = welcomePlayerId || fullState?.selfPlayerId || state.room?.selfPlayerId || state.atomPlayerId || state.playerId || readPlayerId();
+    // Before anything below reads or writes saved data that belongs to an account.
+    setStorageAccount(state.playerId);
     const picked = pickSlot(state.game, state.room, state.playerId);
     state.slot = picked.slot;
     state.slotIndex = picked.index;
@@ -604,10 +607,11 @@ export function initCompanion(): void {
   const TOUR_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/></svg>';
   const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   const NAV_COLLAPSED_KEY = 'gardenCompanion.navCollapsed.v1';
-  let collapsedNavGroups = new Set<string>();
-  try { collapsedNavGroups = new Set(JSON.parse(localStorage.getItem(NAV_COLLAPSED_KEY) || '[]')); } catch {}
+  const navCollapsedStore = sharedValue<unknown>(NAV_COLLAPSED_KEY, []);
+  const savedNavCollapsed = navCollapsedStore.load();
+  const collapsedNavGroups = new Set<string>(Array.isArray(savedNavCollapsed) ? savedNavCollapsed.filter((group): group is string => typeof group === 'string') : []);
   function saveCollapsedNavGroups(): void {
-    try { localStorage.setItem(NAV_COLLAPSED_KEY, JSON.stringify([...collapsedNavGroups])); } catch {}
+    navCollapsedStore.save([...collapsedNavGroups]);
   }
   // Setup and support are occasional visits rather than places you work in, so they sit in a footer
   // bar under the whole window instead of taking up nav groups of one or two tabs each.

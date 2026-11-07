@@ -8,7 +8,8 @@ import { serverNow } from '../server-clock.js';
 import { onStateChange, state } from '../state.js';
 import { toast } from '../toast.js';
 import type { GardenTile, Pet } from '../types.js';
-import { escapeHtml, humanize, loadLocal, saveLocal } from '../utils.js';
+import { escapeHtml, humanize } from '../utils.js';
+import { sharedValue } from '../storage.js';
 
 /**
  * Journal logging without the Camera.
@@ -162,7 +163,8 @@ function variantChip(variant: string): string {
 const pending = new Set<string>();
 let current: Subject[] = [];
 let lastSignature = '';
-let collapsed = loadLocal<boolean>(COLLAPSED_KEY, false);
+const collapsedStore = sharedValue<boolean>(COLLAPSED_KEY, false);
+let collapsed = collapsedStore.load();
 
 function panel(): HTMLElement | null {
   return document.getElementById('gc-journal-logger');
@@ -177,7 +179,7 @@ function ensurePanel(): HTMLElement {
   root.innerHTML = '<header><div><i></i><span data-journal-logger-title>New for journal</span></div><span><button data-journal-logger-all title="Log every one">Log all</button><button data-journal-logger-collapse aria-label="Collapse"></button></span></header><main data-journal-logger-body></main>';
   root.querySelector<HTMLButtonElement>('[data-journal-logger-collapse]')!.onclick = () => {
     collapsed = !collapsed;
-    saveLocal(COLLAPSED_KEY, collapsed);
+    collapsedStore.save(collapsed);
     lastSignature = '';
     refreshJournalLogger();
   };

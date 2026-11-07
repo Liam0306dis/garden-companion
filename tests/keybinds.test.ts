@@ -2,7 +2,7 @@ import './setup.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { config } from '../src/config.js';
-import { OVERVIEW_SHORTCUT_KEY } from '../src/constants.js';
+import { overviewShortcut } from '../src/key-combo.js';
 import { beginKeybindCapture, claimKeybind, initKeybinds } from '../src/keybinds.js';
 import { page } from '../src/page.js';
 import { setPanelActions } from '../src/panel-actions.js';
@@ -16,9 +16,9 @@ test('a combo belongs to one action: claiming it releases it everywhere else', (
   assert.equal(config.teamKeybinds.alpha, 'K');
   claimKeybind('overview', 'K');
   assert.equal(config.teamKeybinds.alpha, undefined);
-  assert.equal(localStorage.getItem(OVERVIEW_SHORTCUT_KEY), 'K');
+  assert.equal(overviewShortcut(), 'K');
   claimKeybind('interface:toolShop', 'K');
-  assert.equal(localStorage.getItem(OVERVIEW_SHORTCUT_KEY), null);
+  assert.equal(overviewShortcut(), '');
 });
 
 test('the overview hears about its shortcut changing', () => {
