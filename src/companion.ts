@@ -63,6 +63,7 @@ import { toggleWhatsNew, whatsNewUnseen } from './whats-new.js';
 import { startTour } from './tour.js';
 import { diagnosticsAlert, diagnosticsIssues, installErrorCapture, onDiagnosticsChange, warn } from './diagnostics.js';
 import { buildReport, sortedChecks, timeAgo } from './diagnostics-report.js';
+import { openExternal } from './open-external.js';
 
 export function initCompanion(): void {
   // First, so anything that goes wrong while the rest starts up is already on record.
@@ -834,6 +835,12 @@ export function initCompanion(): void {
   }
 
   function bindTabEvents(main: HTMLElement): void {
+    // The link stays a link (its address shows on hover), but opens through openExternal, since the
+    // Discord activity's frames refuse a target="_blank" click.
+    main.querySelector<HTMLAnchorElement>('.gc-kofi')?.addEventListener('click', event => {
+      event.preventDefault();
+      openExternal(KOFI_URL);
+    });
     main.querySelector<HTMLButtonElement>('[data-copy-diagnostics]')?.addEventListener('click', () => {
       const report = buildReport();
       // Shown and selected when the clipboard refuses, so it can still be copied by hand.

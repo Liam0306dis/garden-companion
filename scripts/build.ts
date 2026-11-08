@@ -31,6 +31,7 @@ const header = `// ==UserScript==
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
+// @grant        GM_openInTab
 // @grant        unsafeWindow
 // @connect      ariedam.fr
 // @connect      raw.githubusercontent.com

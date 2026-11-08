@@ -8,6 +8,7 @@ import { sharedValue } from '../storage.js';
 import { forecastStatus, nextWeather } from '../weather-forecast.js';
 import { weatherLabel } from './weather-timer.js';
 import { warn } from '../diagnostics.js';
+import { openExternal } from '../open-external.js';
 
 /**
  * The draggable timer widget: the next lunar event or weather, the room connection's health, and
@@ -227,7 +228,7 @@ function checkForUpdate(): void {
 
 function handleUpdateClick(): void {
   if (updateStatus === 'available') {
-    window.open(UPDATE_URL, '_blank', 'noopener,noreferrer');
+    openExternal(UPDATE_URL);
     return;
   }
   checkForUpdate();
