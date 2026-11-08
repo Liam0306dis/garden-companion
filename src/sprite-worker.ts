@@ -15,7 +15,7 @@
  * is work for them.
  */
 import { BasisUniversal, TranscoderTextureFormat } from '@h00w/basis-universal-transcoder';
-import { blobToDataUrl, drawFrame, frameLayout, SHEET_TTL_MS, type CropJob, type CropResult } from './sprite-crop.js';
+import { blobToDataUrl, drawFrame, frameLayout, rawKtx2Pixels, SHEET_TTL_MS, type CropJob, type CropResult } from './sprite-crop.js';
 
 interface BasisTranscoder {
   init(bytes: Uint8Array): boolean;
@@ -111,11 +111,18 @@ function sheetFor(url: string): Promise<OffscreenCanvas | null> {
 
 async function decodeSheet(url: string): Promise<OffscreenCanvas | null> {
   try {
-    if (!transcoder) return null;
     const response = await fetch(url);
     if (!response.ok) return null;
+    const bytes = await response.arrayBuffer();
+    const raw = rawKtx2Pixels(bytes);
+    if (raw) {
+      const canvas = new OffscreenCanvas(raw.width, raw.height);
+      canvas.getContext('2d')?.putImageData(raw, 0, 0);
+      return canvas;
+    }
+    if (!transcoder) return null;
     const ktx2 = await transcoder;
-    if (!ktx2.init(new Uint8Array(await response.arrayBuffer())) || !ktx2.startTranscoding()) return null;
+    if (!ktx2.init(new Uint8Array(bytes)) || !ktx2.startTranscoding()) return null;
     const decoded = ktx2.transcodeImageLevel({ format: TranscoderTextureFormat.cTFRGBA32, level: 0, layer: 0, face: 0 });
     if (!decoded) return null;
     const canvas = new OffscreenCanvas(decoded.width, decoded.height);
@@ -140,7 +147,7 @@ async function decode(id: number, sheetUrl: string, jobs: CropJob[]): Promise<vo
       const canvas = new OffscreenCanvas(width, height);
       const context = canvas.getContext('2d');
       if (!context) continue;
-      drawFrame(context, sheet, job.frame, placement);
+      drawFrame(context, sheet, job.frame, placement, job.atlasWidth);
       results.push([job.key, job.trimmed, await encode(canvas)]);
     }
     scope.postMessage({ id, results });

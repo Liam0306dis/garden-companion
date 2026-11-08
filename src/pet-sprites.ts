@@ -2,12 +2,12 @@ import { page } from './page.js';
 import { BasisUniversal, TranscoderTextureFormat } from '@h00w/basis-universal-transcoder';
 import { BASIS_WASM_URL, RIVE_LOW_LEVEL_URL, RIVE_RUNTIME_URL } from './vendor-urls.js';
 import { vendorBytes, vendorText } from './vendor-assets.js';
-import { blobToDataUrl, drawFrame, frameLayout, SHEET_TTL_MS, type AtlasFrame, type CropJob, type CropResult } from './sprite-crop.js';
+import { blobToDataUrl, drawFrame, frameLayout, rawKtx2Pixels, SHEET_TTL_MS, type AtlasFrame, type CropJob, type CropResult } from './sprite-crop.js';
 import { TOOL_IDS } from './tool-ids.js';
 
 interface AtlasJson {
   frames: Record<string, AtlasFrame>;
-  meta: { image: string; fullSizeImage?: string; related_multi_packs?: string[] };
+  meta: { image: string; halfSizeImage?: string; fullSizeImage?: string; size?: { w: number; h: number }; related_multi_packs?: string[] };
 }
 
 interface BasisTranscoder {
@@ -223,10 +223,21 @@ const PET_RIVE_ALIAS = /^rive\/(?:[\w-]+-)?pets(?:\.riv)?$/;
  */
 const SINGLE_PET_RIVE_ALIAS = /^rive\/pets\/(\w+?)(?:\.riv)?$/;
 
+/**
+ * Build 1973 replaced `manifest.json` with one manifest per GPU texture format, each pointing at
+ * sheets pre-encoded in that format. `rgba8` is plain pixels, the only set readable without a GPU
+ * decoder; the old manifest stays as the fallback for a build that still has it.
+ */
+const MANIFEST_NAMES = ['manifest.rgba8.json', 'manifest.json'];
+
 async function assetSources(assetsBase: string): Promise<AssetSources> {
   try {
-    const response = await fetch(`${assetsBase}manifest.json`);
-    if (!response.ok) return { atlasPaths: [], petRive: [] };
+    let response: Response | null = null;
+    for (const name of MANIFEST_NAMES) {
+      response = await fetch(`${assetsBase}${name}`);
+      if (response.ok) break;
+    }
+    if (!response?.ok) return { atlasPaths: [], petRive: [] };
     const manifest = await response.json() as AssetManifest;
     const paths = new Set<string>();
     const petRive: PetRiveFile[] = [];
@@ -654,6 +665,8 @@ interface SpriteWorker {
   rive(source: string, files: Array<{ file: ArrayBuffer; pets: PetArtboards }>): Promise<{ pets: Array<[string, string]>; failed: number[] } | null>;
 }
 
+const RGBA8_SHEET = /\.rgba8(?:\.[a-f0-9]+)?\.ktx2(?:\?|$)/;
+
 let workerStart: Promise<SpriteWorker | null> | null = null;
 
 /** The sprite worker, started on first use; null where the page will not run one. */
@@ -707,7 +720,8 @@ async function startSpriteWorker(): Promise<SpriteWorker | null> {
   }, () => { basisSent = null; return false; });
   return {
     decode: async (sheetUrl, jobs) => {
-      if (!await sendBasis()) return null;
+      // An rgba8 sheet is read as it is; only a Basis sheet needs the transcoder.
+      if (!RGBA8_SHEET.test(sheetUrl) && !await sendBasis()) return null;
       return (await request({ type: 'decode', sheetUrl, jobs })).results ?? null;
     },
     rive: async (source, files) => {
@@ -737,8 +751,17 @@ async function decodeSheet(url: string): Promise<HTMLCanvasElement | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
+    const bytes = await response.arrayBuffer();
+    const raw = rawKtx2Pixels(bytes);
+    if (raw) {
+      const canvas = document.createElement('canvas');
+      canvas.width = raw.width;
+      canvas.height = raw.height;
+      canvas.getContext('2d')?.putImageData(raw, 0, 0);
+      return canvas;
+    }
     const { transcoder, rgbaFormat } = await basisDecoder();
-    if (!transcoder.init(new Uint8Array(await response.arrayBuffer())) || !transcoder.startTranscoding()) return null;
+    if (!transcoder.init(new Uint8Array(bytes)) || !transcoder.startTranscoding()) return null;
     const decoded = transcoder.transcodeImageLevel({ format: rgbaFormat, level: 0, layer: 0, face: 0 });
     if (!decoded) return null;
     const canvas = document.createElement('canvas');
@@ -799,7 +822,7 @@ async function cropFrames(sheet: HTMLCanvasElement, jobs: CropJob[]): Promise<Cr
     canvas.height = height;
     const context = canvas.getContext('2d');
     if (!context) continue;
-    drawFrame(context, sheet, job.frame, placement);
+    drawFrame(context, sheet, job.frame, placement, job.atlasWidth);
     results.push([job.key, job.trimmed, await canvasToDataUrl(canvas)]);
     if (performance.now() - sliceStarted >= SLICE_BUDGET_MS) {
       await yieldToBrowser();
@@ -850,13 +873,17 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
       }
       // The frame list is in the JSON, so a sheet holding nothing we want is skipped before its
       // image is fetched or transcoded at all.
-      const jobs = [...atlasJobs(atlas, wanted, output, false), ...atlasJobs(atlas, trimmedWanted, trimmedOutput, true)];
+      const atlasWidth = atlas.meta?.size?.w;
+      const jobs = [...atlasJobs(atlas, wanted, output, false), ...atlasJobs(atlas, trimmedWanted, trimmedOutput, true)]
+        .map(job => ({ ...job, atlasWidth }));
       if (!jobs.length) continue;
       // The frame coordinates are in full-size atlas space (meta.size). By build 1333 `image` is a
       // half-resolution sheet and the matching full-size one is `fullSizeImage`, so cropping
       // full-size coordinates out of `image` read past the sheet and left every frame in the lower
       // half - all the plants - blank. Prefer the full-size sheet the coordinates belong to.
-      const sheetSource = atlas.meta?.fullSizeImage ?? atlas.meta?.image;
+      // Build 1973 ships no full-size sheet for most packs: the half-size one is the largest, and
+      // the smallest pack has only `image`. The crop reads whichever it gets at its own scale.
+      const sheetSource = atlas.meta?.fullSizeImage ?? atlas.meta?.halfSizeImage ?? atlas.meta?.image;
       const imageUrl = sheetSource ? new URL(sheetSource, jsonUrl).href : jsonUrl.replace(/\.json$/, '.ktx2');
       const worker = await spriteWorker();
       let results: CropResult[] | null;

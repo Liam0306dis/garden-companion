@@ -1,3 +1,6 @@
+0.9.98
+- Sprites load again (game update 1973)
+
 0.9.97
 - Pet icons load again
 
