@@ -217,6 +217,8 @@ export interface CompanionPage extends Window {
   __gardenCompanionVendorSource?: (url: string, done: (source: string | null) => void, binary?: boolean) => void;
   /** How the sprite loader, a bundle of its own in the page, reports a warning to the diagnostics. */
   __gardenCompanionNoteIssue?: (level: 'warn' | 'error', message: string, error?: unknown) => void;
+  /** How the sprite loader sets its checks in the diagnostics. */
+  __gardenCompanionSetCheck?: (name: string, status: 'ok' | 'waiting' | 'failed', detail?: string | null) => void;
   __gardenCompanionLoadSprites?: () => void;
   __gardenCompanionLoadSpriteGroup?: (group?: string) => void;
   __gardenCompanionDisableSprites?: (disabled?: boolean) => boolean;

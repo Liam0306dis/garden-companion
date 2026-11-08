@@ -159,4 +159,7 @@ export function installErrorCapture(): void {
   }
   // The sprite loader runs in the page, as its own bundle, so it reports through the page instead.
   page.__gardenCompanionNoteIssue = (level: Issue['level'], message: string, error?: unknown) => noteIssue(level === 'error' ? 'error' : 'warn', String(message), error);
+  page.__gardenCompanionSetCheck = (name: string, status: CheckStatus, detail?: string | null) => {
+    if (status === 'ok' || status === 'waiting' || status === 'failed') setCheck(String(name), status, detail == null ? null : String(detail));
+  };
 }

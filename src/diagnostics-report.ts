@@ -96,7 +96,7 @@ export function buildReport(): string {
     '',
     problems.length ? `Problems (${problems.length}):` : 'Problems: none',
     ...problems.map(check => `  ${check.status.toUpperCase().padEnd(7)} ${check.name}${check.detail ? ` - ${check.detail}` : ''} (${timeAgo(check.at)})`),
-    `Working (${working.length}): ${working.map(check => check.name).join(', ') || 'nothing yet'}`,
+    `Working (${working.length}): ${working.map(check => (check.detail ? `${check.name} (${check.detail})` : check.name)).join(', ') || 'nothing yet'}`,
     '',
     `Features on: ${enabledFeatures().join(', ') || 'only the built-in ones'}`,
     '',

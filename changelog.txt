@@ -1,3 +1,6 @@
+0.9.99
+- Sprite diagnostics
+
 0.9.98
 - Sprites load again (game update 1973)
 

@@ -57,6 +57,20 @@ function warn(message: string, error?: unknown): void {
   try { (window as unknown as { __gardenCompanionNoteIssue?: (level: string, message: string, error?: unknown) => void }).__gardenCompanionNoteIssue?.('warn', message, error); } catch { /* reporting is best effort */ }
 }
 
+/**
+ * A check in the diagnostics, set through the page like the warnings. Build 1973 broke every sprite
+ * without a word: the asset list moved, the loader found nothing and simply stopped. The checks say
+ * where the load got to and how much of what was asked for actually arrived.
+ */
+function spriteCheck(name: string, status: 'ok' | 'waiting' | 'failed', detail: string | null): void {
+  try { (window as unknown as { __gardenCompanionSetCheck?: (name: string, status: string, detail: string | null) => void }).__gardenCompanionSetCheck?.(name, status, detail); } catch { /* reporting is best effort */ }
+}
+
+/** The last part of a url or path, which is all a report needs to say which file it was. */
+function fileName(url: string): string {
+  return url.split(/[?#]/)[0].split('/').pop() || url;
+}
+
 function bestSource(sources: ManifestSource[]): string {
   let best = '';
   let bestResolution = -Infinity;
@@ -208,7 +222,8 @@ async function detectAssetBases(): Promise<string[]> {
  */
 interface PetRiveFile { url: string; species: string | null }
 
-interface AssetSources { atlasPaths: string[]; petRive: PetRiveFile[] }
+/** `manifest` names the asset list that answered; `problem` says why none did, for the diagnostics. */
+interface AssetSources { atlasPaths: string[]; petRive: PetRiveFile[]; manifest?: string; problem?: string }
 
 /**
  * Files holding many pets, `rive/pets` first. Build 1598 put the Haunt event's pets (Moth, Snake, Toad)
@@ -231,13 +246,16 @@ const SINGLE_PET_RIVE_ALIAS = /^rive\/pets\/(\w+?)(?:\.riv)?$/;
 const MANIFEST_NAMES = ['manifest.rgba8.json', 'manifest.json'];
 
 async function assetSources(assetsBase: string): Promise<AssetSources> {
+  const tried: string[] = [];
   try {
     let response: Response | null = null;
+    let manifestName = '';
     for (const name of MANIFEST_NAMES) {
       response = await fetch(`${assetsBase}${name}`);
-      if (response.ok) break;
+      if (response.ok) { manifestName = name; break; }
+      tried.push(`${name} answered ${response.status}`);
     }
-    if (!response?.ok) return { atlasPaths: [], petRive: [] };
+    if (!response?.ok) return { atlasPaths: [], petRive: [], problem: tried.join(', ') };
     const manifest = await response.json() as AssetManifest;
     const paths = new Set<string>();
     const petRive: PetRiveFile[] = [];
@@ -255,9 +273,10 @@ async function assetSources(assetsBase: string): Promise<AssetSources> {
         }
       }
     }
-    return { atlasPaths: [...paths], petRive };
-  } catch {
-    return { atlasPaths: [], petRive: [] };
+    return { atlasPaths: [...paths], petRive, manifest: manifestName };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { atlasPaths: [], petRive: [], problem: [...tried, `failed: ${reason}`].join(', ') };
   }
 }
 
@@ -863,7 +882,7 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
     try {
       const jsonUrl = `${assetsBase}${jsonPath}`;
       const response = await fetch(jsonUrl);
-      if (!response.ok) { complete = false; continue; }
+      if (!response.ok) { complete = false; warn(`Sprite atlas ${fileName(jsonPath)} answered ${response.status}.`); continue; }
       const atlas = await response.json() as AtlasJson;
       // Its related packs are followed whether or not this sheet is needed: what we want may be
       // in one of them.
@@ -894,9 +913,19 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
         const sheet = await fallbackSheet(imageUrl);
         results = sheet ? await cropFrames(sheet, jobs) : null;
       }
-      if (!results) { complete = false; continue; }
+      if (!results) {
+        complete = false;
+        // Either the download failed or the sheet is in a format neither reader knows - the second
+        // is what a change like build 1973's looks like. The message names only the sheet, so the
+        // same sheet failing in both stages counts up on one entry rather than adding a second.
+        warn(`Sprite sheet ${fileName(imageUrl)} could not be downloaded or read; its sprites are missing.`);
+        continue;
+      }
       for (const [key, trimmed, dataUrl] of results) (trimmed ? trimmedOutput : output).set(key, dataUrl);
-    } catch { complete = false; }
+    } catch (error) {
+      complete = false;
+      warn(`Sprite atlas ${fileName(jsonPath)} could not be loaded.`, error);
+    }
   }
   return { frames: output, trimmed: trimmedOutput, complete, usedWorker };
 }
@@ -904,15 +933,32 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
 export async function initPetSprites(): Promise<void> {
   // The first base whose manifest actually answers wins, so a wrong guess costs one failed fetch
   // rather than every sprite on the page.
+  spriteCheck('Sprites', 'waiting', 'looking for the game\'s assets');
   const bases = await detectAssetBases();
+  if (!bases.length) {
+    const detail = 'could not tell where the game\'s assets are served from - no page script has /version/<build>/ in its address';
+    spriteCheck('Sprites', 'failed', detail);
+    warn(`No sprites: ${detail}.`);
+    return;
+  }
   let assetsBase: string | null = null;
   let sources: AssetSources | null = null;
+  const problems: string[] = [];
   for (const base of bases) {
     const found = await assetSources(base);
     if (found.atlasPaths.length || found.petRive.length) { assetsBase = base; sources = found; break; }
+    problems.push(`${base}: ${found.problem ?? `${found.manifest} lists no sprite atlases or pet files`}`);
   }
-  if (!assetsBase) return;
+  if (!assetsBase || !sources) {
+    const detail = `no asset list found (${problems.join('; ')})`;
+    spriteCheck('Sprites', 'failed', detail);
+    warn(`No sprites: ${detail}.`);
+    return;
+  }
   const version = assetsBase.match(/\/version\/([^/]+)\//)?.[1] ?? 'unknown';
+  spriteCheck('Sprites', sources.atlasPaths.length ? 'ok' : 'failed',
+    `build ${version}, ${sources.manifest}: ${sources.atlasPaths.length} atlas${sources.atlasPaths.length === 1 ? '' : 'es'}, ${sources.petRive.length} pet file${sources.petRive.length === 1 ? '' : 's'}`);
+  if (!sources.atlasPaths.length) warn(`${sources.manifest} lists no sprite atlases; only pets can be drawn.`);
   const species = Object.keys(__PET_CATALOG__);
   const shopCandidates = Object.fromEntries(Object.entries(SHOP_SPRITE_GROUPS).flatMap(([group, itemIds]) =>
     itemIds.map(itemId => [itemId, shopSpriteCandidates(group, itemId)]),
@@ -1074,6 +1120,49 @@ export async function initPetSprites(): Promise<void> {
     };
   }
 
+  /** What each stage is asked for, by the map it publishes into and the names in it. */
+  const stageWants: Record<string, Record<string, string[]>> = {
+    essential: {
+      pet: species,
+      produce: Object.keys(produceCandidates),
+      shop: Object.keys(toolCandidates),
+      weather: Object.keys(WEATHER_ICON_CANDIDATES),
+    },
+    deferred: {
+      shop: Object.keys(shopCandidates),
+      // A species with no growing-plant art of its own is not asked for.
+      plant: Object.entries(plantCandidates).flatMap(([name, candidates]) => (candidates.length ? [name] : [])),
+      emblem: Object.keys(emblemCandidates),
+      mutation: Object.keys(MUTATION_ICON_CANDIDATES),
+    },
+  };
+  const STAGE_CHECK_NAMES: Record<string, string> = { essential: 'Sprites (startup)', deferred: 'Sprites (panels)' };
+
+  /**
+   * How much of a stage arrived, as a check. A few gaps are normal - items listed ahead of a release
+   * have no art yet - so the check only fails when a whole group came back empty, which is what a
+   * broken load looks like (every pet on build 1940, everything on 1973).
+   */
+  function reportStage(stage: string, bundle: SpriteBundle, source: string): void {
+    let found = 0;
+    let wantedTotal = 0;
+    const missing: string[] = [];
+    const emptyGroups: string[] = [];
+    for (const [group, names] of Object.entries(stageWants[stage] ?? {})) {
+      const have = bundle[group] ?? {};
+      const absent = names.filter(name => !have[name]);
+      wantedTotal += names.length;
+      found += names.length - absent.length;
+      if (names.length && absent.length === names.length) emptyGroups.push(group);
+      missing.push(...absent.map(name => `${group} ${name}`));
+    }
+    const shown = missing.slice(0, 6).join(', ');
+    const more = missing.length > 6 ? ` +${missing.length - 6} more` : '';
+    const detail = `${found}/${wantedTotal} from ${source}${emptyGroups.length ? `; none for ${emptyGroups.join(', ')}` : ''}${missing.length ? `; missing ${shown}${more}` : ''}`;
+    spriteCheck(STAGE_CHECK_NAMES[stage] ?? `Sprites (${stage})`, emptyGroups.length ? 'failed' : 'ok', detail);
+    if (emptyGroups.length) warn(`${stage} sprites: none loaded for ${emptyGroups.join(', ')}.`);
+  }
+
   const stages: Record<string, () => Promise<StageResult>> = { essential: decodeEssential, deferred: decodeDeferred };
   const requests: Record<string, () => { wanted: Set<string>; trimmedWanted: Set<string> }> = { essential: essentialRequest, deferred: deferredRequest };
   const running = new Map<string, Promise<void>>();
@@ -1099,17 +1188,20 @@ export async function initPetSprites(): Promise<void> {
         const key = `${fingerprintKey}:${stage}:${requestSignature(request.wanted, request.trimmedWanted)}`;
         // A cache hit skips the atlas fetch, the transcode and every PNG encode outright.
         const cached = await readCache(key);
-        if (cached) { publish(cached); done('the cache'); return; }
+        if (cached) { publish(cached); done('the cache'); reportStage(stage, cached, 'the cache'); return; }
+        spriteCheck(STAGE_CHECK_NAMES[stage] ?? `Sprites (${stage})`, 'waiting', 'decoding');
         const result = await stages[stage]();
         const { bundle, complete } = result;
         publish(bundle);
         done(result.usedWorker ? 'the worker' : 'the main thread');
+        reportStage(stage, bundle, result.usedWorker ? 'the worker' : 'the main thread');
         // Only a clean decode is persisted. A partial one still shows this session, but leaving it
         // out of the cache means the next load retries rather than serving the hole for good.
         if (complete) void writeCache(key, bundle, fingerprintKey, identified);
       } catch (error) {
         running.delete(stage);
         warn(`${stage} sprites could not be loaded.`, error);
+        spriteCheck(STAGE_CHECK_NAMES[stage] ?? `Sprites (${stage})`, 'failed', `could not be loaded: ${error instanceof Error ? error.message : String(error)}`);
       }
     })();
     running.set(stage, task);
