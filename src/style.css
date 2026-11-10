@@ -443,6 +443,15 @@ details.gc-card summary h3 { display:inline; }
 .gc-fm-dragging .gc-fm-cell[data-kind="dirt"]:not([data-drop]) { opacity:.4; }
 .gc-fm-cell[data-drop] { box-shadow:inset 0 0 0 2px rgba(62,207,142,.65); }
 .gc-fm-cell[data-drop="swap"] { box-shadow:inset 0 0 0 2px rgba(253,230,138,.8); }
+.gc-fm-cell[data-crystal-area="RainWard"],.gc-fm-cell[data-crystal-source="RainWard"] { --gc-ward:96,165,250; }
+.gc-fm-cell[data-crystal-area="SnowWard"],.gc-fm-cell[data-crystal-source="SnowWard"] { --gc-ward:165,243,252; }
+.gc-fm-cell[data-crystal-area="ThunderWard"],.gc-fm-cell[data-crystal-source="ThunderWard"] { --gc-ward:250,204,21; }
+.gc-fm-cell[data-crystal-area] { box-shadow:inset 0 0 0 2px rgba(var(--gc-ward),.75);background-image:linear-gradient(rgba(var(--gc-ward),.24),rgba(var(--gc-ward),.24));opacity:1; }
+.gc-fm-cell[data-crystal-source] { box-shadow:inset 0 0 0 3px rgb(var(--gc-ward)); }
+.gc-fm-cell[data-drop="fuse"] { box-shadow:inset 0 0 0 2px rgba(196,181,253,.85); }
+.gc-fm-cell[data-drop="fuse"][data-over] { box-shadow:inset 0 0 0 3px #c4b5fd;background:rgba(196,181,253,.14); }
+.gc-fm-cell[data-drop="occupied"] { box-shadow:none;opacity:.4; }
+.gc-fm-cell[data-drop="occupied"][data-over] { box-shadow:inset 0 0 0 3px rgba(240,113,113,.8);background:rgba(240,113,113,.12);opacity:1; }
 .gc-fm-cell[data-armed] { cursor:pointer;box-shadow:inset 0 0 0 1px rgba(62,207,142,.3),inset 0 2px 4px rgba(0,0,0,.4); }
 .gc-fm-cell[data-armed]:hover,.gc-fm-cell[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }
 .gc-fm-placing,.gc-fm-warn { display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 4px 0 10px;border-radius:999px;font-size:11px;font-weight:700; }
@@ -459,6 +468,8 @@ details.gc-card summary h3 { display:inline; }
 #gc-farm-manager[data-potting="true"] aside { box-shadow:inset 0 0 0 2px rgba(62,207,142,.35); }
 #gc-farm-manager[data-potting="true"] aside[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:rgba(62,207,142,.08); }
 #gc-farm-manager[data-potting] aside::after { content:'Drop here to pot';position:absolute;left:12px;right:12px;bottom:12px;padding:12px;border:1px dashed rgba(62,207,142,.5);border-radius:10px;background:rgba(20,40,28,.96);color:var(--gc-green);font-weight:600;text-align:center;pointer-events:none; }
+#gc-farm-manager[data-lifting="crystal"][data-potting] aside::after { content:'Drop here to pick up'; }
+#gc-farm-manager[data-lifting="crystal"][data-potting="full"] aside::after { content:'Inventory full - cannot pick up'; }
 #gc-farm-manager[data-potting="full"] aside::after { content:'Inventory full - cannot pot';border-color:rgba(240,113,113,.5);color:var(--gc-danger);background:rgba(48,20,20,.96); }
 .gc-fm-list-head { display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 2px; }
 .gc-fm-list-head b { color:var(--gc-strong);font-size:13px;font-weight:650; }
@@ -608,6 +619,15 @@ details.gc-card summary h3 { display:inline; }
 .gc-modal-backdrop button { min-height:30px;padding:6px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }
 .gc-modal-backdrop button:hover { border-color:rgba(255,255,255,.18);background:var(--gc-surface-3); }
 .gc-ability-modal { width:360px;max-width:calc(100vw - 40px);max-height:min(80vh,640px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }
+/* Above the Farm Manager, which sits near the top of the stacking order. */
+.gc-fm-confirm-backdrop { z-index:2147483646; }
+.gc-fm-confirm { width:340px;max-width:calc(100vw - 40px);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);font-family:var(--gc-font); }
+.gc-fm-confirm h3 { display:flex;align-items:center;gap:8px; }
+.gc-fm-confirm h3 img { width:22px;height:22px;object-fit:contain; }
+.gc-fm-confirm-body { padding:12px 16px 4px; }
+.gc-fm-confirm-body p { margin:0 0 8px;color:var(--gc-text);font-size:12px;line-height:1.45; }
+.gc-fm-confirm footer { display:flex;justify-content:flex-end;gap:8px;padding:10px 16px 14px; }
+.gc-modal-backdrop .gc-fm-confirm-yes { color:var(--gc-accent-text);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
 .gc-modal-head { display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 16px;border-bottom:1px solid var(--gc-line); }
 .gc-modal-head h3 { margin:0;color:var(--gc-strong);font-size:14px;font-weight:600; }
 .gc-modal-close { width:30px;height:30px;padding:0!important;border:0!important;background:transparent!important;color:var(--gc-muted)!important;font-size:18px;line-height:1; }
@@ -976,6 +996,7 @@ details.gc-card summary h3 { display:inline; }
 .gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:12px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums; }
 .gc-planner-row button,.gc-planner-mutations button { padding:5px 10px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:500 11px var(--gc-font); }
 .gc-planner-row button:hover,.gc-planner-mutations button:hover { background:var(--gc-surface-3); }
+.gc-planner-row button[data-plan-hide-pets][data-active="true"] { color:var(--gc-accent-text);background:var(--gc-accent-soft);border-color:var(--gc-accent-text); }
 .gc-planner-mutations button[data-active=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
 /* Mutation icons are small and colourful, so a tinted background alone was hard to tell apart: the
    unchosen ones are dimmed and the chosen ones get a solid ring (inset, so the panel's edge cannot

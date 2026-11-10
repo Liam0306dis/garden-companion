@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      1.0.0
+// @version      1.0.1
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -39,7 +39,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snow Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "1.0.0", notes: ["Update button and Ko-fi link open in the Discord activity"] }, { version: "0.9.99", notes: ["Sprite diagnostics"] }, { version: "0.9.98", notes: ["Sprites load again (game update 1973)"] }, { version: "0.9.97", notes: ["Pet icons load again"] }, { version: "0.9.96", notes: ["Saved data kept in script storage, per account"] }, { version: "0.9.95", notes: ["Crop values and timers on the crop card no longer slide behind the Harvest button (game update 1940)", "Pet team emblems: added the 13 new icons from game update 1940 (money bag, seed, plant, crop, planter, decor, single egg, pet, strength, sunny, sunset, midnight, sunrise)"] }, { version: "0.9.94", notes: ["Produce bar hides while the Tool Pouch is open"] }, { version: "0.9.93", notes: ["XP estimates count XP Boost procs the way the game rolls them, every second - Amber XP Boost was undercounted about 4x", "Nocturnal pets count their night strength bonus in XP estimates (+15 sunset, +20 midnight, +10 sunrise)", "XP calculator: a nocturnal booster rolls Amber Moon and Dawn at sunrise strength (+10), since lunar events fill sunrise, and a nocturnal XP Boost pet (Moth) counts its night strength", "Time until max STR uses the XP rate averaged over the day, so it no longer jumps during an Amber Moon or Dawn", "Weather coin finders, plant growth boosts and Snowy Crop Size Boost only count in their weather (combined abilities and crop estimates counted them all the time)", "Ability calculator averages a nocturnal pet's night strength over the day and caps each pet at 99% a minute like the game; Dawn and Amber Moon abilities are worked out at sunrise"] }, { version: "0.9.92", notes: ["Items pinned in the Tool Pouch no longer count as taking an inventory slot", "Auto Storage leaves items pinned in the Tool Pouch in your bag"] }, { version: "0.9.91", notes: ["Night alarm keeps working after the Haunt event ends", "Cinematic button stays docked with unread chat"] }];
+  var define_CHANGELOG_default = [{ version: "1.0.1", notes: ["Hide pets toggle in the layout planner", "Crystals tab in the Farm Manager", "Fuse crystals in the Farm Manager", "Hover a ward crystal to see its area", "Move placed crystals, or drag them to the side bar to pick up", "Fix shards not auto-storing while you carry a crystal"] }, { version: "1.0.0", notes: ["Update button and Ko-fi link open in the Discord activity"] }, { version: "0.9.99", notes: ["Sprite diagnostics"] }, { version: "0.9.98", notes: ["Sprites load again (game update 1973)"] }, { version: "0.9.97", notes: ["Pet icons load again"] }, { version: "0.9.96", notes: ["Saved data kept in script storage, per account"] }, { version: "0.9.95", notes: ["Crop values and timers on the crop card no longer slide behind the Harvest button (game update 1940)", "Pet team emblems: added the 13 new icons from game update 1940 (money bag, seed, plant, crop, planter, decor, single egg, pet, strength, sunny, sunset, midnight, sunrise)"] }, { version: "0.9.94", notes: ["Produce bar hides while the Tool Pouch is open"] }, { version: "0.9.93", notes: ["XP estimates count XP Boost procs the way the game rolls them, every second - Amber XP Boost was undercounted about 4x", "Nocturnal pets count their night strength bonus in XP estimates (+15 sunset, +20 midnight, +10 sunrise)", "XP calculator: a nocturnal booster rolls Amber Moon and Dawn at sunrise strength (+10), since lunar events fill sunrise, and a nocturnal XP Boost pet (Moth) counts its night strength", "Time until max STR uses the XP rate averaged over the day, so it no longer jumps during an Amber Moon or Dawn", "Weather coin finders, plant growth boosts and Snowy Crop Size Boost only count in their weather (combined abilities and crop estimates counted them all the time)", "Ability calculator averages a nocturnal pet's night strength over the day and caps each pet at 99% a minute like the game; Dawn and Amber Moon abilities are worked out at sunrise"] }, { version: "0.9.92", notes: ["Items pinned in the Tool Pouch no longer count as taking an inventory slot", "Auto Storage leaves items pinned in the Tool Pouch in your bag"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheaf", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -1999,8 +1999,11 @@
     const shack = (state.slot?.data?.inventory?.storages || []).find((storage) => storage.decorId === TOOL_SHACK);
     return shack?.items || [];
   }
+  function isTimedOneOff(item) {
+    return "remainingActiveSeconds" in item;
+  }
   function countTool(rows, toolId) {
-    return rows.filter((item) => item?.itemType === "Tool" && item.toolId === toolId).reduce((total, item) => total + Number(item.quantity || 0), 0);
+    return rows.filter((item) => item?.itemType === "Tool" && item.toolId === toolId && !isTimedOneOff(item)).reduce((total, item) => total + Number(item.quantity || 0), 0);
   }
   function looseToolCount(toolId) {
     return countTool(looseItems(), toolId);
@@ -2015,7 +2018,7 @@
     return Math.max(0, INVENTORY_SLOTS - usedInventorySlots());
   }
   function inventoryCanTakeTool(toolId, reserveSlots) {
-    const stacks = looseItems().some((item) => item?.itemType === "Tool" && item.toolId === toolId);
+    const stacks = looseItems().some((item) => item?.itemType === "Tool" && item.toolId === toolId && !isTimedOneOff(item));
     const needsSlot = !stacks && !toolPouchKeys().has(`Tool:${toolId}`);
     return usedInventorySlots() + (needsSlot ? 1 : 0) + reserveSlots <= INVENTORY_SLOTS;
   }
@@ -5904,8 +5907,14 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
   function isTimedTool(item) {
     return Number(item.remainingActiveSeconds) > 0;
   }
-  function toolHasTimer(key) {
-    const item = inventoryItems().find((entry) => entry.itemType === "Tool" && entry.toolId === key);
+  function isOneOff(item) {
+    return "remainingActiveSeconds" in item;
+  }
+  function moveId(rule, item) {
+    return rule.itemType === "Tool" && isOneOff(item) && item.id ? item.id : rule.key(item);
+  }
+  function toolHasTimer(id) {
+    const item = inventoryItems().find((entry) => entry.itemType === "Tool" && (isOneOff(entry) ? entry.id === id : entry.toolId === id));
     return Boolean(item) && isTimedTool(item);
   }
   var DEBOUNCE_MS = 1e3;
@@ -5925,6 +5934,7 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     const items = storage?.items ?? [];
     const stacks = /* @__PURE__ */ new Map();
     for (const item of items) {
+      if (isOneOff(item)) continue;
       const key = rule.key(item);
       if (key && !stacks.has(key)) stacks.set(key, Number(item.quantity || 0));
     }
@@ -5963,12 +5973,13 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
       for (const item of inventoryItems()) {
         if (item.itemType !== rule.itemType) continue;
         const key = rule.key(item);
-        if (!key || !stored.has(key) || ignored.has(key) || isBusy(rule, key) || isPinned(rule, key) || isTimedTool(item)) continue;
+        const itemId2 = moveId(rule, item);
+        if (!key || !stored.has(key) || ignored.has(key) || isBusy(rule, key) || isPinned(rule, itemId2) || isTimedTool(item)) continue;
         if (storageFull(rule, key, stored.get(key))) continue;
-        const pending2 = `${rule.storageId}:${key}`;
+        const pending2 = `${rule.storageId}:${itemId2}`;
         if (sentAt.has(pending2) || queued.has(pending2)) continue;
         queued.add(pending2);
-        queue2.push({ rule, key, pending: pending2 });
+        queue2.push({ rule, key, itemId: itemId2, pending: pending2 });
         queuedAny = true;
       }
     }
@@ -5979,9 +5990,9 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     if (drainTimer || !queue2.length) return;
     const next = queue2.shift();
     queued.delete(next.pending);
-    if (next.rule.enabled() && !ignoredKeys(next.rule).has(next.key) && !isBusy(next.rule, next.key) && !isPinned(next.rule, next.key) && !toolHasTimer(next.key) && !storageFullNow(next.rule, next.key)) {
+    if (next.rule.enabled() && !ignoredKeys(next.rule).has(next.key) && !isBusy(next.rule, next.key) && !isPinned(next.rule, next.itemId) && !toolHasTimer(next.itemId) && !storageFullNow(next.rule, next.key)) {
       try {
-        sendQuinoaCommand({ type: "MoveItem", from: "inventory", to: next.rule.storageId, itemId: next.key });
+        sendQuinoaCommand({ type: "MoveItem", from: "inventory", to: next.rule.storageId, itemId: next.itemId });
         sentAt.set(next.pending, Date.now());
       } catch {
       }
@@ -13177,6 +13188,15 @@ details.gc-card summary h3 { display:inline; }
 .gc-fm-dragging .gc-fm-cell[data-kind="dirt"]:not([data-drop]) { opacity:.4; }
 .gc-fm-cell[data-drop] { box-shadow:inset 0 0 0 2px rgba(62,207,142,.65); }
 .gc-fm-cell[data-drop="swap"] { box-shadow:inset 0 0 0 2px rgba(253,230,138,.8); }
+.gc-fm-cell[data-crystal-area="RainWard"],.gc-fm-cell[data-crystal-source="RainWard"] { --gc-ward:96,165,250; }
+.gc-fm-cell[data-crystal-area="SnowWard"],.gc-fm-cell[data-crystal-source="SnowWard"] { --gc-ward:165,243,252; }
+.gc-fm-cell[data-crystal-area="ThunderWard"],.gc-fm-cell[data-crystal-source="ThunderWard"] { --gc-ward:250,204,21; }
+.gc-fm-cell[data-crystal-area] { box-shadow:inset 0 0 0 2px rgba(var(--gc-ward),.75);background-image:linear-gradient(rgba(var(--gc-ward),.24),rgba(var(--gc-ward),.24));opacity:1; }
+.gc-fm-cell[data-crystal-source] { box-shadow:inset 0 0 0 3px rgb(var(--gc-ward)); }
+.gc-fm-cell[data-drop="fuse"] { box-shadow:inset 0 0 0 2px rgba(196,181,253,.85); }
+.gc-fm-cell[data-drop="fuse"][data-over] { box-shadow:inset 0 0 0 3px #c4b5fd;background:rgba(196,181,253,.14); }
+.gc-fm-cell[data-drop="occupied"] { box-shadow:none;opacity:.4; }
+.gc-fm-cell[data-drop="occupied"][data-over] { box-shadow:inset 0 0 0 3px rgba(240,113,113,.8);background:rgba(240,113,113,.12);opacity:1; }
 .gc-fm-cell[data-armed] { cursor:pointer;box-shadow:inset 0 0 0 1px rgba(62,207,142,.3),inset 0 2px 4px rgba(0,0,0,.4); }
 .gc-fm-cell[data-armed]:hover,.gc-fm-cell[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:#2f4a32; }
 .gc-fm-placing,.gc-fm-warn { display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 4px 0 10px;border-radius:999px;font-size:11px;font-weight:700; }
@@ -13193,6 +13213,8 @@ details.gc-card summary h3 { display:inline; }
 #gc-farm-manager[data-potting="true"] aside { box-shadow:inset 0 0 0 2px rgba(62,207,142,.35); }
 #gc-farm-manager[data-potting="true"] aside[data-over] { box-shadow:inset 0 0 0 3px var(--gc-green);background:rgba(62,207,142,.08); }
 #gc-farm-manager[data-potting] aside::after { content:'Drop here to pot';position:absolute;left:12px;right:12px;bottom:12px;padding:12px;border:1px dashed rgba(62,207,142,.5);border-radius:10px;background:rgba(20,40,28,.96);color:var(--gc-green);font-weight:600;text-align:center;pointer-events:none; }
+#gc-farm-manager[data-lifting="crystal"][data-potting] aside::after { content:'Drop here to pick up'; }
+#gc-farm-manager[data-lifting="crystal"][data-potting="full"] aside::after { content:'Inventory full - cannot pick up'; }
 #gc-farm-manager[data-potting="full"] aside::after { content:'Inventory full - cannot pot';border-color:rgba(240,113,113,.5);color:var(--gc-danger);background:rgba(48,20,20,.96); }
 .gc-fm-list-head { display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 2px; }
 .gc-fm-list-head b { color:var(--gc-strong);font-size:13px;font-weight:650; }
@@ -13342,6 +13364,15 @@ details.gc-card summary h3 { display:inline; }
 .gc-modal-backdrop button { min-height:30px;padding:6px 12px;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);color:var(--gc-text);background:var(--gc-surface-2);cursor:pointer;font:500 12px var(--gc-font); }
 .gc-modal-backdrop button:hover { border-color:rgba(255,255,255,.18);background:var(--gc-surface-3); }
 .gc-ability-modal { width:360px;max-width:calc(100vw - 40px);max-height:min(80vh,640px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);color:var(--gc-text);font:13px/1.4 var(--gc-font); }
+/* Above the Farm Manager, which sits near the top of the stacking order. */
+.gc-fm-confirm-backdrop { z-index:2147483646; }
+.gc-fm-confirm { width:340px;max-width:calc(100vw - 40px);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius);background:var(--gc-bg);box-shadow:var(--gc-shadow);font-family:var(--gc-font); }
+.gc-fm-confirm h3 { display:flex;align-items:center;gap:8px; }
+.gc-fm-confirm h3 img { width:22px;height:22px;object-fit:contain; }
+.gc-fm-confirm-body { padding:12px 16px 4px; }
+.gc-fm-confirm-body p { margin:0 0 8px;color:var(--gc-text);font-size:12px;line-height:1.45; }
+.gc-fm-confirm footer { display:flex;justify-content:flex-end;gap:8px;padding:10px 16px 14px; }
+.gc-modal-backdrop .gc-fm-confirm-yes { color:var(--gc-accent-text);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
 .gc-modal-head { display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 16px;border-bottom:1px solid var(--gc-line); }
 .gc-modal-head h3 { margin:0;color:var(--gc-strong);font-size:14px;font-weight:600; }
 .gc-modal-close { width:30px;height:30px;padding:0!important;border:0!important;background:transparent!important;color:var(--gc-muted)!important;font-size:18px;line-height:1; }
@@ -13710,6 +13741,7 @@ details.gc-card summary h3 { display:inline; }
 .gc-planner-row [data-plan-scale-value] { min-width:42px;color:var(--gc-text);font-size:12px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums; }
 .gc-planner-row button,.gc-planner-mutations button { padding:5px 10px;color:var(--gc-text);border:1px solid var(--gc-line-strong);border-radius:var(--gc-radius-sm);background:var(--gc-surface-2);cursor:pointer;font:500 11px var(--gc-font); }
 .gc-planner-row button:hover,.gc-planner-mutations button:hover { background:var(--gc-surface-3); }
+.gc-planner-row button[data-plan-hide-pets][data-active="true"] { color:var(--gc-accent-text);background:var(--gc-accent-soft);border-color:var(--gc-accent-text); }
 .gc-planner-mutations button[data-active=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
 /* Mutation icons are small and colourful, so a tinted background alone was hard to tell apart: the
    unchosen ones are dimmed and the chosen ones get a solid ring (inset, so the panel's edge cannot
@@ -15675,7 +15707,8 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       painting: false,
       erasing: false,
       weather: "live",
-      time: "live"
+      time: "live",
+      hidePets: false
     };
     const WEATHER_CHOICES = [
       { id: "live", label: "Live" },
@@ -15849,6 +15882,43 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     skyHook.sync(skyNeedsFrameHook());
     function systems() {
       return page.__gardenCompanionFarmSystems ?? null;
+    }
+    const hiddenPets = /* @__PURE__ */ new Set();
+    const PET_DRAW_FLAG = "__gardenCompanionPlannerPets";
+    function hidePetViews(system) {
+      if (!planner.open || !planner.hidePets) return;
+      for (const [, petView] of system.views ?? []) {
+        const display = petView?.displayObject;
+        if (!display || display.destroyed) continue;
+        if (!hiddenPets.has(display)) {
+          if (display.visible === false) continue;
+          hiddenPets.add(display);
+        }
+        display.visible = false;
+      }
+    }
+    function patchPetDraw() {
+      const system = systems()?.petSystem;
+      if (!system || system[PET_DRAW_FLAG] || typeof system.draw !== "function") return;
+      const originalDraw = system.draw;
+      system.draw = function(...args) {
+        const result = originalDraw.apply(this, args);
+        try {
+          hidePetViews(this);
+        } catch {
+        }
+        return result;
+      };
+      system[PET_DRAW_FLAG] = true;
+    }
+    function restorePets() {
+      for (const display of hiddenPets) {
+        try {
+          if (!display.destroyed) display.visible = true;
+        } catch {
+        }
+      }
+      hiddenPets.clear();
     }
     function tileSystem() {
       const system = systems()?.tileSystem;
@@ -16352,6 +16422,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       patchTileUpdates();
       patchEdgeUpdates();
       patchWeatherDraw();
+      patchPetDraw();
       applyAllTiles();
       hideNativeCardUi();
     }, 1e3);
@@ -16368,6 +16439,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       patchTileUpdates();
       patchEdgeUpdates();
       patchWeatherDraw();
+      patchPetDraw();
       applyAllTiles();
       hideNativeCardUi();
       document.body.classList.add("gc-planning");
@@ -16388,6 +16460,7 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
       unpatchEdgeUpdates();
       applyAllTiles();
       restoreNativeCardUi();
+      restorePets();
       document.body.classList.remove("gc-planning");
       window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("pointermove", onPointerMove, true);
@@ -16611,12 +16684,21 @@ ${decorMode && DECOR[planner.decorId]?.mountable ? `<div class="gc-planner-row">
 <div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>` : ""}
 ${decorMode ? `${DECOR[planner.decorId]?.rotates || edgeDecorSelected() ? `<div class="gc-planner-row"><b>${edgeDecorSelected() ? "Side" : "Facing"}</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group">${[0, 90, 180, 270].map((angle) => `<button data-plan-rotation="${angle}" data-active="${planner.rotation === angle}">${edgeDecorSelected() ? SIDE_LABELS[angle] : angle}</button>`).join("")}</div></div></div>` : ""}<div class="gc-planner-row"><b>Flip</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-flip="false" data-active="${!planner.flipped}">Normal</button><button data-plan-flip="true" data-active="${planner.flipped}">Flipped</button></div></div></div>` : `<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`}
 ${decorMode && !DECOR[planner.decorId]?.mountable ? "" : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies())}</span><button data-plan-scale-max data-active="${scaleAtMax(scaleSpecies())}">Max</button></div>`}
-<div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
+<div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button><button data-plan-hide-pets data-active="${planner.hidePets}" title="Hide the pets in the garden while planning">Hide pets</button></div>
 <div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
 ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select><button data-plan-delete>Delete</button></div>` : ""}</div>`;
       const grid = panel4.querySelector(".gc-planner-grid:not(.gc-planner-mount)");
       if (grid) grid.scrollTop = previousScroll;
       panel4.querySelector("[data-plan-close]").onclick = close2;
+      panel4.querySelector("[data-plan-hide-pets]").onclick = (event) => {
+        planner.hidePets = !planner.hidePets;
+        event.currentTarget.dataset.active = String(planner.hidePets);
+        if (planner.hidePets) {
+          patchPetDraw();
+          const system = systems()?.petSystem;
+          if (system) hidePetViews(system);
+        } else restorePets();
+      };
       panel4.querySelectorAll("[data-plan-species]").forEach((button) => button.onclick = () => {
         planner.species = button.dataset.planSpecies;
         panel4.querySelectorAll("[data-plan-species]").forEach((other) => {
@@ -21876,8 +21958,20 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   var SEED_SILO = "SeedSilo";
   var PLACE_TIMEOUT_MS = 12e3;
   var INVENTORY_SLOTS2 = 100;
+  var CRYSTALS = {
+    RainWard: { shard: "RainWardShard", name: "Rain Ward", limit: 4 },
+    SnowWard: { shard: "SnowWardShard", name: "Snow Ward", limit: 4 },
+    ThunderWard: { shard: "ThunderWardShard", name: "Thunder Ward", limit: 4 },
+    Hunger: { shard: "HungerShard", name: "Hunger", limit: 1 },
+    XP: { shard: "XPShard", name: "XP", limit: 1 },
+    Strength: { shard: "StrengthShard", name: "Strength", limit: 1 }
+  };
+  var CRYSTAL_OF_SHARD = Object.fromEntries(Object.entries(CRYSTALS).map(([type, info]) => [info.shard, type]));
+  var TOOL_SHACK2 = "ToolShack";
   var drag = null;
   var busyTiles = /* @__PURE__ */ new Set();
+  var crystalTarget = null;
+  var crystalOrigin = null;
   var renderQueued = false;
   var search2 = "";
   var tab = "plants";
@@ -22040,6 +22134,7 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
     farm: icon('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'),
     plants: icon('<path d="M12 21v-9"/><path d="M12 12c0-4.5 3-7.5 7.5-7.5 0 4.5-3 7.5-7.5 7.5z"/><path d="M12 14.5c0-3.5-2.5-6-6.5-6 0 3.5 2.5 6 6.5 6z"/><path d="M7 21h10"/>'),
     seeds: icon('<path d="M12 3c4.5 3.5 6.5 7.5 6.5 10.5a6.5 6.5 0 0 1-13 0C5.5 10.5 7.5 6.5 12 3z"/><path d="M12 10v8"/>'),
+    crystals: icon('<path d="M12 2.5 18 9l-6 12.5L6 9z"/><path d="M6 9h12M12 2.5 9.5 9l2.5 12.5L14.5 9z"/>'),
     celestial: icon('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/><path d="M17 3v4M15 5h4"/>'),
     search: icon('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'),
     close: icon('<path d="M6 6l12 12M18 6 6 18"/>'),
@@ -22048,11 +22143,13 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
   var TAB_SUBTITLES = {
     plants: "Move, swap and pot the plants on your farm",
     seeds: "Plant seeds from your inventory or Seed Silo",
+    crystals: "Place crystals and shards from your inventory or Tool Shack",
     celestial: "Plans the best placement so every celestial gets full Moonbinder and Dawnbinder coverage"
   };
   var TAB_HINTS = {
     plants: [["Drag", "move"], ["Right click", "pot"], ["Click card", "pick"]],
     seeds: [["Click card", "pick"], ["Click tile", "plant"], ["Drag", "plant once"]],
+    crystals: [["Drag", "place"], ["Drop on crystal", "fuse"]],
     celestial: [["Drag", "move"], ["Drop on plant", "swap"], ["Hover number", "its target"]]
   };
   function listCard(attrs, sprite, name, extra = "") {
@@ -22130,6 +22227,334 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
       resume();
     }
   }
+  function crystalCards() {
+    const shards = /* @__PURE__ */ new Map();
+    const crystals = [];
+    const count = (rows, field) => {
+      for (const row of rows ?? []) {
+        const crystalType = row?.itemType === "Tool" ? CRYSTAL_OF_SHARD[row.toolId] : void 0;
+        if (!crystalType) continue;
+        if ("remainingActiveSeconds" in row) {
+          const seconds = Number(row.remainingActiveSeconds) || 0;
+          if (field === "loose" && seconds > 0 && typeof row.id === "string") {
+            crystals.push({ key: `item:${row.id}`, crystalType, toolId: row.toolId, shard: false, itemId: row.id, loose: 1, stored: 0, seconds });
+          }
+          continue;
+        }
+        const card = shards.get(row.toolId) ?? { key: `shard:${row.toolId}`, crystalType, toolId: row.toolId, shard: true, loose: 0, stored: 0, seconds: 0 };
+        card[field] += Math.max(0, Number(row.quantity ?? 1));
+        shards.set(row.toolId, card);
+      }
+    };
+    const inventory = state.slot?.data?.inventory;
+    count(inventory?.items, "loose");
+    count(inventory?.storages?.find((storage) => storage.decorId === TOOL_SHACK2)?.items, "stored");
+    const order = Object.keys(CRYSTALS);
+    const rank = (card) => order.indexOf(card.crystalType);
+    return [
+      ...crystals.sort((left, right) => rank(left) - rank(right) || right.seconds - left.seconds),
+      ...[...shards.values()].filter((card) => card.loose + card.stored > 0).sort((left, right) => rank(left) - rank(right))
+    ];
+  }
+  function crystalName(card) {
+    return `${CRYSTALS[card.crystalType]?.name ?? card.crystalType} ${card.shard ? "Shard" : "Crystal"}`;
+  }
+  function crystalSprite(crystalType) {
+    return page.__gardenCompanionShopSprites?.[CRYSTALS[crystalType]?.shard ?? ""] || "";
+  }
+  function shortDuration(seconds) {
+    if (seconds <= 0) return "0m";
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    return minutes >= 60 ? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}` : `${minutes}m`;
+  }
+  function cellKey(cell) {
+    return `${cell.kind}:${cell.local}`;
+  }
+  function tileNow(cell) {
+    const garden = state.slot?.data?.garden;
+    return (cell.kind === "dirt" ? garden?.tileObjects : garden?.boardwalkTileObjects)?.[String(cell.local)] ?? null;
+  }
+  function runningCrystals(crystalType) {
+    const garden = state.slot?.data?.garden;
+    return [...Object.values(garden?.tileObjects ?? {}), ...Object.values(garden?.boardwalkTileObjects ?? {})].filter((tile) => tile?.objectType === "crystal" && tile.crystalType === crystalType && Number(tile.remainingActiveSeconds) > 0).length;
+  }
+  var WARD_RADIUS = 2;
+  var AREA_CRYSTALS = /* @__PURE__ */ new Set(["RainWard", "SnowWard", "ThunderWard"]);
+  var litCrystal = null;
+  function showCrystalArea(key) {
+    const element = root();
+    if (!element) return;
+    element.querySelectorAll("[data-crystal-area],[data-crystal-source]").forEach((node) => {
+      delete node.dataset.crystalArea;
+      delete node.dataset.crystalSource;
+    });
+    litCrystal = key;
+    if (!key) return;
+    const cells = farmCells() ?? [];
+    const source = cells.find((cell) => cellKey(cell) === key);
+    const crystalType = String(source?.tile?.crystalType ?? "");
+    if (!source || source.tile?.objectType !== "crystal" || !AREA_CRYSTALS.has(crystalType)) return;
+    const nodeOf = (cell) => element.querySelector(`.gc-fm-cell[data-kind="${cell.kind}"][data-local="${cell.local}"]`);
+    const sourceNode = nodeOf(source);
+    if (sourceNode) sourceNode.dataset.crystalSource = crystalType;
+    for (const cell of cells) {
+      const dx = Math.abs(cell.x - source.x);
+      const dy = Math.abs(cell.y - source.y);
+      if (dx > WARD_RADIUS || dy > WARD_RADIUS || dx === 0 && dy === 0) continue;
+      const node = nodeOf(cell);
+      if (node) node.dataset.crystalArea = crystalType;
+    }
+  }
+  function refuseOccupied(moving = false) {
+    toast(moving ? "That tile is occupied. A crystal can only move to an empty tile." : "That tile is occupied. Crystals go on an empty tile, or onto a crystal of the same kind to fuse.", "error");
+  }
+  var SHARD_SECONDS = 14400;
+  var MAX_CRYSTAL_SECONDS = SHARD_SECONDS * 3;
+  function fuseGain(targetSeconds, sourceSeconds) {
+    return Math.max(0, Math.min(MAX_CRYSTAL_SECONDS, targetSeconds + sourceSeconds) - targetSeconds);
+  }
+  function fusableCrystal(tile, crystalType) {
+    return tile?.objectType === "crystal" && tile.crystalType === crystalType;
+  }
+  function crystalSecondsOn(cell) {
+    return Number(tileNow(cell)?.remainingActiveSeconds) || 0;
+  }
+  function confirmBox(title, lines, confirmLabel, iconSrc = "") {
+    return new Promise((resolve) => {
+      const backdrop = document.createElement("div");
+      backdrop.className = "gc-modal-backdrop gc-fm-confirm-backdrop";
+      backdrop.dataset.gcUi = "";
+      backdrop.innerHTML = `<div class="gc-fm-confirm" role="dialog" aria-modal="true"><header class="gc-modal-head"><h3>${iconSrc ? `<img src="${escapeHtml(iconSrc)}" alt="">` : ""}${escapeHtml(title)}</h3></header><div class="gc-fm-confirm-body">${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div><footer><button data-fm-confirm-no>Cancel</button><button class="gc-fm-confirm-yes" data-fm-confirm-yes>${escapeHtml(confirmLabel)}</button></footer></div>`;
+      let pressedBackdrop = false;
+      const keyEvents = ["keydown", "keyup", "keypress"];
+      const finish = (answer) => {
+        for (const type of keyEvents) window.removeEventListener(type, onKey3, true);
+        backdrop.remove();
+        resolve(answer);
+      };
+      const onKey3 = (event) => {
+        event.stopPropagation();
+        if (event.type === "keydown" && event.key === "Escape") {
+          event.preventDefault();
+          finish(false);
+        }
+      };
+      backdrop.addEventListener("pointerdown", (event) => {
+        pressedBackdrop = event.target === backdrop;
+      });
+      backdrop.addEventListener("click", (event) => {
+        const target = event.target;
+        if (target.closest("[data-fm-confirm-yes]")) finish(true);
+        else if (target.closest("[data-fm-confirm-no]") || target === backdrop && pressedBackdrop) finish(false);
+      });
+      for (const type of keyEvents) window.addEventListener(type, onKey3, true);
+      document.body.appendChild(backdrop);
+      backdrop.querySelector("[data-fm-confirm-yes]")?.focus();
+    });
+  }
+  function crystalItemRef(card) {
+    return card.shard ? { itemType: "Tool", toolId: card.toolId } : { itemType: "Tool", itemId: card.itemId };
+  }
+  function refusalText(result) {
+    if (result.ok || result.timedOut) return null;
+    return result.code === "not_sent" ? "The game is not connected" : `The game refused it${result.code ? ` (${result.code})` : ""}`;
+  }
+  function crystalBusy() {
+    if (crystalTarget) {
+      toast("Wait for the last crystal to land first.", "error");
+      return true;
+    }
+    if (seeding || plantActions()?.busy()) {
+      toast("Finish the current move first.", "error");
+      return true;
+    }
+    return false;
+  }
+  async function placeCrystal(key, target) {
+    if (crystalBusy()) return;
+    const card = crystalCards().find((entry) => entry.key === key);
+    if (!card) {
+      toast("That crystal is no longer in your inventory or Tool Shack.", "error");
+      return;
+    }
+    const standing = tileNow(target);
+    if (standing && !fusableCrystal(standing, card.crystalType)) {
+      refuseOccupied();
+      return;
+    }
+    if (standing) {
+      await fuseCrystal(card, target);
+      return;
+    }
+    const info = CRYSTALS[card.crystalType];
+    if (info && runningCrystals(card.crystalType) >= info.limit) {
+      toast(info.limit === 1 ? `A ${info.name} Crystal is already running. Only one can be down at a time; drop onto it to fuse instead.` : `${info.limit} ${info.name} Crystals are already running, the most the game allows. Drop onto one to fuse instead.`, "error");
+      return;
+    }
+    const name = crystalName(card);
+    crystalTarget = cellKey(target);
+    const status = root()?.querySelector("[data-fm-status]");
+    if (status) status.textContent = `Placing ${name}...`;
+    render4();
+    const release = card.shard ? holdTool(card.toolId) : () => {
+    };
+    try {
+      if (card.shard && !await ensureToolReady(card.toolId)) {
+        throw new Error(card.loose + card.stored > 0 ? "The shard could not be taken out of the Tool Shack. Make room in your inventory" : `No ${name}s are left`);
+      }
+      if (tileNow(target)) throw new Error("That tile is occupied");
+      const result = await sendQuinoaCommandAwaitingResult({
+        type: "PlaceCrystal",
+        tileType: target.kind === "dirt" ? "Dirt" : "Boardwalk",
+        localTileIndex: target.local,
+        item: crystalItemRef(card),
+        intent: { type: "place" }
+      });
+      const refused = refusalText(result);
+      if (refused) throw new Error(refused);
+      const placed = await waitFor(() => tileNow(target)?.objectType === "crystal", PLACE_TIMEOUT_MS);
+      if (!placed) throw new Error("Placing was not confirmed. Check the tile before retrying");
+      toast(`${name} placed.`, "success");
+    } catch (error) {
+      toast(`Crystal not placed: ${error.message}.`, "error");
+    } finally {
+      release();
+      crystalTarget = null;
+      render4();
+    }
+  }
+  function inventoryHas(itemId2) {
+    return (state.slot?.data?.inventory?.items ?? []).some((item) => item?.id === itemId2);
+  }
+  async function liftCrystal(source) {
+    const tile = tileNow(source);
+    if (tile?.objectType !== "crystal") throw new Error("There is no crystal on that tile any more");
+    if (freeInventorySlots() < 1) throw new Error("Your inventory is full. Free a slot first");
+    const itemId2 = crypto.randomUUID();
+    const result = await sendQuinoaCommandAwaitingResult({
+      type: "PickupCrystal",
+      tileType: source.kind === "dirt" ? "Dirt" : "Boardwalk",
+      localTileIndex: source.local,
+      crystalType: tile.crystalType,
+      itemId: itemId2
+    });
+    const refused = refusalText(result);
+    if (refused) throw new Error(refused);
+    const lifted = await waitFor(() => !tileNow(source) && inventoryHas(itemId2), PLACE_TIMEOUT_MS);
+    if (!lifted) throw new Error("The pickup was not confirmed. Check the tile before retrying");
+    return itemId2;
+  }
+  async function pickUpCrystal(source) {
+    if (crystalBusy()) return;
+    crystalTarget = cellKey(source);
+    const status = root()?.querySelector("[data-fm-status]");
+    if (status) status.textContent = "Picking up crystal...";
+    render4();
+    try {
+      await liftCrystal(source);
+      toast("Crystal picked up.", "success");
+    } catch (error) {
+      toast(`Not picked up: ${error.message}.`, "error");
+    } finally {
+      crystalTarget = null;
+      render4();
+    }
+  }
+  async function moveCrystal(work, target) {
+    if (crystalBusy()) return;
+    const source = { kind: work.kind, local: work.local };
+    if (!fusableCrystal(tileNow(source), work.crystalType)) {
+      toast("That crystal is no longer on its tile.", "error");
+      return;
+    }
+    if (tileNow(target)) {
+      refuseOccupied(true);
+      return;
+    }
+    const name = `${CRYSTALS[work.crystalType]?.name ?? work.crystalType} Crystal`;
+    crystalTarget = cellKey(target);
+    crystalOrigin = cellKey(source);
+    const status = root()?.querySelector("[data-fm-status]");
+    if (status) status.textContent = `Moving ${name}...`;
+    render4();
+    let itemId2 = null;
+    try {
+      itemId2 = await liftCrystal(source);
+      if (tileNow(target)) throw new Error("That tile is occupied");
+      const result = await sendQuinoaCommandAwaitingResult({
+        type: "PlaceCrystal",
+        tileType: target.kind === "dirt" ? "Dirt" : "Boardwalk",
+        localTileIndex: target.local,
+        item: { itemType: "Tool", itemId: itemId2 },
+        intent: { type: "place" }
+      });
+      const refused = refusalText(result);
+      if (refused) throw new Error(refused);
+      const placed = await waitFor(() => tileNow(target)?.objectType === "crystal", PLACE_TIMEOUT_MS);
+      if (!placed) throw new Error("Placing was not confirmed. Check the tile before retrying");
+      toast(`${name} moved.`, "success");
+    } catch (error) {
+      const stranded = itemId2 && inventoryHas(itemId2);
+      toast(`Move stopped: ${error.message}.${stranded ? " The crystal is in your inventory." : ""}`, "error");
+    } finally {
+      crystalTarget = null;
+      crystalOrigin = null;
+      render4();
+    }
+  }
+  async function fuseCrystal(card, target) {
+    const info = CRYSTALS[card.crystalType];
+    const typeName = info?.name ?? card.crystalType;
+    const name = crystalName(card);
+    const sourceSeconds = card.shard ? SHARD_SECONDS : card.seconds;
+    const before = crystalSecondsOn(target);
+    if (before >= MAX_CRYSTAL_SECONDS) {
+      toast(`That ${typeName} Crystal is already at its max size (${shortDuration(MAX_CRYSTAL_SECONDS)}).`, "error");
+      return;
+    }
+    const gain = fuseGain(before, sourceSeconds);
+    crystalTarget = cellKey(target);
+    render4();
+    const release = card.shard ? holdTool(card.toolId) : () => {
+    };
+    try {
+      const lines = [
+        `Fuse ${card.shard ? "a" : "this"} ${name} into the ${typeName} Crystal on this tile?`,
+        `It has ${shortDuration(before)} left and will have ${shortDuration(before + gain)} after (+${shortDuration(gain)}).`
+      ];
+      const status = root()?.querySelector("[data-fm-status]");
+      if (status) status.textContent = `Confirm fusing ${name}...`;
+      if (gain < sourceSeconds) lines.push(`A crystal holds at most ${shortDuration(MAX_CRYSTAL_SECONDS)}, so only ${shortDuration(gain)} of the ${card.shard ? "shard" : "crystal"}'s ${shortDuration(sourceSeconds)} is added. The rest is lost.`);
+      lines.push(`The ${card.shard ? "shard" : "crystal"} is used up.`);
+      if (!await confirmBox(`Fuse ${name}?`, lines, "Fuse", crystalSprite(card.crystalType))) return;
+      if (status) status.textContent = `Fusing ${name}...`;
+      if (card.shard && !await ensureToolReady(card.toolId)) {
+        throw new Error(card.loose + card.stored > 0 ? "The shard could not be taken out of the Tool Shack. Make room in your inventory" : `No ${name}s are left`);
+      }
+      if (!fusableCrystal(tileNow(target), card.crystalType)) throw new Error("The crystal on that tile is gone");
+      const now = crystalSecondsOn(target);
+      const mergeGainSeconds = Math.floor(fuseGain(now, sourceSeconds));
+      if (mergeGainSeconds <= 0) throw new Error("That crystal is already at its max size");
+      const result = await sendQuinoaCommandAwaitingResult({
+        type: "PlaceCrystal",
+        tileType: target.kind === "dirt" ? "Dirt" : "Boardwalk",
+        localTileIndex: target.local,
+        item: crystalItemRef(card),
+        intent: { type: "merge", mergeGainSeconds }
+      });
+      const refused = refusalText(result);
+      if (refused) throw new Error(refused);
+      const fused = await waitFor(() => crystalSecondsOn(target) > now + 1, PLACE_TIMEOUT_MS);
+      if (!fused) throw new Error("Fusing was not confirmed. Check the crystal before retrying");
+      toast(`${name} fused. +${shortDuration(mergeGainSeconds)}.`, "success");
+    } catch (error) {
+      toast(`Not fused: ${error.message}.`, "error");
+    } finally {
+      release();
+      crystalTarget = null;
+      render4();
+    }
+  }
   function speciesName2(species) {
     return patchName(species).replace(/ Plant$/, "");
   }
@@ -22160,6 +22585,13 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
     }
     if (tile.objectType === "decor") return DECOR_CATALOG[tile.decorId || ""]?.name || tile.decorId || "Decor";
     if (tile.objectType === "egg") return "Egg";
+    if (tile.objectType === "crystal") {
+      const crystalType = String(tile.crystalType ?? "");
+      const seconds = Number(tile.remainingActiveSeconds) || 0;
+      return `${CRYSTALS[crystalType]?.name ?? crystalType} Crystal
+${seconds > 0 ? `${shortDuration(seconds)} left` : "Spent"}
+Drag onto an empty tile to move, or onto the side bar${tab === "celestial" ? "" : " or right click"} to pick up`;
+    }
     return tile.objectType || "Occupied";
   }
   function cellContent(cell) {
@@ -22172,11 +22604,25 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
       return `${spriteImage(produceSprite(tile.species || ""), tile.species || "?")}${badge}`;
     }
     if (tile.objectType === "decor") return spriteImage(page.__gardenCompanionShopSprites?.[tile.decorId || ""] || "", tile.decorId || "?");
+    if (tile.objectType === "crystal") {
+      const crystalType = String(tile.crystalType ?? "");
+      return spriteImage(crystalSprite(crystalType), CRYSTALS[crystalType]?.name ?? "?");
+    }
     const eggId = tile.eggId;
     return spriteImage(eggId ? page.__gardenCompanionShopSprites?.[eggId] || "" : "", eggId || "?");
   }
   function dropAction(cell) {
-    if (!drag || cell.kind !== "dirt" || busyTiles.has(cell.local)) return null;
+    if (!drag) return null;
+    if (drag.from === "crystal") {
+      if (crystalTarget === cellKey(cell) || cell.kind === "dirt" && busyTiles.has(cell.local)) return null;
+      if (!cell.tile) return "place";
+      return fusableCrystal(cell.tile, drag.crystalType) ? "fuse" : "occupied";
+    }
+    if (drag.from === "placedCrystal") {
+      if (cellKey(cell) === `${drag.kind}:${drag.local}` || cell.kind === "dirt" && busyTiles.has(cell.local)) return null;
+      return cell.tile ? "occupied" : "move";
+    }
+    if (cell.kind !== "dirt" || busyTiles.has(cell.local)) return null;
     if (cell.tile) {
       return tab === "celestial" && drag.from === "tile" && cell.tile.objectType === "plant" && cell.local !== drag.local ? "swap" : null;
     }
@@ -22205,7 +22651,7 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
     const grid = element.querySelector("[data-fm-grid]");
     const list = element.querySelector("[data-fm-inventory]");
     const status = element.querySelector("[data-fm-status]");
-    const busy = seeding || (plantActions()?.busy() ?? false);
+    const busy = seeding || (plantActions()?.busy() ?? false) || Boolean(crystalTarget);
     const stacks = seedStacks();
     if (armedSeed && (tab !== "seeds" || !stacks.some((stack) => stack.species === armedSeed))) armedSeed = null;
     const query = search2.trim().toLowerCase();
@@ -22292,8 +22738,11 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
         const extra = annotate(cell);
         const position2 = `grid-column:${cell.x - minX + 1};grid-row:${cell.y - minY + 1}`;
         const style = extra.attrs.includes('style="') ? `${position2}"` : ` style="${position2}"`;
-        return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || "empty")}" data-local="${cell.local}"${busyTiles.has(cell.local) ? ' data-pending="true"' : ""}${plantable ? ' data-drop="place" data-armed="true"' : ""}${extra.attrs}${style} title="${escapeHtml(tileTitle(cell))}"${movable ? ' draggable="true"' : ""}>${cellContent(cell)}${extra.inner}</div>`;
+        const pending2 = cell.kind === "dirt" && busyTiles.has(cell.local) || crystalTarget === cellKey(cell) || crystalOrigin === cellKey(cell);
+        const crystalMovable = cell.tile?.objectType === "crystal" && !busy;
+        return `<div class="gc-fm-cell" data-kind="${cell.kind}" data-type="${escapeHtml(cell.tile?.objectType || "empty")}" data-local="${cell.local}"${pending2 ? ' data-pending="true"' : ""}${plantable ? ' data-drop="place" data-armed="true"' : ""}${extra.attrs}${style} title="${escapeHtml(tileTitle(cell))}"${movable || crystalMovable ? ' draggable="true"' : ""}>${cellContent(cell)}${extra.inner}</div>`;
       }).join("")}${edgeMarkers(size)}${arrow}</div></div>`);
+      if (litCrystal) showCrystalArea(litCrystal);
     }
     const count = cells?.filter((cell) => cell.kind === "dirt" && cell.tile?.objectType === "plant").length ?? 0;
     const free = cells?.filter((cell) => cell.kind === "dirt" && !cell.tile).length ?? 0;
@@ -22307,7 +22756,8 @@ ${cells && !total && !celCalculating && celPlan?.tone !== "error" ? '<div class=
       stat("Pots", pots, pots === 0),
       stat("Inventory", `${used}/${INVENTORY_SLOTS2}`, used >= INVENTORY_SLOTS2)
     ].join(""));
-    const tabCounts = { plants: allPotted.length, seeds: stacks.length, celestial: celestials };
+    const allCrystals = crystalCards();
+    const tabCounts = { plants: allPotted.length, seeds: stacks.length, crystals: allCrystals.length, celestial: celestials };
     element.querySelectorAll("[data-fm-tab]").forEach((button) => {
       const name = button.dataset.fmTab;
       button.dataset.active = String(name === tab);
@@ -22334,6 +22784,18 @@ ${stack.stored} in the Seed Silo` : ""}"`,
         speciesName2(stack.species),
         `<em class="gc-fm-qty">${stack.loose + stack.stored}</em>${stack.stored ? '<i class="gc-fm-silo">Silo</i>' : ""}`
       )).join("") : `<div class="gc-fm-empty">${query ? "No seeds match." : "No seeds in your inventory or Seed Silo."}</div>`);
+    } else if (tab === "crystals") {
+      const shown2 = allCrystals.filter((card) => !query || crystalName(card).toLowerCase().includes(query));
+      setHtml(head, `<b>Crystals</b><small>${shown2.length}${query ? ` of ${allCrystals.length}` : ""}</small>`);
+      setHtml(list, shown2.length ? shown2.map((card) => listCard(
+        ` data-crystal="${escapeHtml(card.key)}" data-crystal-type="${escapeHtml(card.crystalType)}"${busy ? "" : ' draggable="true"'} title="${escapeHtml(crystalName(card))}${card.shard ? "" : `
+${shortDuration(card.seconds)} left`}
+Drag onto an empty tile to place, or onto a ${escapeHtml(CRYSTALS[card.crystalType]?.name ?? "")} Crystal to fuse${card.stored ? `
+${card.stored} in the Tool Shack` : ""}"`,
+        spriteImage(crystalSprite(card.crystalType), CRYSTALS[card.crystalType]?.name ?? "?"),
+        crystalName(card),
+        `<em class="gc-fm-qty">${card.shard ? card.loose + card.stored : shortDuration(card.seconds)}</em>${card.stored ? '<i class="gc-fm-silo">Shack</i>' : ""}`
+      )).join("") : `<div class="gc-fm-empty">${query ? "No crystals match." : "No crystals or shards in your inventory or Tool Shack."}</div>`);
     } else {
       setHtml(head, `<b>Potted plants</b><small>${potted.length}${query ? ` of ${allPotted.length}` : ""}</small>`);
       setHtml(list, potted.length ? potted.map((item, index) => listCard(
@@ -22344,21 +22806,30 @@ Click to place on empty tiles, or drag onto one"`,
       )).join("") : `<div class="gc-fm-empty">${query ? "No potted plants match." : "No potted plants in your inventory. Drag a plant here or right click it on the map to pot it."}</div>`);
     }
     const footer = element.querySelector("footer");
-    footer.dataset.busy = String(busy || busyTiles.size > 0);
-    if (!busy && tab === "celestial") {
+    footer.dataset.busy = String(busy || busyTiles.size > 0 || Boolean(crystalTarget));
+    if (crystalTarget) {
+    } else if (!busy && tab === "celestial") {
       const text = celMoves.length ? `Drag the plant marked 1 to the tile the arrow points at - drop onto a plant to swap them. A move uses a Planter Pot, a swap two (${pots} left).` : celPlan?.plan.size ? "Every celestial is in place." : "Plant some celestials to plan a layout.";
+      if (status.textContent !== text) status.textContent = text;
+    } else if (tab === "crystals") {
+      const text = "Drag a crystal or shard onto an empty tile to place it, or onto a crystal of the same kind to fuse. Shards in the Tool Shack are taken out for you.";
       if (status.textContent !== text) status.textContent = text;
     } else if (!busy) {
       const text = armedSpecies ? `${free} empty tiles. Click a highlighted tile to plant ${speciesName2(armedSpecies)}; click it in the list again to stop.` : tab === "seeds" ? "Pick a seed, then click empty tiles to plant it, or drag a seed onto a tile." : "Drag a plant onto an empty tile to move it, or right click it to pot it. Each uses a Planter Pot.";
       if (status.textContent !== text) status.textContent = text;
     }
   }
-  function cellFor(local) {
-    return farmCells()?.find((cell) => cell.kind === "dirt" && cell.local === local);
+  function cellFor(local, kind = "dirt") {
+    return farmCells()?.find((cell) => cell.kind === kind && cell.local === local);
+  }
+  function cellOfNode(node) {
+    const kind = node.dataset.kind;
+    return kind === "dirt" || kind === "board" ? cellFor(Number(node.dataset.local), kind) : void 0;
   }
   function markTargets() {
+    const byKey = new Map((farmCells() ?? []).map((cell) => [cellKey(cell), cell]));
     root()?.querySelectorAll(".gc-fm-cell").forEach((node) => {
-      const cell = node.dataset.kind === "dirt" ? cellFor(Number(node.dataset.local)) : void 0;
+      const cell = byKey.get(`${node.dataset.kind}:${node.dataset.local}`);
       const action2 = cell ? dropAction(cell) : null;
       if (action2) node.dataset.drop = action2;
       else delete node.dataset.drop;
@@ -22368,7 +22839,10 @@ Click to place on empty tiles, or drag onto one"`,
     drag = null;
     rendered = /* @__PURE__ */ new WeakMap();
     root()?.classList.remove("gc-fm-dragging");
-    if (root()) delete root().dataset.potting;
+    if (root()) {
+      delete root().dataset.potting;
+      delete root().dataset.lifting;
+    }
     root()?.querySelectorAll("[data-drop],[data-over]").forEach((node) => {
       delete node.dataset.drop;
       delete node.dataset.over;
@@ -22385,7 +22859,7 @@ Click to place on empty tiles, or drag onto one"`,
   }
   async function potFromTile(local) {
     const actions = plantActions();
-    if (!actions || seeding || actions.busy()) {
+    if (!actions || seeding || actions.busy() || crystalTarget) {
       toast(actions ? "Finish the current move first." : "Plant moving is not ready yet.", "error");
       return;
     }
@@ -22404,14 +22878,16 @@ Click to place on empty tiles, or drag onto one"`,
     }
   }
   async function perform(work, target) {
+    if (work.from === "crystal") return placeCrystal(work.key, target);
+    if (work.from === "placedCrystal") return moveCrystal(work, target);
     const actions = plantActions();
     if (work.from === "seed") {
-      if (seeding || actions?.busy()) {
+      if (seeding || actions?.busy() || crystalTarget) {
         toast("Finish the current move first.", "error");
         return;
       }
       seeding = true;
-    } else if (!actions || seeding || actions.busy()) {
+    } else if (!actions || seeding || actions.busy() || crystalTarget) {
       toast(actions ? "Finish the current move first." : "Plant moving is not ready yet.", "error");
       return;
     }
@@ -22451,12 +22927,16 @@ Click to place on empty tiles, or drag onto one"`,
       const target = event.target;
       const cellNode = target.closest('.gc-fm-cell[draggable="true"]');
       const itemNode = target.closest('.gc-fm-item[draggable="true"]');
-      if (cellNode && refusePotless()) {
+      const crystalCell = cellNode?.dataset.type === "crystal" ? cellOfNode(cellNode) : void 0;
+      if (cellNode && !crystalCell && refusePotless()) {
         event.preventDefault();
         return;
       }
-      if (cellNode) drag = { from: "tile", local: Number(cellNode.dataset.local) };
+      if (crystalCell) {
+        drag = { from: "placedCrystal", kind: crystalCell.kind, local: crystalCell.local, crystalType: String(crystalCell.tile?.crystalType ?? "") };
+      } else if (cellNode) drag = { from: "tile", local: Number(cellNode.dataset.local) };
       else if (itemNode?.dataset.seed) drag = { from: "seed", species: itemNode.dataset.seed };
+      else if (itemNode?.dataset.crystal) drag = { from: "crystal", key: itemNode.dataset.crystal, crystalType: itemNode.dataset.crystalType ?? "" };
       else if (itemNode?.dataset.item) {
         drag = { from: "inventory", itemId: itemNode.dataset.item };
         armedPlant = { id: itemNode.dataset.item, index: Number(itemNode.dataset.index) || 0 };
@@ -22464,12 +22944,13 @@ Click to place on empty tiles, or drag onto one"`,
       event.dataTransfer?.setData("text/plain", "gc-farm-manager");
       if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
       element.classList.add("gc-fm-dragging");
-      if (drag.from === "tile") element.dataset.potting = freeInventorySlots() > 0 ? "true" : "full";
+      if (drag.from === "tile" || drag.from === "placedCrystal") element.dataset.potting = freeInventorySlots() > 0 ? "true" : "full";
+      if (drag.from === "placedCrystal") element.dataset.lifting = "crystal";
       markTargets();
     });
     element.addEventListener("dragover", (event) => {
       const aside = event.target.closest("aside");
-      if (aside && drag?.from === "tile" && freeInventorySlots() > 0) {
+      if (aside && (drag?.from === "tile" || drag?.from === "placedCrystal") && freeInventorySlots() > 0) {
         event.preventDefault();
         if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
         aside.dataset.over = "true";
@@ -22498,13 +22979,26 @@ Click to place on empty tiles, or drag onto one"`,
         void potFromTile(local);
         return;
       }
+      if (event.target.closest("aside") && drag?.from === "placedCrystal" && freeInventorySlots() > 0) {
+        event.preventDefault();
+        const source = cellFor(drag.local, drag.kind);
+        clearDrag();
+        if (source?.tile?.objectType === "crystal") void pickUpCrystal(source);
+        else toast("That crystal is no longer on its tile.", "error");
+        return;
+      }
       const node = event.target.closest(".gc-fm-cell");
       const work = drag;
       if (!work || !node?.dataset.drop) return;
       event.preventDefault();
-      const target = cellFor(Number(node.dataset.local));
+      const target = cellOfNode(node);
       clearDrag();
-      if (!target || !dropActionFor(work, target)) {
+      const action2 = target ? dropActionFor(work, target) : null;
+      if (action2 === "occupied") {
+        refuseOccupied(work.from === "placedCrystal");
+        return;
+      }
+      if (!target || !action2) {
         toast("That tile changed during the drag.", "error");
         return;
       }
@@ -22533,7 +23027,16 @@ Click to place on empty tiles, or drag onto one"`,
         if (otherNode) otherNode.dataset.celLit = kind;
       }
     });
+    element.addEventListener("mouseover", (event) => {
+      const node = drag ? null : event.target.closest('.gc-fm-cell[data-type="crystal"]');
+      const key = node ? `${node.dataset.kind}:${node.dataset.local}` : null;
+      if (key !== litCrystal) showCrystalArea(key);
+    });
+    element.addEventListener("dragstart", () => {
+      if (litCrystal) showCrystalArea(null);
+    });
     element.addEventListener("mouseleave", () => {
+      if (litCrystal) showCrystalArea(null);
       element.querySelectorAll("[data-cel-lit],[data-cel-source]").forEach((other) => {
         delete other.dataset.celLit;
         delete other.dataset.celSource;
@@ -22545,6 +23048,12 @@ Click to place on empty tiles, or drag onto one"`,
       if (!target.closest("[data-fm-grid]")) return;
       event.preventDefault();
       if (tab === "celestial") return;
+      const crystalNode = target.closest('.gc-fm-cell[data-type="crystal"]');
+      if (crystalNode) {
+        const cell = crystalNode.dataset.pending ? void 0 : cellOfNode(crystalNode);
+        if (cell) void pickUpCrystal(cell);
+        return;
+      }
       const cellNode = target.closest('.gc-fm-cell[data-kind="dirt"][data-type="plant"]');
       if (!cellNode) return;
       if (cellNode.dataset.pending) return;
@@ -22622,7 +23131,7 @@ Click to place on empty tiles, or drag onto one"`,
     element.dataset.gcUi = "";
     const tabButton = (name, label) => `<button data-fm-tab="${name}">${ICONS[name]}<span>${label}</span><em></em></button>`;
     element.innerHTML = `<header><div class="gc-fm-title"><span class="gc-fm-logo">${ICONS.farm}</span><div><b>Farm Manager</b><small data-fm-subtitle></small></div></div>
-<nav class="gc-fm-tabs">${tabButton("plants", "Plants")}${tabButton("seeds", "Seeds")}${tabButton("celestial", "Celestials")}</nav>
+<nav class="gc-fm-tabs">${tabButton("plants", "Plants")}${tabButton("seeds", "Seeds")}${tabButton("crystals", "Crystals")}${tabButton("celestial", "Celestials")}</nav>
 <div class="gc-fm-head-end"><div class="gc-fm-stats" data-fm-stats></div><button class="gc-fm-close" data-fm-close aria-label="Close">${ICONS.close}</button></div></header>
 <main><div class="gc-fm-stage"><div class="gc-fm-toolbar" data-no-drag><span><b class="gc-fm-where" data-fm-where>Your garden</b><b class="gc-fm-placing" data-fm-placing hidden></b><b class="gc-fm-warn" data-fm-warn hidden></b></span><span class="gc-fm-legend" data-fm-legend hidden><span><i class="gc-fm-legend-mix" style="--g:linear-gradient(135deg,${Object.values(CELESTIAL_BADGE).map((badge) => badge.color).join(",")})"></i>Planned spot</span><span><i style="--c:#fb7185"></i>Must move</span><span><i style="--c:#4ade80"></i>In place</span><span><i style="--c:#fde68a"></i>Current step</span></span></div><div class="gc-fm-grid" data-fm-grid data-no-drag></div></div><aside data-no-drag><div class="gc-fm-list-head" data-fm-list-head></div><label class="gc-fm-search" data-fm-search-wrap>${ICONS.search}<input data-fm-search placeholder="Search" spellcheck="false"></label><div class="gc-fm-list" data-fm-inventory></div></aside></main>
 <footer><i class="gc-fm-dot"></i><span class="gc-fm-status" data-fm-status></span><span class="gc-fm-hints" data-fm-hints></span></footer>`;

@@ -150,6 +150,8 @@ export function initGardenPlanner(): void {
     weather: string;
     /** Time of day to preview the garden under, alongside the weather: 'live' leaves it be. */
     time: string;
+    /** Hides every pet in the garden while planning, so they do not stand over the layout. */
+    hidePets: boolean;
   }
 
   const planner: PlannerState = {
@@ -168,6 +170,7 @@ export function initGardenPlanner(): void {
     erasing: false,
     weather: 'live',
     time: 'live',
+    hidePets: false,
   };
 
   // Weather preview: the scene draws every system from one shared frame context whose `weatherId`
@@ -387,6 +390,45 @@ export function initGardenPlanner(): void {
 
   function systems() {
     return page.__gardenCompanionFarmSystems ?? null;
+  }
+
+  // Pet hiding: the pet system redraws its pets every frame, so they are hidden from inside its own
+  // draw (after the game has drawn them) rather than once, or they would pop straight back. Only pets
+  // that were showing are taken over; one the game itself had hidden is left to the game, so turning
+  // the toggle off never shows a pet the game meant to keep hidden, nor keeps one hidden it has since shown.
+  const hiddenPets = new Set<Record<string, any>>();
+  const PET_DRAW_FLAG = '__gardenCompanionPlannerPets';
+
+  function hidePetViews(system: Record<string, any>): void {
+    if (!planner.open || !planner.hidePets) return;
+    for (const [, petView] of system.views ?? []) {
+      const display = petView?.displayObject;
+      if (!display || display.destroyed) continue;
+      if (!hiddenPets.has(display)) {
+        if (display.visible === false) continue;
+        hiddenPets.add(display);
+      }
+      display.visible = false;
+    }
+  }
+
+  function patchPetDraw(): void {
+    const system = systems()?.petSystem;
+    if (!system || system[PET_DRAW_FLAG] || typeof system.draw !== 'function') return;
+    const originalDraw = system.draw;
+    system.draw = function(...args: any[]) {
+      const result = originalDraw.apply(this, args);
+      try { hidePetViews(this); } catch {}
+      return result;
+    };
+    system[PET_DRAW_FLAG] = true;
+  }
+
+  function restorePets(): void {
+    for (const display of hiddenPets) {
+      try { if (!display.destroyed) display.visible = true; } catch {}
+    }
+    hiddenPets.clear();
   }
 
   function tileSystem(): Record<string, any> | null {
@@ -1073,6 +1115,7 @@ export function initGardenPlanner(): void {
     patchTileUpdates();
     patchEdgeUpdates();
     patchWeatherDraw();
+    patchPetDraw();
     applyAllTiles();
     hideNativeCardUi();
   }, 1000);
@@ -1091,6 +1134,7 @@ export function initGardenPlanner(): void {
     patchTileUpdates();
     patchEdgeUpdates();
     patchWeatherDraw();
+    patchPetDraw();
     applyAllTiles();
     hideNativeCardUi();
     document.body.classList.add('gc-planning');
@@ -1113,6 +1157,7 @@ export function initGardenPlanner(): void {
     unpatchEdgeUpdates();
     applyAllTiles();
     restoreNativeCardUi();
+    restorePets();
     document.body.classList.remove('gc-planning');
     window.removeEventListener('pointerdown', onPointerDown, true);
     window.removeEventListener('pointermove', onPointerMove, true);
@@ -1427,13 +1472,22 @@ ${decorMode
       : ''}<div class="gc-planner-row"><b>Flip</b><div class="gc-planner-mutations"><div class="gc-planner-mutation-group"><button data-plan-flip="false" data-active="${!planner.flipped}">Normal</button><button data-plan-flip="true" data-active="${planner.flipped}">Flipped</button></div></div></div>`
   : `<div class="gc-planner-row"><b>Mutations</b><div class="gc-planner-mutations">${mutations}</div></div>`}
 ${decorMode && !DECOR[planner.decorId]?.mountable ? '' : `<div class="gc-planner-row"><b>Size</b><input class="gc-planner-scale" type="range" min="1" max="${scaleMax.toFixed(2)}" step="0.01" value="${scaleValue.toFixed(2)}" data-plan-scale><span data-plan-scale-value>${sizeSummary(scaleValue, scaleSpecies())}</span><button data-plan-scale-max data-active="${scaleAtMax(scaleSpecies())}">Max</button></div>`}
-<div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button></div>
+<div class="gc-planner-row"><button data-plan-reset>Reset to garden</button><button data-plan-clear>Clear all</button><button data-plan-hide-pets data-active="${planner.hidePets}" title="Hide the pets in the garden while planning">Hide pets</button></div>
 <div class="gc-planner-row"><input data-plan-name placeholder="Layout name" maxlength="24" spellcheck="false"><button data-plan-save>Save</button></div>
 ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><option value="">Load a layout...</option>${layoutNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}</select><button data-plan-delete>Delete</button></div>` : ''}</div>`;
 
     const grid = panel.querySelector<HTMLElement>('.gc-planner-grid:not(.gc-planner-mount)');
     if (grid) grid.scrollTop = previousScroll;
     panel.querySelector<HTMLButtonElement>('[data-plan-close]')!.onclick = close;
+    panel.querySelector<HTMLButtonElement>('[data-plan-hide-pets]')!.onclick = event => {
+      planner.hidePets = !planner.hidePets;
+      (event.currentTarget as HTMLButtonElement).dataset.active = String(planner.hidePets);
+      if (planner.hidePets) {
+        patchPetDraw();
+        const system = systems()?.petSystem;
+        if (system) hidePetViews(system);
+      } else restorePets();
+    };
     // Selections update in place so the plant list keeps its scroll position.
     panel.querySelectorAll<HTMLButtonElement>('[data-plan-species]').forEach(button => button.onclick = () => {
       planner.species = button.dataset.planSpecies!;

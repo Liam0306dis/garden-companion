@@ -21,6 +21,8 @@ import { escapeHtml, humanize } from '../utils.js';
 
 /** Items in a storage or the inventory. The shared Pet type does not describe seeds or decor. */
 interface StoredItem {
+  /** Only one-offs carry it - for tools, a crystal picked back up off the farm. */
+  id?: string;
   itemType?: string;
   species?: string;
   decorId?: string;
@@ -107,9 +109,24 @@ function isTimedTool(item: StoredItem): boolean {
   return Number(item.remainingActiveSeconds) > 0;
 }
 
-/** As isTimedTool, but found by tool id - the drain recheck holds the key, not the item. */
-function toolHasTimer(key: string): boolean {
-  const item = inventoryItems().find(entry => entry.itemType === 'Tool' && entry.toolId === key);
+/**
+ * A crystal picked back up keeps its shard's toolId - an XP Crystal is `XPShard` with an id and a
+ * timer - but it is a one-off, not part of the shard stack. The game names an item in MoveItem by its
+ * own key (inventory `U`): the id for a one-off, the toolId for a stack. Filing by toolId alone sent a
+ * spent crystal's move as the shard stack's, and let a running crystal's timer hold back its shards.
+ */
+function isOneOff(item: StoredItem): boolean {
+  return 'remainingActiveSeconds' in item;
+}
+
+/** The id MoveItem names this item by. */
+function moveId(rule: StoreRule, item: StoredItem): string {
+  return rule.itemType === 'Tool' && isOneOff(item) && item.id ? item.id : rule.key(item);
+}
+
+/** As isTimedTool, found by the id the move was queued under - the drain recheck holds that, not the item. */
+function toolHasTimer(id: string): boolean {
+  const item = inventoryItems().find(entry => entry.itemType === 'Tool' && (isOneOff(entry) ? entry.id === id : entry.toolId === id));
   return Boolean(item) && isTimedTool(item!);
 }
 
@@ -127,7 +144,8 @@ const SEND_INTERVAL_MS = 200;
 
 let flushTimer = 0;
 let drainTimer = 0;
-const queue: Array<{ rule: StoreRule; key: string; pending: string }> = [];
+/** `key` is the catalog id the rules match on; `itemId` is what MoveItem names (see moveId). */
+const queue: Array<{ rule: StoreRule; key: string; itemId: string; pending: string }> = [];
 /** Keys already waiting to go out. The grace below only starts once a move has actually been sent,
  *  so a long queue would otherwise outlive it and let the same key be queued a second time. */
 const queued = new Set<string>();
@@ -150,6 +168,8 @@ function storedStacks(rule: StoreRule): Map<string, number> {
   const items = (storage?.items ?? []) as unknown as StoredItem[];
   const stacks = new Map<string, number>();
   for (const item of items) {
+    // A filed spent crystal is a one-off, not the stack the game tops up (see isOneOff).
+    if (isOneOff(item)) continue;
     const key = rule.key(item);
     if (key && !stacks.has(key)) stacks.set(key, Number(item.quantity || 0));
   }
@@ -214,12 +234,14 @@ function flush(): void {
     for (const item of inventoryItems()) {
       if (item.itemType !== rule.itemType) continue;
       const key = rule.key(item);
-      if (!key || !stored.has(key) || ignored.has(key) || isBusy(rule, key) || isPinned(rule, key) || isTimedTool(item)) continue;
+      const itemId = moveId(rule, item);
+      // Pins are keyed the game's way too: a pinned crystal by its id, a pinned stack by its toolId.
+      if (!key || !stored.has(key) || ignored.has(key) || isBusy(rule, key) || isPinned(rule, itemId) || isTimedTool(item)) continue;
       if (storageFull(rule, key, stored.get(key)!)) continue;
-      const pending = `${rule.storageId}:${key}`;
+      const pending = `${rule.storageId}:${itemId}`;
       if (sentAt.has(pending) || queued.has(pending)) continue;
       queued.add(pending);
-      queue.push({ rule, key, pending });
+      queue.push({ rule, key, itemId, pending });
       queuedAny = true;
     }
   }
@@ -238,11 +260,11 @@ function drain(): void {
   queued.delete(next.pending);
   // Rechecked here as well as at queue time: a drag can start while a move for the same tool is
   // still sitting in the queue behind everything else.
-  if (next.rule.enabled() && !ignoredKeys(next.rule).has(next.key) && !isBusy(next.rule, next.key) && !isPinned(next.rule, next.key) && !toolHasTimer(next.key) && !storageFullNow(next.rule, next.key)) {
+  if (next.rule.enabled() && !ignoredKeys(next.rule).has(next.key) && !isBusy(next.rule, next.key) && !isPinned(next.rule, next.itemId) && !toolHasTimer(next.itemId) && !storageFullNow(next.rule, next.key)) {
     // Marked only once it is away, so the grace covers waiting for the echo rather than the wait
     // in the queue behind everything else.
     try {
-      sendQuinoaCommand({ type: 'MoveItem', from: 'inventory', to: next.rule.storageId, itemId: next.key });
+      sendQuinoaCommand({ type: 'MoveItem', from: 'inventory', to: next.rule.storageId, itemId: next.itemId });
       sentAt.set(next.pending, Date.now());
     } catch { /* nothing was sent, so nothing to hold back */ }
   }

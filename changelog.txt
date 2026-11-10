@@ -1,3 +1,11 @@
+1.0.1
+- Hide pets toggle in the layout planner
+- Crystals tab in the Farm Manager
+- Fuse crystals in the Farm Manager
+- Hover a ward crystal to see its area
+- Move placed crystals, or drag them to the side bar to pick up
+- Fix shards not auto-storing while you carry a crystal
+
 1.0.0
 - Update button and Ko-fi link open in the Discord activity
 

@@ -569,9 +569,19 @@ function shackItems(): ToolRow[] {
   return (shack?.items || []) as unknown as ToolRow[];
 }
 
+/**
+ * A crystal picked back up off the farm is a one-off that keeps its shard's toolId (an XP Crystal is
+ * `XPShard` with an id and remainingActiveSeconds). It is not one of the stack: the game finds a shard
+ * by toolId only among rows without a timer (inventory `fo`), so counting it here had a lone crystal
+ * pass for a loose shard, the Shack fetch skipped, and PlaceCrystal refused for want of a shard.
+ */
+function isTimedOneOff(item: ToolRow): boolean {
+  return 'remainingActiveSeconds' in item;
+}
+
 function countTool(rows: ToolRow[], toolId: string): number {
   return rows
-    .filter(item => item?.itemType === 'Tool' && item.toolId === toolId)
+    .filter(item => item?.itemType === 'Tool' && item.toolId === toolId && !isTimedOneOff(item))
     .reduce((total, item) => total + Number(item.quantity || 0), 0);
 }
 
@@ -605,7 +615,8 @@ export function freeInventorySlots(): number {
  * whatever the pot costs.
  */
 function inventoryCanTakeTool(toolId: string, reserveSlots: number): boolean {
-  const stacks = looseItems().some(item => item?.itemType === 'Tool' && item.toolId === toolId);
+  // A timed one-off with the same toolId is no stack to merge into (see isTimedOneOff).
+  const stacks = looseItems().some(item => item?.itemType === 'Tool' && item.toolId === toolId && !isTimedOneOff(item));
   // A tool pinned in the Tool Pouch comes back into its pin, not a slot.
   const needsSlot = !stacks && !toolPouchKeys().has(`Tool:${toolId}`);
   return usedInventorySlots() + (needsSlot ? 1 : 0) + reserveSlots <= INVENTORY_SLOTS;
