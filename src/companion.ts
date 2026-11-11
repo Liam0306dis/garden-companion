@@ -6,7 +6,7 @@ import { applyAlarmLayout, armAlarmAudio, installAlarms } from './alarms.js';
 import { getSequencerDiagnostics, installCommandStamp, installPredictionRestamp, noteGameSocket, noteOutgoingCommand, noteServerFrame, parseOutgoingFrame, seedCommandSequence } from './game-connection.js';
 import { installCropEstimates, syncCropEstimates } from './features/crop-estimates.js';
 import { syncProduceLocks } from './features/produce-locks.js';
-import { bindPetFoodEvents, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
+import { bindPetFoodEvents, feedableProduce, positionPetFood, renderPetFood, renderPetFoodTab, resetPetFoodSignature } from './features/pet-food.js';
 import {
   abilityLogUiState,
   bindAbilityLogEvents,
@@ -42,7 +42,7 @@ import { trackRoomSocket } from './connection-state.js';
 import { mountLunarTimer, updateLunarTimer, watchSocketHealth } from './features/lunar-timer.js';
 import { mountCinematicButton, updateCinematicButton } from './features/cinematic-button.js';
 import { mountPumpkinImport, updatePumpkinImport } from './features/pumpkin-import.js';
-import { allPets, heldProduce, onSpritesReady, refreshHungerDisplay, useXpPotion } from './pets.js';
+import { allPets, onSpritesReady, refreshHungerDisplay, useXpPotion } from './pets.js';
 import {
   closeTeamPicker,
   bindPetTeamEvents,
@@ -517,7 +517,7 @@ export function initCompanion(): void {
     if (activeTab === 'autoStorage') return autoStorageSignature();
     if (activeTab === 'petFood') {
       const counts = new Map<string, number>();
-      for (const item of heldProduce()) counts.set(item.species, (counts.get(item.species) || 0) + 1);
+      for (const item of feedableProduce()) counts.set(item.species, (counts.get(item.species) || 0) + 1);
       return JSON.stringify([[...new Set(allPets().map(pet => pet.petSpecies))].sort(), [...counts].sort(), config.petFoodChoices]);
     }
     return '';

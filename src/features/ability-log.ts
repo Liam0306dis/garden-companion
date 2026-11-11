@@ -53,11 +53,14 @@ export function recordAbilityActivities(fresh: ActivityLogEntry[]) {
       data: snapshotPayload(entry.parameters || {}),
     });
   }
+  // Most batches hold no ability at all (a harvest, a feed, a purchase), and writing the whole history
+  // back out for each of those was a large synchronous save inside the room state update.
+  if (!added) return;
   state.abilityLog = trimAbilityLogs(state.abilityLog);
   saveAbilityLog();
   // The panel's periodic redraw holds off while the pointer is over the log or it is scrolled, which
   // is exactly how the tab is read - so a new proc is written into the open log here instead.
-  if (added) refreshAbilityPanel(true);
+  refreshAbilityPanel(true);
 }
 
 

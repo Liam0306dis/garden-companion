@@ -131,12 +131,13 @@ export function editAlarmPosition(onFinish?: () => void): void {
    * The banner grows from its top centre, so the scale is how far the pointer sits from that centre
    * now against where it sat when the drag began.
    */
-  let sizing: { centre: number; startHalf: number; startScale: number; pointerId: number } | null = null;
+  let sizing: { centre: number; startHalf: number; startScale: number; scale: number; position: AlertPosition | null; pointerId: number } | null = null;
   const onResizeDown = (event: PointerEvent) => {
     if (event.button !== 0) return;
     const rect = element.getBoundingClientRect();
     const centre = rect.left + rect.width / 2;
-    sizing = { centre, startHalf: Math.max(20, Math.abs(event.clientX - centre)), startScale: savedScale(), pointerId: event.pointerId };
+    const startScale = savedScale();
+    sizing = { centre, startHalf: Math.max(20, Math.abs(event.clientX - centre)), startScale, scale: startScale, position: savedPosition(), pointerId: event.pointerId };
     element.dataset.dragging = 'true';
     try { resize.setPointerCapture(event.pointerId); } catch {}
     event.preventDefault();
@@ -146,12 +147,16 @@ export function editAlarmPosition(onFinish?: () => void): void {
     if (!sizing) return;
     const ratio = Math.abs(event.clientX - sizing.centre) / sizing.startHalf;
     const scale = Math.round(Math.min(MAX_SCALE, Math.max(MIN_SCALE, sizing.startScale * ratio)) * 100) / 100;
-    scaleStore.save(scale);
-    placeAlarmBanner(element);
+    // Drawn from the drag's own copy and saved once on release: storage is shared with every tab, and
+    // a write and two reads per pointer move was dozens of them for one drag.
+    sizing.scale = scale;
+    applyScale(element, scale);
+    applyPosition(element, sizing.position);
   };
   const onResizeUp = () => {
     if (!sizing) return;
     try { resize.releasePointerCapture(sizing.pointerId); } catch {}
+    if (sizing.scale !== sizing.startScale) scaleStore.save(sizing.scale);
     sizing = null;
     delete element.dataset.dragging;
   };
@@ -165,6 +170,8 @@ export function editAlarmPosition(onFinish?: () => void): void {
   function finish(): void {
     if (!editing) return;
     editing = null;
+    // A resize still in hand (Enter or Escape mid-drag) is kept, as it was when every step saved.
+    onResizeUp();
     element.removeEventListener('pointerdown', onDown);
     element.removeEventListener('pointermove', onMove);
     element.removeEventListener('pointerup', onUp);

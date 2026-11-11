@@ -12,6 +12,7 @@ import { friendBonusMultiplier, onStateChange, state } from '../state.js';
 import { createTicker } from '../ticker.js';
 import { formatDuration, NUMBER_LOCALE } from '../utils.js';
 import { warn } from '../diagnostics.js';
+import { serverNow } from '../server-clock.js';
 
 /**
  * Crop and egg estimates on the game's own info card: what the selected crop is worth and how long
@@ -101,7 +102,9 @@ function estimateLines(): string[] {
     if (!feature('turtleTimer')) return [];
     const end = Number(egg.maturedAt || egg.endTime || 0);
     const rate = eggRate(pets);
-    return end > Date.now() && rate > 0 ? [`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`] : [];
+    // Both ends are server timestamps, so they are read against the server's clock, not this PC's.
+    const now = serverNow();
+    return end > now && rate > 0 ? [`${GROWTH_PREFIX}${formatDuration((end - now) / (rate + 1))}`] : [];
   }
   if (!crop) return [];
   const lines = [];
@@ -110,8 +113,8 @@ function estimateLines(): string[] {
     if (base) lines.push(`${VALUE_PREFIX}${Math.round(base * slotScale(PLANT_CATALOG[crop.species ?? '']?.crop, crop) * catalogMutationMultiplier(crop.mutations || []) * friendBonusMultiplier()).toLocaleString(NUMBER_LOCALE)}`);
   }
   if (feature('turtleTimer')) {
-    const end = Number(crop.endTime || 0), rate = growthRate(pets);
-    if (end > Date.now() && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - Date.now()) / (rate + 1))}`);
+    const end = Number(crop.endTime || 0), rate = growthRate(pets), now = serverNow();
+    if (end > now && rate > 0) lines.push(`${GROWTH_PREFIX}${formatDuration((end - now) / (rate + 1))}`);
   }
   return lines;
 }

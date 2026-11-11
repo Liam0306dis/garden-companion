@@ -88,11 +88,18 @@ function chosenFood(species: string): string {
   return stored === HUNGER_POTION || petDiet(species).includes(stored) ? stored : '';
 }
 
-function petFoodRows(): PetFoodRow[] {
-  // A locked crop cannot be fed, so it is neither offered nor counted. A carved pumpkin is the
-  // player's artwork, which the game would happily feed away, so it is held back the same way.
+/**
+ * The crops a feed button may spend. A locked crop cannot be fed, so it is neither offered nor
+ * counted. A carved pumpkin is the player's artwork, which the game would happily feed away, so it is
+ * held back the same way. Shared with the Pet Food tab, so its counts match the buttons'.
+ */
+export function feedableProduce(): ProduceItem[] {
   const locked = favouritedIds();
-  const produce = heldProduce().filter(item => !locked.has(item.id) && !item.carving);
+  return heldProduce().filter(item => !locked.has(item.id) && !item.carving);
+}
+
+function petFoodRows(): PetFoodRow[] {
+  const produce = feedableProduce();
   return activePets().filter(pet => pet?.id).map(pet => {
     const choice = chosenFood(pet.petSpecies);
     const potion = choice === HUNGER_POTION;
@@ -261,7 +268,7 @@ export function positionPetFood(): void {
 
 
 export function renderPetFoodTab() {
-  const produce = heldProduce();
+  const produce = feedableProduce();
   const counts = new Map<string, number>();
   for (const item of produce) counts.set(item.species, (counts.get(item.species) || 0) + 1);
   const activeSpecies = new Set(activePets().map(pet => pet.petSpecies));

@@ -411,6 +411,8 @@ function removeAlarms(remove: Set<ActiveAlarm>): void {
     stack?.remove();
     return;
   }
+  // The alarms left may all be muted, and a custom clip would otherwise play on for up to ten seconds.
+  if (!anyUnmutedAlarm()) stopCustomSound();
   if (stack) placeAlarmBanner(stack);
   for (const entry of activeAlarms) {
     const old = before.get(entry);

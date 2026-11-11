@@ -19,6 +19,7 @@ import { crystalStrengthBonus, mutationSprite, onSpritesReady, petMetrics, produ
 import { MAX_SIZE, maxSizeMultiplier, slotIsMaxSize, slotScale } from '../crop-size.js';
 import { toast } from '../toast.js';
 import { NAME_OVERRIDES, NUMBER_LOCALE } from '../utils.js';
+import { serverNow } from '../server-clock.js';
 
 interface PlantCatalogEntry {
   crop?: { baseSellPrice?: number; maxSizeMultiplier?: number };
@@ -277,7 +278,8 @@ function calculateStats(
   const tiles = runtime.slot?.data?.garden?.tileObjects ?? {};
   const friendMultiplier = friendBonusMultiplier(runtime.game);
   result.friendBonus = friendMultiplier;
-  const now = Date.now();
+  // Crop timers are server timestamps, so they are read against the server's clock, not this PC's.
+  const now = serverNow();
   const allMissing: Record<string, number> = {};
   const trackedMissing: Record<string, number> = {};
   const eligibleSlots: Array<{ slot: PlantSlot; species: string; tracked: boolean }> = [];
@@ -524,7 +526,7 @@ function durationUntil(timestamp: number | null, growthRate = 0): string {
   if (!timestamp) return 'Ready';
   // Plant Growth Boost pets progress crops faster than real time, so the wait is the remaining time
   // divided by that accelerated rate.
-  const seconds = Math.max(0, Math.ceil((timestamp - Date.now()) / 1000 / (1 + Math.max(0, growthRate))));
+  const seconds = Math.max(0, Math.ceil((timestamp - serverNow()) / 1000 / (1 + Math.max(0, growthRate))));
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor(seconds % 3600 / 60);
   return hours ? `${hours}h ${minutes}m` : `${minutes}m ${seconds % 60}s`;

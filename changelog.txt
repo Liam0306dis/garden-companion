@@ -1,3 +1,10 @@
+1.0.2
+- Fix custom alarm sound playing on after its alarm is stopped
+- Growth timers follow the server clock
+- Pet Food counts leave out locked crops
+- Rooms list no longer hangs on loading
+- Less saving in the background
+
 1.0.1
 - Hide pets toggle in the layout planner
 - Crystals tab in the Farm Manager

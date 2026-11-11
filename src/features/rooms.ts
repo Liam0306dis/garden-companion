@@ -70,7 +70,9 @@ export function renderRooms(): string {
 }
 
 function requestJson(url: string): Promise<unknown> {
-  return new Promise((resolve, reject) => GM_xmlhttpRequest({ method: 'GET', url, onload: response => { try { response.status >= 200 && response.status < 300 ? resolve(JSON.parse(response.responseText)) : reject(new Error(`Request failed (${response.status})`)); } catch (error) { reject(error); } }, onerror: () => reject(new Error('Network request failed')) }));
+  return new Promise((resolve, reject) => GM_xmlhttpRequest({ method: 'GET', url, onload: response => { try { response.status >= 200 && response.status < 300 ? resolve(JSON.parse(response.responseText)) : reject(new Error(`Request failed (${response.status})`)); } catch (error) { reject(error); } }, onerror: () => reject(new Error('Network request failed')),
+    // Without these a request that never answers leaves the tab on "Loading rooms..." for good.
+    timeout: 15_000, ontimeout: () => reject(new Error('The room list took too long to answer')), onabort: () => reject(new Error('Network request failed')) }));
 }
 
 export async function reloadRooms(): Promise<void> {
