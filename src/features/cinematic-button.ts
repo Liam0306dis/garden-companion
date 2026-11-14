@@ -11,7 +11,7 @@ import { toast } from '../toast.js';
 /**
  * A cinematic mode button, back where the game kept its own until build 1634 moved cinematic mode
  * onto the Camera (hold it and press Hide UI): at the foot of the right-side rail, under Daily
- * Quests. One click hides the game's HUD, another brings it back. While cinematic mode is on the
+ * Quests (or under Friend requests while that shows below it). One click hides the game's HUD, another brings it back. While cinematic mode is on the
  * rail goes with the HUD, so the button moves to the screen's top right corner, faded so it keeps
  * out of shots, since it is the way back out. Esc leaves cinematic mode too.
  *
@@ -24,13 +24,19 @@ const CAMERA_OFF_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4
 
 /** The rail's own label in the game's scene graph (its `name` as a system is rightSideRail). */
 const RAIL_LABEL = 'RightSideRail';
-/** Daily Quests, the rail's last button, which the game labels itself. */
-const QUESTS_LABEL = 'RightSideRailQuestsButton';
 /**
- * What Daily Quests draws around itself while a quest can be taken: a ring that swells out from it and
- * the badge pulsing. Both are left out of its measure, or the button would bob along with them.
+ * The buttons that can sit at the foot of the rail, which the game labels itself, in its layout order:
+ * Daily Quests, then Friend requests (since build 2036, only while a friend request is waiting).
  */
-const QUESTS_DECORATION_LABELS = new Set(['QuestNoticeRing', 'RightSideRailQuestsBadge']);
+const FOOT_LABELS = ['RightSideRailQuestsButton', 'RightSideRailFriendRequestsButton'];
+/**
+ * What those buttons draw around themselves while they want attention: a ring that swells out
+ * (QuestNoticeRing until build 2036, NoticePingRing since) and the badge pulsing. All are left out of
+ * the measure, or the button would bob along with them.
+ */
+const FOOT_DECORATION_LABELS = new Set([
+  'QuestNoticeRing', 'NoticePingRing', 'RightSideRailQuestsBadge', 'RightSideRailFriendRequestsBadge',
+]);
 /** Space between the last rail button and ours, in CSS pixels. */
 const RAIL_GAP_PX = 8;
 
@@ -38,7 +44,8 @@ const RAIL_GAP_PX = 8;
 const RAIL_SEARCH_BACKOFF_MS = 3000;
 
 let rail: Record<string, any> | null = null;
-let quests: Record<string, any> | null = null;
+/** The foot buttons found so far, by label. */
+const footNodes = new Map<string, Record<string, any>>();
 let lastRailSearch = 0;
 /** Where the button was last docked, null until the rail has been measured once. */
 let docked: { left: number; top: number } | null = null;
@@ -83,16 +90,20 @@ function findRail(stage: Record<string, any>): Record<string, any> | null {
 }
 
 /**
- * Daily Quests, looked for inside the rail only - a few dozen nodes, so it is cheap to retry until
- * the button appears (it is not there before the tutorial is done).
+ * A foot button, looked for inside the rail only - a few dozen nodes, so it is cheap to retry until
+ * the button appears (Daily Quests is not there before the tutorial is done).
  */
-function findQuests(railNode: Record<string, any>): Record<string, any> | null {
-  if (alive(quests)) return quests;
-  quests = null;
+function findInRail(railNode: Record<string, any>, label: string): Record<string, any> | null {
+  const known = footNodes.get(label) ?? null;
+  if (alive(known)) return known;
+  footNodes.delete(label);
   const stack = [...(railNode.children ?? [])];
   while (stack.length) {
     const child = stack.pop();
-    if (child?.label === QUESTS_LABEL) return quests = child;
+    if (child?.label === label) {
+      footNodes.set(label, child);
+      return child;
+    }
     if (Array.isArray(child?.children)) stack.push(...child.children);
   }
   return null;
@@ -102,11 +113,28 @@ function findQuests(railNode: Record<string, any>): Record<string, any> | null {
 const visibleButtons = (railNode: Record<string, any>): Array<Record<string, any>> =>
   (railNode.children ?? []).filter((child: Record<string, any>) => pixiNodeVisible(child));
 
-/** The button at the foot of the rail: Daily Quests, or whichever is last while it is not offered. */
+/**
+ * The button at the foot of the rail: the lowest of Daily Quests and Friend requests that is up, or
+ * whichever rail button is last while neither is offered. Lowest rather than last in layout order,
+ * so a rail laid out as a row (where Friend requests sits beside Daily Quests) keeps the button under
+ * Daily Quests.
+ */
 function footButton(railNode: Record<string, any>): Record<string, any> | null {
-  const button = findQuests(railNode);
-  if (button && pixiNodeVisible(button)) return button;
-  return visibleButtons(railNode).at(-1) ?? null;
+  let foot: Record<string, any> | null = null;
+  let footBottom = -Infinity;
+  for (const label of FOOT_LABELS) {
+    const button = findInRail(railNode, label);
+    if (!button || !pixiNodeVisible(button)) continue;
+    const bounds = boundsWithoutDecorations(button);
+    if (!bounds || !(bounds.height > 0)) continue;
+    const bottom = bounds.y + bounds.height;
+    // A later button takes the foot only when it is clearly lower, not level with the one before it.
+    if (bottom > footBottom + 1) {
+      foot = button;
+      footBottom = bottom;
+    }
+  }
+  return foot ?? visibleButtons(railNode).at(-1) ?? null;
 }
 
 /**
@@ -128,7 +156,7 @@ function boundsWithoutDecorations(node: Record<string, any>): { x: number; y: nu
   const stack = [...(node.children ?? [])];
   while (stack.length) {
     const child = stack.pop();
-    if (QUESTS_DECORATION_LABELS.has(child?.label) && child.visible) hidden.push(child);
+    if (FOOT_DECORATION_LABELS.has(child?.label) && child.visible) hidden.push(child);
     else if (Array.isArray(child?.children)) stack.push(...child.children);
   }
   for (const child of hidden) child.visible = false;

@@ -1,3 +1,6 @@
+1.0.3
+- Cinematic mode button no longer covers the Friend requests button
+
 1.0.2
 - Fix custom alarm sound playing on after its alarm is stopped
 - Growth timers follow the server clock
