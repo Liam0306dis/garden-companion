@@ -1,3 +1,6 @@
+1.0.4
+- Behind-the-scenes update
+
 1.0.3
 - Cinematic mode button no longer covers the Friend requests button
 
