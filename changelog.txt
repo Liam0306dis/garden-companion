@@ -1,3 +1,6 @@
+1.0.5
+- Egg Luck edit boxes easier to read
+
 1.0.4
 - Behind-the-scenes update
 
