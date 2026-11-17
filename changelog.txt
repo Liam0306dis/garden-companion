@@ -1,3 +1,7 @@
+1.0.6
+- Pet Food buttons no longer vanish under QPM windows
+- Plant focus fades every part of a plant
+
 1.0.5
 - Egg Luck edit boxes easier to read
 

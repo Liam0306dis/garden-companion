@@ -130,6 +130,8 @@ export function installPlantFocus(
   const originalAlpha = new WeakMap<object, number>();
   const desiredAlpha = new WeakMap<object, number>();
   const managed = new Set<any>();
+  /** Plant containers faded as a whole, with the opacity they were faded to. */
+  const wholeFaded = new WeakMap<object, number>();
 
   function restore(display: any): void {
     if (!display || !originalAlpha.has(display)) return;
@@ -137,20 +139,21 @@ export function installPlantFocus(
     originalAlpha.delete(display);
     desiredAlpha.delete(display);
     managed.delete(display);
+    wholeFaded.delete(display);
   }
 
   function restoreAll(): void {
     [...managed].forEach(restore);
   }
 
-  function fade(display: any, opacity: number, seen: Set<any>): void {
+  function fade(display: any, opacity: number, seen?: Set<any>): void {
     if (!display) return;
     if (!originalAlpha.has(display)) originalAlpha.set(display, Number.isFinite(display.alpha) ? display.alpha : 1);
     managed.add(display);
     const alpha = (originalAlpha.get(display) ?? 1) * opacity;
     desiredAlpha.set(display, alpha);
     display.alpha = alpha;
-    seen.add(display);
+    seen?.add(display);
   }
 
   function enforce(display: any): void {
@@ -169,15 +172,87 @@ export function installPlantFocus(
     return crop?.cropVisual?.container || crop?.container || null;
   }
 
+  function within(node: any, ancestor: any): boolean {
+    for (let parent = node?.parent; parent; parent = parent.parent) if (parent === ancestor) return true;
+    return false;
+  }
+
+  /** A crop's mark on the ground, which the game usually mounts on the plant's ground layer rather than the crop. */
+  function cropDecal(crop: any): any {
+    return crop?.cropVisual?.groundDecalContainer || null;
+  }
+
+  /** The plant's pieces drawn flat on the ground (marks, coverage, crop decals), kept apart from its body. */
+  function groundParts(plantVisual: any): any[] {
+    return Object.values(plantVisual?.groundParts ?? {}).filter(Boolean);
+  }
+
+  /** Every display that belongs to a plant, for following draws that may have moved one of them. */
+  function plantDisplays(plantVisual: any): any[] {
+    const crops = plantVisual?.getCropVisuals?.() || [];
+    return [plantVisual?.container, ...groundParts(plantVisual), ...crops.flatMap((crop: any) => [cropContainer(crop), cropDecal(crop)])];
+  }
+
+  /**
+   * Fades a whole plant. Pieces inside a faded container take its alpha already, so fading them too
+   * would square it; anything the game keeps elsewhere is faded on its own. That covers the plant's
+   * ground layer and, on patch plants (clover and the like), the back row of crops, which the game
+   * moves into a layer behind the plant while the player is off the tile - both stayed fully bright
+   * on a faded plant.
+   */
+  function fadeWholePlant(plantVisual: any, opacity: number, seen?: Set<any>): void {
+    const roots = [plantVisual?.container, ...groundParts(plantVisual)].filter(Boolean);
+    const insideRoot = (display: any) => roots.some(root => root !== display && within(display, root));
+    roots.forEach(root => {
+      if (insideRoot(root)) restore(root);
+      else fade(root, opacity, seen);
+    });
+    if (plantVisual?.container) wholeFaded.set(plantVisual.container, opacity);
+    const crops = plantVisual?.getCropVisuals?.() || [];
+    crops.forEach((crop: any) => {
+      const container = cropContainer(crop);
+      const decal = cropDecal(crop);
+      if (container) {
+        if (insideRoot(container)) restore(container);
+        else fade(container, opacity, seen);
+      }
+      // A decal the crop carries follows the crop, whichever way the crop itself went.
+      if (decal) {
+        if (within(decal, container) || insideRoot(decal)) restore(decal);
+        else fade(decal, opacity, seen);
+      }
+    });
+  }
+
+  /** Fades one crop of a plant left at full strength, with its ground mark unless the crop carries it. */
+  function fadeCrop(crop: any, opacity: number, seen: Set<any>): void {
+    const container = cropContainer(crop);
+    const decal = cropDecal(crop);
+    fade(container, opacity, seen);
+    if (decal && !within(decal, container)) fade(decal, opacity, seen);
+    else restore(decal);
+  }
+
+  function restoreCrop(crop: any): void {
+    restore(cropContainer(crop));
+    restore(cropDecal(crop));
+  }
+
   function armView(view: any): void {
     if (!view || typeof view.draw !== 'function' || view.__gardenCompanionFocusDrawWrapped) return;
     const originalDraw = view.draw;
     view.__gardenCompanionFocusDrawWrapped = true;
     view.draw = function(...args: any[]) {
       const result = originalDraw.apply(this, args);
-      enforce(view.childView?.plantVisual?.container);
-      const crops = view.childView?.plantVisual?.getCropVisuals?.() || [];
-      crops.forEach((crop: any) => enforce(cropContainer(crop)));
+      // The wrap stays on after focus is turned off; with nothing faded there is nothing to hold.
+      if (!managed.size) return result;
+      const plantVisual = view.childView?.plantVisual;
+      const plantContainer = plantVisual?.container;
+      // A draw can move back crops in or out of the plant's container, so a whole-faded plant has
+      // its pieces placed again rather than held at alphas chosen for where they used to be.
+      const opacity = plantContainer && managed.has(plantContainer) && !plantContainer.destroyed ? wholeFaded.get(plantContainer) : undefined;
+      if (opacity !== undefined) fadeWholePlant(plantVisual, opacity);
+      else plantDisplays(plantVisual).forEach(enforce);
       return result;
     };
   }
@@ -266,17 +341,16 @@ export function installPlantFocus(
       const crops = plantVisual?.getCropVisuals?.() || [];
       armView(view);
       if (Number(tile.maturedAt ?? 0) > now) {
-        fade(plantVisual?.container, config.opacity, seen);
-        crops.forEach((crop: any) => fade(cropContainer(crop), config.opacity, seen));
+        fadeWholePlant(plantVisual, config.opacity, seen);
         return;
       }
       const visible = new Map(slots.map(slot => [slot.slotId, matches(tile, slot, config)]));
       if (![...visible.values()].some(Boolean)) {
-        fade(plantVisual?.container, config.opacity, seen);
-        crops.forEach((crop: any) => restore(cropContainer(crop)));
+        fadeWholePlant(plantVisual, config.opacity, seen);
       } else {
         restore(plantVisual?.container);
-        crops.forEach((crop: any) => visible.get(crop?.slotId) === false ? fade(cropContainer(crop), config.opacity, seen) : restore(cropContainer(crop)));
+        groundParts(plantVisual).forEach(restore);
+        crops.forEach((crop: any) => visible.get(crop?.slotId) === false ? fadeCrop(crop, config.opacity, seen) : restoreCrop(crop));
       }
     });
     [...managed].forEach(display => { if (!seen.has(display)) restore(display); });

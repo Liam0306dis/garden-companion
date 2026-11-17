@@ -194,6 +194,30 @@ export function renderPetFood(): void {
   }
 }
 
+/** The element's ancestor that sits directly in <body> or <html>: the root of whatever mounted it. */
+function pageLevelHost(element: Element): Element | null {
+  let node: Element | null = element;
+  while (node && node.parentElement && node.parentElement !== document.body && node.parentElement !== document.documentElement) node = node.parentElement;
+  return node;
+}
+
+/**
+ * Whether an element at the sample point may cover the pet panel: the game's own page (the root the
+ * canvas lives in, and its Chakra portals for modals and menus) or one of Garden Companion's own
+ * surfaces. Other mods' floating widgets are passed over - QPM keeps windows, cards, toasts and
+ * badges on the page, and any of them drifting across the first pet row used to hide every feed
+ * button until it moved away. Without the canvas wrapper to tell the game's page apart, anything
+ * still counts, as it did before, rather than letting the game's own menus slip under the buttons.
+ */
+function canCoverPetPanel(element: Element, gameRoot: Element | null): boolean {
+  if (element.closest('#gc-tour')) return false;
+  if (!gameRoot) return true;
+  const host = pageLevelHost(element);
+  if (!host) return false;
+  if (host === gameRoot || host.classList.contains('chakra-portal')) return true;
+  return host.id.startsWith('gc-') || [...host.classList].some(name => name.startsWith('gc-')) || (host as HTMLElement).dataset?.gcUi !== undefined;
+}
+
 /**
  * True when a page overlay (the game menu, a modal) covers the pet panel. The docked
  * buttons are plain DOM above the canvas, so they would otherwise float over it.
@@ -202,9 +226,11 @@ function petPanelCovered(anchor: PetDockRow): boolean {
   const sampleX = Math.round((anchor.left + anchor.right) / 2);
   const sampleY = Math.round(anchor.centerY);
   if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return false;
+  const canvasRoot = document.querySelector('.QuinoaCanvas');
+  const gameRoot = canvasRoot ? pageLevelHost(canvasRoot) : null;
   // The guided tour lays a click catcher over the whole page, which is not an overlay the buttons
   // should give way to - the tour has a step pointing at them. Whatever sits under it decides.
-  const top = document.elementsFromPoint(sampleX, sampleY).find(element => !element.closest('#gc-tour'));
+  const top = document.elementsFromPoint(sampleX, sampleY).find(element => canCoverPetPanel(element, gameRoot));
   if (!top) return false;
   return !top.closest('.QuinoaCanvas') && !top.closest('#gc-petfood');
 }
