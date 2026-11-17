@@ -46,6 +46,8 @@ const changedRows = new Set<string>();
 let cleanseQueue: Promise<void> = Promise.resolve();
 /** Presses waiting in that queue, each already promised a cleanser the count has not lost yet. */
 let unsentCleanses = 0;
+/** The plant search, kept across redraws and reopenings so a narrowed list stays narrowed. */
+let plantSearch = '';
 
 function mutationLabel(id: string): string {
   return MUTATION_CATALOG[id]?.name || humanize(id);
@@ -229,11 +231,34 @@ async function cleanse(row: CleanserRow, body: HTMLElement): Promise<void> {
   }
 }
 
+/**
+ * Hides the rows whose plant does not match the search, in place: a redraw would replace the box
+ * being typed in, and the rows keep their Cleansed and Changed states as they are.
+ */
+function applyPlantSearch(body: HTMLElement): void {
+  const query = plantSearch.trim().toLowerCase();
+  let shown = 0;
+  body.querySelectorAll<HTMLTableRowElement>('tr[data-cleanser-plant]').forEach(row => {
+    row.hidden = Boolean(query) && !(row.dataset.cleanserPlant || '').includes(query);
+    if (!row.hidden) shown += 1;
+  });
+  const table = body.querySelector<HTMLElement>('.gc-cleanser-table-wrap table');
+  const empty = body.querySelector<HTMLElement>('[data-cleanser-no-match]');
+  if (table) table.hidden = shown === 0;
+  if (empty) {
+    empty.hidden = !table || shown > 0;
+    empty.textContent = `No listed crops match "${plantSearch.trim()}".`;
+  }
+}
+
 function render(): void {
   const root = panel();
   if (!root) return;
   const body = root.querySelector<HTMLElement>('[data-cleanser-body]');
   if (!body) return;
+  // A redraw (a sprite arriving, say) replaces the search box; whoever was typing keeps their place.
+  const typing = document.activeElement?.matches?.('[data-cleanser-search]') ? document.activeElement as HTMLInputElement : null;
+  const caret = typing ? [typing.selectionStart, typing.selectionEnd] as const : null;
   const rows = rowSnapshot;
   const choices = MUTATIONS.map(id => {
     const sprite = mutationSprite(id);
@@ -241,11 +266,29 @@ function render(): void {
   }).join('');
   const tableRows = rows.map(row => {
     const mutations = row.mutations.filter(id => CLEANSEABLE.has(id));
-    return `<tr><td><b>${escapeHtml(plantName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join('')}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}"></button></td></tr>`;
+    return `<tr data-cleanser-plant="${escapeHtml(`${plantName(row.species)} ${row.species}`.toLowerCase())}"><td><b>${escapeHtml(plantName(row.species))}</b><small>Tile ${escapeHtml(String(row.tileObjectIdx))} - Slot ${escapeHtml(String(row.growSlotIdx))}</small></td><td><div class="gc-cleanser-mutations">${mutations.map(mutationBadge).join('')}</div></td><td><button class="gc-primary" data-cleanse-row="${escapeHtml(row.key)}"></button></td></tr>`;
   }).join('');
   const selectedLabels = MUTATIONS.filter(id => selectedMutations.has(id)).map(mutationLabel).join(' or ');
-  body.innerHTML = `<p>Choose one or more mutations to find crops with any of them.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutations.size ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p><div class="gc-cleanser-table-wrap">${rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(selectedLabels)}.</div>`}</div>` : '<div class="gc-cleanser-empty">Select at least one mutation above.</div>'}`;
+  const search = `<input class="gc-search gc-cleanser-search" type="search" data-cleanser-search placeholder="Search plants" spellcheck="false" autocomplete="off" value="${escapeHtml(plantSearch)}">`;
+  const table = rows.length
+    ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table><div class="gc-cleanser-empty" data-cleanser-no-match hidden></div>`
+    : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(selectedLabels)}.</div>`;
+  body.innerHTML = `<p>Choose one or more mutations to find crops with any of them.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutations.size ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p>${search}<div class="gc-cleanser-table-wrap">${table}</div>` : '<div class="gc-cleanser-empty">Select at least one mutation above.</div>'}`;
   updateCleanserControls(body);
+  applyPlantSearch(body);
+  const searchInput = body.querySelector<HTMLInputElement>('[data-cleanser-search]');
+  if (searchInput) {
+    // The game reads movement and hotkeys from window, so typing a search must not reach it.
+    for (const type of ['keydown', 'keyup', 'keypress'] as const) searchInput.addEventListener(type, event => event.stopPropagation());
+    searchInput.addEventListener('input', () => {
+      plantSearch = searchInput.value;
+      applyPlantSearch(body);
+    });
+    if (typing && caret) {
+      searchInput.focus();
+      searchInput.setSelectionRange(caret[0], caret[1]);
+    }
+  }
   fitToScreen(root);
   body.querySelectorAll<HTMLButtonElement>('[data-cleanser-mutation]').forEach(button => button.onclick = () => {
     const id = button.dataset.cleanserMutation || '';

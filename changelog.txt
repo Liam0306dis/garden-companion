@@ -1,3 +1,9 @@
+1.0.7
+- Plant search in the Crop Cleanser Helper
+- Farm Manager lists crystals kept in the Tool Shack
+- Farm Manager shows time left on placed crystals
+- Crystals tab hint for right click pick up
+
 1.0.6
 - Pet Food buttons no longer vanish under QPM windows
 - Plant focus fades every part of a plant

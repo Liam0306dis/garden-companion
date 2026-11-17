@@ -55,8 +55,8 @@ interface SeedStack {
 /**
  * The game's crystals, by its crystalType (build 1973 inventory `qe` and `Xe`): the shard each one is
  * planted from and how many of that type may run at once. A shard is a stack in the inventory or the
- * Tool Shack; a crystal picked back up is a one-off item that carries its own timer, and a running one
- * cannot be filed in the Shack, so only shards are ever found there.
+ * Tool Shack; a crystal picked back up is a one-off item that carries its own timer, and it can be in
+ * either place too.
  */
 const CRYSTALS: Record<string, { shard: string; name: string; limit: number }> = {
   RainWard: { shard: 'RainWardShard', name: 'Rain Ward', limit: 4 },
@@ -334,7 +334,7 @@ const TAB_SUBTITLES: Record<Tab, string> = {
 const TAB_HINTS: Record<Tab, Array<[string, string]>> = {
   plants: [['Drag', 'move'], ['Right click', 'pot'], ['Click card', 'pick']],
   seeds: [['Click card', 'pick'], ['Click tile', 'plant'], ['Drag', 'plant once']],
-  crystals: [['Drag', 'place'], ['Drop on crystal', 'fuse']],
+  crystals: [['Drag', 'place'], ['Drop on crystal', 'fuse'], ['Right click', 'pick up']],
   celestial: [['Drag', 'move'], ['Drop on plant', 'swap'], ['Hover number', 'its target']],
 };
 
@@ -443,7 +443,11 @@ async function plantSeed(species: string, local: number): Promise<void> {
   }
 }
 
-/** Shards by type, loose and in the Tool Shack together, then every running crystal that was picked back up. */
+/**
+ * Shards by type, loose and in the Tool Shack together, then every running crystal that was picked
+ * back up, from the inventory or the Shack. Only inventory crystals used to be listed, so one filed in
+ * the Shack could not be placed from here at all.
+ */
 function crystalCards(): CrystalCard[] {
   const shards = new Map<string, CrystalCard>();
   const crystals: CrystalCard[] = [];
@@ -454,8 +458,8 @@ function crystalCards(): CrystalCard[] {
       // A crystal carries its own timer; one that has run out cannot be placed, so it is left off.
       if ('remainingActiveSeconds' in row) {
         const seconds = Number(row.remainingActiveSeconds) || 0;
-        if (field === 'loose' && seconds > 0 && typeof row.id === 'string') {
-          crystals.push({ key: `item:${row.id}`, crystalType, toolId: row.toolId, shard: false, itemId: row.id, loose: 1, stored: 0, seconds });
+        if (seconds > 0 && typeof row.id === 'string') {
+          crystals.push({ key: `item:${row.id}`, crystalType, toolId: row.toolId, shard: false, itemId: row.id, loose: field === 'loose' ? 1 : 0, stored: field === 'stored' ? 1 : 0, seconds });
         }
         continue;
       }
@@ -611,6 +615,22 @@ function crystalItemRef(card: CrystalCard): Record<string, string> {
   return card.shard ? { itemType: 'Tool', toolId: card.toolId } : { itemType: 'Tool', itemId: card.itemId! };
 }
 
+function looseCrystal(itemId: string): boolean {
+  return (state.slot?.data?.inventory?.items ?? []).some(item => (item as Record<string, any>)?.id === itemId);
+}
+
+/**
+ * Takes a picked-up crystal out of the Tool Shack when that is where it is, by its own item id: it is
+ * a one-off, so the shard stack's toolId would fetch a shard instead. PlaceCrystal only reads the
+ * inventory. A running crystal never stacks, so it needs a free slot of its own.
+ */
+async function takeCrystalOut(card: CrystalCard): Promise<void> {
+  if (card.shard || !card.itemId || looseCrystal(card.itemId)) return;
+  if (freeInventorySlots() <= 0) throw new Error('Your inventory is full. Free a slot to take the crystal out of the Tool Shack');
+  sendQuinoaCommand({ type: 'MoveItem', from: TOOL_SHACK, to: 'inventory', itemId: card.itemId, quantity: 1 });
+  if (!await waitFor(() => looseCrystal(card.itemId!), 4_000)) throw new Error('The crystal could not be taken out of the Tool Shack');
+}
+
 function refusalText(result: { ok: boolean; code?: string; timedOut?: boolean }): string | null {
   if (result.ok || result.timedOut) return null;
   return result.code === 'not_sent' ? 'The game is not connected' : `The game refused it${result.code ? ` (${result.code})` : ''}`;
@@ -663,6 +683,7 @@ async function placeCrystal(key: string, target: Cell): Promise<void> {
     if (card.shard && !await ensureToolReady(card.toolId)) {
       throw new Error(card.loose + card.stored > 0 ? 'The shard could not be taken out of the Tool Shack. Make room in your inventory' : `No ${name}s are left`);
     }
+    await takeCrystalOut(card);
     // Checked again after the fetch, which takes a round trip of its own.
     if (tileNow(target)) throw new Error('That tile is occupied');
     const result = await sendQuinoaCommandAwaitingResult({
@@ -809,6 +830,7 @@ async function fuseCrystal(card: CrystalCard, target: Cell): Promise<void> {
     if (card.shard && !await ensureToolReady(card.toolId)) {
       throw new Error(card.loose + card.stored > 0 ? 'The shard could not be taken out of the Tool Shack. Make room in your inventory' : `No ${name}s are left`);
     }
+    await takeCrystalOut(card);
     // The box may have been open a while: the crystal has been ticking down, or may be gone. The gain is
     // worked out from what stands there now and rounded down, since the server refuses one larger than fits.
     if (!fusableCrystal(tileNow(target), card.crystalType)) throw new Error('The crystal on that tile is gone');
@@ -896,7 +918,10 @@ function cellContent(cell: Cell): string {
   if (tile.objectType === 'decor') return spriteImage(page.__gardenCompanionShopSprites?.[tile.decorId || ''] || '', tile.decorId || '?');
   if (tile.objectType === 'crystal') {
     const crystalType = String((tile as Record<string, any>).crystalType ?? '');
-    return spriteImage(crystalSprite(crystalType), CRYSTALS[crystalType]?.name ?? '?');
+    // The time left, cut to its largest unit so it fits the tile's corner; the tooltip has it in full.
+    const seconds = Number(tile.remainingActiveSeconds) || 0;
+    const left = seconds <= 0 ? 'Spent' : seconds >= 3600 ? `${Math.floor(seconds / 3600)}h` : `${Math.max(1, Math.ceil(seconds / 60))}m`;
+    return `${spriteImage(crystalSprite(crystalType), CRYSTALS[crystalType]?.name ?? '?')}<small>${left}</small>`;
   }
   const eggId = (tile as Record<string, any>).eggId as string | undefined;
   return spriteImage(eggId ? page.__gardenCompanionShopSprites?.[eggId] || '' : '', eggId || '?');
@@ -1108,7 +1133,7 @@ function render(): void {
     setHtml(head, `<b>Crystals</b><small>${shown.length}${query ? ` of ${allCrystals.length}` : ''}</small>`);
     setHtml(list, shown.length
       ? shown.map(card => listCard(
-        ` data-crystal="${escapeHtml(card.key)}" data-crystal-type="${escapeHtml(card.crystalType)}"${busy ? '' : ' draggable="true"'} title="${escapeHtml(crystalName(card))}${card.shard ? '' : `\n${shortDuration(card.seconds)} left`}\nDrag onto an empty tile to place, or onto a ${escapeHtml(CRYSTALS[card.crystalType]?.name ?? '')} Crystal to fuse${card.stored ? `\n${card.stored} in the Tool Shack` : ''}"`,
+        ` data-crystal="${escapeHtml(card.key)}" data-crystal-type="${escapeHtml(card.crystalType)}"${busy ? '' : ' draggable="true"'} title="${escapeHtml(crystalName(card))}${card.shard ? '' : `\n${shortDuration(card.seconds)} left`}\nDrag onto an empty tile to place, or onto a ${escapeHtml(CRYSTALS[card.crystalType]?.name ?? '')} Crystal to fuse${!card.stored ? '' : card.shard ? `\n${card.stored} in the Tool Shack` : '\nIn the Tool Shack, taken out for you'}"`,
         spriteImage(crystalSprite(card.crystalType), CRYSTALS[card.crystalType]?.name ?? '?'),
         crystalName(card),
         `<em class="gc-fm-qty">${card.shard ? card.loose + card.stored : shortDuration(card.seconds)}</em>${card.stored ? '<i class="gc-fm-silo">Shack</i>' : ''}`,
@@ -1137,7 +1162,7 @@ function render(): void {
       : celPlan?.plan.size ? 'Every celestial is in place.' : 'Plant some celestials to plan a layout.';
     if (status.textContent !== text) status.textContent = text;
   } else if (tab === 'crystals') {
-    const text = 'Drag a crystal or shard onto an empty tile to place it, or onto a crystal of the same kind to fuse. Shards in the Tool Shack are taken out for you.';
+    const text = 'Drag a crystal or shard onto an empty tile to place it, or onto a crystal of the same kind to fuse. Right click a crystal on the farm to pick it up. Anything in the Tool Shack is taken out for you.';
     if (status.textContent !== text) status.textContent = text;
   } else if (!busy) {
     const text = armedSpecies

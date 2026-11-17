@@ -332,6 +332,7 @@ details.gc-card summary h3 { display:inline; }
 .gc-cleanser-choice.on { border-color:var(--gc-accent-line);background:var(--gc-accent-soft);color:var(--gc-strong); }
 .gc-cleanser-choice img { width:18px;height:18px;object-fit:contain;image-rendering:auto; }
 #gc-crop-cleanser .gc-cleanser-note { margin:12px 0 0;padding:8px 10px;border:1px solid rgba(245,192,74,.22);border-radius:var(--gc-radius-sm);background:rgba(245,192,74,.06);color:#fde68a; }
+#gc-crop-cleanser .gc-cleanser-search { flex:none;margin:12px 0 0; }
 .gc-cleanser-table-wrap { flex:0 1 auto;min-height:0;overflow:auto;margin-top:10px;border:1px solid var(--gc-line);border-radius:var(--gc-radius-md); }
 .gc-cleanser-table-wrap table { width:100%;border-collapse:collapse; }
 .gc-cleanser-table-wrap th { position:sticky;top:0;z-index:1;padding:8px 10px;border-bottom:1px solid var(--gc-line);background:var(--gc-surface);color:var(--gc-faint);text-align:left;font-size:11px;font-weight:600; }
