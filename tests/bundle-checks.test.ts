@@ -81,3 +81,31 @@ test('identifiers are escaped before they reach a pattern', () => {
   assert.equal(new RegExp(`^${escapeRegExp('a$b.c')}$`).test('a$b.c'), true);
   assert.equal(new RegExp(`^${escapeRegExp('a$b.c')}$`).test('a$bxc'), false);
 });
+
+test('the Bad Luck tab\'s crop and capsule thresholds still match the game', async () => {
+  const { CAPSULE_THRESHOLDS, PITY_THRESHOLDS, RARE_CROP_THRESHOLD } = await import('../src/features/egg-luck.js');
+  // Everything is read from the one chunk that builds the guarantees, so a minified name is resolved
+  // where it is declared rather than matched against an unrelated one of the same name elsewhere.
+  const code: string = [...snapshot.files.values()].find(text => text.includes('`Rainbow`,') && /[{,]Dawnbreaker:\d/.test(text)) ?? '';
+  assert.ok(code, 'the chunk that builds the guarantees was not found');
+  // The game names its guarantees as (outcome, threshold, counter for that outcome), the threshold
+  // either a literal or a constant declared nearby, so a name is followed to its value before comparing.
+  const resolve = (value: string): number => {
+    if (/^[\d.e]+$/.test(value)) return Number(value);
+    const declared = code.match(new RegExp(`[,\\s]${escapeRegExp(value)}=([\\d.e]+)[,;]`));
+    return declared ? Number(declared[1]) : NaN;
+  };
+  for (const colour of ['Gold', 'Rainbow']) {
+    const guarantee = new RegExp(`\\(\`${colour}\`,([A-Za-z0-9_$.]+),[A-Za-z_$]+\\([A-Za-z_$]+,\`${colour}\`\\)\\)`, 'g');
+    const stated = [...code.matchAll(guarantee)].map(match => resolve(match[1]));
+    // Once for crops and once for eggs.
+    assert.ok(stated.length >= 2, `${colour} guarantees not found`);
+    for (const threshold of stated) assert.equal(threshold, PITY_THRESHOLDS[colour], colour);
+  }
+  assert.match(code, new RegExp(`\\[[A-Za-z_$]+\\([A-Za-z_$]+,${RARE_CROP_THRESHOLD},[A-Za-z_$]+\\(`), 'rare crop threshold');
+  for (const [capsule, outcomes] of Object.entries(CAPSULE_THRESHOLDS)) {
+    for (const [outcome, threshold] of Object.entries(outcomes)) {
+      assert.match(code, new RegExp(`[{,]${outcome}:${threshold}[,}]`), `${capsule} ${outcome}`);
+    }
+  }
+});

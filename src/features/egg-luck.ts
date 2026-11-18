@@ -1,7 +1,7 @@
-import { EGG_CATALOG, PET_CATALOG } from '../constants.js';
+import { EGG_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
-import { mutationSprite } from '../pets.js';
+import { mutationSprite, produceSprite } from '../pets.js';
 import type { ActivityLogEntry, Pet, PlayerData } from '../types.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 import { accountValue, mergeLists, onStorageAccountChange, sharedValue } from '../storage.js';
@@ -233,6 +233,13 @@ let bonusPets: string[] = [];
  */
 let liveCounters = false;
 
+/**
+ * The crop and capsule counters as the game last sent them. Unlike the eggs' there is no tally of our
+ * own behind them - they never reached the client before build 2078 - so they are shown as read and
+ * not stored: null until the first frame that carries them, and reset when the account changes.
+ */
+let livePity: Pick<NonNullable<PlayerData['pityCounters']>, 'growSlot' | 'capsule'> | null = null;
+
 function noteBonusPet(id: string): void {
   if (!id || bonusPets.includes(id)) return;
   bonusPets = [...bonusPets.slice(-(BONUS_PET_LIMIT - 1)), id];
@@ -242,6 +249,7 @@ function noteBonusPet(id: string): void {
 onStorageAccountChange(() => {
   // The new account's counters have not been read yet, so its pity boxes stay editable until they are.
   liveCounters = false;
+  livePity = null;
   luck = savedLuck();
   bonusPets = savedBonusPets();
 });
@@ -318,14 +326,18 @@ export function recordEggHatches(entries: ActivityLogEntry[]): void {
 }
 
 /**
- * Copies the game's Bad Luck Protection counters over ours. Run after the hatches of the same frame
- * are counted, so the game's figure has the last word over our own bump.
+ * Copies the game's egg Bad Luck Protection counters over ours, and keeps its crop and capsule ones
+ * for display. Run after the hatches of the same frame are counted, so the game's figure has the last
+ * word over our own bump.
  *
  * The game's store is sparse and reads a missing entry as 0, so an egg we have a record for but the
  * game does not mention is zeroed too: that is what the game will roll against. Eggs with no record
  * of ours and nothing in theirs are left alone rather than filled with empty records.
  */
-export function syncEggPityCounters(pityCounters: PlayerData['pityCounters']): void {
+export function syncPityCounters(pityCounters: PlayerData['pityCounters']): void {
+  if (pityCounters && typeof pityCounters === 'object') {
+    livePity = { growSlot: pityCounters.growSlot, capsule: pityCounters.capsule };
+  }
   const eggs = pityCounters?.egg;
   if (!eggs || typeof eggs !== 'object') return;
   liveCounters = true;
@@ -350,15 +362,21 @@ export function syncEggPityCounters(pityCounters: PlayerData['pityCounters']): v
   if (changed) save();
 }
 
+const LUCK_TABS: Array<[string, string]> = [['pets', 'Pets'], ['plants', 'Plants'], ['capsules', 'Capsules']];
+
+// Which of the three you were looking at, so reopening the panel lands back on it.
+const luckTabStore = sharedValue<unknown>('gardenCompanion.badLuckTab.v1', 'pets');
+let luckTab = LUCK_TABS.some(([id]) => id === luckTabStore.load()) ? String(luckTabStore.load()) : 'pets';
+
 // Seeded so it is never empty: the panel treats an empty signature as "always redraw".
-let frozenSignature = JSON.stringify({ liveCounters, luck });
+let frozenSignature = JSON.stringify({ luckTab, liveCounters, luck, livePity });
 
 /** Redraw only when a hatch has actually landed, rather than on every state frame. */
 export function eggLuckSignature(): string {
   // Held while a card is being edited: the edits change the tally, and a live refresh landing on
   // the focusout from a pity box would redraw before the click on Done arrives and swallow it. The
   // edit buttons redraw for themselves, so nothing is lost by waiting.
-  if (!editing.size) frozenSignature = JSON.stringify({ liveCounters, luck });
+  if (!editing.size) frozenSignature = JSON.stringify({ luckTab, liveCounters, luck, livePity });
   return frozenSignature;
 }
 
@@ -481,12 +499,97 @@ function pityRow(eggId: string, label: string, sprite: string, record: EggRecord
     : synced
     ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`
     : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
+  return barRow(label, icon, misses, threshold, count, title);
+}
+
+/** A labelled progress bar towards a guarantee, turning green once it is due. */
+function barRow(label: string, icon: string, misses: number, threshold: number, count: string, title: string): string {
   return `<div class="gc-egg-pity" data-due="${misses >= threshold}" title="${escapeHtml(title)}">`
     + `<span class="gc-shop-sprite">${icon}</span>`
     + `<span class="gc-egg-pity-label">${escapeHtml(label)}</span>`
     + `<span class="gc-egg-bar"><i style="width:${Math.min(100, misses / threshold * 100).toFixed(1)}%"></i></span>`
     + `<span class="gc-egg-pity-count">${count}</span>`
     + '</div>';
+}
+
+/** A guarantee read straight from the game, which needs no floor marker and offers no edit box. */
+function liveRow(label: string, sprite: string, misses: number, threshold: number, unit: string): string {
+  const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
+  const count = `${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}`;
+  const title = `${misses.toLocaleString(NUMBER_LOCALE)} ${unit} since ${label} last landed, read from the game. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
+  return barRow(label, icon, misses, threshold, count, title);
+}
+
+/** A counter as the game stores it: sparse, so anything missing or malformed is a 0. */
+function counterValue(value: unknown): number {
+  return Math.max(0, Math.floor(Number(value)) || 0);
+}
+
+/**
+ * The thresholds for crops and capsules. Unlike an egg's species these are not in any catalog - the
+ * game states them as constants beside the counters - so they are written out here, and the bundle
+ * check fails if the game changes them. A crop's Gold and Rainbow match the eggs', so those come from
+ * PITY_THRESHOLDS; a patch plant also guarantees its rare crop (a Four-Leaf Clover from Clover).
+ */
+export const RARE_CROP_THRESHOLD = 500;
+export const CAPSULE_THRESHOLDS: Record<string, Record<string, number>> = {
+  DawnCapsule: { Ube: 80, Dawnbreaker: 400 },
+  AmberCapsule: { XPShard: 80, StrengthShard: 400 },
+};
+
+/** A capsule outcome's name: Dawn Capsule outcomes are crops, Amber Capsule ones are shards. */
+function outcomeName(id: string): string {
+  return PLANT_CATALOG[id] ? plantName(id) : humanize(id);
+}
+
+/** One crop's guarantees, rarest last, in the same units the game counts them in. */
+function cropRows(species: string): Array<{ label: string; sprite: string; misses: number; threshold: number }> {
+  const counters = livePity?.growSlot?.[species];
+  return [
+    ...COLOURS.map(colour => ({ label: colour, sprite: mutationSprite(colour), misses: counterValue(counters?.growthMutation?.[colour]), threshold: PITY_THRESHOLDS[colour] })),
+    ...Object.entries(counters?.species ?? {}).map(([rare, misses]) => ({ label: plantName(rare), sprite: produceSprite(rare), misses: counterValue(misses), threshold: RARE_CROP_THRESHOLD })),
+  ].sort((left, right) => left.threshold - right.threshold);
+}
+
+/** A card of guarantees under a sprite and name, with a due pill when any of them has come due. */
+function liveCard(name: string, sprite: string, rows: Array<{ label: string; sprite: string; misses: number; threshold: number }>, unit: string): string {
+  const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
+  const due = rows.filter(row => row.misses >= row.threshold).length;
+  return `<section class="gc-card gc-egg-card"><div class="gc-egg-headrow"><h3><span class="gc-shop-sprite">${icon}</span>${escapeHtml(name)}</h3>`
+    + `${due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : ''}</div>`
+    + `<div class="gc-egg-pities">${rows.map(row => liveRow(row.label, row.sprite, row.misses, row.threshold, unit)).join('')}</div></section>`;
+}
+
+/**
+ * Every crop the game has a counter for, nearest a guarantee first, so what is close sits at the top
+ * of what can be a long list - a long-running garden has a counter for nearly every crop it has grown.
+ */
+function renderPlants(): string {
+  const slots = livePity?.growSlot;
+  const crops = Object.keys(slots && typeof slots === 'object' ? slots : {})
+    .map(species => ({ species, rows: cropRows(species) }))
+    .map(crop => ({ ...crop, progress: Math.max(0, ...crop.rows.map(row => row.misses / row.threshold)) }))
+    .filter(crop => crop.progress > 0)
+    .sort((left, right) => right.progress - left.progress || plantName(left.species).localeCompare(plantName(right.species)));
+  const due = crops.reduce((sum, crop) => sum + crop.rows.filter(row => row.misses >= row.threshold).length, 0);
+  return '<p class="gc-note">Each crop type counts the crops it grows towards Gold, Rainbow and, for a patch plant, its rare crop. Read straight from the game. Only crops that have missed at least once are listed.</p>'
+    + `<section class="gc-card gc-egg-summary"><span><b>${crops.length.toLocaleString(NUMBER_LOCALE)}</b> crops tracked</span>${due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : ''}</section>`
+    + (crops.length
+      ? crops.map(crop => liveCard(plantName(crop.species), produceSprite(crop.species), crop.rows, 'crops grown')).join('')
+      : '<p class="gc-empty">No crop has missed a guarantee yet.</p>');
+}
+
+function renderCapsules(): string {
+  return '<p class="gc-note">Each capsule counts its own openings towards its rarer outcomes. Read straight from the game.</p>'
+    + Object.keys(CAPSULE_THRESHOLDS).map(capsuleCard).join('');
+}
+
+function capsuleCard(toolId: string): string {
+  const counters = livePity?.capsule?.[toolId];
+  const rows = Object.entries(CAPSULE_THRESHOLDS[toolId] ?? {})
+    .sort(([, left], [, right]) => left - right)
+    .map(([outcome, threshold]) => ({ label: outcomeName(outcome), sprite: produceSprite(outcome), misses: counterValue(counters?.[outcome]), threshold }));
+  return liveCard(humanize(toolId), page.__gardenCompanionShopSprites?.[toolId] || '', rows, 'capsules opened');
 }
 
 function eggCard(eggId: string): string {
@@ -576,12 +679,25 @@ export function renderEggLuck(): string {
   const counterNote = liveCounters
     ? 'The guarantee bars are read straight from the game. The hatch tallies are counted here, so anything hatched before you installed, or in a session without the script, is not in them.'
     : 'The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game\'s own.';
-  return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. ${counterNote} A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
+  const eggSection = `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. ${counterNote} A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
 <section class="gc-card gc-egg-summary"><span><b>${hatched.toLocaleString(NUMBER_LOCALE)}</b> hatches recorded</span></section>
 ${eggs.map(eggCard).join('')}`;
+  // Plants and capsules only have the game's own counters behind them, so on a build that does not
+  // send those there is nothing to switch to and the tab is the egg tally alone.
+  if (!livePity) return eggSection;
+  const tabs = LUCK_TABS.map(([id, label]) => `<button data-luck-tab="${id}" class="${id === luckTab ? 'active' : ''}">${label}</button>`).join('');
+  const body = luckTab === 'plants' ? renderPlants() : luckTab === 'capsules' ? renderCapsules() : eggSection;
+  return `<div class="gc-calc-tabs">${tabs}</div>${body}`;
 }
 
 export function bindEggLuckEvents(main: HTMLElement): void {
+  main.querySelectorAll<HTMLButtonElement>('[data-luck-tab]').forEach(button => button.onclick = () => {
+    luckTab = button.dataset.luckTab || 'pets';
+    luckTabStore.save(luckTab);
+    // Leaving the pets view with a card mid-edit would hold the redraw until it came back.
+    endEggLuckEditing();
+    panelActions.renderPanel();
+  });
   main.querySelectorAll<HTMLButtonElement>('[data-egg-toggle]').forEach(button => button.onclick = () => {
     toggleEggCollapsed(button.dataset.eggToggle!);
     panelActions.renderPanelPreservingScroll();

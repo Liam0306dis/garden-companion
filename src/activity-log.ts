@@ -1,6 +1,6 @@
 import { feature } from './config.js';
 import { recordAbilityActivities } from './features/ability-log.js';
-import { recordEggHatches, syncEggPityCounters } from './features/egg-luck.js';
+import { recordEggHatches, syncPityCounters } from './features/egg-luck.js';
 import { allPets } from './pets.js';
 import { state } from './state.js';
 import type { ActivityLogEntry } from './types.js';
@@ -104,15 +104,15 @@ function signature(entry: ActivityLogEntry): string {
 }
 
 /**
- * Copies the game's egg pity counters into Egg Luck. Run after processActivityLog, so a hatch counted
- * on this frame is overruled by the game's figure rather than the other way round, and held to the same
- * rule of reading only a slot that positively names us - another player's counters must never land in
- * our store.
+ * Copies the game's pity counters into the Bad Luck tab. Run after processActivityLog, so a hatch
+ * counted on this frame is overruled by the game's figure rather than the other way round, and held to
+ * the same rule of reading only a slot that positively names us - another player's counters must never
+ * land in our store.
  */
-export function processEggPityCounters(): void {
+export function processPityCounters(): void {
   const owner = state.slot?.userId || state.slot?.playerId;
   if (!owner || !state.playerId || owner !== state.playerId) return;
-  syncEggPityCounters(state.slot?.data?.pityCounters);
+  syncPityCounters(state.slot?.data?.pityCounters);
 }
 
 export function processActivityLog(): void {

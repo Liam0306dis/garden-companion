@@ -1,3 +1,7 @@
+1.0.10
+- Egg Luck is now Bad Luck, with crop and capsule pity
+- Bad Luck tabs for pets, plants and capsules
+
 1.0.9
 - Egg Luck reads pity counters from the game
 

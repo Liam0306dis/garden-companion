@@ -24,7 +24,7 @@ import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCr
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
 import { refreshJournalLogger } from './features/journal-logger.js';
 import { bindEggLuckEvents, eggLuckSignature, endEggLuckEditing, renderEggLuck } from './features/egg-luck.js';
-import { processActivityLog, processEggPityCounters } from './activity-log.js';
+import { processActivityLog, processPityCounters } from './activity-log.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
@@ -373,7 +373,7 @@ export function initCompanion(): void {
     refreshCompletedTeamDelete();
     refreshCompletedTeamMove();
     processActivityLog();
-    processEggPityCounters();
+    processPityCounters();
     processShops();
     processPetHunger();
     processPetAbilityCooldowns();
@@ -549,10 +549,10 @@ export function initCompanion(): void {
   // Third entry is the nav label where the group heading already carries a word the tab would repeat.
   // The panel title keeps the full name, which has to stand on its own.
   const TAB_GROUPS: Array<[string, Array<[string, string, string?]>]> = [
-    ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food'], ['eggLuck', 'Egg Luck', 'Eggs']]],
+    ['Pets', [['abilities', 'Active Pets', 'Active'], ['abilityLog', 'Pet Abilities', 'Abilities'], ['teams', 'Pet Teams', 'Teams'], ['petFood', 'Pet Food', 'Food']]],
     ['Crops', [['protection', 'Crop Protection', 'Protection'], ['journal', 'Journal']]],
     ['Alerts', [['shops', 'Shop Alarms', 'Shops'], ['weatherAlarms', 'Weather Alarms', 'Weather'], ['alarmSound', 'Alert Settings'], ['silence', 'Ignore Alerts', 'Ignore abilities']]],
-    ['Tools', [['autoStorage', 'Auto Storage'], ['calculators', 'Calculators'], ['sky', 'Lighting'], ['minigames', 'Minigames'], ['rooms', 'Rooms']]],
+    ['Tools', [['autoStorage', 'Auto Storage'], ['eggLuck', 'Bad Luck'], ['calculators', 'Calculators'], ['sky', 'Lighting'], ['minigames', 'Minigames'], ['rooms', 'Rooms']]],
     ['Setup', [['keybinds', 'Keybinds'], ['features', 'Features']]],
     ['Support', [['supporter', 'Supporter'], ['diagnostics', 'Diagnostics']]],
   ];
@@ -563,7 +563,7 @@ export function initCompanion(): void {
     abilityLog: 'Every ability your pets have triggered, newest first.',
     teams: 'Save, order and swap between pet teams.',
     petFood: 'Choose what each species eats from the feed panel.',
-    eggLuck: 'How your hatches compare with the odds, and where pity stands.',
+    eggLuck: 'Where every egg, crop and capsule stands on its guarantee, and how your hatches compare with the odds.',
     protection: 'Stop harvests of crops you want to keep growing.',
     journal: 'Which species and variants your journal is still missing.',
     shops: 'Get told when the items you want come back in stock.',
@@ -587,7 +587,7 @@ export function initCompanion(): void {
     abilityLog: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>',
     teams: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.3a3 3 0 0 1 0 5.4"/><path d="M17.5 14.2c1.9.7 3 2.5 3 4.8"/>',
     petFood: '<path d="M12 7.5c-1.6-1.3-5-1.5-6.4 1.4-1.3 2.8-.2 7.1 2 9.3 1.4 1.4 3.3 1.8 4.4 1.2 1.1.6 3 .2 4.4-1.2 2.2-2.2 3.3-6.5 2-9.3C17 6 13.6 6.2 12 7.5Z"/><path d="M12 7.5c0-2 .9-3.4 2.8-4"/>',
-    eggLuck: '<path d="M12 3c3.6 0 6.5 5.4 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.4 8.4 3 12 3Z"/>',
+    eggLuck: '<circle cx="9" cy="8" r="3"/><circle cx="15" cy="8" r="3"/><circle cx="9" cy="14" r="3"/><circle cx="15" cy="14" r="3"/><path d="M14 17c.5 2 1.5 3.3 3 4"/>',
     protection: '<path d="M12 3 5 6v5.5c0 4.4 3 7.8 7 9.5 4-1.7 7-5.1 7-9.5V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>',
     journal: '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5v-15Z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 7.5h6"/>',
     shops: '<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>',

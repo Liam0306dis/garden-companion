@@ -110,6 +110,12 @@ export interface InventoryStorage {
   items?: Pet[];
 }
 
+/** One source's Bad Luck Protection counters: misses since each outcome last landed. */
+export interface PityCounterSet {
+  growthMutation?: Record<string, number>;
+  species?: Record<string, number>;
+}
+
 export interface PlayerData {
   playerId?: string;
   databaseUserId?: string;
@@ -123,7 +129,11 @@ export interface PlayerData {
    * and never reached the client). Sparse: a missing egg or key reads as 0, exactly as the game reads it.
    */
   pityCounters?: {
-    egg?: Record<string, { growthMutation?: Record<string, number>; species?: Record<string, number> } | undefined>;
+    /** Per crop species: Gold/Rainbow, and for a patch plant its rare crop, keyed by that crop's species. */
+    growSlot?: Record<string, PityCounterSet | undefined>;
+    egg?: Record<string, PityCounterSet | undefined>;
+    /** Per capsule, per outcome: seeds for the Dawn Capsule, shards for the Amber Capsule. */
+    capsule?: Record<string, Record<string, number> | undefined>;
   };
   /** Sparse per shop, and only rewritten on the next purchase - see purchasedCount. */
   shopPurchases?: Record<string, { restockId?: string; startedAtMs?: number; purchases?: Record<string, number> } | null>;

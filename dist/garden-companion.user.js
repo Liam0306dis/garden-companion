@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      1.0.9
+// @version      1.0.10
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -39,7 +39,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snow Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "1.0.9", notes: ["Egg Luck reads pity counters from the game"] }, { version: "1.0.8", notes: ["Pet Food buttons steadier beside QPM", "Diagnostics say why Pet Food buttons are hidden"] }, { version: "1.0.7", notes: ["Plant search in the Crop Cleanser Helper", "Farm Manager lists crystals kept in the Tool Shack", "Farm Manager shows time left on placed crystals", "Crystals tab hint for right click pick up"] }, { version: "1.0.6", notes: ["Pet Food buttons no longer vanish under QPM windows", "Plant focus fades every part of a plant"] }, { version: "1.0.5", notes: ["Egg Luck edit boxes easier to read"] }, { version: "1.0.4", notes: ["Behind-the-scenes update"] }, { version: "1.0.3", notes: ["Cinematic mode button no longer covers the Friend requests button"] }, { version: "1.0.2", notes: ["Fix custom alarm sound playing on after its alarm is stopped", "Growth timers follow the server clock", "Pet Food counts leave out locked crops", "Rooms list no longer hangs on loading", "Less saving in the background"] }, { version: "1.0.1", notes: ["Hide pets toggle in the layout planner", "Crystals tab in the Farm Manager", "Fuse crystals in the Farm Manager", "Hover a ward crystal to see its area", "Move placed crystals, or drag them to the side bar to pick up", "Fix shards not auto-storing while you carry a crystal"] }, { version: "1.0.0", notes: ["Update button and Ko-fi link open in the Discord activity"] }];
+  var define_CHANGELOG_default = [{ version: "1.0.10", notes: ["Egg Luck is now Bad Luck, with crop and capsule pity", "Bad Luck tabs for pets, plants and capsules"] }, { version: "1.0.9", notes: ["Egg Luck reads pity counters from the game"] }, { version: "1.0.8", notes: ["Pet Food buttons steadier beside QPM", "Diagnostics say why Pet Food buttons are hidden"] }, { version: "1.0.7", notes: ["Plant search in the Crop Cleanser Helper", "Farm Manager lists crystals kept in the Tool Shack", "Farm Manager shows time left on placed crystals", "Crystals tab hint for right click pick up"] }, { version: "1.0.6", notes: ["Pet Food buttons no longer vanish under QPM windows", "Plant focus fades every part of a plant"] }, { version: "1.0.5", notes: ["Egg Luck edit boxes easier to read"] }, { version: "1.0.4", notes: ["Behind-the-scenes update"] }, { version: "1.0.3", notes: ["Cinematic mode button no longer covers the Friend requests button"] }, { version: "1.0.2", notes: ["Fix custom alarm sound playing on after its alarm is stopped", "Growth timers follow the server clock", "Pet Food counts leave out locked crops", "Rooms list no longer hangs on loading", "Less saving in the background"] }, { version: "1.0.1", notes: ["Hide pets toggle in the layout planner", "Crystals tab in the Farm Manager", "Fuse crystals in the Farm Manager", "Hover a ward crystal to see its area", "Move placed crystals, or drag them to the side bar to pick up", "Fix shards not auto-storing while you carry a crystal"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheaf", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -7398,6 +7398,7 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
   }
   var bonusPets = [];
   var liveCounters = false;
+  var livePity = null;
   function noteBonusPet(id) {
     if (!id || bonusPets.includes(id)) return;
     bonusPets = [...bonusPets.slice(-(BONUS_PET_LIMIT - 1)), id];
@@ -7405,6 +7406,7 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
   }
   onStorageAccountChange(() => {
     liveCounters = false;
+    livePity = null;
     luck = savedLuck();
     bonusPets = savedBonusPets();
   });
@@ -7457,7 +7459,10 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
     }
     if (changed) save();
   }
-  function syncEggPityCounters(pityCounters) {
+  function syncPityCounters(pityCounters) {
+    if (pityCounters && typeof pityCounters === "object") {
+      livePity = { growSlot: pityCounters.growSlot, capsule: pityCounters.capsule };
+    }
     const eggs = pityCounters?.egg;
     if (!eggs || typeof eggs !== "object") return;
     liveCounters = true;
@@ -7481,9 +7486,12 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
     }
     if (changed) save();
   }
-  var frozenSignature = JSON.stringify({ liveCounters, luck });
+  var LUCK_TABS = [["pets", "Pets"], ["plants", "Plants"], ["capsules", "Capsules"]];
+  var luckTabStore = sharedValue("gardenCompanion.badLuckTab.v1", "pets");
+  var luckTab = LUCK_TABS.some(([id]) => id === luckTabStore.load()) ? String(luckTabStore.load()) : "pets";
+  var frozenSignature = JSON.stringify({ luckTab, liveCounters, luck, livePity });
   function eggLuckSignature() {
-    if (!editing2.size) frozenSignature = JSON.stringify({ liveCounters, luck });
+    if (!editing2.size) frozenSignature = JSON.stringify({ luckTab, liveCounters, luck, livePity });
     return frozenSignature;
   }
   function resetEggLuck(eggId) {
@@ -7563,7 +7571,53 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
     const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
     const count = editMode && !liveCounters ? `<input type="number" min="0" value="${misses}" data-egg-pity="${escapeHtml(eggId)}" data-key="${escapeHtml(key)}" title="Pulls since ${escapeHtml(label)} last landed"> / ${threshold.toLocaleString(NUMBER_LOCALE)}` : `${synced ? "" : "&#8805;"}${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}`;
     const title = liveCounters ? `${misses.toLocaleString(NUMBER_LOCALE)} pulls since ${label} last landed, read from the game. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.` : synced ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.` : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
+    return barRow(label, icon2, misses, threshold, count, title);
+  }
+  function barRow(label, icon2, misses, threshold, count, title) {
     return `<div class="gc-egg-pity" data-due="${misses >= threshold}" title="${escapeHtml(title)}"><span class="gc-shop-sprite">${icon2}</span><span class="gc-egg-pity-label">${escapeHtml(label)}</span><span class="gc-egg-bar"><i style="width:${Math.min(100, misses / threshold * 100).toFixed(1)}%"></i></span><span class="gc-egg-pity-count">${count}</span></div>`;
+  }
+  function liveRow(label, sprite, misses, threshold, unit) {
+    const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+    const count = `${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}`;
+    const title = `${misses.toLocaleString(NUMBER_LOCALE)} ${unit} since ${label} last landed, read from the game. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
+    return barRow(label, icon2, misses, threshold, count, title);
+  }
+  function counterValue(value) {
+    return Math.max(0, Math.floor(Number(value)) || 0);
+  }
+  var RARE_CROP_THRESHOLD = 500;
+  var CAPSULE_THRESHOLDS = {
+    DawnCapsule: { Ube: 80, Dawnbreaker: 400 },
+    AmberCapsule: { XPShard: 80, StrengthShard: 400 }
+  };
+  function outcomeName(id) {
+    return PLANT_CATALOG[id] ? plantName(id) : humanize(id);
+  }
+  function cropRows(species) {
+    const counters = livePity?.growSlot?.[species];
+    return [
+      ...COLOURS.map((colour) => ({ label: colour, sprite: mutationSprite(colour), misses: counterValue(counters?.growthMutation?.[colour]), threshold: PITY_THRESHOLDS[colour] })),
+      ...Object.entries(counters?.species ?? {}).map(([rare, misses]) => ({ label: plantName(rare), sprite: produceSprite(rare), misses: counterValue(misses), threshold: RARE_CROP_THRESHOLD }))
+    ].sort((left, right) => left.threshold - right.threshold);
+  }
+  function liveCard(name, sprite, rows, unit) {
+    const icon2 = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : "";
+    const due = rows.filter((row) => row.misses >= row.threshold).length;
+    return `<section class="gc-card gc-egg-card"><div class="gc-egg-headrow"><h3><span class="gc-shop-sprite">${icon2}</span>${escapeHtml(name)}</h3>${due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : ""}</div><div class="gc-egg-pities">${rows.map((row) => liveRow(row.label, row.sprite, row.misses, row.threshold, unit)).join("")}</div></section>`;
+  }
+  function renderPlants() {
+    const slots = livePity?.growSlot;
+    const crops = Object.keys(slots && typeof slots === "object" ? slots : {}).map((species) => ({ species, rows: cropRows(species) })).map((crop) => ({ ...crop, progress: Math.max(0, ...crop.rows.map((row) => row.misses / row.threshold)) })).filter((crop) => crop.progress > 0).sort((left, right) => right.progress - left.progress || plantName(left.species).localeCompare(plantName(right.species)));
+    const due = crops.reduce((sum, crop) => sum + crop.rows.filter((row) => row.misses >= row.threshold).length, 0);
+    return `<p class="gc-note">Each crop type counts the crops it grows towards Gold, Rainbow and, for a patch plant, its rare crop. Read straight from the game. Only crops that have missed at least once are listed.</p><section class="gc-card gc-egg-summary"><span><b>${crops.length.toLocaleString(NUMBER_LOCALE)}</b> crops tracked</span>${due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : ""}</section>` + (crops.length ? crops.map((crop) => liveCard(plantName(crop.species), produceSprite(crop.species), crop.rows, "crops grown")).join("") : '<p class="gc-empty">No crop has missed a guarantee yet.</p>');
+  }
+  function renderCapsules() {
+    return '<p class="gc-note">Each capsule counts its own openings towards its rarer outcomes. Read straight from the game.</p>' + Object.keys(CAPSULE_THRESHOLDS).map(capsuleCard).join("");
+  }
+  function capsuleCard(toolId) {
+    const counters = livePity?.capsule?.[toolId];
+    const rows = Object.entries(CAPSULE_THRESHOLDS[toolId] ?? {}).sort(([, left], [, right]) => left - right).map(([outcome, threshold]) => ({ label: outcomeName(outcome), sprite: produceSprite(outcome), misses: counterValue(counters?.[outcome]), threshold }));
+    return liveCard(humanize(toolId), page.__gardenCompanionShopSprites?.[toolId] || "", rows, "capsules opened");
   }
   function eggCard(eggId) {
     const record = luck[eggId] ?? blankEgg();
@@ -7614,11 +7668,21 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
     const eggs = [...known, ...Object.keys(luck).filter((eggId) => !EGG_CATALOG[eggId])];
     const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
     const counterNote = liveCounters ? "The guarantee bars are read straight from the game. The hatch tallies are counted here, so anything hatched before you installed, or in a session without the script, is not in them." : "The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own.";
-    return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. ${counterNote} A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
+    const eggSection = `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. ${counterNote} A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
 <section class="gc-card gc-egg-summary"><span><b>${hatched.toLocaleString(NUMBER_LOCALE)}</b> hatches recorded</span></section>
 ${eggs.map(eggCard).join("")}`;
+    if (!livePity) return eggSection;
+    const tabs = LUCK_TABS.map(([id, label]) => `<button data-luck-tab="${id}" class="${id === luckTab ? "active" : ""}">${label}</button>`).join("");
+    const body = luckTab === "plants" ? renderPlants() : luckTab === "capsules" ? renderCapsules() : eggSection;
+    return `<div class="gc-calc-tabs">${tabs}</div>${body}`;
   }
   function bindEggLuckEvents(main) {
+    main.querySelectorAll("[data-luck-tab]").forEach((button) => button.onclick = () => {
+      luckTab = button.dataset.luckTab || "pets";
+      luckTabStore.save(luckTab);
+      endEggLuckEditing();
+      panelActions.renderPanel();
+    });
     main.querySelectorAll("[data-egg-toggle]").forEach((button) => button.onclick = () => {
       toggleEggCollapsed(button.dataset.eggToggle);
       panelActions.renderPanelPreservingScroll();
@@ -7713,10 +7777,10 @@ ${eggs.map(eggCard).join("")}`;
     const ids = [parameters.pet, parameters.extraPet, parameters.sourcePet, parameters.eggId, parameters.itemId].map(idOf).filter(Boolean).join("/");
     return `${entry.action}|${entry.timestamp}|${ids}`;
   }
-  function processEggPityCounters() {
+  function processPityCounters() {
     const owner = state.slot?.userId || state.slot?.playerId;
     if (!owner || !state.playerId || owner !== state.playerId) return;
-    syncEggPityCounters(state.slot?.data?.pityCounters);
+    syncPityCounters(state.slot?.data?.pityCounters);
   }
   function processActivityLog() {
     const owner = state.slot?.userId || state.slot?.playerId;
@@ -11894,7 +11958,6 @@ ${eggs.map(eggCard).join("")}`;
     { tab: "teams", targets: [CONTENT], title: "Pet Teams", text: "Save the pets you have out as a team, then swap between teams in one click or with a keybind." },
     { tab: "petFood", targets: [CONTENT], title: "Pet Food", text: "Pick which crops each species eats. The feed panel then feeds your active pets with the right food." },
     { targets: ["#gc-petfood [data-food-row]"], optional: true, title: "Feed panel", text: "Feed buttons beside each of your active pets, one click to feed them their chosen food. Turn them on or off from the Features tab." },
-    { tab: "eggLuck", targets: [CONTENT], title: "Egg Luck", text: "How your hatches compare with the odds, and how close you are to pity." },
     { tab: "protection", targets: [CONTENT], title: "Crop Protection", text: "Stop harvests of crops you want to keep growing, so a stray click cannot pick them early." },
     { tab: "journal", targets: [CONTENT], title: "Journal", text: "Which species and variants your journal is still missing." },
     { tab: "shops", targets: [CONTENT], title: "Shop Alarms", text: "Pick the seeds, eggs and tools you want, and get an alarm when they come back in stock." },
@@ -11902,6 +11965,7 @@ ${eggs.map(eggCard).join("")}`;
     { tab: "alarmSound", targets: [CONTENT], title: "Alert Settings", text: "Sounds, volume and layout for every alarm the companion raises, plus pet alarms." },
     { tab: "silence", targets: [CONTENT], title: "Ignore Alerts", text: "Hide the game's own popups for abilities you no longer need to see." },
     { tab: "autoStorage", targets: [CONTENT], title: "Auto Storage", text: "File seeds, tools and decor into storage automatically, and tick anything you want left in your inventory." },
+    { tab: "eggLuck", targets: [CONTENT], title: "Bad Luck", text: "How close each egg, crop and capsule is to its guaranteed outcome, read from the game, and how your hatches compare with the odds." },
     { tab: "calculators", targets: [CONTENT], title: "Calculators", text: "XP, dust and value maths for your pets and crops." },
     { tab: "sky", targets: [CONTENT], title: "Lighting", text: "Keep a weather or time of day on screen, and set how dark and bright the game looks." },
     { tab: "minigames", targets: [CONTENT], title: "Minigames", text: "Fishing and Garden Defence, played on your own farm tiles. Nothing is sent to the game." },
@@ -12383,7 +12447,7 @@ ${eggs.map(eggCard).join("")}`;
       refreshCompletedTeamDelete();
       refreshCompletedTeamMove();
       processActivityLog();
-      processEggPityCounters();
+      processPityCounters();
       processShops();
       processPetHunger();
       processPetAbilityCooldowns();
@@ -12528,10 +12592,10 @@ ${eggs.map(eggCard).join("")}`;
       }, 1e3);
     }
     const TAB_GROUPS = [
-      ["Pets", [["abilities", "Active Pets", "Active"], ["abilityLog", "Pet Abilities", "Abilities"], ["teams", "Pet Teams", "Teams"], ["petFood", "Pet Food", "Food"], ["eggLuck", "Egg Luck", "Eggs"]]],
+      ["Pets", [["abilities", "Active Pets", "Active"], ["abilityLog", "Pet Abilities", "Abilities"], ["teams", "Pet Teams", "Teams"], ["petFood", "Pet Food", "Food"]]],
       ["Crops", [["protection", "Crop Protection", "Protection"], ["journal", "Journal"]]],
       ["Alerts", [["shops", "Shop Alarms", "Shops"], ["weatherAlarms", "Weather Alarms", "Weather"], ["alarmSound", "Alert Settings"], ["silence", "Ignore Alerts", "Ignore abilities"]]],
-      ["Tools", [["autoStorage", "Auto Storage"], ["calculators", "Calculators"], ["sky", "Lighting"], ["minigames", "Minigames"], ["rooms", "Rooms"]]],
+      ["Tools", [["autoStorage", "Auto Storage"], ["eggLuck", "Bad Luck"], ["calculators", "Calculators"], ["sky", "Lighting"], ["minigames", "Minigames"], ["rooms", "Rooms"]]],
       ["Setup", [["keybinds", "Keybinds"], ["features", "Features"]]],
       ["Support", [["supporter", "Supporter"], ["diagnostics", "Diagnostics"]]]
     ];
@@ -12541,7 +12605,7 @@ ${eggs.map(eggCard).join("")}`;
       abilityLog: "Every ability your pets have triggered, newest first.",
       teams: "Save, order and swap between pet teams.",
       petFood: "Choose what each species eats from the feed panel.",
-      eggLuck: "How your hatches compare with the odds, and where pity stands.",
+      eggLuck: "Where every egg, crop and capsule stands on its guarantee, and how your hatches compare with the odds.",
       protection: "Stop harvests of crops you want to keep growing.",
       journal: "Which species and variants your journal is still missing.",
       shops: "Get told when the items you want come back in stock.",
@@ -12564,7 +12628,7 @@ ${eggs.map(eggCard).join("")}`;
       abilityLog: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>',
       teams: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.3a3 3 0 0 1 0 5.4"/><path d="M17.5 14.2c1.9.7 3 2.5 3 4.8"/>',
       petFood: '<path d="M12 7.5c-1.6-1.3-5-1.5-6.4 1.4-1.3 2.8-.2 7.1 2 9.3 1.4 1.4 3.3 1.8 4.4 1.2 1.1.6 3 .2 4.4-1.2 2.2-2.2 3.3-6.5 2-9.3C17 6 13.6 6.2 12 7.5Z"/><path d="M12 7.5c0-2 .9-3.4 2.8-4"/>',
-      eggLuck: '<path d="M12 3c3.6 0 6.5 5.4 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.4 8.4 3 12 3Z"/>',
+      eggLuck: '<circle cx="9" cy="8" r="3"/><circle cx="15" cy="8" r="3"/><circle cx="9" cy="14" r="3"/><circle cx="15" cy="14" r="3"/><path d="M14 17c.5 2 1.5 3.3 3 4"/>',
       protection: '<path d="M12 3 5 6v5.5c0 4.4 3 7.8 7 9.5 4-1.7 7-5.1 7-9.5V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>',
       journal: '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5v-15Z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 7.5h6"/>',
       shops: '<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>',
@@ -21447,7 +21511,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const number = Number(value);
     return Number.isInteger(number) && String(number) === value ? number : value;
   }
-  function cropRows() {
+  function cropRows2() {
     const rows = [];
     for (const [tileIndex, tile] of Object.entries(state.slot?.data?.garden?.tileObjects || {})) {
       const plant = PLANT_CATALOG[tile.species || ""];
@@ -21471,7 +21535,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
   }
   function matchingRows() {
     if (!selectedMutations2.size) return [];
-    return cropRows().filter((row) => row.mutations.some((mutation) => selectedMutations2.has(mutation))).sort((left, right) => {
+    return cropRows2().filter((row) => row.mutations.some((mutation) => selectedMutations2.has(mutation))).sort((left, right) => {
       const leftName = plantName(left.species);
       const rightName = plantName(right.species);
       return leftName.localeCompare(rightName) || String(left.key).localeCompare(String(right.key), void 0, { numeric: true });
@@ -21484,7 +21548,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     return `${row.species}|${String(row.startTime)}|${cleanseableSignature(row.mutations)}`;
   }
   function liveRowMatches(snapshot) {
-    const live = cropRows().find((row) => row.key === snapshot.key);
+    const live = cropRows2().find((row) => row.key === snapshot.key);
     return live && rowFingerprint(live) === rowFingerprint(snapshot) ? live : null;
   }
   function isCleansed(row) {
