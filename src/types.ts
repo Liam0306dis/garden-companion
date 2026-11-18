@@ -118,6 +118,13 @@ export interface PlayerData {
   petSlots?: Pet[];
   petTeams?: PetTeam[];
   activityLogs?: ActivityLogEntry[];
+  /**
+   * The game's own Bad Luck Protection counters (build 2078; before that they sat under `serverOnly`
+   * and never reached the client). Sparse: a missing egg or key reads as 0, exactly as the game reads it.
+   */
+  pityCounters?: {
+    egg?: Record<string, { growthMutation?: Record<string, number>; species?: Record<string, number> } | undefined>;
+  };
   /** Sparse per shop, and only rewritten on the next purchase - see purchasedCount. */
   shopPurchases?: Record<string, { restockId?: string; startedAtMs?: number; purchases?: Record<string, number> } | null>;
   /** The game logs the first sighting of each variant, with no counts. */

@@ -1,3 +1,6 @@
+1.0.9
+- Egg Luck reads pity counters from the game
+
 1.0.8
 - Pet Food buttons steadier beside QPM
 - Diagnostics say why Pet Food buttons are hidden

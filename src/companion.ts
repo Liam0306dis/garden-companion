@@ -24,7 +24,7 @@ import { bindCropProtectionEvents, blockOutgoingHarvest, refuseCommand, renderCr
 import { bindJournalEvents, journalSignature, renderJournal } from './features/journal.js';
 import { refreshJournalLogger } from './features/journal-logger.js';
 import { bindEggLuckEvents, eggLuckSignature, endEggLuckEditing, renderEggLuck } from './features/egg-luck.js';
-import { processActivityLog } from './activity-log.js';
+import { processActivityLog, processEggPityCounters } from './activity-log.js';
 import { bindRoomEvents, renderRooms } from './features/rooms.js';
 import { installAtomHooks, installGameModalAccess } from './game-atoms.js';
 import { bindKeybindEvents, cancelKeybindCapture, claimKeybind, initKeybinds, isTyping, renderKeybinds } from './keybinds.js';
@@ -373,6 +373,7 @@ export function initCompanion(): void {
     refreshCompletedTeamDelete();
     refreshCompletedTeamMove();
     processActivityLog();
+    processEggPityCounters();
     processShops();
     processPetHunger();
     processPetAbilityCooldowns();

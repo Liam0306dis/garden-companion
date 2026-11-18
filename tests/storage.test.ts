@@ -164,7 +164,7 @@ test("egg luck from two sites adds up, and a counter both saw becomes the higher
   visit(DISCORD);
   localStorage.setItem('gardenCompanion.eggLuck.v1', egg(3, 2));
   setStorageAccount('alice');
-  const record = JSON.parse(eggLuckSignature()).CommonEgg;
+  const record = JSON.parse(eggLuckSignature()).luck.CommonEgg;
   assert.equal(record.hatches, 8);
   assert.equal(record.species.Worm, 8);
   assert.deepEqual(record.counters.Gold, { misses: 5, synced: false });

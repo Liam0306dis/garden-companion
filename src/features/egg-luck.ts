@@ -2,7 +2,7 @@ import { EGG_CATALOG, PET_CATALOG } from '../constants.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
 import { mutationSprite } from '../pets.js';
-import type { ActivityLogEntry, Pet } from '../types.js';
+import type { ActivityLogEntry, Pet, PlayerData } from '../types.js';
 import { escapeHtml, humanize, NUMBER_LOCALE } from '../utils.js';
 import { accountValue, mergeLists, onStorageAccountChange, sharedValue } from '../storage.js';
 
@@ -10,9 +10,11 @@ import { accountValue, mergeLists, onStorageAccountChange, sharedValue } from '.
  * What each egg has actually given you, and how close each guaranteed outcome is.
  *
  * The game runs Bad Luck Protection on every egg: miss the outcome and its counter climbs, get it
- * and the counter drops to zero, and at the threshold the next hatch is forced. Those counters live
- * under `serverOnly` in the player state and are stripped before the client sees them, so the only
- * way to know where you stand is to count hatches yourself.
+ * and the counter drops to zero, and at the threshold the next hatch is forced. Up to build 2065
+ * those counters lived under `serverOnly` and were stripped before the client saw them, so the only
+ * way to know where you stood was to count hatches yourself. From build 2078 they sit in the player
+ * state as `pityCounters`, and `syncEggPityCounters` copies them over ours on every frame - the
+ * hatch counting below still keeps the tallies, and still carries the counters on an older build.
  *
  * `hatchEgg` is the one activity log entry carrying everything needed - the egg it came from and the
  * whole pet, mutations included - so a hatch seen while the script is running can be attributed
@@ -225,6 +227,12 @@ function savedBonusPets(): string[] {
 
 let bonusPets: string[] = [];
 
+/**
+ * Whether the game's own counters have been read for this account. While they have, they are the
+ * figure and the pity boxes stop being editable - anything typed would be overwritten next frame.
+ */
+let liveCounters = false;
+
 function noteBonusPet(id: string): void {
   if (!id || bonusPets.includes(id)) return;
   bonusPets = [...bonusPets.slice(-(BONUS_PET_LIMIT - 1)), id];
@@ -232,6 +240,8 @@ function noteBonusPet(id: string): void {
 }
 
 onStorageAccountChange(() => {
+  // The new account's counters have not been read yet, so its pity boxes stay editable until they are.
+  liveCounters = false;
   luck = savedLuck();
   bonusPets = savedBonusPets();
 });
@@ -307,15 +317,48 @@ export function recordEggHatches(entries: ActivityLogEntry[]): void {
   if (changed) save();
 }
 
+/**
+ * Copies the game's Bad Luck Protection counters over ours. Run after the hatches of the same frame
+ * are counted, so the game's figure has the last word over our own bump.
+ *
+ * The game's store is sparse and reads a missing entry as 0, so an egg we have a record for but the
+ * game does not mention is zeroed too: that is what the game will roll against. Eggs with no record
+ * of ours and nothing in theirs are left alone rather than filled with empty records.
+ */
+export function syncEggPityCounters(pityCounters: PlayerData['pityCounters']): void {
+  const eggs = pityCounters?.egg;
+  if (!eggs || typeof eggs !== 'object') return;
+  liveCounters = true;
+  let changed = false;
+  for (const eggId of new Set([...Object.keys(eggs), ...Object.keys(luck)])) {
+    const theirs = eggs[eggId];
+    if (!theirs && !luck[eggId]) continue;
+    const record = luck[eggId] ?? blankEgg();
+    const keys: Array<[string, unknown]> = [
+      ...pitySpeciesList(eggId).map((species): [string, unknown] => [species, theirs?.species?.[species]]),
+      ...COLOURS.map((colour): [string, unknown] => [colour, theirs?.growthMutation?.[colour]]),
+    ];
+    for (const [key, value] of keys) {
+      const misses = Math.max(0, Math.floor(Number(value)) || 0);
+      const existing = record.counters[key];
+      if (existing?.synced && existing.misses === misses) continue;
+      record.counters[key] = { misses, synced: true };
+      changed = true;
+    }
+    luck[eggId] = record;
+  }
+  if (changed) save();
+}
+
 // Seeded so it is never empty: the panel treats an empty signature as "always redraw".
-let frozenSignature = JSON.stringify(luck);
+let frozenSignature = JSON.stringify({ liveCounters, luck });
 
 /** Redraw only when a hatch has actually landed, rather than on every state frame. */
 export function eggLuckSignature(): string {
   // Held while a card is being edited: the edits change the tally, and a live refresh landing on
   // the focusout from a pity box would redraw before the click on Done arrives and swallow it. The
   // edit buttons redraw for themselves, so nothing is lost by waiting.
-  if (!editing.size) frozenSignature = JSON.stringify(luck);
+  if (!editing.size) frozenSignature = JSON.stringify({ liveCounters, luck });
   return frozenSignature;
 }
 
@@ -367,6 +410,9 @@ function adjustEggLuck(eggId: string, species: string, field: string, delta: num
 
 /** Sets a pity counter by hand. The player is stating the game's figure, so it counts as synced. */
 function setPityCount(eggId: string, key: string, misses: number): void {
+  // A box drawn before the game's counters were first read can still be on screen while editing,
+  // since the redraw is held. Whatever it takes would be overwritten next frame, so it takes nothing.
+  if (liveCounters) return;
   const record = luck[eggId] ?? blankEgg();
   record.counters[key] = { misses: Math.max(0, Math.floor(misses) || 0), synced: true };
   luck[eggId] = record;
@@ -427,10 +473,12 @@ function pityRow(eggId: string, label: string, sprite: string, record: EggRecord
   const threshold = pityThreshold(eggId, key);
   const { misses, synced } = record.counters[key] ?? emptyCounter();
   const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
-  const count = editMode
+  const count = editMode && !liveCounters
     ? `<input type="number" min="0" value="${misses}" data-egg-pity="${escapeHtml(eggId)}" data-key="${escapeHtml(key)}" title="Pulls since ${escapeHtml(label)} last landed"> / ${threshold.toLocaleString(NUMBER_LOCALE)}`
     : `${synced ? '' : '&#8805;'}${misses.toLocaleString(NUMBER_LOCALE)} / ${threshold.toLocaleString(NUMBER_LOCALE)}`;
-  const title = synced
+  const title = liveCounters
+    ? `${misses.toLocaleString(NUMBER_LOCALE)} pulls since ${label} last landed, read from the game. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`
+    : synced
     ? `${label} last landed ${misses.toLocaleString(NUMBER_LOCALE)} pulls ago. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`
     : `At least ${misses.toLocaleString(NUMBER_LOCALE)} pulls - ${label} has not landed since tracking began, so the game's own count may be higher. Guaranteed at ${threshold.toLocaleString(NUMBER_LOCALE)}.`;
   return `<div class="gc-egg-pity" data-due="${misses >= threshold}" title="${escapeHtml(title)}">`
@@ -451,7 +499,8 @@ function eggCard(eggId: string): string {
   const pullNote = record.pulls === record.hatches ? '' : ` (${record.pulls.toLocaleString(NUMBER_LOCALE)} pulls)`;
   const hatched = `<span class="gc-pill">${record.hatches.toLocaleString(NUMBER_LOCALE)} hatched${pullNote}</span>`;
   const editMode = editing.has(eggId);
-  const editButton = `<button class="gc-egg-edit" data-egg-edit="${escapeHtml(eggId)}" aria-pressed="${editMode}" title="Add or remove hatches, Gold and Rainbow by hand, and set the pity counters">${editMode ? 'Done' : 'Edit'}</button>`;
+  const editTitle = liveCounters ? 'Add or remove hatches, Gold and Rainbow by hand' : 'Add or remove hatches, Gold and Rainbow by hand, and set the pity counters';
+  const editButton = `<button class="gc-egg-edit" data-egg-edit="${escapeHtml(eggId)}" aria-pressed="${editMode}" title="${editTitle}">${editMode ? 'Done' : 'Edit'}</button>`;
   // An egg with nothing recorded is already one line, so it stays a plain heading with nothing to
   // fold - a control that opens an empty card would only invite the click. Editing opens it anyway,
   // since that is how hatches from before install get in.
@@ -524,7 +573,10 @@ export function renderEggLuck(): string {
   // then never show them - and drop them from the total besides.
   const eggs = [...known, ...Object.keys(luck).filter(eggId => !EGG_CATALOG[eggId])];
   const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
-  return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own. A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
+  const counterNote = liveCounters
+    ? 'The guarantee bars are read straight from the game. The hatch tallies are counted here, so anything hatched before you installed, or in a session without the script, is not in them.'
+    : 'The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game\'s own.';
+  return `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. ${counterNote} A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
 <section class="gc-card gc-egg-summary"><span><b>${hatched.toLocaleString(NUMBER_LOCALE)}</b> hatches recorded</span></section>
 ${eggs.map(eggCard).join('')}`;
 }
