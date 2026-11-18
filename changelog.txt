@@ -1,3 +1,7 @@
+1.0.8
+- Pet Food buttons steadier beside QPM
+- Diagnostics say why Pet Food buttons are hidden
+
 1.0.7
 - Plant search in the Crop Cleanser Helper
 - Farm Manager lists crystals kept in the Tool Shack

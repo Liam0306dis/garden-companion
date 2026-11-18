@@ -10,6 +10,31 @@ export interface PixiSurface {
   toScreenY(value: number): number;
 }
 
+type PixiCapture = NonNullable<typeof page.__GARDEN_COMPANION_PIXI__>;
+
+/**
+ * Notes the container the renderer last drew to the screen. Other mods draw with the game's renderer
+ * too - QPM renders pet sprites and textures into offscreen targets every frame - and each of those
+ * becomes the renderer's lastObjectRendered, so that alone flips between the game's stage and
+ * something of theirs. A draw with no target is the one that reaches the screen.
+ */
+function watchScreenRenders(store: PixiCapture): void {
+  const renderer = store.renderer as Record<string, any> | null;
+  if (!renderer || typeof renderer.render !== 'function' || renderer.__gardenCompanionScreenWatched) return;
+  const original = renderer.render;
+  renderer.__gardenCompanionScreenWatched = true;
+  renderer.render = function(this: unknown, options: any, ...rest: any[]) {
+    try {
+      // render({ container, target }) or the older render(container, target).
+      const named = options && typeof options === 'object' && 'container' in options;
+      const container = named ? options.container : options;
+      const target = named ? options.target : rest[0];
+      if (!target && container && typeof container === 'object') store.screenStage = container;
+    } catch { /* never in the way of a frame */ }
+    return original.call(this, options, ...rest);
+  };
+}
+
 export function installPixiCapture() {
   const store = page.__GARDEN_COMPANION_PIXI__ ||= { app: null, renderer: null };
   for (const name of ['__PIXI_APP_INIT__', '__PIXI_RENDERER_INIT__']) {
@@ -17,18 +42,35 @@ export function installPixiCapture() {
     page[name] = function(this: unknown, value: any, ...args: unknown[]) {
       if (name.includes('APP') && value) { store.app = value; store.renderer = value.renderer || store.renderer; }
       else if (value) store.renderer = value;
+      watchScreenRenders(store);
       if (typeof previous === 'function') return previous.call(this, value, ...args);
     };
   }
+}
+
+function liveNode(node: unknown): Record<string, any> | null {
+  return node && typeof node === 'object' && !(node as Record<string, any>).destroyed ? node as Record<string, any> : null;
+}
+
+/**
+ * The game's scene root. The game can rebuild its scene without the init hooks firing again, which
+ * leaves the captured app holding a destroyed stage; the last container drawn to the screen is the
+ * live one then. The renderer's lastObjectRendered is only a last resort, being whatever anyone drew.
+ */
+export function pixiStage(): Record<string, any> | null {
+  const capture = page.__GARDEN_COMPANION_PIXI__;
+  if (!capture) return null;
+  watchScreenRenders(capture);
+  const app = capture.app as { stage?: unknown } | null;
+  const renderer = (capture.renderer ?? (app as { renderer?: unknown } | null)?.renderer) as Record<string, any> | undefined;
+  return liveNode(app?.stage) || liveNode(capture.screenStage) || liveNode(renderer?.lastObjectRendered) || (app?.stage as Record<string, any> | undefined) || null;
 }
 
 export function pixiSurface(): PixiSurface | null {
   const capture = page.__GARDEN_COMPANION_PIXI__;
   const app = capture?.app as { stage?: Record<string, any>; renderer?: Record<string, any> } | undefined;
   const renderer = capture?.renderer as Record<string, any> | undefined || app?.renderer;
-  // The game can rebuild its scene without the init hooks firing again, which leaves the captured
-  // app holding a destroyed stage, while the renderer still knows what it last drew.
-  const stage = app?.stage && !app.stage.destroyed ? app.stage : renderer?.lastObjectRendered || app?.stage;
+  const stage = pixiStage();
   const canvas = document.querySelector('.QuinoaCanvas canvas') || renderer?.canvas || renderer?.view;
   if (!stage || !renderer || !(canvas instanceof HTMLCanvasElement)) return null;
   const rect = canvas.getBoundingClientRect();

@@ -9,6 +9,7 @@ import { guarded } from '../safe-hook.js';
 import { NUMBER_LOCALE, escapeHtml } from '../utils.js';
 import { freeName, sharedValue } from '../storage.js';
 import { onSpritesReady } from '../pets.js';
+import { pixiStage } from '../pixi.js';
 
 /**
  * Layout planner. Nothing is sent to the game server: planned plants are fed to the
@@ -1064,11 +1065,6 @@ export function initGardenPlanner(): void {
   // so they are hidden for the duration and restored on exit.
   const NATIVE_UI_LABELS = ['GardenInfoCardSystem', 'ActionHud', 'PetActionButtons'];
   const hiddenNodes = new Map<Record<string, any>, boolean>();
-
-  function pixiStage(): Record<string, any> | null {
-    const capture = page.__GARDEN_COMPANION_PIXI__ as { app?: any; renderer?: any } | undefined;
-    return capture?.app?.stage ?? capture?.renderer?.lastObjectRendered ?? null;
-  }
 
   let cinematicApplied = false;
 

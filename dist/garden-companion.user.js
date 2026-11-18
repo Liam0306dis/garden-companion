@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Garden Companion
 // @namespace    https://github.com/Liam0306dis/garden-companion
-// @version      1.0.7
+// @version      1.0.8
 // @description  Manual garden tools, pet teams, alerts, timers, and room browsing
 // @author       Liam
 // @match        https://1227719606223765687.discordsays.com/*
@@ -39,7 +39,7 @@
   var define_ABILITY_DETAILS_default = { MoonKisser: { name: "Amberbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, DawnKisser: { name: "Dawnbinder", trigger: "weather", baseParameters: { mutationChancePerMinute: 25, tileRadius: 1 } }, Thunderbloom: { name: "Thunderbloom", trigger: "weather" }, CoinFinderI: { name: "Coin Finder I", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 12e4 } }, CoinFinderII: { name: "Coin Finder II", trigger: "continuous", baseProbability: 13, baseParameters: { baseMaxCoinsFindable: 12e5 } }, CoinFinderIII: { name: "Coin Finder III", trigger: "continuous", baseProbability: 6, baseParameters: { baseMaxCoinsFindable: 1e7 } }, CoinFinderIV: { name: "Coin Finder IV", trigger: "continuous", baseProbability: 3, baseParameters: { baseMaxCoinsFindable: 4e7 } }, SnowyCoinFinder: { name: "Snow Coin Finder", trigger: "continuous", baseProbability: 15, baseParameters: { baseMaxCoinsFindable: 5e6 } }, DawnCoinFinder: { name: "Dawn Coin Finder", trigger: "continuous", baseProbability: 45, baseParameters: { baseMaxCoinsFindable: 6e6 } }, ThunderCoinFinder: { name: "Thunder Coin Finder", trigger: "continuous", baseProbability: 35, baseParameters: { baseMaxCoinsFindable: 55e5 } }, SeedFinderI: { name: "Seed Finder I", trigger: "continuous", baseProbability: 40 }, SeedFinderII: { name: "Seed Finder II", trigger: "continuous", baseProbability: 20 }, SeedFinderIII: { name: "Seed Finder III", trigger: "continuous", baseProbability: 10 }, SeedFinderIV: { name: "Seed Finder IV", trigger: "continuous", baseProbability: 0.72 }, DustBoost: { name: "Dust Boost", trigger: "sellPet", baseProbability: 10, baseParameters: { petDustIncreasePercentage: 20 } }, Rebirth: { name: "Rebirth", trigger: "continuous", baseProbability: 20 }, PlantGrowthBoost: { name: "Plant Growth Boost I", trigger: "continuous", baseProbability: 24, baseParameters: { plantGrowthReductionMinutes: 3 } }, PlantGrowthBoostII: { name: "Plant Growth Boost II", trigger: "continuous", baseProbability: 27, baseParameters: { plantGrowthReductionMinutes: 5 } }, PlantGrowthBoostIII: { name: "Plant Growth Boost III", trigger: "continuous", baseProbability: 30, baseParameters: { plantGrowthReductionMinutes: 7 } }, SnowyPlantGrowthBoost: { name: "Snow Plant Growth Boost", trigger: "continuous", baseProbability: 40, baseParameters: { plantGrowthReductionMinutes: 6 } }, DawnPlantGrowthBoost: { name: "Dawn Plant Growth Boost", trigger: "continuous", baseProbability: 60, baseParameters: { plantGrowthReductionMinutes: 6 } }, AmberPlantGrowthBoost: { name: "Amber Plant Growth Boost", trigger: "continuous", baseProbability: 80, baseParameters: { plantGrowthReductionMinutes: 6 } }, ThunderPlantGrowthBoost: { name: "Thunder Plant Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { plantGrowthReductionMinutes: 6 } }, ProduceEater: { name: "Crop Eater", trigger: "continuous", baseProbability: 60, baseParameters: { cropSellPriceIncreasePercentage: 150 } }, ProduceScaleBoost: { name: "Crop Size Boost I", trigger: "continuous", baseProbability: 0.3, baseParameters: { sizeIncrease: 4 } }, ProduceScaleBoostII: { name: "Crop Size Boost II", trigger: "continuous", baseProbability: 0.4, baseParameters: { sizeIncrease: 7 } }, ProduceScaleBoostIII: { name: "Crop Size Boost III", trigger: "continuous", baseProbability: 0.5, baseParameters: { sizeIncrease: 9 } }, SnowyCropSizeBoost: { name: "Snow Crop Size Boost", trigger: "continuous", baseProbability: 0.8, baseParameters: { sizeIncrease: 8 } }, ProduceMutationBoost: { name: "Weather Mutation Boost I", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 15 } }, ProduceMutationBoostII: { name: "Weather Mutation Boost II", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 20 } }, ProduceMutationBoostIII: { name: "Weather Mutation Boost III", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 25 } }, SnowyCropMutationBoost: { name: "Snow Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 32 } }, DawnBoost: { name: "Dawn Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 36 } }, AmberMoonBoost: { name: "Amber Moon Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 40 } }, ThunderBoost: { name: "Thunder Boost", trigger: "continuous", baseParameters: { mutationChanceIncreasePercentage: 34 } }, EggGrowthBoost: { name: "Egg Growth Boost I", trigger: "continuous", baseProbability: 21, baseParameters: { eggGrowthTimeReductionMinutes: 7 } }, EggGrowthBoostII_NEW: { name: "Egg Growth Boost II", trigger: "continuous", baseProbability: 24, baseParameters: { eggGrowthTimeReductionMinutes: 9 } }, EggGrowthBoostII: { name: "Egg Growth Boost III", trigger: "continuous", baseProbability: 27, baseParameters: { eggGrowthTimeReductionMinutes: 11 } }, SnowyEggGrowthBoost: { name: "Snow Egg Growth Boost", trigger: "continuous", baseProbability: 35, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, ThunderEggGrowthBoost: { name: "Thunder Egg Growth Boost", trigger: "continuous", baseProbability: 50, baseParameters: { eggGrowthTimeReductionMinutes: 10 } }, AmberEggGrowthBoost: { name: "Amber Egg Growth Boost", trigger: "continuous", baseProbability: 90, baseParameters: { eggGrowthTimeReductionMinutes: 16 } }, PetXpBoost: { name: "XP Boost I", trigger: "continuous", baseProbability: 30, baseParameters: { bonusXp: 300 } }, PetXpBoostII: { name: "XP Boost II", trigger: "continuous", baseProbability: 35, baseParameters: { bonusXp: 400 } }, PetXpBoostIII: { name: "XP Boost III", trigger: "continuous", baseProbability: 40, baseParameters: { bonusXp: 500 } }, SnowyPetXpBoost: { name: "Snow XP Boost", trigger: "continuous", baseProbability: 50, baseParameters: { bonusXp: 450 } }, DawnXpBoost: { name: "Dawn XP Boost", trigger: "continuous", baseProbability: 75, baseParameters: { bonusXp: 850 } }, ThunderXpBoost: { name: "Thunder XP Boost", trigger: "continuous", baseProbability: 65, baseParameters: { bonusXp: 650 } }, AmberXpBoost: { name: "Amber XP Boost", trigger: "continuous", baseProbability: 90, baseParameters: { bonusXp: 1400 } }, HungerBoost: { name: "Hunger Boost I", trigger: "continuous", baseParameters: { hungerRefundPercentage: 12 } }, HungerBoostII: { name: "Hunger Boost II", trigger: "continuous", baseParameters: { hungerRefundPercentage: 16 } }, HungerBoostIII: { name: "Hunger Boost III", trigger: "continuous", baseParameters: { hungerRefundPercentage: 20 } }, SnowyHungerBoost: { name: "Snow Hunger Boost", trigger: "continuous", baseParameters: { hungerRefundPercentage: 30 } }, HungerRestore: { name: "Hunger Restore I", trigger: "continuous", baseProbability: 12, baseParameters: { hungerRestorePercentage: 30 } }, HungerRestoreII: { name: "Hunger Restore II", trigger: "continuous", baseProbability: 14, baseParameters: { hungerRestorePercentage: 35 } }, HungerRestoreIII: { name: "Hunger Restore III", trigger: "continuous", baseProbability: 16, baseParameters: { hungerRestorePercentage: 40 } }, SnowyHungerRestore: { name: "Snow Hunger Restore", trigger: "continuous", baseProbability: 20, baseParameters: { hungerRestorePercentage: 38 } }, PetMutationBoost: { name: "Pet Mutation Boost I", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 7 } }, PetMutationBoostII: { name: "Pet Mutation Boost II", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 10 } }, PetMutationBoostIII: { name: "Pet Mutation Boost III", trigger: "hatchEgg", baseParameters: { mutationChanceIncreasePercentage: 13 } }, SellBoostI: { name: "Sell Boost I", trigger: "sellAllCrops", baseProbability: 10, baseParameters: { cropSellPriceIncreasePercentage: 20 } }, SellBoostII: { name: "Sell Boost II", trigger: "sellAllCrops", baseProbability: 12, baseParameters: { cropSellPriceIncreasePercentage: 30 } }, SellBoostIII: { name: "Sell Boost III", trigger: "sellAllCrops", baseProbability: 14, baseParameters: { cropSellPriceIncreasePercentage: 40 } }, SellBoostIV: { name: "Sell Boost IV", trigger: "sellAllCrops", baseProbability: 16, baseParameters: { cropSellPriceIncreasePercentage: 50 } }, ProduceRefund: { name: "Crop Refund", trigger: "sellAllCrops", baseProbability: 20 }, DoubleHarvest: { name: "Double Harvest", trigger: "harvest", baseProbability: 5 }, PetAgeBoost: { name: "Hatch XP Boost I", trigger: "hatchEgg", baseProbability: 50, baseParameters: { bonusXp: 8e3 } }, PetAgeBoostII: { name: "Hatch XP Boost II", trigger: "hatchEgg", baseProbability: 60, baseParameters: { bonusXp: 12e3 } }, PetAgeBoostIII: { name: "Hatch XP Boost III", trigger: "hatchEgg", baseProbability: 70, baseParameters: { bonusXp: 16e3 } }, PetHatchSizeBoost: { name: "Max Strength Boost I", trigger: "hatchEgg", baseProbability: 12, baseParameters: { maxStrengthIncreasePercentage: 2.4 } }, PetHatchSizeBoostII: { name: "Max Strength Boost II", trigger: "hatchEgg", baseProbability: 14, baseParameters: { maxStrengthIncreasePercentage: 3.5 } }, PetHatchSizeBoostIII: { name: "Max Strength Boost III", trigger: "hatchEgg", baseProbability: 16, baseParameters: { maxStrengthIncreasePercentage: 4.6 } }, DoubleHatch: { name: "Double Hatch I", trigger: "hatchEgg", baseProbability: 3 }, DoubleHatchII: { name: "Double Hatch II", trigger: "hatchEgg", baseProbability: 5 }, PetRefund: { name: "Pet Refund I", trigger: "sellPet", baseProbability: 5 }, PetRefundII: { name: "Pet Refund II", trigger: "sellPet", baseProbability: 7 }, RainDance: { name: "Rain Granter", trigger: "continuous", baseProbability: 10 }, SnowGranter: { name: "Snow Granter", trigger: "continuous", baseProbability: 8 }, FrostGranter: { name: "Frost Granter", trigger: "continuous", baseProbability: 6 }, DawnlitGranter: { name: "Dawnlit Granter", trigger: "continuous", baseProbability: 4 }, AmberlitGranter: { name: "Amberlit Granter", trigger: "continuous", baseProbability: 2 }, GoldGranter: { name: "Gold Granter", trigger: "continuous", baseProbability: 0.72 }, RainbowGranter: { name: "Rainbow Granter", trigger: "continuous", baseProbability: 0.72 }, DawnbinderBoost: { name: "Dawnbinder Boost", trigger: "continuous", baseParameters: { plantAbilityChanceBoostPercentage: 40 } }, Copycat: { name: "Copycat", trigger: "continuous", baseProbability: 1 }, DawnCapture: { name: "Dawn Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, AmberCapture: { name: "Amber Capture", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } }, ThunderstruckGranter: { name: "Thunderstruck Granter", trigger: "continuous", baseProbability: 5 }, Thundercharger: { name: "Thundercharger", trigger: "playerActivated", baseParameters: { cooldownSeconds: 300, tileRadius: 1 } } };
 
   // <define:__CHANGELOG__>
-  var define_CHANGELOG_default = [{ version: "1.0.7", notes: ["Plant search in the Crop Cleanser Helper", "Farm Manager lists crystals kept in the Tool Shack", "Farm Manager shows time left on placed crystals", "Crystals tab hint for right click pick up"] }, { version: "1.0.6", notes: ["Pet Food buttons no longer vanish under QPM windows", "Plant focus fades every part of a plant"] }, { version: "1.0.5", notes: ["Egg Luck edit boxes easier to read"] }, { version: "1.0.4", notes: ["Behind-the-scenes update"] }, { version: "1.0.3", notes: ["Cinematic mode button no longer covers the Friend requests button"] }, { version: "1.0.2", notes: ["Fix custom alarm sound playing on after its alarm is stopped", "Growth timers follow the server clock", "Pet Food counts leave out locked crops", "Rooms list no longer hangs on loading", "Less saving in the background"] }, { version: "1.0.1", notes: ["Hide pets toggle in the layout planner", "Crystals tab in the Farm Manager", "Fuse crystals in the Farm Manager", "Hover a ward crystal to see its area", "Move placed crystals, or drag them to the side bar to pick up", "Fix shards not auto-storing while you carry a crystal"] }, { version: "1.0.0", notes: ["Update button and Ko-fi link open in the Discord activity"] }, { version: "0.9.99", notes: ["Sprite diagnostics"] }, { version: "0.9.98", notes: ["Sprites load again (game update 1973)"] }];
+  var define_CHANGELOG_default = [{ version: "1.0.8", notes: ["Pet Food buttons steadier beside QPM", "Diagnostics say why Pet Food buttons are hidden"] }, { version: "1.0.7", notes: ["Plant search in the Crop Cleanser Helper", "Farm Manager lists crystals kept in the Tool Shack", "Farm Manager shows time left on placed crystals", "Crystals tab hint for right click pick up"] }, { version: "1.0.6", notes: ["Pet Food buttons no longer vanish under QPM windows", "Plant focus fades every part of a plant"] }, { version: "1.0.5", notes: ["Egg Luck edit boxes easier to read"] }, { version: "1.0.4", notes: ["Behind-the-scenes update"] }, { version: "1.0.3", notes: ["Cinematic mode button no longer covers the Friend requests button"] }, { version: "1.0.2", notes: ["Fix custom alarm sound playing on after its alarm is stopped", "Growth timers follow the server clock", "Pet Food counts leave out locked crops", "Rooms list no longer hangs on loading", "Less saving in the background"] }, { version: "1.0.1", notes: ["Hide pets toggle in the layout planner", "Crystals tab in the Farm Manager", "Fuse crystals in the Farm Manager", "Hover a ward crystal to see its area", "Move placed crystals, or drag them to the side bar to pick up", "Fix shards not auto-storing while you carry a crystal"] }, { version: "1.0.0", notes: ["Update button and Ko-fi link open in the Discord activity"] }, { version: "0.9.99", notes: ["Sprite diagnostics"] }];
 
   // <define:__DECOR_CATALOG__>
   var define_DECOR_CATALOG_default = { SmallRock: { name: "Small Garden Rock", rarity: "Common", rotates: false, sprite: "SmallRock" }, MediumRock: { name: "Medium Garden Rock", rarity: "Common", rotates: false, sprite: "MediumRock" }, LargeRock: { name: "Large Garden Rock", rarity: "Common", rotates: false, sprite: "LargeRock" }, HayBale: { name: "Hay Bale", rarity: "Common", rotates: true, sprite: "HayBale" }, StringLights: { name: "String Lights", rarity: "Common", rotates: false, sprite: "StringLights", edge: "line" }, ColoredStringLights: { name: "Colored String Lights", rarity: "Uncommon", rotates: false, sprite: "ColoredStringLights", edge: "line" }, PaperLantern: { name: "Paper Lantern", rarity: "Common", rotates: false, sprite: "PaperLantern", edge: "hanging" }, FanousLantern: { name: "Fanous Lantern", rarity: "Common", rotates: false, sprite: "FanousLantern", edge: "hanging" }, SmallGravestone: { name: "Small Gravestone", rarity: "Common", rotates: true, sprite: "SmallGravestone" }, WoodCaribou: { name: "Wood Caribou", rarity: "Common", rotates: false, sprite: "WoodCaribou" }, WoodBench: { name: "Wood Bench", rarity: "Common", rotates: true, sprite: "WoodBench" }, WoodStoolShort: { name: "Short Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStoolShort", mountable: true }, WoodStool: { name: "Tall Wood Stool", rarity: "Common", rotates: false, sprite: "WoodStool", mountable: true }, WoodArch: { name: "Wood Arch", rarity: "Common", rotates: true, sprite: "WoodArch" }, WoodPergola: { name: "Wood Pergola", rarity: "Common", rotates: false, sprite: "WoodPergola" }, WoodBridge: { name: "Wood Bridge", rarity: "Common", rotates: true, sprite: "WoodBridge" }, WoodLampPost: { name: "Wood Lamp Post", rarity: "Common", rotates: false, sprite: "WoodLampPost" }, WoodOwl: { name: "Wood Owl", rarity: "Common", rotates: false, sprite: "WoodOwl" }, WoodFrog: { name: "Wood Frog", rarity: "Common", rotates: false, sprite: "WoodFrog" }, WoodBirdhouse: { name: "Wood Birdhouse", rarity: "Common", rotates: false, sprite: "Birdhouse" }, WoodWindmill: { name: "Wood Windmill", rarity: "Common", rotates: false, sprite: "WoodWindmill" }, MediumGravestone: { name: "Medium Gravestone", rarity: "Uncommon", rotates: true, sprite: "MediumGravestone" }, StoneCaribou: { name: "Stone Caribou", rarity: "Uncommon", rotates: false, sprite: "StoneCaribou" }, StoneBench: { name: "Stone Bench", rarity: "Uncommon", rotates: true, sprite: "StoneBench" }, StoneArch: { name: "Stone Arch", rarity: "Uncommon", rotates: true, sprite: "StoneArch" }, StoneBridge: { name: "Stone Bridge", rarity: "Uncommon", rotates: true, sprite: "StoneBridge" }, StoneLampPost: { name: "Stone Lamp Post", rarity: "Uncommon", rotates: false, sprite: "StoneLampPost" }, StoneGnome: { name: "Stone Gnome", rarity: "Uncommon", rotates: false, sprite: "StoneGnome" }, StoneGnomess: { name: "Stone Gnomess", rarity: "Uncommon", rotates: false, sprite: "StoneGnomess" }, StoneBirdbath: { name: "Stone Birdbath", rarity: "Uncommon", rotates: false, sprite: "StoneBirdBath" }, StonePedestal: { name: "Stone Pedestal", rarity: "Uncommon", rotates: false, sprite: "StonePedestal", mountable: true }, LargeGravestone: { name: "Large Gravestone", rarity: "Rare", rotates: true, sprite: "LargeGravestone" }, MarbleCaribou: { name: "Marble Caribou", rarity: "Rare", rotates: false, sprite: "MarbleCaribou" }, MarbleBench: { name: "Marble Bench", rarity: "Rare", rotates: true, sprite: "MarbleBench" }, MarbleArch: { name: "Marble Arch", rarity: "Rare", rotates: true, sprite: "MarbleArch" }, MarbleBridge: { name: "Marble Bridge", rarity: "Rare", rotates: true, sprite: "MarbleBridge" }, MarblePedestal: { name: "Marble Pedestal", rarity: "Rare", rotates: false, sprite: "MarblePedestal", mountable: true }, MarbleLampPost: { name: "Marble Lamp Post", rarity: "Rare", rotates: false, sprite: "MarbleLampPost" }, MarbleBlobling: { name: "Marble Blobling", rarity: "Rare", rotates: false, sprite: "MarbleBlobling" }, MarbleKnight: { name: "Marble Knight", rarity: "Rare", rotates: false, sprite: "MarbleKnight" }, MarbleFountain: { name: "Marble Fountain", rarity: "Rare", rotates: false, sprite: "MarbleFountain" }, StoneMoonGate: { name: "Stone Moon Gate", rarity: "Legendary", rotates: true, sprite: "StoneMoonGate" }, StoneTorch: { name: "Stone Torch", rarity: "Mythic", rotates: false, sprite: "StoneTorch" }, StoneFirepit: { name: "Stone Firepit", rarity: "Divine", rotates: false, sprite: "StoneFirepit" }, MiniFairyCottage: { name: "Mini Fairy Cottage", rarity: "Rare", rotates: false, sprite: "MiniFairyCottage" }, Cauldron: { name: "Cauldron", rarity: "Legendary", rotates: false, sprite: "Cauldron" }, HauntLamp: { name: "Haunt Lamp", rarity: "Uncommon", rotates: false, sprite: "HauntLamp" }, CroakwardenLamp: { name: "Croakwarden Lamp", rarity: "Mythic", rotates: false, sprite: "CroakwardenLamp" }, HaySheave: { name: "Hay Sheaf", rarity: "Rare", rotates: false, sprite: "HaySheave" }, Spiderweb: { name: "Spiderweb", rarity: "Legendary", rotates: false, sprite: "Spiderweb", edge: "hanging" }, StoneGargoyle: { name: "Stone Gargoyle", rarity: "Mythic", rotates: false, sprite: "StoneGargoyle" }, WindchimeMoon: { name: "Moon Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeMoon", edge: "hanging" }, WindchimeStar: { name: "Star Windchime", rarity: "Rare", rotates: false, sprite: "WindchimeStar", edge: "hanging" }, WindSpinner: { name: "Wind Spinner", rarity: "Mythic", rotates: false, sprite: "WindSpinner" }, WindTurner: { name: "Wind Turner", rarity: "Divine", rotates: false, sprite: "WindTurner" }, StrawScarecrow: { name: "Straw Scarecrow", rarity: "Legendary", rotates: false, sprite: "StrawScarecrow" }, MiniFairyForge: { name: "Mini Fairy Forge", rarity: "Legendary", rotates: false, sprite: "MiniFairyForge" }, MiniFairyKeep: { name: "Mini Fairy Keep", rarity: "Mythic", rotates: false, sprite: "MiniFairyKeep" }, MiniWizardTower: { name: "Mini Wizard Tower", rarity: "Mythic", rotates: false, sprite: "MiniWizardTower" }, MiniFairyCastle: { name: "Mini Fairy Castle", rarity: "Divine", rotates: false, sprite: "MiniFairyCastle" }, FeedingTrough: { name: "Feeding Trough", rarity: "Rare", rotates: false, sprite: "FeedingTrough" }, DecorShed: { name: "Decor Shed", rarity: "Divine", rotates: false, sprite: "DecorShed" }, PetHutch: { name: "Pet Hutch", rarity: "Divine", rotates: false, sprite: "PetHutch" }, SeedSilo: { name: "Seed Silo", rarity: "Divine", rotates: false, sprite: "SeedSilo" }, ToolShack: { name: "Tool Shack", rarity: "Divine", rotates: false, sprite: "ToolShack" } };
@@ -4498,6 +4498,22 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
   }
 
   // src/pixi.ts
+  function watchScreenRenders(store2) {
+    const renderer = store2.renderer;
+    if (!renderer || typeof renderer.render !== "function" || renderer.__gardenCompanionScreenWatched) return;
+    const original = renderer.render;
+    renderer.__gardenCompanionScreenWatched = true;
+    renderer.render = function(options, ...rest) {
+      try {
+        const named = options && typeof options === "object" && "container" in options;
+        const container = named ? options.container : options;
+        const target = named ? options.target : rest[0];
+        if (!target && container && typeof container === "object") store2.screenStage = container;
+      } catch {
+      }
+      return original.call(this, options, ...rest);
+    };
+  }
   function installPixiCapture() {
     const store2 = page.__GARDEN_COMPANION_PIXI__ ||= { app: null, renderer: null };
     for (const name of ["__PIXI_APP_INIT__", "__PIXI_RENDERER_INIT__"]) {
@@ -4507,15 +4523,27 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
           store2.app = value;
           store2.renderer = value.renderer || store2.renderer;
         } else if (value) store2.renderer = value;
+        watchScreenRenders(store2);
         if (typeof previous === "function") return previous.call(this, value, ...args);
       };
     }
+  }
+  function liveNode(node) {
+    return node && typeof node === "object" && !node.destroyed ? node : null;
+  }
+  function pixiStage() {
+    const capture = page.__GARDEN_COMPANION_PIXI__;
+    if (!capture) return null;
+    watchScreenRenders(capture);
+    const app = capture.app;
+    const renderer = capture.renderer ?? app?.renderer;
+    return liveNode(app?.stage) || liveNode(capture.screenStage) || liveNode(renderer?.lastObjectRendered) || app?.stage || null;
   }
   function pixiSurface() {
     const capture = page.__GARDEN_COMPANION_PIXI__;
     const app = capture?.app;
     const renderer = capture?.renderer || app?.renderer;
-    const stage = app?.stage && !app.stage.destroyed ? app.stage : renderer?.lastObjectRendered || app?.stage;
+    const stage = pixiStage();
     const canvas = document.querySelector(".QuinoaCanvas canvas") || renderer?.canvas || renderer?.view;
     if (!stage || !renderer || !(canvas instanceof HTMLCanvasElement)) return null;
     const rect = canvas.getBoundingClientRect();
@@ -5268,33 +5296,18 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
       return null;
     }
   }
-  function petSlotsView() {
-    const view = quinoaEngine()?.getSystem?.("petSlots")?.view;
-    return view?.itemViews instanceof Map ? view : null;
-  }
   function findPetSlotDock() {
     const surface = pixiSurface();
-    if (!surface) return null;
-    const view = petSlotsView();
-    if (view) {
-      if (view.isVisible === false) return null;
-      const byPet = /* @__PURE__ */ new Map();
-      for (const [petId, itemView] of view.itemViews) {
-        const row = screenRow(surface, itemView?.container);
-        if (row) byPet.set(String(petId), row);
-      }
-      const rows2 = [...byPet.values()].sort((left, right) => left.centerY - right.centerY);
-      return { byPet, rows: rows2, blocked: Boolean(view.actionButtonGroup) || view.selectedPetSlotId != null };
-    }
+    if (!surface) return "game canvas not captured";
     const found = findVisiblePixiNodes(surface, ["PetSlots", "PetSlotTiles", "PetActionButtons"]);
     const slots = found.get("PetSlotTiles") ?? found.get("PetSlots");
-    if (!slots || !Array.isArray(slots.children)) return null;
+    if (!slots || !Array.isArray(slots.children)) return `pet panel not in the scene (${String(surface.stage.label || surface.stage.constructor?.name || "unnamed root")})`;
     const rows = slots.children.flatMap((child) => {
       const row = screenRow(surface, child);
       return row ? [row] : [];
     }).sort((left, right) => left.centerY - right.centerY);
     const shortest = Math.min(...rows.map((row) => row.height));
-    return { byPet: null, rows: rows.filter((row) => row.height <= shortest * 1.5), blocked: found.has("PetActionButtons") };
+    return { rows: rows.filter((row) => row.height <= shortest * 1.5), blocked: found.has("PetActionButtons") };
   }
   var HUNGER_POTION = "ReplenishPotion";
   function chosenFood(species) {
@@ -5354,6 +5367,8 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     const existing = document.getElementById("gc-petfood");
     const rows = feature("petFood") ? petFoodRows() : [];
     if (!rows.length) {
+      if (feature("petFood")) noteDockState("hidden: no active pets");
+      else if (dockNoted) noteDockState("off");
       existing?.remove();
       petFoodSignature = "";
       positionTicker.stop();
@@ -5388,15 +5403,24 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     if (host === gameRoot || host.classList.contains("chakra-portal")) return true;
     return host.id.startsWith("gc-") || [...host.classList].some((name) => name.startsWith("gc-")) || host.dataset?.gcUi !== void 0;
   }
-  function petPanelCovered(anchor2) {
+  function petPanelCover(anchor2) {
     const sampleX = Math.round((anchor2.left + anchor2.right) / 2);
     const sampleY = Math.round(anchor2.centerY);
-    if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return false;
+    if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return null;
     const canvasRoot = document.querySelector(".QuinoaCanvas");
     const gameRoot = canvasRoot ? pageLevelHost(canvasRoot) : null;
     const top = document.elementsFromPoint(sampleX, sampleY).find((element) => canCoverPetPanel(element, gameRoot));
-    if (!top) return false;
-    return !top.closest(".QuinoaCanvas") && !top.closest("#gc-petfood");
+    if (!top || top.closest(".QuinoaCanvas") || top.closest("#gc-petfood")) return null;
+    return top;
+  }
+  function describeElement(element) {
+    const classes = [...element.classList].slice(0, 2).map((name) => `.${name}`).join("");
+    return `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${classes}`;
+  }
+  var dockNoted = false;
+  function noteDockState(state2) {
+    dockNoted = true;
+    setCheck("Pet food buttons", "ok", state2);
   }
   var SYSTEM_MENU_SEARCH_BACKOFF_MS = 3e3;
   var systemMenuAtom = null;
@@ -5421,9 +5445,12 @@ ${combos}<button data-ready-add-combo ${rule.combos.some((combo) => !comboIsSet(
     const buttons = [...panel4.querySelectorAll("[data-food-row]")];
     const options = panel4.querySelector(".gc-petfood-options");
     const dock = findPetSlotDock();
-    const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || "") ?? null : dock.rows[index] ?? null) : [];
+    const paired = typeof dock === "string" ? [] : buttons.map((_, index) => dock.rows[index] ?? null);
     const anchors = paired.filter((anchor2) => Boolean(anchor2));
-    if (!dock || dock.blocked || !anchors.length || systemMenuOpen() || petPanelCovered(anchors[0])) {
+    const cover = typeof dock !== "string" && !dock.blocked && anchors.length ? petPanelCover(anchors[0]) : null;
+    const hiddenBecause = typeof dock === "string" ? dock : dock.blocked ? "game pet buttons open" : !anchors.length ? "no pet rows on screen" : systemMenuOpen() ? "game menu open" : cover ? `covered by ${describeElement(cover)}` : "";
+    noteDockState(hiddenBecause ? `hidden: ${hiddenBecause}` : "shown");
+    if (hiddenBecause) {
       panel4.hidden = true;
       return;
     }
@@ -16494,10 +16521,6 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
     }
     const NATIVE_UI_LABELS = ["GardenInfoCardSystem", "ActionHud", "PetActionButtons"];
     const hiddenNodes = /* @__PURE__ */ new Map();
-    function pixiStage() {
-      const capture = page.__GARDEN_COMPANION_PIXI__;
-      return capture?.app?.stage ?? capture?.renderer?.lastObjectRendered ?? null;
-    }
     let cinematicApplied = false;
     function hideNativeCardUi() {
       if (cinematicApplied || page.__gardenCompanionSetCinematic?.(true, "gardenPlanner")) {

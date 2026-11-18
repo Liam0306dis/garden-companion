@@ -228,7 +228,7 @@ export interface CompanionPage extends Window {
   __gardenCompanionStopAlarm?: (owner?: string) => void;
   __gardenCompanionShowAlarm?: (options: CompanionAlarmOptions) => void;
   __gardenCompanionState?: unknown;
-  __GARDEN_COMPANION_PIXI__?: { app: unknown; renderer: unknown };
+  __GARDEN_COMPANION_PIXI__?: { app: unknown; renderer: unknown; screenStage?: unknown };
   [key: string]: unknown;
 }
 

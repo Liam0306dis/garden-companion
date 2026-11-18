@@ -8,7 +8,7 @@ import { sendQuinoaCommand } from '../game-connection.js';
 import { panelActions } from '../panel-actions.js';
 import { activePets, allPets, favouritedIds, heldProduce, heldToolCount, petDiet, produceSprite, produceValue, useReplenishPotion } from '../pets.js';
 import { type PixiSurface, findVisiblePixiNodes, pixiNodeVisible, pixiSurface } from '../pixi.js';
-import { quinoaEngine } from '../quinoa-engine.js';
+import { setCheck } from '../diagnostics.js';
 import { toast } from '../toast.js';
 import { escapeHtml, humanize } from '../utils.js';
 
@@ -40,35 +40,24 @@ function screenRow(surface: PixiSurface, container: Record<string, any>): PetDoc
   } catch { return null; }
 }
 
-function petSlotsView(): Record<string, any> | null {
-  const view = quinoaEngine()?.getSystem?.('petSlots')?.view;
-  return view?.itemViews instanceof Map ? view : null;
-}
-
-function findPetSlotDock(): { byPet: Map<string, PetDockRow> | null; rows: PetDockRow[]; blocked: boolean } | null {
+/**
+ * The game's pet panel rows, found by their labels in the scene. The engine's own pet slot view is
+ * not reachable here, so the rows are read off the scene graph and paired with the active pets by
+ * order, top to bottom. A string is why there is no dock, for the diagnostics.
+ */
+function findPetSlotDock(): { rows: PetDockRow[]; blocked: boolean } | string {
   const surface = pixiSurface();
-  if (!surface) return null;
-  const view = petSlotsView();
-  if (view) {
-    if (view.isVisible === false) return null;
-    const byPet = new Map<string, PetDockRow>();
-    for (const [petId, itemView] of view.itemViews as Map<string, Record<string, any>>) {
-      const row = screenRow(surface, itemView?.container);
-      if (row) byPet.set(String(petId), row);
-    }
-    const rows = [...byPet.values()].sort((left, right) => left.centerY - right.centerY);
-    return { byPet, rows, blocked: Boolean(view.actionButtonGroup) || view.selectedPetSlotId != null };
-  }
+  if (!surface) return 'game canvas not captured';
   const found = findVisiblePixiNodes(surface, ['PetSlots', 'PetSlotTiles', 'PetActionButtons']);
   // Since build 1446 the rows sit in a grid whose tile layer (PetSlotTiles) is the one child of
   // PetSlots; reading PetSlots' own children then found a single row the height of the whole panel.
   const slots = found.get('PetSlotTiles') ?? found.get('PetSlots');
-  if (!slots || !Array.isArray(slots.children)) return null;
+  if (!slots || !Array.isArray(slots.children)) return `pet panel not in the scene (${String(surface.stage.label || surface.stage.constructor?.name || 'unnamed root')})`;
   const rows = slots.children
     .flatMap((child: Record<string, any>) => { const row = screenRow(surface, child); return row ? [row] : []; })
     .sort((left: PetDockRow, right: PetDockRow) => left.centerY - right.centerY);
   const shortest = Math.min(...rows.map((row: PetDockRow) => row.height));
-  return { byPet: null, rows: rows.filter((row: PetDockRow) => row.height <= shortest * 1.5), blocked: found.has('PetActionButtons') };
+  return { rows: rows.filter((row: PetDockRow) => row.height <= shortest * 1.5), blocked: found.has('PetActionButtons') };
 }
 
 /** Fills a bar outright rather than feeding it, so it is offered to every species alongside crops. */
@@ -161,6 +150,8 @@ export function renderPetFood(): void {
   const existing = document.getElementById('gc-petfood');
   const rows = feature('petFood') ? petFoodRows() : [];
   if (!rows.length) {
+    if (feature('petFood')) noteDockState('hidden: no active pets');
+    else if (dockNoted) noteDockState('off');
     existing?.remove();
     petFoodSignature = '';
     positionTicker.stop();
@@ -219,20 +210,39 @@ function canCoverPetPanel(element: Element, gameRoot: Element | null): boolean {
 }
 
 /**
- * True when a page overlay (the game menu, a modal) covers the pet panel. The docked
+ * The page overlay (the game menu, a modal) covering the pet panel, if any. The docked
  * buttons are plain DOM above the canvas, so they would otherwise float over it.
  */
-function petPanelCovered(anchor: PetDockRow): boolean {
+function petPanelCover(anchor: PetDockRow): Element | null {
   const sampleX = Math.round((anchor.left + anchor.right) / 2);
   const sampleY = Math.round(anchor.centerY);
-  if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return false;
+  if (sampleX < 0 || sampleY < 0 || sampleX > innerWidth || sampleY > innerHeight) return null;
   const canvasRoot = document.querySelector('.QuinoaCanvas');
   const gameRoot = canvasRoot ? pageLevelHost(canvasRoot) : null;
   // The guided tour lays a click catcher over the whole page, which is not an overlay the buttons
   // should give way to - the tour has a step pointing at them. Whatever sits under it decides.
   const top = document.elementsFromPoint(sampleX, sampleY).find(element => canCoverPetPanel(element, gameRoot));
-  if (!top) return false;
-  return !top.closest('.QuinoaCanvas') && !top.closest('#gc-petfood');
+  if (!top || top.closest('.QuinoaCanvas') || top.closest('#gc-petfood')) return null;
+  return top;
+}
+
+/** An element as tag#id.class, enough to tell whose it is in a diagnostics report. */
+function describeElement(element: Element): string {
+  const classes = [...element.classList].slice(0, 2).map(name => `.${name}`).join('');
+  return `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}${classes}`;
+}
+
+/**
+ * Why the buttons are hidden, kept on the diagnostics tab. They give way to the game's own controls
+ * often and on purpose, so this is a plain status rather than a problem; it is there so a report from
+ * someone whose buttons keep vanishing says which check took them away.
+ */
+/** Set once there is a status to keep current, so a player who never uses the buttons gets no line. */
+let dockNoted = false;
+
+function noteDockState(state: string): void {
+  dockNoted = true;
+  setCheck('Pet food buttons', 'ok', state);
 }
 
 /** This runs on the 250ms ticker, and a label the game has dropped would walk every atom each time. */
@@ -261,9 +271,17 @@ export function positionPetFood(): void {
   const buttons = [...panel.querySelectorAll<HTMLElement>('[data-food-row]')];
   const options = panel.querySelector<HTMLElement>('.gc-petfood-options')!;
   const dock = findPetSlotDock();
-  const paired = dock ? buttons.map((button, index) => dock.byPet ? dock.byPet.get(button.dataset.feedPet || '') ?? null : dock.rows[index] ?? null) : [];
+  const paired = typeof dock === 'string' ? [] : buttons.map((_, index) => dock.rows[index] ?? null);
   const anchors = paired.filter((anchor): anchor is PetDockRow => Boolean(anchor));
-  if (!dock || dock.blocked || !anchors.length || systemMenuOpen() || petPanelCovered(anchors[0])) {
+  const cover = typeof dock !== 'string' && !dock.blocked && anchors.length ? petPanelCover(anchors[0]) : null;
+  const hiddenBecause = typeof dock === 'string' ? dock
+    : dock.blocked ? 'game pet buttons open'
+    : !anchors.length ? 'no pet rows on screen'
+    : systemMenuOpen() ? 'game menu open'
+    : cover ? `covered by ${describeElement(cover)}`
+    : '';
+  noteDockState(hiddenBecause ? `hidden: ${hiddenBecause}` : 'shown');
+  if (hiddenBecause) {
     panel.hidden = true;
     return;
   }
