@@ -89,3 +89,13 @@ test('plants and capsules sit on their own sub-tabs, nearest guarantee first', (
   assert.doesNotMatch(capsules, /Carrot/);
   openLuckTab('pets');
 });
+
+test('an egg with game counters but no hatches seen here still shows its bars', () => {
+  syncPityCounters({ egg: { MythicalEgg: { species: { Capybara: 12 } } }, growSlot: {}, capsule: {} });
+  const main = document.createElement('main');
+  main.innerHTML = renderEggLuck();
+  const cardOf = (eggId: string) => main.querySelector(`[data-egg-edit="${eggId}"]`)!.closest('section')!;
+  assert.match(cardOf('MythicalEgg').textContent!, /12 \/ 40/);
+  // An egg the game counts nothing for stays the one-line empty card.
+  assert.equal(cardOf('LegendaryEgg').dataset.empty, 'true');
+});

@@ -351,7 +351,7 @@ export function syncPityCounters(pityCounters: PlayerData['pityCounters']): void
       ...COLOURS.map((colour): [string, unknown] => [colour, theirs?.growthMutation?.[colour]]),
     ];
     for (const [key, value] of keys) {
-      const misses = Math.max(0, Math.floor(Number(value)) || 0);
+      const misses = counterValue(value);
       const existing = record.counters[key];
       if (existing?.synced && existing.misses === misses) continue;
       record.counters[key] = { misses, synced: true };
@@ -592,6 +592,11 @@ function capsuleCard(toolId: string): string {
   return liveCard(humanize(toolId), page.__gardenCompanionShopSprites?.[toolId] || '', rows, 'capsules opened');
 }
 
+/** Whether an egg has anything to show: a hatch seen here, or a counter that has started climbing. */
+function hasRecord(record: EggRecord | undefined): boolean {
+  return !!record && (record.hatches > 0 || Object.values(record.counters).some(counter => counter.misses > 0));
+}
+
 function eggCard(eggId: string): string {
   const record = luck[eggId] ?? blankEgg();
   const sprite = page.__gardenCompanionShopSprites?.[eggId] || '';
@@ -606,8 +611,9 @@ function eggCard(eggId: string): string {
   const editButton = `<button class="gc-egg-edit" data-egg-edit="${escapeHtml(eggId)}" aria-pressed="${editMode}" title="${editTitle}">${editMode ? 'Done' : 'Edit'}</button>`;
   // An egg with nothing recorded is already one line, so it stays a plain heading with nothing to
   // fold - a control that opens an empty card would only invite the click. Editing opens it anyway,
-  // since that is how hatches from before install get in.
-  if (!record.hatches && !editMode) {
+  // since that is how hatches from before install get in. Pity read from the game counts as
+  // something recorded: those bars are worth seeing even before a hatch has been seen here.
+  if (!hasRecord(record) && !editMode) {
     return `<section class="gc-card gc-egg-card" data-empty="true"><div class="gc-row gc-egg-headrow"><h3>${title}</h3>${hatched}${editButton}</div>`
       + '<p>No hatches seen yet.</p></section>';
   }
@@ -670,11 +676,13 @@ function eggCard(eggId: string): string {
 export function renderEggLuck(): string {
   // Catalog order, which is the order the shop lists eggs in. WinterEgg is the old name for SnowEgg
   // and hatches nothing new, so it shows only if something was recorded against it.
-  const known = Object.keys(EGG_CATALOG).filter(eggId => eggId !== 'WinterEgg' || luck[eggId]?.hatches);
+  const known = Object.keys(EGG_CATALOG).filter(eggId => eggId !== 'WinterEgg' || hasRecord(luck[eggId]) || editing.has(eggId));
   // The tally takes whatever egg the log names, so an egg added to the game after this build was
   // scraped is already being counted. Walking the catalog alone would collect those hatches and
   // then never show them - and drop them from the total besides.
-  const eggs = [...known, ...Object.keys(luck).filter(eggId => !EGG_CATALOG[eggId])];
+  // Only those with something to show, since syncing gives an unlisted egg the game names a record -
+  // or one being edited, which must not vanish under the cursor when its last hatch is taken off.
+  const eggs = [...known, ...Object.keys(luck).filter(eggId => !EGG_CATALOG[eggId] && (hasRecord(luck[eggId]) || editing.has(eggId)))];
   const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
   const counterNote = liveCounters
     ? 'The guarantee bars are read straight from the game. The hatch tallies are counted here, so anything hatched before you installed, or in a session without the script, is not in them.'

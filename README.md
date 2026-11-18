@@ -14,6 +14,7 @@ actions. It does not perform unattended gameplay.
 - Journal tab showing every plant and pet on one screen with the variants you have logged, plants grouped by rarity and pets grouped by the egg they hatch from, with first-found dates, search, and a filter for what is still missing
 - Joinable public room browser for rooms with four or five players, showing each players Discord profile picture
 - Calculators tab with dust, crop value, granter, and food estimates driven by your own pets, eggs, and garden data
+- Bad Luck tab with Pets, Plants, and Capsules views showing how close every egg, crop, and capsule is to its guaranteed outcome, read from the game, plus your hatch tally per egg against the listed odds
 - Searchable shop alarms grouped into Seeds, Dawn, Thunder, Snow, Eggs, Tools, and Decor tabs
 - Shop alarm item icons, explicit Buy all and Stop buttons, persistent siren audio, and queued alerts when several items trigger together, firing whenever a shop restocks rather than only when an item reappears
 - Crop values and pet-adjusted crop or egg growth estimates (Turtle-Timer)

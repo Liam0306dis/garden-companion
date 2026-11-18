@@ -7476,7 +7476,7 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
         ...COLOURS.map((colour) => [colour, theirs?.growthMutation?.[colour]])
       ];
       for (const [key, value] of keys) {
-        const misses = Math.max(0, Math.floor(Number(value)) || 0);
+        const misses = counterValue(value);
         const existing = record.counters[key];
         if (existing?.synced && existing.misses === misses) continue;
         record.counters[key] = { misses, synced: true };
@@ -7619,6 +7619,9 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
     const rows = Object.entries(CAPSULE_THRESHOLDS[toolId] ?? {}).sort(([, left], [, right]) => left - right).map(([outcome, threshold]) => ({ label: outcomeName(outcome), sprite: produceSprite(outcome), misses: counterValue(counters?.[outcome]), threshold }));
     return liveCard(humanize(toolId), page.__gardenCompanionShopSprites?.[toolId] || "", rows, "capsules opened");
   }
+  function hasRecord(record) {
+    return !!record && (record.hatches > 0 || Object.values(record.counters).some((counter) => counter.misses > 0));
+  }
   function eggCard(eggId) {
     const record = luck[eggId] ?? blankEgg();
     const sprite = page.__gardenCompanionShopSprites?.[eggId] || "";
@@ -7629,7 +7632,7 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
     const editMode = editing2.has(eggId);
     const editTitle = liveCounters ? "Add or remove hatches, Gold and Rainbow by hand" : "Add or remove hatches, Gold and Rainbow by hand, and set the pity counters";
     const editButton = `<button class="gc-egg-edit" data-egg-edit="${escapeHtml(eggId)}" aria-pressed="${editMode}" title="${editTitle}">${editMode ? "Done" : "Edit"}</button>`;
-    if (!record.hatches && !editMode) {
+    if (!hasRecord(record) && !editMode) {
       return `<section class="gc-card gc-egg-card" data-empty="true"><div class="gc-row gc-egg-headrow"><h3>${title}</h3>${hatched}${editButton}</div><p>No hatches seen yet.</p></section>`;
     }
     const open = !collapsed2.has(eggId);
@@ -7664,8 +7667,8 @@ ${subject.sprite}<span class="gc-journal-logger-name"><b>${escapeHtml(subject.na
 <div class="gc-egg-pities">${pity}</div></div></section>`;
   }
   function renderEggLuck() {
-    const known = Object.keys(EGG_CATALOG).filter((eggId) => eggId !== "WinterEgg" || luck[eggId]?.hatches);
-    const eggs = [...known, ...Object.keys(luck).filter((eggId) => !EGG_CATALOG[eggId])];
+    const known = Object.keys(EGG_CATALOG).filter((eggId) => eggId !== "WinterEgg" || hasRecord(luck[eggId]) || editing2.has(eggId));
+    const eggs = [...known, ...Object.keys(luck).filter((eggId) => !EGG_CATALOG[eggId] && (hasRecord(luck[eggId]) || editing2.has(eggId)))];
     const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
     const counterNote = liveCounters ? "The guarantee bars are read straight from the game. The hatch tallies are counted here, so anything hatched before you installed, or in a session without the script, is not in them." : "The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game's own.";
     const eggSection = `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. ${counterNote} A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
@@ -14076,7 +14079,7 @@ button.gc-pet-potions i { flex:0 0 auto;padding:2px 8px;border-radius:999px;colo
 #gc-panel button.gc-pet-potions:hover:not(:disabled) { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
 button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 
-/* ── Egg Luck: one card per egg, its hatch table, and a bar per guarantee ────────────────────── */
+/* ── Bad Luck: one card per egg, crop and capsule, the egg hatch table, and a bar per guarantee ── */
 .gc-egg-summary { margin-bottom:12px;display:flex;align-items:center;justify-content:space-between; }
 .gc-egg-card + .gc-egg-card { margin-top:10px; }
 .gc-egg-card[data-empty=true] { opacity:.55; }

@@ -1147,7 +1147,7 @@ button.gc-pet-potions i { flex:0 0 auto;padding:2px 8px;border-radius:999px;colo
 #gc-panel button.gc-pet-potions:hover:not(:disabled) { border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
 button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 
-/* ── Egg Luck: one card per egg, its hatch table, and a bar per guarantee ────────────────────── */
+/* ── Bad Luck: one card per egg, crop and capsule, the egg hatch table, and a bar per guarantee ── */
 .gc-egg-summary { margin-bottom:12px;display:flex;align-items:center;justify-content:space-between; }
 .gc-egg-card + .gc-egg-card { margin-top:10px; }
 .gc-egg-card[data-empty=true] { opacity:.55; }
