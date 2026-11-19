@@ -498,8 +498,9 @@ export function initCompanion(): void {
     const abilityLog = activeTab === 'abilityLog' ? panel.querySelector<HTMLElement>('.gc-log') : null;
     if (abilityLog && (abilityLog.matches(':hover') || abilityLog.scrollTop > 0)) return true;
     // Active Pets belongs here too: hunger changes every tick, and redrawing under the pointer takes
-    // the hovered element with it, so its native tooltip blinks out mid-read.
-    const scrollable = ['abilities', 'teams', 'petFood', 'calculators', 'journal', 'autoStorage'].includes(activeTab) ? panel.querySelector<HTMLElement>('main') : null;
+    // the hovered element with it, so its native tooltip blinks out mid-read. Bad Luck too: a crop
+    // counter ticking over mid-click would redraw the Filter chip out from under the click.
+    const scrollable = ['abilities', 'teams', 'petFood', 'calculators', 'journal', 'eggLuck', 'autoStorage'].includes(activeTab) ? panel.querySelector<HTMLElement>('main') : null;
     return Boolean(scrollable?.matches(':hover'));
   }
 

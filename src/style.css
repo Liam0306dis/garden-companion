@@ -1199,6 +1199,18 @@ button.gc-pet-potions:disabled { opacity:.5;cursor:default; }
 #gc-panel .gc-egg-pity-count input { width:calc(5ch + 12px);text-align:right; }
 .gc-egg-bonus { display:inline-flex;align-items:center;gap:4px;color:var(--gc-muted);font-size:11px; }
 #gc-panel .gc-egg-bonus input { width:calc(5ch + 12px);text-align:right; }
+/* The Plants view's crop filter: a chip per tracked crop, lit when it is shown. */
+.gc-luck-picker { margin-bottom:12px; }
+.gc-luck-picker-head { display:flex;align-items:center;gap:6px;margin-bottom:8px; }
+.gc-luck-picker-head small { flex:1 1 auto;color:var(--gc-muted);font-size:11px; }
+#gc-panel .gc-luck-picker-head button { min-height:24px;padding:2px 10px;font-size:11px; }
+.gc-luck-filter { display:flex;flex-wrap:wrap;gap:4px; }
+#gc-panel .gc-luck-chip { min-height:26px;display:inline-flex;align-items:center;gap:5px;padding:2px 10px;font-size:11px;color:var(--gc-muted);background:transparent; }
+#gc-panel .gc-luck-chip img { width:16px;height:16px;object-fit:contain; }
+#gc-panel .gc-luck-chip[data-active=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
+#gc-panel .gc-luck-chip[data-active=false] img { opacity:.4;filter:grayscale(1); }
+#gc-panel .gc-row [data-luck-picker] { flex:0 0 auto;white-space:nowrap; }
+#gc-panel .gc-row [data-luck-picker][aria-expanded=true] { color:var(--gc-strong);border-color:var(--gc-accent-line);background:var(--gc-accent-soft); }
 
 /* The Ko-fi link is an anchor, not a button, so it borrows the primary button's look. */
 #gc-panel a.gc-kofi { width:132px;flex:0 0 auto;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:var(--gc-radius-sm);text-decoration:none;white-space:nowrap;font-size:12px;font-weight:600; }

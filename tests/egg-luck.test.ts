@@ -47,8 +47,10 @@ test('missing pityCounters leaves the store alone', () => {
   assert.equal(eggLuckSignature(), before);
 });
 
-test('the note says the bars come from the game once read', () => {
-  assert.match(renderEggLuck(), /read straight from the game/);
+test("the pets note drops the floor marker once the game's counters are read", () => {
+  const html = renderEggLuck();
+  assert.match(html, /Hatch counts only include hatches made while/);
+  assert.doesNotMatch(html, /count may be higher/);
 });
 
 /** Draws the tab into a stand-in panel and clicks a sub-tab, the way the panel itself would redraw. */
@@ -60,7 +62,7 @@ function openLuckTab(tab: string): string {
   return main.innerHTML;
 }
 
-test('plants and capsules sit on their own sub-tabs, nearest guarantee first', () => {
+test('plants and capsules sit on their own sub-tabs', () => {
   syncPityCounters({
     egg: {},
     growSlot: {
@@ -75,8 +77,8 @@ test('plants and capsules sit on their own sub-tabs, nearest guarantee first', (
   assert.doesNotMatch(pets, /Four-Leaf Clover/);
 
   const plants = openLuckTab('plants');
-  // Clover is due (its rare crop is at 500/500), so it leads; a crop with nothing missed is left out.
-  assert.ok(plants.indexOf('Four-Leaf Clover') < plants.indexOf('Carrot'));
+  // Carrot (Common) comes before Clover (Uncommon) even though Clover is due; a crop with nothing missed is left out.
+  assert.ok(plants.indexOf('>Carrot<') < plants.indexOf('>Clover<'));
   assert.doesNotMatch(plants, /Tomato/);
   assert.match(plants, /500 \/ 500/);
   assert.match(plants, /<b>2<\/b> crops tracked/);
@@ -98,4 +100,90 @@ test('an egg with game counters but no hatches seen here still shows its bars', 
   assert.match(cardOf('MythicalEgg').textContent!, /12 \/ 40/);
   // An egg the game counts nothing for stays the one-line empty card.
   assert.equal(cardOf('LegendaryEgg').dataset.empty, 'true');
+});
+
+test('the Plants list can be searched, and crops picked off and put back', () => {
+  syncPityCounters({
+    egg: {},
+    growSlot: {
+      Carrot: { growthMutation: { Gold: 20, Rainbow: 3 } },
+      Clover: { growthMutation: { Gold: 199 }, species: { FourLeafClover: 500 } },
+      Tomato: { growthMutation: { Gold: 5 } },
+    },
+    capsule: {},
+  });
+  const main = document.createElement('main');
+  const draw = () => { main.innerHTML = renderEggLuck(); bindEggLuckEvents(main); };
+  setPanelActions({ ...panelActions, renderPanel: draw, renderPanelPreservingScroll: draw });
+  draw();
+  const click = (selector: string) => main.querySelector<HTMLButtonElement>(selector)!.click();
+  click('[data-luck-tab="plants"]');
+  const cards = () => [...main.querySelectorAll<HTMLElement>('.gc-filter-list section')].filter(card => !card.hidden).map(card => card.querySelector('h3')!.textContent);
+  assert.deepEqual(cards().sort(), ['Carrot', 'Clover', 'Tomato']);
+
+  // The chooser lists every tracked crop; hiding one takes it off the list and says so.
+  assert.equal(main.querySelector('[data-luck-plant]'), null);
+  click('[data-luck-picker]');
+  click('[data-luck-plant="Carrot"]');
+  assert.deepEqual(cards().sort(), ['Clover', 'Tomato']);
+  assert.match(main.innerHTML, /1 hidden/);
+  assert.equal(main.querySelector<HTMLElement>('[data-luck-plant="Carrot"]')!.dataset.active, 'false');
+
+  click('[data-luck-plants="none"]');
+  assert.deepEqual(cards(), []);
+  assert.match(main.innerHTML, /Every tracked crop is hidden/);
+  click('[data-luck-plant="Clover"]');
+  assert.deepEqual(cards(), ['Clover']);
+  click('[data-luck-plants="all"]');
+  assert.deepEqual(cards().sort(), ['Carrot', 'Clover', 'Tomato']);
+
+  // A search hides cards in place, finds a crop by its rare crop, and survives the next redraw.
+  const search = main.querySelector<HTMLInputElement>('[data-luck-search]')!;
+  search.value = 'four-leaf';
+  search.dispatchEvent(new Event('input'));
+  assert.deepEqual(cards(), ['Clover']);
+  draw();
+  assert.deepEqual(cards(), ['Clover']);
+  // Cleared on the redrawn box, so the tests after this one start from an unfiltered list.
+  const redrawn = main.querySelector<HTMLInputElement>('[data-luck-search]')!;
+  redrawn.value = '';
+  redrawn.dispatchEvent(new Event('input'));
+  click('[data-luck-picker]');
+  click('[data-luck-tab="pets"]');
+});
+
+test("crops are listed in the game's order: by rarity, then its own order, with crops newer than the build last", () => {
+  syncPityCounters({
+    egg: {},
+    growSlot: {
+      // Not in any catalog this build knows: it must still be listed, chosen and named.
+      AuroraMelon: { growthMutation: { Gold: 1 } },
+      Starweaver: { growthMutation: { Gold: 1 } },
+      Tomato: { growthMutation: { Gold: 1 } },
+      Carrot: { growthMutation: { Gold: 1 } },
+      Clover: { growthMutation: { Gold: 1 } },
+      Aloe: { growthMutation: { Gold: 1 } },
+      Apple: { growthMutation: { Gold: 1 } },
+    },
+    capsule: {},
+  });
+  const main = document.createElement('main');
+  const draw = () => { main.innerHTML = renderEggLuck(); bindEggLuckEvents(main); };
+  setPanelActions({ ...panelActions, renderPanel: draw, renderPanelPreservingScroll: draw });
+  draw();
+  main.querySelector<HTMLButtonElement>('[data-luck-tab="plants"]')!.click();
+  main.querySelector<HTMLButtonElement>('[data-luck-picker]')!.click();
+  // The game's order, not the alphabet: Carrot before Aloe, Clover before Apple, Celestial after both -
+  // and the unknown crop after every rarity rather than among the Commons.
+  const order = [...main.querySelectorAll<HTMLElement>('[data-luck-plant]')].map(chip => chip.dataset.luckPlant);
+  assert.deepEqual(order, ['Carrot', 'Aloe', 'Clover', 'Apple', 'Tomato', 'Starweaver', 'AuroraMelon']);
+  // The cards follow the same order, so a crop sits in the same place in the list and the filter.
+  const cards = [...main.querySelectorAll<HTMLElement>('.gc-filter-list section h3')].map(heading => heading.textContent);
+  assert.deepEqual(cards, ['Carrot', 'Aloe', 'Clover', 'Apple', 'Tomato', 'Starweaver', 'Aurora Melon']);
+  assert.match(main.querySelector('[data-luck-plant="AuroraMelon"]')!.textContent!, /Aurora Melon/);
+  main.querySelector<HTMLButtonElement>('[data-luck-plant="AuroraMelon"]')!.click();
+  assert.equal(main.querySelector<HTMLElement>('[data-luck-plant="AuroraMelon"]')!.dataset.active, 'false');
+  main.querySelector<HTMLButtonElement>('[data-luck-plant="AuroraMelon"]')!.click();
+  main.querySelector<HTMLButtonElement>('[data-luck-picker]')!.click();
+  main.querySelector<HTMLButtonElement>('[data-luck-tab="pets"]')!.click();
 });

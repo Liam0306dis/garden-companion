@@ -1,4 +1,5 @@
-import { EGG_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName } from '../constants.js';
+import { EGG_CATALOG, PET_CATALOG, PLANT_CATALOG, plantName, RARITY_ORDER, rarityRank } from '../constants.js';
+import { bindListSearch } from '../list-search.js';
 import { page } from '../page.js';
 import { panelActions } from '../panel-actions.js';
 import { mutationSprite, produceSprite } from '../pets.js';
@@ -542,6 +543,22 @@ function outcomeName(id: string): string {
   return PLANT_CATALOG[id] ? plantName(id) : humanize(id);
 }
 
+// Crops taken off the Plants list. Hidden rather than shown is what is kept, so a crop grown for the
+// first time turns up on its own instead of waiting to be ticked. Kept across loads, since it is a
+// choice about what you care about rather than a passing search.
+const hiddenPlantsStore = sharedValue<unknown>('gardenCompanion.badLuckHiddenPlants.v1', []);
+const savedHiddenPlants = hiddenPlantsStore.load();
+const hiddenPlants = new Set(Array.isArray(savedHiddenPlants) ? savedHiddenPlants.filter((id): id is string => typeof id === 'string') : []);
+
+/** The search box's text, kept for the session so a live redraw does not clear it. */
+let plantSearch = '';
+/** Whether the plant chooser is open. Not saved: it is a moment's task, not a setting. */
+let plantPickerOpen = false;
+
+function saveHiddenPlants(): void {
+  hiddenPlantsStore.save([...hiddenPlants]);
+}
+
 /** One crop's guarantees, rarest last, in the same units the game counts them in. */
 function cropRows(species: string): Array<{ label: string; sprite: string; misses: number; threshold: number }> {
   const counters = livePity?.growSlot?.[species];
@@ -552,35 +569,90 @@ function cropRows(species: string): Array<{ label: string; sprite: string; misse
 }
 
 /** A card of guarantees under a sprite and name, with a due pill when any of them has come due. */
-function liveCard(name: string, sprite: string, rows: Array<{ label: string; sprite: string; misses: number; threshold: number }>, unit: string): string {
+function liveCard(name: string, sprite: string, rows: Array<{ label: string; sprite: string; misses: number; threshold: number }>, unit: string, filterText?: string): string {
   const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
   const due = rows.filter(row => row.misses >= row.threshold).length;
-  return `<section class="gc-card gc-egg-card"><div class="gc-egg-headrow"><h3><span class="gc-shop-sprite">${icon}</span>${escapeHtml(name)}</h3>`
+  const searchable = filterText === undefined ? '' : ` data-filter-text="${escapeHtml(filterText)}"`;
+  return `<section class="gc-card gc-egg-card"${searchable}><div class="gc-egg-headrow"><h3><span class="gc-shop-sprite">${icon}</span>${escapeHtml(name)}</h3>`
     + `${due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : ''}</div>`
     + `<div class="gc-egg-pities">${rows.map(row => liveRow(row.label, row.sprite, row.misses, row.threshold, unit)).join('')}</div></section>`;
 }
 
 /**
- * Every crop the game has a counter for, nearest a guarantee first, so what is close sits at the top
- * of what can be a long list - a long-running garden has a counter for nearly every crop it has grown.
+ * Where a crop's rarity sits, Common first, the way the game and the Journal order crops.
+ *
+ * The list itself comes from the game's counters, so a crop added to the game after this build was
+ * made still turns up the moment it is grown. Its rarity is the one thing the baked-in catalog cannot
+ * say, and reading that as Common would bury a brand new crop among the commonest, so it goes last.
+ */
+function cropRarity(species: string): number {
+  const plant = PLANT_CATALOG[species];
+  return plant ? rarityRank(plant.rarity) : RARITY_ORDER.length + 1;
+}
+
+/** Each crop's place in the game's own plant list - Carrot, Cabbage, Strawberry, Aloe and so on. */
+const CATALOG_INDEX = new Map(Object.keys(PLANT_CATALOG).map((species, index) => [species, index]));
+
+/**
+ * The order the game lists crops in: by rarity, then by the game's own order within it rather than by
+ * name, so Carrot leads the Commons the way it does in the shop. A crop newer than this build has no
+ * place in that list, so those go last, by name.
+ */
+function compareCrops(left: string, right: string): number {
+  return cropRarity(left) - cropRarity(right)
+    || (CATALOG_INDEX.get(left) ?? Infinity) - (CATALOG_INDEX.get(right) ?? Infinity)
+    || plantName(left).localeCompare(plantName(right));
+}
+
+/**
+ * The chooser: one toggle per tracked crop, in the game's order, with All and None for the common
+ * case of wanting just a few.
+ */
+function plantPicker(species: string[]): string {
+  const chips = [...species]
+    .sort(compareCrops)
+    .map(id => {
+      const shown = !hiddenPlants.has(id);
+      const sprite = produceSprite(id);
+      const icon = sprite ? `<img src="${escapeHtml(sprite)}" alt="">` : '';
+      const name = plantName(id);
+      return `<button class="gc-luck-chip" data-luck-plant="${escapeHtml(id)}" data-active="${shown}" aria-pressed="${shown}" title="${escapeHtml(shown ? `Hide ${name}` : `Show ${name}`)}">${icon}${escapeHtml(name)}</button>`;
+    }).join('');
+  return `<section class="gc-card gc-luck-picker"><div class="gc-luck-picker-head"><small>Tap a crop to show or hide it</small>`
+    + '<button data-luck-plants="all">All</button><button data-luck-plants="none">None</button></div>'
+    + `<div class="gc-luck-filter">${chips}</div></section>`;
+}
+
+/**
+ * Every crop the game has a counter for, in the game's order - the same order as the filter, so
+ * a crop sits in the same place in both.
  */
 function renderPlants(): string {
   const slots = livePity?.growSlot;
-  const crops = Object.keys(slots && typeof slots === 'object' ? slots : {})
+  const tracked = Object.keys(slots && typeof slots === 'object' ? slots : {})
     .map(species => ({ species, rows: cropRows(species) }))
-    .map(crop => ({ ...crop, progress: Math.max(0, ...crop.rows.map(row => row.misses / row.threshold)) }))
-    .filter(crop => crop.progress > 0)
-    .sort((left, right) => right.progress - left.progress || plantName(left.species).localeCompare(plantName(right.species)));
+    .filter(crop => crop.rows.some(row => row.misses > 0));
+  // The chooser lists every tracked crop, hidden ones included, so anything taken off can be put back.
+  const crops = tracked
+    .filter(crop => !hiddenPlants.has(crop.species))
+    .sort((left, right) => compareCrops(left.species, right.species));
+  const hidden = tracked.length - crops.length;
   const due = crops.reduce((sum, crop) => sum + crop.rows.filter(row => row.misses >= row.threshold).length, 0);
-  return '<p class="gc-note">Each crop type counts the crops it grows towards Gold, Rainbow and, for a patch plant, its rare crop. Read straight from the game. Only crops that have missed at least once are listed.</p>'
-    + `<section class="gc-card gc-egg-summary"><span><b>${crops.length.toLocaleString(NUMBER_LOCALE)}</b> crops tracked</span>${due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : ''}</section>`
-    + (crops.length
-      ? crops.map(crop => liveCard(plantName(crop.species), produceSprite(crop.species), crop.rows, 'crops grown')).join('')
-      : '<p class="gc-empty">No crop has missed a guarantee yet.</p>');
+  const chooser = `<button data-luck-picker aria-expanded="${plantPickerOpen}" title="Pick which crops are listed">${hidden ? `Filter (${hidden} hidden)` : 'Filter'}</button>`;
+  const empty = tracked.length ? 'Every tracked crop is hidden. Use Filter to show some again.' : 'Nothing counted for any crop yet.';
+  return '<p class="gc-note">Pity per crop. Crops with nothing counted yet are hidden.</p>'
+    + `<div class="gc-row gc-journal-search"><input class="gc-search" data-luck-search placeholder="Search crops" value="${escapeHtml(plantSearch)}">${tracked.length ? chooser : ''}</div>`
+    + (plantPickerOpen && tracked.length ? plantPicker(tracked.map(crop => crop.species)) : '')
+    + `<section class="gc-card gc-egg-summary"><span><b>${crops.length.toLocaleString(NUMBER_LOCALE)}</b> crops tracked${hidden ? `, ${hidden.toLocaleString(NUMBER_LOCALE)} hidden` : ''}</span>${due ? `<span class="gc-pill gc-egg-due">${due} due</span>` : ''}</section>`
+    + `<div class="gc-filter-list">${crops.length
+      ? crops.map(crop => liveCard(plantName(crop.species), produceSprite(crop.species), crop.rows, 'crops grown',
+        // Searchable by the crop and by any rare crop it guarantees, so "four-leaf" finds the Clover patch.
+        `${plantName(crop.species)} ${crop.species} ${crop.rows.map(row => row.label).join(' ')}`.toLowerCase())).join('')
+      : `<p class="gc-empty">${empty}</p>`}</div>`;
 }
 
 function renderCapsules(): string {
-  return '<p class="gc-note">Each capsule counts its own openings towards its rarer outcomes. Read straight from the game.</p>'
+  return '<p class="gc-note">Pity per capsule.</p>'
     + Object.keys(CAPSULE_THRESHOLDS).map(capsuleCard).join('');
 }
 
@@ -684,10 +756,11 @@ export function renderEggLuck(): string {
   // or one being edited, which must not vanish under the cursor when its last hatch is taken off.
   const eggs = [...known, ...Object.keys(luck).filter(eggId => !EGG_CATALOG[eggId] && (hasRecord(luck[eggId]) || editing.has(eggId)))];
   const hatched = eggs.reduce((sum, eggId) => sum + (luck[eggId]?.hatches || 0), 0);
-  const counterNote = liveCounters
-    ? 'The guarantee bars are read straight from the game. The hatch tallies are counted here, so anything hatched before you installed, or in a session without the script, is not in them.'
-    : 'The game keeps these counters to itself, so they are counted here instead - anything hatched before you installed, or in a session without the script, is not in them. A count reads <b>&#8805;</b> until that outcome lands once, which syncs it to the game\'s own.';
-  const eggSection = `<p class="gc-note">Every hatch seen while Garden Companion was running, and how close each egg is to its guarantee. ${counterNote} A pet from Double Hatch is counted among your hatches but not as a pull, because it moves no counter and gets no guarantee.</p>
+  // Kept to what changes how the numbers read. The why lives in each bar's tooltip.
+  const note = liveCounters
+    ? 'Hatch counts only include hatches made while Garden Companion was running.'
+    : 'Counted from hatches made while Garden Companion was running. <b>&#8805;</b> means the game\'s count may be higher.';
+  const eggSection = `<p class="gc-note">${note}</p>
 <section class="gc-card gc-egg-summary"><span><b>${hatched.toLocaleString(NUMBER_LOCALE)}</b> hatches recorded</span></section>
 ${eggs.map(eggCard).join('')}`;
   // Plants and capsules only have the game's own counters behind them, so on a build that does not
@@ -706,6 +779,29 @@ export function bindEggLuckEvents(main: HTMLElement): void {
     endEggLuckEditing();
     panelActions.renderPanel();
   });
+  main.querySelector<HTMLButtonElement>('[data-luck-picker]')?.addEventListener('click', () => {
+    plantPickerOpen = !plantPickerOpen;
+    panelActions.renderPanelPreservingScroll();
+  });
+  main.querySelectorAll<HTMLButtonElement>('[data-luck-plant]').forEach(button => button.onclick = () => {
+    const species = button.dataset.luckPlant!;
+    hiddenPlants.has(species) ? hiddenPlants.delete(species) : hiddenPlants.add(species);
+    saveHiddenPlants();
+    panelActions.renderPanelPreservingScroll();
+  });
+  // All and None act on the crops the chooser is showing, so a crop not tracked right now keeps
+  // whatever it was set to rather than being swept up by a button it was never listed under.
+  main.querySelectorAll<HTMLButtonElement>('[data-luck-plants]').forEach(button => button.onclick = () => {
+    const hide = button.dataset.luckPlants === 'none';
+    main.querySelectorAll<HTMLButtonElement>('[data-luck-plant]').forEach(chip => {
+      hide ? hiddenPlants.add(chip.dataset.luckPlant!) : hiddenPlants.delete(chip.dataset.luckPlant!);
+    });
+    saveHiddenPlants();
+    panelActions.renderPanelPreservingScroll();
+  });
+  const search = main.querySelector<HTMLInputElement>('[data-luck-search]');
+  bindListSearch(search);
+  search?.addEventListener('input', () => { plantSearch = search.value; });
   main.querySelectorAll<HTMLButtonElement>('[data-egg-toggle]').forEach(button => button.onclick = () => {
     toggleEggCollapsed(button.dataset.eggToggle!);
     panelActions.renderPanelPreservingScroll();
