@@ -84,28 +84,42 @@ test('identifiers are escaped before they reach a pattern', () => {
 
 test('the Bad Luck tab\'s crop and capsule thresholds still match the game', async () => {
   const { CAPSULE_THRESHOLDS, PITY_THRESHOLDS, RARE_CROP_THRESHOLD } = await import('../src/features/egg-luck.js');
-  // Everything is read from the one chunk that builds the guarantees, so a minified name is resolved
-  // where it is declared rather than matched against an unrelated one of the same name elsewhere.
-  const code: string = [...snapshot.files.values()].find(text => text.includes('`Rainbow`,') && /[{,]Dawnbreaker:\d/.test(text)) ?? '';
+  // The game names its guarantees as (outcome, threshold, counter for that outcome). Build 2151 split
+  // them, the capsule thresholds and the Rainbow constant into separate chunks, so each is found on
+  // its own, and a minified name is resolved where it is declared: in the chunk itself, or by
+  // following its import to the chunk that exports it - never matched against an unrelated name.
+  const files = [...snapshot.files];
+  const guaranteePattern = (colour: string) => new RegExp(`\\(\`${colour}\`,([A-Za-z0-9_$.]+),[A-Za-z_$]+\\([A-Za-z_$]+,\`${colour}\`\\)\\)`, 'g');
+  const code: string = files.map(([, text]) => text).find(text => guaranteePattern('Gold').test(text)) ?? '';
   assert.ok(code, 'the chunk that builds the guarantees was not found');
-  // The game names its guarantees as (outcome, threshold, counter for that outcome), the threshold
-  // either a literal or a constant declared nearby, so a name is followed to its value before comparing.
-  const resolve = (value: string): number => {
+  const specifiers = (list: string) => list.split(',').map(entry => entry.trim().split(/\s+as\s+/));
+  const resolve = (text: string, value: string, depth = 0): number => {
     if (/^[\d.e]+$/.test(value)) return Number(value);
-    const declared = code.match(new RegExp(`[,\\s]${escapeRegExp(value)}=([\\d.e]+)[,;]`));
-    return declared ? Number(declared[1]) : NaN;
+    const declared = text.match(new RegExp(`[,\\s{]${escapeRegExp(value)}=([\\d.e]+)[,;]`));
+    if (declared) return Number(declared[1]);
+    if (depth > 3) return NaN;
+    for (const [, list, from] of text.matchAll(/import\{([^}]*)\}from"\.\/([^"]+)"/g)) {
+      const imported = specifiers(list).find(([name, local]) => (local ?? name) === value);
+      if (!imported) continue;
+      const other = files.find(([name]) => name.endsWith(from))?.[1];
+      const exported = other?.match(/export\{([^}]*)\}/)?.[1];
+      const local = exported ? specifiers(exported).find(([name, as]) => (as ?? name) === imported[0]) : undefined;
+      return other && local ? resolve(other, local[0], depth + 1) : NaN;
+    }
+    return NaN;
   };
   for (const colour of ['Gold', 'Rainbow']) {
-    const guarantee = new RegExp(`\\(\`${colour}\`,([A-Za-z0-9_$.]+),[A-Za-z_$]+\\([A-Za-z_$]+,\`${colour}\`\\)\\)`, 'g');
-    const stated = [...code.matchAll(guarantee)].map(match => resolve(match[1]));
+    const stated = [...code.matchAll(guaranteePattern(colour))].map(match => resolve(code, match[1]));
     // Once for crops and once for eggs.
     assert.ok(stated.length >= 2, `${colour} guarantees not found`);
     for (const threshold of stated) assert.equal(threshold, PITY_THRESHOLDS[colour], colour);
   }
   assert.match(code, new RegExp(`\\[[A-Za-z_$]+\\([A-Za-z_$]+,${RARE_CROP_THRESHOLD},[A-Za-z_$]+\\(`), 'rare crop threshold');
+  const capsules: string = files.map(([, text]) => text).find(text => /[{,]Dawnbreaker:\d/.test(text)) ?? '';
+  assert.ok(capsules, 'the capsule thresholds were not found');
   for (const [capsule, outcomes] of Object.entries(CAPSULE_THRESHOLDS)) {
     for (const [outcome, threshold] of Object.entries(outcomes)) {
-      assert.match(code, new RegExp(`[{,]${outcome}:${threshold}[,}]`), `${capsule} ${outcome}`);
+      assert.match(capsules, new RegExp(`[{,]${outcome}:${threshold}[,}]`), `${capsule} ${outcome}`);
     }
   }
 });

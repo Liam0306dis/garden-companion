@@ -245,25 +245,51 @@ const SINGLE_PET_RIVE_ALIAS = /^rive\/pets\/(\w+?)(?:\.riv)?$/;
  */
 const MANIFEST_NAMES = ['manifest.rgba8.json', 'manifest.json'];
 
+/**
+ * Build 2151 moved the manifests out of the version folder to content-addressed files,
+ * `/runtime-assets/manifest.rgba8.<hash>.json`, named only by a meta tag in the page
+ * (`<meta name="magiccircle-asset-manifest-rgba8" content="...">`, which the game's own loader reads).
+ * What they list moved with them: each source is an absolute `/runtime-assets/<name>.<hash>.<ext>`,
+ * and the old `atlases/...json` path survives only as the alias.
+ */
+const MANIFEST_META = 'magiccircle-asset-manifest-rgba8';
+
+/** The manifests to try: the one the page names first, then the old names under the asset base. */
+export function manifestCandidates(assetsBase: string): Array<{ name: string; url: string }> {
+  const candidates: Array<{ name: string; url: string }> = [];
+  const named = document.querySelector<HTMLMetaElement>(`meta[name="${MANIFEST_META}"]`)?.content;
+  if (named) candidates.push({ name: fileName(named), url: new URL(named, location.href).href });
+  for (const name of MANIFEST_NAMES) candidates.push({ name, url: `${assetsBase}${name}` });
+  return candidates;
+}
+
+/** An atlas's JSON: known by its source before build 2151, by its alias since. */
+export function isAtlas(source: string, aliases: string[] | undefined): boolean {
+  const atlasPath = (path: string) => /^atlases\/[^/]+\.json$/.test(path);
+  return source.endsWith('.json') && (atlasPath(source) || !!aliases?.some(atlasPath));
+}
+
 async function assetSources(assetsBase: string): Promise<AssetSources> {
   const tried: string[] = [];
   try {
     let response: Response | null = null;
     let manifestName = '';
-    for (const name of MANIFEST_NAMES) {
-      response = await fetch(`${assetsBase}${name}`);
+    for (const { name, url } of manifestCandidates(assetsBase)) {
+      response = await fetch(url);
       if (response.ok) { manifestName = name; break; }
       tried.push(`${name} answered ${response.status}`);
     }
     if (!response?.ok) return { atlasPaths: [], petRive: [], problem: tried.join(', ') };
     const manifest = await response.json() as AssetManifest;
+    // Sources resolve against the asset base, as the game's loader does with its basePath; an
+    // absolute `/runtime-assets/...` source resolves to itself. Atlases are kept as full urls.
     const paths = new Set<string>();
     const petRive: PetRiveFile[] = [];
     for (const bundle of manifest.bundles ?? []) {
       for (const asset of bundle.assets ?? []) {
         const source = bestSource(asset.src ?? []);
         if (!source) continue;
-        if (source.startsWith('atlases/') && source.endsWith('.json')) paths.add(source);
+        if (isAtlas(source, asset.alias)) paths.add(new URL(source, assetsBase).href);
         const single = asset.alias?.map(alias => alias.match(SINGLE_PET_RIVE_ALIAS)?.[1]).find(Boolean);
         if (single) petRive.push({ url: new URL(source, assetsBase).href, species: single });
         else if (asset.alias?.some(alias => PET_RIVE_ALIAS.test(alias))) {
@@ -634,7 +660,7 @@ async function atlasFingerprint(assetsBase: string, atlasPaths: string[], versio
   // Only the atlas JSON is HEADed: the manifest guarantees that path exists, where the image name
   // lives inside the file. A repack changes both, so the JSON is a faithful stand-in for the sheet.
   const stamp = async (path: string): Promise<string> => {
-    const response = await fetch(`${assetsBase}${path}`, { method: 'HEAD' });
+    const response = await fetch(new URL(path, assetsBase).href, { method: 'HEAD' });
     if (!response.ok) return '';
     const etag = response.headers.get('etag') ?? '';
     const modified = response.headers.get('last-modified') ?? '';
@@ -880,7 +906,7 @@ async function loadPetFrames(assetsBase: string, initialPaths: string[], wanted:
     if (seen.has(jsonPath)) continue;
     seen.add(jsonPath);
     try {
-      const jsonUrl = `${assetsBase}${jsonPath}`;
+      const jsonUrl = new URL(jsonPath, assetsBase).href;
       const response = await fetch(jsonUrl);
       if (!response.ok) { complete = false; warn(`Sprite atlas ${fileName(jsonPath)} answered ${response.status}.`); continue; }
       const atlas = await response.json() as AtlasJson;

@@ -1,7 +1,5 @@
 import { config, saveConfig } from '../config.js';
-import type { JotaiAtom, SkySettings } from '../types.js';
-import { findAtom } from '../atom-cache.js';
-import { gameStore } from '../game-store.js';
+import type { SkySettings } from '../types.js';
 import { page } from '../page.js';
 import { retryUntil } from '../retry.js';
 import { createTicker } from '../ticker.js';
@@ -13,10 +11,10 @@ import { escapeHtml } from '../utils.js';
  *
  * Nothing here reaches the server. The weather and time are swapped in the frame context the scene
  * draws from - the planner owns that hook and asks this module what to show whenever its own preview
- * is not in use. Night is tuned through the game's own night grade (nightGradeSettingsAtom: how far
- * night darkens, how strongly it tints, and the tint colours), written through the store the game
- * publishes as window.__jotaiStore. Brightness, contrast, saturation, warmth and hue are a CSS filter
- * on the game's canvas, which leaves the panels alone.
+ * is not in use. Night is tuned in the game's own night grade (how far night darkens, how strongly it
+ * tints, and the tint colours) as its dayNight system hands it to the night filter each frame - see
+ * the Night grade section. Brightness, contrast, saturation, warmth and hue are a CSS filter on the
+ * game's canvas, which leaves the panels alone.
  */
 
 export const SKY_WEATHERS: ReadonlyArray<[id: string, label: string]> = [
@@ -122,89 +120,143 @@ export function skyPhase(real: number): number {
 }
 
 // --- Night grade ---
+//
+// Build 2151 removed nightGradeSettingsAtom: the dayNight system now reads a hardcoded grade
+// (`{brightness:-71,contrast:-45,color:674293,sunsetColor:14811332,sunriseColor:674293,...}`) and
+// hands its filter the result each frame, as `filter.setToneCurve(gain, lift)` and
+// `filter.setColor(color, opacity)`. So the night settings now rewrite those two calls on the
+// captured dayNight system (page.__gardenCompanionFarmSystems.dayNight). check-bundle watches the
+// calls and the colour literal below.
 
-interface NightGrade {
-  brightness: number;
-  contrast: number;
-  color: number;
-  sunsetColor: number;
-  sunriseColor: number;
-  colorOpacity: number;
-  [key: string]: number;
-}
+/** The game's night tint colours, the defaults behind any tint left empty here. */
+export const GAME_NIGHT_COLOURS = { color: 674293, sunsetColor: 14811332, sunriseColor: 674293 } as const;
 
-
-let gradeAtom: JotaiAtom | null = null;
-/** The game's own grade, taken before anything here changes it, so every setting scales from it. */
-let baseGrade: NightGrade | null = null;
-let gradeTouched = false;
-/** The grade last written, so a store that dropped it (a reload of the game's state) is noticed. */
-let writtenGrade: NightGrade | null = null;
-
-function gradeReady(): boolean {
-  if (baseGrade && gradeAtom) return true;
-  const store = gameStore();
-  gradeAtom ??= findAtom('nightGradeSettingsAtom');
-  if (!store || !gradeAtom) return false;
-  const value = store.get(gradeAtom) as Partial<NightGrade> | undefined;
-  if (!value || typeof value.brightness !== 'number' || typeof value.colorOpacity !== 'number') return false;
-  baseGrade = { ...value } as NightGrade;
-  return true;
-}
-
-/** The guard name the night grade's writes and watcher share, so one failing switches both off. */
+/** The guard name every night-grade wrapper shares, so one failing switches them all off. */
 const NIGHT_GRADE = 'Night lighting';
+const NIGHT_PATCHED = '__gcNightGradePatched';
 
-/** Whether the night controls can work on this build (it publishes its store and has a night grade). */
+type NightFilter = { setToneCurve: (gain: number, lift: number) => unknown; setColor: (color: number, opacity: number) => unknown } & Record<string, unknown>;
+
+function dayNightSystem(): Record<string, any> | null {
+  const system = page.__gardenCompanionFarmSystems?.dayNight as Record<string, any> | null | undefined;
+  return system && typeof system.draw === 'function' ? system : null;
+}
+
+function nightFilterOf(system: Record<string, any>): NightFilter | null {
+  const filter = system.filter as NightFilter | undefined;
+  return filter && typeof filter.setToneCurve === 'function' && typeof filter.setColor === 'function' ? filter : null;
+}
+
+function nightTuned(sky = skySettings()): boolean {
+  return sky.night !== 100 || sky.nightColour !== 100 || !!sky.nightTint || !!sky.sunsetTint || !!sky.sunriseTint;
+}
+
+/** Whether the night controls can work on this build (its dayNight system was caught, with a filter to tune). */
 export function nightGradeAvailable(): boolean {
-  return !hookDisabled(NIGHT_GRADE) && guarded(NIGHT_GRADE, gradeReady, false);
+  return !hookDisabled(NIGHT_GRADE) && guarded(NIGHT_GRADE, () => {
+    const system = dayNightSystem();
+    return !!system && !!nightFilterOf(system);
+  }, false);
 }
 
 const hexToNumber = (hex: string, fallback: number) => /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : fallback;
 const numberToHex = (value: number) => `#${(value >>> 0).toString(16).padStart(6, '0').slice(-6)}`;
 
-/**
- * Night darkness scales the grade's darkening (its brightness and contrast pull) and night colour
- * its tint opacity, both from the game's own values - so 80% is simply a fifth lighter, in the same
- * colour, and the crop and lamp glows stay as they are. Back at the defaults the game's grade is put
- * back as it was.
- */
-function applyNightGrade(): void {
-  guarded(NIGHT_GRADE, writeNightGrade, undefined);
+/** The game's colour blend: each channel moved `t` of the way from `a` to `b`, rounded. */
+export function mixColour(a: number, b: number, t: number): number {
+  const channel = (shift: number) => {
+    const from = (a >> shift) & 255;
+    return Math.round(from + (((b >> shift) & 255) - from) * t);
+  };
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }
 
-function writeNightGrade(): void {
-  if (!gradeReady()) return;
-  const sky = skySettings();
-  const store = gameStore()!;
-  const base = baseGrade!;
-  const changed = sky.night !== 100 || sky.nightColour !== 100 || sky.nightTint || sky.sunsetTint || sky.sunriseTint;
-  if (!changed) {
-    if (gradeTouched) { store.set(gradeAtom!, { ...base }); gradeTouched = false; writtenGrade = null; }
-    gradeWatch.stop();
-    return;
-  }
+/**
+ * How dark the night is at a phase, 0 by day to 1 at midnight, as the game works it out: falling
+ * through sunrise, 0 all day, rising through sunset.
+ */
+export function nightStrength(phase: number): number {
+  const p = ((phase % 1) + 1) % 1;
+  if (p < SUNRISE_END) return 1 - p / SUNRISE_END;
+  if (p < SUNSET_START) return 0;
+  if (p < SUNSET_END) return (p - SUNSET_START) / (SUNSET_END - SUNSET_START);
+  return 1;
+}
+
+/**
+ * Night darkness scales the darkening the game asks for, and keeps its shape: the game's gain and
+ * lift are each a blend from no change (1 and 0) towards the grade, so scaling that blend is the same
+ * as scaling the grade's brightness and contrast, which is what this did through the old atom.
+ * Null when there is nothing to change, so the game's own values go through untouched.
+ */
+export function tunedToneCurve(gain: number, lift: number, sky = skySettings()): [number, number] | null {
   const darkness = Math.max(0, sky.night) / 100;
-  // Every field is checked to be a number, so a grade the game reshapes is left alone, not corrupted.
-  if (!['brightness', 'contrast', 'colorOpacity', 'color', 'sunsetColor', 'sunriseColor'].every(key => Number.isFinite(base[key]))) return;
-  store.set(gradeAtom!, writtenGrade = {
-    ...base,
-    brightness: base.brightness * darkness,
-    contrast: base.contrast * darkness,
-    colorOpacity: Math.min(1, base.colorOpacity * Math.max(0, sky.nightColour) / 100),
-    color: hexToNumber(sky.nightTint, base.color),
-    sunsetColor: hexToNumber(sky.sunsetTint, base.sunsetColor),
-    sunriseColor: hexToNumber(sky.sunriseTint, base.sunriseColor),
-  });
-  gradeTouched = true;
+  if (darkness === 1) return null;
+  return [1 + (gain - 1) * darkness, lift * darkness];
+}
+
+/**
+ * Tint strength scales the opacity the game asks for. A tint colour replaces the game's in its own
+ * blend: night colour towards the sunset or sunrise colour, most strongly midway through the change.
+ */
+export function tunedNightColour(color: number, opacity: number, phase: unknown, sky = skySettings()): [number, number] | null {
+  const strength = Math.max(0, sky.nightColour) / 100;
+  const tinted = !!(sky.nightTint || sky.sunsetTint || sky.sunriseTint);
+  if (strength === 1 && !tinted) return null;
+  let colour = color;
+  if (tinted && typeof phase === 'number' && Number.isFinite(phase)) {
+    const p = ((phase % 1) + 1) % 1;
+    const t = nightStrength(p);
+    const edge = p > 0.5
+      ? hexToNumber(sky.sunsetTint, GAME_NIGHT_COLOURS.sunsetColor)
+      : hexToNumber(sky.sunriseTint, GAME_NIGHT_COLOURS.sunriseColor);
+    colour = mixColour(hexToNumber(sky.nightTint, GAME_NIGHT_COLOURS.color), edge, 4 * t * (1 - t));
+  }
+  return [colour, opacity * strength];
+}
+
+/**
+ * Wraps the dayNight system's draw (to know the phase it draws) and its filter's two calls. Once in,
+ * the wrappers stay: at the default settings they pass the game's values straight through. A rebuilt
+ * system (a reconnect) is a new object, caught by the watcher below. True once patched.
+ */
+export function patchNightGrade(): boolean {
+  const system = dayNightSystem();
+  const filter = system && nightFilterOf(system);
+  if (!system || !filter) return false;
+  if (system[NIGHT_PATCHED] === filter) return true;
+  system[NIGHT_PATCHED] = filter;
+  // The frame is kept, not its phase: a locked time of day is only swapped in while the scene draws,
+  // which the filter calls are inside, so the phase is read there.
+  if (!system.__gcNightDrawPatched) {
+    system.__gcNightDrawPatched = true;
+    const draw = system.draw;
+    system.draw = function(this: unknown, ...args: unknown[]) {
+      system.__gcNightFrame = args[0] && typeof args[0] === 'object' ? args[0] : null;
+      return draw.apply(this, args);
+    };
+  }
+  const { setToneCurve, setColor } = filter;
+  filter.setToneCurve = function(this: unknown, gain: number, lift: number) {
+    const tuned = guarded(NIGHT_GRADE, () => tunedToneCurve(gain, lift), null);
+    return tuned ? setToneCurve.call(this, tuned[0], tuned[1]) : setToneCurve.call(this, gain, lift);
+  };
+  filter.setColor = function(this: unknown, color: number, opacity: number) {
+    const tuned = guarded(NIGHT_GRADE, () => tunedNightColour(color, opacity, system.__gcNightFrame?.dayNightPhase01), null);
+    return tuned ? setColor.call(this, tuned[0], tuned[1]) : setColor.call(this, color, opacity);
+  };
+  return true;
+}
+
+/** Takes effect on the next frame the game draws night; nothing to put back at the defaults. */
+function applyNightGrade(): void {
+  if (!nightTuned()) { gradeWatch.stop(); return; }
+  guarded(NIGHT_GRADE, patchNightGrade, false);
   gradeWatch.start();
 }
 
-/** While a night setting is in use, put it back if the game's state replaces the grade under it. */
-const gradeWatch = createTicker(() => guarded(NIGHT_GRADE, () => {
-  const store = gameStore();
-  if (gradeTouched && store && gradeAtom && store.get(gradeAtom) !== writtenGrade) writeNightGrade();
-}, undefined), 5000);
+/** While a night setting is in use, catch a dayNight system the game rebuilt. */
+const gradeWatch = createTicker(() => { guarded(NIGHT_GRADE, patchNightGrade, false); }, 5000);
 
 // --- Canvas filter ---
 
@@ -232,9 +284,9 @@ export function applySkyFilter(): void {
 export function initSky(): void {
   applySkyFilter();
   // The store and the atom arrive with the game, so a saved night setting is applied once they do.
-  const sky = skySettings();
-  if (sky.night !== 100 || sky.nightColour !== 100 || sky.nightTint || sky.sunsetTint || sky.sunriseTint) {
-    retryUntil(() => { applyNightGrade(); return gradeTouched; }, 'the night lighting');
+  if (nightTuned()) {
+    retryUntil(() => guarded(NIGHT_GRADE, patchNightGrade, false), 'the night lighting');
+    gradeWatch.start();
   }
 }
 
@@ -284,7 +336,7 @@ function statusLine(sky: SkySettings): string {
 export function renderSky(): string {
   const sky = skySettings();
   const grade = nightGradeAvailable();
-  const base = baseGrade;
+  const base = GAME_NIGHT_COLOURS;
   return `<section class="gc-card gc-sky-status" data-locked="${skyNeedsFrameHook() || lightingChanged(sky)}">${statusLine(sky)}</section>
 <section class="gc-card gc-sky-card"><h3>Scene</h3>
 <div class="gc-sky-row"><span>Weather</span><div class="gc-sky-choices">${choiceButtons('weather', SKY_WEATHERS, sky.weather)}</div></div>
@@ -297,10 +349,10 @@ ${slider('nightColour', 'Tint strength', 0, 150, sky.nightColour, 'How strongly 
 ${slider('glow', 'Glow', 0, 300, sky.glow, 'How brightly lamps, lanterns and glowing crops shine at night, up to full strength.')}
 </div>
 <div class="gc-sky-colours">
-${colourInput('nightTint', 'Night tint', sky.nightTint, base?.color, !grade)}
-${colourInput('sunsetTint', 'Sunset tint', sky.sunsetTint, base?.sunsetColor, !grade)}
-${colourInput('sunriseTint', 'Sunrise tint', sky.sunriseTint, base?.sunriseColor, !grade)}
-</div>${grade ? '' : '<p class="gc-note">The night settings need a game build with its night grade and store (1604 or later).</p>'}</section>
+${colourInput('nightTint', 'Night tint', sky.nightTint, base.color, !grade)}
+${colourInput('sunsetTint', 'Sunset tint', sky.sunsetTint, base.sunsetColor, !grade)}
+${colourInput('sunriseTint', 'Sunrise tint', sky.sunriseTint, base.sunriseColor, !grade)}
+</div>${grade ? '' : "<p class=\"gc-note\">The night settings appear once the game's day/night system has loaded.</p>"}</section>
 <section class="gc-card gc-sky-card"><div class="gc-sky-card-head"><h3>Display</h3><button data-sky-reset>Reset lighting</button></div>
 <div class="gc-sky-sliders gc-sky-sliders-3">
 ${slider('brightness', 'Brightness', 50, 150, sky.brightness)}
