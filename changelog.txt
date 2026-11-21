@@ -1,3 +1,7 @@
+1.0.12
+- Night lighting settings work again after the game update
+- Sprites load again after the game moved its assets
+
 1.0.11
 - Bad Luck plant search and filter
 
