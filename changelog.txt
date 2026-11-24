@@ -1,3 +1,7 @@
+1.0.14
+- Crop Cleanser helper works again after the game update
+- Knows the new Hydro and Lunar Cleansers and the Dawnbound, Thunderstruck, Thundercharged and Amberbound potions
+
 1.0.13
 - Cinematic mode button removed - the game's own Camera button now does the same
 
