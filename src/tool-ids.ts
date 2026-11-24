@@ -11,4 +11,5 @@ export const TOOL_IDS = [
   'PlanterPot', 'WateringCan', 'CropCleanser', 'XPPotion', 'ReplenishPotion', 'ChilledPotion', 'FrozenPotion',
   'RainWardShard', 'SnowWardShard', 'ThunderWardShard', 'HungerShard', 'XPShard', 'StrengthShard', 'CarvingKnife',
   'GoldPotion', 'RainbowPotion', 'WetPotion', 'AmberlitPotion', 'DawnlitPotion', 'DawnCapsule', 'AmberCapsule', 'Camera', 'Shovel',
+  'HydroCleanser', 'LunarCleanser', 'DawnboundPotion', 'ThunderstruckPotion', 'ThunderchargedPotion', 'AmberboundPotion',
 ];

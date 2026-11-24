@@ -207,7 +207,7 @@ async function cleanse(row: CleanserRow, body: HTMLElement): Promise<void> {
       markChanged(row);
       return;
     }
-    sendQuinoaCommand({ type: 'CropCleanser', tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
+    sendQuinoaCommand({ type: 'CropCleanser', toolId: 'CropCleanser', tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
     sent = true;
     unsentCleanses -= 1;
     displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
