@@ -38,7 +38,6 @@ export const DEFAULTS: CompanionConfig = {
   backgroundMode: true,
   autoRefreshGameUpdates: true,
   lunarTimer: true,
-  cinematicButton: true,
   pumpkinImport: true,
   abilitySilencer: true,
   silencedAbilities: [],

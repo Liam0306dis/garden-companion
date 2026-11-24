@@ -225,9 +225,6 @@ export interface CompanionPage extends Window {
   __gardenCompanionFishingOpen?: () => boolean;
   __gardenCompanionSetCinematic?: (enabled: boolean, owner?: string) => boolean;
   __gardenCompanionCinematicFromGame?: () => boolean;
-  __gardenCompanionToggleCinematic?: () => boolean | null;
-  __gardenCompanionCinematicClaimed?: () => boolean;
-  __gardenCompanionReleaseCinematicPin?: () => void;
   __gardenCompanionOnCinematicChange?: (listener: () => void) => void;
   __gardenCompanionPlannerOpen?: () => boolean;
   __gardenCompanionPetSpritesReady?: () => void;
@@ -320,7 +317,6 @@ export interface CompanionConfig {
   backgroundMode: boolean;
   autoRefreshGameUpdates: boolean;
   lunarTimer: boolean;
-  cinematicButton: boolean;
   pumpkinImport: boolean;
   abilitySilencer: boolean;
   silencedAbilities: string[];

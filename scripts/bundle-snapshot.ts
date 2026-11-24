@@ -91,6 +91,10 @@ async function cachedChunks(): Promise<Map<string, string>> {
  * Same-origin `.js` chunks a script refers to (static imports, dynamic imports, the preload map),
  * plus the external scripts it names. Bare file names are skipped: embedded package metadata holds
  * entries like "rive.js" that are not module references.
+ *
+ * `assetsBase` is the importing script's own folder: build 2179 serves most chunks from
+ * `/runtime-assets/assets/` while the polyfills stay under `/version/<v>/assets/`, so any
+ * same-origin `/assets/` path counts.
  */
 export function extractChunkReferences(source: string, assetsBase: string): { chunks: Array<{ name: string; url: string }>; externalScripts: string[] } {
   const chunks = new Map<string, { name: string; url: string }>();
@@ -106,7 +110,7 @@ export function extractChunkReferences(source: string, assetsBase: string): { ch
     else if (ref.startsWith('assets/')) url = new URL(ref.slice('assets/'.length), assetsUrl);
     else if (ref.startsWith('/')) url = new URL(ref, assetsUrl.origin);
     else continue;
-    if (url.origin !== assetsUrl.origin || !url.pathname.startsWith(assetsUrl.pathname)) continue;
+    if (url.origin !== assetsUrl.origin || !url.pathname.includes('/assets/')) continue;
     const name = posix.basename(url.pathname);
     if (/^[A-Za-z0-9._-]+\.js$/.test(name)) chunks.set(url.toString(), { name, url: url.toString() });
   }
@@ -174,7 +178,18 @@ export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) 
   const entryUrls = [...html.matchAll(/(?:src|href)=["']([^"']+\.js)["']/g)].map(match => new URL(match[1], originUrl));
   const localEntries = entryUrls.filter(url => url.origin === originUrl.origin);
   if (!localEntries.length) throw new Error('no same-origin script refs found in the root HTML');
-  const assetsBase = new URL('.', localEntries.find(url => url.pathname.includes('/assets/')) ?? localEntries[0]).toString();
+  // Build 2179 serves chunks content-addressed: the code imports each by its build name and the
+  // page's import map points that at the real file. The real file is fetched and saved under the
+  // build name the code uses, so lookups by import specifier still find it.
+  let importMap: Record<string, string> = {};
+  try { importMap = JSON.parse(/<script type="importmap"[^>]*>([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '{}').imports ?? {}; } catch {}
+  const buildNameOf = new Map(Object.entries(importMap).map(([from, to]) => [to, from]));
+  const mapped = (ref: string) => {
+    const url = new URL(ref);
+    const to = importMap[url.pathname];
+    const fetchUrl = to ? new URL(to, url) : url;
+    return { name: posix.basename(buildNameOf.get(fetchUrl.pathname) ?? url.pathname), url: fetchUrl.toString() };
+  };
 
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const finalDir = resolve(BUNDLES_DIR, `bundle-${version}-${date}`);
@@ -184,7 +199,7 @@ export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) 
   await writeFile(resolve(dir, 'index.html'), html);
 
   const seen = new Set<string>();
-  const queue = localEntries.map(url => ({ name: posix.basename(url.pathname), url: url.toString() }));
+  const queue = localEntries.map(url => mapped(url.toString()));
   const files = new Map<string, string>();
   const failed: Snapshot['failed'] = [];
   const externalScripts = new Set(entryUrls.filter(url => url.origin !== originUrl.origin).map(url => url.toString()));
@@ -209,9 +224,9 @@ export async function pullSnapshot(origin = DEFAULT_ORIGIN, log: (text: string) 
     await writeFile(resolve(dir, name), source);
     files.set(name, source);
     if (files.size % 25 === 0) log('.');
-    const refs = extractChunkReferences(source, assetsBase);
+    const refs = extractChunkReferences(source, new URL('.', url).toString());
     for (const external of refs.externalScripts) externalScripts.add(external);
-    for (const chunk of refs.chunks) if (!seen.has(chunk.url)) queue.push(chunk);
+    for (const chunk of refs.chunks) { const next = mapped(chunk.url); if (!seen.has(next.url)) queue.push(next); }
   }
   log(`\n${stats.downloaded} downloaded (${stats.misses} not yet in Cloudflare's cache), ${stats.reused} reused from older captures, ${Math.round((Date.now() - stats.started) / 1000)}s`);
   // Recorded so an offline run can report the version, and so a partial pull is visible rather than

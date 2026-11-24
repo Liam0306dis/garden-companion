@@ -40,7 +40,6 @@ import { installInstantHarvest } from './features/instant-harvest.js';
 import { noteServerClock } from './server-clock.js';
 import { trackRoomSocket } from './connection-state.js';
 import { mountLunarTimer, updateLunarTimer, watchSocketHealth } from './features/lunar-timer.js';
-import { mountCinematicButton, updateCinematicButton } from './features/cinematic-button.js';
 import { mountPumpkinImport, updatePumpkinImport } from './features/pumpkin-import.js';
 import { allPets, onSpritesReady, refreshHungerDisplay, useXpPotion } from './pets.js';
 import {
@@ -819,7 +818,6 @@ export function initCompanion(): void {
       ['instantHarvest', 'Instant harvest key', 'Spacebar harvest for mature Gold or Rainbow crops - skips crops Crop Protection is holding'],
       ['petSwapToss', 'Pokemon Mode', 'Throw a ball at each active pet and catch them before a team swap - delays it about a second'],
       ['journalLogger', 'Journal logger', 'A card listing ripe crops and pets (active, inventory or Pet Hutch) with something new for the journal - press Log to log one, no Camera needed'],
-      ['cinematicButton', 'Cinematic mode button', 'A camera button under Daily Quests on the right-side rail that hides the game HUD and brings it back (Esc exits too), as the game had before it moved cinematic mode onto the Camera'],
       ['pumpkinImport', 'Carve pumpkins from pictures', 'A Select a picture button in the pumpkin carving window - the picture you pick is cut into the pumpkin'],
       ['backgroundMode', 'Run in background', 'Keep the game active when its tab is not visible'],
       ['autoRefreshGameUpdates', 'Refresh for game updates', 'Reload five seconds after the game reports an expired version'],
@@ -871,7 +869,6 @@ export function initCompanion(): void {
       if (input.dataset.feature === 'alarmList') applyAlarmLayout();
       if (input.checked && (input.dataset.feature === 'petHungerAlarm' || input.dataset.feature === 'petAbilityAlarm')) armAlarmAudio();
       updateLunarTimer();
-      updateCinematicButton();
       updatePumpkinImport();
       renderPetFood();
       refreshJournalLogger();
@@ -930,7 +927,6 @@ export function initCompanion(): void {
     style.textContent = __GARDEN_COMPANION_CSS__;
     document.head.appendChild(style);
     mountLunarTimer(togglePanel);
-    mountCinematicButton();
     mountPumpkinImport();
     onSpritesReady(() => {
       // Whatever tab is open is redrawn: nearly every one shows some artwork, and this fires only
@@ -947,7 +943,6 @@ export function initCompanion(): void {
       syncProduceLocks();
       // The forecast sprite is asked for from the timer itself, so this is where it arrives.
       updateLunarTimer();
-      updateCinematicButton();
       updatePumpkinImport();
     });
     watchExistingSocket();

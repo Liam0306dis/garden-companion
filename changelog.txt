@@ -1,3 +1,7 @@
+1.0.13
+- Cinematic mode button removed - the game's own Camera button now does the same
+- Works with the game's new script addresses
+
 1.0.12
 - Night lighting settings work again after the game update
 - Sprites load again after the game moved its assets
