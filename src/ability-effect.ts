@@ -35,8 +35,8 @@ export function abilityEffectText(ability: string, strength: number, trigger: st
   if (values.cropSellPriceIncreasePercentage != null) return `Sell bonus: +${percent(scaled('cropSellPriceIncreasePercentage'))}% coins`;
   if (values.plantGrowthReductionMinutes != null) return `Growth reduction: ${scaled('plantGrowthReductionMinutes').toFixed(1)}m per proc`;
   if (values.eggGrowthTimeReductionMinutes != null) return `Hatch reduction: ${scaled('eggGrowthTimeReductionMinutes').toFixed(1)}m per proc`;
-  if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.floor(scaled('baseMaxCoinsFindable')).toLocaleString(NUMBER_LOCALE)} per proc`;
-  if (values.bonusXp != null) return `Bonus XP: +${Math.floor(scaled('bonusXp')).toLocaleString(NUMBER_LOCALE)} per proc`;
+  if (values.baseMaxCoinsFindable != null) return `Coins found: 1 - ${Math.round(scaled('baseMaxCoinsFindable')).toLocaleString(NUMBER_LOCALE)} per proc`;
+  if (values.bonusXp != null) return `Bonus XP: +${Math.round(scaled('bonusXp')).toLocaleString(NUMBER_LOCALE)} per proc`;
   if (values.maxStrengthIncreasePercentage != null) return `Max STR boost: +${percent(scaled('maxStrengthIncreasePercentage'))}%`;
   if (values.plantAbilityChanceBoostPercentage != null) return `Active pet ability chance: +${percent(scaled('plantAbilityChanceBoostPercentage'))}%`;
   if (values.mutationChancePerMinute != null) return `Mutation chance: ${percent(scaled('mutationChancePerMinute'))}% per minute`;
