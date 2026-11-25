@@ -21443,7 +21443,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const loss = (cleanser) => others.filter((mutation) => clears(cleanser, mutation)).length;
     const least = Math.min(...fits.map(loss));
     const best = fits.filter((cleanser) => loss(cleanser) === least);
-    return best.find((cleanser) => cleansersFree(cleanser.id) > 0) || best[0];
+    return [...best, ...fits].find((cleanser) => cleansersFree(cleanser.id) > 0) || best[0];
   }
   function groupLabels(group) {
     return MUTATIONS.filter((id) => MUTATION_CATALOG[id]?.group === group).map(mutationLabel2).join(", ");
@@ -21569,7 +21569,7 @@ ${layoutNames.length ? `<div class="gc-planner-row"><select data-plan-load><opti
     const selectedLabels = MUTATIONS.filter((id) => selectedMutations2.has(id)).map(mutationLabel2).join(" or ");
     const search3 = `<input class="gc-search gc-cleanser-search" type="search" data-cleanser-search placeholder="Search plants" spellcheck="false" autocomplete="off" value="${escapeHtml(plantSearch2)}">`;
     const table = rows.length ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table><div class="gc-cleanser-empty" data-cleanser-no-match hidden></div>` : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(selectedLabels)}.</div>`;
-    body.innerHTML = `<p>Choose one or more mutations to find crops with any of them.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutations2.size ? `<p class="gc-cleanser-note">A Hydro Cleanser removes ${escapeHtml(groupLabels("Hydro"))}; a Lunar Cleanser removes ${escapeHtml(groupLabels("Lunar"))}; a Crop Cleanser removes both. Each crop uses the one that removes the selected mutations and keeps the most of its others.</p>${search3}<div class="gc-cleanser-table-wrap">${table}</div>` : '<div class="gc-cleanser-empty">Select at least one mutation above.</div>'}`;
+    body.innerHTML = `<p>Choose one or more mutations to find crops with any of them.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutations2.size ? `<p class="gc-cleanser-note">A Hydro Cleanser removes ${escapeHtml(groupLabels("Hydro"))}; a Lunar Cleanser removes ${escapeHtml(groupLabels("Lunar"))}; a Crop Cleanser removes both. Each crop uses the one that removes the selected mutations and keeps the most of its others, or a Crop Cleanser when none of those is owned.</p>${search3}<div class="gc-cleanser-table-wrap">${table}</div>` : '<div class="gc-cleanser-empty">Select at least one mutation above.</div>'}`;
     updateCleanserControls(body);
     applyPlantSearch(body);
     const searchInput = body.querySelector("[data-cleanser-search]");

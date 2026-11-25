@@ -234,16 +234,19 @@ test('presses queued during a fetch cannot promise more cleansers than are owned
   await settle();
 });
 
-test('a crop keeping a Lunar mutation gets a Hydro Cleanser, and waits for one when none is owned', async () => {
+test('a crop keeping a Lunar mutation gets a Hydro Cleanser, or a Crop Cleanser when no Hydro is owned', async () => {
   const socket = new FakeSocket();
   noteGameSocket(socket as unknown as WebSocket);
   setGarden({ 50: carrot(['Wet', 'Dawnlit']) }, 3);
   openWithSelection(['Wet']);
   const row = () => document.querySelector<HTMLButtonElement>('[data-cleanse-row="50:0"]')!;
-  assert.equal(row().textContent, 'Hydro Cleanser');
-  assert.equal(row().disabled, true, 'a Crop Cleanser would take the Dawnlit too');
+  assert.equal(row().textContent, 'Crop Cleanser');
+  setGarden({ 50: carrot(['Wet', 'Dawnlit']) }, 0);
+  openWithSelection(['Wet']);
+  assert.equal(row().disabled, true, 'nothing owned');
   setGarden({ 50: carrot(['Wet', 'Dawnlit']) }, 3, 0, [{ itemType: 'Tool', toolId: 'HydroCleanser', quantity: 1 }]);
   openWithSelection(['Wet']);
+  assert.equal(row().textContent, 'Hydro Cleanser');
   assert.equal(row().disabled, false);
   row().click();
   await flushMicrotasks();
