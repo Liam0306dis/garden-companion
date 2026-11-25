@@ -140,11 +140,11 @@ export const SHOP_TABS = [['seed', 'Seeds'], ['spooky', 'Spooky'], ['amber', 'Am
 // one from - so without these the first restock is the earliest you could ask to be told about it,
 // which is exactly the one worth knowing about.
 export const SEASONAL_SHOP_ITEMS: Record<string, string[]> = {
-  dawn: ['Daisy', 'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'DawnCelestial', 'DawnEgg'],
-  thunder: ['Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial', 'ThunderEgg', 'ThunderWardShard', 'SmallGravestone', 'MediumGravestone', 'LargeGravestone', 'Cauldron', 'WindchimeMoon', 'WindchimeStar', 'WindSpinner', 'WindTurner'],
+  dawn: ['Daisy', 'Lavender', 'Saffron', 'Eggplant', 'Ube', 'Dawnbreaker', 'DawnCelestial', 'DawnEgg', 'DawnlitPotion', 'DawnboundPotion'],
+  thunder: ['Cattail', 'Cardoon', 'PricklyPear', 'Milkcap', 'ThunderCelestial', 'ThunderEgg', 'ThunderWardShard', 'ThunderstruckPotion', 'ThunderchargedPotion', 'SmallGravestone', 'MediumGravestone', 'LargeGravestone', 'Cauldron', 'WindchimeMoon', 'WindchimeStar', 'WindSpinner', 'WindTurner'],
   snow: ['Snowdrop', 'PineTree', 'Leek', 'Squash', 'Poinsettia', 'SnowEgg', 'ChilledPotion', 'FrozenPotion', 'SnowWardShard', 'ColoredStringLights', 'WoodCaribou', 'StoneCaribou', 'MarbleCaribou'],
-  rain: ['Clover', 'Delphinium', 'Mushroom', 'VioletCort', 'RainWardShard', 'WoodFrog', 'StoneBirdbath', 'MarbleFountain'],
-  amber: ['Persimmon', 'Habanero', 'Marigold', 'Emberbloom', 'MoonCelestial', 'AmberEgg', 'HungerShard', 'XPShard', 'StrengthShard', 'StoneMoonGate', 'StoneTorch', 'StoneFirepit'],
+  rain: ['Clover', 'Delphinium', 'Mushroom', 'VioletCort', 'RainWardShard', 'WetPotion', 'WoodFrog', 'StoneBirdbath', 'MarbleFountain'],
+  amber: ['Persimmon', 'Habanero', 'Marigold', 'Emberbloom', 'MoonCelestial', 'AmberEgg', 'HungerShard', 'XPShard', 'StrengthShard', 'AmberlitPotion', 'AmberboundPotion', 'StoneMoonGate', 'StoneTorch', 'StoneFirepit'],
   spooky: ['GhostPlant', 'Foxfire', 'DeadlyNightshade', 'SpookyEgg', 'CarvingKnife', 'HauntLamp', 'CroakwardenLamp', 'HaySheave', 'Spiderweb', 'StoneGargoyle'],
 };
 
