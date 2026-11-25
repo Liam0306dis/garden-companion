@@ -19,6 +19,16 @@ const MUTATIONS = [
   'Ambershine', 'Dawnlit', 'Ambercharged', 'Dawncharged',
 ] as const;
 const CLEANSEABLE = new Set<string>(MUTATIONS);
+interface Cleanser { id: string; name: string; groups: string[] }
+/**
+ * The game's clearsMutationGroups for each cleanser. Crop Cleanser comes first so it wins a tie: it
+ * is the cheap one, and the game has given it an expiry date.
+ */
+const CLEANSERS: Cleanser[] = [
+  { id: 'CropCleanser', name: 'Crop Cleanser', groups: ['Hydro', 'Lunar'] },
+  { id: 'HydroCleanser', name: 'Hydro Cleanser', groups: ['Hydro'] },
+  { id: 'LunarCleanser', name: 'Lunar Cleanser', groups: ['Lunar'] },
+];
 const CLEANSE_ECHO_WAIT_MS = 2_000;
 const SCREEN_MARGIN_PX = 12;
 const MIN_ROOM_PX = 360;
@@ -34,9 +44,10 @@ interface CleanserRow {
 
 const selectedMutations = new Set<string>();
 let rowSnapshot: CleanserRow[] = [];
-let displayedCleanserCount = 0;
-let lastLiveCleanserCount = 0;
-let optimisticCountUntil = 0;
+/** Per cleanser id, like the queue counts below: each kind is fetched, spent and echoed on its own. */
+const displayedCount: Record<string, number> = {};
+const lastLiveCount: Record<string, number> = {};
+const optimisticUntil: Record<string, number> = {};
 /** Row key to its rowFingerprint when pressed. Kept until the cleanse settles and the list is rebuilt. */
 const cleansedRows = new Map<string, string>();
 /** Cleansed rows the server has answered, or has had long enough to. A rebuild may trust these. */
@@ -44,8 +55,8 @@ const settledRows = new Set<string>();
 const changedRows = new Set<string>();
 /** Presses run one at a time: the loose count only tells the truth once the last use has echoed. */
 let cleanseQueue: Promise<void> = Promise.resolve();
-/** Presses waiting in that queue, each already promised a cleanser the count has not lost yet. */
-let unsentCleanses = 0;
+/** Presses waiting in that queue, by cleanser id, each already promised one the count has not lost yet. */
+const unsentCleanses: Record<string, number> = {};
 /** The plant search, kept across redraws and reopenings so a narrowed list stays narrowed. */
 let plantSearch = '';
 
@@ -127,9 +138,34 @@ function refreshRows(): void {
 
 function refreshSnapshot(): void {
   refreshRows();
-  displayedCleanserCount = heldToolCount('CropCleanser');
-  lastLiveCleanserCount = displayedCleanserCount;
-  optimisticCountUntil = 0;
+  for (const { id } of CLEANSERS) {
+    displayedCount[id] = heldToolCount(id);
+    lastLiveCount[id] = displayedCount[id];
+    optimisticUntil[id] = 0;
+  }
+}
+
+function clears(cleanser: Cleanser, mutation: string): boolean {
+  return cleanser.groups.includes(MUTATION_CATALOG[mutation]?.group || '');
+}
+
+/**
+ * The cleanser for a row: one that removes every selected mutation on it while removing as few of
+ * its other weather mutations as possible. Among equally good ones, the first with one free. A Crop
+ * Cleanser removes every cleanseable mutation, so there is always one.
+ */
+function cleanserFor(row: CleanserRow): Cleanser {
+  const targets = row.mutations.filter(mutation => selectedMutations.has(mutation));
+  const others = row.mutations.filter(mutation => CLEANSEABLE.has(mutation) && !selectedMutations.has(mutation));
+  const fits = CLEANSERS.filter(cleanser => targets.every(mutation => clears(cleanser, mutation)));
+  const loss = (cleanser: Cleanser) => others.filter(mutation => clears(cleanser, mutation)).length;
+  const least = Math.min(...fits.map(loss));
+  const best = fits.filter(cleanser => loss(cleanser) === least);
+  return best.find(cleanser => cleansersFree(cleanser.id) > 0) || best[0];
+}
+
+function groupLabels(group: string): string {
+  return MUTATIONS.filter(id => MUTATION_CATALOG[id]?.group === group).map(mutationLabel).join(', ');
 }
 
 function panel(): HTMLElement | null {
@@ -138,7 +174,7 @@ function panel(): HTMLElement | null {
 
 function showCleanserCount(): void {
   const count = panel()?.querySelector<HTMLElement>('[data-cleanser-count]');
-  if (count) count.textContent = `${displayedCleanserCount.toLocaleString(NUMBER_LOCALE)} owned`;
+  if (count) count.textContent = CLEANSERS.map(({ id, name }) => `${(displayedCount[id] || 0).toLocaleString(NUMBER_LOCALE)} ${name.split(' ')[0]}`).join(' · ');
 }
 
 /**
@@ -153,8 +189,8 @@ function fitToScreen(root: HTMLElement): void {
   if (overflow > 0) root.style.top = `${Math.round(Math.max(0, rect.top - overflow))}px`;
 }
 
-function cleansersFree(): number {
-  return displayedCleanserCount - unsentCleanses;
+function cleansersFree(id: string): number {
+  return (displayedCount[id] || 0) - (unsentCleanses[id] || 0);
 }
 
 function updateCleanserControls(body: HTMLElement): void {
@@ -163,20 +199,26 @@ function updateCleanserControls(body: HTMLElement): void {
     const key = button.dataset.cleanseRow || '';
     const row = rowSnapshot.find(candidate => candidate.key === key);
     const cleansed = Boolean(row && isCleansed(row));
-    button.disabled = cleansersFree() <= 0 || cleansed || changedRows.has(key);
-    button.textContent = cleansed ? 'Cleansed' : changedRows.has(key) ? 'Changed' : 'Cleanse';
+    const cleanser = row ? cleanserFor(row) : null;
+    button.disabled = !cleanser || cleansersFree(cleanser.id) <= 0 || cleansed || changedRows.has(key);
+    button.textContent = cleansed ? 'Cleansed' : changedRows.has(key) ? 'Changed' : cleanser?.name || 'Cleanse';
   });
 }
 
 function reconcileCleanserCount(): void {
   const root = panel();
   if (!root || root.hidden) return;
-  const live = heldToolCount('CropCleanser');
-  if (live === lastLiveCleanserCount && live === displayedCleanserCount) return;
-  if (live === lastLiveCleanserCount && Date.now() < optimisticCountUntil) return;
-  lastLiveCleanserCount = live;
-  displayedCleanserCount = live;
-  optimisticCountUntil = 0;
+  let moved = false;
+  for (const { id } of CLEANSERS) {
+    const live = heldToolCount(id);
+    if (live === lastLiveCount[id] && live === displayedCount[id]) continue;
+    if (live === lastLiveCount[id] && Date.now() < (optimisticUntil[id] || 0)) continue;
+    lastLiveCount[id] = live;
+    displayedCount[id] = live;
+    optimisticUntil[id] = 0;
+    moved = true;
+  }
+  if (!moved) return;
   const body = root.querySelector<HTMLElement>('[data-cleanser-body]');
   if (body) updateCleanserControls(body);
 }
@@ -186,18 +228,19 @@ function markChanged(row: CleanserRow): void {
   toast('That crop changed after this list was opened. Reopen the helper and check it again.', 'error');
 }
 
-async function cleanse(row: CleanserRow, body: HTMLElement): Promise<void> {
+async function cleanse(row: CleanserRow, body: HTMLElement, cleanser: Cleanser): Promise<void> {
+  const { id, name } = cleanser;
   let sent = false;
   let release = (): void => {};
   try {
-    const held = heldToolCount('CropCleanser');
+    const held = heldToolCount(id);
     // Held across the fetch and the use together, so auto-store cannot file the cleanser back
     // between them.
-    release = holdTool('CropCleanser');
+    release = holdTool(id);
     // The count above is everything owned, the Tool Shack included, but a cleanser is only usable
     // once it is out of storage - so one is fetched before the command rather than after it fails.
-    if (!await ensureToolReady('CropCleanser')) {
-      toast(heldToolCount('CropCleanser') > 0 ? 'No Crop Cleanser could be taken from the Tool Shack. Make room in your inventory.' : 'No Crop Cleansers are available.', 'error');
+    if (!await ensureToolReady(id)) {
+      toast(heldToolCount(id) > 0 ? `No ${name} could be taken from the Tool Shack. Make room in your inventory.` : `No ${name}s are available.`, 'error');
       return;
     }
     // Checked here rather than on the press: this row may have waited seconds behind others, and the
@@ -207,20 +250,20 @@ async function cleanse(row: CleanserRow, body: HTMLElement): Promise<void> {
       markChanged(row);
       return;
     }
-    sendQuinoaCommand({ type: 'CropCleanser', toolId: 'CropCleanser', tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
+    sendQuinoaCommand({ type: 'CropCleanser', toolId: id, tileObjectIdx: live.tileObjectIdx, growSlotIdx: live.growSlotIdx });
     sent = true;
-    unsentCleanses -= 1;
-    displayedCleanserCount = Math.max(0, displayedCleanserCount - 1);
-    optimisticCountUntil = Date.now() + CLEANSE_ECHO_WAIT_MS;
+    unsentCleanses[id] -= 1;
+    displayedCount[id] = Math.max(0, (displayedCount[id] || 0) - 1);
+    optimisticUntil[id] = Date.now() + CLEANSE_ECHO_WAIT_MS;
     updateCleanserControls(body);
-    toast(`Crop Cleanser requested for ${plantName(live.species)}.`, 'success');
-    await waitFor(() => heldToolCount('CropCleanser') < held, CLEANSE_ECHO_WAIT_MS);
+    toast(`${name} requested for ${plantName(live.species)}.`, 'success');
+    await waitFor(() => heldToolCount(id) < held, CLEANSE_ECHO_WAIT_MS);
     settledRows.add(row.key);
   } catch (error) {
     toast((error as Error).message, 'error');
   } finally {
     if (!sent) {
-      unsentCleanses -= 1;
+      unsentCleanses[id] -= 1;
       cleansedRows.delete(row.key);
       settledRows.delete(row.key);
     }
@@ -273,7 +316,7 @@ function render(): void {
   const table = rows.length
     ? `<table><thead><tr><th>Slot</th><th>Current mutations</th><th></th></tr></thead><tbody>${tableRows}</tbody></table><div class="gc-cleanser-empty" data-cleanser-no-match hidden></div>`
     : `<div class="gc-cleanser-empty">No unpreserved crops currently have ${escapeHtml(selectedLabels)}.</div>`;
-  body.innerHTML = `<p>Choose one or more mutations to find crops with any of them.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutations.size ? `<p class="gc-cleanser-note">Using a Crop Cleanser removes all cleanseable weather mutations from the selected crop.</p>${search}<div class="gc-cleanser-table-wrap">${table}</div>` : '<div class="gc-cleanser-empty">Select at least one mutation above.</div>'}`;
+  body.innerHTML = `<p>Choose one or more mutations to find crops with any of them.</p><div class="gc-cleanser-choices">${choices}</div>${selectedMutations.size ? `<p class="gc-cleanser-note">A Hydro Cleanser removes ${escapeHtml(groupLabels('Hydro'))}; a Lunar Cleanser removes ${escapeHtml(groupLabels('Lunar'))}; a Crop Cleanser removes both. Each crop uses the one that removes the selected mutations and keeps the most of its others.</p>${search}<div class="gc-cleanser-table-wrap">${table}</div>` : '<div class="gc-cleanser-empty">Select at least one mutation above.</div>'}`;
   updateCleanserControls(body);
   applyPlantSearch(body);
   const searchInput = body.querySelector<HTMLInputElement>('[data-cleanser-search]');
@@ -304,17 +347,18 @@ function render(): void {
       updateCleanserControls(body);
       return;
     }
-    if (cleansersFree() <= 0 || heldToolCount('CropCleanser') <= 0) {
-      toast('No Crop Cleansers are available.', 'error');
+    const cleanser = cleanserFor(row);
+    if (cleansersFree(cleanser.id) <= 0 || heldToolCount(cleanser.id) <= 0) {
+      toast(`No ${cleanser.name}s are available.`, 'error');
       return;
     }
     // Marked on the press, since the wait can take seconds and anything that redraws this row
     // meanwhile must not make it pressable. A failure takes the mark back off.
     cleansedRows.set(row.key, rowFingerprint(row));
     settledRows.delete(row.key);
-    unsentCleanses += 1;
+    unsentCleanses[cleanser.id] = (unsentCleanses[cleanser.id] || 0) + 1;
     updateCleanserControls(body);
-    const run = () => cleanse(row, body);
+    const run = () => cleanse(row, body, cleanser);
     // Both ways, so that one rejection cannot stop every later press from running.
     cleanseQueue = cleanseQueue.then(run, run);
   });

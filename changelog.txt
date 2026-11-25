@@ -1,5 +1,5 @@
 1.0.14
-- Crop Cleanser helper updated for the new cleansers
+- Crop Cleanser helper picks the Hydro, Lunar or Crop Cleanser that keeps the most mutations
 - Knows the new Hydro and Lunar Cleansers and the Dawnbound, Thunderstruck, Thundercharged and Amberbound potions
 
 1.0.13

@@ -20,12 +20,12 @@ test('a cleansed row stays disabled, so a second press cannot spend another clea
   const row = () => document.querySelector<HTMLButtonElement>('[data-cleanse-row="12:0"]')!;
   assert.equal(row().disabled, false);
   const count = () => document.querySelector('#gc-crop-cleanser > header [data-cleanser-count]')!.textContent;
-  assert.equal(count(), '3 owned');
+  assert.equal(count(), '3 Crop · 0 Hydro · 0 Lunar');
   row().click();
   await flushMicrotasks();
-  assert.deepEqual(socket.commands(), [{ type: 'CropCleanser', tileObjectIdx: 12, growSlotIdx: 0 }]);
+  assert.deepEqual(socket.commands(), [{ type: 'CropCleanser', toolId: 'CropCleanser', tileObjectIdx: 12, growSlotIdx: 0 }]);
   assert.equal(row().textContent, 'Cleansed');
-  assert.equal(count(), '2 owned');
+  assert.equal(count(), '2 Crop · 0 Hydro · 0 Lunar');
   assert.equal(row().disabled, true);
   row().click();
   await flushMicrotasks();
@@ -106,7 +106,7 @@ test('changing the selection cannot re-enable a crop cleansed moments ago', asyn
   // The same slot coming back with different mutations is a new target, not the one cleansed.
   setGarden({ 7: carrot(['Frozen']) }, 2);
   choice('Wet').click();
-  assert.equal(row().textContent, 'Cleanse');
+  assert.equal(row().textContent, 'Crop Cleanser');
   assert.equal(row().disabled, false);
   await settle();
 });
@@ -124,7 +124,7 @@ test('a crop regaining the same mutations can be cleansed again once the first h
   assert.equal(row().textContent, 'Cleansed', 'the list is not rebuilt until the selection changes');
   setGarden({ 8: carrot(['Wet']) }, 2);
   choice('Frozen').click();
-  assert.equal(row().textContent, 'Cleanse');
+  assert.equal(row().textContent, 'Crop Cleanser');
   assert.equal(row().disabled, false);
 });
 
@@ -143,7 +143,7 @@ test('reopening during a Tool Shack fetch keeps the row locked through the send'
   assert.equal(row().disabled, true, 'still locked after reopening');
   setGarden({ 9: carrot(['Wet']) }, 1, 1);
   await settle();
-  assert.deepEqual(socket.commands()[1], { type: 'CropCleanser', tileObjectIdx: 9, growSlotIdx: 0 });
+  assert.deepEqual(socket.commands()[1], { type: 'CropCleanser', toolId: 'CropCleanser', tileObjectIdx: 9, growSlotIdx: 0 });
   assert.equal(row().textContent, 'Cleansed');
   assert.equal(row().disabled, true);
   setGarden({ 9: carrot([]) }, 0, 1);
@@ -160,7 +160,7 @@ test('a fetch that cannot happen hands the row back', async () => {
   row().click();
   await flushMicrotasks();
   assert.equal(socket.commands().length, 0);
-  assert.equal(row().textContent, 'Cleanse');
+  assert.equal(row().textContent, 'Crop Cleanser');
   assert.equal(row().disabled, false);
 });
 
@@ -172,14 +172,14 @@ test('a second quick press waits for the first to echo before fetching its clean
   document.querySelector<HTMLButtonElement>('[data-cleanse-row="20:0"]')!.click();
   document.querySelector<HTMLButtonElement>('[data-cleanse-row="21:0"]')!.click();
   await flushMicrotasks();
-  assert.deepEqual(socket.commands(), [{ type: 'CropCleanser', tileObjectIdx: 20, growSlotIdx: 0 }]);
+  assert.deepEqual(socket.commands(), [{ type: 'CropCleanser', toolId: 'CropCleanser', tileObjectIdx: 20, growSlotIdx: 0 }]);
   setGarden({ 20: carrot([]), 21: carrot(['Wet']) }, 0, 1);
   await settle();
   assert.equal(socket.commands()[1]?.type, 'MoveItem');
   assert.equal(socket.commands().length, 2);
   setGarden({ 20: carrot([]), 21: carrot(['Wet']) }, 1, 0);
   await settle();
-  assert.deepEqual(socket.commands()[2], { type: 'CropCleanser', tileObjectIdx: 21, growSlotIdx: 0 });
+  assert.deepEqual(socket.commands()[2], { type: 'CropCleanser', toolId: 'CropCleanser', tileObjectIdx: 21, growSlotIdx: 0 });
   setGarden({ 20: carrot([]), 21: carrot([]) }, 0, 0);
   await settle();
 });
@@ -221,7 +221,7 @@ test('presses queued during a fetch cannot promise more cleansers than are owned
   row(40).click();
   row(41).click();
   assert.equal(row(42).disabled, true);
-  assert.equal(row(42).textContent, 'Cleanse');
+  assert.equal(row(42).textContent, 'Crop Cleanser');
   await flushMicrotasks();
   setGarden(garden, 1, 1);
   await settle();
@@ -232,4 +232,29 @@ test('presses queued during a fetch cannot promise more cleansers than are owned
   assert.deepEqual(socket.commands().filter(command => command.type === 'CropCleanser').map(command => command.tileObjectIdx), [40, 41]);
   setGarden(garden, 0, 0);
   await settle();
+});
+
+test('a crop keeping a Lunar mutation gets a Hydro Cleanser, and waits for one when none is owned', async () => {
+  const socket = new FakeSocket();
+  noteGameSocket(socket as unknown as WebSocket);
+  setGarden({ 50: carrot(['Wet', 'Dawnlit']) }, 3);
+  openWithSelection(['Wet']);
+  const row = () => document.querySelector<HTMLButtonElement>('[data-cleanse-row="50:0"]')!;
+  assert.equal(row().textContent, 'Hydro Cleanser');
+  assert.equal(row().disabled, true, 'a Crop Cleanser would take the Dawnlit too');
+  setGarden({ 50: carrot(['Wet', 'Dawnlit']) }, 3, 0, [{ itemType: 'Tool', toolId: 'HydroCleanser', quantity: 1 }]);
+  openWithSelection(['Wet']);
+  assert.equal(row().disabled, false);
+  row().click();
+  await flushMicrotasks();
+  assert.deepEqual(socket.commands(), [{ type: 'CropCleanser', toolId: 'HydroCleanser', tileObjectIdx: 50, growSlotIdx: 0 }]);
+  setGarden({ 50: carrot(['Dawnlit']) }, 3);
+  await settle();
+});
+
+test('both groups selected on one crop take a Crop Cleanser, and a tie prefers it', () => {
+  setGarden({ 51: carrot(['Wet', 'Dawnlit']), 52: carrot(['Frozen']) }, 1, 0, [{ itemType: 'Tool', toolId: 'HydroCleanser', quantity: 1 }]);
+  openWithSelection(['Wet', 'Dawnlit', 'Frozen']);
+  assert.equal(document.querySelector('[data-cleanse-row="51:0"]')!.textContent, 'Crop Cleanser');
+  assert.equal(document.querySelector('[data-cleanse-row="52:0"]')!.textContent, 'Crop Cleanser');
 });
