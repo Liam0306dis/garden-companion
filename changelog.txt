@@ -1,3 +1,6 @@
+1.0.15
+- Shop alarms for the Dawn, Thunder, Rain and Amber potions can be set before those shops open
+
 1.0.14
 - Crop Cleanser helper picks the Hydro, Lunar or Crop Cleanser that keeps the most mutations
 - Knows the new Hydro and Lunar Cleansers and the Dawnbound, Thunderstruck, Thundercharged and Amberbound potions
